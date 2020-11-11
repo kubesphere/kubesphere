@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere Authors.
+Copyright 2020 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package group
+package groupbinding
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -34,6 +35,7 @@ import (
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -47,7 +49,8 @@ type fixture struct {
 	ksclient  *fake.Clientset
 	k8sclient *k8sfake.Clientset
 	// Objects to put in the store.
-	groupLister []*v1alpha2.Group
+	groupBindingLister []*v1alpha2.GroupBinding
+	userLister         []*v1alpha2.User
 	// Actions expected to happen on the client.
 	kubeactions []core.Action
 	actions     []core.Action
@@ -64,13 +67,30 @@ func newFixture(t *testing.T) *fixture {
 	return f
 }
 
-func newGroup(name string) *v1alpha2.Group {
-	return &v1alpha2.Group{
+func newGroupBinding(name string, users []string) *v1alpha2.GroupBinding {
+	return &v1alpha2.GroupBinding{
+		TypeMeta: metav1.TypeMeta{APIVersion: v1alpha2.SchemeGroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-binding", name),
+		},
+		GroupRef: v1alpha2.GroupRef{
+			Name: name,
+		},
+		Users: users,
+	}
+}
+
+func newUser(name string) *v1alpha2.User {
+	return &v1alpha2.User{
 		TypeMeta: metav1.TypeMeta{APIVersion: v1alpha2.SchemeGroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: v1alpha2.GroupSpec{},
+		Spec: v1alpha2.UserSpec{
+			Email:       fmt.Sprintf("%s@kubesphere.io", name),
+			Lang:        "zh-CN",
+			Description: "fake user",
+		},
 	}
 }
 
@@ -81,16 +101,23 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 	ksinformers := ksinformers.NewSharedInformerFactory(f.ksclient, noResyncPeriodFunc())
 	k8sinformers := kubeinformers.NewSharedInformerFactory(f.k8sclient, noResyncPeriodFunc())
 
-	for _, group := range f.groupLister {
-		err := ksinformers.Iam().V1alpha2().Groups().Informer().GetIndexer().Add(group)
+	for _, groupBinding := range f.groupBindingLister {
+		err := ksinformers.Iam().V1alpha2().GroupBindings().Informer().GetIndexer().Add(groupBinding)
 		if err != nil {
-			f.t.Errorf("add group:%s", err)
+			f.t.Errorf("add groupBinding:%s", err)
+		}
+	}
+
+	for _, u := range f.userLister {
+		err := ksinformers.Iam().V1alpha2().Users().Informer().GetIndexer().Add(u)
+		if err != nil {
+			f.t.Errorf("add groupBinding:%s", err)
 		}
 	}
 
 	c := NewController(f.k8sclient, f.ksclient,
-		ksinformers.Iam().V1alpha2().Groups())
-	c.groupSynced = alwaysReady
+		ksinformers.Iam().V1alpha2().GroupBindings())
+	c.groupBindingSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
 	return c, ksinformers, k8sinformers
@@ -104,7 +131,7 @@ func (f *fixture) runExpectError(userName string) {
 	f.runController(userName, true, true)
 }
 
-func (f *fixture) runController(group string, startInformers bool, expectError bool) {
+func (f *fixture) runController(groupBinding string, startInformers bool, expectError bool) {
 	c, i, k8sI := f.newController()
 	if startInformers {
 		stopCh := make(chan struct{})
@@ -113,11 +140,11 @@ func (f *fixture) runController(group string, startInformers bool, expectError b
 		k8sI.Start(stopCh)
 	}
 
-	err := c.reconcile(group)
+	err := c.reconcile(groupBinding)
 	if !expectError && err != nil {
-		f.t.Errorf("error syncing group: %v", err)
+		f.t.Errorf("error syncing groupBinding: %v", err)
 	} else if expectError && err == nil {
-		f.t.Error("expected error syncing group, got nil")
+		f.t.Error("expected error syncing groupBinding, got nil")
 	}
 
 	actions := filterInformerActions(f.ksclient.Actions())
@@ -178,10 +205,10 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 		e, _ := expected.(core.UpdateActionImpl)
 		expObject := e.GetObject()
 		object := a.GetObject()
-		expUser := expObject.(*v1alpha2.Group)
-		group := object.(*v1alpha2.Group)
+		expUser := expObject.(*v1alpha2.GroupBinding)
+		groupBinding := object.(*v1alpha2.GroupBinding)
 
-		if !reflect.DeepEqual(expUser, group) {
+		if !reflect.DeepEqual(expUser, groupBinding) {
 			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
 		}
@@ -206,7 +233,12 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 func filterInformerActions(actions []core.Action) []core.Action {
 	var ret []core.Action
 	for _, action := range actions {
-		if !action.Matches("update", "groups") {
+		if len(action.GetNamespace()) == 0 &&
+			(action.Matches("list", "groupbindings") ||
+				action.Matches("watch", "groupbindings") ||
+				action.Matches("list", "users") ||
+				action.Matches("watch", "users") ||
+				action.Matches("get", "users")) {
 			continue
 		}
 		ret = append(ret, action)
@@ -215,59 +247,92 @@ func filterInformerActions(actions []core.Action) []core.Action {
 	return ret
 }
 
-func (f *fixture) expectUpdateGroupsFinalizerAction(group *v1alpha2.Group) {
-	expect := group.DeepCopy()
-	expect.Finalizers = []string{"finalizers.kubesphere.io/groups"}
-	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "groups"}, "", expect)
+func (f *fixture) expectUpdateGroupsFinalizerAction(groupBinding *v1alpha2.GroupBinding) {
+	expect := groupBinding.DeepCopy()
+	expect.Finalizers = []string{"finalizers.kubesphere.io/groupsbindings"}
+	action := core.NewUpdateAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"}, "", expect)
 	f.actions = append(f.actions, action)
 }
 
-func (f *fixture) expectUpdateGroupsDeleteAction(group *v1alpha2.Group) {
-	expect := group.DeepCopy()
+func (f *fixture) expectUpdateGroupsDeleteAction(groupBinding *v1alpha2.GroupBinding) {
+	expect := groupBinding.DeepCopy()
 	expect.Finalizers = []string{}
-	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "groups"}, "", expect)
+	action := core.NewUpdateAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"}, "", expect)
 	f.actions = append(f.actions, action)
 }
 
-func getKey(group *v1alpha2.Group, t *testing.T) string {
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(group)
+func (f *fixture) expectPatchUserAction(user *v1alpha2.User, groups []string) {
+	newUser := user.DeepCopy()
+	newUser.Spec.Groups = groups
+	patch := client.MergeFrom(user)
+	patchData, _ := patch.Data(newUser)
+
+	f.actions = append(f.actions, core.NewPatchAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Resource: "users", Version: "v1alpha2"}, user.Namespace, user.Name, patch.Type(), patchData))
+}
+
+func getKey(groupBinding *v1alpha2.GroupBinding, t *testing.T) string {
+	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(groupBinding)
 	if err != nil {
-		t.Errorf("Unexpected error getting key for group %v: %v", group.Name, err)
+		t.Errorf("Unexpected error getting key for groupBinding %v: %v", groupBinding.Name, err)
 		return ""
 	}
 	return key
 }
 
-func TestDeletesGroup(t *testing.T) {
+func TestCreatesGroupBinding(t *testing.T) {
 	f := newFixture(t)
-	group := newGroup("test")
 
-	f.groupLister = append(f.groupLister, group)
-	f.objects = append(f.objects, group)
+	users := []string{"user1"}
+	groupbinding := newGroupBinding("test", users)
+	groupbinding.ObjectMeta.Finalizers = append(groupbinding.ObjectMeta.Finalizers, finalizer)
+	f.groupBindingLister = append(f.groupBindingLister, groupbinding)
+	f.objects = append(f.objects, groupbinding)
 
-	f.expectUpdateGroupsFinalizerAction(group)
-	f.run(getKey(group, t))
+	user := newUser("user1")
+	f.userLister = append(f.userLister, user)
 
-	f = newFixture(t)
+	f.objects = append(f.objects, user)
 
-	deletedGroup := group.DeepCopy()
-	deletedGroup.Finalizers = []string{"finalizers.kubesphere.io/groups"}
+	excepctGroups := []string{"test"}
+	f.expectPatchUserAction(user, excepctGroups)
+
+	f.run(getKey(groupbinding, t))
+}
+
+func TestDeletesGroupBinding(t *testing.T) {
+	f := newFixture(t)
+
+	users := []string{"user1"}
+	groupbinding := newGroupBinding("test", users)
+	deletedGroup := groupbinding.DeepCopy()
+	deletedGroup.Finalizers = append(groupbinding.ObjectMeta.Finalizers, finalizer)
+
 	now := metav1.Now()
 	deletedGroup.ObjectMeta.DeletionTimestamp = &now
 
-	f.groupLister = append(f.groupLister, deletedGroup)
+	f.groupBindingLister = append(f.groupBindingLister, deletedGroup)
 	f.objects = append(f.objects, deletedGroup)
+
+	user := newUser("user1")
+	user.Spec.Groups = []string{"test"}
+	f.userLister = append(f.userLister, user)
+	f.objects = append(f.objects, user)
+
+	f.expectPatchUserAction(user, nil)
 	f.expectUpdateGroupsDeleteAction(deletedGroup)
+
 	f.run(getKey(deletedGroup, t))
 }
 
 func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
-	group := newGroup("test")
+	users := []string{"user1"}
+	groupBinding := newGroupBinding("test", users)
 
-	f.groupLister = append(f.groupLister, group)
-	f.objects = append(f.objects, group)
+	f.groupBindingLister = append(f.groupBindingLister, groupBinding)
+	f.objects = append(f.objects, groupBinding)
 
-	f.expectUpdateGroupsFinalizerAction(group)
-	f.run(getKey(group, t))
+	f.expectUpdateGroupsFinalizerAction(groupBinding)
+	f.run(getKey(groupBinding, t))
+
 }

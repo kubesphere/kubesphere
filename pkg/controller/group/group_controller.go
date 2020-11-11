@@ -227,6 +227,7 @@ func (c *Controller) deleteGroupBindings(group *iam1alpha2.Group) error {
 	return nil
 }
 
+// remove all RoleBindings.
 func (c *Controller) deleteRoleBindings(group *iam1alpha2.Group) error {
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{iam1alpha2.GroupReferenceLabel: group.Name}).String(),
