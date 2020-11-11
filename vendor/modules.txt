@@ -136,9 +136,9 @@ github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
 # github.com/emicklei/go-restful v2.14.3+incompatible => github.com/emicklei/go-restful v2.14.3+incompatible
 github.com/emicklei/go-restful
+github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.4.1 => github.com/emicklei/go-restful-openapi v1.4.1
 github.com/emicklei/go-restful-openapi
-github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -304,7 +304,7 @@ github.com/jmespath/go-jmespath
 github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 github.com/kevinburke/ssh_config
-# github.com/kiali/kiali v0.15.1-0.20200520152915-769a61d75460 => github.com/kubesphere/kiali v0.15.1-0.20200520152915-769a61d75460
+# github.com/kiali/kiali v1.25.0 => github.com/kubesphere/kiali v0.15.1-0.20201030070213-04b6506d6c7d
 github.com/kiali/kiali/business
 github.com/kiali/kiali/business/checkers
 github.com/kiali/kiali/business/checkers/destinationrules

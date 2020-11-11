@@ -37,9 +37,8 @@ func validateURL(serviceURL string) (*url.URL, error) {
 	return url.ParseRequestURI(serviceURL)
 }
 
-func checkNamespaceAccess(w http.ResponseWriter, k8s kubernetes.IstioClientInterface, prom prometheus.ClientInterface, namespace string) *models.Namespace {
-	layer := business.NewWithBackends(k8s, prom)
-
+func checkNamespaceAccess(w http.ResponseWriter, prom prometheus.ClientInterface, namespace string) *models.Namespace {
+	layer, _ := business.Get()
 	if nsInfo, err := layer.Namespace.GetNamespace(namespace); err != nil {
 		RespondWithError(w, http.StatusForbidden, "Cannot access namespace data: "+err.Error())
 		return nil
@@ -49,22 +48,15 @@ func checkNamespaceAccess(w http.ResponseWriter, k8s kubernetes.IstioClientInter
 }
 
 func initClientsForMetrics(w http.ResponseWriter, promSupplier promClientSupplier, k8sSupplier k8sClientSupplier, namespace string) (*prometheus.Client, kubernetes.IstioClientInterface, *models.Namespace) {
-	k8s, err := k8sSupplier()
-	if err != nil {
-		log.Error(err)
-		RespondWithError(w, http.StatusServiceUnavailable, "Kubernetes client error: "+err.Error())
-		return nil, nil, nil
-	}
 	prom, err := promSupplier()
 	if err != nil {
 		log.Error(err)
 		RespondWithError(w, http.StatusServiceUnavailable, "Prometheus client error: "+err.Error())
 		return nil, nil, nil
 	}
-
-	nsInfo := checkNamespaceAccess(w, k8s, prom, namespace)
+	nsInfo := checkNamespaceAccess(w, prom, namespace)
 	if nsInfo == nil {
 		return nil, nil, nil
 	}
-	return prom, k8s, nsInfo
+	return prom, nil, nsInfo
 }
