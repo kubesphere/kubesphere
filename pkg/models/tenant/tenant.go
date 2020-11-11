@@ -20,6 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,8 +56,6 @@ import (
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events"
 	loggingclient "kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"strings"
-	"time"
 )
 
 type Interface interface {
@@ -134,7 +135,7 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 	}
 
 	// retrieving associated resources through role binding
-	workspaceRoleBindings, err := t.am.ListWorkspaceRoleBindings(user.GetName(), "")
+	workspaceRoleBindings, err := t.am.ListWorkspaceRoleBindings(user.GetName(), user.GetGroups(), "")
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -205,7 +206,7 @@ func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace strin
 	}
 
 	// retrieving associated resources through role binding
-	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
+	roleBindings, err := t.am.ListRoleBindings(user.GetName(), user.GetGroups(), "")
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -273,7 +274,7 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	}
 
 	// retrieving associated resources through role binding
-	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
+	roleBindings, err := t.am.ListRoleBindings(user.GetName(), user.GetGroups(), "")
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -472,7 +473,7 @@ func (t *tenantOperator) ListClusters(user user.Info) (*api.ListResult, error) {
 		return result, nil
 	}
 
-	workspaceRoleBindings, err := t.am.ListWorkspaceRoleBindings(user.GetName(), "")
+	workspaceRoleBindings, err := t.am.ListWorkspaceRoleBindings(user.GetName(), user.GetGroups(), "")
 
 	if err != nil {
 		klog.Error(err)

@@ -31,6 +31,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
 	"kubesphere.io/kubesphere/pkg/controller/globalrole"
 	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/group"
+	"kubesphere.io/kubesphere/pkg/controller/groupbinding"
 	"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/network/ippool"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
@@ -258,6 +260,12 @@ func addControllers(
 		kubesphereInformer.Types().V1beta1().FederatedWorkspaces(),
 		multiClusterEnabled)
 
+	groupBindingController := groupbinding.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().GroupBindings())
+
+	groupController := group.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().Groups())
+
 	var clusterController manager.Runnable
 	if multiClusterEnabled {
 		clusterController = cluster.NewClusterController(
@@ -319,6 +327,8 @@ func addControllers(
 		"workspacerole-controller":        workspaceRoleController,
 		"workspacerolebinding-controller": workspaceRoleBindingController,
 		"ippool-controller":               ippoolController,
+		"groupbinding-controller":         groupBindingController,
+		"group-controller":                groupController,
 	}
 
 	if devopsClient != nil {

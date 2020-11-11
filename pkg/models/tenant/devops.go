@@ -18,6 +18,7 @@ package tenant
 
 import (
 	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,7 +67,7 @@ func (t *tenantOperator) ListDevOpsProjects(user user.Info, workspace string, qu
 		return result, nil
 	}
 
-	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
+	roleBindings, err := t.am.ListRoleBindings(user.GetName(), user.GetGroups(), "")
 	if err != nil {
 		klog.Error(err)
 		return nil, err
