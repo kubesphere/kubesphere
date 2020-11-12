@@ -18,15 +18,15 @@ package app
 
 import (
 	"fmt"
-	"github.com/kiali/kiali/business"
-	kconfig "github.com/kiali/kiali/config"
-	"github.com/kiali/kiali/kubernetes"
-	"github.com/kiali/kiali/prometheus"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/models/servicemesh/metrics/business"
+	kconfig "kubesphere.io/kubesphere/pkg/models/servicemesh/metrics/config"
+	"kubesphere.io/kubesphere/pkg/models/servicemesh/metrics/kubernetes"
+	"kubesphere.io/kubesphere/pkg/models/servicemesh/metrics/prometheus"
 
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"

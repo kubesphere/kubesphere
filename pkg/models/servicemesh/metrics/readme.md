@@ -1,0 +1,1 @@
+Forked from github.com/kubesphere/kiali v0.15.1-0.20201030070213-04b6506d6c7d to support prometheus client of new version

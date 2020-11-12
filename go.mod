@@ -37,26 +37,30 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
+	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/mock v1.2.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.4.0
 	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.1.1
-	github.com/gorilla/mux v1.7.1 // indirect
+	github.com/googleapis/gnostic v0.4.0 // indirect
+	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.4.1
-	github.com/hashicorp/go-version v1.2.0 // indirect
+	github.com/hashicorp/go-version v1.2.0
+	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/json-iterator/go v1.1.10
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
-	github.com/kiali/kiali v1.26.0
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
-	github.com/openshift/api v0.0.0-20180801171038-322a19404e37 // indirect
+	github.com/openshift/api v0.0.0-20200221181648-8ce0047d664f
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1
@@ -64,6 +68,7 @@ require (
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
 	github.com/prometheus/client_golang v1.8.0
 	github.com/prometheus/common v0.14.0
+	github.com/prometheus/procfs v0.0.10 // indirect
 	github.com/prometheus/prometheus v1.8.2
 	github.com/sony/sonyflake v1.0.0
 	github.com/speps/go-hashids v2.0.0+incompatible
@@ -75,7 +80,10 @@ require (
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
+	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/grpc v1.26.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
@@ -89,20 +97,21 @@ require (
 	k8s.io/apimachinery v0.17.3
 	k8s.io/apiserver v0.17.3
 	k8s.io/cli-runtime v0.17.3
-	k8s.io/client-go v0.17.3
+	k8s.io/client-go v11.0.1-0.20190820062731-7e43eff7c80a+incompatible
 	k8s.io/code-generator v0.17.3
 	k8s.io/component-base v0.17.3
 	k8s.io/gengo v0.0.0-20191120174120-e74f70b9b27e // indirect
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 	k8s.io/kubectl v0.17.3
-	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
+	k8s.io/utils v0.0.0-20200720150651-0bdb4ca86cbc
 	openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797
 	sigs.k8s.io/application v1.0.0
 	sigs.k8s.io/controller-runtime v0.5.0
 	sigs.k8s.io/controller-tools v0.2.4
 	sigs.k8s.io/kubefed v0.2.0-alpha.1
 	sigs.k8s.io/testing_frameworks v0.1.2
+	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
 replace (
@@ -283,7 +292,6 @@ replace (
 	github.com/kelseyhightower/envconfig => github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kevinburke/ssh_config => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 	github.com/keybase/go-ps => github.com/keybase/go-ps v0.0.0-20161005175911-668c8856d999
-	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20201110082537-0c2b977257d4
 	github.com/kisielk/errcheck => github.com/kisielk/errcheck v1.2.0
 	github.com/kisielk/gotool => github.com/kisielk/gotool v1.0.0
 	github.com/koding/multiconfig => github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7

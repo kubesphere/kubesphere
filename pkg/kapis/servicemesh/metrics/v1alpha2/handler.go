@@ -19,10 +19,10 @@ package v1alpha2
 import (
 	"fmt"
 	"github.com/emicklei/go-restful"
-	"github.com/kiali/kiali/handlers"
 	"io/ioutil"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/models/servicemesh/metrics/handlers"
 	"net/http"
 )
 

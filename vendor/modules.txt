@@ -322,14 +322,12 @@ github.com/kiali/kiali/graph
 github.com/kiali/kiali/graph/appender
 github.com/kiali/kiali/graph/cytoscape
 github.com/kiali/kiali/graph/options
-github.com/kiali/kiali/handlers
 github.com/kiali/kiali/kubernetes
 github.com/kiali/kiali/kubernetes/kubetest
 github.com/kiali/kiali/log
 github.com/kiali/kiali/models
 github.com/kiali/kiali/prometheus
 github.com/kiali/kiali/prometheus/internalmetrics
-github.com/kiali/kiali/status
 github.com/kiali/kiali/util
 github.com/kiali/kiali/util/intutil
 # github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7 => github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7

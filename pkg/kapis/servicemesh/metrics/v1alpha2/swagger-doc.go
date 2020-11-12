@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/kiali/kiali/graph/cytoscape"
-	"github.com/kiali/kiali/models"
-	"github.com/kiali/kiali/prometheus"
+	"kubesphere.io/kubesphere/pkg/models/servicemesh/metrics/graph/cytoscape"
+	"kubesphere.io/kubesphere/pkg/models/servicemesh/metrics/models"
+	"kubesphere.io/kubesphere/pkg/models/servicemesh/metrics/prometheus"
 )
 
 /////////////////////
