@@ -45,11 +45,11 @@ controller-manager: fmt vet
 	hack/gobuild.sh cmd/controller-manager
 
 # Run go fmt against code 
-fmt: generate
+fmt:
 	gofmt -w ./pkg ./cmd ./tools ./api
 
 # Run go vet against code
-vet: generate
+vet:
 	go vet ./pkg/... ./cmd/...
 
 # Generate manifests e.g. CRD, RBAC etc.
@@ -59,11 +59,6 @@ manifests:
 deploy: manifests
 	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
-
-# generate will generate crds' deepcopy & go openapi structs
-# Futher more about go:genreate . https://blog.golang.org/generate
-generate:
-	go generate ./pkg/... ./cmd/...
 
 mockgen:
 	mockgen -package=openpitrix -source=pkg/simple/client/openpitrix/openpitrix.go -destination=pkg/simple/client/openpitrix/mock.go

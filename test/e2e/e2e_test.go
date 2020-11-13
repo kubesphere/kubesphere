@@ -145,10 +145,10 @@ var _ = Describe("E2e for network policy", func() {
 		job := obj.(*batchv1.Job)
 		selector, _ := labels.Parse("app=nginx")
 		podlist := &corev1.PodList{}
-		Expect(ctx.Client.List(context.TODO(), &client.ListOptions{
+		Expect(ctx.Client.List(context.TODO(), podlist, &client.ListOptions{
 			Namespace:     deploy.Namespace,
 			LabelSelector: selector,
-		}, podlist)).ShouldNot(HaveOccurred())
+		})).ShouldNot(HaveOccurred())
 		Expect(podlist.Items).To(HaveLen(int(*deploy.Spec.Replicas)))
 		podip := podlist.Items[0].Status.PodIP
 		job.Spec.Template.Spec.Containers[0].Command = []string{"ping", "-c", "4", podip}
