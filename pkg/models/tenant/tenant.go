@@ -41,7 +41,6 @@ import (
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
@@ -92,11 +91,9 @@ type tenantOperator struct {
 	auditing       auditing.Interface
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Interface, auditingclient auditingclient.Client) Interface {
-	amOperator := am.NewReadOnlyOperator(informers)
-	authorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Interface, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer) Interface {
 	return &tenantOperator{
-		am:             amOperator,
+		am:             am,
 		authorizer:     authorizer,
 		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers),
 		k8sclient:      k8sclient,
