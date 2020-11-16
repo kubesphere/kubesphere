@@ -19,6 +19,10 @@ package user
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strconv"
+	"time"
+
 	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -49,10 +53,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
-	"time"
 )
 
 const (
@@ -286,12 +287,20 @@ func (c *Controller) reconcile(key string) error {
 		if sliceutil.HasString(user.ObjectMeta.Finalizers, finalizer) {
 
 			klog.V(4).Infof("delete user %s", key)
-			if err = c.ldapClient.Delete(key); err != nil && err != ldapclient.ErrUserNotExists {
+			// we do not need to delete the user from ldapServer when ldapClient is nil
+			if c.ldapClient != nil {
+				if err = c.ldapClient.Delete(key); err != nil && err != ldapclient.ErrUserNotExists {
+					klog.Error(err)
+					return err
+				}
+			}
+
+			if err = c.deleteRoleBindings(user); err != nil {
 				klog.Error(err)
 				return err
 			}
 
-			if err = c.deleteRoleBindings(user); err != nil {
+			if err = c.deleteGroupBindings(user); err != nil {
 				klog.Error(err)
 				return err
 			}
@@ -323,9 +332,12 @@ func (c *Controller) reconcile(key string) error {
 		return nil
 	}
 
-	if err = c.ldapSync(user); err != nil {
-		klog.Error(err)
-		return err
+	// we do not need to sync ldap info when ldapClient is nil
+	if c.ldapClient != nil {
+		if err = c.ldapSync(user); err != nil {
+			klog.Error(err)
+			return err
+		}
 	}
 
 	if user, err = c.ensurePasswordIsEncrypted(user); err != nil {
@@ -550,6 +562,22 @@ func (c *Controller) ldapSync(user *iamv1alpha2.User) error {
 		klog.V(4).Infof("update user %s", user.Name)
 		return c.ldapClient.Update(user)
 	}
+}
+
+func (c *Controller) deleteGroupBindings(user *iamv1alpha2.User) error {
+
+	// Groupbindings that created by kubeshpere will be deleted directly.
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: user.Name}).String(),
+	}
+	deleteOptions := metav1.NewDeleteOptions(0)
+
+	if err := c.ksClient.IamV1alpha2().GroupBindings().
+		DeleteCollection(deleteOptions, listOptions); err != nil {
+		klog.Error(err)
+		return err
+	}
+	return nil
 }
 
 func (c *Controller) deleteRoleBindings(user *iamv1alpha2.User) error {

@@ -18,10 +18,13 @@ package app
 
 import (
 	"fmt"
-
+	"github.com/kiali/kiali/business"
 	kconfig "github.com/kiali/kiali/config"
+	"github.com/kiali/kiali/kubernetes"
+	"github.com/kiali/kiali/prometheus"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/tools/clientcmd"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 
@@ -115,4 +118,16 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	config.ExternalServices.Istio.UrlServiceVersion = s.ServiceMeshOptions.IstioPilotHost
 
 	kconfig.Set(config)
+
+	// Set kiali config
+	kubeconfig, err := clientcmd.BuildConfigFromFlags("", s.KubernetesOptions.KubeConfig)
+	if err != nil {
+		fmt.Println(err)
+	}
+	k8sClient, err := kubernetes.NewClientFromConfig(kubeconfig)
+	if err != nil {
+		fmt.Println(err)
+	}
+	prometheusClient, _ := prometheus.NewClient()
+	business.SetWithBackends(k8sClient, prometheusClient)
 }

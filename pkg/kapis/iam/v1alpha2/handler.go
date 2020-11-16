@@ -18,6 +18,8 @@ package v1alpha2
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,21 +34,23 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	apirequest "kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/group"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
-	"strings"
 )
 
 type iamHandler struct {
 	am         am.AccessManagementInterface
 	im         im.IdentityManagementInterface
+	group      group.GroupOperator
 	authorizer authorizer.Authorizer
 }
 
-func newIAMHandler(im im.IdentityManagementInterface, am am.AccessManagementInterface, options *authoptions.AuthenticationOptions) *iamHandler {
+func newIAMHandler(im im.IdentityManagementInterface, am am.AccessManagementInterface, group group.GroupOperator, options *authoptions.AuthenticationOptions) *iamHandler {
 	return &iamHandler{
 		am:         am,
 		im:         im,
+		group:      group,
 		authorizer: authorizerfactory.NewRBACAuthorizer(am),
 	}
 }
@@ -54,6 +58,11 @@ func newIAMHandler(im im.IdentityManagementInterface, am am.AccessManagementInte
 type Member struct {
 	Username string `json:"username"`
 	RoleRef  string `json:"roleRef"`
+}
+
+type GroupMember struct {
+	UserName  string `json:"userName"`
+	GroupName string `json:"groupName"`
 }
 
 func (h *iamHandler) DescribeUser(request *restful.Request, response *restful.Response) {
@@ -141,7 +150,14 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralWorkspaceRole) {
 		workspace := request.PathParameter("workspace")
 		username := request.PathParameter("workspacemember")
-		workspaceRole, err := h.am.GetWorkspaceRoleOfUser(username, workspace)
+
+		user, err := h.im.DescribeUser(username)
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
+
+		workspaceRoles, err := h.am.GetWorkspaceRoleOfUser(username, user.Spec.Groups, workspace)
 		if err != nil {
 			// if role binding not exist return empty list
 			if errors.IsNotFound(err) {
@@ -151,19 +167,33 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			api.HandleInternalError(response, request, err)
 			return
 		}
+		templateRoles := make(map[string]*rbacv1.Role)
+		for _, role := range workspaceRoles {
+			// merge template Role
+			result, err := h.am.ListWorkspaceRoles(&query.Query{
+				Pagination: query.NoPagination,
+				SortBy:     "",
+				Ascending:  false,
+				Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(role.Name)},
+			})
 
-		result, err := h.am.ListWorkspaceRoles(&query.Query{
-			Pagination: query.NoPagination,
-			SortBy:     "",
-			Ascending:  false,
-			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(workspaceRole.Name)},
-		})
-		if err != nil {
-			api.HandleInternalError(response, request, err)
-			return
+			if err != nil {
+				api.HandleInternalError(response, request, err)
+				return
+			}
+
+			for _, obj := range result.Items {
+				templateRole := obj.(*rbacv1.Role)
+				templateRoles[templateRole.Name] = templateRole
+			}
 		}
 
-		response.WriteEntity(result.Items)
+		results := make([]*rbacv1.Role, 0, len(templateRoles))
+		for _, value := range templateRoles {
+			results = append(results, value)
+		}
+
+		response.WriteEntity(results)
 		return
 	}
 
@@ -175,8 +205,13 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			return
 		}
 
-		role, err := h.am.GetNamespaceRoleOfUser(username, namespace)
+		user, err := h.im.DescribeUser(username)
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
 
+		roles, err := h.am.GetNamespaceRoleOfUser(username, user.Spec.Groups, namespace)
 		if err != nil {
 			// if role binding not exist return empty list
 			if errors.IsNotFound(err) {
@@ -187,19 +222,33 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			return
 		}
 
-		result, err := h.am.ListRoles(namespace, &query.Query{
-			Pagination: query.NoPagination,
-			SortBy:     "",
-			Ascending:  false,
-			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(role.Name)},
-		})
+		templateRoles := make(map[string]*rbacv1.Role)
+		for _, role := range roles {
+			// merge template Role
+			result, err := h.am.ListRoles(namespace, &query.Query{
+				Pagination: query.NoPagination,
+				SortBy:     "",
+				Ascending:  false,
+				Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(role.Name)},
+			})
 
-		if err != nil {
-			api.HandleInternalError(response, request, err)
-			return
+			if err != nil {
+				api.HandleInternalError(response, request, err)
+				return
+			}
+
+			for _, obj := range result.Items {
+				templateRole := obj.(*rbacv1.Role)
+				templateRoles[templateRole.Name] = templateRole
+			}
 		}
 
-		response.WriteEntity(result.Items)
+		results := make([]*rbacv1.Role, 0, len(templateRoles))
+		for _, value := range templateRoles {
+			results = append(results, value)
+		}
+
+		response.WriteEntity(results)
 		return
 	}
 }
@@ -1273,4 +1322,224 @@ func handleError(request *restful.Request, response *restful.Response, err error
 	} else {
 		api.HandleInternalError(response, request, err)
 	}
+}
+
+func (h *iamHandler) ListWorkspaceGroups(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	queryParam := query.ParseQueryParameter(request)
+	result, err := h.group.ListGroups(workspaceName, queryParam)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(result)
+}
+
+func (h *iamHandler) CreateGroup(request *restful.Request, response *restful.Response) {
+	workspace := request.PathParameter("workspace")
+	var group iamv1alpha2.Group
+
+	err := request.ReadEntity(&group)
+
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	created, err := h.group.CreateGroup(workspace, &group)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	response.WriteEntity(created)
+}
+
+func (h *iamHandler) DescribeGroup(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	groupName := request.PathParameter("group")
+	ns, err := h.group.DescribeGroup(workspaceName, groupName)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(ns)
+}
+
+func (h *iamHandler) DeleteGroup(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	groupName := request.PathParameter("group")
+
+	err := h.group.DeleteGroup(workspaceName, groupName)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(servererr.None)
+}
+
+func (h *iamHandler) UpdateGroup(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	groupName := request.PathParameter("group")
+
+	var group iamv1alpha2.Group
+	err := request.ReadEntity(&group)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	if groupName != group.Name {
+		err := fmt.Errorf("the name of the object (%s) does not match the name on the URL (%s)", group.Name, groupName)
+		klog.Errorf("%+v", err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	updated, err := h.group.UpdateGroup(workspaceName, &group)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		if errors.IsBadRequest(err) {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(updated)
+}
+
+func (h *iamHandler) PatchGroup(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	groupName := request.PathParameter("group")
+
+	var group iamv1alpha2.Group
+	err := request.ReadEntity(&group)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	group.Name = groupName
+
+	patched, err := h.group.PatchGroup(workspaceName, &group)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		if errors.IsBadRequest(err) {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(patched)
+}
+
+func (h *iamHandler) ListGroupBindings(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	groupName := request.PathParameter("group")
+	queryParam := query.ParseQueryParameter(request)
+	result, err := h.group.ListGroupBindings(workspaceName, groupName, queryParam)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(result)
+}
+
+func (h *iamHandler) ListGroupsRoleBinding(request *restful.Request, response *restful.Response) {
+	//todo
+}
+
+func (h *iamHandler) ListGroupsWorkspaceRoleBinding(request *restful.Request, response *restful.Response) {
+	//todo
+}
+
+func (h *iamHandler) CreateGroupBinding(request *restful.Request, response *restful.Response) {
+
+	workspace := request.PathParameter("workspace")
+
+	var members []GroupMember
+	err := request.ReadEntity(&members)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	for _, item := range members {
+		err := h.group.CreateGroupBinding(workspace, item.GroupName, item.UserName)
+		if err != nil {
+			klog.Error(err)
+			handleError(request, response, err)
+			return
+		}
+	}
+
+	response.WriteEntity(members)
+}
+
+func (h *iamHandler) DeleteGroupBinding(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	name := request.PathParameter("groupbinding")
+
+	err := h.group.DeleteGroupBinding(workspaceName, name)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(servererr.None)
 }

@@ -20,6 +20,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ResourcePluralGroupBinding = "groupbindings"
+)
+
 // GroupRef defines the desired relation of GroupBinding
 type GroupRef struct {
 	APIGroup string `json:"apiGroup,omitempty"`

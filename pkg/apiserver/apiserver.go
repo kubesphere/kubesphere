@@ -20,6 +20,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
+	rt "runtime"
+	"time"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -65,6 +69,7 @@ import (
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/kapis/version"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/group"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -77,9 +82,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
-	"net/http"
-	rt "runtime"
-	"time"
 )
 
 const (
@@ -183,6 +185,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	imOperator := im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory, s.Config.AuthenticationOptions)
 	urlruntime.Must(iamapi.AddToContainer(s.container, imOperator,
 		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
+		group.New(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
 		s.Config.AuthenticationOptions))
 
 	urlruntime.Must(oauth.AddToContainer(s.container, imOperator,
@@ -290,7 +293,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
 		basictoken.New(basic.NewBasicAuthenticator(im.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(), s.Config.AuthenticationOptions))),
-		bearertoken.New(jwttoken.NewTokenAuthenticator(im.NewTokenOperator(s.CacheClient, s.Config.AuthenticationOptions))))
+		bearertoken.New(jwttoken.NewTokenAuthenticator(im.NewTokenOperator(s.CacheClient, s.Config.AuthenticationOptions), s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister())))
 	handler = filters.WithAuthentication(handler, authn, loginRecorder)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 	s.Server.Handler = handler
@@ -375,9 +378,13 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "users"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalroles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalrolebindings"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groups"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspaceroles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspacerolebindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "loginrecords"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groups"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
 	}

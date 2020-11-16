@@ -18,6 +18,7 @@ package basic
 
 import (
 	"context"
+
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
@@ -50,7 +51,7 @@ func (t *basicAuthenticator) AuthenticatePassword(ctx context.Context, username,
 		User: &user.DefaultInfo{
 			Name:   providedUser.GetName(),
 			UID:    providedUser.GetUID(),
-			Groups: []string{user.AllAuthenticated},
+			Groups: append(providedUser.GetGroups(), user.AllAuthenticated),
 		},
 	}, true, nil
 }

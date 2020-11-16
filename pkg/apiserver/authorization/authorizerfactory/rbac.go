@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
 	"github.com/open-policy-agent/opa/rego"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
@@ -259,7 +260,7 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 			workspace = requestAttributes.GetWorkspace()
 		}
 
-		if workspaceRoleBindings, err := r.am.ListWorkspaceRoleBindings("", workspace); err != nil {
+		if workspaceRoleBindings, err := r.am.ListWorkspaceRoleBindings("", nil, workspace); err != nil {
 			if !visitor(nil, "", nil, err) {
 				return
 			}
@@ -304,7 +305,7 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 			}
 		}
 
-		if roleBindings, err := r.am.ListRoleBindings("", namespace); err != nil {
+		if roleBindings, err := r.am.ListRoleBindings("", nil, namespace); err != nil {
 			if !visitor(nil, "", nil, err) {
 				return
 			}
