@@ -118,9 +118,8 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	var ldapClient ldapclient.Interface
-	if s.LdapOptions == nil || len(s.LdapOptions.Host) == 0 {
-		return fmt.Errorf("ldap service address MUST not be empty")
-	} else {
+	// when there is no ldapOption, we set ldapClient as nil, which means we don't need to sync user info into ldap.
+	if s.LdapOptions != nil && len(s.LdapOptions.Host) != 0 {
 		if s.LdapOptions.Host == ldapclient.FAKE_HOST { // for debug only
 			ldapClient = ldapclient.NewSimpleLdap()
 		} else {
@@ -129,6 +128,8 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 				return fmt.Errorf("failed to connect to ldap service, please check ldap status, error: %v", err)
 			}
 		}
+	} else {
+		klog.Info("Kubesphere-controller-manager starts without ldap option, it will not sync user into ldap")
 	}
 
 	var openpitrixClient openpitrix.Client

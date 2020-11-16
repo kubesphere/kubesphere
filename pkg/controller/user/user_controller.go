@@ -287,9 +287,12 @@ func (c *Controller) reconcile(key string) error {
 		if sliceutil.HasString(user.ObjectMeta.Finalizers, finalizer) {
 
 			klog.V(4).Infof("delete user %s", key)
-			if err = c.ldapClient.Delete(key); err != nil && err != ldapclient.ErrUserNotExists {
-				klog.Error(err)
-				return err
+			// we do not need to delete the user from ldapServer when ldapClient is nil
+			if c.ldapClient != nil {
+				if err = c.ldapClient.Delete(key); err != nil && err != ldapclient.ErrUserNotExists {
+					klog.Error(err)
+					return err
+				}
 			}
 
 			if err = c.deleteRoleBindings(user); err != nil {
@@ -329,9 +332,12 @@ func (c *Controller) reconcile(key string) error {
 		return nil
 	}
 
-	if err = c.ldapSync(user); err != nil {
-		klog.Error(err)
-		return err
+	// we do not need to sync ldap info when ldapClient is nil
+	if c.ldapClient != nil {
+		if err = c.ldapSync(user); err != nil {
+			klog.Error(err)
+			return err
+		}
 	}
 
 	if user, err = c.ensurePasswordIsEncrypted(user); err != nil {
