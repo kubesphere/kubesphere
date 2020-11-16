@@ -129,7 +129,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 			}
 		}
 	} else {
-		klog.Info("Kubesphere-controller-manager starts without ldap option, it will not sync user into ldap")
+		klog.Warning("ks-controller-manager starts without ldap provided, it will not sync user into ldap")
 	}
 
 	var openpitrixClient openpitrix.Client

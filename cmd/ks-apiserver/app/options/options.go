@@ -155,9 +155,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	var cacheClient cache.Interface
-	if s.RedisOptions == nil || len(s.RedisOptions.Host) == 0 {
-		return nil, fmt.Errorf("redis service address MUST not be empty, please check configmap/kubesphere-config in kubesphere-system namespace")
-	} else {
+	if s.RedisOptions != nil && len(s.RedisOptions.Host) != 0 {
 		if s.RedisOptions.Host == fakeInterface && s.DebugMode {
 			apiServer.CacheClient = cache.NewSimpleCache()
 		} else {
@@ -167,6 +165,10 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			}
 			apiServer.CacheClient = cacheClient
 		}
+	} else {
+		klog.Warning("ks-apiserver starts without redis provided, it will use in memory cache. " +
+			"This may cause inconsistencies when running ks-apiserver with multiple replicas.")
+		apiServer.CacheClient = cache.NewSimpleCache()
 	}
 
 	if s.EventsOptions.Host != "" {
