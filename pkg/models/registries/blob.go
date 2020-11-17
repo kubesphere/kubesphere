@@ -49,7 +49,7 @@ func (r *Registry) ImageBlob(image Image, token string) (*ImageBlob, error) {
 	respBody, _ := GetRespBody(resp)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
-		log.Error("got response: " + string(resp.StatusCode) + string(respBody))
+		log.Errorf("got response: statusCode is '%d', body is '%s'\n", resp.StatusCode, respBody)
 		return nil, fmt.Errorf("got image blob faild")
 	}
 
