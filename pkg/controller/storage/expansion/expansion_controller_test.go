@@ -67,16 +67,16 @@ func TestSyncHandler(t *testing.T) {
 	}{
 		{
 			name: "mount pvc on deploy",
-			pvc:  getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123)),
+			pvc:  getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(fmt.Sprintf("%d", 123))),
 			sc:   getFakeStorageClass("fake-sc", "fake.sc.com"),
 			deploy: getFakeDeployment("fake-deploy", "234", 1,
-				getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123))),
+				getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(fmt.Sprintf("%d", 123)))),
 			pvcKey:   "default/fake-pvc",
 			hasError: false,
 		},
 		{
 			name:     "unmounted pvc",
-			pvc:      getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123)),
+			pvc:      getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(fmt.Sprintf("%d", 123))),
 			sc:       getFakeStorageClass("fake-sc", "fake.sc.com"),
 			pvcKey:   "default/fake-pvc",
 			hasError: true,
