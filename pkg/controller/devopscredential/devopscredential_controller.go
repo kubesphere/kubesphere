@@ -34,6 +34,7 @@ import (
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -230,6 +231,11 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
+	//If the sync is successful, return handle
+	if state, ok := secret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+		return nil
+	}
+
 	copySecret := secret.DeepCopy()
 	// DeletionTimestamp.IsZero() means copySecret has not been deleted.
 	if secret.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -255,6 +261,8 @@ func (c *Controller) syncHandler(key string) error {
 				return err
 			}
 		}
+		//If there is no early return, then the sync is successful.
+		copySecret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
@@ -275,7 +283,6 @@ func (c *Controller) syncHandler(key string) error {
 			return err
 		}
 	}
-
 	return nil
 }
 

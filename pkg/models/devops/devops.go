@@ -173,6 +173,8 @@ func (d devopsOperator) CreateDevOpsProject(workspace string, project *v1alpha3.
 	}
 	project.Name = ""
 	project.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
+	project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = StatusPending
+	project.Annotations[devopsv1alpha3.DevOpeProjectSyncTimeAnnoKey] = GetSyncNowTime()
 	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Create(project)
 }
 
@@ -189,6 +191,8 @@ func (d devopsOperator) UpdateDevOpsProject(workspace string, project *v1alpha3.
 		project.Labels = make(map[string]string, 0)
 	}
 	project.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
+	project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = StatusPending
+	project.Annotations[devopsv1alpha3.DevOpeProjectSyncTimeAnnoKey] = GetSyncNowTime()
 	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Update(project)
 }
 
@@ -219,6 +223,8 @@ func (d devopsOperator) CreatePipelineObj(projectName string, pipeline *v1alpha3
 	if err != nil {
 		return nil, err
 	}
+	projectObj.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = StatusPending
+	projectObj.Annotations[devopsv1alpha3.PipelineSyncTimeAnnoKey] = GetSyncNowTime()
 	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Create(pipeline)
 }
 
@@ -243,6 +249,8 @@ func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3
 	if err != nil {
 		return nil, err
 	}
+	projectObj.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = StatusPending
+	projectObj.Annotations[devopsv1alpha3.PipelineSyncTimeAnnoKey] = GetSyncNowTime()
 	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Update(pipeline)
 }
 
@@ -274,10 +282,12 @@ func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (
 //credentialobj in crd
 func (d devopsOperator) CreateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
-	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
 	if err != nil {
 		return nil, err
 	}
+	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
+	secret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = StatusPending
+	secret.Annotations[devopsv1alpha3.CredentialSyncTimeAnnoKey] = GetSyncNowTime()
 	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Create(secret)
 }
 
@@ -299,10 +309,12 @@ func (d devopsOperator) DeleteCredentialObj(projectName string, secret string) e
 
 func (d devopsOperator) UpdateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
-	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
 	if err != nil {
 		return nil, err
 	}
+	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
+	secret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = StatusPending
+	secret.Annotations[devopsv1alpha3.CredentialSyncTimeAnnoKey] = GetSyncNowTime()
 	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Update(secret)
 }
 

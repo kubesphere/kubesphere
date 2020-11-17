@@ -37,6 +37,7 @@ import (
 	tenantv1alpha1informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	tenantv1alpha1listers "kubesphere.io/kubesphere/pkg/client/listers/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -212,6 +213,10 @@ func (c *Controller) syncHandler(key string) error {
 		klog.V(8).Info(err, fmt.Sprintf("could not get devopsproject %s ", key))
 		return err
 	}
+	//If the sync is successful, return handle
+	if state, ok := project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+		return nil
+	}
 	copyProject := project.DeepCopy()
 	// DeletionTimestamp.IsZero() means DevOps project has not been deleted.
 	if project.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -302,14 +307,6 @@ func (c *Controller) syncHandler(key string) error {
 			}
 		}
 
-		if !reflect.DeepEqual(copyProject, project) {
-			copyProject, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
-			if err != nil {
-				klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
-				return err
-			}
-		}
-
 		if copyProject, err = c.bindWorkspace(copyProject); err != nil {
 			klog.Error(err)
 			return err
@@ -322,6 +319,19 @@ func (c *Controller) syncHandler(key string) error {
 			_, err := c.devopsClient.CreateDevOpsProject(copyProject.Status.AdminNamespace)
 			if err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to get project %s ", key))
+				return err
+			}
+		}
+
+		//If there is no early return, then the sync is successful.
+		if copyProject.Annotations == nil {
+			copyProject.Annotations = map[string]string{}
+		}
+		copyProject.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
+		if !reflect.DeepEqual(copyProject, project) {
+			copyProject, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
+			if err != nil {
+				klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
 				return err
 			}
 		}
