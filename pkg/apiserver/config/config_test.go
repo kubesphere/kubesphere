@@ -105,6 +105,7 @@ func newTestConfig() (*Config, error) {
 			NSNPOptions: network.NSNPOptions{
 				AllowedIngressNamespaces: []string{},
 			},
+			WeaveScopeHost: "weave-scope-app.weave",
 		},
 		MonitoringOptions: &prometheus.Options{
 			Endpoint: "http://prometheus.kubesphere-monitoring-system.svc",
