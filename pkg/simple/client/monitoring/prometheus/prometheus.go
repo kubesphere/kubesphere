@@ -45,7 +45,7 @@ func NewPrometheus(options *Options) (monitoring.Interface, error) {
 func (p prometheus) GetMetric(expr string, ts time.Time) monitoring.Metric {
 	var parsedResp monitoring.Metric
 
-	value, err := p.client.Query(context.Background(), expr, ts)
+	value, _, err := p.client.Query(context.Background(), expr, ts)
 	if err != nil {
 		parsedResp.Error = err.Error()
 	} else {
@@ -62,7 +62,7 @@ func (p prometheus) GetMetricOverTime(expr string, start, end time.Time, step ti
 		Step:  step,
 	}
 
-	value, err := p.client.QueryRange(context.Background(), expr, timeRange)
+	value, _, err := p.client.QueryRange(context.Background(), expr, timeRange)
 
 	var parsedResp monitoring.Metric
 	if err != nil {
@@ -86,7 +86,7 @@ func (p prometheus) GetNamedMetrics(metrics []string, ts time.Time, o monitoring
 		go func(metric string) {
 			parsedResp := monitoring.Metric{MetricName: metric}
 
-			value, err := p.client.Query(context.Background(), makeExpr(metric, *opts), ts)
+			value, _, err := p.client.Query(context.Background(), makeExpr(metric, *opts), ts)
 			if err != nil {
 				parsedResp.Error = err.Error()
 			} else {
@@ -125,7 +125,7 @@ func (p prometheus) GetNamedMetricsOverTime(metrics []string, start, end time.Ti
 		go func(metric string) {
 			parsedResp := monitoring.Metric{MetricName: metric}
 
-			value, err := p.client.QueryRange(context.Background(), makeExpr(metric, *opts), timeRange)
+			value, _, err := p.client.QueryRange(context.Background(), makeExpr(metric, *opts), timeRange)
 			if err != nil {
 				parsedResp.Error = err.Error()
 			} else {
@@ -176,7 +176,7 @@ func (p prometheus) GetMetadata(namespace string) []monitoring.Metadata {
 func (p prometheus) GetMetricLabelSet(expr string, start, end time.Time) []map[string]string {
 	var res []map[string]string
 
-	labelSet, err := p.client.Series(context.Background(), []string{expr}, start, end)
+	labelSet, _, err := p.client.Series(context.Background(), []string{expr}, start, end)
 	if err != nil {
 		klog.Error(err)
 		return []map[string]string{}

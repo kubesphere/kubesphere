@@ -11,6 +11,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package log implements logging via logrus.
+//
+// Deprecated: This package has been replaced with github.com/prometheus/common/promlog.
+
 package log
 
 import (

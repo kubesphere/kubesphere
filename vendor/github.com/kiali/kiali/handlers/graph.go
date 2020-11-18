@@ -933,7 +933,7 @@ func promQuery(query string, queryTime time.Time, api v1.API) model.Vector {
 	log.Debugf("Graph query:\n%s@time=%v (now=%v, %v)\n", query, queryTime.Format(graph.TF), time.Now().Format(graph.TF), queryTime.Unix())
 
 	promtimer := internalmetrics.GetPrometheusProcessingTimePrometheusTimer("Graph-Generation")
-	value, err := api.Query(ctx, query, queryTime)
+	value, _, err := api.Query(ctx, query, queryTime)
 	graph.CheckError(err)
 	promtimer.ObserveDuration() // notice we only collect metrics for successful prom queries
 
