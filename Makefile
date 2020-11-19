@@ -79,6 +79,8 @@ openapi:
 # Build the docker image
 docker-build: all
 	hack/docker_build.sh
+docker-build-no-test: ks-apiserver controller-manager
+	hack/docker_build.sh
 
 # Run tests
 test: fmt vet
