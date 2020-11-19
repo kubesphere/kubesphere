@@ -108,10 +108,12 @@ type GitSource struct {
 	Url              string          `json:"url,omitempty" mapstructure:"url" description:"url of git source"`
 	CredentialId     string          `json:"credential_id,omitempty" mapstructure:"credential_id" description:"credential id to access git source"`
 	DiscoverBranches bool            `json:"discover_branches,omitempty" mapstructure:"discover_branches" description:"Whether to discover a branch"`
+	DiscoverTags     bool            `json:"discover_tags,omitempty" mapstructure:"discover_tags" description:"Discover tags configuration"`
 	CloneOption      *GitCloneOption `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
 	RegexFilter      string          `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
 }
 
+// GithubSource and BitbucketServerSource have the same structure, but we don't use one due to crd errors
 type GithubSource struct {
 	ScmId                string               `json:"scm_id,omitempty" description:"uid of scm"`
 	Owner                string               `json:"owner,omitempty" mapstructure:"owner" description:"owner of github repo"`
@@ -121,13 +123,9 @@ type GithubSource struct {
 	DiscoverBranches     int                  `json:"discover_branches,omitempty" mapstructure:"discover_branches" description:"Discover branch configuration"`
 	DiscoverPRFromOrigin int                  `json:"discover_pr_from_origin,omitempty" mapstructure:"discover_pr_from_origin" description:"Discover origin PR configuration"`
 	DiscoverPRFromForks  *DiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
+	DiscoverTags         bool                 `json:"discover_tags,omitempty" mapstructure:"discover_tags" description:"Discover tag configuration"`
 	CloneOption          *GitCloneOption      `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
 	RegexFilter          string               `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
-}
-
-type MultiBranchJobTrigger struct {
-	CreateActionJobsToTrigger string `json:"create_action_job_to_trigger,omitempty" description:"pipeline name to trigger"`
-	DeleteActionJobsToTrigger string `json:"delete_action_job_to_trigger,omitempty" description:"pipeline name to trigger"`
 }
 
 type BitbucketServerSource struct {
@@ -139,8 +137,14 @@ type BitbucketServerSource struct {
 	DiscoverBranches     int                  `json:"discover_branches,omitempty" mapstructure:"discover_branches" description:"Discover branch configuration"`
 	DiscoverPRFromOrigin int                  `json:"discover_pr_from_origin,omitempty" mapstructure:"discover_pr_from_origin" description:"Discover origin PR configuration"`
 	DiscoverPRFromForks  *DiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
+	DiscoverTags         bool                 `json:"discover_tags,omitempty" mapstructure:"discover_tags" description:"Discover tag configuration"`
 	CloneOption          *GitCloneOption      `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
 	RegexFilter          string               `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
+}
+
+type MultiBranchJobTrigger struct {
+	CreateActionJobsToTrigger string `json:"create_action_job_to_trigger,omitempty" description:"pipeline name to trigger"`
+	DeleteActionJobsToTrigger string `json:"delete_action_job_to_trigger,omitempty" description:"pipeline name to trigger"`
 }
 
 type GitCloneOption struct {

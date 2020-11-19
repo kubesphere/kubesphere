@@ -4459,6 +4459,366 @@
         }
       }
     },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groupbindings": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Create GroupBinding to add a user to the group",
+        "operationId": "CreateGroupBinding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1alpha2.GroupMember"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.GroupBinding"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groupbindings/{groupbinding}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Delete GroupBinding to remove user from the group.",
+        "operationId": "DeleteGroupBinding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "groupbinding name",
+            "name": "groupbinding",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/errors.Error"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "List groups of the specified workspace.",
+        "operationId": "ListWorkspaceGroups",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Create Group",
+        "operationId": "CreateGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.Group"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.Group"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups/{group}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Retrieve group details.",
+        "operationId": "DescribeGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "group name",
+            "name": "group",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.Group"
+            }
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Update Group",
+        "operationId": "UpdateGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "group name",
+            "name": "group",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.Group"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.Group"
+            }
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Delete group.",
+        "operationId": "DeleteGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "group name",
+            "name": "group",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/errors.Error"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups/{group}/groupbindings": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Retrieve group's members in the workspace.",
+        "operationId": "ListGroupBindings",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "group name",
+            "name": "group",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups/{group}/rolebindings": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Retrieve group's rolebindings of all projects in the workspace.",
+        "operationId": "ListGroupsRoleBinding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "group name",
+            "name": "group",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups/{group}/workspacerolebinding": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Retrieve group's workspacerolebindings of the workspace.",
+        "operationId": "ListGroupsWorkspaceRoleBinding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "group name",
+            "name": "group",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      }
+    },
     "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/workspacemembers": {
       "get": {
         "produces": [
@@ -12014,7 +12374,7 @@
         }
       }
     },
-    "/kapis/terminal.kubesphere.io/v1alpha2/namespaces/{namespace}/pods/{pod}": {
+    "/kapis/terminal.kubesphere.io/v1alpha2/namespaces/{namespace}/pods/{pod}/exec": {
       "get": {
         "produces": [
           "application/json"
@@ -12340,11 +12700,12 @@
           "type": "string"
         },
         "value": {
-          "description": "value",
-          "type": "string"
+          "description": "value, string or bool type",
+          "$ref": "#/definitions/.defaultParameterValue.value"
         }
       }
     },
+    ".defaultParameterValue.value": {},
     ".latestRun": {
       "properties": {
         "_class": {
@@ -20590,6 +20951,80 @@
         }
       }
     },
+    "v1alpha2.Group": {
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/v1alpha2.GroupSpec"
+        },
+        "status": {
+          "$ref": "#/definitions/v1alpha2.GroupStatus"
+        }
+      }
+    },
+    "v1alpha2.GroupBinding": {
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "groupRef": {
+          "$ref": "#/definitions/v1alpha2.GroupRef"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1alpha2.GroupMember": {
+      "required": [
+        "userName",
+        "groupName"
+      ],
+      "properties": {
+        "groupName": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.GroupRef": {
+      "properties": {
+        "apiGroup": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.GroupSpec": {},
+    "v1alpha2.GroupStatus": {},
     "v1alpha2.HealthStatus": {
       "required": [
         "kubesphereStatus",
@@ -20720,10 +21155,10 @@
     },
     "v1alpha2.Node": {
       "required": [
-        "label",
-        "rank",
         "id",
+        "label",
         "labelMinor",
+        "rank",
         "controls"
       ],
       "properties": {
@@ -20831,10 +21266,10 @@
     },
     "v1alpha2.NodeSummary": {
       "required": [
-        "labelMinor",
-        "rank",
         "id",
-        "label"
+        "label",
+        "labelMinor",
+        "rank"
       ],
       "properties": {
         "adjacency": {
@@ -21272,6 +21707,10 @@
           "type": "integer",
           "format": "int32"
         },
+        "discover_tags": {
+          "description": "Discover tag configuration",
+          "type": "boolean"
+        },
         "git_clone_option": {
           "description": "advavced git clone options",
           "$ref": "#/definitions/v1alpha3.GitCloneOption"
@@ -21377,6 +21816,10 @@
           "description": "Whether to discover a branch",
           "type": "boolean"
         },
+        "discover_tags": {
+          "description": "Discover tags configuration",
+          "type": "boolean"
+        },
         "git_clone_option": {
           "description": "advavced git clone options",
           "$ref": "#/definitions/v1alpha3.GitCloneOption"
@@ -21418,6 +21861,10 @@
           "description": "Discover origin PR configuration",
           "type": "integer",
           "format": "int32"
+        },
+        "discover_tags": {
+          "description": "Discover tag configuration",
+          "type": "boolean"
         },
         "git_clone_option": {
           "description": "advavced git clone options",

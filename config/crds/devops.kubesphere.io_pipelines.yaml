@@ -53,6 +53,8 @@ spec:
                       type: object
                     discover_pr_from_origin:
                       type: integer
+                    discover_tags:
+                      type: boolean
                     git_clone_option:
                       properties:
                         depth:
@@ -86,6 +88,8 @@ spec:
                       type: string
                     discover_branches:
                       type: boolean
+                    discover_tags:
+                      type: boolean
                     git_clone_option:
                       properties:
                         depth:
@@ -103,6 +107,8 @@ spec:
                       type: string
                   type: object
                 github_source:
+                  description: GithubSource and BitbucketServerSource have the same
+                    structure, but we don't use one due to crd errors
                   properties:
                     api_uri:
                       type: string
@@ -119,6 +125,8 @@ spec:
                       type: object
                     discover_pr_from_origin:
                       type: integer
+                    discover_tags:
+                      type: boolean
                     git_clone_option:
                       properties:
                         depth:

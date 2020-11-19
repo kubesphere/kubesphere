@@ -262,6 +262,9 @@ func appendGitSourceToEtree(source *etree.Element, gitSource *devopsv1alpha3.Git
 	if gitSource.DiscoverBranches {
 		traits.CreateElement("jenkins.plugins.git.traits.BranchDiscoveryTrait")
 	}
+	if gitSource.DiscoverTags {
+		traits.CreateElement("jenkins.plugins.git.traits.TagDiscoveryTrait")
+	}
 	if gitSource.CloneOption != nil {
 		cloneExtension := traits.CreateElement("jenkins.plugins.git.traits.CloneOptionTrait").CreateElement("extension")
 		cloneExtension.CreateAttr("class", "hudson.plugins.git.extensions.impl.CloneOption")
@@ -303,6 +306,10 @@ func getGitSourcefromEtree(source *etree.Element) *devopsv1alpha3.GitSource {
 	if branchDiscoverTrait := traits.SelectElement(
 		"jenkins.plugins.git.traits.BranchDiscoveryTrait"); branchDiscoverTrait != nil {
 		gitSource.DiscoverBranches = true
+	}
+	if tagDiscoverTrait := traits.SelectElement(
+		"jenkins.plugins.git.traits.TagDiscoveryTrait"); tagDiscoverTrait != nil {
+		gitSource.DiscoverTags = true
 	}
 	if cloneTrait := traits.SelectElement(
 		"jenkins.plugins.git.traits.CloneOptionTrait"); cloneTrait != nil {
@@ -348,6 +355,10 @@ func getGithubSourcefromEtree(source *etree.Element) *devopsv1alpha3.GithubSourc
 		"org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait"); branchDiscoverTrait != nil {
 		strategyId, _ := strconv.Atoi(branchDiscoverTrait.SelectElement("strategyId").Text())
 		githubSource.DiscoverBranches = strategyId
+	}
+	if tagDiscoverTrait := traits.SelectElement(
+		"org.jenkinsci.plugins.github__branch__source.TagDiscoveryTrait"); tagDiscoverTrait != nil {
+		githubSource.DiscoverTags = true
 	}
 	if originPRDiscoverTrait := traits.SelectElement(
 		"org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait"); originPRDiscoverTrait != nil {
@@ -444,6 +455,9 @@ func appendGithubSourceToEtree(source *etree.Element, githubSource *devopsv1alph
 		}
 		forkTrait.CreateElement("trust").CreateAttr("class", trustClass)
 	}
+	if githubSource.DiscoverTags {
+		traits.CreateElement("org.jenkinsci.plugins.github__branch__source.TagDiscoveryTrait")
+	}
 	if githubSource.CloneOption != nil {
 		cloneExtension := traits.CreateElement("jenkins.plugins.git.traits.CloneOptionTrait").CreateElement("extension")
 		cloneExtension.CreateAttr("class", "hudson.plugins.git.extensions.impl.CloneOption")
@@ -490,6 +504,10 @@ func getBitbucketServerSourceFromEtree(source *etree.Element) *devopsv1alpha3.Bi
 		"com.cloudbees.jenkins.plugins.bitbucket.BranchDiscoveryTrait"); branchDiscoverTrait != nil {
 		strategyId, _ := strconv.Atoi(branchDiscoverTrait.SelectElement("strategyId").Text())
 		s.DiscoverBranches = strategyId
+	}
+	if tagDiscoverTrait := traits.SelectElement(
+		"com.cloudbees.jenkins.plugins.bitbucket.TagDiscoveryTrait"); tagDiscoverTrait != nil {
+		s.DiscoverTags = true
 	}
 	if originPRDiscoverTrait := traits.SelectElement(
 		"com.cloudbees.jenkins.plugins.bitbucket.OriginPullRequestDiscoveryTrait"); originPRDiscoverTrait != nil {
@@ -578,6 +596,9 @@ func appendBitbucketServerSourceToEtree(source *etree.Element, s *devopsv1alpha3
 			trustClass += "TrustEveryone"
 		}
 		forkTrait.CreateElement("trust").CreateAttr("class", trustClass)
+	}
+	if s.DiscoverTags {
+		traits.CreateElement("com.cloudbees.jenkins.plugins.bitbucket.TagDiscoveryTrait")
 	}
 	if s.CloneOption != nil {
 		cloneExtension := traits.CreateElement("jenkins.plugins.git.traits.CloneOptionTrait").CreateElement("extension")
