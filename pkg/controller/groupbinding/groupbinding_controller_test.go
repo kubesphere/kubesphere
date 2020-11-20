@@ -117,7 +117,7 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 
 	c := NewController(f.k8sclient, f.ksclient,
 		ksinformers.Iam().V1alpha2().GroupBindings())
-	c.groupBindingSynced = alwaysReady
+	c.Synced = []cache.InformerSynced{alwaysReady}
 	c.recorder = &record.FakeRecorder{}
 
 	return c, ksinformers, k8sinformers

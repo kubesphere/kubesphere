@@ -18,7 +18,6 @@ package group
 
 import (
 	"fmt"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -38,6 +36,7 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha1listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/utils/controller"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
@@ -49,13 +48,12 @@ const (
 )
 
 type Controller struct {
+	controller.BaseController
 	scheme        *runtime.Scheme
 	k8sClient     kubernetes.Interface
 	ksClient      kubesphere.Interface
 	groupInformer iamv1alpha2informers.GroupInformer
 	groupLister   iamv1alpha1listers.GroupLister
-	groupSynced   cache.InformerSynced
-	workqueue     workqueue.RateLimitingInterface
 	recorder      record.EventRecorder
 }
 
@@ -66,95 +64,33 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
 	ctl := &Controller{
+		BaseController: controller.BaseController{
+			Workqueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Group"),
+			Synced:    []cache.InformerSynced{groupInformer.Informer().HasSynced},
+			Name:      controllerName,
+		},
+		recorder:      eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName}),
 		k8sClient:     k8sClient,
 		ksClient:      ksClient,
 		groupInformer: groupInformer,
 		groupLister:   groupInformer.Lister(),
-		groupSynced:   groupInformer.Informer().HasSynced,
-		workqueue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Group"),
-		recorder:      recorder,
 	}
+	ctl.Handler = ctl.reconcile
+
 	klog.Info("Setting up event handlers")
 	groupInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: ctl.enqueueGroup,
+		AddFunc: ctl.Enqueue,
 		UpdateFunc: func(old, new interface{}) {
-			ctl.enqueueGroup(new)
+			ctl.Enqueue(new)
 		},
-		DeleteFunc: ctl.enqueueGroup,
+		DeleteFunc: ctl.Enqueue,
 	})
 	return ctl
 }
 
-func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
-	defer utilruntime.HandleCrash()
-	defer c.workqueue.ShutDown()
-
-	klog.Info("Starting Group controller")
-	klog.Info("Waiting for informer caches to sync")
-	synced := []cache.InformerSynced{c.groupSynced}
-	if ok := cache.WaitForCacheSync(stopCh, synced...); !ok {
-		return fmt.Errorf("failed to wait for caches to sync")
-	}
-
-	klog.Info("Starting workers")
-	for i := 0; i < threadiness; i++ {
-		go wait.Until(c.runWorker, time.Second, stopCh)
-	}
-
-	klog.Info("Started workers")
-	<-stopCh
-	klog.Info("Shutting down workers")
-	return nil
-}
-
-func (c *Controller) enqueueGroup(obj interface{}) {
-	var key string
-	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		utilruntime.HandleError(err)
-		return
-	}
-	c.workqueue.Add(key)
-}
-
-func (c *Controller) runWorker() {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *Controller) processNextWorkItem() bool {
-	obj, shutdown := c.workqueue.Get()
-
-	if shutdown {
-		return false
-	}
-	err := func(obj interface{}) error {
-		defer c.workqueue.Done(obj)
-		var key string
-		var ok bool
-
-		if key, ok = obj.(string); !ok {
-			c.workqueue.Forget(obj)
-			utilruntime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
-			return nil
-		}
-		if err := c.reconcile(key); err != nil {
-			c.workqueue.AddRateLimited(key)
-			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
-		}
-		c.workqueue.Forget(obj)
-		klog.Infof("Successfully synced %s:%s", "key", key)
-		return nil
-	}(obj)
-
-	if err != nil {
-		utilruntime.HandleError(err)
-		return true
-	}
-
-	return true
+func (c *Controller) Start(stopCh <-chan struct{}) error {
+	return c.Run(1, stopCh)
 }
 
 // reconcile handles Group informer events, clear up related reource when group is being deleted.
@@ -205,10 +141,6 @@ func (c *Controller) reconcile(key string) error {
 
 	c.recorder.Event(group, corev1.EventTypeNormal, successSynced, messageResourceSynced)
 	return nil
-}
-
-func (c *Controller) Start(stopCh <-chan struct{}) error {
-	return c.Run(1, stopCh)
 }
 
 func (c *Controller) deleteGroupBindings(group *iam1alpha2.Group) error {

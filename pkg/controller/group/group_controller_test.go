@@ -90,7 +90,6 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 
 	c := NewController(f.k8sclient, f.ksclient,
 		ksinformers.Iam().V1alpha2().Groups())
-	c.groupSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
 	return c, ksinformers, k8sinformers
@@ -113,7 +112,7 @@ func (f *fixture) runController(group string, startInformers bool, expectError b
 		k8sI.Start(stopCh)
 	}
 
-	err := c.reconcile(group)
+	err := c.Handler(group)
 	if !expectError && err != nil {
 		f.t.Errorf("error syncing group: %v", err)
 	} else if expectError && err == nil {
