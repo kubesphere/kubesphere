@@ -20,6 +20,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"net/http"
+	"reflect"
+	"sync"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -39,17 +45,13 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"math/rand"
-	"net/http"
-	"reflect"
-	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
-	"sync"
-	"time"
 )
 
 // Cluster controller only runs under multicluster mode. Cluster controller is following below steps,
@@ -792,23 +794,15 @@ func (c *clusterController) updateClusterCondition(cluster *clusterv1alpha1.Clus
 	}
 
 	newConditions := make([]clusterv1alpha1.ClusterCondition, 0)
-	needToUpdate := true
 	for _, cond := range cluster.Status.Conditions {
 		if cond.Type == condition.Type {
-			if cond.Status == condition.Status {
-				needToUpdate = false
-				continue
-			} else {
-				newConditions = append(newConditions, cond)
-			}
+			continue
 		}
 		newConditions = append(newConditions, cond)
 	}
 
-	if needToUpdate {
-		newConditions = append(newConditions, condition)
-		cluster.Status.Conditions = newConditions
-	}
+	newConditions = append(newConditions, condition)
+	cluster.Status.Conditions = newConditions
 }
 
 // joinFederation joins a cluster into federation clusters.
