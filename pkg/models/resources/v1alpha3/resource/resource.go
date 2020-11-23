@@ -133,9 +133,9 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	}
 }
 
-// tryResource will retrieve a getter with resource name, it doesn't guarantee find resource with correct group version
+// TryResource will retrieve a getter with resource name, it doesn't guarantee find resource with correct group version
 // need to refactor this use schema.GroupVersionResource
-func (r *ResourceGetter) tryResource(resource string) v1alpha3.Interface {
+func (r *ResourceGetter) TryResource(resource string) v1alpha3.Interface {
 	for k, v := range r.getters {
 		if k.Resource == resource {
 			return v
@@ -145,7 +145,7 @@ func (r *ResourceGetter) tryResource(resource string) v1alpha3.Interface {
 }
 
 func (r *ResourceGetter) Get(resource, namespace, name string) (runtime.Object, error) {
-	getter := r.tryResource(resource)
+	getter := r.TryResource(resource)
 	if getter == nil {
 		return nil, ErrResourceNotSupported
 	}
@@ -153,7 +153,7 @@ func (r *ResourceGetter) Get(resource, namespace, name string) (runtime.Object, 
 }
 
 func (r *ResourceGetter) List(resource, namespace string, query *query.Query) (*api.ListResult, error) {
-	getter := r.tryResource(resource)
+	getter := r.TryResource(resource)
 	if getter == nil {
 		return nil, ErrResourceNotSupported
 	}

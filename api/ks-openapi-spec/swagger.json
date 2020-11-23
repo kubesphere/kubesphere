@@ -3775,7 +3775,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/auth.LoginRequest"
+              "$ref": "#/definitions/oauth.LoginRequest"
             }
           }
         ],
@@ -4524,7 +4524,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/iam.PasswordReset"
+              "$ref": "#/definitions/v1alpha2.PasswordReset"
             }
           },
           {
@@ -12627,7 +12627,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/auth.TokenReview"
+              "$ref": "#/definitions/oauth.TokenReview"
             }
           }
         ],
@@ -12635,7 +12635,7 @@
           "200": {
             "description": "ok",
             "schema": {
-              "$ref": "#/definitions/auth.TokenReview"
+              "$ref": "#/definitions/oauth.TokenReview"
             }
           }
         }
@@ -13293,71 +13293,6 @@
         "namespace": {
           "description": "the name of the namespace",
           "type": "string"
-        }
-      }
-    },
-    "auth.LoginRequest": {
-      "required": [
-        "username",
-        "password"
-      ],
-      "properties": {
-        "password": {
-          "description": "password",
-          "type": "string"
-        },
-        "username": {
-          "description": "username",
-          "type": "string"
-        }
-      }
-    },
-    "auth.Spec": {
-      "required": [
-        "token"
-      ],
-      "properties": {
-        "token": {
-          "description": "access token",
-          "type": "string"
-        }
-      }
-    },
-    "auth.Status": {
-      "required": [
-        "authenticated"
-      ],
-      "properties": {
-        "authenticated": {
-          "description": "is authenticated",
-          "type": "boolean"
-        },
-        "user": {
-          "description": "user info",
-          "type": "object"
-        }
-      }
-    },
-    "auth.TokenReview": {
-      "required": [
-        "apiVersion",
-        "kind"
-      ],
-      "properties": {
-        "apiVersion": {
-          "description": "Kubernetes API version",
-          "type": "string"
-        },
-        "kind": {
-          "description": "kind of the API object",
-          "type": "string"
-        },
-        "spec": {
-          "$ref": "#/definitions/auth.Spec"
-        },
-        "status": {
-          "description": "token review status",
-          "$ref": "#/definitions/auth.Status"
         }
       }
     },
@@ -15275,20 +15210,6 @@
         }
       }
     },
-    "iam.PasswordReset": {
-      "required": [
-        "currentPassword",
-        "password"
-      ],
-      "properties": {
-        "currentPassword": {
-          "type": "string"
-        },
-        "password": {
-          "type": "string"
-        }
-      }
-    },
     "inf.Dec": {
       "required": [
         "unscaled",
@@ -15674,6 +15595,48 @@
         }
       }
     },
+    "oauth.LoginRequest": {
+      "required": [
+        "username",
+        "password"
+      ],
+      "properties": {
+        "password": {
+          "description": "password",
+          "type": "string"
+        },
+        "username": {
+          "description": "username",
+          "type": "string"
+        }
+      }
+    },
+    "oauth.Spec": {
+      "required": [
+        "token"
+      ],
+      "properties": {
+        "token": {
+          "description": "access token",
+          "type": "string"
+        }
+      }
+    },
+    "oauth.Status": {
+      "required": [
+        "authenticated"
+      ],
+      "properties": {
+        "authenticated": {
+          "description": "is authenticated",
+          "type": "boolean"
+        },
+        "user": {
+          "description": "user info",
+          "type": "object"
+        }
+      }
+    },
     "oauth.Token": {
       "required": [
         "access_token"
@@ -15691,6 +15654,29 @@
         },
         "token_type": {
           "type": "string"
+        }
+      }
+    },
+    "oauth.TokenReview": {
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "properties": {
+        "apiVersion": {
+          "description": "Kubernetes API version",
+          "type": "string"
+        },
+        "kind": {
+          "description": "kind of the API object",
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/definitions/oauth.Spec"
+        },
+        "status": {
+          "description": "token review status",
+          "$ref": "#/definitions/oauth.Status"
         }
       }
     },
@@ -21668,6 +21654,20 @@
           "type": "string"
         },
         "topologyId": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.PasswordReset": {
+      "required": [
+        "currentPassword",
+        "password"
+      ],
+      "properties": {
+        "currentPassword": {
+          "type": "string"
+        },
+        "password": {
           "type": "string"
         }
       }

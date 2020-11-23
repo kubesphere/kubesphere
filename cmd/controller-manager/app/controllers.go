@@ -34,6 +34,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/group"
 	"kubesphere.io/kubesphere/pkg/controller/groupbinding"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/loginrecord"
 	"kubesphere.io/kubesphere/pkg/controller/network/ippool"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
@@ -208,19 +209,19 @@ func addControllers(
 		go fedWorkspaceRoleBindingCacheController.Run(stopCh)
 	}
 
-	userController := user.NewUserController(client.Kubernetes(), client.KubeSphere(),
-		client.Config(),
+	userController := user.NewUserController(client.Kubernetes(), client.KubeSphere(), client.Config(),
 		kubesphereInformer.Iam().V1alpha2().Users(),
-		fedUserCache, fedUserCacheController,
 		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
+		fedUserCache, fedUserCacheController,
 		kubernetesInformer.Core().V1().ConfigMaps(),
 		ldapClient, devopsClient,
 		authenticationOptions, multiClusterEnabled)
 
-	loginRecordController := user.NewLoginRecordController(
+	loginRecordController := loginrecord.NewLoginRecordController(
 		client.Kubernetes(),
 		client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
+		kubesphereInformer.Iam().V1alpha2().Users(),
 		authenticationOptions.LoginHistoryRetentionPeriod)
 
 	csrController := certificatesigningrequest.NewController(client.Kubernetes(),

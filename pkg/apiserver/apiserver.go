@@ -20,6 +20,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/rbac"
+	"kubesphere.io/kubesphere/pkg/models/auth"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
 	"net/http"
 	rt "runtime"
 	"time"
@@ -167,9 +171,15 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 // Installation happens before all informers start to cache objects, so
 //   any attempt to list objects using listers will get empty results.
 func (s *APIServer) installKubeSphereAPIs() {
-	imOperator := im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory, s.Config.AuthenticationOptions)
-	amOperator := am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes())
-	rbacAuthorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
+	imOperator := im.NewOperator(s.KubernetesClient.KubeSphere(),
+		user.New(s.InformerFactory.KubeSphereSharedInformerFactory(),
+			s.InformerFactory.KubernetesSharedInformerFactory()),
+		loginrecord.New(s.InformerFactory.KubeSphereSharedInformerFactory()),
+		s.Config.AuthenticationOptions)
+	amOperator := am.NewOperator(s.KubernetesClient.KubeSphere(),
+		s.KubernetesClient.Kubernetes(),
+		s.InformerFactory)
+	rbacAuthorizer := rbac.NewRBACAuthorizer(amOperator)
 
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
@@ -187,20 +197,22 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.MultiClusterOptions.ProxyPublishService,
 		s.Config.MultiClusterOptions.ProxyPublishAddress,
 		s.Config.MultiClusterOptions.AgentImage))
-	urlruntime.Must(iamapi.AddToContainer(s.container, imOperator,
-		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
+	urlruntime.Must(iamapi.AddToContainer(s.container, imOperator, amOperator,
 		group.New(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
-		s.Config.AuthenticationOptions))
+		rbacAuthorizer))
 
 	urlruntime.Must(oauth.AddToContainer(s.container, imOperator,
-		im.NewTokenOperator(
+		auth.NewTokenOperator(
 			s.CacheClient,
 			s.Config.AuthenticationOptions),
-		im.NewPasswordAuthenticator(
+		auth.NewPasswordAuthenticator(
 			s.KubernetesClient.KubeSphere(),
 			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
 			s.Config.AuthenticationOptions),
-		im.NewLoginRecorder(s.KubernetesClient.KubeSphere()),
+		auth.NewOAuth2Authenticator(s.KubernetesClient.KubeSphere(),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
+			s.Config.AuthenticationOptions),
+		auth.NewLoginRecorder(s.KubernetesClient.KubeSphere()),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
@@ -211,7 +223,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.KubernetesClient.KubeSphere(),
 		s.S3Client,
 		s.Config.DevopsOptions.Host,
-		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes())))
+		amOperator))
 	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container,
 		s.DevopsClient,
 		s.KubernetesClient.Kubernetes(),
@@ -285,7 +297,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
-		authorizers = unionauthorizer.New(pathAuthorizer, authorizerfactory.NewRBACAuthorizer(amOperator))
+		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))
 	}
 
 	handler = filters.WithAuthorization(handler, authorizers)
@@ -295,12 +307,16 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
 	}
 
-	loginRecorder := im.NewLoginRecorder(s.KubernetesClient.KubeSphere())
+	loginRecorder := auth.NewLoginRecorder(s.KubernetesClient.KubeSphere())
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(im.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(), s.Config.AuthenticationOptions))),
-		bearertoken.New(jwttoken.NewTokenAuthenticator(im.NewTokenOperator(s.CacheClient, s.Config.AuthenticationOptions), s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister())))
-	handler = filters.WithAuthentication(handler, authn, loginRecorder)
+		basictoken.New(basic.NewBasicAuthenticator(auth.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
+			s.Config.AuthenticationOptions), loginRecorder)),
+		bearertoken.New(jwttoken.NewTokenAuthenticator(auth.NewTokenOperator(s.CacheClient,
+			s.Config.AuthenticationOptions),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister())))
+	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 	s.Server.Handler = handler
 }

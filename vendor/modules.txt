@@ -73,11 +73,11 @@ github.com/beorn7/perks/quantile
 github.com/blang/semver
 # github.com/cespare/xxhash v1.1.0 => github.com/cespare/xxhash v1.1.0
 github.com/cespare/xxhash
-# github.com/cespare/xxhash/v2 v2.1.1
+# github.com/cespare/xxhash/v2 v2.1.1 => github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
 # github.com/container-storage-interface/spec v1.2.0 => github.com/container-storage-interface/spec v1.2.0
 github.com/container-storage-interface/spec/lib/go/csi
-# github.com/containernetworking/cni v0.8.0
+# github.com/containernetworking/cni v0.8.0 => github.com/containernetworking/cni v0.8.0
 github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/020
 github.com/containernetworking/cni/pkg/types/current
@@ -144,9 +144,9 @@ github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
 # github.com/emicklei/go-restful v2.14.3+incompatible => github.com/emicklei/go-restful v2.14.3+incompatible
 github.com/emicklei/go-restful
-github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.4.1 => github.com/emicklei/go-restful-openapi v1.4.1
 github.com/emicklei/go-restful-openapi
+github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -245,7 +245,7 @@ github.com/golang/glog
 github.com/golang/groupcache/lru
 # github.com/golang/mock v1.2.0 => github.com/golang/mock v1.2.0
 github.com/golang/mock/gomock
-# github.com/golang/protobuf v1.4.3 => github.com/golang/protobuf v1.3.2
+# github.com/golang/protobuf v1.4.0 => github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
@@ -318,11 +318,11 @@ github.com/inconshreveable/mousetrap
 github.com/jbenet/go-context/io
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af => github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
-# github.com/json-iterator/go v1.1.10 => github.com/json-iterator/go v1.1.8
+# github.com/json-iterator/go v1.1.9 => github.com/json-iterator/go v1.1.8
 github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 github.com/kevinburke/ssh_config
-# github.com/kiali/kiali v1.26.0 => github.com/kubesphere/kiali v0.15.1-0.20201110082537-0c2b977257d4
+# github.com/kiali/kiali v0.15.1-0.20201110082537-0c2b977257d4 => github.com/kubesphere/kiali v0.15.1-0.20201110082537-0c2b977257d4
 github.com/kiali/kiali/business
 github.com/kiali/kiali/business/checkers
 github.com/kiali/kiali/business/checkers/destinationrules
@@ -498,9 +498,9 @@ github.com/projectcalico/libcalico-go/lib/selector
 github.com/projectcalico/libcalico-go/lib/selector/parser
 github.com/projectcalico/libcalico-go/lib/selector/tokenizer
 github.com/projectcalico/libcalico-go/lib/set
-# github.com/prometheus-community/prom-label-proxy v0.2.0
+# github.com/prometheus-community/prom-label-proxy v0.2.0 => github.com/prometheus-community/prom-label-proxy v0.2.0
 github.com/prometheus-community/prom-label-proxy/injectproxy
-# github.com/prometheus/alertmanager v0.20.0
+# github.com/prometheus/alertmanager v0.20.0 => github.com/prometheus/alertmanager v0.20.0
 github.com/prometheus/alertmanager/api/v2/client
 github.com/prometheus/alertmanager/api/v2/client/alert
 github.com/prometheus/alertmanager/api/v2/client/alertgroup
@@ -509,7 +509,7 @@ github.com/prometheus/alertmanager/api/v2/client/receiver
 github.com/prometheus/alertmanager/api/v2/client/silence
 github.com/prometheus/alertmanager/api/v2/models
 github.com/prometheus/alertmanager/pkg/labels
-# github.com/prometheus/client_golang v1.8.0 => github.com/prometheus/client_golang v1.5.1
+# github.com/prometheus/client_golang v1.5.1 => github.com/prometheus/client_golang v1.5.1
 github.com/prometheus/client_golang/api
 github.com/prometheus/client_golang/api/prometheus/v1
 github.com/prometheus/client_golang/prometheus
@@ -517,7 +517,7 @@ github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
 # github.com/prometheus/client_model v0.2.0 => github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.14.0 => github.com/prometheus/common v0.9.1
+# github.com/prometheus/common v0.9.1 => github.com/prometheus/common v0.9.1
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/log
@@ -526,7 +526,7 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/prometheus/prometheus v2.5.0+incompatible => github.com/prometheus/prometheus v1.8.2-0.20200507164740-ecee9c8abfd1
+# github.com/prometheus/prometheus v1.8.2-0.20200507164740-ecee9c8abfd1 => github.com/prometheus/prometheus v1.8.2-0.20200507164740-ecee9c8abfd1
 github.com/prometheus/prometheus/pkg/labels
 github.com/prometheus/prometheus/pkg/value
 github.com/prometheus/prometheus/promql/parser
@@ -632,7 +632,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200625001655-4c5254603344 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20200421231249-e086a090c8fd => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -807,10 +807,16 @@ gopkg.in/src-d/go-git.v4/utils/merkletrie/noder
 gopkg.in/tomb.v1
 # gopkg.in/warnings.v0 v0.1.2 => gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.3.0 => gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.2.8 => gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c => gopkg.in/yaml.v3 v3.0.0-20190905181640-827449938966
 gopkg.in/yaml.v3
+# gotest.tools v2.2.0+incompatible => gotest.tools v2.2.0+incompatible
+gotest.tools/assert
+gotest.tools/assert/cmp
+gotest.tools/internal/difflib
+gotest.tools/internal/format
+gotest.tools/internal/source
 # istio.io/api v0.0.0-20191111210003-35e06ef8d838 => istio.io/api v0.0.0-20191111210003-35e06ef8d838
 istio.io/api/authentication/v1alpha1
 istio.io/api/mixer/v1

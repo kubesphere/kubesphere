@@ -33,7 +33,6 @@ import (
 	"github.com/pkg/errors"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -51,9 +50,7 @@ import (
 	metricsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/group"
-	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	fakedevops "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -116,12 +113,12 @@ func generateSwaggerJson() []byte {
 
 	informerFactory := informers.NewNullInformerFactory()
 
-	urlruntime.Must(oauth.AddToContainer(container, nil, nil, nil, nil, nil))
+	urlruntime.Must(oauth.AddToContainer(container, nil, nil, nil, nil, nil, nil))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(container, informerFactory.KubernetesSharedInformerFactory(),
 		informerFactory.KubeSphereSharedInformerFactory(), "", "", ""))
-	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fakedevops.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), "", am.NewReadOnlyOperator(informerFactory)))
+	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fakedevops.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), "", nil))
 	urlruntime.Must(devopsv1alpha3.AddToContainer(container, &fakedevops.Devops{}, clientsets.Kubernetes(), clientsets.KubeSphere(), informerFactory.KubeSphereSharedInformerFactory(), informerFactory.KubernetesSharedInformerFactory()))
-	urlruntime.Must(iamv1alpha2.AddToContainer(container, im.NewOperator(clientsets.KubeSphere(), informerFactory, nil), am.NewReadOnlyOperator(informerFactory), group.New(informerFactory, clientsets.KubeSphere(), clientsets.Kubernetes()), authoptions.NewAuthenticateOptions()))
+	urlruntime.Must(iamv1alpha2.AddToContainer(container, nil, nil, group.New(informerFactory, clientsets.KubeSphere(), clientsets.Kubernetes()), nil))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(container, clientsets.Kubernetes(), nil, informerFactory, nil))
 	urlruntime.Must(openpitrixv1.AddToContainer(container, informerFactory, openpitrix.NewMockClient(nil)))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(container, clientsets.Kubernetes()))

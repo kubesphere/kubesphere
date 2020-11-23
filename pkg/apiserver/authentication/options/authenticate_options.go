@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/pflag"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/aliyunidaas"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/github"
+	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/ldap"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"time"
 )
@@ -66,7 +67,6 @@ func (options *AuthenticationOptions) Validate() []error {
 	if len(options.JwtSecret) == 0 {
 		errs = append(errs, fmt.Errorf("jwt secret is empty"))
 	}
-
 	return errs
 }
 

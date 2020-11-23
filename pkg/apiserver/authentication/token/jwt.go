@@ -29,9 +29,10 @@ const (
 )
 
 type Claims struct {
-	Username  string    `json:"username"`
-	UID       string    `json:"uid"`
-	TokenType TokenType `json:"token_type"`
+	Username  string              `json:"username"`
+	Groups    []string            `json:"groups,omitempty"`
+	Extra     map[string][]string `json:"extra,omitempty"`
+	TokenType TokenType           `json:"token_type"`
 	// Currently, we are not using any field in jwt.StandardClaims
 	jwt.StandardClaims
 }
@@ -51,7 +52,7 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (user.Info, TokenType, error
 		klog.Error(err)
 		return nil, "", err
 	}
-	return &user.DefaultInfo{Name: clm.Username, UID: clm.UID}, clm.TokenType, nil
+	return &user.DefaultInfo{Name: clm.Username, Groups: clm.Groups, Extra: clm.Extra}, clm.TokenType, nil
 }
 
 func (s *jwtTokenIssuer) IssueTo(user user.Info, tokenType TokenType, expiresIn time.Duration) (string, error) {
@@ -59,7 +60,8 @@ func (s *jwtTokenIssuer) IssueTo(user user.Info, tokenType TokenType, expiresIn 
 	notBefore := issueAt
 	clm := &Claims{
 		Username:  user.GetName(),
-		UID:       user.GetUID(),
+		Groups:    user.GetGroups(),
+		Extra:     user.GetExtra(),
 		TokenType: tokenType,
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  issueAt,

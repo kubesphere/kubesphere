@@ -1,22 +1,20 @@
 /*
+Copyright 2020 The KubeSphere Authors.
 
- Copyright 2020 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
 
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
-package identityprovider
+package ldap
 
 import (
 	"crypto/tls"
@@ -26,24 +24,23 @@ import (
 	"github.com/go-ldap/ldap"
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"time"
 )
 
 const (
-	LdapIdentityProvider = "LDAPIdentityProvider"
+	ldapIdentityProvider = "LDAPIdentityProvider"
 	defaultReadTimeout   = 15000
 )
 
-type LdapProvider interface {
-	Authenticate(username string, password string) (*iamv1alpha2.User, error)
+func init() {
+	identityprovider.RegisterGenericProvider(&ldapProviderFactory{})
 }
 
-type ldapOptions struct {
+type ldapProvider struct {
 	// Host and optional port of the LDAP server in the form "host:port".
 	// If the port is not supplied, 389 for insecure or StartTLS connections, 636
 	Host string `json:"host,omitempty" yaml:"managerDN"`
@@ -73,105 +70,125 @@ type ldapOptions struct {
 	UserMemberAttribute string `json:"userMemberAttribute,omitempty" yaml:"userMemberAttribute"`
 	// Attribute on a group object storing the information for primary group membership.
 	GroupMemberAttribute string `json:"groupMemberAttribute,omitempty" yaml:"groupMemberAttribute"`
-	// login attribute used for comparing user entries.
 	// The following three fields are direct mappings of attributes on the user entry.
+	// login attribute used for comparing user entries.
 	LoginAttribute       string `json:"loginAttribute" yaml:"loginAttribute"`
 	MailAttribute        string `json:"mailAttribute" yaml:"mailAttribute"`
 	DisplayNameAttribute string `json:"displayNameAttribute" yaml:"displayNameAttribute"`
 }
 
-type ldapProvider struct {
-	options ldapOptions
+type ldapProviderFactory struct {
 }
 
-func NewLdapProvider(options *oauth.DynamicOptions) (LdapProvider, error) {
-	var ldapOptions ldapOptions
-	if err := mapstructure.Decode(options, &ldapOptions); err != nil {
+func (l *ldapProviderFactory) Type() string {
+	return ldapIdentityProvider
+}
+
+func (l *ldapProviderFactory) Create(options *oauth.DynamicOptions) (identityprovider.GenericProvider, error) {
+	var ldapProvider ldapProvider
+	if err := mapstructure.Decode(options, &ldapProvider); err != nil {
 		return nil, err
 	}
-	if ldapOptions.ReadTimeout <= 0 {
-		ldapOptions.ReadTimeout = defaultReadTimeout
+	if ldapProvider.ReadTimeout <= 0 {
+		ldapProvider.ReadTimeout = defaultReadTimeout
 	}
-	return &ldapProvider{options: ldapOptions}, nil
+	return &ldapProvider, nil
 }
 
-func (l ldapProvider) Authenticate(username string, password string) (*iamv1alpha2.User, error) {
+type ldapIdentity struct {
+	Username    string
+	Email       string
+	DisplayName string
+}
+
+func (l *ldapIdentity) GetUserID() string {
+	return l.Username
+}
+
+func (l *ldapIdentity) GetUsername() string {
+	return l.Username
+}
+
+func (l *ldapIdentity) GetEmail() string {
+	return l.Email
+}
+
+func (l *ldapIdentity) GetDisplayName() string {
+	return l.DisplayName
+}
+
+func (l ldapProvider) Authenticate(username string, password string) (identityprovider.Identity, error) {
 	conn, err := l.newConn()
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	conn.SetTimeout(time.Duration(l.options.ReadTimeout) * time.Millisecond)
+	conn.SetTimeout(time.Duration(l.ReadTimeout) * time.Millisecond)
 	defer conn.Close()
-	err = conn.Bind(l.options.ManagerDN, l.options.ManagerPassword)
+	err = conn.Bind(l.ManagerDN, l.ManagerPassword)
 
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	filter := fmt.Sprintf("(&(%s=%s)%s)", l.options.LoginAttribute, username, l.options.UserSearchFilter)
+	filter := fmt.Sprintf("(&(%s=%s)%s)", l.LoginAttribute, username, l.UserSearchFilter)
 	result, err := conn.Search(&ldap.SearchRequest{
-		BaseDN:       l.options.UserSearchBase,
+		BaseDN:       l.UserSearchBase,
 		Scope:        ldap.ScopeWholeSubtree,
 		DerefAliases: ldap.NeverDerefAliases,
 		SizeLimit:    1,
 		TimeLimit:    0,
 		TypesOnly:    false,
 		Filter:       filter,
-		Attributes:   []string{l.options.LoginAttribute, l.options.MailAttribute, l.options.DisplayNameAttribute},
+		Attributes:   []string{l.LoginAttribute, l.MailAttribute, l.DisplayNameAttribute},
 	})
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	if len(result.Entries) == 1 {
-		entry := result.Entries[0]
-		err = conn.Bind(entry.DN, password)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-		email := entry.GetAttributeValue(l.options.MailAttribute)
-		displayName := entry.GetAttributeValue(l.options.DisplayNameAttribute)
-		return &iamv1alpha2.User{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: username,
-				Annotations: map[string]string{
-					constants.DisplayNameAnnotationKey: displayName,
-				},
-			},
-			Spec: iamv1alpha2.UserSpec{
-				Email:       email,
-				DisplayName: displayName,
-			},
-		}, nil
+	if len(result.Entries) != 1 {
+		return nil, errors.NewUnauthorized("incorrect password")
 	}
 
-	return nil, ldap.NewError(ldap.LDAPResultNoSuchObject, fmt.Errorf("could not find user %s in LDAP directory", username))
+	entry := result.Entries[0]
+	if err = conn.Bind(entry.DN, password); err != nil {
+		klog.Error(err)
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
+			return nil, errors.NewUnauthorized("incorrect password")
+		}
+		return nil, err
+	}
+	email := entry.GetAttributeValue(l.MailAttribute)
+	displayName := entry.GetAttributeValue(l.DisplayNameAttribute)
+	return &ldapIdentity{
+		Username:    username,
+		DisplayName: displayName,
+		Email:       email,
+	}, nil
 }
 
 func (l *ldapProvider) newConn() (*ldap.Conn, error) {
-	if !l.options.StartTLS {
-		return ldap.Dial("tcp", l.options.Host)
+	if !l.StartTLS {
+		return ldap.Dial("tcp", l.Host)
 	}
 	tlsConfig := tls.Config{}
-	if l.options.InsecureSkipVerify {
+	if l.InsecureSkipVerify {
 		tlsConfig.InsecureSkipVerify = true
 	}
 	tlsConfig.RootCAs = x509.NewCertPool()
 	var caCert []byte
 	var err error
 	// Load CA cert
-	if l.options.RootCA != "" {
-		if caCert, err = ioutil.ReadFile(l.options.RootCA); err != nil {
+	if l.RootCA != "" {
+		if caCert, err = ioutil.ReadFile(l.RootCA); err != nil {
 			klog.Error(err)
 			return nil, err
 		}
 	}
-	if l.options.RootCAData != "" {
-		if caCert, err = base64.StdEncoding.DecodeString(l.options.RootCAData); err != nil {
+	if l.RootCAData != "" {
+		if caCert, err = base64.StdEncoding.DecodeString(l.RootCAData); err != nil {
 			klog.Error(err)
 			return nil, err
 		}
@@ -179,5 +196,5 @@ func (l *ldapProvider) newConn() (*ldap.Conn, error) {
 	if caCert != nil {
 		tlsConfig.RootCAs.AppendCertsFromPEM(caCert)
 	}
-	return ldap.DialTLS("tcp", l.options.Host, &tlsConfig)
+	return ldap.DialTLS("tcp", l.Host, &tlsConfig)
 }

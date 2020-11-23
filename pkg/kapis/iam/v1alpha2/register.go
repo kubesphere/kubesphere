@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
@@ -25,9 +26,7 @@ import (
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/api/iam"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
@@ -42,9 +41,9 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(container *restful.Container, im im.IdentityManagementInterface, am am.AccessManagementInterface, group group.GroupOperator, options *authoptions.AuthenticationOptions) error {
+func AddToContainer(container *restful.Container, im im.IdentityManagementInterface, am am.AccessManagementInterface, group group.GroupOperator, authorizer authorizer.Authorizer) error {
 	ws := runtime.NewWebService(GroupVersion)
-	handler := newIAMHandler(im, am, group, options)
+	handler := newIAMHandler(im, am, group, authorizer)
 
 	// users
 	ws.Route(ws.POST("/users").
@@ -69,7 +68,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.PUT("/users/{user}/password").
 		To(handler.ModifyPassword).
 		Doc("Reset password of the specified user.").
-		Reads(iam.PasswordReset{}).
+		Reads(PasswordReset{}).
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.UserTag}))
