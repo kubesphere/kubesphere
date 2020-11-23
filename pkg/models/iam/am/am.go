@@ -77,6 +77,13 @@ type AccessManagementInterface interface {
 	GetDevOpsControlledWorkspace(devops string) (string, error)
 	PatchNamespaceRole(namespace string, role *rbacv1.Role) (*rbacv1.Role, error)
 	PatchClusterRole(clusterRole *rbacv1.ClusterRole) (*rbacv1.ClusterRole, error)
+	ListGroupRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error)
+	ListGroupDevOpsRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error)
+	CreateRoleBindings(namespace string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error)
+	DeleteRoleBindings(namespace, name string) error
+	ListGroupWorkspaceRoleBindings(group string, workspace string) ([]*iamv1alpha2.WorkspaceRoleBinding, error)
+	CreateWorkspaceRoleBindings(workspace string, roleBinding *iamv1alpha2.WorkspaceRoleBinding) (*iamv1alpha2.WorkspaceRoleBinding, error)
+	DeleteWorkspaceRoleBindings(workspaceName, name string) error
 }
 
 type amOperator struct {
@@ -997,4 +1004,156 @@ func (am *amOperator) GetNamespaceControlledWorkspace(namespace string) (string,
 	}
 	ns := obj.(*corev1.Namespace)
 	return ns.Labels[tenantv1alpha1.WorkspaceLabel], nil
+}
+
+func (am *amOperator) ListGroupWorkspaceRoleBindings(workspace, group string) ([]*iamv1alpha2.WorkspaceRoleBinding, error) {
+	q := workspaceQuery(workspace)
+	roleBindings, err := am.resourceGetter.List(iamv1alpha2.ResourcesPluralWorkspaceRoleBinding, "", q)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*iamv1alpha2.WorkspaceRoleBinding, 0)
+
+	for _, obj := range roleBindings.Items {
+		roleBinding := obj.(*iamv1alpha2.WorkspaceRoleBinding)
+		inSpecifiedWorkspace := workspace == "" || roleBinding.Labels[tenantv1alpha1.WorkspaceLabel] == workspace
+		if containsgroup(roleBinding.Subjects, group) && inSpecifiedWorkspace {
+			result = append(result, roleBinding)
+		}
+	}
+
+	return result, nil
+}
+
+func (am *amOperator) CreateWorkspaceRoleBindings(workspace string, roleBinding *iamv1alpha2.WorkspaceRoleBinding) (*iamv1alpha2.WorkspaceRoleBinding, error) {
+
+	_, err := am.GetWorkspaceRole(workspace, roleBinding.RoleRef.Name)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	if len(roleBinding.Subjects) == 0 {
+		err := errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralUser), "")
+		return nil, err
+	}
+
+	roleBinding.GenerateName = fmt.Sprintf("%s-%s-", roleBinding.Subjects[0].Name, roleBinding.RoleRef.Name)
+
+	if roleBinding.Labels == nil {
+		roleBinding.Labels = map[string]string{}
+	}
+
+	if roleBinding.Subjects[0].Kind == rbacv1.GroupKind {
+		roleBinding.Labels[iamv1alpha2.GroupReferenceLabel] = roleBinding.RoleRef.Name
+	} else if roleBinding.Subjects[0].Kind == rbacv1.UserKind {
+		roleBinding.Labels[iamv1alpha2.UserReferenceLabel] = roleBinding.RoleRef.Name
+	}
+
+	roleBinding.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
+
+	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Create(roleBinding)
+
+}
+func (am *amOperator) DeleteWorkspaceRoleBindings(workspaceName, name string) error {
+	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(name, metav1.NewDeleteOptions(0))
+}
+
+func (am *amOperator) ListGroupRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error) {
+	q := workspaceQuery(workspace)
+	namespaces, err := am.resourceGetter.List("namespaces", "", q)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*rbacv1.RoleBinding, 0)
+	for _, ns := range namespaces.Items {
+		namespace := ns.(*corev1.Namespace)
+		roleBindings, err := am.resourceGetter.List(iamv1alpha2.ResourcesPluralRoleBinding, namespace.Name, query.New())
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		for _, obj := range roleBindings.Items {
+			roleBinding := obj.(*rbacv1.RoleBinding)
+			if containsgroup(roleBinding.Subjects, group) {
+				result = append(result, roleBinding)
+			}
+		}
+	}
+	return result, nil
+}
+
+func (am *amOperator) ListGroupDevOpsRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error) {
+	q := workspaceQuery(workspace)
+	namespaces, err := am.resourceGetter.List(devopsv1alpha3.ResourcePluralDevOpsProject, "", q)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*rbacv1.RoleBinding, 0)
+	for _, ns := range namespaces.Items {
+		namespace := ns.(*devopsv1alpha3.DevOpsProject)
+		roleBindings, err := am.resourceGetter.List(iamv1alpha2.ResourcesPluralRoleBinding, namespace.Name, query.New())
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		for _, obj := range roleBindings.Items {
+			roleBinding := obj.(*rbacv1.RoleBinding)
+			if containsgroup(roleBinding.Subjects, group) {
+				result = append(result, roleBinding)
+			}
+		}
+	}
+	return result, nil
+}
+
+func (am *amOperator) CreateRoleBindings(namespace string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
+
+	_, err := am.GetNamespaceRole(namespace, roleBinding.RoleRef.Name)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	if len(roleBinding.Subjects) == 0 {
+		err := errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralUser), "")
+		return nil, err
+	}
+
+	roleBinding.GenerateName = fmt.Sprintf("%s-%s-", roleBinding.Subjects[0].Name, roleBinding.RoleRef.Name)
+
+	if roleBinding.Labels == nil {
+		roleBinding.Labels = map[string]string{}
+	}
+
+	if roleBinding.Subjects[0].Kind == rbacv1.GroupKind {
+		roleBinding.Labels[iamv1alpha2.GroupReferenceLabel] = roleBinding.Subjects[0].Name
+	} else if roleBinding.Subjects[0].Kind == rbacv1.UserKind {
+		roleBinding.Labels[iamv1alpha2.UserReferenceLabel] = roleBinding.Subjects[0].Name
+	}
+
+	return am.k8sclient.RbacV1().RoleBindings(namespace).Create(roleBinding)
+}
+
+func (am *amOperator) DeleteRoleBindings(namespace, name string) error {
+	return am.k8sclient.RbacV1().RoleBindings(namespace).Delete(name, metav1.NewDeleteOptions(0))
+}
+
+func containsgroup(subjects []rbacv1.Subject, group string) bool {
+	for _, subject := range subjects {
+		if subject.Kind == rbacv1.GroupKind && subject.Name == group {
+			return true
+		}
+	}
+	return false
+}
+
+func workspaceQuery(workspace string) *query.Query {
+	q := query.New()
+	q.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
+	return q
 }
