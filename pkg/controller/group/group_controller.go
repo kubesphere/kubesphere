@@ -36,7 +36,7 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha1listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/utils/controller"
+	"kubesphere.io/kubesphere/pkg/controller/utils/controller"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
