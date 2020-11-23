@@ -10,7 +10,7 @@ You don't need to remove this comment section, it's invisible on the issues page
 
 * Attention, please fill out this issues form using English only!
 * 注意！GitHub Issue 仅支持英文，中文 Issue 请在 [论坛](https://kubesphere.com.cn/forum/) 提交。
-* This form is to report bugs. For general usage questions you can join our Slack channel
+* This form is to report bugs. For general usage questions, you can join our Slack channel
        [KubeSphere-users](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
 -->
 
@@ -22,7 +22,7 @@ A clear and concise description of what this feature request is.
 **What's the reason why we need it?**
 <!--
 Please tell us if you think it's a necessary feature for Kubesphere. Give us as many details about it as you can. 
-Two or more use cases might be very helpful when other contributors try to go through this request. If you has some references,
+Two or more use cases might be very helpful when other contributors try to go through this request. If you have some references,
 please just add it below.
 -->
 
@@ -32,7 +32,7 @@ I believe this is an important feature for Kubesphere. There're a few use cases:
 * case two
 * ...
 
-Please leave your comments below if there's anyone agree with me. Or just give me a thumb up.
+Please leave your comments below if there's anyone agrees with me. Or just give me a thumb up.
 
 **Area Suggestion**
 <!--
