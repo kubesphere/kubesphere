@@ -66,7 +66,7 @@ type AccessManagementInterface interface {
 	GetNamespaceRole(namespace string, name string) (*rbacv1.Role, error)
 	CreateOrUpdateNamespaceRole(namespace string, role *rbacv1.Role) (*rbacv1.Role, error)
 	DeleteNamespaceRole(namespace string, name string) error
-	CreateWorkspaceRoleBinding(username string, workspace string, role string) error
+	CreateUserWorkspaceRoleBinding(username string, workspace string, role string) error
 	RemoveUserFromWorkspace(username string, workspace string) error
 	CreateNamespaceRoleBinding(username string, namespace string, role string) error
 	RemoveUserFromNamespace(username string, namespace string) error
@@ -79,11 +79,11 @@ type AccessManagementInterface interface {
 	PatchClusterRole(clusterRole *rbacv1.ClusterRole) (*rbacv1.ClusterRole, error)
 	ListGroupRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error)
 	ListGroupDevOpsRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error)
-	CreateRoleBindings(namespace string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error)
-	DeleteRoleBindings(namespace, name string) error
+	CreateRoleBinding(namespace string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error)
+	DeleteRoleBinding(namespace, name string) error
 	ListGroupWorkspaceRoleBindings(group string, workspace string) ([]*iamv1alpha2.WorkspaceRoleBinding, error)
-	CreateWorkspaceRoleBindings(workspace string, roleBinding *iamv1alpha2.WorkspaceRoleBinding) (*iamv1alpha2.WorkspaceRoleBinding, error)
-	DeleteWorkspaceRoleBindings(workspaceName, name string) error
+	CreateWorkspaceRoleBinding(workspace string, roleBinding *iamv1alpha2.WorkspaceRoleBinding) (*iamv1alpha2.WorkspaceRoleBinding, error)
+	DeleteWorkspaceRoleBinding(workspaceName, name string) error
 }
 
 type amOperator struct {
@@ -575,7 +575,7 @@ func (am *amOperator) PatchClusterRole(clusterRole *rbacv1.ClusterRole) (*rbacv1
 	return am.k8sclient.RbacV1().ClusterRoles().Patch(clusterRole.Name, types.MergePatchType, data)
 }
 
-func (am *amOperator) CreateWorkspaceRoleBinding(username string, workspace string, role string) error {
+func (am *amOperator) CreateUserWorkspaceRoleBinding(username string, workspace string, role string) error {
 	_, err := am.GetWorkspaceRole(workspace, role)
 	if err != nil {
 		klog.Error(err)
@@ -1027,7 +1027,7 @@ func (am *amOperator) ListGroupWorkspaceRoleBindings(workspace, group string) ([
 	return result, nil
 }
 
-func (am *amOperator) CreateWorkspaceRoleBindings(workspace string, roleBinding *iamv1alpha2.WorkspaceRoleBinding) (*iamv1alpha2.WorkspaceRoleBinding, error) {
+func (am *amOperator) CreateWorkspaceRoleBinding(workspace string, roleBinding *iamv1alpha2.WorkspaceRoleBinding) (*iamv1alpha2.WorkspaceRoleBinding, error) {
 
 	_, err := am.GetWorkspaceRole(workspace, roleBinding.RoleRef.Name)
 	if err != nil {
@@ -1057,7 +1057,7 @@ func (am *amOperator) CreateWorkspaceRoleBindings(workspace string, roleBinding 
 	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Create(roleBinding)
 
 }
-func (am *amOperator) DeleteWorkspaceRoleBindings(workspaceName, name string) error {
+func (am *amOperator) DeleteWorkspaceRoleBinding(workspaceName, name string) error {
 	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(name, metav1.NewDeleteOptions(0))
 }
 
@@ -1111,7 +1111,7 @@ func (am *amOperator) ListGroupDevOpsRoleBindings(workspace, group string) ([]*r
 	return result, nil
 }
 
-func (am *amOperator) CreateRoleBindings(namespace string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
+func (am *amOperator) CreateRoleBinding(namespace string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
 
 	_, err := am.GetNamespaceRole(namespace, roleBinding.RoleRef.Name)
 	if err != nil {
@@ -1139,7 +1139,7 @@ func (am *amOperator) CreateRoleBindings(namespace string, roleBinding *rbacv1.R
 	return am.k8sclient.RbacV1().RoleBindings(namespace).Create(roleBinding)
 }
 
-func (am *amOperator) DeleteRoleBindings(namespace, name string) error {
+func (am *amOperator) DeleteRoleBinding(namespace, name string) error {
 	return am.k8sclient.RbacV1().RoleBindings(namespace).Delete(name, metav1.NewDeleteOptions(0))
 }
 

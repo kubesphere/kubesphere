@@ -904,7 +904,7 @@ func (h *iamHandler) CreateWorkspaceMembers(request *restful.Request, response *
 	}
 
 	for _, member := range members {
-		err := h.am.CreateWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
+		err := h.am.CreateUserWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
 		if err != nil {
 			klog.Error(err)
 			handleError(request, response, err)
@@ -948,7 +948,7 @@ func (h *iamHandler) UpdateWorkspaceMember(request *restful.Request, response *r
 		return
 	}
 
-	err = h.am.CreateWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
+	err = h.am.CreateUserWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
 	if err != nil {
 		klog.Error(err)
 		handleError(request, response, err)
@@ -1534,7 +1534,7 @@ func (h *iamHandler) CreateRoleBinding(request *restful.Request, response *restf
 
 	results := []rbacv1.RoleBinding{}
 	for _, item := range roleBindings {
-		r, err := h.am.CreateRoleBindings(namespace, &item)
+		r, err := h.am.CreateRoleBinding(namespace, &item)
 		if err != nil {
 			klog.Error(err)
 			handleError(request, response, err)
@@ -1550,7 +1550,7 @@ func (h *iamHandler) DeleteRoleBinding(request *restful.Request, response *restf
 	name := request.PathParameter("rolebinding")
 	namespace := request.PathParameter("namespace")
 
-	err := h.am.DeleteRoleBindings(namespace, name)
+	err := h.am.DeleteRoleBinding(namespace, name)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -1591,7 +1591,7 @@ func (h *iamHandler) CreateWorkspaceRoleBinding(request *restful.Request, respon
 
 	results := []iamv1alpha2.WorkspaceRoleBinding{}
 	for _, item := range roleBindings {
-		r, err := h.am.CreateWorkspaceRoleBindings(workspaceName, &item)
+		r, err := h.am.CreateWorkspaceRoleBinding(workspaceName, &item)
 		if err != nil {
 			klog.Error(err)
 			handleError(request, response, err)
@@ -1607,7 +1607,7 @@ func (h *iamHandler) DeleteWorkspaceRoleBinding(request *restful.Request, respon
 	workspaceName := request.PathParameter("workspace")
 	name := request.PathParameter("rolebinding")
 
-	err := h.am.DeleteWorkspaceRoleBindings(workspaceName, name)
+	err := h.am.DeleteWorkspaceRoleBinding(workspaceName, name)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
