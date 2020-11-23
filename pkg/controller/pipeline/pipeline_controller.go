@@ -240,7 +240,7 @@ func (c *Controller) syncHandler(key string) error {
 					return err
 				}
 			} else {
-				klog.V(7).Info(fmt.Sprintf("nothing was changed, pipeline '%v'", copyPipeline.Spec))
+				klog.V(8).Info(fmt.Sprintf("nothing was changed, pipeline '%v'", copyPipeline.Spec))
 			}
 		} else {
 			_, err := c.devopsClient.CreateProjectPipeline(nsName, copyPipeline)
