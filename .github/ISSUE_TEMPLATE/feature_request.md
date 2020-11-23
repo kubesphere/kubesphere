@@ -41,29 +41,29 @@ In order to have a clear issue list, giving an accuracy area is necessary. If yo
 You can find some possible areas below. Please attention, sometimes crossing multiple areas might be possible. So, you 
 can keep one or more areas in this issue.
 
-/area alerting
-/area api
-/area apiserver
-/area app-management
-/area audit
-/area console
-/area devops
-/area documentation
-/area edge
-/area iam
-/area installation
-/area logging
-/area microservice
-/area monitoring
-/area multicluster
-/area networking
-/area notification
-/area observability
-/area performance
-/area security
-/area storage
-/area test
-/area upgrade
+> /area alerting
+> /area api
+> /area apiserver
+> /area app-management
+> /area audit
+> /area console
+> /area devops
+> /area documentation
+> /area edge
+> /area iam
+> /area installation
+> /area logging
+> /area microservice
+> /area monitoring
+> /area multicluster
+> /area networking
+> /area notification
+> /area observability
+> /area performance
+> /area security
+> /area storage
+> /area test
+> /area upgrade
 -->
 
 /kind feature-request
