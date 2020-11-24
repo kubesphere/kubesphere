@@ -19,6 +19,7 @@ package pipeline
 import (
 	v1 "k8s.io/api/core/v1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	fakeDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"reflect"
 	"testing"
@@ -94,21 +95,25 @@ func newNamespace(name string, projectName string) *v1.Namespace {
 	return ns
 }
 
-func newPipeline(namespace, name string, spec devops.PipelineSpec, withFinalizers bool) *devops.Pipeline {
+func newPipeline(namespace, name string, spec devops.PipelineSpec, withFinalizers bool, syncOk bool) *devops.Pipeline {
 	pipeline := &devops.Pipeline{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       devops.ResourceKindPipeline,
 			APIVersion: devops.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
+			Namespace:   namespace,
+			Name:        name,
+			Annotations: map[string]string{},
 		},
 		Spec:   spec,
 		Status: devops.PipelineStatus{},
 	}
 	if withFinalizers {
 		pipeline.Finalizers = append(pipeline.Finalizers, devops.PipelineFinalizerName)
+	}
+	if syncOk {
+		pipeline.Annotations[devops.PipelineSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
 	}
 	return pipeline
 }
@@ -181,15 +186,6 @@ func (f *fixture) runController(projectName string, startInformers bool, expectE
 	}
 
 	actions := filterInformerActions(f.client.Actions())
-	for i, action := range actions {
-		if len(f.actions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[i:])
-			break
-		}
-
-		expectedAction := f.actions[i]
-		checkAction(expectedAction, action, f.t)
-	}
 	k8sActions := filterInformerActions(f.kubeclient.Actions())
 	for i, action := range k8sActions {
 		if len(f.kubeactions) < i+1 {
@@ -311,7 +307,7 @@ func TestDoNothing(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true)
+	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true, true)
 
 	f.pipelineLister = append(f.pipelineLister, pipeline)
 	f.namespaceLister = append(f.namespaceLister, ns)
@@ -330,9 +326,9 @@ func TestAddPipelineFinalizers(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, false)
+	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, false, false)
 
-	expectPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true)
+	expectPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true, true)
 
 	f.pipelineLister = append(f.pipelineLister, pipeline)
 	f.namespaceLister = append(f.namespaceLister, ns)
@@ -351,13 +347,13 @@ func TestCreatePipeline(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true)
-
+	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, false, false)
+	expectPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true, true)
 	f.pipelineLister = append(f.pipelineLister, pipeline)
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.objects = append(f.objects, pipeline)
 	f.initDevOpsProject = nsName
-	f.expectPipeline = []*devops.Pipeline{pipeline}
+	f.expectPipeline = []*devops.Pipeline{expectPipeline}
 	f.run(getKey(pipeline, t))
 }
 
@@ -410,13 +406,14 @@ func TestUpdatePipelineConfig(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	initPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true)
-	expectPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{Type: "aa"}, true)
-	f.pipelineLister = append(f.pipelineLister, expectPipeline)
+	initPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true, false)
+	modifiedPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{Type: "aa"}, true, false)
+	expectPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{Type: "aa"}, true, true)
+	f.pipelineLister = append(f.pipelineLister, modifiedPipeline)
 	f.namespaceLister = append(f.namespaceLister, ns)
-	f.objects = append(f.objects, expectPipeline)
+	f.objects = append(f.objects, modifiedPipeline)
 	f.initDevOpsProject = nsName
 	f.initPipeline = []*devops.Pipeline{initPipeline}
 	f.expectPipeline = []*devops.Pipeline{expectPipeline}
-	f.run(getKey(expectPipeline, t))
+	f.run(getKey(modifiedPipeline, t))
 }

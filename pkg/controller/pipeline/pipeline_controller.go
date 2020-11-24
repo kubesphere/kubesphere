@@ -36,6 +36,7 @@ import (
 	devopsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha3"
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -221,6 +222,11 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
+	//If the sync is successful, return handle
+	if state, ok := pipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+		return nil
+	}
+
 	copyPipeline := pipeline.DeepCopy()
 	// DeletionTimestamp.IsZero() means copyPipeline has not been deleted.
 	if copyPipeline.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -262,6 +268,11 @@ func (c *Controller) syncHandler(key string) error {
 
 		}
 	}
+	//If there is no early return, then the sync is successful.
+	if copyPipeline.Annotations == nil {
+		copyPipeline.Annotations = map[string]string{}
+	}
+	copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
 	if !reflect.DeepEqual(pipeline, copyPipeline) {
 		_, err = c.kubesphereClient.DevopsV1alpha3().Pipelines(nsName).Update(copyPipeline)
 		if err != nil {
@@ -269,7 +280,6 @@ func (c *Controller) syncHandler(key string) error {
 			return err
 		}
 	}
-
 	return nil
 }
 

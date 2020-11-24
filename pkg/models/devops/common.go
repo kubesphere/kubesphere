@@ -21,6 +21,7 @@ import (
 	"github.com/fatih/structs"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
+	"time"
 )
 
 func GetColumnsFromStruct(s interface{}) []string {
@@ -314,4 +315,9 @@ func GetProjectRolePattern(projectId string) string {
 // get pattern string of the project
 func GetPipelineRolePattern(projectId string) string {
 	return fmt.Sprintf("^%s/.*", projectId)
+}
+
+// get unified sync current time
+func GetSyncNowTime() string {
+	return time.Now().String()
 }
