@@ -167,7 +167,7 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			api.HandleInternalError(response, request, err)
 			return
 		}
-		templateRoles := make(map[string]*rbacv1.Role)
+		templateRoles := make(map[string]*iamv1alpha2.WorkspaceRole)
 		for _, role := range workspaceRoles {
 			// merge template Role
 			result, err := h.am.ListWorkspaceRoles(&query.Query{
@@ -183,12 +183,12 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			}
 
 			for _, obj := range result.Items {
-				templateRole := obj.(*rbacv1.Role)
+				templateRole := obj.(*iamv1alpha2.WorkspaceRole)
 				templateRoles[templateRole.Name] = templateRole
 			}
 		}
 
-		results := make([]*rbacv1.Role, 0, len(templateRoles))
+		results := make([]*iamv1alpha2.WorkspaceRole, 0, len(templateRoles))
 		for _, value := range templateRoles {
 			results = append(results, value)
 		}
@@ -904,7 +904,7 @@ func (h *iamHandler) CreateWorkspaceMembers(request *restful.Request, response *
 	}
 
 	for _, member := range members {
-		err := h.am.CreateWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
+		err := h.am.CreateUserWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
 		if err != nil {
 			klog.Error(err)
 			handleError(request, response, err)
@@ -948,7 +948,7 @@ func (h *iamHandler) UpdateWorkspaceMember(request *restful.Request, response *r
 		return
 	}
 
-	err = h.am.CreateWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
+	err = h.am.CreateUserWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
 	if err != nil {
 		klog.Error(err)
 		handleError(request, response, err)
@@ -1494,12 +1494,131 @@ func (h *iamHandler) ListGroupBindings(request *restful.Request, response *restf
 	response.WriteEntity(result)
 }
 
-func (h *iamHandler) ListGroupsRoleBinding(request *restful.Request, response *restful.Response) {
-	//todo
+func (h *iamHandler) ListGroupRoleBindings(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	groupName := request.PathParameter("group")
+	result, err := h.am.ListGroupRoleBindings(workspaceName, groupName)
+
+	if err != nil {
+		klog.Error(err)
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(result)
 }
 
-func (h *iamHandler) ListGroupsWorkspaceRoleBinding(request *restful.Request, response *restful.Response) {
-	//todo
+func (h *iamHandler) ListGroupDevOpsRoleBindings(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	groupName := request.PathParameter("group")
+	result, err := h.am.ListGroupDevOpsRoleBindings(workspaceName, groupName)
+
+	if err != nil {
+		klog.Error(err)
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(result)
+}
+
+func (h *iamHandler) CreateRoleBinding(request *restful.Request, response *restful.Response) {
+	namespace := request.PathParameter("namespace")
+	var roleBindings []rbacv1.RoleBinding
+	err := request.ReadEntity(&roleBindings)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	results := []rbacv1.RoleBinding{}
+	for _, item := range roleBindings {
+		r, err := h.am.CreateRoleBinding(namespace, &item)
+		if err != nil {
+			klog.Error(err)
+			handleError(request, response, err)
+			return
+		}
+		results = append(results, *r)
+	}
+
+	response.WriteEntity(results)
+}
+
+func (h *iamHandler) DeleteRoleBinding(request *restful.Request, response *restful.Response) {
+	name := request.PathParameter("rolebinding")
+	namespace := request.PathParameter("namespace")
+
+	err := h.am.DeleteRoleBinding(namespace, name)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(servererr.None)
+}
+
+func (h *iamHandler) ListGroupWorkspaceRoleBindings(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	groupName := request.PathParameter("group")
+	result, err := h.am.ListGroupWorkspaceRoleBindings(workspaceName, groupName)
+
+	if err != nil {
+		klog.Error(err)
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(result)
+}
+
+func (h *iamHandler) CreateWorkspaceRoleBinding(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+
+	var roleBindings []iamv1alpha2.WorkspaceRoleBinding
+	err := request.ReadEntity(&roleBindings)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	results := []iamv1alpha2.WorkspaceRoleBinding{}
+	for _, item := range roleBindings {
+		r, err := h.am.CreateWorkspaceRoleBinding(workspaceName, &item)
+		if err != nil {
+			klog.Error(err)
+			handleError(request, response, err)
+			return
+		}
+		results = append(results, *r)
+	}
+
+	response.WriteEntity(results)
+}
+
+func (h *iamHandler) DeleteWorkspaceRoleBinding(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	name := request.PathParameter("rolebinding")
+
+	err := h.am.DeleteWorkspaceRoleBinding(workspaceName, name)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(servererr.None)
 }
 
 func (h *iamHandler) CreateGroupBinding(request *restful.Request, response *restful.Response) {
@@ -1514,16 +1633,19 @@ func (h *iamHandler) CreateGroupBinding(request *restful.Request, response *rest
 		return
 	}
 
+	results := []iamv1alpha2.GroupBinding{}
+
 	for _, item := range members {
-		err := h.group.CreateGroupBinding(workspace, item.GroupName, item.UserName)
+		b, err := h.group.CreateGroupBinding(workspace, item.GroupName, item.UserName)
 		if err != nil {
 			klog.Error(err)
 			handleError(request, response, err)
 			return
 		}
+		results = append(results, *b)
 	}
 
-	response.WriteEntity(members)
+	response.WriteEntity(results)
 }
 
 func (h *iamHandler) DeleteGroupBinding(request *restful.Request, response *restful.Response) {

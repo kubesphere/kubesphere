@@ -22,6 +22,7 @@ import (
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	rbacv1 "k8s.io/api/rbac/v1"
+	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/iam"
@@ -527,18 +528,26 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
 
 	ws.Route(ws.GET("/workspaces/{workspace}/groups/{group}/rolebindings").
-		To(handler.ListGroupsRoleBinding).
+		To(handler.ListGroupRoleBindings).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("group", "group name")).
 		Doc("Retrieve group's rolebindings of all projects in the workspace.").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
 
-	ws.Route(ws.GET("/workspaces/{workspace}/groups/{group}/workspacerolebinding").
-		To(handler.ListGroupsWorkspaceRoleBinding).
+	ws.Route(ws.GET("/workspaces/{workspace}/groups/{group}/workspacerolebindings").
+		To(handler.ListGroupWorkspaceRoleBindings).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("group", "group name")).
 		Doc("Retrieve group's workspacerolebindings of the workspace.").
+		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
+
+	ws.Route(ws.GET("/workspaces/{workspace}/groups/{group}/devopsrolebindings").
+		To(handler.ListGroupDevOpsRoleBindings).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("group", "group name")).
+		Doc("Retrieve group's rolebindings of all devops projects in the workspace.").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
 
@@ -556,6 +565,41 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Doc("Create GroupBinding to add a user to the group").
 		Reads([]GroupMember{}).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.GroupBinding{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
+
+	// namespace rolebinding
+	ws.Route(ws.POST("/namespaces/{namespace}/rolebindings").
+		To(handler.CreateRoleBinding).
+		Doc("Create rolebinding in the specified namespace.").
+		Reads([]v1.RoleBinding{}).
+		Param(ws.PathParameter("namespace", "namespace")).
+		Returns(http.StatusOK, api.StatusOK, []v1.RoleBinding{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceRoleTag}))
+
+	ws.Route(ws.DELETE("/namespace/{namespace}/rolebindings/{rolebinding}").
+		To(handler.DeleteRoleBinding).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("namespace", "groupbinding name")).
+		Param(ws.PathParameter("rolebinding", "groupbinding name")).
+		Doc("Delete rolebinding under namespace.").
+		Returns(http.StatusOK, api.StatusOK, errors.None).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
+
+	// workspace rolebinding
+	ws.Route(ws.POST("/workspaces/{workspace}/workspacerolebindings").
+		To(handler.CreateWorkspaceRoleBinding).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Reads([]iamv1alpha2.WorkspaceRoleBinding{}).
+		Doc("Create group's workspacerolebindings of the workspace.").
+		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.WorkspaceRoleBinding{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
+
+	ws.Route(ws.DELETE("/workspaces/{workspace}/workspacerolebindings/{rolebinding}").
+		To(handler.DeleteWorkspaceRoleBinding).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("rolebinding", "groupbinding name")).
+		Doc("Delete workspacerolebinding.").
+		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
 
 	container.Add(ws)

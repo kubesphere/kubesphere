@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -43,7 +44,7 @@ type GroupOperator interface {
 	UpdateGroup(workspace string, group *iamv1alpha2.Group) (*iamv1alpha2.Group, error)
 	PatchGroup(workspace string, group *iamv1alpha2.Group) (*iamv1alpha2.Group, error)
 	DeleteGroupBinding(workspace, name string) error
-	CreateGroupBinding(workspace, groupName, userName string) error
+	CreateGroupBinding(workspace, groupName, userName string) (*iamv1alpha2.GroupBinding, error)
 	ListGroupBindings(workspace, group string, queryParam *query.Query) (*api.ListResult, error)
 }
 
@@ -77,8 +78,43 @@ func (t *groupOperator) ListGroups(workspace string, queryParam *query.Query) (*
 }
 
 // CreateGroup adds a workspace label to group which indicates group is under the workspace
-func (t *groupOperator) CreateGroup(workspace string, namespace *iamv1alpha2.Group) (*iamv1alpha2.Group, error) {
-	return t.ksclient.IamV1alpha2().Groups().Create(labelGroupWithWorkspaceName(namespace, workspace))
+func (t *groupOperator) CreateGroup(workspace string, group *iamv1alpha2.Group) (*iamv1alpha2.Group, error) {
+
+	if group.GenerateName == "" {
+		err := errors.NewInvalid(iamv1alpha2.SchemeGroupVersion.WithKind(iamv1alpha2.ResourcePluralGroup).GroupKind(),
+			"", []*field.Error{field.Required(field.NewPath("metadata.generateName"), "generateName is required")})
+		klog.Error(err)
+		return nil, err
+	}
+	// generateName is used as displayName
+	// ensure generateName is unique in workspace scope
+	if unique, err := t.isGenerateNameUnique(workspace, group.GenerateName); err != nil {
+		return nil, err
+	} else if !unique {
+		err = errors.NewConflict(iamv1alpha2.Resource(iamv1alpha2.ResourcePluralGroup),
+			group.GenerateName, fmt.Errorf("a group named %s already exists in the workspace", group.GenerateName))
+		klog.Error(err)
+		return nil, err
+	}
+
+	return t.ksclient.IamV1alpha2().Groups().Create(labelGroupWithWorkspaceName(group, workspace))
+}
+
+func (t *groupOperator) isGenerateNameUnique(workspace, generateName string) (bool, error) {
+
+	result, err := t.ListGroups(workspace, query.New())
+
+	if err != nil {
+		klog.Error(err)
+		return false, err
+	}
+	for _, obj := range result.Items {
+		g := obj.(*iamv1alpha2.Group)
+		if g.GenerateName == generateName {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func (t *groupOperator) DescribeGroup(workspace, group string) (*iamv1alpha2.Group, error) {
@@ -142,11 +178,11 @@ func (t *groupOperator) DeleteGroupBinding(workspace, name string) error {
 	return t.ksclient.IamV1alpha2().GroupBindings().Delete(name, metav1.NewDeleteOptions(0))
 }
 
-func (t *groupOperator) CreateGroupBinding(workspace, groupName, userName string) error {
+func (t *groupOperator) CreateGroupBinding(workspace, groupName, userName string) (*iamv1alpha2.GroupBinding, error) {
 
 	groupBinding := iamv1alpha2.GroupBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", groupName, userName),
+			GenerateName: fmt.Sprintf("%s-%s-", groupName, userName),
 			Labels: map[string]string{
 				iamv1alpha2.UserReferenceLabel:  userName,
 				iamv1alpha2.GroupReferenceLabel: groupName,
@@ -161,11 +197,7 @@ func (t *groupOperator) CreateGroupBinding(workspace, groupName, userName string
 		},
 	}
 
-	if _, err := t.ksclient.IamV1alpha2().GroupBindings().Create(&groupBinding); err != nil {
-		return err
-	}
-
-	return nil
+	return t.ksclient.IamV1alpha2().GroupBindings().Create(&groupBinding)
 }
 
 func (t *groupOperator) ListGroupBindings(workspace, group string, queryParam *query.Query) (*api.ListResult, error) {
