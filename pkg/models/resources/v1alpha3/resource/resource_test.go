@@ -108,7 +108,7 @@ func prepare() *ResourceGetter {
 	istioClient := fakeistio.NewSimpleClientset()
 	snapshotClient := fakesnapshot.NewSimpleClientset()
 	apiextensionsClient := fakeapiextensions.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient, nil)
 
 	for _, namespace := range namespaces {
 		fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().

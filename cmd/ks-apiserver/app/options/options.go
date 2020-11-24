@@ -32,6 +32,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 
+	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -82,6 +83,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
 	s.EventsOptions.AddFlags(fss.FlagSet("events"), s.EventsOptions)
 	s.AuditingOptions.AddFlags(fss.FlagSet("auditing"), s.AuditingOptions)
+	s.CustomAlertingOptions.AddFlags(fss.FlagSet("customalerting"), s.CustomAlertingOptions)
 
 	fs = fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
@@ -109,7 +111,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	apiServer.KubernetesClient = kubernetesClient
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(),
-		kubernetesClient.Istio(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions())
+		kubernetesClient.Istio(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions(), kubernetesClient.Prometheus())
 	apiServer.InformerFactory = informerFactory
 
 	if s.MonitoringOptions == nil || len(s.MonitoringOptions.Endpoint) == 0 {
@@ -197,6 +199,14 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			return nil, fmt.Errorf("failed to connect to openpitrix, please check openpitrix status, error: %v", err)
 		}
 		apiServer.OpenpitrixClient = opClient
+	}
+
+	if s.CustomAlertingOptions != nil {
+		customAlertingClient, err := customalerting.NewRuleClient(s.CustomAlertingOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init custom alerting client")
+		}
+		apiServer.CustomAlertingClient = customAlertingClient
 	}
 
 	server := &http.Server{

@@ -51,6 +51,7 @@ import (
 	alertingv1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
+	customalertingv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/customalerting/v1alpha1"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
@@ -74,6 +75,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
+	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -143,6 +145,8 @@ type APIServer struct {
 	EventsClient events.Client
 
 	AuditingClient auditing.Client
+
+	CustomAlertingClient customalerting.RuleClient
 
 	// controller-runtime cache
 	RuntimeCache runtimecache.Cache
@@ -236,6 +240,8 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(notificationv1.AddToContainer(s.container, s.Config.NotificationOptions.Endpoint))
 	urlruntime.Must(alertingv1.AddToContainer(s.container, s.Config.AlertingOptions.Endpoint))
 	urlruntime.Must(version.AddToContainer(s.container, s.KubernetesClient.Discovery()))
+	urlruntime.Must(customalertingv1alpha1.AddToContainer(s.container, s.InformerFactory,
+		s.KubernetesClient.Prometheus(), s.CustomAlertingClient, s.Config.CustomAlertingOptions))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
@@ -502,6 +508,26 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	}
 	apiextensionsInformerFactory.Start(stopCh)
 	apiextensionsInformerFactory.WaitForCacheSync(stopCh)
+
+	if promFactory := s.InformerFactory.PrometheusSharedInformerFactory(); promFactory != nil {
+		prometheusGVRs := []schema.GroupVersionResource{
+			{Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheuses"},
+			{Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheusrules"},
+			{Group: "monitoring.coreos.com", Version: "v1", Resource: "thanosrulers"},
+		}
+		for _, gvr := range prometheusGVRs {
+			if isResourceExists(gvr) {
+				_, err = promFactory.ForResource(gvr)
+				if err != nil {
+					return err
+				}
+			} else {
+				klog.Warningf("resource %s not exists in the cluster", gvr)
+			}
+		}
+		promFactory.Start(stopCh)
+		promFactory.WaitForCacheSync(stopCh)
+	}
 
 	// controller runtime cache for resources
 	go s.RuntimeCache.Start(stopCh)

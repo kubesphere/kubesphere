@@ -158,7 +158,8 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		kubernetesClient.KubeSphere(),
 		kubernetesClient.Istio(),
 		kubernetesClient.Snapshot(),
-		kubernetesClient.ApiExtensions())
+		kubernetesClient.ApiExtensions(),
+		kubernetesClient.Prometheus())
 
 	mgrOptions := manager.Options{
 		CertDir: s.WebhookCertDir,

@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -54,6 +55,10 @@ func (n nullClient) ApiExtensions() apiextensionsclient.Interface {
 }
 
 func (n nullClient) Discovery() discovery.DiscoveryInterface {
+	return nil
+}
+
+func (n *nullClient) Prometheus() promresourcesclient.Interface {
 	return nil
 }
 

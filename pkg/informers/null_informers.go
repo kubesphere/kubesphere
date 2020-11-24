@@ -17,6 +17,8 @@ limitations under the License.
 package informers
 
 import (
+	prominformers "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions"
+	promfake "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/fake"
 	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
@@ -30,6 +32,7 @@ import (
 type nullInformerFactory struct {
 	fakeK8sInformerFactory informers.SharedInformerFactory
 	fakeKsInformerFactory  ksinformers.SharedInformerFactory
+	fakePrometheusFactory  prominformers.SharedInformerFactory
 }
 
 func NewNullInformerFactory() InformerFactory {
@@ -39,9 +42,13 @@ func NewNullInformerFactory() InformerFactory {
 	fakeKsClient := ksfake.NewSimpleClientset()
 	fakeKsInformerFactory := ksinformers.NewSharedInformerFactory(fakeKsClient, time.Minute*10)
 
+	fakePrometheusClient := promfake.NewSimpleClientset()
+	fakePrometheusFactory := prominformers.NewSharedInformerFactory(fakePrometheusClient, time.Minute*10)
+
 	return &nullInformerFactory{
 		fakeK8sInformerFactory: fakeInformerFactory,
 		fakeKsInformerFactory:  fakeKsInformerFactory,
+		fakePrometheusFactory:  fakePrometheusFactory,
 	}
 }
 
@@ -63,6 +70,10 @@ func (n nullInformerFactory) SnapshotSharedInformerFactory() snapshotinformer.Sh
 
 func (n nullInformerFactory) ApiExtensionSharedInformerFactory() apiextensionsinformers.SharedInformerFactory {
 	return nil
+}
+
+func (n *nullInformerFactory) PrometheusSharedInformerFactory() prominformers.SharedInformerFactory {
+	return n.fakePrometheusFactory
 }
 
 func (n nullInformerFactory) Start(stopCh <-chan struct{}) {
