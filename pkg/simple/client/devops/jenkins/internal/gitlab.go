@@ -11,13 +11,10 @@ func AppendGitlabSourceToEtree(source *etree.Element, gitSource *devopsv1alpha3.
 	source.CreateAttr("class", "io.jenkins.plugins.gitlabbranchsource.GitLabSCMSource")
 	source.CreateAttr("plugin", "gitlab-branch-source")
 	source.CreateElement("id").SetText(gitSource.ScmId)
-	source.CreateElement("gitlab-7069").SetText(gitSource.ServerName)
+	source.CreateElement("serverName").SetText(gitSource.ServerName)
 	source.CreateElement("credentialsId").SetText(gitSource.CredentialId)
 	source.CreateElement("projectOwner").SetText(gitSource.Owner)
 	source.CreateElement("projectPath").SetText(gitSource.Repo)
-	if gitSource.ApiUri != "" {
-		source.CreateElement("apiUri").SetText(gitSource.ApiUri)
-	}
 	traits := source.CreateElement("traits")
 	if gitSource.DiscoverBranches != 0 {
 		traits.CreateElement("io.jenkins.plugins.gitlabbranchsource.BranchDiscoveryTrait").
@@ -43,7 +40,6 @@ func AppendGitlabSourceToEtree(source *etree.Element, gitSource *devopsv1alpha3.
 			trustClass += "TrustPermission"
 		case 4:
 			trustClass += "TrustNobody"
-		default:
 		}
 		forkTrait.CreateElement("trust").CreateAttr("class", trustClass)
 	}
@@ -82,14 +78,11 @@ func GetGitlabSourceFromEtree(source *etree.Element) (gitSource *devopsv1alpha3.
 	if serverName := source.SelectElement("serverName"); serverName != nil {
 		gitSource.ServerName = serverName.Text()
 	}
-	if repoOwner := source.SelectElement("repoOwner"); repoOwner != nil {
+	if repoOwner := source.SelectElement("projectOwner"); repoOwner != nil {
 		gitSource.Owner = repoOwner.Text()
 	}
-	if repository := source.SelectElement("repository"); repository != nil {
+	if repository := source.SelectElement("projectPath"); repository != nil {
 		gitSource.Repo = repository.Text()
-	}
-	if apiUri := source.SelectElement("apiUri"); apiUri != nil {
-		gitSource.ApiUri = apiUri.Text()
 	}
 	traits := source.SelectElement("traits")
 	if branchDiscoverTrait := traits.SelectElement(
