@@ -239,6 +239,8 @@ func (c *Controller) syncHandler(key string) error {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline config %s ", key))
 					return err
 				}
+			} else {
+				klog.V(8).Info(fmt.Sprintf("nothing was changed, pipeline '%v'", copyPipeline.Spec))
 			}
 		} else {
 			_, err := c.devopsClient.CreateProjectPipeline(nsName, copyPipeline)
