@@ -82,12 +82,12 @@ const (
 )
 
 const (
-	SourceType_SVN       = "svn"
-	SourceType_Git       = "git"
-	SourceType_SingleSVN = "single_svn"
-	SourceType_Gitlab    = "gitlab"
-	SourceType_Github    = "github"
-	SourceType_Bitbucket = "bitbucket_server"
+	SourceTypeSVN       = "svn"
+	SourceTypeGit       = "git"
+	SourceTypeSingleSVN = "single_svn"
+	SourceTypeGitlab    = "gitlab"
+	SourceTypeGithub    = "github"
+	SourceTypeBitbucket = "bitbucket_server"
 )
 
 type NoScmPipeline struct {
