@@ -902,7 +902,12 @@ func parseMultiBranchPipelineConfigXml(config string) (*devopsv1alpha3.MultiBran
 		}
 	}
 
-	pipeline.ScriptPath = project.SelectElement("factory").SelectElement("scriptPath").Text()
+	scriptPathEle := project.SelectElement("factory").SelectElement("scriptPath")
+	if scriptPathEle != nil {
+		// There's no script path if current pipeline using a default Jenkinsfile
+		// see also https://github.com/jenkinsci/pipeline-multibranch-defaults-plugin
+		pipeline.ScriptPath = scriptPathEle.Text()
+	}
 	return pipeline, nil
 }
 
