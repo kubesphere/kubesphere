@@ -41,6 +41,7 @@ import (
 	resourcesV1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
+	"sort"
 	"sync"
 )
 
@@ -59,7 +60,7 @@ type DevopsOperator interface {
 	GetPipelineObj(projectName string, pipelineName string) (*v1alpha3.Pipeline, error)
 	DeletePipelineObj(projectName string, pipelineName string) error
 	UpdatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error)
-	ListPipelineObj(projectName string, limit, offset int) (api.ListResult, error)
+	ListPipelineObj(projectName string, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error)
 
 	CreateCredentialObj(projectName string, s *v1.Secret) (*v1.Secret, error)
 	GetCredentialObj(projectName string, secretName string) (*v1.Secret, error)
@@ -254,7 +255,7 @@ func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3
 	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Update(pipeline)
 }
 
-func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (api.ListResult, error) {
+func (d devopsOperator) ListPipelineObj(projectName string, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
 	if err != nil {
 		return api.ListResult{}, err
@@ -263,6 +264,14 @@ func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (
 	if err != nil {
 		return api.ListResult{}, err
 	}
+
+	// sort the pipeline list according to the request
+	if sortFunc != nil {
+		sort.SliceStable(data, func(i, j int) bool {
+			return sortFunc(data, i, j)
+		})
+	}
+
 	items := make([]interface{}, 0)
 	var result []interface{}
 	for _, item := range data {
