@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
@@ -46,10 +47,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(container *restful.Container, ksInformers externalversions.SharedInformerFactory, devopsClient devops.Interface, sonarqubeClient sonarqube.SonarInterface, ksClient versioned.Interface, s3Client s3.Interface, endpoint string) error {
+func AddToContainer(container *restful.Container, ksInformers externalversions.SharedInformerFactory, devopsClient devops.Interface, sonarqubeClient sonarqube.SonarInterface, ksClient versioned.Interface, s3Client s3.Interface, endpoint string, abc am.AccessManagementInterface) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	err := AddPipelineToWebService(ws, devopsClient)
+	err := AddPipelineToWebService(ws, devopsClient, abc)
 	if err != nil {
 		return err
 	}
@@ -74,12 +75,12 @@ func AddToContainer(container *restful.Container, ksInformers externalversions.S
 	return nil
 }
 
-func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface) error {
+func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface, abc am.AccessManagementInterface) error {
 
 	projectPipelineEnable := devopsClient != nil
 
 	if projectPipelineEnable {
-		projectPipelineHandler := NewProjectPipelineHandler(devopsClient)
+		projectPipelineHandler := NewProjectPipelineHandler(devopsClient, abc)
 
 		webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}/usage").
 			To(projectPipelineHandler.GetProjectCredentialUsage).

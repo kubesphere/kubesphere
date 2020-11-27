@@ -210,7 +210,8 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.SonarClient,
 		s.KubernetesClient.KubeSphere(),
 		s.S3Client,
-		s.Config.DevopsOptions.Host))
+		s.Config.DevopsOptions.Host,
+		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes())))
 	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container,
 		s.DevopsClient,
 		s.KubernetesClient.Kubernetes(),

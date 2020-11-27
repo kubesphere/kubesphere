@@ -17,10 +17,17 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/emicklei/go-restful"
+	"k8s.io/apiserver/pkg/authentication/user"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	clientDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"strings"
 )
@@ -202,6 +209,78 @@ func (h *ProjectPipelineHandler) GetPipelineRunNodes(req *restful.Request, resp 
 	resp.WriteAsJson(res)
 }
 
+func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasPermit bool, err error) {
+	var currentUserName string
+	var userInfo user.Info
+	var ok bool
+	ctx := req.Request.Context()
+	if userInfo, ok = request.UserFrom(ctx); ok {
+		// check if current user belong to the admin group, grant it if it's true
+		var role *iamv1alpha2.GlobalRole
+		currentUserName = userInfo.GetName()
+		if role, err = h.abc.GetGlobalRoleOfUser(currentUserName); err == nil {
+			if role.Name == iamv1alpha2.PlatformAdmin {
+				hasPermit = true
+				return
+			}
+		} else {
+			return
+		}
+	}
+
+	// step 2, check if current user if was addressed
+	httpReq := &http.Request{
+		URL:      req.Request.URL,
+		Header:   req.Request.Header,
+		Form:     req.Request.Form,
+		PostForm: req.Request.PostForm,
+	}
+
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+	runId := req.PathParameter("run")
+	nodeId := req.PathParameter("node")
+	stepId := req.PathParameter("step")
+
+	// find the expected submitter list which separated by common
+	var expectedSubmitter string
+	var res []clientDevOps.NodesDetail
+	if res, err = h.devopsOperator.GetNodesDetail(projectName, pipelineName, runId, httpReq); err == nil {
+		for _, node := range res {
+			if node.ID != nodeId {
+				continue
+			}
+
+			for _, step := range node.Steps {
+				if step.ID != stepId || step.Input == nil {
+					continue
+				}
+
+				expectedSubmitter = fmt.Sprintf("%v", step.Input.Submitter)
+				break
+			}
+			break
+		}
+	} else {
+		log.Errorf("cannot get nodes detail, error: %v", err)
+		err = errors.New("cannot get the submitters of current pipeline run")
+		return
+	}
+
+	// grant all users if there's no specific one
+	if expectedSubmitter == "" {
+		hasPermit = true
+	} else {
+		for _, submitter := range strings.Split(expectedSubmitter, ",") {
+			if strings.TrimSpace(submitter) == currentUserName {
+				hasPermit = true
+				break
+			}
+		}
+	}
+	return
+}
+
 func (h *ProjectPipelineHandler) SubmitInputStep(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
@@ -209,13 +288,27 @@ func (h *ProjectPipelineHandler) SubmitInputStep(req *restful.Request, resp *res
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	res, err := h.devopsOperator.SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
+	var (
+		response []byte
+		err      error
+		ok       bool
+	)
 
-	resp.Write(res)
+	if ok, err = h.hasSubmitPermission(req); !ok || err != nil {
+		msg := map[string]string{
+			"allow":   "false",
+			"message": fmt.Sprintf("%v", err),
+		}
+
+		response, _ = json.Marshal(msg)
+	} else {
+		response, err = h.devopsOperator.SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId, req.Request)
+		if err != nil {
+			parseErr(err, resp)
+			return
+		}
+	}
+	resp.Write(response)
 }
 
 func (h *ProjectPipelineHandler) GetNodesDetail(req *restful.Request, resp *restful.Response) {
@@ -400,6 +493,40 @@ func (h *ProjectPipelineHandler) SubmitBranchInputStep(req *restful.Request, res
 	runId := req.PathParameter("run")
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
+
+	var currentUesrName string
+	ctx := req.Request.Context()
+	if user, ok := request.UserFrom(ctx); ok {
+		currentUesrName = user.GetName()
+	}
+
+	fmt.Println("current user", currentUesrName, "nodeId", nodeId, "stepid", stepId)
+	req.Request.UserAgent()
+	if res, err := h.devopsOperator.GetNodesDetail(projectName, pipelineName, runId, req.Request); err == nil {
+		for _, node := range res {
+			fmt.Println("nodeid", node.ID)
+			if node.ID != nodeId {
+				continue
+			}
+
+			for _, step := range node.Steps {
+				fmt.Println("stepid", step.ID, step.Input)
+				if step.ID != stepId && step.Input != nil {
+					continue
+				}
+
+				submitter := step.Input.Submitter
+				fmt.Println(submitter)
+
+				if currentUesrName != submitter {
+					resp.Write([]byte("no permission"))
+					return
+				}
+			}
+		}
+	} else {
+		log.Infof("cannot get the nodes detail when submit a branch input step")
+	}
 
 	res, err := h.devopsOperator.SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
 	if err != nil {

@@ -487,20 +487,16 @@ func (d devopsOperator) GetNodeSteps(projectName, pipelineName, runId, nodeId st
 }
 
 func (d devopsOperator) GetPipelineRunNodes(projectName, pipelineName, runId string, req *http.Request) ([]devops.PipelineRunNodes, error) {
-
 	res, err := d.devopsClient.GetPipelineRunNodes(projectName, pipelineName, runId, convertToHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	fmt.Println()
-
 	return res, err
 }
 
 func (d devopsOperator) SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
-
 	newBody, err := getInputReqBody(req.Body)
 	if err != nil {
 		klog.Error(err)
