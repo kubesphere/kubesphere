@@ -39,7 +39,11 @@ jobs:
         run: bash hack/install_kubebuilder.sh
 
       - name: Build
-        run: make all
+        run: |
+          export PATH=$PATH:${PWD}/upx-3.96-amd64_linux
+          curl -L https://github.com/upx/upx/releases/download/v3.96/upx-3.96-amd64_linux.tar.xz | tar xJ
+          upx -V
+          make all
 
       - name: Make OpenAPI Spec
         run: make openapi

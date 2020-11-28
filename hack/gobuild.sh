@@ -46,3 +46,9 @@ time GOOS=${BUILD_GOOS} CGO_ENABLED=0 GOARCH=${BUILD_GOARCH} ${GOBINARY} build \
         -ldflags="${LDFLAGS}" \
         -o ${OUT} \
         ${BUILDPATH}
+
+# upx is a tool which can reduce the binary size dramatically
+if upx -V &> /dev/null
+then
+  upx ${OUT}
+fi
