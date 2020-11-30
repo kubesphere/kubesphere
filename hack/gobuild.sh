@@ -41,6 +41,12 @@ BUILD_GOARCH=${GOARCH:-$(go env GOARCH)}
 GOBINARY=${GOBINARY:-go}
 LDFLAGS=$(kube::version::ldflags)
 
+# we need to build a particular binary instead of default one in some cases
+KS_BUILD_GOOS=${KS_BUILD_GOOS:-""}
+if [[ "${KS_BUILD_GOOS}" != "" ]]; then
+  BUILD_GOOS=${KS_BUILD_GOOS}
+fi
+
 # forgoing -i (incremental build) because it will be deprecated by tool chain.
 time GOOS=${BUILD_GOOS} CGO_ENABLED=0 GOARCH=${BUILD_GOARCH} ${GOBINARY} build \
         -ldflags="${LDFLAGS}" \
