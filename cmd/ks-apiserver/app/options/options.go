@@ -37,6 +37,7 @@ import (
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/metricsserver"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -117,12 +118,18 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.MonitoringOptions == nil || len(s.MonitoringOptions.Endpoint) == 0 {
 		return nil, fmt.Errorf("moinitoring service address in configuration MUST not be empty, please check configmap/kubesphere-config in kubesphere-system namespace")
 	} else {
-		monitoringClient, err := prometheus.NewPrometheus(s.MonitoringOptions)
+		prometheusClient, err := prometheus.NewPrometheus(s.MonitoringOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to prometheus, please check prometheus status, error: %v", err)
 		}
-		apiServer.MonitoringClient = monitoringClient
+		apiServer.PrometheusClient = prometheusClient
 	}
+
+	metricsClient, err := metricsserver.NewMetricsServer(kubernetesClient.Kubernetes(), s.KubernetesOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to metrics-server, please check metrics-server status, error: %v", err)
+	}
+	apiServer.MetricsClient = metricsClient
 
 	if s.LoggingOptions.Host != "" {
 		loggingClient, err := esclient.NewClient(s.LoggingOptions)

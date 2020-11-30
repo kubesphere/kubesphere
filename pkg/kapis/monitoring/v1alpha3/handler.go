@@ -35,8 +35,8 @@ type handler struct {
 	mo model.MonitoringOperator
 }
 
-func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, o openpitrix.Client) *handler {
-	return &handler{k, model.NewMonitoringOperator(m, k, f, o)}
+func newHandler(k kubernetes.Interface, prometheusClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, o openpitrix.Client) *handler {
+	return &handler{k, model.NewMonitoringOperator(prometheusClient, metricsClient, k, f, o)}
 }
 
 func (h handler) handleKubeSphereMetricsQuery(req *restful.Request, resp *restful.Response) {
