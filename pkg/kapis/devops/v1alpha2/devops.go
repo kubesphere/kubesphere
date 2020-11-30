@@ -238,7 +238,7 @@ func (h *ProjectPipelineHandler) getCurrentUser(req *restful.Request) (username,
 	if userInfo, ok = request.UserFrom(ctx); ok {
 		var role *iamv1alpha2.GlobalRole
 		username = userInfo.GetName()
-		if role, err = h.abc.GetGlobalRoleOfUser(username); err == nil {
+		if role, err = h.amInterface.GetGlobalRoleOfUser(username); err == nil {
 			roleName = role.Name
 		}
 	}
@@ -508,47 +508,28 @@ func (h *ProjectPipelineHandler) SubmitBranchInputStep(req *restful.Request, res
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	var currentUesrName string
-	ctx := req.Request.Context()
-	if user, ok := request.UserFrom(ctx); ok {
-		currentUesrName = user.GetName()
-	}
+	var (
+		response []byte
+		err      error
+		ok       bool
+	)
 
-	fmt.Println("current user", currentUesrName, "nodeId", nodeId, "stepid", stepId)
-	req.Request.UserAgent()
-	if res, err := h.devopsOperator.GetNodesDetail(projectName, pipelineName, runId, req.Request); err == nil {
-		for _, node := range res {
-			fmt.Println("nodeid", node.ID)
-			if node.ID != nodeId {
-				continue
-			}
-
-			for _, step := range node.Steps {
-				fmt.Println("stepid", step.ID, step.Input)
-				if step.ID != stepId && step.Input != nil {
-					continue
-				}
-
-				submitter := step.Input.Submitter
-				fmt.Println(submitter)
-
-				if currentUesrName != submitter {
-					resp.Write([]byte("no permission"))
-					return
-				}
-			}
+	if ok, err = h.hasSubmitPermission(req); !ok || err != nil {
+		msg := map[string]string{
+			"allow":   "false",
+			"message": fmt.Sprintf("%v", err),
 		}
+
+		response, _ = json.Marshal(msg)
 	} else {
-		log.Infof("cannot get the nodes detail when submit a branch input step")
+		response, err = h.devopsOperator.SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
+		if err != nil {
+			parseErr(err, resp)
+			return
+		}
 	}
 
-	res, err := h.devopsOperator.SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Write(res)
+	resp.Write(response)
 }
 
 func (h *ProjectPipelineHandler) GetBranchNodesDetail(req *restful.Request, resp *restful.Response) {

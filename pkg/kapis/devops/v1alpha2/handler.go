@@ -29,18 +29,18 @@ import (
 type ProjectPipelineHandler struct {
 	devopsOperator          devops.DevopsOperator
 	projectCredentialGetter devops.ProjectCredentialGetter
-	abc                     am.AccessManagementInterface
+	amInterface             am.AccessManagementInterface
 }
 
 type PipelineSonarHandler struct {
 	pipelineSonarGetter devops.PipelineSonarGetter
 }
 
-func NewProjectPipelineHandler(devopsClient devopsClient.Interface, abc am.AccessManagementInterface) ProjectPipelineHandler {
+func NewProjectPipelineHandler(devopsClient devopsClient.Interface, amInterface am.AccessManagementInterface) ProjectPipelineHandler {
 	return ProjectPipelineHandler{
 		devopsOperator:          devops.NewDevopsOperator(devopsClient, nil, nil, nil, nil),
 		projectCredentialGetter: devops.NewProjectCredentialOperator(devopsClient),
-		abc:                     abc,
+		amInterface:             amInterface,
 	}
 }
 
