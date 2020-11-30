@@ -119,7 +119,7 @@ func generateSwaggerJson() []byte {
 	urlruntime.Must(oauth.AddToContainer(container, nil, nil, nil, nil, nil))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(container, informerFactory.KubernetesSharedInformerFactory(),
 		informerFactory.KubeSphereSharedInformerFactory(), "", "", ""))
-	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fakedevops.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), ""))
+	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fakedevops.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), "", am.NewReadOnlyOperator(informerFactory)))
 	urlruntime.Must(devopsv1alpha3.AddToContainer(container, &fakedevops.Devops{}, clientsets.Kubernetes(), clientsets.KubeSphere(), informerFactory.KubeSphereSharedInformerFactory(), informerFactory.KubernetesSharedInformerFactory()))
 	urlruntime.Must(iamv1alpha2.AddToContainer(container, im.NewOperator(clientsets.KubeSphere(), informerFactory, nil), am.NewReadOnlyOperator(informerFactory), group.New(informerFactory, clientsets.KubeSphere(), clientsets.Kubernetes()), authoptions.NewAuthenticateOptions()))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(container, clientsets.Kubernetes(), nil, informerFactory, nil))

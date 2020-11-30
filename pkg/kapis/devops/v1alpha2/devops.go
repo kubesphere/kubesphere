@@ -209,23 +209,48 @@ func (h *ProjectPipelineHandler) GetPipelineRunNodes(req *restful.Request, resp 
 	resp.WriteAsJson(res)
 }
 
-func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasPermit bool, err error) {
-	var currentUserName string
+func (h *ProjectPipelineHandler) approvableCheck(nodes []clientDevOps.NodesDetail, req *restful.Request) {
+	currentUserName, roleName := h.getCurrentUser(req)
+	// check if current user belong to the admin group, grant it if it's true
+	isAdmin := roleName == iamv1alpha2.PlatformAdmin
+
+	for i, node := range nodes {
+		if node.State != clientDevOps.StatePaused {
+			continue
+		}
+
+		for j, step := range node.Steps {
+			if step.State != clientDevOps.StatePaused || step.Input == nil {
+				continue
+			}
+
+			nodes[i].Steps[j].Approvable = isAdmin || step.Input.Approvable(currentUserName)
+		}
+	}
+}
+
+func (h *ProjectPipelineHandler) getCurrentUser(req *restful.Request) (username, roleName string) {
 	var userInfo user.Info
 	var ok bool
+	var err error
+
 	ctx := req.Request.Context()
 	if userInfo, ok = request.UserFrom(ctx); ok {
-		// check if current user belong to the admin group, grant it if it's true
 		var role *iamv1alpha2.GlobalRole
-		currentUserName = userInfo.GetName()
-		if role, err = h.abc.GetGlobalRoleOfUser(currentUserName); err == nil {
-			if role.Name == iamv1alpha2.PlatformAdmin {
-				hasPermit = true
-				return
-			}
-		} else {
-			return
+		username = userInfo.GetName()
+		if role, err = h.abc.GetGlobalRoleOfUser(username); err == nil {
+			roleName = role.Name
 		}
+	}
+	return
+}
+
+func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasPermit bool, err error) {
+	currentUserName, roleName := h.getCurrentUser(req)
+	// check if current user belong to the admin group, grant it if it's true
+	if roleName == iamv1alpha2.PlatformAdmin {
+		hasPermit = true
+		return
 	}
 
 	// step 2, check if current user if was addressed
@@ -242,8 +267,7 @@ func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasP
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	// find the expected submitter list which separated by common
-	var expectedSubmitter string
+	// check if current user can approve this input
 	var res []clientDevOps.NodesDetail
 	if res, err = h.devopsOperator.GetNodesDetail(projectName, pipelineName, runId, httpReq); err == nil {
 		for _, node := range res {
@@ -256,7 +280,7 @@ func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasP
 					continue
 				}
 
-				expectedSubmitter = fmt.Sprintf("%v", step.Input.Submitter)
+				hasPermit = step.Input.Approvable(currentUserName)
 				break
 			}
 			break
@@ -265,18 +289,6 @@ func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasP
 		log.Errorf("cannot get nodes detail, error: %v", err)
 		err = errors.New("cannot get the submitters of current pipeline run")
 		return
-	}
-
-	// grant all users if there's no specific one
-	if expectedSubmitter == "" {
-		hasPermit = true
-	} else {
-		for _, submitter := range strings.Split(expectedSubmitter, ",") {
-			if strings.TrimSpace(submitter) == currentUserName {
-				hasPermit = true
-				break
-			}
-		}
 	}
 	return
 }
@@ -321,6 +333,8 @@ func (h *ProjectPipelineHandler) GetNodesDetail(req *restful.Request, resp *rest
 		parseErr(err, resp)
 		return
 	}
+	h.approvableCheck(res, req)
+
 	resp.WriteAsJson(res)
 }
 
@@ -548,6 +562,7 @@ func (h *ProjectPipelineHandler) GetBranchNodesDetail(req *restful.Request, resp
 		parseErr(err, resp)
 		return
 	}
+	h.approvableCheck(res, req)
 	resp.WriteAsJson(res)
 }
 
