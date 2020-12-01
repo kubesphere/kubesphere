@@ -50,6 +50,7 @@ require (
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
+	github.com/mitchellh/mapstructure v1.2.2
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/open-policy-agent/opa v0.18.0
