@@ -246,7 +246,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 		!util.IsApplicationComponent(service.Labels) ||
 		!util.IsServicemeshEnabled(service.Annotations) ||
 		len(service.Spec.Ports) == 0 {
-		// services don't have enough labels to create a virtualservice
+		// services don't have enough labels to create a destinationrule
 		// or they don't have necessary labels
 		// or they don't have servicemesh enabled
 		// or they don't have any ports defined
