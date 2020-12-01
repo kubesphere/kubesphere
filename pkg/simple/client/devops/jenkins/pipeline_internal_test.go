@@ -250,6 +250,13 @@ func Test_MultiBranchPipelineConfig(t *testing.T) {
 			SourceType:  "svn",
 			SvnSource:   &devopsv1alpha3.SvnSource{},
 		},
+		{
+			Name:         "",
+			Description:  "for test",
+			ScriptPath:   "Jenkinsfile",
+			SourceType:   "gitlab",
+			GitlabSource: &devopsv1alpha3.GitlabSource{},
+		},
 	}
 	for _, input := range inputs {
 		outputString, err := createMultiBranchPipelineConfigXml("", input)
@@ -369,6 +376,73 @@ func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
+			SourceType:  "gitlab",
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
+				Interval: "12345566",
+			},
+			GitlabSource: &devopsv1alpha3.GitlabSource{
+				Owner:                "kubesphere",
+				Repo:                 "devops",
+				CredentialId:         "gitlab",
+				ServerName:           "default-gitlab",
+				DiscoverBranches:     1,
+				DiscoverPRFromOrigin: 2,
+				DiscoverTags:         true,
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    1,
+				},
+				CloneOption: &devopsv1alpha3.GitCloneOption{
+					Timeout: 10,
+					Depth:   10,
+				},
+				RegexFilter: "*-dev",
+			},
+		},
+		{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
+			SourceType:  "gitlab",
+			GitlabSource: &devopsv1alpha3.GitlabSource{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    2,
+				},
+				//CloneOption: &devopsv1alpha3.GitCloneOption{
+				//	Depth:   -1,
+				//	Timeout: -1,
+				//},
+			},
+		},
+		{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
+			SourceType:  "gitlab",
+			GitlabSource: &devopsv1alpha3.GitlabSource{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    3,
+				},
+			},
+		},
+		{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
+			SourceType:  "gitlab",
+			GitlabSource: &devopsv1alpha3.GitlabSource{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    4,
+				},
+			},
+		},
+		{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
 			SourceType:  "bitbucket_server",
 			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Interval: "12345566",
@@ -428,7 +502,7 @@ func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 			t.Fatalf("should not get error %+v", err)
 		}
 		if !reflect.DeepEqual(input, output) {
-			t.Fatalf("input [%+v] output [%+v] should equal ", input, output)
+			t.Fatalf("\ninput [%+v] \noutput [%+v] \nshould equal ", input.GitlabSource.CloneOption, output.GitlabSource.CloneOption)
 		}
 	}
 }
@@ -475,6 +549,22 @@ func Test_MultiBranchPipelineCloneConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
+			SourceType:  "gitlab",
+			GitlabSource: &devopsv1alpha3.GitlabSource{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    1,
+				},
+				CloneOption: &devopsv1alpha3.GitCloneOption{
+					Depth:   -1,
+					Timeout: -1,
+				},
+			},
+		},
 	}
 
 	for _, input := range inputs {
@@ -487,8 +577,19 @@ func Test_MultiBranchPipelineCloneConfig(t *testing.T) {
 		if err != nil {
 			t.Fatalf("should not get error %+v", err)
 		}
+
+		// we'll give it a default value if it's negative
+		if input.GitlabSource != nil && input.GitlabSource.CloneOption != nil {
+			if input.GitlabSource.CloneOption.Timeout < 0 {
+				input.GitlabSource.CloneOption.Timeout = 10
+			}
+			if input.GitlabSource.CloneOption.Depth < 0 {
+				input.GitlabSource.CloneOption.Depth = 1
+			}
+		}
+
 		if !reflect.DeepEqual(input, output) {
-			t.Fatalf("input [%+v] output [%+v] should equal ", input, output)
+			t.Fatalf("input [%+v] output [%+v] should equal ", input.GitlabSource, output.GitlabSource)
 		}
 	}
 

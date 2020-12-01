@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/beevik/etree"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/internal"
 	"strconv"
 	"strings"
 	"time"
@@ -812,19 +813,21 @@ func createMultiBranchPipelineConfigXml(projectName string, pipeline *devopsv1al
 	source := branchSource.CreateElement("source")
 
 	switch pipeline.SourceType {
-	case "git":
+	case devopsv1alpha3.SourceTypeGit:
 		appendGitSourceToEtree(source, pipeline.GitSource)
-	case "github":
+	case devopsv1alpha3.SourceTypeGithub:
 		appendGithubSourceToEtree(source, pipeline.GitHubSource)
-	case "svn":
+	case devopsv1alpha3.SourceTypeGitlab:
+		internal.AppendGitlabSourceToEtree(source, pipeline.GitlabSource)
+	case devopsv1alpha3.SourceTypeSVN:
 		appendSvnSourceToEtree(source, pipeline.SvnSource)
-	case "single_svn":
+	case devopsv1alpha3.SourceTypeSingleSVN:
 		appendSingleSvnSourceToEtree(source, pipeline.SingleSvnSource)
-	case "bitbucket_server":
+	case devopsv1alpha3.SourceTypeBitbucket:
 		appendBitbucketServerSourceToEtree(source, pipeline.BitbucketServerSource)
 
 	default:
-		return "", fmt.Errorf("unsupport source type")
+		return "", fmt.Errorf("unsupport source type: %s", pipeline.SourceType)
 	}
 
 	factory := project.CreateElement("factory")
@@ -881,21 +884,24 @@ func parseMultiBranchPipelineConfigXml(config string) (*devopsv1alpha3.MultiBran
 				switch source.SelectAttr("class").Value {
 				case "org.jenkinsci.plugins.github_branch_source.GitHubSCMSource":
 					pipeline.GitHubSource = getGithubSourcefromEtree(source)
-					pipeline.SourceType = "github"
+					pipeline.SourceType = devopsv1alpha3.SourceTypeGithub
 				case "com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource":
 					pipeline.BitbucketServerSource = getBitbucketServerSourceFromEtree(source)
-					pipeline.SourceType = "bitbucket_server"
+					pipeline.SourceType = devopsv1alpha3.SourceTypeBitbucket
+				case "io.jenkins.plugins.gitlabbranchsource.GitLabSCMSource":
+					pipeline.GitlabSource = internal.GetGitlabSourceFromEtree(source)
+					pipeline.SourceType = devopsv1alpha3.SourceTypeGitlab
 
 				case "jenkins.plugins.git.GitSCMSource":
-					pipeline.SourceType = "git"
+					pipeline.SourceType = devopsv1alpha3.SourceTypeGit
 					pipeline.GitSource = getGitSourcefromEtree(source)
 
 				case "jenkins.scm.impl.SingleSCMSource":
-					pipeline.SourceType = "single_svn"
+					pipeline.SourceType = devopsv1alpha3.SourceTypeSingleSVN
 					pipeline.SingleSvnSource = getSingleSvnSourceFromEtree(source)
 
 				case "jenkins.scm.impl.subversion.SubversionSCMSource":
-					pipeline.SourceType = "svn"
+					pipeline.SourceType = devopsv1alpha3.SourceTypeSVN
 					pipeline.SvnSource = getSvnSourcefromEtree(source)
 				}
 			}

@@ -3789,6 +3789,49 @@
         }
       }
     },
+    "/kapis/iam.kubesphere.io/v1alpha2/namespace/{namespace}/rolebindings/{rolebinding}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Delete rolebinding under namespace.",
+        "operationId": "DeleteRoleBinding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "groupbinding name",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "groupbinding name",
+            "name": "rolebinding",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/errors.Error"
+            }
+          }
+        }
+      }
+    },
     "/kapis/iam.kubesphere.io/v1alpha2/namespaces/{namespace}/members": {
       "get": {
         "produces": [
@@ -4002,6 +4045,49 @@
             "description": "ok",
             "schema": {
               "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/namespaces/{namespace}/rolebindings": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Namespace Role"
+        ],
+        "summary": "Create rolebinding in the specified namespace.",
+        "operationId": "CreateRoleBinding",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.RoleBinding"
+              }
+            }
+          },
+          {
+            "type": "string",
+            "description": "namespace",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.RoleBinding"
+              }
             }
           }
         }
@@ -4711,6 +4797,42 @@
         }
       }
     },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups/{group}/devopsrolebindings": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Retrieve group's rolebindings of all devops projects in the workspace.",
+        "operationId": "ListGroupDevOpsRoleBindings",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "group name",
+            "name": "group",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      }
+    },
     "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups/{group}/groupbindings": {
       "get": {
         "produces": [
@@ -4756,7 +4878,7 @@
           "Group"
         ],
         "summary": "Retrieve group's rolebindings of all projects in the workspace.",
-        "operationId": "ListGroupsRoleBinding",
+        "operationId": "ListGroupRoleBindings",
         "parameters": [
           {
             "type": "string",
@@ -4783,7 +4905,7 @@
         }
       }
     },
-    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups/{group}/workspacerolebinding": {
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/groups/{group}/workspacerolebindings": {
       "get": {
         "produces": [
           "application/json"
@@ -4792,7 +4914,7 @@
           "Group"
         ],
         "summary": "Retrieve group's workspacerolebindings of the workspace.",
-        "operationId": "ListGroupsWorkspaceRoleBinding",
+        "operationId": "ListGroupWorkspaceRoleBindings",
         "parameters": [
           {
             "type": "string",
@@ -5032,6 +5154,85 @@
             "description": "ok",
             "schema": {
               "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/workspacerolebindings": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Create group's workspacerolebindings of the workspace.",
+        "operationId": "CreateWorkspaceRoleBinding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1alpha2.WorkspaceRoleBinding"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1alpha2.WorkspaceRoleBinding"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/workspacerolebindings/{rolebinding}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Group"
+        ],
+        "summary": "Delete workspacerolebinding.",
+        "operationId": "DeleteWorkspaceRoleBinding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "groupbinding name",
+            "name": "rolebinding",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/errors.Error"
             }
           }
         }
@@ -19700,6 +19901,59 @@
         }
       }
     },
+    "v1.RoleBinding": {
+      "description": "RoleBinding references a role, but does not contain it.  It can reference a Role in the same namespace or a ClusterRole in the global namespace. It adds who information via Subjects and namespace information by which namespace it exists in.  RoleBindings in a given namespace only have effect in that namespace.",
+      "required": [
+        "roleRef"
+      ],
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Standard object's metadata.",
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "roleRef": {
+          "description": "RoleRef can reference a Role in the current namespace or a ClusterRole in the global namespace. If the RoleRef cannot be resolved, the Authorizer must return an error.",
+          "$ref": "#/definitions/v1.RoleRef"
+        },
+        "subjects": {
+          "description": "Subjects holds references to the objects the role applies to.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.Subject"
+          }
+        }
+      }
+    },
+    "v1.RoleRef": {
+      "description": "RoleRef contains information that points to the role being used",
+      "required": [
+        "apiGroup",
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "apiGroup": {
+          "description": "APIGroup is the group for the resource being referenced",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is the type of resource being referenced",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name is the name of resource being referenced",
+          "type": "string"
+        }
+      }
+    },
     "v1.RollingUpdateDaemonSet": {
       "description": "Spec to control the desired behavior of daemon set rolling update.",
       "properties": {
@@ -20338,6 +20592,31 @@
         },
         "volumeNamespace": {
           "description": "VolumeNamespace specifies the scope of the volume within StorageOS.  If no namespace is specified then the Pod's namespace will be used.  This allows the Kubernetes name scoping to be mirrored within StorageOS for tighter integration. Set VolumeName to any name to override the default behaviour. Set to \"default\" if you are not using namespaces within StorageOS. Namespaces that do not pre-exist within StorageOS will be created.",
+          "type": "string"
+        }
+      }
+    },
+    "v1.Subject": {
+      "description": "Subject contains a reference to the object or user identities a role binding applies to.  This can either hold a direct API object reference, or a value for non-objects such as user and group names.",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "apiGroup": {
+          "description": "APIGroup holds the API group of the referenced subject. Defaults to \"\" for ServiceAccount subjects. Defaults to \"rbac.authorization.k8s.io\" for User and Group subjects.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind of object being referenced. Values defined by this API group are \"User\", \"Group\", and \"ServiceAccount\". If the Authorizer does not recognized the kind value, the Authorizer should report an error.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the object being referenced.",
+          "type": "string"
+        },
+        "namespace": {
+          "description": "Namespace of the referenced object.  If the object kind is non-namespace, such as \"User\" or \"Group\", and this value is not empty the Authorizer should report an error.",
           "type": "string"
         }
       }
@@ -21266,10 +21545,10 @@
     },
     "v1alpha2.NodeSummary": {
       "required": [
-        "id",
-        "label",
         "labelMinor",
-        "rank"
+        "rank",
+        "id",
+        "label"
       ],
       "properties": {
         "adjacency": {
@@ -21563,6 +21842,33 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/v1.PolicyRule"
+          }
+        }
+      }
+    },
+    "v1alpha2.WorkspaceRoleBinding": {
+      "required": [
+        "roleRef"
+      ],
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "roleRef": {
+          "$ref": "#/definitions/v1.RoleRef"
+        },
+        "subjects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.Subject"
           }
         }
       }
@@ -21888,6 +22194,60 @@
         }
       }
     },
+    "v1alpha3.GitlabSource": {
+      "properties": {
+        "api_uri": {
+          "description": "The api url can specify the location of the gitlab apiserver.For private cloud configuration",
+          "type": "string"
+        },
+        "credential_id": {
+          "description": "credential id to access gitlab source",
+          "type": "string"
+        },
+        "discover_branches": {
+          "description": "Discover branch configuration",
+          "type": "integer",
+          "format": "int32"
+        },
+        "discover_pr_from_forks": {
+          "description": "Discover fork PR configuration",
+          "$ref": "#/definitions/v1alpha3.DiscoverPRFromForks"
+        },
+        "discover_pr_from_origin": {
+          "description": "Discover origin PR configuration",
+          "type": "integer",
+          "format": "int32"
+        },
+        "discover_tags": {
+          "description": "Discover tags configuration",
+          "type": "boolean"
+        },
+        "git_clone_option": {
+          "description": "advavced git clone options",
+          "$ref": "#/definitions/v1alpha3.GitCloneOption"
+        },
+        "owner": {
+          "description": "owner of gitlab repo",
+          "type": "string"
+        },
+        "regex_filter": {
+          "description": "Regex used to match the name of the branch that needs to be run",
+          "type": "string"
+        },
+        "repo": {
+          "description": "repo name of gitlab repo",
+          "type": "string"
+        },
+        "scm_id": {
+          "description": "uid of scm",
+          "type": "string"
+        },
+        "server_name": {
+          "description": "the name of gitlab server which was configured in jenkins",
+          "type": "string"
+        }
+      }
+    },
     "v1alpha3.MultiBranchJobTrigger": {
       "properties": {
         "create_action_job_to_trigger": {
@@ -21926,6 +22286,10 @@
         "github_source": {
           "description": "github scm define",
           "$ref": "#/definitions/v1alpha3.GithubSource"
+        },
+        "gitlab_source": {
+          "description": "gitlab scm define",
+          "$ref": "#/definitions/v1alpha3.GitlabSource"
         },
         "multibranch_job_trigger": {
           "description": "Pipeline tasks that need to be triggered when branch creation/deletion",

@@ -255,6 +255,7 @@ func (h *devopsHandler) DeletePipeline(request *restful.Request, response *restf
 	devops := request.PathParameter("devops")
 	pipeline := request.PathParameter("pipeline")
 
+	klog.V(8).Infof("ready to delete pipeline %s/%s", devops, pipeline)
 	err := h.devops.DeletePipelineObj(devops, pipeline)
 
 	if err != nil {

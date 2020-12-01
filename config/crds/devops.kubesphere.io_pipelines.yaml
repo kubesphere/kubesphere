@@ -145,6 +145,45 @@ spec:
                     scm_id:
                       type: string
                   type: object
+                gitlab_source:
+                  properties:
+                    api_uri:
+                      type: string
+                    credential_id:
+                      type: string
+                    discover_branches:
+                      type: integer
+                    discover_pr_from_forks:
+                      properties:
+                        strategy:
+                          type: integer
+                        trust:
+                          type: integer
+                      type: object
+                    discover_pr_from_origin:
+                      type: integer
+                    discover_tags:
+                      type: boolean
+                    git_clone_option:
+                      properties:
+                        depth:
+                          type: integer
+                        shallow:
+                          type: boolean
+                        timeout:
+                          type: integer
+                      type: object
+                    owner:
+                      type: string
+                    regex_filter:
+                      type: string
+                    repo:
+                      type: string
+                    scm_id:
+                      type: string
+                    server_name:
+                      type: string
+                  type: object
                 multibranch_job_trigger:
                   properties:
                     create_action_job_to_trigger:

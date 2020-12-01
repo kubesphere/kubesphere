@@ -81,6 +81,15 @@ const (
 	MultiBranchPipelineType = "multi-branch-pipeline"
 )
 
+const (
+	SourceTypeSVN       = "svn"
+	SourceTypeGit       = "git"
+	SourceTypeSingleSVN = "single_svn"
+	SourceTypeGitlab    = "gitlab"
+	SourceTypeGithub    = "github"
+	SourceTypeBitbucket = "bitbucket_server"
+)
+
 type NoScmPipeline struct {
 	Name              string             `json:"name" description:"name of pipeline"`
 	Description       string             `json:"description,omitempty" description:"description of pipeline"`
@@ -100,6 +109,7 @@ type MultiBranchPipeline struct {
 	SourceType            string                 `json:"source_type" description:"type of scm, such as github/git/svn"`
 	GitSource             *GitSource             `json:"git_source,omitempty" description:"git scm define"`
 	GitHubSource          *GithubSource          `json:"github_source,omitempty" description:"github scm define"`
+	GitlabSource          *GitlabSource          `json:"gitlab_source,omitempty" description:"gitlab scm define"`
 	SvnSource             *SvnSource             `json:"svn_source,omitempty" description:"multi branch svn scm define"`
 	SingleSvnSource       *SingleSvnSource       `json:"single_svn_source,omitempty" description:"single branch svn scm define"`
 	BitbucketServerSource *BitbucketServerSource `json:"bitbucket_server_source,omitempty" description:"bitbucket server scm defile"`
@@ -128,6 +138,21 @@ type GithubSource struct {
 	DiscoverPRFromOrigin int                  `json:"discover_pr_from_origin,omitempty" mapstructure:"discover_pr_from_origin" description:"Discover origin PR configuration"`
 	DiscoverPRFromForks  *DiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
 	DiscoverTags         bool                 `json:"discover_tags,omitempty" mapstructure:"discover_tags" description:"Discover tag configuration"`
+	CloneOption          *GitCloneOption      `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
+	RegexFilter          string               `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
+}
+
+type GitlabSource struct {
+	ScmId                string               `json:"scm_id,omitempty" description:"uid of scm"`
+	Owner                string               `json:"owner,omitempty" mapstructure:"owner" description:"owner of gitlab repo"`
+	Repo                 string               `json:"repo,omitempty" mapstructure:"repo" description:"repo name of gitlab repo"`
+	ServerName           string               `json:"server_name,omitempty" description:"the name of gitlab server which was configured in jenkins"`
+	CredentialId         string               `json:"credential_id,omitempty" mapstructure:"credential_id" description:"credential id to access gitlab source"`
+	ApiUri               string               `json:"api_uri,omitempty" mapstructure:"api_uri" description:"The api url can specify the location of the gitlab apiserver.For private cloud configuration"`
+	DiscoverBranches     int                  `json:"discover_branches,omitempty" mapstructure:"discover_branches" description:"Discover branch configuration"`
+	DiscoverPRFromOrigin int                  `json:"discover_pr_from_origin,omitempty" mapstructure:"discover_pr_from_origin" description:"Discover origin PR configuration"`
+	DiscoverPRFromForks  *DiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
+	DiscoverTags         bool                 `json:"discover_tags,omitempty" mapstructure:"discover_tags" description:"Discover tags configuration"`
 	CloneOption          *GitCloneOption      `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
 	RegexFilter          string               `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
 }
