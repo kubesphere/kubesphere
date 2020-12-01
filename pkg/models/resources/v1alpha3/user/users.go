@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 type usersGetter struct {
@@ -107,6 +108,10 @@ func (d *usersGetter) filter(object runtime.Object, filter query.Filter) bool {
 	switch filter.Field {
 	case iamv1alpha2.FieldEmail:
 		return user.Spec.Email == string(filter.Value)
+	case iamv1alpha2.InGroup:
+		return sliceutil.HasString(user.Spec.Groups, string(filter.Value))
+	case iamv1alpha2.NotInGroup:
+		return !sliceutil.HasString(user.Spec.Groups, string(filter.Value))
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(user.ObjectMeta, filter)
 	}

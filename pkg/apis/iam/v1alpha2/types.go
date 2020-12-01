@@ -65,6 +65,8 @@ const (
 	IdentifyProviderLabel                 = "iam.kubesphere.io/identify-provider"
 	PasswordEncryptedAnnotation           = "iam.kubesphere.io/password-encrypted"
 	FieldEmail                            = "email"
+	InGroup                               = "ingroup"
+	NotInGroup                            = "notingroup"
 	AggregateTo                           = "aggregateTo"
 	ScopeWorkspace                        = "workspace"
 	ScopeCluster                          = "cluster"
