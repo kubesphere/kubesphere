@@ -101,6 +101,7 @@ func (p *Pipeline) GetPipeline() (*devops.Pipeline, error) {
 func (p *Pipeline) ListPipelines() (*devops.PipelineList, error) {
 	res, _, err := p.Jenkins.SendPureRequestWithHeaderResp(p.Path, p.HttpParameters)
 	if err != nil {
+		klog.Error(err)
 		if jErr, ok := err.(*JkError); ok {
 			switch jErr.Code {
 			case 404:
@@ -111,7 +112,6 @@ func (p *Pipeline) ListPipelines() (*devops.PipelineList, error) {
 			klog.Errorf("API '%s' request response code is '%d'", p.Path, jErr.Code)
 		} else {
 			err = fmt.Errorf("unknow errors happend when coumunicate with Jenkins")
-			klog.Error(err)
 		}
 		return nil, err
 	}
