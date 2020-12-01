@@ -107,7 +107,7 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	}
 
 	// Exclude system namespaces
-	config.API.Namespaces.Exclude = []string{"istio-system", "kubesphere*", "kube*"}
+	config.API.Namespaces.Exclude = []string{"istio-system", "kube-.*"}
 	config.InCluster = true
 
 	// Set default prometheus service url
