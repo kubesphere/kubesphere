@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
@@ -55,6 +56,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/group"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/groupbinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/ingress"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/ippool"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/job"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/namespace"
@@ -99,6 +101,7 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	// kubesphere resources
 	getters[devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject)] = devops.New(factory.KubeSphereSharedInformerFactory())
 	getters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha1.ResourcePluralWorkspace)] = workspace.New(factory.KubeSphereSharedInformerFactory())
+	getters[networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralIPPool)] = ippool.New(factory.KubeSphereSharedInformerFactory(), factory.KubernetesSharedInformerFactory())
 	getters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha2.ResourcePluralWorkspaceTemplate)] = workspacetemplate.New(factory.KubeSphereSharedInformerFactory())
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralGlobalRole)] = globalrole.New(factory.KubeSphereSharedInformerFactory())
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralWorkspaceRole)] = workspacerole.New(factory.KubeSphereSharedInformerFactory())

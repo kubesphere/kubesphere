@@ -18,14 +18,17 @@ package calico
 
 import (
 	"flag"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	ksfake "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
+	"kubesphere.io/kubesphere/pkg/constants"
 	calicofake "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/clientset/versioned/fake"
-	"testing"
 )
 
 func TestCalicoIPPoolSuit(t *testing.T) {
@@ -43,6 +46,9 @@ var _ = Describe("test calico ippool", func() {
 		TypeMeta: v1.TypeMeta{},
 		ObjectMeta: v1.ObjectMeta{
 			Name: "testippool",
+			Labels: map[string]string{
+				constants.WorkspaceLabelKey: "wk1",
+			},
 		},
 		Spec: v1alpha1.IPPoolSpec{
 			Type:      v1alpha1.Calico,
@@ -52,7 +58,23 @@ var _ = Describe("test calico ippool", func() {
 		Status: v1alpha1.IPPoolStatus{},
 	}
 
-	ksclient := ksfake.NewSimpleClientset(pool)
+	wk1 := &tenantv1alpha1.Workspace{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name: "wk1",
+		},
+		Spec:   tenantv1alpha1.WorkspaceSpec{},
+		Status: tenantv1alpha1.WorkspaceStatus{},
+	}
+	wk2 := &tenantv1alpha1.Workspace{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name: "wk2",
+		},
+		Spec:   tenantv1alpha1.WorkspaceSpec{},
+		Status: tenantv1alpha1.WorkspaceStatus{},
+	}
+	ksclient := ksfake.NewSimpleClientset(pool, wk1, wk2)
 	client := calicofake.NewSimpleClientset()
 
 	p := provider{
@@ -68,5 +90,16 @@ var _ = Describe("test calico ippool", func() {
 	It("test create calico ippool", func() {
 		err := p.CreateIPPool(pool)
 		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("test get workspace", func() {
+		result, err := p.getAssociatedWorkspaces(pool)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(result)).Should(Equal(1))
+
+		pool.Labels = nil
+		result, err = p.getAssociatedWorkspaces(pool)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(result)).Should(Equal(2))
 	})
 })

@@ -51,7 +51,6 @@ import (
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	ippoolclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
-	calicoclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -261,17 +260,12 @@ func addControllers(
 	}
 
 	var ippoolController manager.Runnable
-	if networkOptions.EnableIPPool {
-		var ippoolProvider ippoolclient.Provider
-		ippoolProvider = ippoolclient.NewProvider(client.KubeSphere(), networkOptions.IPPoolOptions)
-		if networkOptions.IPPoolOptions.Calico != nil {
-			ippoolProvider = calicoclient.NewProvider(client.KubeSphere(), *networkOptions.IPPoolOptions.Calico, options)
-		}
+	ippoolProvider := ippoolclient.NewProvider(kubernetesInformer.Core().V1().Pods(), client.KubeSphere(), client.Kubernetes(), networkOptions.IPPoolType, options)
+	if ippoolProvider != nil {
 		ippoolController = ippool.NewIPPoolController(kubesphereInformer.Network().V1alpha1().IPPools(),
 			kubesphereInformer.Network().V1alpha1().IPAMBlocks(),
 			client.Kubernetes(),
 			client.KubeSphere(),
-			networkOptions.IPPoolOptions,
 			ippoolProvider)
 	}
 

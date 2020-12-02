@@ -409,6 +409,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
+		{Group: "network.kubesphere.io", Version: "v1alpha1", Resource: "ippools"},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{

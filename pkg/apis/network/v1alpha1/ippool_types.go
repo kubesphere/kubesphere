@@ -31,15 +31,21 @@ const (
 
 	// scope type > id > name
 	// id used to detect cidr overlap
-	IPPoolTypeLabel = "ippool.network.kubesphere.io/type"
-	IPPoolNameLabel = "ippool.network.kubesphere.io/name"
-	IPPoolIDLabel   = "ippool.network.kubesphere.io/id"
+	IPPoolTypeLabel    = "ippool.network.kubesphere.io/type"
+	IPPoolNameLabel    = "ippool.network.kubesphere.io/name"
+	IPPoolIDLabel      = "ippool.network.kubesphere.io/id"
+	IPPoolDefaultLabel = "ippool.network.kubesphere.io/default"
+
+	IPPoolTypeNone   = "none"
+	IPPoolTypeLocal  = "local"
+	IPPoolTypeCalico = "calico"
 )
 
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
 type IPPool struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -69,12 +75,17 @@ type DNS struct {
 	Options     []string `json:"options,omitempty"`
 }
 
+type WorkspaceStatus struct {
+	Allocations int `json:"allocations"`
+}
+
 type IPPoolStatus struct {
-	Unallocated int  `json:"unallocated,omitempty"`
-	Allocations int  `json:"allocations,omitempty"`
-	Capacity    int  `json:"capacity,omitempty"`
-	Reserved    int  `json:"reserved,omitempty"`
-	Synced      bool `json:"synced,omitempty"`
+	Unallocated int                        `json:"unallocated"`
+	Allocations int                        `json:"allocations"`
+	Capacity    int                        `json:"capacity"`
+	Reserved    int                        `json:"reserved,omitempty"`
+	Synced      bool                       `json:"synced,omitempty"`
+	Workspaces  map[string]WorkspaceStatus `json:"workspaces,omitempty"`
 }
 
 type IPPoolSpec struct {
@@ -100,9 +111,6 @@ type IPPoolSpec struct {
 	Gateway string  `json:"gateway,omitempty"`
 	Routes  []Route `json:"routes,omitempty"`
 	DNS     DNS     `json:"dns,omitempty"`
-
-	Workspace string `json:"workspace,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -127,9 +135,9 @@ const (
 
 // Find the ordinal (i.e. how far into the block) a given IP lies.  Returns an error if the IP is outside the block.
 func (b IPPool) IPToOrdinal(ip cnet.IP) (int, error) {
-	netIP, _, _ := cnet.ParseCIDR(b.Spec.CIDR)
+	_, cidr, _ := cnet.ParseCIDR(b.Spec.CIDR)
 	ipAsInt := cnet.IPToBigInt(ip)
-	baseInt := cnet.IPToBigInt(*netIP)
+	baseInt := cnet.IPToBigInt(cnet.IP{IP: cidr.IP})
 	ord := big.NewInt(0).Sub(ipAsInt, baseInt).Int64()
 	if ord < 0 || ord >= int64(b.NumAddresses()) {
 		return 0, fmt.Errorf("IP %s not in pool %s", ip, b.Spec.CIDR)
@@ -143,6 +151,14 @@ func (b IPPool) NumAddresses() int {
 	ones, size := cidr.Mask.Size()
 	numAddresses := 1 << uint(size-ones)
 	return numAddresses
+}
+
+func (b IPPool) Type() string {
+	if b.Spec.Type == VLAN {
+		return IPPoolTypeLocal
+	}
+
+	return b.Spec.Type
 }
 
 func (b IPPool) NumReservedAddresses() int {
@@ -164,6 +180,17 @@ func (b IPPool) EndReservedAddressed() int {
 	total := b.NumAddresses()
 	end, _ := b.IPToOrdinal(*cnet.ParseIP(b.Spec.RangeEnd))
 	return total - end - 1
+}
+
+func (b IPPool) Overlapped(dst IPPool) bool {
+	if b.ID() != dst.ID() {
+		return false
+	}
+
+	_, cidr, _ := cnet.ParseCIDR(b.Spec.CIDR)
+	_, cidrDst, _ := cnet.ParseCIDR(dst.Spec.CIDR)
+
+	return cidr.IsNetOverlap(cidrDst.IPNet)
 }
 
 func (pool IPPool) ID() uint32 {

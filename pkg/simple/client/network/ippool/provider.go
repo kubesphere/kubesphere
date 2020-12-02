@@ -17,9 +17,14 @@ limitations under the License.
 package ippool
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+	v1 "k8s.io/client-go/informers/core/v1"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/workqueue"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	calicoclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico"
 	"kubesphere.io/kubesphere/pkg/simple/client/network/ippool/ipam"
 )
 
@@ -30,11 +35,21 @@ type Provider interface {
 	UpdateIPPool(pool *networkv1alpha1.IPPool) error
 	GetIPPoolStats(pool *networkv1alpha1.IPPool) (*networkv1alpha1.IPPool, error)
 	SyncStatus(stopCh <-chan struct{}, q workqueue.RateLimitingInterface) error
+	Type() string
+	Default(obj runtime.Object) error
 }
 
 type provider struct {
 	kubesphereClient kubesphereclient.Interface
 	ipamclient       ipam.IPAMClient
+}
+
+func (p provider) Type() string {
+	return networkv1alpha1.IPPoolTypeLocal
+}
+
+func (p provider) Default(obj runtime.Object) error {
+	return nil
 }
 
 func (p provider) DeleteIPPool(pool *networkv1alpha1.IPPool) (bool, error) {
@@ -77,22 +92,36 @@ func (p provider) GetIPPoolStats(pool *networkv1alpha1.IPPool) (*networkv1alpha1
 	}
 
 	stat := stats[0]
-	return &networkv1alpha1.IPPool{
-		Status: networkv1alpha1.IPPoolStatus{
-			Allocations: stat.Allocate,
-			Unallocated: stat.Unallocated,
-			Reserved:    stat.Reserved,
-			Capacity:    stat.Capacity,
-			Synced:      true,
-		},
-	}, nil
+	clone := pool.DeepCopy()
+	clone.Status = networkv1alpha1.IPPoolStatus{
+		Allocations: stat.Allocate,
+		Unallocated: stat.Unallocated,
+		Reserved:    stat.Reserved,
+		Capacity:    stat.Capacity,
+		Synced:      true,
+	}
+	return clone, nil
 }
 
-func NewProvider(clientset kubesphereclient.Interface, options Options) provider {
-	vlanProvider := provider{
+func newProvider(clientset kubesphereclient.Interface) provider {
+	return provider{
 		kubesphereClient: clientset,
 		ipamclient:       ipam.NewIPAMClient(clientset, networkv1alpha1.VLAN),
 	}
+}
 
-	return vlanProvider
+func NewProvider(podInformer v1.PodInformer, clientset kubesphereclient.Interface, client clientset.Interface, pt string, k8sOptions *k8s.KubernetesOptions) Provider {
+	var p Provider
+
+	switch pt {
+	case networkv1alpha1.IPPoolTypeLocal:
+		p = provider{
+			kubesphereClient: clientset,
+			ipamclient:       ipam.NewIPAMClient(clientset, networkv1alpha1.VLAN),
+		}
+	case networkv1alpha1.IPPoolTypeCalico:
+		p = calicoclient.NewProvider(podInformer, clientset, client, k8sOptions)
+	}
+
+	return p
 }
