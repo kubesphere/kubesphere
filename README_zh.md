@@ -14,7 +14,7 @@
 
 [KubeSphere](https://kubesphere.com.cn) 是在 [Kubernetes](https://kubernetes.io) 之上构建的面向云原生应用的 **容器混合云**，支持多云与多集群管理，提供全栈的 IT 自动化运维的能力，简化企业的 DevOps 工作流。KubeSphere 提供了运维友好的向导式操作界面，帮助企业快速构建一个强大和功能丰富的容器云平台。KubeSphere 愿景是打造一个基于 Kubernetes 的云原生分布式操作系统，它的架构可以很方便地与云原生生态进行即插即用（plug-and-play）的集成。
 
-KubeSphere 目前最新的版本为 3.0.0，所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [什么是 KubeSphere](https://kubesphere.com.cn/docs/zh-CN/introduction/what-is-kubesphere/)。
+KubeSphere 目前最新的版本为 3.0.0，所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [什么是 KubeSphere](https://kubesphere.com.cn/docs/introduction/what-is-kubesphere/)。
 
 <table>
   <tr>
@@ -41,7 +41,7 @@ KubeSphere 目前最新的版本为 3.0.0，所有版本 100% 开源，关于 Ku
 
 ## 架构
 
-KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件可通过 REST API 对接外部系统，详见 [架构说明](https://kubesphere.com.cn/docs/zh-CN/introduction/architecture/)。本仓库仅包含后端代码，前端代码参考 [Console 项目](https://github.com/kubesphere/console)。
+KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件可通过 REST API 对接外部系统，详见 [架构说明](https://kubesphere.com.cn/docs/introduction/architecture/)。本仓库仅包含后端代码，前端代码参考 [Console 项目](https://github.com/kubesphere/console)。
 
 ![Architecture](docs/images/architecture.png)
 
@@ -62,7 +62,7 @@ KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件
 | 网络管理 | 提供租户网络隔离与 K8s [Network Policy](https://kubernetes.io/docs/concepts/services-networking/network-policies/) 管理，支持 Calico、Flannel，提供 [Porter LB](https://github.com/kubesphere/porter) 用于暴露物理环境 K8s 集群的 LoadBalancer 服务 |
 | GPU support | 集群支持添加 GPU 与 vGPU，可运行 TensorFlow 等 ML 框架 |
 
-以上功能说明详见 [产品功能](https://kubesphere.com.cn/docs/zh-CN/introduction/features/)。
+以上功能说明详见 [产品功能](https://kubesphere.com.cn/docs/introduction/features/)。
 
 ----
 
