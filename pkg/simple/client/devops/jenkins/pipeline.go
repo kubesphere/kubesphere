@@ -18,6 +18,7 @@ package jenkins
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
@@ -98,9 +99,20 @@ func (p *Pipeline) GetPipeline() (*devops.Pipeline, error) {
 }
 
 func (p *Pipeline) ListPipelines() (*devops.PipelineList, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	res, _, err := p.Jenkins.SendPureRequestWithHeaderResp(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
+		if jErr, ok := err.(*JkError); ok {
+			switch jErr.Code {
+			case 404:
+				err = fmt.Errorf("please check if there're any Jenkins plugins issues exist")
+			default:
+				err = fmt.Errorf("please check if Jenkins is running well")
+			}
+			klog.Errorf("API '%s' request response code is '%d'", p.Path, jErr.Code)
+		} else {
+			err = fmt.Errorf("unknow errors happend when coumunicate with Jenkins")
+		}
 		return nil, err
 	}
 	count, err := p.searchPipelineCount()
