@@ -50,7 +50,7 @@ var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 func AddToContainer(container *restful.Container, ksInformers externalversions.SharedInformerFactory, devopsClient devops.Interface, sonarqubeClient sonarqube.SonarInterface, ksClient versioned.Interface, s3Client s3.Interface, endpoint string, amInterface am.AccessManagementInterface) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	err := AddPipelineToWebService(ws, devopsClient, amInterface)
+	err := AddPipelineToWebService(ws, devopsClient, ksInformers, amInterface)
 	if err != nil {
 		return err
 	}
@@ -75,12 +75,12 @@ func AddToContainer(container *restful.Container, ksInformers externalversions.S
 	return nil
 }
 
-func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface, amInterface am.AccessManagementInterface) error {
+func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface, ksInformers externalversions.SharedInformerFactory, amInterface am.AccessManagementInterface) error {
 
 	projectPipelineEnable := devopsClient != nil
 
 	if projectPipelineEnable {
-		projectPipelineHandler := NewProjectPipelineHandler(devopsClient, amInterface)
+		projectPipelineHandler := NewProjectPipelineHandler(devopsClient, ksInformers, amInterface)
 
 		webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}/usage").
 			To(projectPipelineHandler.GetProjectCredentialUsage).

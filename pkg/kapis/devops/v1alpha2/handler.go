@@ -36,9 +36,9 @@ type PipelineSonarHandler struct {
 	pipelineSonarGetter devops.PipelineSonarGetter
 }
 
-func NewProjectPipelineHandler(devopsClient devopsClient.Interface, amInterface am.AccessManagementInterface) ProjectPipelineHandler {
+func NewProjectPipelineHandler(devopsClient devopsClient.Interface, ksInformers externalversions.SharedInformerFactory, amInterface am.AccessManagementInterface) ProjectPipelineHandler {
 	return ProjectPipelineHandler{
-		devopsOperator:          devops.NewDevopsOperator(devopsClient, nil, nil, nil, nil),
+		devopsOperator:          devops.NewDevopsOperator(devopsClient, nil, nil, ksInformers, nil),
 		projectCredentialGetter: devops.NewProjectCredentialOperator(devopsClient),
 		amInterface:             amInterface,
 	}

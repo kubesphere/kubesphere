@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	clientDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
@@ -229,6 +230,17 @@ func (h *ProjectPipelineHandler) approvableCheck(nodes []clientDevOps.NodesDetai
 	}
 }
 
+func (h *ProjectPipelineHandler) createdBy(projectName string, pipelineName string, currentUserName string) bool {
+	if pipeline, err := h.devopsOperator.GetPipelineObj(projectName, pipelineName); err == nil {
+		if creator, ok := pipeline.Annotations[constants.CreatorAnnotationKey]; ok {
+			return creator == currentUserName
+		}
+	} else {
+		log.Error(fmt.Sprintf("cannot get pipeline %s/%s, error %#v", projectName, pipelineName, err))
+	}
+	return false
+}
+
 func (h *ProjectPipelineHandler) getCurrentUser(req *restful.Request) (username, roleName string) {
 	var userInfo user.Info
 	var ok bool
@@ -247,8 +259,10 @@ func (h *ProjectPipelineHandler) getCurrentUser(req *restful.Request) (username,
 
 func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasPermit bool, err error) {
 	currentUserName, roleName := h.getCurrentUser(req)
-	// check if current user belong to the admin group, grant it if it's true
-	if roleName == iamv1alpha2.PlatformAdmin {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+	// check if current user belong to the admin group or he's the owner, grant it if it's true
+	if roleName == iamv1alpha2.PlatformAdmin || h.createdBy(projectName, pipelineName, currentUserName) {
 		hasPermit = true
 		return
 	}
@@ -261,8 +275,6 @@ func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasP
 		PostForm: req.Request.PostForm,
 	}
 
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
 	runId := req.PathParameter("run")
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")

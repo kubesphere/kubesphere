@@ -51,6 +51,7 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/lib/pq v1.2.0 // indirect
+	github.com/mitchellh/mapstructure v1.2.2
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/open-policy-agent/opa v0.18.0
@@ -80,6 +81,7 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.11.0
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+	gotest.tools v2.2.0+incompatible
 	istio.io/api v0.0.0-20191111210003-35e06ef8d838
 	istio.io/client-go v0.0.0-20191113122552-9bd0ba57c3d2
 	k8s.io/api v0.17.5
