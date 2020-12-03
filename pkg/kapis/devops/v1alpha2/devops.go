@@ -62,7 +62,6 @@ func (h *ProjectPipelineHandler) getPipelinesByRequest(req *restful.Request) (ap
 
 	// parse query from the request
 	query := req.QueryParameter("q")
-	req.Request.PostForm.Set("limit", "1000")
 	for _, val := range strings.Split(query, ";") {
 		if strings.HasPrefix(val, "pipeline:") {
 			namespace = strings.TrimLeft(val, "pipeline:")
@@ -81,7 +80,7 @@ func (h *ProjectPipelineHandler) getPipelinesByRequest(req *restful.Request) (ap
 	defer req.Request.Form.Set("limit", "10000") // assume the pipelines no more than 10k
 
 	return h.devopsOperator.ListPipelineObj(namespace, func(list []*v1alpha3.Pipeline, i int, j int) bool {
-		return strings.Compare(list[i].Name, list[j].Name) < 0
+		return strings.Compare(strings.ToUpper(list[i].Name), strings.ToUpper(list[j].Name)) < 0
 	}, limit, start)
 }
 
