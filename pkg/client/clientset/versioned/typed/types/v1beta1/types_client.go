@@ -31,6 +31,8 @@ type TypesV1beta1Interface interface {
 	FederatedClusterRoleBindingsGetter
 	FederatedConfigMapsGetter
 	FederatedDeploymentsGetter
+	FederatedGroupsGetter
+	FederatedGroupBindingsGetter
 	FederatedIngressesGetter
 	FederatedJobsGetter
 	FederatedLimitRangesGetter
@@ -67,6 +69,14 @@ func (c *TypesV1beta1Client) FederatedConfigMaps(namespace string) FederatedConf
 
 func (c *TypesV1beta1Client) FederatedDeployments(namespace string) FederatedDeploymentInterface {
 	return newFederatedDeployments(c, namespace)
+}
+
+func (c *TypesV1beta1Client) FederatedGroups() FederatedGroupInterface {
+	return newFederatedGroups(c)
+}
+
+func (c *TypesV1beta1Client) FederatedGroupBindings() FederatedGroupBindingInterface {
+	return newFederatedGroupBindings(c)
 }
 
 func (c *TypesV1beta1Client) FederatedIngresses(namespace string) FederatedIngressInterface {

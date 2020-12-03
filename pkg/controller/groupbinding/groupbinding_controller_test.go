@@ -22,20 +22,24 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kubeinformers "k8s.io/client-go/informers"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	fedv1beta1types "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var (
@@ -43,14 +47,19 @@ var (
 	noResyncPeriodFunc = func() time.Duration { return 0 }
 )
 
+func init() {
+	v1alpha2.AddToScheme(scheme.Scheme)
+}
+
 type fixture struct {
 	t *testing.T
 
 	ksclient  *fake.Clientset
 	k8sclient *k8sfake.Clientset
 	// Objects to put in the store.
-	groupBindingLister []*v1alpha2.GroupBinding
-	userLister         []*v1alpha2.User
+	groupBindingLister    []*v1alpha2.GroupBinding
+	fedgroupBindingLister []*fedv1beta1types.FederatedGroupBinding
+	userLister            []*v1alpha2.User
 	// Actions expected to happen on the client.
 	kubeactions []core.Action
 	actions     []core.Action
@@ -94,6 +103,30 @@ func newUser(name string) *v1alpha2.User {
 	}
 }
 
+func newFederatedGroupBinding(groupBinding *iamv1alpha2.GroupBinding) *fedv1beta1types.FederatedGroupBinding {
+	return &fedv1beta1types.FederatedGroupBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       fedv1beta1types.FederatedGroupBindingKind,
+			APIVersion: fedv1beta1types.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: groupBinding.Name,
+		},
+		Spec: fedv1beta1types.FederatedGroupBindingSpec{
+			Template: fedv1beta1types.GroupBindingTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: groupBinding.Labels,
+				},
+				GroupRef: groupBinding.GroupRef,
+				Users:    groupBinding.Users,
+			},
+			Placement: fedv1beta1types.GenericPlacementFields{
+				ClusterSelector: &metav1.LabelSelector{},
+			},
+		},
+	}
+}
+
 func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactory, kubeinformers.SharedInformerFactory) {
 	f.ksclient = fake.NewSimpleClientset(f.objects...)
 	f.k8sclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
@@ -116,7 +149,8 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 	}
 
 	c := NewController(f.k8sclient, f.ksclient,
-		ksinformers.Iam().V1alpha2().GroupBindings())
+		ksinformers.Iam().V1alpha2().GroupBindings(),
+		ksinformers.Types().V1beta1().FederatedGroupBindings(), true)
 	c.Synced = []cache.InformerSynced{alwaysReady}
 	c.recorder = &record.FakeRecorder{}
 
@@ -236,6 +270,7 @@ func filterInformerActions(actions []core.Action) []core.Action {
 		if len(action.GetNamespace()) == 0 &&
 			(action.Matches("list", "groupbindings") ||
 				action.Matches("watch", "groupbindings") ||
+				action.Matches("list", "federatedgroupbindings") ||
 				action.Matches("list", "users") ||
 				action.Matches("watch", "users") ||
 				action.Matches("get", "users")) {
@@ -250,6 +285,7 @@ func filterInformerActions(actions []core.Action) []core.Action {
 func (f *fixture) expectUpdateGroupsFinalizerAction(groupBinding *v1alpha2.GroupBinding) {
 	expect := groupBinding.DeepCopy()
 	expect.Finalizers = []string{"finalizers.kubesphere.io/groupsbindings"}
+	expect.Labels = map[string]string{constants.KubefedManagedLabel: "false"}
 	action := core.NewUpdateAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"}, "", expect)
 	f.actions = append(f.actions, action)
 }
@@ -270,6 +306,15 @@ func (f *fixture) expectPatchUserAction(user *v1alpha2.User, groups []string) {
 	f.actions = append(f.actions, core.NewPatchAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Resource: "users", Version: "v1alpha2"}, user.Namespace, user.Name, patch.Type(), patchData))
 }
 
+func (f *fixture) expectCreateFederatedGroupBindingsAction(groupBinding *v1alpha2.GroupBinding) {
+	b := newFederatedGroupBinding(groupBinding)
+
+	controllerutil.SetControllerReference(groupBinding, b, scheme.Scheme)
+
+	actionCreate := core.NewCreateAction(schema.GroupVersionResource{Group: "types.kubefed.io", Version: "v1beta1", Resource: "federatedgroupbindings"}, "", b)
+	f.actions = append(f.actions, actionCreate)
+}
+
 func getKey(groupBinding *v1alpha2.GroupBinding, t *testing.T) string {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(groupBinding)
 	if err != nil {
@@ -285,6 +330,7 @@ func TestCreatesGroupBinding(t *testing.T) {
 	users := []string{"user1"}
 	groupbinding := newGroupBinding("test", users)
 	groupbinding.ObjectMeta.Finalizers = append(groupbinding.ObjectMeta.Finalizers, finalizer)
+	groupbinding.Labels = map[string]string{constants.KubefedManagedLabel: "false"}
 	f.groupBindingLister = append(f.groupBindingLister, groupbinding)
 	f.objects = append(f.objects, groupbinding)
 
@@ -294,7 +340,9 @@ func TestCreatesGroupBinding(t *testing.T) {
 	f.objects = append(f.objects, user)
 
 	excepctGroups := []string{"test"}
+
 	f.expectPatchUserAction(user, excepctGroups)
+	f.expectCreateFederatedGroupBindingsAction(groupbinding)
 
 	f.run(getKey(groupbinding, t))
 }
@@ -326,6 +374,7 @@ func TestDeletesGroupBinding(t *testing.T) {
 
 func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
+
 	users := []string{"user1"}
 	groupBinding := newGroupBinding("test", users)
 

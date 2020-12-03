@@ -48,6 +48,14 @@ func (c *FakeTypesV1beta1) FederatedDeployments(namespace string) v1beta1.Federa
 	return &FakeFederatedDeployments{c, namespace}
 }
 
+func (c *FakeTypesV1beta1) FederatedGroups() v1beta1.FederatedGroupInterface {
+	return &FakeFederatedGroups{c}
+}
+
+func (c *FakeTypesV1beta1) FederatedGroupBindings() v1beta1.FederatedGroupBindingInterface {
+	return &FakeFederatedGroupBindings{c}
+}
+
 func (c *FakeTypesV1beta1) FederatedIngresses(namespace string) v1beta1.FederatedIngressInterface {
 	return &FakeFederatedIngresses{c, namespace}
 }
