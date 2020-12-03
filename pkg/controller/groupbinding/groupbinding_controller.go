@@ -56,15 +56,13 @@ const (
 
 type Controller struct {
 	controller.BaseController
-	scheme                        *runtime.Scheme
-	k8sClient                     kubernetes.Interface
-	ksClient                      kubesphere.Interface
-	groupBindingInformer          iamv1alpha2informers.GroupBindingInformer
-	groupBindingLister            iamv1alpha2listers.GroupBindingLister
-	recorder                      record.EventRecorder
-	federatedGroupBindingInformer fedv1beta1informers.FederatedGroupBindingInformer
-	federatedGroupBindingLister   fedv1beta1lister.FederatedGroupBindingLister
-	multiClusterEnabled           bool
+	scheme                      *runtime.Scheme
+	k8sClient                   kubernetes.Interface
+	ksClient                    kubesphere.Interface
+	groupBindingLister          iamv1alpha2listers.GroupBindingLister
+	recorder                    record.EventRecorder
+	federatedGroupBindingLister fedv1beta1lister.FederatedGroupBindingLister
+	multiClusterEnabled         bool
 }
 
 // NewController creates GroupBinding Controller instance
@@ -82,18 +80,16 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 			Synced:    []cache.InformerSynced{groupBindingInformer.Informer().HasSynced},
 			Name:      controllerName,
 		},
-		k8sClient:                     k8sClient,
-		ksClient:                      ksClient,
-		groupBindingInformer:          groupBindingInformer,
-		groupBindingLister:            groupBindingInformer.Lister(),
-		federatedGroupBindingInformer: federatedGroupBindingInformer,
-		federatedGroupBindingLister:   federatedGroupBindingInformer.Lister(),
-		multiClusterEnabled:           multiClusterEnabled,
-		recorder:                      recorder,
+		k8sClient:           k8sClient,
+		ksClient:            ksClient,
+		groupBindingLister:  groupBindingInformer.Lister(),
+		multiClusterEnabled: multiClusterEnabled,
+		recorder:            recorder,
 	}
 	ctl.Handler = ctl.reconcile
 	if ctl.multiClusterEnabled {
-		ctl.Synced = append(ctl.Synced, ctl.federatedGroupBindingInformer.Informer().HasSynced)
+		ctl.federatedGroupBindingLister = federatedGroupBindingInformer.Lister()
+		ctl.Synced = append(ctl.Synced, federatedGroupBindingInformer.Informer().HasSynced)
 	}
 	klog.Info("Setting up event handlers")
 	groupBindingInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{

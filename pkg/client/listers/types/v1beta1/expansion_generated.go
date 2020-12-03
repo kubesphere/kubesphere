@@ -137,15 +137,3 @@ type FederatedStatefulSetListerExpansion interface{}
 // FederatedStatefulSetNamespaceListerExpansion allows custom methods to be added to
 // FederatedStatefulSetNamespaceLister.
 type FederatedStatefulSetNamespaceListerExpansion interface{}
-
-// FederatedUserListerExpansion allows custom methods to be added to
-// FederatedUserLister.
-type FederatedUserListerExpansion interface{}
-
-// FederatedUserNamespaceListerExpansion allows custom methods to be added to
-// FederatedUserNamespaceLister.
-type FederatedUserNamespaceListerExpansion interface{}
-
-// FederatedWorkspaceListerExpansion allows custom methods to be added to
-// FederatedWorkspaceLister.
-type FederatedWorkspaceListerExpansion interface{}

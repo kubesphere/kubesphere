@@ -17,42 +17,44 @@ limitations under the License.
 package v1beta1
 
 import (
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	workspacev1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 )
 
 const (
-	ResourcePluralFederatedWorkspace   = "federatedworkspaces"
-	ResourceSingularFederatedWorkspace = "federatedworkspace"
-	FederatedWorkspaceKind             = "FederatedWorkspace"
+	ResourcePluralFederatedWorkspaceRole   = "federatedworkspaceroles"
+	ResourceSingularFederatedWorkspaceRole = "federatedworkspacerole"
+	FederatedWorkspaceRoleKind             = "FederatedWorkspaceRole"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
-type FederatedWorkspace struct {
+type FederatedWorkspaceRole struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              FederatedWorkspaceSpec `json:"spec"`
+	Spec              FederatedWorkspaceRoleSpec `json:"spec"`
 
 	Status *GenericFederatedStatus `json:"status,omitempty"`
 }
 
-type FederatedWorkspaceSpec struct {
-	Template  WorkspaceTemplate      `json:"template"`
+type FederatedWorkspaceRoleSpec struct {
+	Template  WorkspaceRoleTemplate  `json:"template"`
 	Placement GenericPlacementFields `json:"placement"`
 	Overrides []GenericOverrideItem  `json:"overrides,omitempty"`
 }
 
-type WorkspaceTemplate struct {
+type WorkspaceRoleTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              workspacev1alpha1.WorkspaceSpec `json:"spec,omitempty"`
+	// Rules holds all the PolicyRules for this WorkspaceRole
+	// +optional
+	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedWorkspaceList contains a list of FederatedWorkspace
-type FederatedWorkspaceList struct {
+// FederatedWorkspaceRoleList contains a list of FederatedWorkspaceRole
+type FederatedWorkspaceRoleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FederatedWorkspace `json:"items"`
+	Items           []FederatedWorkspaceRole `json:"items"`
 }

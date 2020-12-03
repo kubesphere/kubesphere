@@ -49,7 +49,3 @@ type FederatedSecretExpansion interface{}
 type FederatedServiceExpansion interface{}
 
 type FederatedStatefulSetExpansion interface{}
-
-type FederatedUserExpansion interface{}
-
-type FederatedWorkspaceExpansion interface{}

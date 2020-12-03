@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package namespace
+package workspacerolebinding
 
 import (
 	"github.com/onsi/gomega/gexec"
@@ -42,10 +42,10 @@ var k8sClient client.Client
 var k8sManager ctrl.Manager
 var testEnv *envtest.Environment
 
-func TestNamespaceController(t *testing.T) {
+func TestWorkspaceRoleBindingController(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecsWithDefaultAndCustomReporters(t,
-		"Namespace Controller Test Suite",
+		"WorkspaceRoleBinding Controller Test Suite",
 		[]Reporter{printer.NewlineReporter{}})
 }
 

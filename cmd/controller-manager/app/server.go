@@ -18,8 +18,6 @@ package app
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -32,6 +30,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerole"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
@@ -40,7 +41,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
+	"os"
 	application "sigs.k8s.io/application/controllers"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -118,7 +121,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	var ldapClient ldapclient.Interface
-	// when there is no ldapOption, we set ldapClient as nil, which means we don't need to sync user info into ldap.
+	//when there is no ldapOption, we set ldapClient as nil, which means we don't need to sync user info into ldap.
 	if s.LdapOptions != nil && len(s.LdapOptions.Host) != 0 {
 		if s.LdapOptions.Host == ldapclient.FAKE_HOST { // for debug only
 			ldapClient = ldapclient.NewSimpleLdap()
@@ -175,7 +178,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	klog.V(0).Info("setting up manager")
-
+	ctrl.SetLogger(klogr.New())
 	// Use 8443 instead of 443 cause we need root permission to bind port 443
 	mgr, err := manager.New(kubernetesClient.Config(), mgrOptions)
 	if err != nil {
@@ -186,23 +189,38 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
-	err = workspace.Add(mgr)
-	if err != nil {
+	workspaceTemplateReconciler := &workspacetemplate.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
+	if err = workspaceTemplateReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatal("Unable to create workspace template controller")
+	}
+
+	workspaceReconciler := &workspace.Reconciler{}
+	if err = workspaceReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create workspace controller")
 	}
 
-	err = namespace.Add(mgr)
-	if err != nil {
+	workspaceRoleReconciler := &workspacerole.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
+	if err = workspaceRoleReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatal("Unable to create workspace role controller")
+	}
+
+	workspaceRoleBindingReconciler := &workspacerolebinding.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
+	if err = workspaceRoleBindingReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatal("Unable to create workspace role binding controller")
+	}
+
+	namespaceReconciler := &namespace.Reconciler{}
+	if err = namespaceReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create namespace controller")
 	}
 
-	err = (&application.ApplicationReconciler{
+	applicationReconciler := &application.ApplicationReconciler{
 		Scheme: mgr.GetScheme(),
 		Client: mgr.GetClient(),
 		Mapper: mgr.GetRESTMapper(),
 		Log:    klogr.New(),
-	}).SetupWithManager(mgr)
-	if err != nil {
+	}
+	if err = applicationReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create application controller")
 	}
 

@@ -77,5 +77,9 @@ func init() {
 		&FederatedGroup{},
 		&FederatedGroupList{},
 		&FederatedWorkspace{},
-		&FederatedWorkspaceList{})
+		&FederatedWorkspaceList{},
+		&FederatedWorkspaceRole{},
+		&FederatedWorkspaceRoleList{},
+		&FederatedWorkspaceRoleBinding{},
+		&FederatedWorkspaceRoleBindingList{})
 }

@@ -20,240 +20,207 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/klog"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"reflect"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Add creates a new Namespace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
+const (
+	controllerName = "namespace-controller"
+)
 
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNamespace{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
-	}
-}
-
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("namespace-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to Namespace
-	err = c.Watch(&source.Kind{Type: &corev1.Namespace{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var _ reconcile.Reconciler = &ReconcileNamespace{}
-
-// ReconcileNamespace reconciles a Namespace object
-type ReconcileNamespace struct {
+// Reconciler reconciles a Namespace object
+type Reconciler struct {
 	client.Client
-	scheme *runtime.Scheme
+	Logger                  logr.Logger
+	Recorder                record.EventRecorder
+	MaxConcurrentReconciles int
 }
 
-// Reconcile reads that state of the cluster for a Namespace object and makes changes based on the state read
-// and what is in the Namespace.Spec
-// +kubebuilder:rbac:groups=core.kubesphere.io,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core.kubesphere.io,resources=namespaces/status,verbs=get;update;patch
-func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the Namespace instance
-	instance := &corev1.Namespace{}
-	err := r.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			// Object not found, return.  Created objects are automatically garbage collected.
-			// For additional cleanup logic use finalizers.
-			// The object is being deleted
-			// our finalizer is present, so lets handle our external dependency
-			return reconcile.Result{}, nil
-		}
-		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if r.Client == nil {
+		r.Client = mgr.GetClient()
 	}
+	if r.Logger == nil {
+		r.Logger = ctrl.Log.WithName("controllers").WithName(controllerName)
+	}
+	if r.Recorder == nil {
+		r.Recorder = mgr.GetEventRecorderFor(controllerName)
+	}
+	if r.MaxConcurrentReconciles <= 0 {
+		r.MaxConcurrentReconciles = 1
+	}
+	return ctrl.NewControllerManagedBy(mgr).
+		Named(controllerName).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
+		}).
+		For(&corev1.Namespace{}).
+		Complete(r)
+}
 
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=tenant.kubesphere.io,resources=workspaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups=iam.kubesphere.io,resources=rolebases,verbs=get;list;watch
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	logger := r.Logger.WithValues("namespace", req.NamespacedName)
+	rootCtx := context.Background()
+	namespace := &corev1.Namespace{}
+	if err := r.Get(rootCtx, req.NamespacedName, namespace); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 	// name of your custom finalizer
 	finalizer := "finalizers.kubesphere.io/namespaces"
 
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+	if namespace.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object.
-		if !sliceutil.HasString(instance.ObjectMeta.Finalizers, finalizer) {
-			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, finalizer)
-			if instance.Labels == nil {
-				instance.Labels = make(map[string]string)
+		if !sliceutil.HasString(namespace.ObjectMeta.Finalizers, finalizer) {
+			// create only once, ignore already exists error
+			if err := r.initCreatorRoleBinding(rootCtx, logger, namespace); err != nil {
+				return ctrl.Result{}, err
 			}
-			instance.Labels[constants.NamespaceLabelKey] = instance.Name
-			if err := r.Update(context.Background(), instance); err != nil {
-				return reconcile.Result{}, err
+			namespace.ObjectMeta.Finalizers = append(namespace.ObjectMeta.Finalizers, finalizer)
+			if namespace.Labels == nil {
+				namespace.Labels = make(map[string]string)
+			}
+			// used for NetworkPolicyPeer.NamespaceSelector
+			namespace.Labels[constants.NamespaceLabelKey] = namespace.Name
+			if err := r.Update(rootCtx, namespace); err != nil {
+				return ctrl.Result{}, err
 			}
 		}
 	} else {
 		// The object is being deleted
-		if sliceutil.HasString(instance.ObjectMeta.Finalizers, finalizer) {
-			if err = r.deleteRouter(instance.Name); err != nil {
-				return reconcile.Result{}, err
+		if sliceutil.HasString(namespace.ObjectMeta.Finalizers, finalizer) {
+			if err := r.deleteRouter(rootCtx, logger, namespace.Name); err != nil {
+				return ctrl.Result{}, err
 			}
-
 			// remove our finalizer from the list and update it.
-			instance.ObjectMeta.Finalizers = sliceutil.RemoveString(instance.ObjectMeta.Finalizers, func(item string) bool {
+			namespace.ObjectMeta.Finalizers = sliceutil.RemoveString(namespace.ObjectMeta.Finalizers, func(item string) bool {
 				return item == finalizer
 			})
-
-			if err := r.Update(context.Background(), instance); err != nil {
-				return reconcile.Result{}, err
+			if err := r.Update(rootCtx, namespace); err != nil {
+				return ctrl.Result{}, err
 			}
 		}
-
 		// Our finalizer has finished, so the reconciler can do nothing.
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// initialize subresource if created by kubesphere
-	if workspace := instance.Labels[constants.WorkspaceLabelKey]; workspace != "" {
-		if err = r.bindWorkspace(instance); err != nil {
-			return reconcile.Result{}, err
+	if workspace := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; workspace != "" {
+		if err := r.bindWorkspace(rootCtx, logger, namespace); err != nil {
+			return ctrl.Result{}, err
 		}
-		if err = r.initRoles(instance); err != nil {
-			return reconcile.Result{}, err
-		}
-		if err = r.initCreatorRoleBinding(instance); err != nil {
-			return reconcile.Result{}, err
+		if err := r.initRoles(rootCtx, logger, namespace); err != nil {
+			return ctrl.Result{}, err
 		}
 	} else {
-		r.unbindWorkspace(instance)
+		if err := r.unbindWorkspace(rootCtx, logger, namespace); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	return reconcile.Result{}, nil
+	r.Recorder.Event(namespace, corev1.EventTypeNormal, controllerutils.SuccessSynced, controllerutils.MessageResourceSynced)
+	return ctrl.Result{}, nil
 }
 
-func (r *ReconcileNamespace) bindWorkspace(namespace *corev1.Namespace) error {
-	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
+func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, namespace *corev1.Namespace) error {
 	workspace := &tenantv1alpha1.Workspace{}
-	if err := r.Get(context.TODO(), types.NamespacedName{Name: workspaceName}, workspace); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: namespace.Labels[constants.WorkspaceLabelKey]}, workspace); err != nil {
+		// remove existed owner reference if workspace not found
+		if errors.IsNotFound(err) && k8sutil.IsControlledBy(namespace.OwnerReferences, tenantv1alpha1.ResourceKindWorkspace, "") {
+			return r.unbindWorkspace(ctx, logger, namespace)
+		}
 		// skip if workspace not found
-		if errors.IsNotFound(err) {
-			klog.Warning(err)
-			return nil
-		}
-		klog.Error(err)
-		return err
+		return client.IgnoreNotFound(err)
 	}
-
+	// owner reference not match workspace label
 	if !metav1.IsControlledBy(namespace, workspace) {
-		workspace.OwnerReferences = removeWorkspaceOwnerReference(workspace.OwnerReferences)
-		if err := controllerutil.SetControllerReference(workspace, namespace, r.scheme); err != nil {
-			klog.Error(err)
+		namespace := namespace.DeepCopy()
+		namespace.OwnerReferences = k8sutil.RemoveWorkspaceOwnerReference(namespace.OwnerReferences)
+		if err := controllerutil.SetControllerReference(workspace, namespace, scheme.Scheme); err != nil {
+			logger.Error(err, "set controller reference failed")
 			return err
 		}
-
-		if err := r.Update(context.TODO(), namespace); err != nil {
-			klog.Error(err)
+		logger.V(4).Info("update namespace owner reference", "workspace", workspace.Name)
+		if err := r.Update(ctx, namespace); err != nil {
+			logger.Error(err, "update namespace failed")
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (r *ReconcileNamespace) unbindWorkspace(namespace *corev1.Namespace) error {
-
+func (r *Reconciler) unbindWorkspace(ctx context.Context, logger logr.Logger, namespace *corev1.Namespace) error {
 	if k8sutil.IsControlledBy(namespace.OwnerReferences, tenantv1alpha1.ResourceKindWorkspace, "") {
 		namespace := namespace.DeepCopy()
-		namespace.OwnerReferences = removeWorkspaceOwnerReference(namespace.OwnerReferences)
-		if err := r.Update(context.TODO(), namespace); err != nil {
-			klog.Error(err)
+		namespace.OwnerReferences = k8sutil.RemoveWorkspaceOwnerReference(namespace.OwnerReferences)
+		logger.V(4).Info("remove owner reference", "workspace", namespace.Labels[constants.WorkspaceLabelKey])
+		if err := r.Update(ctx, namespace); err != nil {
+			logger.Error(err, "update owner reference failed")
 			return err
 		}
 	}
-
 	return nil
 }
 
-// Remove workspace kind owner reference of the namespace
-func removeWorkspaceOwnerReference(ownerReferences []metav1.OwnerReference) []metav1.OwnerReference {
-	tmp := make([]metav1.OwnerReference, 0)
-	for _, owner := range ownerReferences {
-		if owner.Kind != tenantv1alpha1.ResourceKindWorkspace {
-			tmp = append(tmp, owner)
-		}
-	}
-	return tmp
-}
-
-func (r *ReconcileNamespace) deleteRouter(namespace string) error {
+func (r *Reconciler) deleteRouter(ctx context.Context, logger logr.Logger, namespace string) error {
 	routerName := constants.IngressControllerPrefix + namespace
-	// delete service first
-	found := corev1.Service{}
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &found)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		klog.Error(err)
-	}
 
-	err = r.Delete(context.TODO(), &found)
+	// delete service first
+	service := corev1.Service{}
+	err := r.Get(ctx, types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &service)
 	if err != nil {
-		klog.Error(err)
-		return err
+		return client.IgnoreNotFound(err)
+	}
+	logger.V(4).Info("delete router service", "namespace", service.Namespace, "service", service.Name)
+	err = r.Delete(ctx, &service)
+	if err != nil {
+		return client.IgnoreNotFound(err)
 	}
 
 	// delete deployment
 	deploy := appsv1.Deployment{}
-	err = r.Get(context.TODO(), types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &deploy)
+	err = r.Get(ctx, types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &deploy)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		klog.Error(err)
+		logger.Error(err, "delete router deployment failed")
 		return err
 	}
 
-	err = r.Delete(context.TODO(), &deploy)
+	logger.V(4).Info("delete router deployment", "namespace", deploy.Namespace, "deployment", deploy.Name)
+	err = r.Delete(ctx, &deploy)
 	if err != nil {
-		klog.Error(err)
-		return err
+		return client.IgnoreNotFound(err)
 	}
 
 	return nil
 }
 
-func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
-	var roleBases iamv1alpha2.RoleBaseList
-
+func (r *Reconciler) initRoles(ctx context.Context, logger logr.Logger, namespace *corev1.Namespace) error {
+	var templates iamv1alpha2.RoleBaseList
 	var labelKey string
 	// filtering initial roles by label
 	if namespace.Labels[constants.DevOpsProjectLabelKey] != "" {
@@ -263,29 +230,26 @@ func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
 		// scope.kubesphere.io/namespace: ""
 		labelKey = fmt.Sprintf(iamv1alpha2.ScopeLabelFormat, iamv1alpha2.ScopeNamespace)
 	}
-	err := r.List(context.Background(), &roleBases, client.MatchingLabelsSelector{Selector: labels.SelectorFromSet(labels.Set{labelKey: ""})})
-	if err != nil {
-		klog.Error(err)
+
+	if err := r.List(ctx, &templates, client.MatchingLabelsSelector{Selector: labels.SelectorFromSet(labels.Set{labelKey: ""})}); err != nil {
+		logger.Error(err, "list role bases failed")
 		return err
 	}
-
-	for _, roleBase := range roleBases.Items {
+	for _, template := range templates.Items {
 		var role rbacv1.Role
-		if err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(roleBase.Role.Raw), 1024).Decode(&role); err == nil && role.Kind == iamv1alpha2.ResourceKindRole {
+		if err := yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(template.Role.Raw), 1024).Decode(&role); err == nil && role.Kind == iamv1alpha2.ResourceKindRole {
 			var old rbacv1.Role
-			err := r.Client.Get(context.Background(), types.NamespacedName{Namespace: namespace.Name, Name: role.Name}, &old)
-			if err != nil {
+			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: namespace.Name, Name: role.Name}, &old); err != nil {
 				if errors.IsNotFound(err) {
 					role.Namespace = namespace.Name
-					err = r.Client.Create(context.Background(), &role)
-					if err != nil {
-						klog.Error(err)
+					logger.V(4).Info("init builtin role", "role", role.Name)
+					if err := r.Client.Create(ctx, &role); err != nil {
+						logger.Error(err, "create role failed")
 						return err
 					}
 					continue
 				}
 			}
-
 			if !reflect.DeepEqual(role.Labels, old.Labels) ||
 				!reflect.DeepEqual(role.Annotations, old.Annotations) ||
 				!reflect.DeepEqual(role.Rules, old.Rules) {
@@ -294,36 +258,46 @@ func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
 				old.Annotations = role.Annotations
 				old.Rules = role.Rules
 
-				if err := r.Update(context.Background(), &old); err != nil {
-					klog.Error(err)
+				logger.V(4).Info("update builtin role", "role", role.Name)
+				if err := r.Update(ctx, &old); err != nil {
+					logger.Error(err, "update role failed")
 					return err
 				}
 			}
+		} else if err != nil {
+			logger.Error(fmt.Errorf("invalid role base found"), "init roles failed", "name", template.Name)
 		}
 	}
 	return nil
 }
 
-func (r *ReconcileNamespace) initCreatorRoleBinding(namespace *corev1.Namespace) error {
+func (r *Reconciler) initCreatorRoleBinding(ctx context.Context, logger logr.Logger, namespace *corev1.Namespace) error {
 	creator := namespace.Annotations[constants.CreatorAnnotationKey]
 	if creator == "" {
 		return nil
 	}
-
 	var user iamv1alpha2.User
-	if err := r.Get(context.Background(), types.NamespacedName{Name: creator}, &user); err != nil {
-		if errors.IsNotFound(err) {
+	if err := r.Get(ctx, types.NamespacedName{Name: creator}, &user); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	creatorRoleBinding := newCreatorRoleBinding(creator, namespace.Name)
+	logger.V(4).Info("init creator role binding", "creator", user.Name)
+	if err := r.Client.Create(ctx, creatorRoleBinding); err != nil {
+		if errors.IsAlreadyExists(err) {
 			return nil
 		}
-		klog.Error(err)
+		logger.Error(err, "create role binding failed")
 		return err
 	}
+	return nil
+}
 
-	creatorRoleBinding := &rbacv1.RoleBinding{
+func newCreatorRoleBinding(creator string, namespace string) *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", creator, iamv1alpha2.NamespaceAdmin),
 			Labels:    map[string]string{iamv1alpha2.UserReferenceLabel: creator},
-			Namespace: namespace.Name,
+			Namespace: namespace,
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
@@ -338,14 +312,4 @@ func (r *ReconcileNamespace) initCreatorRoleBinding(namespace *corev1.Namespace)
 			},
 		},
 	}
-
-	if err := r.Client.Create(context.Background(), creatorRoleBinding); err != nil {
-		if errors.IsAlreadyExists(err) {
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	return nil
 }
