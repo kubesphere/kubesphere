@@ -19,6 +19,7 @@ package jenkins
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
@@ -664,15 +665,18 @@ func (p *Pipeline) CheckScriptCompile() (*devops.CheckScript, error) {
 func (p *Pipeline) CheckCron() (*devops.CheckCronRes, error) {
 	var res = new(devops.CheckCronRes)
 
-	cronServiceURL, err := url.Parse(p.Jenkins.Server + p.Path)
 	reqJenkins := &http.Request{
 		Method: http.MethodGet,
-		URL:    cronServiceURL,
 		Header: p.HttpParameters.Header,
+	}
+	if cronServiceURL, err := url.Parse(p.Jenkins.Server + p.Path); err != nil {
+		klog.Errorf(fmt.Sprintf("cannot parse Jenkins cronService URL, error: %#v", err))
+		return interanlErrorMessage(), err
+	} else {
+		reqJenkins.URL = cronServiceURL
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
-
 	reqJenkins.SetBasicAuth(p.Jenkins.Requester.BasicAuth.Username, p.Jenkins.Requester.BasicAuth.Password)
 	resp, err := client.Do(reqJenkins)
 	if err != nil {
@@ -682,8 +686,12 @@ func (p *Pipeline) CheckCron() (*devops.CheckCronRes, error) {
 
 	var responseText string
 	if resp != nil {
-		responseData, _ := getRespBody(resp)
-		responseText = string(responseData)
+		if responseData, err := getRespBody(resp); err == nil {
+			responseText = string(responseData)
+		} else {
+			klog.Error(err)
+			return interanlErrorMessage(), fmt.Errorf("cannot get the response body from the Jenkins cron service request, %#v", err)
+		}
 
 		defer func() {
 			_ = resp.Body.Close()
@@ -696,7 +704,7 @@ func (p *Pipeline) CheckCron() (*devops.CheckCronRes, error) {
 			return interanlErrorMessage(), err
 		}
 	}
-	klog.Infof("response text: %s", responseText)
+	klog.V(8).Infof("response text: %s", responseText)
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader([]byte(responseText)))
 	if err != nil {
