@@ -236,7 +236,7 @@ func (h *ProjectPipelineHandler) createdBy(projectName string, pipelineName stri
 			return creator == currentUserName
 		}
 	} else {
-		log.Error(fmt.Sprintf("cannot get pipeline %s/%s, error %#v", projectName, pipelineName, err))
+		log.V(4).Infof("cannot get pipeline %s/%s, error %#v", projectName, pipelineName, err)
 	}
 	return false
 }
@@ -298,7 +298,7 @@ func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasP
 			break
 		}
 	} else {
-		log.Errorf("cannot get nodes detail, error: %v", err)
+		log.V(4).Infof("cannot get nodes detail, error: %v", err)
 		err = errors.New("cannot get the submitters of current pipeline run")
 		return
 	}
@@ -312,11 +312,9 @@ func (h *ProjectPipelineHandler) SubmitInputStep(req *restful.Request, resp *res
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	var (
-		response []byte
-		err      error
-		ok       bool
-	)
+	var response []byte
+	var err error
+	var ok bool
 
 	if ok, err = h.hasSubmitPermission(req); !ok || err != nil {
 		msg := map[string]string{
@@ -520,11 +518,9 @@ func (h *ProjectPipelineHandler) SubmitBranchInputStep(req *restful.Request, res
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	var (
-		response []byte
-		err      error
-		ok       bool
-	)
+	var response []byte
+	var err error
+	var ok bool
 
 	if ok, err = h.hasSubmitPermission(req); !ok || err != nil {
 		msg := map[string]string{
