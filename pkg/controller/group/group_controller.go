@@ -145,7 +145,7 @@ func (c *Controller) reconcile(key string) error {
 
 func (c *Controller) deleteGroupBindings(group *iam1alpha2.Group) error {
 
-	// Groupbindings that created by kubeshpere will be deleted directly.
+	// Groupbindings that created by kubesphere will be deleted directly.
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{iam1alpha2.GroupReferenceLabel: group.Name}).String(),
 	}

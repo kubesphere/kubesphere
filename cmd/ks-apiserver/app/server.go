@@ -120,14 +120,16 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	kconfig.Set(config)
 
 	// Set kiali config
-	kubeconfig, err := clientcmd.BuildConfigFromFlags("", s.KubernetesOptions.KubeConfig)
-	if err != nil {
-		fmt.Println(err)
+	if len(s.KubernetesOptions.KubeConfig) != 0 {
+		kubeconfig, err := clientcmd.BuildConfigFromFlags("", s.KubernetesOptions.KubeConfig)
+		if err != nil {
+			fmt.Println(err)
+		}
+		k8sClient, err := kubernetes.NewClientFromConfig(kubeconfig)
+		if err != nil {
+			fmt.Println(err)
+		}
+		prometheusClient, _ := prometheus.NewClient()
+		business.SetWithBackends(k8sClient, prometheusClient)
 	}
-	k8sClient, err := kubernetes.NewClientFromConfig(kubeconfig)
-	if err != nil {
-		fmt.Println(err)
-	}
-	prometheusClient, _ := prometheus.NewClient()
-	business.SetWithBackends(k8sClient, prometheusClient)
 }
