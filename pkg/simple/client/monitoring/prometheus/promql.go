@@ -349,6 +349,12 @@ func makePodMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 		}
 	}
 
+	// For monitoring pods in the whole cluster
+	// Get /pods
+	if o.NamespaceName == "" && o.NodeName == "" {
+		podSelector = fmt.Sprintf(`pod=~"%s"`, o.ResourceFilter)
+	}
+
 	// For monitoring pods in the specific namespace
 	// GET /namespaces/{namespace}/workloads/{kind}/{workload}/pods or
 	// GET /namespaces/{namespace}/pods/{pod} or
