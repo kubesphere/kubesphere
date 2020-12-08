@@ -20,6 +20,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
@@ -28,16 +29,18 @@ import (
 type ProjectPipelineHandler struct {
 	devopsOperator          devops.DevopsOperator
 	projectCredentialGetter devops.ProjectCredentialGetter
+	amInterface             am.AccessManagementInterface
 }
 
 type PipelineSonarHandler struct {
 	pipelineSonarGetter devops.PipelineSonarGetter
 }
 
-func NewProjectPipelineHandler(devopsClient devopsClient.Interface) ProjectPipelineHandler {
+func NewProjectPipelineHandler(devopsClient devopsClient.Interface, ksInformers externalversions.SharedInformerFactory, amInterface am.AccessManagementInterface) ProjectPipelineHandler {
 	return ProjectPipelineHandler{
-		devopsOperator:          devops.NewDevopsOperator(devopsClient, nil, nil, nil, nil),
+		devopsOperator:          devops.NewDevopsOperator(devopsClient, nil, nil, ksInformers, nil),
 		projectCredentialGetter: devops.NewProjectCredentialOperator(devopsClient),
+		amInterface:             amInterface,
 	}
 }
 
