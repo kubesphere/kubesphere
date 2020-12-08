@@ -25,6 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strconv"
@@ -841,10 +842,14 @@ func (j *Jenkins) CheckCron(projectName string, httpParameters *devops.HttpParam
 		return nil, err
 	}
 
+	query := url.Values{
+		"value": []string{cron.Cron},
+	}
+
 	if cron.PipelineName != "" {
-		path = fmt.Sprintf(CheckPipelienCronUrl, projectName, cron.PipelineName, cron.Cron)
+		path = fmt.Sprintf(CheckPipelienCronUrl, projectName, cron.PipelineName, query.Encode())
 	} else {
-		path = fmt.Sprintf(CheckCronUrl, projectName, cron.Cron)
+		path = fmt.Sprintf(CheckCronUrl, projectName, query.Encode())
 	}
 
 	PipelineOjb := &Pipeline{
