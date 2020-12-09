@@ -35,16 +35,13 @@ func AppendBitbucketServerSourceToEtree(source *etree.Element, gitSource *devops
 		forkTrait := traits.CreateElement("com.cloudbees.jenkins.plugins.bitbucket.ForkPullRequestDiscoveryTrait")
 		forkTrait.CreateElement("strategyId").SetText(strconv.Itoa(gitSource.DiscoverPRFromForks.Strategy))
 		trustClass := "com.cloudbees.jenkins.plugins.bitbucket.ForkPullRequestDiscoveryTrait$"
-		switch gitSource.DiscoverPRFromForks.Trust {
-		case 1:
-			trustClass += "TrustEveryone"
-		case 2:
-			trustClass += "TrustTeamForks"
-		case 3:
-			trustClass += "TrustNobody"
-		default:
-			trustClass += "TrustEveryone"
+
+		if prTrust := PRDiscoverTrust(gitSource.DiscoverPRFromForks.Trust); prTrust.IsValid() {
+			trustClass += prTrust.String()
+		} else {
+			klog.Warningf("invalid Bitbucket discover PR trust value: %d", prTrust.Value())
 		}
+
 		forkTrait.CreateElement("trust").CreateAttr("class", trustClass)
 	}
 	if gitSource.DiscoverTags {
@@ -111,23 +108,16 @@ func GetBitbucketServerSourceFromEtree(source *etree.Element) *devopsv1alpha3.Bi
 		strategyId, _ := strconv.Atoi(forkPRDiscoverTrait.SelectElement("strategyId").Text())
 		trustClass := forkPRDiscoverTrait.SelectElement("trust").SelectAttr("class").Value
 		trust := strings.Split(trustClass, "$")
-		switch trust[1] {
-		case "TrustEveryone":
+
+		if prTrust := BitbucketPRDiscoverTrust(1).ParseFromString(trust[1]); prTrust.IsValid() {
 			s.DiscoverPRFromForks = &devopsv1alpha3.DiscoverPRFromForks{
 				Strategy: strategyId,
-				Trust:    1,
+				Trust:    prTrust.Value(),
 			}
-		case "TrustTeamForks":
-			s.DiscoverPRFromForks = &devopsv1alpha3.DiscoverPRFromForks{
-				Strategy: strategyId,
-				Trust:    2,
-			}
-		case "TrustNobody":
-			s.DiscoverPRFromForks = &devopsv1alpha3.DiscoverPRFromForks{
-				Strategy: strategyId,
-				Trust:    3,
-			}
+		} else {
+			klog.Warningf("invalid Bitbucket discover PR trust value: %s", trust[1])
 		}
+
 		if cloneTrait := traits.SelectElement(
 			"jenkins.plugins.git.traits.CloneOptionTrait"); cloneTrait != nil {
 			if cloneExtension := cloneTrait.SelectElement(

@@ -10,12 +10,6 @@ const (
 	PRDiscoverUnknown         PRDiscoverTrust = -1
 )
 
-type GitHubPRDiscoverTrust int
-
-const (
-	GitHubPRDiscoverTrustContributors GitHubPRDiscoverTrust = 1
-)
-
 func (p PRDiscoverTrust) Value() int {
 	return int(p)
 }
@@ -49,6 +43,13 @@ func (p PRDiscoverTrust) ParseFromString(prTrust string) PRDiscoverTrust {
 	}
 }
 
+// GitHub
+type GitHubPRDiscoverTrust int
+
+const (
+	GitHubPRDiscoverTrustContributors GitHubPRDiscoverTrust = 1
+)
+
 func (p GitHubPRDiscoverTrust) Value() int {
 	return int(p)
 }
@@ -77,4 +78,47 @@ func (p GitHubPRDiscoverTrust) ParseFromString(prTrust string) GitHubPRDiscoverT
 
 func (p GitHubPRDiscoverTrust) IsValid() bool {
 	return PRDiscoverTrust(p).IsValid()
+}
+
+// Bitbucket
+type BitbucketPRDiscoverTrust int
+
+const (
+	BitbucketPRDiscoverTrustEveryone  BitbucketPRDiscoverTrust = 1
+	BitbucketPRDiscoverTrustTeamForks BitbucketPRDiscoverTrust = 2
+	BitbucketPRDiscoverTrustNobody    BitbucketPRDiscoverTrust = 3
+)
+
+func (p BitbucketPRDiscoverTrust) Value() int {
+	return int(p)
+}
+
+func (p BitbucketPRDiscoverTrust) IsValid() bool {
+	return p.String() != ""
+}
+
+func (p BitbucketPRDiscoverTrust) String() string {
+	switch p {
+	default:
+		fallthrough
+	case BitbucketPRDiscoverTrustEveryone:
+		return "TrustEveryone"
+	case BitbucketPRDiscoverTrustTeamForks:
+		return "TrustTeamForks"
+	case BitbucketPRDiscoverTrustNobody:
+		return "TrustNobody"
+	}
+}
+
+func (p BitbucketPRDiscoverTrust) ParseFromString(prTrust string) BitbucketPRDiscoverTrust {
+	switch prTrust {
+	default:
+		fallthrough
+	case "TrustEveryone":
+		return BitbucketPRDiscoverTrustEveryone
+	case "TrustTeamForks":
+		return BitbucketPRDiscoverTrustTeamForks
+	case "TrustNobody":
+		return BitbucketPRDiscoverTrustNobody
+	}
 }
