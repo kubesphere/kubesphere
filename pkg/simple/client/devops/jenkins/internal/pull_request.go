@@ -7,6 +7,7 @@ const (
 	PRDiscoverTrustEveryone   PRDiscoverTrust = 2
 	PRDiscoverTrustPermission PRDiscoverTrust = 3
 	PRDiscoverTrustNobody     PRDiscoverTrust = 4
+	PRDiscoverUnknown         PRDiscoverTrust = -1
 )
 
 type GitHubPRDiscoverTrust int
@@ -44,7 +45,7 @@ func (p PRDiscoverTrust) ParseFromString(prTrust string) PRDiscoverTrust {
 	case "TrustNobody":
 		return PRDiscoverTrustNobody
 	default:
-		return -1
+		return PRDiscoverUnknown
 	}
 }
 

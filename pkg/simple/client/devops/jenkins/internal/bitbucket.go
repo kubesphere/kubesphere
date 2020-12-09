@@ -71,7 +71,7 @@ func AppendBitbucketServerSourceToEtree(source *etree.Element, gitSource *devops
 	}
 	if gitSource.RegexFilter != "" {
 		regexTraits := traits.CreateElement("jenkins.scm.impl.trait.RegexSCMHeadFilterTrait")
-		regexTraits.CreateAttr("plugin", "scm-api@2.4.0")
+		regexTraits.CreateAttr("plugin", "scm-api")
 		regexTraits.CreateElement("regex").SetText(gitSource.RegexFilter)
 	}
 	return

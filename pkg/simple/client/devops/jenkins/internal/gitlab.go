@@ -65,7 +65,7 @@ func AppendGitlabSourceToEtree(source *etree.Element, gitSource *devopsv1alpha3.
 	}
 	if gitSource.RegexFilter != "" {
 		regexTraits := traits.CreateElement("jenkins.scm.impl.trait.RegexSCMHeadFilterTrait")
-		regexTraits.CreateAttr("plugin", "scm-api@2.4.0")
+		regexTraits.CreateAttr("plugin", "scm-api")
 		regexTraits.CreateElement("regex").SetText(gitSource.RegexFilter)
 	}
 	return
