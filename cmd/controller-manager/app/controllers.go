@@ -261,10 +261,14 @@ func addControllers(
 		multiClusterEnabled)
 
 	groupBindingController := groupbinding.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().GroupBindings())
+		kubesphereInformer.Iam().V1alpha2().GroupBindings(),
+		kubesphereInformer.Types().V1beta1().FederatedGroupBindings(),
+		multiClusterEnabled)
 
 	groupController := group.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().Groups())
+		kubesphereInformer.Iam().V1alpha2().Groups(),
+		kubesphereInformer.Types().V1beta1().FederatedGroups(),
+		multiClusterEnabled)
 
 	var clusterController manager.Runnable
 	if multiClusterEnabled {

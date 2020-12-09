@@ -28,6 +28,10 @@ type FederatedConfigMapExpansion interface{}
 
 type FederatedDeploymentExpansion interface{}
 
+type FederatedGroupExpansion interface{}
+
+type FederatedGroupBindingExpansion interface{}
+
 type FederatedIngressExpansion interface{}
 
 type FederatedJobExpansion interface{}

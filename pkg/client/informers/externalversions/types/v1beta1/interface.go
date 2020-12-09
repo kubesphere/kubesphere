@@ -34,6 +34,10 @@ type Interface interface {
 	FederatedConfigMaps() FederatedConfigMapInformer
 	// FederatedDeployments returns a FederatedDeploymentInformer.
 	FederatedDeployments() FederatedDeploymentInformer
+	// FederatedGroups returns a FederatedGroupInformer.
+	FederatedGroups() FederatedGroupInformer
+	// FederatedGroupBindings returns a FederatedGroupBindingInformer.
+	FederatedGroupBindings() FederatedGroupBindingInformer
 	// FederatedIngresses returns a FederatedIngressInformer.
 	FederatedIngresses() FederatedIngressInformer
 	// FederatedJobs returns a FederatedJobInformer.
@@ -92,6 +96,16 @@ func (v *version) FederatedConfigMaps() FederatedConfigMapInformer {
 // FederatedDeployments returns a FederatedDeploymentInformer.
 func (v *version) FederatedDeployments() FederatedDeploymentInformer {
 	return &federatedDeploymentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedGroups returns a FederatedGroupInformer.
+func (v *version) FederatedGroups() FederatedGroupInformer {
+	return &federatedGroupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedGroupBindings returns a FederatedGroupBindingInformer.
+func (v *version) FederatedGroupBindings() FederatedGroupBindingInformer {
+	return &federatedGroupBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedIngresses returns a FederatedIngressInformer.
