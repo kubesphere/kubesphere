@@ -1,22 +1,20 @@
 /*
+Copyright 2020 The KubeSphere Authors.
 
- Copyright 2020 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
 
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
-package identityprovider
+package ldap
 
 import (
 	"github.com/google/go-cmp/cmp"
@@ -42,12 +40,11 @@ mailAttribute: mail
 	if err != nil {
 		t.Fatal(err)
 	}
-	provider, err := NewLdapProvider(&dynamicOptions)
+	got, err := new(ldapProviderFactory).Create(&dynamicOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := provider.(*ldapProvider).options
-	expected := ldapOptions{
+	expected := &ldapProvider{
 		Host:                 "test.sn.mynetname.net:389",
 		StartTLS:             false,
 		InsecureSkipVerify:   false,
@@ -81,14 +78,14 @@ func TestLdapProvider_Authenticate(t *testing.T) {
 		t.Fatal(err)
 	}
 	var dynamicOptions oauth.DynamicOptions
-	if err := yaml.Unmarshal(options, &dynamicOptions); err != nil {
+	if err = yaml.Unmarshal(options, &dynamicOptions); err != nil {
 		t.Fatal(err)
 	}
-	provider, err := NewLdapProvider(&dynamicOptions)
+	ldapProvider, err := new(ldapProviderFactory).Create(&dynamicOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := provider.Authenticate("test", "test"); err != nil {
+	if _, err = ldapProvider.Authenticate("test", "test"); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -20,62 +20,101 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/api/auth"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"net/http"
 )
 
-type handler struct {
-	im            im.IdentityManagementInterface
-	options       *authoptions.AuthenticationOptions
-	tokenOperator im.TokenManagementInterface
-	authenticator im.PasswordAuthenticator
-	loginRecorder im.LoginRecorder
+const (
+	KindTokenReview       = "TokenReview"
+	passwordGrantType     = "password"
+	refreshTokenGrantType = "refresh_token"
+)
+
+type Spec struct {
+	Token string `json:"token" description:"access token"`
 }
 
-func newHandler(im im.IdentityManagementInterface, tokenOperator im.TokenManagementInterface, authenticator im.PasswordAuthenticator, loginRecorder im.LoginRecorder, options *authoptions.AuthenticationOptions) *handler {
-	return &handler{im: im, tokenOperator: tokenOperator, authenticator: authenticator, loginRecorder: loginRecorder, options: options}
+type Status struct {
+	Authenticated bool                   `json:"authenticated" description:"is authenticated"`
+	User          map[string]interface{} `json:"user,omitempty" description:"user info"`
+}
+
+type TokenReview struct {
+	APIVersion string  `json:"apiVersion" description:"Kubernetes API version"`
+	Kind       string  `json:"kind" description:"kind of the API object"`
+	Spec       *Spec   `json:"spec,omitempty"`
+	Status     *Status `json:"status,omitempty" description:"token review status"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username" description:"username"`
+	Password string `json:"password" description:"password"`
+}
+
+func (request *TokenReview) Validate() error {
+	if request.Spec == nil || request.Spec.Token == "" {
+		return fmt.Errorf("token must not be null")
+	}
+	return nil
+}
+
+type handler struct {
+	im                    im.IdentityManagementInterface
+	options               *authoptions.AuthenticationOptions
+	tokenOperator         auth.TokenManagementInterface
+	passwordAuthenticator auth.PasswordAuthenticator
+	oauth2Authenticator   auth.OAuth2Authenticator
+	loginRecorder         auth.LoginRecorder
+}
+
+func newHandler(im im.IdentityManagementInterface,
+	tokenOperator auth.TokenManagementInterface,
+	passwordAuthenticator auth.PasswordAuthenticator,
+	oauth2Authenticator auth.OAuth2Authenticator,
+	loginRecorder auth.LoginRecorder,
+	options *authoptions.AuthenticationOptions) *handler {
+	return &handler{im: im,
+		tokenOperator:         tokenOperator,
+		passwordAuthenticator: passwordAuthenticator,
+		oauth2Authenticator:   oauth2Authenticator,
+		loginRecorder:         loginRecorder,
+		options:               options}
 }
 
 // Implement webhook authentication interface
 // https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
 func (h *handler) TokenReview(req *restful.Request, resp *restful.Response) {
-	var tokenReview auth.TokenReview
+	var tokenReview TokenReview
 
 	err := req.ReadEntity(&tokenReview)
-
 	if err != nil {
-		klog.Error(err)
 		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
 	if err = tokenReview.Validate(); err != nil {
-		klog.Error(err)
 		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
 	authenticated, err := h.tokenOperator.Verify(tokenReview.Spec.Token)
-
 	if err != nil {
-		klog.Errorln(err)
 		api.HandleInternalError(resp, req, err)
 		return
 	}
 
-	success := auth.TokenReview{APIVersion: tokenReview.APIVersion,
-		Kind: auth.KindTokenReview,
-		Status: &auth.Status{
+	success := TokenReview{APIVersion: tokenReview.APIVersion,
+		Kind: KindTokenReview,
+		Status: &Status{
 			Authenticated: true,
 			User:          map[string]interface{}{"username": authenticated.GetName(), "uid": authenticated.GetUID()},
 		},
@@ -93,34 +132,33 @@ func (h *handler) Authorize(req *restful.Request, resp *restful.Response) {
 	conf, err := h.options.OAuthOptions.OAuthClient(clientId)
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		resp.WriteError(http.StatusUnauthorized, err)
+		api.HandleError(resp, req, err)
 		return
 	}
 
 	if responseType != "token" {
 		err := apierrors.NewBadRequest(fmt.Sprintf("Response type %s is not supported", responseType))
-		resp.WriteError(http.StatusUnauthorized, err)
+		api.HandleError(resp, req, err)
 		return
 	}
 
 	if !ok {
 		err := apierrors.NewUnauthorized("Unauthorized")
-		resp.WriteError(http.StatusUnauthorized, err)
+		api.HandleError(resp, req, err)
 		return
 	}
 
 	token, err := h.tokenOperator.IssueTo(authenticated)
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		resp.WriteError(http.StatusUnauthorized, err)
+		api.HandleError(resp, req, err)
 		return
 	}
 
 	redirectURL, err := conf.ResolveRedirectURL(redirectURI)
-
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		resp.WriteError(http.StatusUnauthorized, err)
+		api.HandleError(resp, req, err)
 		return
 	}
 
@@ -133,105 +171,41 @@ func (h *handler) Authorize(req *restful.Request, resp *restful.Response) {
 	http.Redirect(resp, req.Request, redirectURL, http.StatusFound)
 }
 
-func (h *handler) oAuthCallBack(req *restful.Request, resp *restful.Response) {
-
+func (h *handler) oauthCallBack(req *restful.Request, resp *restful.Response) {
 	code := req.QueryParameter("code")
-	name := req.PathParameter("callback")
+	provider := req.PathParameter("callback")
 
 	if code == "" {
 		err := apierrors.NewUnauthorized("Unauthorized: missing code")
-		resp.WriteError(http.StatusUnauthorized, err)
+		api.HandleError(resp, req, err)
+		return
 	}
 
-	providerOptions, err := h.options.OAuthOptions.IdentityProviderOptions(name)
-
+	authenticated, provider, err := h.oauth2Authenticator.Authenticate(provider, code)
 	if err != nil {
-		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		resp.WriteError(http.StatusUnauthorized, err)
+		api.HandleUnauthorized(resp, req, apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)))
+		return
 	}
 
-	oauthIdentityProvider, err := identityprovider.GetOAuthProvider(providerOptions.Type, providerOptions.Provider)
-
+	result, err := h.tokenOperator.IssueTo(authenticated)
 	if err != nil {
-		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		resp.WriteError(http.StatusUnauthorized, err)
+		api.HandleInternalError(resp, req, apierrors.NewInternalError(err))
 		return
 	}
 
-	identity, err := oauthIdentityProvider.IdentityExchange(code)
-
-	if err != nil {
-		err = apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		resp.WriteError(http.StatusUnauthorized, err)
-		return
-	}
-
-	authenticated, err := h.im.DescribeUser(identity.GetName())
-	if err != nil {
-		// create user if not exist
-		if (oauth.MappingMethodAuto == providerOptions.MappingMethod ||
-			oauth.MappingMethodMixed == providerOptions.MappingMethod) &&
-			apierrors.IsNotFound(err) {
-			create := &iamv1alpha2.User{
-				ObjectMeta: v1.ObjectMeta{Name: identity.GetName(),
-					Annotations: map[string]string{iamv1alpha2.IdentifyProviderLabel: providerOptions.Name}},
-				Spec: iamv1alpha2.UserSpec{Email: identity.GetEmail()},
-			}
-			if authenticated, err = h.im.CreateUser(create); err != nil {
-				klog.Error(err)
-				api.HandleInternalError(resp, req, err)
-				return
-			}
-		} else {
-			klog.Error(err)
-			api.HandleInternalError(resp, req, err)
-			return
-		}
-	}
-
-	if oauth.MappingMethodLookup == providerOptions.MappingMethod &&
-		authenticated == nil {
-		err := apierrors.NewUnauthorized(fmt.Sprintf("user %s cannot bound to this identify provider", identity.GetName()))
-		klog.Error(err)
-		resp.WriteError(http.StatusUnauthorized, err)
-		return
-	}
-
-	// oauth.MappingMethodAuto
-	// Fails if a user with that user name is already mapped to another identity.
-	if providerOptions.MappingMethod == oauth.MappingMethodAuto && authenticated.Annotations[iamv1alpha2.IdentifyProviderLabel] != providerOptions.Name {
-		err := apierrors.NewUnauthorized(fmt.Sprintf("user %s is already bound to other identify provider", identity.GetName()))
-		klog.Error(err)
-		resp.WriteError(http.StatusUnauthorized, err)
-		return
-	}
-
-	result, err := h.tokenOperator.IssueTo(&user.DefaultInfo{
-		Name: authenticated.Name,
-		UID:  string(authenticated.UID),
-	})
-
-	if err != nil {
-		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		resp.WriteError(http.StatusUnauthorized, err)
-		return
-	}
-
-	if err = h.loginRecorder.RecordLogin(authenticated.Name, iamv1alpha2.OAuth, providerOptions.Name, nil, req.Request); err != nil {
-		klog.Error(err)
-		err := apierrors.NewInternalError(err)
-		resp.WriteError(http.StatusInternalServerError, err)
-		return
+	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
+	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
+		klog.Errorf("Failed to record successful login for user %s, error: %v", authenticated.GetName(), err)
 	}
 
 	resp.WriteEntity(result)
 }
 
 func (h *handler) Login(request *restful.Request, response *restful.Response) {
-	var loginRequest auth.LoginRequest
+	var loginRequest LoginRequest
 	err := request.ReadEntity(&loginRequest)
-	if err != nil || loginRequest.Username == "" || loginRequest.Password == "" {
-		response.WriteHeaderAndEntity(http.StatusUnauthorized, fmt.Errorf("empty username or password"))
+	if err != nil {
+		api.HandleBadRequest(response, request, err)
 		return
 	}
 	h.passwordGrant(loginRequest.Username, loginRequest.Password, request, response)
@@ -240,71 +214,53 @@ func (h *handler) Login(request *restful.Request, response *restful.Response) {
 func (h *handler) Token(req *restful.Request, response *restful.Response) {
 	grantType, err := req.BodyParameter("grant_type")
 	if err != nil {
-		klog.Error(err)
 		api.HandleBadRequest(response, req, err)
 		return
 	}
 	switch grantType {
-	case "password":
-		username, err := req.BodyParameter("username")
-		if err != nil {
-			klog.Error(err)
-			api.HandleBadRequest(response, req, err)
-			return
-		}
-		password, err := req.BodyParameter("password")
-		if err != nil {
-			klog.Error(err)
-			api.HandleBadRequest(response, req, err)
-			return
-		}
+	case passwordGrantType:
+		username, _ := req.BodyParameter("username")
+		password, _ := req.BodyParameter("password")
 		h.passwordGrant(username, password, req, response)
 		break
-	case "refresh_token":
+	case refreshTokenGrantType:
 		h.refreshTokenGrant(req, response)
 		break
 	default:
 		err := apierrors.NewBadRequest(fmt.Sprintf("Grant type %s is not supported", grantType))
-		response.WriteError(http.StatusBadRequest, err)
+		api.HandleBadRequest(response, req, err)
 	}
 }
 
 func (h *handler) passwordGrant(username string, password string, req *restful.Request, response *restful.Response) {
-	authenticated, err := h.authenticator.Authenticate(username, password)
+	authenticated, provider, err := h.passwordAuthenticator.Authenticate(username, password)
 	if err != nil {
-		klog.Error(err)
 		switch err {
-		case im.AuthFailedIncorrectPassword:
-			if err := h.loginRecorder.RecordLogin(username, iamv1alpha2.Token, "", err, req.Request); err != nil {
-				klog.Error(err)
-				response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
-				return
+		case auth.IncorrectPasswordError:
+			requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
+			if err := h.loginRecorder.RecordLogin(username, iamv1alpha2.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, err); err != nil {
+				klog.Errorf("Failed to record unsuccessful login attempt for user %s, error: %v", username, err)
 			}
-			response.WriteError(http.StatusUnauthorized, apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)))
+			api.HandleUnauthorized(response, req, apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)))
 			return
-		case im.AuthFailedIdentityMappingNotMatch:
-			response.WriteError(http.StatusUnauthorized, apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)))
-			return
-		case im.AuthRateLimitExceeded:
-			response.WriteError(http.StatusTooManyRequests, apierrors.NewTooManyRequests(fmt.Sprintf("Unauthorized: %s", err), 60))
+		case auth.RateLimitExceededError:
+			api.HandleTooManyRequests(response, req, apierrors.NewTooManyRequestsError(fmt.Sprintf("Unauthorized: %s", err)))
 			return
 		default:
-			response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
+			api.HandleInternalError(response, req, apierrors.NewInternalError(err))
 			return
 		}
 	}
 
 	result, err := h.tokenOperator.IssueTo(authenticated)
 	if err != nil {
-		klog.Error(err)
-		response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
+		api.HandleInternalError(response, req, apierrors.NewInternalError(err))
 		return
 	}
 
-	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Token, "", nil, req.Request); err != nil {
-		klog.Error(err)
-		response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
-		return
+	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
+	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
+		klog.Errorf("Failed to record successful login for user %s, error: %v", username, err)
 	}
 
 	response.WriteEntity(result)
@@ -313,22 +269,46 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 func (h *handler) refreshTokenGrant(req *restful.Request, response *restful.Response) {
 	refreshToken, err := req.BodyParameter("refresh_token")
 	if err != nil {
-		klog.Error(err)
-		api.HandleBadRequest(response, req, err)
+		api.HandleBadRequest(response, req, apierrors.NewBadRequest(err.Error()))
 		return
 	}
 
 	authenticated, err := h.tokenOperator.Verify(refreshToken)
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		response.WriteError(http.StatusUnauthorized, err)
+		api.HandleUnauthorized(response, req, apierrors.NewUnauthorized(err.Error()))
 		return
+	}
+
+	// update token after registration
+	if authenticated.GetName() == iamv1alpha2.PreRegistrationUser &&
+		authenticated.GetExtra() != nil &&
+		len(authenticated.GetExtra()[iamv1alpha2.ExtraIdentityProvider]) > 0 &&
+		len(authenticated.GetExtra()[iamv1alpha2.ExtraUID]) > 0 {
+
+		idp := authenticated.GetExtra()[iamv1alpha2.ExtraIdentityProvider][0]
+		uid := authenticated.GetExtra()[iamv1alpha2.ExtraUID][0]
+		queryParam := query.New()
+		queryParam.LabelSelector = labels.SelectorFromSet(labels.Set{
+			iamv1alpha2.IdentifyProviderLabel: idp,
+			iamv1alpha2.OriginUIDLabel:        uid}).String()
+		result, err := h.im.ListUsers(queryParam)
+		if err != nil {
+			api.HandleInternalError(response, req, apierrors.NewInternalError(err))
+			return
+		}
+		if len(result.Items) != 1 {
+			err := apierrors.NewUnauthorized("authenticated user does not exist")
+			api.HandleUnauthorized(response, req, apierrors.NewUnauthorized(err.Error()))
+			return
+		}
+		authenticated = &user.DefaultInfo{Name: result.Items[0].(*iamv1alpha2.User).Name}
 	}
 
 	result, err := h.tokenOperator.IssueTo(authenticated)
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-		response.WriteError(http.StatusUnauthorized, err)
+		api.HandleUnauthorized(response, req, apierrors.NewUnauthorized(err.Error()))
 		return
 	}
 

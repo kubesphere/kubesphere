@@ -35,7 +35,7 @@ spec:
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         groupRef:
-          description: Ref defines the desired relation of GroupBinding
+          description: GroupRef defines the desired relation of GroupBinding
           properties:
             apiGroup:
               type: string

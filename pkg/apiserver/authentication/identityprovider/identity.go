@@ -17,6 +17,12 @@ limitations under the License.
 package identityprovider
 
 type Identity interface {
-	GetName() string
+	// required
+	GetUserID() string
+	// optional
+	GetUsername() string
+	// optional
+	GetDisplayName() string
+	// optional
 	GetEmail() string
 }

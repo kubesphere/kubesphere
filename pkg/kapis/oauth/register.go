@@ -20,10 +20,10 @@ import (
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"net/http"
 )
@@ -34,22 +34,28 @@ import (
 // Most authentication integrations place an authenticating proxy in front of this endpoint, or configure ks-apiserver
 // to validate credentials against a backing identity provider.
 // Requests to <ks-apiserver>/oauth/authorize can come from user-agents that cannot display interactive login pages, such as the CLI.
-func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tokenOperator im.TokenManagementInterface, authenticator im.PasswordAuthenticator, loginRecorder im.LoginRecorder, options *authoptions.AuthenticationOptions) error {
+func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
+	tokenOperator auth.TokenManagementInterface,
+	passwordAuthenticator auth.PasswordAuthenticator,
+	oauth2Authenticator auth.OAuth2Authenticator,
+	loginRecorder auth.LoginRecorder,
+	options *authoptions.AuthenticationOptions) error {
+
 	ws := &restful.WebService{}
 	ws.Path("/oauth").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	handler := newHandler(im, tokenOperator, authenticator, loginRecorder, options)
+	handler := newHandler(im, tokenOperator, passwordAuthenticator, oauth2Authenticator, loginRecorder, options)
 
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
 	ws.Route(ws.POST("/authenticate").
 		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be "+
 			"cached by the webhook token authenticator plugin in the kube-apiserver.").
-		Reads(auth.TokenReview{}).
+		Reads(TokenReview{}).
 		To(handler.TokenReview).
-		Returns(http.StatusOK, api.StatusOK, auth.TokenReview{}).
+		Returns(http.StatusOK, api.StatusOK, TokenReview{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	// Only support implicit grant flow
@@ -98,7 +104,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 			"otherwise, REQUIRED.  The scope of the access token as described by [RFC6479] Section 3.3.").Required(false)).
 		Param(ws.QueryParameter("state", "if the \"state\" parameter was present in the client authorization request."+
 			"The exact value received from the client.").Required(true)).
-		To(handler.oAuthCallBack).
+		To(handler.oauthCallBack).
 		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
@@ -113,7 +119,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 		To(handler.Login).
 		Deprecate().
 		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
-		Reads(auth.LoginRequest{}).
+		Reads(LoginRequest{}).
 		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 

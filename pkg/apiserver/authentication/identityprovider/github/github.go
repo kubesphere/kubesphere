@@ -19,8 +19,8 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/oauth2"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
@@ -31,7 +31,11 @@ const (
 	UserInfoURL = "https://api.github.com/user"
 )
 
-type Github struct {
+func init() {
+	identityprovider.RegisterOAuthProvider(&githubProviderFactory{})
+}
+
+type github struct {
 	// ClientID is the application's ID.
 	ClientID string `json:"clientID" yaml:"clientID"`
 
@@ -41,8 +45,8 @@ type Github struct {
 	// Endpoint contains the resource server's token endpoint
 	// URLs. These are constants specific to each server and are
 	// often available via site-specific packages, such as
-	// google.Endpoint or github.Endpoint.
-	Endpoint Endpoint `json:"endpoint" yaml:"endpoint"`
+	// google.Endpoint or github.endpoint.
+	Endpoint endpoint `json:"endpoint" yaml:"endpoint"`
 
 	// RedirectURL is the URL to redirect users going through
 	// the OAuth flow, after the resource owner's URLs.
@@ -52,14 +56,14 @@ type Github struct {
 	Scopes []string `json:"scopes" yaml:"scopes"`
 }
 
-// Endpoint represents an OAuth 2.0 provider's authorization and token
+// endpoint represents an OAuth 2.0 provider's authorization and token
 // endpoint URLs.
-type Endpoint struct {
+type endpoint struct {
 	AuthURL  string `json:"authURL" yaml:"authURL"`
 	TokenURL string `json:"tokenURL" yaml:"tokenURL"`
 }
 
-type GithubIdentity struct {
+type githubIdentity struct {
 	Login             string    `json:"login"`
 	ID                int       `json:"id"`
 	NodeID            string    `json:"node_id"`
@@ -98,36 +102,38 @@ type GithubIdentity struct {
 	Collaborators     int       `json:"collaborators"`
 }
 
-func init() {
-	identityprovider.RegisterOAuthProvider(&Github{})
+type githubProviderFactory struct {
 }
 
-func (g *Github) Type() string {
+func (g *githubProviderFactory) Type() string {
 	return "GitHubIdentityProvider"
 }
 
-func (g *Github) Setup(options *oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
-	data, err := yaml.Marshal(options)
-	if err != nil {
+func (g *githubProviderFactory) Create(options *oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+	var github github
+	if err := mapstructure.Decode(options, &github); err != nil {
 		return nil, err
 	}
-	var provider Github
-	err = yaml.Unmarshal(data, &provider)
-	if err != nil {
-		return nil, err
-	}
-	return &provider, nil
+	return &github, nil
 }
 
-func (g GithubIdentity) GetName() string {
+func (g githubIdentity) GetUserID() string {
 	return g.Login
 }
 
-func (g GithubIdentity) GetEmail() string {
+func (g githubIdentity) GetUsername() string {
+	return g.Login
+}
+
+func (g githubIdentity) GetEmail() string {
 	return g.Email
 }
 
-func (g *Github) IdentityExchange(code string) (identityprovider.Identity, error) {
+func (g githubIdentity) GetDisplayName() string {
+	return ""
+}
+
+func (g *github) IdentityExchange(code string) (identityprovider.Identity, error) {
 	config := oauth2.Config{
 		ClientID:     g.ClientID,
 		ClientSecret: g.ClientSecret,
@@ -141,27 +147,23 @@ func (g *Github) IdentityExchange(code string) (identityprovider.Identity, error
 	}
 
 	token, err := config.Exchange(context.Background(), code)
-
 	if err != nil {
 		return nil, err
 	}
 
 	resp, err := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token)).Get(UserInfoURL)
-
 	if err != nil {
 		return nil, err
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
-	var githubIdentity GithubIdentity
-
+	var githubIdentity githubIdentity
 	err = json.Unmarshal(data, &githubIdentity)
-
 	if err != nil {
 		return nil, err
 	}

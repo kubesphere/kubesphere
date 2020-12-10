@@ -35,12 +35,13 @@ const (
 	// GrantHandlerDeny auto-denies client authorization grant requests
 	GrantHandlerDeny GrantHandlerType = "deny"
 	// MappingMethodAuto  The default value.The user will automatically create and mapping when login successful.
-	// Fails if a user with that user name is already mapped to another identity.
+	// Fails if a user with that username is already mapped to another identity.
 	MappingMethodAuto MappingMethod = "auto"
 	// MappingMethodLookup Looks up an existing identity, user identity mapping, and user, but does not automatically
 	// provision users or identities. Using this method requires you to manually provision users.
 	MappingMethodLookup MappingMethod = "lookup"
 	// MappingMethodMixed  A user entity can be mapped with multiple identifyProvider.
+	// not supported yet.
 	MappingMethodMixed MappingMethod = "mixed"
 )
 

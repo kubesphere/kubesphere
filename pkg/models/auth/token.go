@@ -16,7 +16,7 @@
 
 */
 
-package im
+package auth
 
 import (
 	"fmt"

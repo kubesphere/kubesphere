@@ -16,7 +16,7 @@ limitations under the License.
 package im
 
 import (
-	"golang.org/x/crypto/bcrypt"
+	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -24,8 +24,8 @@ import (
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	"kubesphere.io/kubesphere/pkg/informers"
-	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	"kubesphere.io/kubesphere/pkg/models/auth"
+	resources "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 )
 
 type IdentityManagementInterface interface {
@@ -35,41 +35,40 @@ type IdentityManagementInterface interface {
 	UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error)
 	DescribeUser(username string) (*iamv1alpha2.User, error)
 	ModifyPassword(username string, password string) error
-	ListLoginRecords(query *query.Query) (*api.ListResult, error)
+	ListLoginRecords(username string, query *query.Query) (*api.ListResult, error)
 	PasswordVerify(username string, password string) error
 }
 
-func NewOperator(ksClient kubesphere.Interface, factory informers.InformerFactory, options *authoptions.AuthenticationOptions) IdentityManagementInterface {
-	im := &defaultIMOperator{
-		ksClient:       ksClient,
-		resourceGetter: resourcev1alpha3.NewResourceGetter(factory),
-		options:        options,
+func NewOperator(ksClient kubesphere.Interface, userGetter resources.Interface, loginRecordGetter resources.Interface, options *authoptions.AuthenticationOptions) IdentityManagementInterface {
+	im := &imOperator{
+		ksClient:          ksClient,
+		userGetter:        userGetter,
+		loginRecordGetter: loginRecordGetter,
+		options:           options,
 	}
 	return im
 }
 
-type defaultIMOperator struct {
-	ksClient       kubesphere.Interface
-	resourceGetter *resourcev1alpha3.ResourceGetter
-	options        *authoptions.AuthenticationOptions
+type imOperator struct {
+	ksClient          kubesphere.Interface
+	userGetter        resources.Interface
+	loginRecordGetter resources.Interface
+	options           *authoptions.AuthenticationOptions
 }
 
-func (im *defaultIMOperator) UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
-	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", user.Name)
+// UpdateUser returns user information after update.
+func (im *imOperator) UpdateUser(new *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+	old, err := im.fetch(new.Name)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-
-	old := obj.(*iamv1alpha2.User).DeepCopy()
-	if user.Annotations == nil {
-		user.Annotations = make(map[string]string, 0)
+	if old.Annotations == nil {
+		old.Annotations = make(map[string]string, 0)
 	}
-	user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = old.Annotations[iamv1alpha2.PasswordEncryptedAnnotation]
-	user.Spec.EncryptedPassword = old.Spec.EncryptedPassword
-	user.Status = old.Status
-
-	updated, err := im.ksClient.IamV1alpha2().Users().Update(user)
+	// keep encrypted password
+	new.Spec.EncryptedPassword = old.Spec.EncryptedPassword
+	updated, err := im.ksClient.IamV1alpha2().Users().Update(old)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -77,18 +76,23 @@ func (im *defaultIMOperator) UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.Us
 	return ensurePasswordNotOutput(updated), nil
 }
 
-func (im *defaultIMOperator) ModifyPassword(username string, password string) error {
-	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
+func (im *imOperator) fetch(username string) (*iamv1alpha2.User, error) {
+	obj, err := im.userGetter.Get("", username)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	user := obj.(*iamv1alpha2.User).DeepCopy()
+	return user, nil
+}
 
+func (im *imOperator) ModifyPassword(username string, password string) error {
+	user, err := im.fetch(username)
 	if err != nil {
 		klog.Error(err)
 		return err
 	}
-
-	user := obj.(*iamv1alpha2.User).DeepCopy()
-	delete(user.Annotations, iamv1alpha2.PasswordEncryptedAnnotation)
 	user.Spec.EncryptedPassword = password
-
 	_, err = im.ksClient.IamV1alpha2().Users().Update(user)
 	if err != nil {
 		klog.Error(err)
@@ -97,13 +101,12 @@ func (im *defaultIMOperator) ModifyPassword(username string, password string) er
 	return nil
 }
 
-func (im *defaultIMOperator) ListUsers(query *query.Query) (result *api.ListResult, err error) {
-	result, err = im.resourceGetter.List(iamv1alpha2.ResourcesPluralUser, "", query)
+func (im *imOperator) ListUsers(query *query.Query) (result *api.ListResult, err error) {
+	result, err = im.userGetter.List("", query)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-
 	items := make([]interface{}, 0)
 	for _, item := range result.Items {
 		user := item.(*iamv1alpha2.User)
@@ -114,40 +117,34 @@ func (im *defaultIMOperator) ListUsers(query *query.Query) (result *api.ListResu
 	return result, nil
 }
 
-func (im *defaultIMOperator) PasswordVerify(username string, password string) error {
-	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
+func (im *imOperator) PasswordVerify(username string, password string) error {
+	obj, err := im.userGetter.Get("", username)
 	if err != nil {
 		klog.Error(err)
 		return err
 	}
 	user := obj.(*iamv1alpha2.User)
-	if checkPasswordHash(password, user.Spec.EncryptedPassword) {
-		return nil
+	if err = auth.PasswordVerify(user.Spec.EncryptedPassword, password); err != nil {
+		return err
 	}
-	return AuthFailedIncorrectPassword
+	return nil
 }
 
-func checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
-}
-
-func (im *defaultIMOperator) DescribeUser(username string) (*iamv1alpha2.User, error) {
-	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
+func (im *imOperator) DescribeUser(username string) (*iamv1alpha2.User, error) {
+	obj, err := im.userGetter.Get("", username)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-
 	user := obj.(*iamv1alpha2.User)
 	return ensurePasswordNotOutput(user), nil
 }
 
-func (im *defaultIMOperator) DeleteUser(username string) error {
+func (im *imOperator) DeleteUser(username string) error {
 	return im.ksClient.IamV1alpha2().Users().Delete(username, metav1.NewDeleteOptions(0))
 }
 
-func (im *defaultIMOperator) CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+func (im *imOperator) CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
 	user, err := im.ksClient.IamV1alpha2().Users().Create(user)
 	if err != nil {
 		klog.Error(err)
@@ -156,8 +153,9 @@ func (im *defaultIMOperator) CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.Us
 	return user, nil
 }
 
-func (im *defaultIMOperator) ListLoginRecords(query *query.Query) (*api.ListResult, error) {
-	result, err := im.resourceGetter.List(iamv1alpha2.ResourcesPluralLoginRecord, "", query)
+func (im *imOperator) ListLoginRecords(username string, q *query.Query) (*api.ListResult, error) {
+	q.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", iamv1alpha2.UserReferenceLabel, username))
+	result, err := im.loginRecordGetter.List("", q)
 	if err != nil {
 		klog.Error(err)
 		return nil, err

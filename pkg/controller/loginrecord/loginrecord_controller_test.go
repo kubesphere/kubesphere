@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere Authors.
+Copyright 2020 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package user
+package loginrecord
 
 import (
 	"fmt"
@@ -27,10 +27,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"reflect"
 	"testing"
 	"time"
@@ -49,7 +47,8 @@ type fixture struct {
 	ksclient  *fake.Clientset
 	k8sclient *k8sfake.Clientset
 	// Objects to put in the store.
-	userLister []*iamv1alpha2.User
+	user        *iamv1alpha2.User
+	loginRecord *iamv1alpha2.LoginRecord
 	// Actions expected to happen on the client.
 	kubeactions []core.Action
 	actions     []core.Action
@@ -80,29 +79,41 @@ func newUser(name string) *iamv1alpha2.User {
 	}
 }
 
-func (f *fixture) newController() (*userController, ksinformers.SharedInformerFactory, kubeinformers.SharedInformerFactory) {
+func newLoginRecord(username string) *iamv1alpha2.LoginRecord {
+	return &iamv1alpha2.LoginRecord{
+		TypeMeta: metav1.TypeMeta{APIVersion: iamv1alpha2.SchemeGroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              username,
+			CreationTimestamp: metav1.Now(),
+			Labels:            map[string]string{iamv1alpha2.UserReferenceLabel: username},
+		},
+		Spec: iamv1alpha2.LoginRecordSpec{
+			Type:    iamv1alpha2.Token,
+			Success: true,
+			Reason:  "",
+		},
+	}
+}
+
+func (f *fixture) newController() (*loginRecordController, ksinformers.SharedInformerFactory, kubeinformers.SharedInformerFactory) {
 	f.ksclient = fake.NewSimpleClientset(f.objects...)
 	f.k8sclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
-	ldapClient := ldapclient.NewSimpleLdap()
 
 	ksInformers := ksinformers.NewSharedInformerFactory(f.ksclient, noResyncPeriodFunc())
 	k8sInformers := kubeinformers.NewSharedInformerFactory(f.k8sclient, noResyncPeriodFunc())
-
-	for _, user := range f.userLister {
-		err := ksInformers.Iam().V1alpha2().Users().Informer().GetIndexer().Add(user)
-		if err != nil {
-			f.t.Errorf("add user:%s", err)
-		}
+	if err := ksInformers.Iam().V1alpha2().Users().Informer().GetIndexer().Add(f.user); err != nil {
+		f.t.Errorf("add user:%s", err)
+	}
+	if err := ksInformers.Iam().V1alpha2().LoginRecords().Informer().GetIndexer().Add(f.loginRecord); err != nil {
+		f.t.Errorf("add login record:%s", err)
 	}
 
-	c := NewUserController(f.k8sclient, f.ksclient, nil,
-		ksInformers.Iam().V1alpha2().Users(),
+	c := NewLoginRecordController(f.k8sclient, f.ksclient,
 		ksInformers.Iam().V1alpha2().LoginRecords(),
-		nil, nil,
-		k8sInformers.Core().V1().ConfigMaps(),
-		ldapClient, nil,
-		options.NewAuthenticateOptions(), false)
-	c.Synced = []cache.InformerSynced{alwaysReady}
+		ksInformers.Iam().V1alpha2().Users(),
+		time.Minute*5)
+	c.userSynced = alwaysReady
+	c.loginRecordSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
 	return c, ksInformers, k8sInformers
@@ -133,13 +144,13 @@ func (f *fixture) runController(user string, startInformers bool, expectError bo
 	}
 
 	actions := filterInformerActions(f.ksclient.Actions())
-	for i, action := range actions {
-		if len(f.actions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[i:])
+	for j, action := range actions {
+		if len(f.actions) < j+1 {
+			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[j:])
 			break
 		}
 
-		expectedAction := f.actions[i]
+		expectedAction := f.actions[j]
 		checkAction(expectedAction, action, f.t)
 	}
 
@@ -148,13 +159,13 @@ func (f *fixture) runController(user string, startInformers bool, expectError bo
 	}
 
 	k8sActions := filterInformerActions(f.k8sclient.Actions())
-	for i, action := range k8sActions {
-		if len(f.kubeactions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.kubeactions), k8sActions[i:])
+	for k, action := range k8sActions {
+		if len(f.kubeactions) < k+1 {
+			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.kubeactions), k8sActions[k:])
 			break
 		}
 
-		expectedAction := f.kubeactions[i]
+		expectedAction := f.kubeactions[k]
 		checkAction(expectedAction, action, f.t)
 	}
 
@@ -181,7 +192,6 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 		e, _ := expected.(core.CreateActionImpl)
 		expObject := e.GetObject()
 		object := a.GetObject()
-
 		if !reflect.DeepEqual(expObject, object) {
 			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
@@ -202,7 +212,6 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 		e, _ := expected.(core.PatchActionImpl)
 		expPatch := e.GetPatch()
 		patch := a.GetPatch()
-
 		if !reflect.DeepEqual(expPatch, patch) {
 			t.Errorf("Action %s %s has wrong patch\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expPatch, patch))
@@ -219,9 +228,6 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 func filterInformerActions(actions []core.Action) []core.Action {
 	var ret []core.Action
 	for _, action := range actions {
-		if !action.Matches("update", "users") {
-			continue
-		}
 		ret = append(ret, action)
 	}
 
@@ -230,14 +236,9 @@ func filterInformerActions(actions []core.Action) []core.Action {
 
 func (f *fixture) expectUpdateUserStatusAction(user *iamv1alpha2.User) {
 	expect := user.DeepCopy()
-	//expect.Status.State = iamv1alpha2.UserActive
-	expect.Finalizers = []string{"finalizers.kubesphere.io/users"}
 	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
-	f.actions = append(f.actions, action)
-
-	expect = expect.DeepCopy()
-	action = core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
 	action.Subresource = "status"
+	expect.Status.LastLoginTime = &f.loginRecord.CreationTimestamp
 	f.actions = append(f.actions, action)
 }
 
@@ -253,9 +254,11 @@ func getKey(user *iamv1alpha2.User, t *testing.T) string {
 func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
 	user := newUser("test")
+	loginRecord := newLoginRecord("test")
 
-	f.userLister = append(f.userLister, user)
-	f.objects = append(f.objects, user)
+	f.user = user
+	f.loginRecord = loginRecord
+	f.objects = append(f.objects, user, loginRecord)
 
 	f.expectUpdateUserStatusAction(user)
 	f.run(getKey(user, t))

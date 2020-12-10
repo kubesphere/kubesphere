@@ -13,37 +13,36 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package identityprovider
 
 import (
-	"errors"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 var (
-	builtinOAuthProviders    = make(map[string]OAuthProviderFactory)
-	identityProviderNotFound = errors.New("identity provider not found")
+	builtinGenericProviders = make(map[string]GenericProviderFactory)
 )
 
-type OAuthProvider interface {
-	// IdentityExchange exchange identity from remote server
-	IdentityExchange(code string) (Identity, error)
+type GenericProvider interface {
+	// Authenticate from remote server
+	Authenticate(username string, password string) (Identity, error)
 }
 
-type OAuthProviderFactory interface {
+type GenericProviderFactory interface {
 	// Type unique type of the provider
 	Type() string
 	// Apply the dynamic options from kubesphere-config
-	Create(options *oauth.DynamicOptions) (OAuthProvider, error)
+	Create(options *oauth.DynamicOptions) (GenericProvider, error)
 }
 
-func CreateOAuthProvider(providerType string, options *oauth.DynamicOptions) (OAuthProvider, error) {
-	if provider, ok := builtinOAuthProviders[providerType]; ok {
-		return provider.Create(options)
+func CreateGenericProvider(providerType string, options *oauth.DynamicOptions) (GenericProvider, error) {
+	if factory, ok := builtinGenericProviders[providerType]; ok {
+		return factory.Create(options)
 	}
 	return nil, identityProviderNotFound
 }
 
-func RegisterOAuthProvider(factory OAuthProviderFactory) {
-	builtinOAuthProviders[factory.Type()] = factory
+func RegisterGenericProvider(factory GenericProviderFactory) {
+	builtinGenericProviders[factory.Type()] = factory
 }

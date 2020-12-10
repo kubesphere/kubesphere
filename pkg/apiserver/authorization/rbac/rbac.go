@@ -16,7 +16,7 @@ limitations under the License.
 
 // NOTE: This file is copied from k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac.
 
-package authorizerfactory
+package rbac
 
 import (
 	"bytes"
@@ -36,7 +36,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/user"
-	rbacv1helpers "kubesphere.io/kubesphere/pkg/api/rbac/v1"
 )
 
 const (
@@ -159,14 +158,14 @@ func ruleAllows(requestAttributes authorizer.Attributes, rule *rbacv1.PolicyRule
 			combinedResource = requestAttributes.GetResource() + "/" + requestAttributes.GetSubresource()
 		}
 
-		return rbacv1helpers.VerbMatches(rule, requestAttributes.GetVerb()) &&
-			rbacv1helpers.APIGroupMatches(rule, requestAttributes.GetAPIGroup()) &&
-			rbacv1helpers.ResourceMatches(rule, combinedResource, requestAttributes.GetSubresource()) &&
-			rbacv1helpers.ResourceNameMatches(rule, requestAttributes.GetName())
+		return VerbMatches(rule, requestAttributes.GetVerb()) &&
+			APIGroupMatches(rule, requestAttributes.GetAPIGroup()) &&
+			ResourceMatches(rule, combinedResource, requestAttributes.GetSubresource()) &&
+			ResourceNameMatches(rule, requestAttributes.GetName())
 	}
 
-	return rbacv1helpers.VerbMatches(rule, requestAttributes.GetVerb()) &&
-		rbacv1helpers.NonResourceURLMatches(rule, requestAttributes.GetPath())
+	return VerbMatches(rule, requestAttributes.GetVerb()) &&
+		NonResourceURLMatches(rule, requestAttributes.GetPath())
 }
 
 func regoPolicyAllows(requestAttributes authorizer.Attributes, regoPolicy string) bool {

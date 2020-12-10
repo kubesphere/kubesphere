@@ -30,7 +30,7 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/rbac"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -540,8 +540,8 @@ func prepare() Interface {
 			RoleBindings().Informer().GetIndexer().Add(roleBinding)
 	}
 
-	amOperator := am.NewOperator(fakeInformerFactory, ksClient, k8sClient)
-	authorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
+	amOperator := am.NewOperator(ksClient, k8sClient, fakeInformerFactory)
+	authorizer := rbac.NewRBACAuthorizer(amOperator)
 
 	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil, amOperator, authorizer)
 }

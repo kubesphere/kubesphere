@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+// Following code copied from k8s.io/kubernetes/pkg/apis/rbac/v1  to avoid import collision
+
+package rbac
 
 import (
 	"fmt"

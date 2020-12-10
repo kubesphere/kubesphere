@@ -15,25 +15,3 @@ limitations under the License.
 */
 
 package im
-
-import (
-	"golang.org/x/crypto/bcrypt"
-	"testing"
-)
-
-func TestEncryptPassword(t *testing.T) {
-	password := "P@88w0rd"
-	encryptedPassword, err := hashPassword(password)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !checkPasswordHash(password, encryptedPassword) {
-		t.Fatal(err)
-	}
-	t.Log(encryptedPassword)
-}
-
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	return string(bytes), err
-}
