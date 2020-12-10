@@ -688,6 +688,9 @@ func AddJenkinsToContainer(webservice *restful.WebService, devopsClient devops.I
 		return err
 	}
 	parse.Path = strings.Trim(parse.Path, "/")
+	// this API does not belong any kind of auth scope, it should be removed in the future version
+	// see also pkg/apiserver/request/requestinfo.go
+	// Deprecated: Please use /devops/{devops}/jenkins/{path:*} instead
 	webservice.Route(webservice.GET("/jenkins/{path:*}").
 		Param(webservice.PathParameter("path", "Path stands for any suffix path.")).
 		To(func(request *restful.Request, response *restful.Response) {
@@ -696,6 +699,22 @@ func AddJenkinsToContainer(webservice *restful.WebService, devopsClient devops.I
 			u.Scheme = parse.Scheme
 			jenkins.SetBasicBearTokenHeader(&request.Request.Header)
 			u.Path = strings.Replace(request.Request.URL.Path, fmt.Sprintf("/kapis/%s/%s/jenkins", GroupVersion.Group, GroupVersion.Version), "", 1)
+			httpProxy := proxy.NewUpgradeAwareHandler(u, http.DefaultTransport, false, false, &errorResponder{})
+			httpProxy.ServeHTTP(response, request.Request)
+		}).
+		Returns(http.StatusOK, RespOK, nil).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsTag}))
+	webservice.Route(webservice.GET("/devops/{devops}/jenkins/{path:*}").
+		Param(webservice.PathParameter("path", "Path stands for any suffix path.")).
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		To(func(request *restful.Request, response *restful.Response) {
+			u := request.Request.URL
+			devops := request.PathParameter("devops")
+			u.Host = parse.Host
+			u.Scheme = parse.Scheme
+			jenkins.SetBasicBearTokenHeader(&request.Request.Header)
+			u.Path = strings.Replace(request.Request.URL.Path, fmt.Sprintf("/kapis/%s/%s/devops/%s/jenkins",
+				GroupVersion.Group, GroupVersion.Version, devops), "", 1)
 			httpProxy := proxy.NewUpgradeAwareHandler(u, http.DefaultTransport, false, false, &errorResponder{})
 			httpProxy.ServeHTTP(response, request.Request)
 		}).
