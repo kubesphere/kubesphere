@@ -20,7 +20,6 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"net/http"
 )
 
 type DevOpsProjectRoleResponse struct {
@@ -37,14 +36,12 @@ func (j *Jenkins) CreateDevOpsProject(projectId string) (string, error) {
 	return projectId, nil
 }
 
-func (j *Jenkins) DeleteDevOpsProject(projectId string) error {
-	_, err := j.DeleteJob(projectId)
-
-	if err != nil && devops.GetDevOpsStatusCode(err) != http.StatusNotFound {
-		klog.Errorf("%+v", err)
+func (j *Jenkins) DeleteDevOpsProject(projectId string) (err error) {
+	_, err = j.DeleteJob(projectId)
+	if err != nil {
 		return restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
-	return nil
+	return
 }
 
 func (j *Jenkins) GetDevOpsProject(projectId string) (string, error) {

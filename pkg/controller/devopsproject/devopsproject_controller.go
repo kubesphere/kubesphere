@@ -18,6 +18,7 @@ package devopsproject
 
 import (
 	"fmt"
+	"github.com/emicklei/go-restful"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +42,7 @@ import (
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"net/http"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
@@ -213,13 +215,14 @@ func (c *Controller) syncHandler(key string) error {
 		klog.V(8).Info(err, fmt.Sprintf("could not get devopsproject %s ", key))
 		return err
 	}
-	//If the sync is successful, return handle
-	if state, ok := project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
-		return nil
-	}
 	copyProject := project.DeepCopy()
 	// DeletionTimestamp.IsZero() means DevOps project has not been deleted.
 	if project.ObjectMeta.DeletionTimestamp.IsZero() {
+		//If the sync is successful, return handle
+		if state, ok := project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+			return nil
+		}
+
 		// Use Finalizers to sync DevOps status when DevOps project was deleted
 		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
 		if !sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
@@ -339,13 +342,31 @@ func (c *Controller) syncHandler(key string) error {
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
+			delSuccess := false
 			if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
+				// the status code should be 404 if the job does not exists
+				if srvErr, ok := err.(restful.ServiceError); ok {
+					delSuccess = srvErr.Code == http.StatusNotFound
+				} else if srvErr, ok := err.(*devopsClient.ErrorResponse); ok {
+					delSuccess = srvErr.Response.StatusCode == http.StatusNotFound
+				} else {
+					klog.Error(fmt.Sprintf("unexpected error type: %v, should be *restful.ServiceError", err))
+				}
+
 				klog.V(8).Info(err, fmt.Sprintf("failed to delete resource %s in devops", key))
-				return err
+			} else {
+				delSuccess = true
 			}
-			project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
-				return item == devopsv1alpha3.DevOpsProjectFinalizerName
-			})
+
+			if delSuccess {
+				project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
+					return item == devopsv1alpha3.DevOpsProjectFinalizerName
+				})
+			} else {
+				// make sure the corresponding Jenkins job can be clean
+				// You can remove the finalizer via kubectl manually in a very special case that Jenkins might be not able to available anymore
+				return fmt.Errorf("failed to remove devopsproject finalizer due to bad communication with Jenkins")
+			}
 
 			_, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
 			if err != nil {
@@ -390,14 +411,9 @@ func (c *Controller) bindWorkspace(project *devopsv1alpha3.DevOpsProject) (*devo
 	return project, nil
 }
 
-func (c *Controller) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsProject) error {
-
-	err := c.devopsClient.DeleteDevOpsProject(project.Status.AdminNamespace)
-	if err != nil {
-		klog.Errorf("error happened while deleting %s, %v", project.Name, err)
-	}
-
-	return nil
+func (c *Controller) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsProject) (err error) {
+	err = c.devopsClient.DeleteDevOpsProject(project.Status.AdminNamespace)
+	return
 }
 
 func (c *Controller) generateNewNamespace(project *devopsv1alpha3.DevOpsProject) *v1.Namespace {
