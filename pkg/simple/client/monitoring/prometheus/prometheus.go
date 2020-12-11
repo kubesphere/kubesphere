@@ -147,9 +147,12 @@ func (p prometheus) GetNamedMetricsOverTime(metrics []string, start, end time.Ti
 
 func (p prometheus) GetMetadata(namespace string) []monitoring.Metadata {
 	var meta []monitoring.Metadata
+	var matchTarget string
 
-	// Filter metrics available to members of this namespace
-	matchTarget := fmt.Sprintf("{namespace=\"%s\"}", namespace)
+	if namespace != "" {
+		// Filter metrics available to members of this namespace
+		matchTarget = fmt.Sprintf("{namespace=\"%s\"}", namespace)
+	}
 	items, err := p.client.TargetsMetadata(context.Background(), matchTarget, "", "")
 	if err != nil {
 		klog.Error(err)

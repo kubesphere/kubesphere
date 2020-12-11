@@ -62,25 +62,31 @@ func NewMonitoringOperator(client monitoring.Interface, k8s kubernetes.Interface
 }
 
 func (mo monitoringOperator) GetMetric(expr, namespace string, time time.Time) (monitoring.Metric, error) {
-	// Different monitoring backend implementations have different ways to enforce namespace isolation.
-	// Each implementation should register itself to `ReplaceNamespaceFns` during init().
-	// We hard code "prometheus" here because we only support this datasource so far.
-	// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
-	expr, err := expressions.ReplaceNamespaceFns["prometheus"](expr, namespace)
-	if err != nil {
-		return monitoring.Metric{}, err
+	if namespace != "" {
+		// Different monitoring backend implementations have different ways to enforce namespace isolation.
+		// Each implementation should register itself to `ReplaceNamespaceFns` during init().
+		// We hard code "prometheus" here because we only support this datasource so far.
+		// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
+		var err error
+		expr, err = expressions.ReplaceNamespaceFns["prometheus"](expr, namespace)
+		if err != nil {
+			return monitoring.Metric{}, err
+		}
 	}
 	return mo.c.GetMetric(expr, time), nil
 }
 
 func (mo monitoringOperator) GetMetricOverTime(expr, namespace string, start, end time.Time, step time.Duration) (monitoring.Metric, error) {
-	// Different monitoring backend implementations have different ways to enforce namespace isolation.
-	// Each implementation should register itself to `ReplaceNamespaceFns` during init().
-	// We hard code "prometheus" here because we only support this datasource so far.
-	// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
-	expr, err := expressions.ReplaceNamespaceFns["prometheus"](expr, namespace)
-	if err != nil {
-		return monitoring.Metric{}, err
+	if namespace != "" {
+		// Different monitoring backend implementations have different ways to enforce namespace isolation.
+		// Each implementation should register itself to `ReplaceNamespaceFns` during init().
+		// We hard code "prometheus" here because we only support this datasource so far.
+		// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
+		var err error
+		expr, err = expressions.ReplaceNamespaceFns["prometheus"](expr, namespace)
+		if err != nil {
+			return monitoring.Metric{}, err
+		}
 	}
 	return mo.c.GetMetricOverTime(expr, start, end, step), nil
 }
@@ -101,14 +107,18 @@ func (mo monitoringOperator) GetMetadata(namespace string) Metadata {
 }
 
 func (mo monitoringOperator) GetMetricLabelSet(metric, namespace string, start, end time.Time) MetricLabelSet {
-	// Different monitoring backend implementations have different ways to enforce namespace isolation.
-	// Each implementation should register itself to `ReplaceNamespaceFns` during init().
-	// We hard code "prometheus" here because we only support this datasource so far.
-	// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
-	expr, err := expressions.ReplaceNamespaceFns["prometheus"](metric, namespace)
-	if err != nil {
-		klog.Error(err)
-		return MetricLabelSet{}
+	var expr = metric
+	var err error
+	if namespace != "" {
+		// Different monitoring backend implementations have different ways to enforce namespace isolation.
+		// Each implementation should register itself to `ReplaceNamespaceFns` during init().
+		// We hard code "prometheus" here because we only support this datasource so far.
+		// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
+		expr, err = expressions.ReplaceNamespaceFns["prometheus"](metric, namespace)
+		if err != nil {
+			klog.Error(err)
+			return MetricLabelSet{}
+		}
 	}
 	data := mo.c.GetMetricLabelSet(expr, start, end)
 	return MetricLabelSet{Data: data}
