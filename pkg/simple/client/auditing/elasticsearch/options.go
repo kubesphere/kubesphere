@@ -25,15 +25,15 @@ import (
 type Options struct {
 	Enable     bool   `json:"enable" yaml:"enable"`
 	WebhookUrl string `json:"webhookUrl" yaml:"webhookUrl"`
-	// The number of goroutines which send auditing events to webhook.
-	GoroutinesNum int `json:"goroutinesNum" yaml:"goroutinesNum"`
-	// The max size of the auditing event in a batch.
-	MaxBatchSize int `json:"batchSize" yaml:"batchSize"`
-	// MaxBatchWait indicates the maximum interval between two batches.
-	MaxBatchWait time.Duration `json:"batchTimeout" yaml:"batchTimeout"`
-	Host         string        `json:"host" yaml:"host"`
-	IndexPrefix  string        `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
-	Version      string        `json:"version" yaml:"version"`
+	// The maximum concurrent senders which send auditing events to the auditing webhook.
+	EventSendersNum int `json:"eventSendersNum" yaml:"eventSendersNum"`
+	// The batch size of auditing events.
+	EventBatchSize int `json:"eventBatchSize" yaml:"eventBatchSize"`
+	// The batch interval of auditing events.
+	EventBatchInterval time.Duration `json:"eventBatchInterval" yaml:"eventBatchInterval"`
+	Host               string        `json:"host" yaml:"host"`
+	IndexPrefix        string        `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
+	Version            string        `json:"version" yaml:"version"`
 }
 
 func NewElasticSearchOptions() *Options {
@@ -59,12 +59,12 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.BoolVar(&s.Enable, "auditing-enabled", c.Enable, "Enable auditing component or not. ")
 
 	fs.StringVar(&s.WebhookUrl, "auditing-webhook-url", c.WebhookUrl, "Auditing wehook url")
-	fs.IntVar(&s.GoroutinesNum, "auditing-goroutines-num", c.GoroutinesNum,
-		"The number of goroutines which send auditing events to webhook.")
-	fs.IntVar(&s.MaxBatchSize, "auditing-batch-max-size", c.MaxBatchSize,
-		"The max size of the auditing event in a batch.")
-	fs.DurationVar(&s.MaxBatchWait, "auditing-batch-max-wait", c.MaxBatchWait,
-		"MaxBatchWait indicates the maximum interval between two batches.")
+	fs.IntVar(&s.EventSendersNum, "auditing-event-senders-num", c.EventSendersNum,
+		"The maximum concurrent senders which send auditing events to the auditing webhook.")
+	fs.IntVar(&s.EventBatchSize, "auditing-event-batch-size", c.EventBatchSize,
+		"The batch size of auditing events.")
+	fs.DurationVar(&s.EventBatchInterval, "auditing-event-batch-interval", c.EventBatchInterval,
+		"The batch interval of auditing events.")
 	fs.StringVar(&s.Host, "auditing-elasticsearch-host", c.Host, ""+
 		"Elasticsearch service host. KubeSphere is using elastic as auditing store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin event API instead, and"+

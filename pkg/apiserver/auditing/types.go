@@ -229,7 +229,7 @@ func (a *auditing) cacheEvent(e auditv1alpha1.Event) {
 	case a.cache <- &e:
 		return
 	case <-time.After(CacheTimeout):
-		klog.Errorf("cache audit event %s timeout", e.AuditID)
+		klog.V(8).Infof("cache audit event %s timeout", e.AuditID)
 		break
 	}
 }
