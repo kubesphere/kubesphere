@@ -550,9 +550,26 @@ func (c *clusterController) syncCluster(key string) error {
 		}
 	}
 
-	// kubeconfig not ready, nothing to do
-	if len(cluster.Spec.Connection.KubeConfig) == 0 {
-		return nil
+	// agent status unavailable, which means the agent disconnected from the server or has not connected to the server
+	// we need to update the cluster ready status unavailable and return.
+	if cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeProxy &&
+		!isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) {
+		clusterNotReadyCondition := clusterv1alpha1.ClusterCondition{
+			Type:               clusterv1alpha1.ClusterReady,
+			Status:             v1.ConditionFalse,
+			LastUpdateTime:     metav1.Now(),
+			LastTransitionTime: metav1.Now(),
+			Reason:             "Unable to establish connection with cluster",
+			Message:            "Cluster is not available now",
+		}
+
+		c.updateClusterCondition(cluster, clusterNotReadyCondition)
+
+		cluster, err = c.clusterClient.Update(cluster)
+		if err != nil {
+			klog.Errorf("Error updating cluster %s, error %s", cluster.Name, err)
+		}
+		return err
 	}
 
 	// build up cached cluster data if there isn't any
@@ -599,67 +616,49 @@ func (c *clusterController) syncCluster(key string) error {
 	// cluster agent is ready, we can pull kubernetes cluster info through agent
 	// since there is no agent necessary for host cluster, so updates for host cluster
 	// is safe.
-	if isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) ||
-		cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeDirect {
-
-		if len(cluster.Spec.Connection.KubernetesAPIEndpoint) == 0 {
-			cluster.Spec.Connection.KubernetesAPIEndpoint = clusterDt.config.Host
-		}
-
-		version, err := clusterDt.client.Discovery().ServerVersion()
-		if err != nil {
-			klog.Errorf("Failed to get kubernetes version, %#v", err)
-			return err
-		}
-
-		cluster.Status.KubernetesVersion = version.GitVersion
-
-		nodes, err := clusterDt.client.CoreV1().Nodes().List(metav1.ListOptions{})
-		if err != nil {
-			klog.Errorf("Failed to get cluster nodes, %#v", err)
-			return err
-		}
-
-		cluster.Status.NodeCount = len(nodes.Items)
-
-		configz, err := c.tryToFetchKubeSphereComponents(clusterDt.config.Host, clusterDt.transport)
-		if err == nil {
-			cluster.Status.Configz = configz
-		}
-
-		// label cluster host cluster if configz["multicluster"]==true, this is
-		if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
-			if cluster.Labels == nil {
-				cluster.Labels = make(map[string]string)
-			}
-			cluster.Labels[clusterv1alpha1.HostCluster] = ""
-		}
-
-		clusterReadyCondition := clusterv1alpha1.ClusterCondition{
-			Type:               clusterv1alpha1.ClusterReady,
-			Status:             v1.ConditionTrue,
-			LastUpdateTime:     metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             string(clusterv1alpha1.ClusterReady),
-			Message:            "Cluster is available now",
-		}
-
-		c.updateClusterCondition(cluster, clusterReadyCondition)
+	if len(cluster.Spec.Connection.KubernetesAPIEndpoint) == 0 {
+		cluster.Spec.Connection.KubernetesAPIEndpoint = clusterDt.config.Host
 	}
 
-	if cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeProxy &&
-		!isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) {
-		clusterNotReadyCondition := clusterv1alpha1.ClusterCondition{
-			Type:               clusterv1alpha1.ClusterReady,
-			Status:             v1.ConditionFalse,
-			LastUpdateTime:     metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             "Unable to establish connection with cluster",
-			Message:            "Cluster is not available now",
-		}
-
-		c.updateClusterCondition(cluster, clusterNotReadyCondition)
+	version, err := clusterDt.client.Discovery().ServerVersion()
+	if err != nil {
+		klog.Errorf("Failed to get kubernetes version, %#v", err)
+		return err
 	}
+
+	cluster.Status.KubernetesVersion = version.GitVersion
+
+	nodes, err := clusterDt.client.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		klog.Errorf("Failed to get cluster nodes, %#v", err)
+		return err
+	}
+
+	cluster.Status.NodeCount = len(nodes.Items)
+
+	configz, err := c.tryToFetchKubeSphereComponents(clusterDt.config.Host, clusterDt.transport)
+	if err == nil {
+		cluster.Status.Configz = configz
+	}
+
+	// label cluster host cluster if configz["multicluster"]==true, this is
+	if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
+		if cluster.Labels == nil {
+			cluster.Labels = make(map[string]string)
+		}
+		cluster.Labels[clusterv1alpha1.HostCluster] = ""
+	}
+
+	clusterReadyCondition := clusterv1alpha1.ClusterCondition{
+		Type:               clusterv1alpha1.ClusterReady,
+		Status:             v1.ConditionTrue,
+		LastUpdateTime:     metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             string(clusterv1alpha1.ClusterReady),
+		Message:            "Cluster is available now",
+	}
+
+	c.updateClusterCondition(cluster, clusterReadyCondition)
 
 	if c.openpitrixClient != nil { // OpenPitrix is enabled, create runtime
 		if cluster.GetAnnotations() == nil {
