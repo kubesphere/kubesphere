@@ -281,7 +281,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 
 	if s.Config.AuditingOptions.Enable {
 		handler = filters.WithAuditing(handler,
-			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions.WebhookUrl, stopCh))
+			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions, stopCh))
 	}
 
 	var authorizers authorizer.Authorizer

@@ -23,41 +23,61 @@ import (
 	"encoding/json"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
+	options "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"net/http"
 	"time"
 )
 
 const (
-	WaitTimeout = time.Second
-	WebhookURL  = "https://kube-auditing-webhook-svc.kubesphere-logging-system.svc:443/audit/webhook/event"
+	WaitTimeout          = time.Second
+	SendTimeout          = time.Second * 3
+	DefaultGoroutinesNum = 100
+	DefaultBatchSize     = 100
+	DefaultBatchWait     = time.Second * 3
+	WebhookURL           = "https://kube-auditing-webhook-svc.kubesphere-logging-system.svc:443/audit/webhook/event"
 )
 
 type Backend struct {
-	url             string
-	channelCapacity int
-	semCh           chan interface{}
-	cache           chan *v1alpha1.EventList
-	client          http.Client
-	sendTimeout     time.Duration
-	waitTimeout     time.Duration
-	stopCh          <-chan struct{}
+	url          string
+	semCh        chan interface{}
+	cache        chan *v1alpha1.Event
+	client       http.Client
+	sendTimeout  time.Duration
+	waitTimeout  time.Duration
+	maxBatchSize int
+	maxBatchWait time.Duration
+	stopCh       <-chan struct{}
 }
 
-func NewBackend(url string, channelCapacity int, cache chan *v1alpha1.EventList, sendTimeout time.Duration, stopCh <-chan struct{}) *Backend {
+func NewBackend(opts *options.Options, cache chan *v1alpha1.Event, stopCh <-chan struct{}) *Backend {
 
 	b := Backend{
-		url:             url,
-		semCh:           make(chan interface{}, channelCapacity),
-		channelCapacity: channelCapacity,
-		waitTimeout:     WaitTimeout,
-		cache:           cache,
-		sendTimeout:     sendTimeout,
-		stopCh:          stopCh,
+		url:          opts.WebhookUrl,
+		waitTimeout:  WaitTimeout,
+		cache:        cache,
+		sendTimeout:  SendTimeout,
+		maxBatchSize: opts.MaxBatchSize,
+		maxBatchWait: opts.MaxBatchWait,
+		stopCh:       stopCh,
 	}
 
 	if len(b.url) == 0 {
 		b.url = WebhookURL
 	}
+
+	if b.maxBatchWait == 0 {
+		b.maxBatchWait = DefaultBatchWait
+	}
+
+	if b.maxBatchSize == 0 {
+		b.maxBatchSize = DefaultBatchSize
+	}
+
+	goroutinesNum := opts.GoroutinesNum
+	if goroutinesNum == 0 {
+		goroutinesNum = DefaultGoroutinesNum
+	}
+	b.semCh = make(chan interface{}, goroutinesNum)
 
 	b.client = http.Client{
 		Transport: &http.Transport{
@@ -76,53 +96,97 @@ func NewBackend(url string, channelCapacity int, cache chan *v1alpha1.EventList,
 func (b *Backend) worker() {
 
 	for {
-
-		var event *v1alpha1.EventList
-		select {
-		case event = <-b.cache:
-			if event == nil {
-				break
-			}
-		case <-b.stopCh:
+		events := b.getEvents()
+		if events == nil {
 			break
 		}
 
-		send := func(event *v1alpha1.EventList) {
-			ctx, cancel := context.WithTimeout(context.Background(), b.waitTimeout)
-			defer cancel()
-
-			select {
-			case <-ctx.Done():
-				klog.Errorf("get goroutine for audit(%s) timeout", event.Items[0].AuditID)
-				return
-			case b.semCh <- struct{}{}:
-			}
-
-			defer func() {
-				<-b.semCh
-			}()
-
-			bs, err := b.eventToBytes(event)
-			if err != nil {
-				klog.V(6).Infof("json marshal error, %s", err)
-				return
-			}
-
-			klog.V(8).Infof("%s", string(bs))
-
-			response, err := b.client.Post(b.url, "application/json", bytes.NewBuffer(bs))
-			if err != nil {
-				klog.Errorf("send audit event[%s] error, %s", event.Items[0].AuditID, err)
-				return
-			}
-
-			if response.StatusCode != http.StatusOK {
-				klog.Errorf("send audit event[%s] error[%d]", event.Items[0].AuditID, response.StatusCode)
-				return
-			}
+		if len(events.Items) == 0 {
+			continue
 		}
 
-		go send(event)
+		go b.sendEvents(events)
+	}
+}
+
+func (b *Backend) getEvents() *v1alpha1.EventList {
+
+	ctx, cancel := context.WithTimeout(context.Background(), b.maxBatchWait)
+	defer cancel()
+
+	events := &v1alpha1.EventList{}
+	for {
+		select {
+		case event := <-b.cache:
+			if event == nil {
+				break
+			}
+			events.Items = append(events.Items, *event)
+			if len(events.Items) >= b.maxBatchSize {
+				return events
+			}
+		case <-ctx.Done():
+			return events
+		case <-b.stopCh:
+			return nil
+		}
+	}
+}
+
+func (b *Backend) sendEvents(events *v1alpha1.EventList) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), b.sendTimeout)
+	defer cancel()
+
+	stopCh := make(chan struct{})
+
+	send := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), b.waitTimeout)
+		defer cancel()
+
+		select {
+		case <-ctx.Done():
+			klog.Error("get goroutine timeout")
+			return
+		case b.semCh <- struct{}{}:
+		}
+
+		start := time.Now()
+		defer func() {
+			stopCh <- struct{}{}
+			klog.V(8).Infof("send %d auditing logs used %d", len(events.Items), time.Now().Sub(start).Milliseconds())
+		}()
+
+		bs, err := b.eventToBytes(events)
+		if err != nil {
+			klog.V(6).Infof("json marshal error, %s", err)
+			return
+		}
+
+		klog.V(8).Infof("%s", string(bs))
+
+		response, err := b.client.Post(b.url, "application/json", bytes.NewBuffer(bs))
+		if err != nil {
+			klog.Errorf("send audit events error, %s", err)
+			return
+		}
+
+		if response.StatusCode != http.StatusOK {
+			klog.Errorf("send audit events error[%d]", response.StatusCode)
+			return
+		}
+	}
+
+	go send()
+
+	defer func() {
+		<-b.semCh
+	}()
+
+	select {
+	case <-ctx.Done():
+		klog.Error("send audit events timeout")
+	case <-stopCh:
 	}
 }
 
