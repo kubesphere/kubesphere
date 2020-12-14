@@ -538,7 +538,10 @@ func (c *clusterController) syncCluster(key string) error {
 			LastUpdateTime:     metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 		}
-		c.updateClusterCondition(cluster, initializedCondition)
+
+		if !isConditionTrue(cluster, clusterv1alpha1.ClusterInitialized) {
+			c.updateClusterCondition(cluster, initializedCondition)
+		}
 
 		if !reflect.DeepEqual(oldCluster, cluster) {
 			cluster, err = c.clusterClient.Update(cluster)
@@ -546,7 +549,6 @@ func (c *clusterController) syncCluster(key string) error {
 				klog.Errorf("Error updating cluster %s, error %s", cluster.Name, err)
 				return err
 			}
-			return nil
 		}
 	}
 
