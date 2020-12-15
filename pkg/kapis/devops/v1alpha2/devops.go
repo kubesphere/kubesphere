@@ -24,12 +24,14 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	clientDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -49,15 +51,80 @@ func (h *ProjectPipelineHandler) GetPipeline(req *restful.Request, resp *restful
 	resp.WriteAsJson(res)
 }
 
+func (h *ProjectPipelineHandler) getPipelinesByRequest(req *restful.Request) (api.ListResult, error) {
+	// this is a very trick way, but don't have a better solution for now
+	var (
+		err       error
+		start     int
+		limit     int
+		namespace string
+	)
+
+	// parse query from the request
+	query := req.QueryParameter("q")
+	for _, val := range strings.Split(query, ";") {
+		if strings.HasPrefix(val, "pipeline:") {
+			namespace = strings.TrimLeft(val, "pipeline:")
+			namespace = strings.Split(namespace, "/")[0]
+		}
+	}
+
+	// make sure we have an appropriate value
+	if start, err = strconv.Atoi(req.QueryParameter("start")); err != nil {
+		start = 0
+	}
+	if limit, err = strconv.Atoi(req.QueryParameter("limit")); err != nil {
+		limit = 10
+	}
+
+	defer req.Request.Form.Set("limit", "10000") // assume the pipelines no more than 10k
+
+	return h.devopsOperator.ListPipelineObj(namespace, func(list []*v1alpha3.Pipeline, i int, j int) bool {
+		return strings.Compare(strings.ToUpper(list[i].Name), strings.ToUpper(list[j].Name)) < 0
+	}, limit, start)
+}
+
 func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restful.Response) {
-	res, err := h.devopsOperator.ListPipelines(req.Request)
+	objs, err := h.getPipelinesByRequest(req)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
+	// get all pipelines which come from ks
+	pipelineList := &clientDevOps.PipelineList{
+		Total: objs.TotalItems,
+		Items: make([]clientDevOps.Pipeline, objs.TotalItems),
+	}
+	pipelineMap := make(map[string]int, objs.TotalItems)
+	for i, item := range objs.Items {
+		if pipeline, ok := item.(v1alpha3.Pipeline); !ok {
+			continue
+		} else {
+			pip := clientDevOps.Pipeline{
+				Name: pipeline.Name,
+			}
+
+			pipelineMap[pipeline.Name] = i
+			pipelineList.Items[i] = pip
+		}
+	}
+
+	// get all pipelines which come from Jenkins
+	// fill out the rest fields
+	res, err := h.devopsOperator.ListPipelines(req.Request)
+	if err != nil {
+		log.Error(err)
+	} else {
+		for _, item := range res.Items {
+			if index, ok := pipelineMap[item.Name]; ok {
+				pipelineList.Items[index] = item
+			}
+		}
+	}
+
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.WriteAsJson(res)
+	resp.WriteAsJson(pipelineList)
 }
 
 func (h *ProjectPipelineHandler) GetPipelineRun(req *restful.Request, resp *restful.Response) {

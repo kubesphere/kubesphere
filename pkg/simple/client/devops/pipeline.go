@@ -81,7 +81,7 @@ type Pipeline struct {
 	NumberOfFolders                int           `json:"numberOfFolders,omitempty" description:"number of folders"`
 	NumberOfPipelines              int           `json:"numberOfPipelines,omitempty" description:"number of pipelines"`
 	PipelineFolderNames            []interface{} `json:"pipelineFolderNames,omitempty" description:"pipeline folder names"`
-	WeatherScore                   int           `json:"weatherScore,omitempty" description:"the score to description the result of pipeline activity"`
+	WeatherScore                   int           `json:"weatherScore" description:"the score to description the result of pipeline activity"`
 	BranchNames                    []string      `json:"branchNames,omitempty" description:"branch names"`
 	NumberOfFailingBranches        int           `json:"numberOfFailingBranches,omitempty" description:"number of failing branches"`
 	NumberOfFailingPullRequests    int           `json:"numberOfFailingPullRequests,omitempty" description:"number of failing pull requests"`
