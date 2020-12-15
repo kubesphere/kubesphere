@@ -34,14 +34,14 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver controller-manager
+all: test ks-apiserver ks-controller-manager
 
 # Build ks-apiserver binary
 ks-apiserver: fmt vet
 	hack/gobuild.sh cmd/ks-apiserver
 
-# Build controller-manager binary
-controller-manager: fmt vet
+# Build ks-controller-manager binary
+ks-controller-manager: fmt vet
 	hack/gobuild.sh cmd/controller-manager
 
 # Run go fmt against code 
@@ -79,7 +79,7 @@ openapi:
 # Build the docker image
 docker-build: all
 	hack/docker_build.sh
-docker-build-no-test: ks-apiserver controller-manager
+docker-build-no-test: ks-apiserver ks-controller-manager
 	hack/docker_build.sh
 
 # Run tests
