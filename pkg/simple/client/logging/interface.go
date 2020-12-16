@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-type Interface interface {
+type Client interface {
 	GetCurrentStats(sf SearchFilter) (Statistics, error)
 	CountLogsByInterval(sf SearchFilter, interval string) (Histogram, error)
 	SearchLogs(sf SearchFilter, from, size int64, order string) (Logs, error)

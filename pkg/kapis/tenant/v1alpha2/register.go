@@ -52,7 +52,7 @@ func Resource(resource string) schema.GroupResource {
 }
 
 func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8sclient kubernetes.Interface,
-	ksclient kubesphere.Interface, evtsClient events.Client, loggingClient logging.Interface,
+	ksclient kubesphere.Interface, evtsClient events.Client, loggingClient logging.Client,
 	auditingclient auditing.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer) error {
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
 

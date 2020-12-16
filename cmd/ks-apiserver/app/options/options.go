@@ -119,7 +119,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	if s.LoggingOptions.Host != "" {
-		loggingClient, err := esclient.NewElasticsearch(s.LoggingOptions)
+		loggingClient, err := esclient.NewClient(s.LoggingOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
 		}

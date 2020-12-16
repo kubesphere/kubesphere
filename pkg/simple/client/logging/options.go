@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package elasticsearch
+package logging
 
 import (
 	"github.com/spf13/pflag"
@@ -27,7 +27,7 @@ type Options struct {
 	Version     string `json:"version" yaml:"version"`
 }
 
-func NewElasticSearchOptions() *Options {
+func NewLoggingOptions() *Options {
 	return &Options{
 		Host:        "",
 		IndexPrefix: "fluentbit",
@@ -42,21 +42,20 @@ func (s *Options) ApplyTo(options *Options) {
 }
 
 func (s *Options) Validate() []error {
-	errs := []error{}
-
+	errs := make([]error, 0)
 	return errs
 }
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
-	fs.StringVar(&s.Host, "elasticsearch-host", c.Host, ""+
+	fs.StringVar(&s.Host, "logging-elasticsearch-host", c.Host, ""+
 		"Elasticsearch logging service host. KubeSphere is using elastic as log store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin log API instead, and"+
 		" the following elastic search options will be ignored.")
 
-	fs.StringVar(&s.IndexPrefix, "index-prefix", c.IndexPrefix, ""+
+	fs.StringVar(&s.IndexPrefix, "logging-index-prefix", c.IndexPrefix, ""+
 		"Index name prefix. KubeSphere will retrieve logs against indices matching the prefix.")
 
-	fs.StringVar(&s.Version, "elasticsearch-version", c.Version, ""+
+	fs.StringVar(&s.Version, "logging-elasticsearch-version", c.Version, ""+
 		"Elasticsearch major version, e.g. 5/6/7, if left blank, will detect automatically."+
 		"Currently, minimum supported version is 5.x")
 }

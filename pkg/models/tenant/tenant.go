@@ -91,7 +91,7 @@ type tenantOperator struct {
 	auditing       auditing.Interface
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Interface, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer) Interface {
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer) Interface {
 	return &tenantOperator{
 		am:             am,
 		authorizer:     authorizer,

@@ -17,12 +17,12 @@ limitations under the License.
 package elasticsearch
 
 import (
+	"encoding/json"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -69,7 +69,7 @@ func TestStatisticsOnResources(t *testing.T) {
     ]
   },
   "aggregations": {
-    "resources_count": {
+    "cardinality_aggregation": {
       "value": 100
     }
   }
@@ -116,18 +116,21 @@ func TestStatisticsOnResources(t *testing.T) {
 			mes := MockElasticsearchService("/", test.fakeCode, test.fakeResp)
 			defer mes.Close()
 
-			es, err := NewClient(&Options{Host: mes.URL, IndexPrefix: "ks-logstash-events", Version: "6"})
-
+			c, err := NewClient(&events.Options{
+				Host:        mes.URL,
+				IndexPrefix: "ks-logstash-events",
+				Version:     test.fakeVersion,
+			})
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("create client error, %s", err)
 			}
 
-			stats, err := es.StatisticsOnResources(&test.filter)
+			stats, err := c.StatisticsOnResources(&test.filter)
 
 			if test.expectedError {
 				if err == nil {
 					t.Fatalf("expected err like %s", test.fakeResp)
-				} else if !strings.Contains(err.Error(), strconv.Itoa(test.fakeCode)) {
+				} else if !strings.Contains(err.Error(), "index_not_found_exception") {
 					t.Fatalf("err does not contain expected code: %d", test.fakeCode)
 				}
 			} else {
@@ -144,66 +147,68 @@ func TestStatisticsOnResources(t *testing.T) {
 func TestParseToQueryPart(t *testing.T) {
 	q := `
 {
-	"bool": {
-		"filter": [
-			{
-				"bool": {
-					"should": [
-						{
-							"bool": {
-								"filter": [
-									{
-										"match_phrase": {
-											"involvedObject.namespace.keyword": "kubesphere-system"
-										}
-									},
-									{
-										"range": {
-											"lastTimestamp": {
-												"gte": "2020-01-01T01:01:01.000000001Z"
-											}
-										}
-									}
-								]
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase_prefix": {
-								"involvedObject.name": "istio"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase": {
-								"reason": "unhealthy"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"range": {
-					"lastTimestamp": {
-						"gte": "2019-12-01T01:01:01.000000001Z"
-					}
-				}
-			}
-		]
-	}
+    "query":{
+        "bool":{
+            "filter":[
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "bool":{
+                                    "filter":[
+                                        {
+                                            "match_phrase":{
+                                                "involvedObject.namespace.keyword":"kubesphere-system"
+                                            }
+                                        },
+                                        {
+                                            "range":{
+                                                "lastTimestamp":{
+                                                    "gte":"2020-01-01T01:01:01.000000001Z"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase_prefix":{
+                                    "involvedObject.name":"istio"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase":{
+                                    "reason":"unhealthy"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "range":{
+                        "lastTimestamp":{
+                            "gte":"2019-12-01T01:01:01.000000001Z"
+                        }
+                    }
+                }
+            ]
+        }
+    }
 }
 `
 	nsCreateTime := time.Date(2020, time.Month(1), 1, 1, 1, 1, 1, time.UTC)
@@ -215,7 +220,7 @@ func TestParseToQueryPart(t *testing.T) {
 		},
 		InvolvedObjectNameFuzzy: []string{"istio"},
 		Reasons:                 []string{"unhealthy"},
-		StartTime:               &startTime,
+		StartTime:               startTime,
 	}
 
 	qp := parseToQueryPart(filter)

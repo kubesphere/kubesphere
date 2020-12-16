@@ -48,7 +48,7 @@ type tenantHandler struct {
 }
 
 func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface,
-	evtsClient events.Client, loggingClient logging.Interface, auditingclient auditing.Client,
+	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
 	am am.AccessManagementInterface, authorizer authorizer.Authorizer) *tenantHandler {
 
 	return &tenantHandler{
