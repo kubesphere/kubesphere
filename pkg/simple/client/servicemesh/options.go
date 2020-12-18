@@ -26,6 +26,9 @@ type Options struct {
 	// jaeger query service url
 	JaegerQueryHost string `json:"jaegerQueryHost,omitempty" yaml:"jaegerQueryHost"`
 
+	// kiali query service url
+	KialiQueryHost string `json:"kialiQueryHost,omitempty" yaml:"kialiQueryHost"`
+
 	// prometheus service url for servicemesh metrics
 	ServicemeshPrometheusHost string `json:"servicemeshPrometheusHost,omitempty" yaml:"servicemeshPrometheusHost"`
 }

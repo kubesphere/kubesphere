@@ -106,6 +106,11 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 		tracing.JaegerQueryUrl = s.ServiceMeshOptions.JaegerQueryHost
 	}
 
+	// Set the kiali query endpoint address
+	if s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.KialiQueryHost) != 0 {
+		tracing.KialiQueryUrl = s.ServiceMeshOptions.KialiQueryHost
+	}
+
 	// Exclude system namespaces
 	config.API.Namespaces.Exclude = []string{"istio-system", "kube-.*"}
 	config.InCluster = true
