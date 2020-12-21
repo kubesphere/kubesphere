@@ -157,6 +157,8 @@ type clusterController struct {
 	mu sync.RWMutex
 
 	clusterMap map[string]*clusterData
+
+	resyncPeriod time.Duration
 }
 
 func NewClusterController(
@@ -165,6 +167,7 @@ func NewClusterController(
 	clusterInformer clusterinformer.ClusterInformer,
 	clusterClient clusterclient.ClusterInterface,
 	openpitrixClient openpitrix.Client,
+	resyncPeriod time.Duration,
 ) *clusterController {
 
 	broadcaster := record.NewBroadcaster()
@@ -184,23 +187,18 @@ func NewClusterController(
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "cluster"),
 		workerLoopPeriod: time.Second,
 		clusterMap:       make(map[string]*clusterData),
+		resyncPeriod:     resyncPeriod,
 	}
-
 	c.clusterLister = clusterInformer.Lister()
 	c.clusterHasSynced = clusterInformer.Informer().HasSynced
 
-	clusterInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	clusterInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: c.addCluster,
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			newCluster := newObj.(*clusterv1alpha1.Cluster)
-			oldCluster := oldObj.(*clusterv1alpha1.Cluster)
-			if newCluster.ResourceVersion == oldCluster.ResourceVersion {
-				return
-			}
 			c.addCluster(newObj)
 		},
 		DeleteFunc: c.addCluster,
-	})
+	}, resyncPeriod)
 
 	return c
 }
@@ -226,15 +224,11 @@ func (c *clusterController) Run(workers int, stopCh <-chan struct{}) error {
 
 	// refresh cluster configz every 2 minutes
 	go wait.Until(func() {
-		if err := c.syncStatus(); err != nil {
-			klog.Errorf("Error periodically sync cluster status, %v", err)
-		}
-
 		if err := c.reconcileHostCluster(); err != nil {
 			klog.Errorf("Error create host cluster, error %v", err)
 		}
 
-	}, 2*time.Minute, stopCh)
+	}, c.resyncPeriod, stopCh)
 
 	<-stopCh
 	return nil
@@ -354,6 +348,7 @@ func (c *clusterController) reconcileHostCluster() error {
 }
 
 func (c *clusterController) syncCluster(key string) error {
+	klog.V(5).Infof("starting to sync cluster %s", key)
 	startTime := time.Now()
 
 	_, name, err := cache.SplitMetaNamespaceKey(key)

@@ -217,7 +217,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		s.KubernetesOptions,
 		s.AuthenticationOptions,
 		openpitrixClient,
-		s.MultiClusterOptions.Enable,
+		s.MultiClusterOptions,
 		s.NetworkOptions,
 		servicemeshEnabled,
 		s.AuthenticationOptions.KubectlImage, stopCh); err != nil {

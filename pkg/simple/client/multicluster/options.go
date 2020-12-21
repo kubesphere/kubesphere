@@ -16,7 +16,13 @@ limitations under the License.
 
 package multicluster
 
-import "github.com/spf13/pflag"
+import (
+	"time"
+
+	"github.com/spf13/pflag"
+)
+
+const DefaultResyncPeriod = time.Duration(120) * time.Second
 
 type Options struct {
 	// Enable
@@ -36,16 +42,20 @@ type Options struct {
 
 	// AgentImage is the image used when generating deployment for all cluster agents.
 	AgentImage string `json:"agentImage,omitempty"`
+
+	// ClusterControllerResyncSecond is the resync period used by cluster controller.
+	ClusterControllerResyncSecond time.Duration `json:"clusterControllerResyncSecond,omitempty" yaml:"clusterControllerResyncSecond"`
 }
 
 // NewOptions() returns a default nil options
 func NewOptions() *Options {
 	return &Options{
-		Enable:              false,
-		EnableFederation:    false,
-		ProxyPublishAddress: "",
-		ProxyPublishService: "",
-		AgentImage:          "kubesphere/tower:v1.0",
+		Enable:                        false,
+		EnableFederation:              false,
+		ProxyPublishAddress:           "",
+		ProxyPublishService:           "",
+		AgentImage:                    "kubesphere/tower:v1.0",
+		ClusterControllerResyncSecond: DefaultResyncPeriod,
 	}
 }
 
@@ -67,4 +77,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, s *Options) {
 
 	fs.StringVar(&o.AgentImage, "agent-image", s.AgentImage, ""+
 		"This field is used when generating deployment yaml for agent.")
+
+	fs.DurationVar(&o.ClusterControllerResyncSecond, "cluster-controller-resync-second", s.ClusterControllerResyncSecond,
+		"Cluster controller resync second to sync cluster resource.")
 }
