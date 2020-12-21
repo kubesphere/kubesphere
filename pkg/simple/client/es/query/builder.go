@@ -334,7 +334,7 @@ func (m *Regexp) IsValid() bool {
 	return true
 }
 
-func NewRegexp(key, val string) *Regexp {
+func NewRegex(key, val string) *Regexp {
 	return &Regexp{
 		Regexp: map[string]string{
 			key: val,

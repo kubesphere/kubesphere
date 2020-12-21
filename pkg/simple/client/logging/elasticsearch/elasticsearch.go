@@ -236,7 +236,7 @@ func parseToQueryPart(sf logging.SearchFilter) *query.Query {
 	if sf.WorkloadFilter != nil {
 		bi := query.NewBool().WithMinimumShouldMatch(mini)
 		for _, wk := range sf.WorkloadFilter {
-			bi.AppendShould(query.NewRegexp("kubernetes.pod_name.keyword", podNameRegexp(wk)))
+			bi.AppendShould(query.NewRegex("kubernetes.pod_name.keyword", podNameRegex(wk)))
 		}
 
 		b.AppendFilter(bi)
@@ -280,27 +280,27 @@ func parseToQueryPart(sf logging.SearchFilter) *query.Query {
 	return query.NewQuery().WithBool(b)
 }
 
-func podNameRegexp(workloadName string) string {
-	var regexp string
+func podNameRegex(workloadName string) string {
+	var regex string
 	if len(workloadName) <= podNameMaxLength-replicaSetSuffixMaxLength-podNameSuffixLength {
 		// match deployment pods, eg. <deploy>-579dfbcddd-24znw
 		// replicaset rand string is limited to vowels
 		// https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/util/rand/rand.go#L83
-		regexp += workloadName + "-[bcdfghjklmnpqrstvwxz2456789]{1,10}-[a-z0-9]{5}|"
+		regex += workloadName + "-[bcdfghjklmnpqrstvwxz2456789]{1,10}-[a-z0-9]{5}|"
 		// match statefulset pods, eg. <sts>-0
-		regexp += workloadName + "-[0-9]+|"
+		regex += workloadName + "-[0-9]+|"
 		// match pods of daemonset or job, eg. <ds>-29tdk, <job>-5xqvl
-		regexp += workloadName + "-[a-z0-9]{5}"
+		regex += workloadName + "-[a-z0-9]{5}"
 	} else if len(workloadName) <= podNameMaxLength-podNameSuffixLength {
 		replicaSetSuffixLength := podNameMaxLength - podNameSuffixLength - len(workloadName)
-		regexp += fmt.Sprintf("%s%d%s", workloadName+"-[bcdfghjklmnpqrstvwxz2456789]{", replicaSetSuffixLength, "}[a-z0-9]{5}|")
-		regexp += workloadName + "-[0-9]+|"
-		regexp += workloadName + "-[a-z0-9]{5}"
+		regex += fmt.Sprintf("%s%d%s", workloadName+"-[bcdfghjklmnpqrstvwxz2456789]{", replicaSetSuffixLength, "}[a-z0-9]{5}|")
+		regex += workloadName + "-[0-9]+|"
+		regex += workloadName + "-[a-z0-9]{5}"
 	} else {
 		// Rand suffix may overwrites the workload name if the name is too long
 		// This won't happen for StatefulSet because long name will cause ReplicaSet fails during StatefulSet creation.
-		regexp += workloadName[:podNameMaxLength-podNameSuffixLength+1] + "[a-z0-9]{5}|"
-		regexp += workloadName + "-[0-9]+"
+		regex += workloadName[:podNameMaxLength-podNameSuffixLength+1] + "[a-z0-9]{5}|"
+		regex += workloadName + "-[0-9]+"
 	}
-	return regexp
+	return regex
 }

@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
-	options "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
+	options "kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"net/http"
 	"time"
 )

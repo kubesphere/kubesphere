@@ -65,7 +65,6 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 		"The batch size of auditing events.")
 	fs.DurationVar(&s.EventBatchInterval, "auditing-event-batch-interval", c.EventBatchInterval,
 		"The batch interval of auditing events.")
-	fs.StringVar(&s.WebhookUrl, "auditing-webhook-url", c.WebhookUrl, "Auditing webhook url")
 
 	fs.StringVar(&s.Host, "auditing-elasticsearch-host", c.Host, ""+
 		"Elasticsearch service host. KubeSphere is using elastic as auditing store, "+
