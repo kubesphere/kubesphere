@@ -17,6 +17,7 @@ limitations under the License.
 package auth
 
 import (
+	"context"
 	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
@@ -66,7 +67,7 @@ func (l *loginRecorder) RecordLogin(username string, loginType iamv1alpha2.Login
 		loginEntry.Spec.Reason = authErr.Error()
 	}
 
-	_, err := l.ksClient.IamV1alpha2().LoginRecords().Create(loginEntry)
+	_, err := l.ksClient.IamV1alpha2().LoginRecords().Create(context.Background(), loginEntry, metav1.CreateOptions{})
 	if err != nil {
 		klog.Error(err)
 		return err

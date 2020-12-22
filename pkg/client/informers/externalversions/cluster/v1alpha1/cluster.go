@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredClusterInformer(client versioned.Interface, resyncPeriod time.Du
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ClusterV1alpha1().Clusters().List(options)
+				return client.ClusterV1alpha1().Clusters().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ClusterV1alpha1().Clusters().Watch(options)
+				return client.ClusterV1alpha1().Clusters().Watch(context.TODO(), options)
 			},
 		},
 		&clusterv1alpha1.Cluster{},

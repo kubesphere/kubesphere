@@ -40,5 +40,8 @@ func (i Ident) Singularize() Ident {
 		}
 	}
 
+	if strings.HasSuffix(s, "s") {
+		return New(s[:len(s)-1])
+	}
 	return i
 }

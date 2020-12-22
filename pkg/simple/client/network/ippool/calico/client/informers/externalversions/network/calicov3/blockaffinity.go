@@ -19,6 +19,7 @@ limitations under the License.
 package calicov3
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredBlockAffinityInformer(client versioned.Interface, resyncPeriod t
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.CrdCalicov3().BlockAffinities().List(options)
+				return client.CrdCalicov3().BlockAffinities().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.CrdCalicov3().BlockAffinities().Watch(options)
+				return client.CrdCalicov3().BlockAffinities().Watch(context.TODO(), options)
 			},
 		},
 		&networkcalicov3.BlockAffinity{},

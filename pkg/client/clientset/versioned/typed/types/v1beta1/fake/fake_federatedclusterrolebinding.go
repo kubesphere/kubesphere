@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedclusterrolebindingsResource = schema.GroupVersionResource{Group: "t
 var federatedclusterrolebindingsKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedClusterRoleBinding"}
 
 // Get takes name of the federatedClusterRoleBinding, and returns the corresponding federatedClusterRoleBinding object, and an error if there is any.
-func (c *FakeFederatedClusterRoleBindings) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedClusterRoleBinding, err error) {
+func (c *FakeFederatedClusterRoleBindings) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedClusterRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedclusterrolebindingsResource, c.ns, name), &v1beta1.FederatedClusterRoleBinding{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedClusterRoleBindings) Get(name string, options v1.GetOption
 }
 
 // List takes label and field selectors, and returns the list of FederatedClusterRoleBindings that match those selectors.
-func (c *FakeFederatedClusterRoleBindings) List(opts v1.ListOptions) (result *v1beta1.FederatedClusterRoleBindingList, err error) {
+func (c *FakeFederatedClusterRoleBindings) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedClusterRoleBindingList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedclusterrolebindingsResource, federatedclusterrolebindingsKind, c.ns, opts), &v1beta1.FederatedClusterRoleBindingList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedClusterRoleBindings) List(opts v1.ListOptions) (result *v1
 }
 
 // Watch returns a watch.Interface that watches the requested federatedClusterRoleBindings.
-func (c *FakeFederatedClusterRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedClusterRoleBindings) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedclusterrolebindingsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedClusterRoleBinding and creates it.  Returns the server's representation of the federatedClusterRoleBinding, and an error, if there is any.
-func (c *FakeFederatedClusterRoleBindings) Create(federatedClusterRoleBinding *v1beta1.FederatedClusterRoleBinding) (result *v1beta1.FederatedClusterRoleBinding, err error) {
+func (c *FakeFederatedClusterRoleBindings) Create(ctx context.Context, federatedClusterRoleBinding *v1beta1.FederatedClusterRoleBinding, opts v1.CreateOptions) (result *v1beta1.FederatedClusterRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedclusterrolebindingsResource, c.ns, federatedClusterRoleBinding), &v1beta1.FederatedClusterRoleBinding{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedClusterRoleBindings) Create(federatedClusterRoleBinding *v
 }
 
 // Update takes the representation of a federatedClusterRoleBinding and updates it. Returns the server's representation of the federatedClusterRoleBinding, and an error, if there is any.
-func (c *FakeFederatedClusterRoleBindings) Update(federatedClusterRoleBinding *v1beta1.FederatedClusterRoleBinding) (result *v1beta1.FederatedClusterRoleBinding, err error) {
+func (c *FakeFederatedClusterRoleBindings) Update(ctx context.Context, federatedClusterRoleBinding *v1beta1.FederatedClusterRoleBinding, opts v1.UpdateOptions) (result *v1beta1.FederatedClusterRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedclusterrolebindingsResource, c.ns, federatedClusterRoleBinding), &v1beta1.FederatedClusterRoleBinding{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedClusterRoleBindings) Update(federatedClusterRoleBinding *v
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedClusterRoleBindings) UpdateStatus(federatedClusterRoleBinding *v1beta1.FederatedClusterRoleBinding) (*v1beta1.FederatedClusterRoleBinding, error) {
+func (c *FakeFederatedClusterRoleBindings) UpdateStatus(ctx context.Context, federatedClusterRoleBinding *v1beta1.FederatedClusterRoleBinding, opts v1.UpdateOptions) (*v1beta1.FederatedClusterRoleBinding, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedclusterrolebindingsResource, "status", c.ns, federatedClusterRoleBinding), &v1beta1.FederatedClusterRoleBinding{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedClusterRoleBindings) UpdateStatus(federatedClusterRoleBind
 }
 
 // Delete takes name of the federatedClusterRoleBinding and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedClusterRoleBindings) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedClusterRoleBindings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedclusterrolebindingsResource, c.ns, name), &v1beta1.FederatedClusterRoleBinding{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedClusterRoleBindings) Delete(name string, options *v1.Delet
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedClusterRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedclusterrolebindingsResource, c.ns, listOptions)
+func (c *FakeFederatedClusterRoleBindings) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedclusterrolebindingsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedClusterRoleBindingList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedClusterRoleBinding.
-func (c *FakeFederatedClusterRoleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedClusterRoleBinding, err error) {
+func (c *FakeFederatedClusterRoleBindings) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedClusterRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedclusterrolebindingsResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedClusterRoleBinding{})
 

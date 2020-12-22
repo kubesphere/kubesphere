@@ -33,7 +33,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/testing_frameworks/integration"
 	"testing"
 )
 
@@ -259,8 +258,8 @@ func TestValidateKubeConfig(t *testing.T) {
 	// we need to specify apiserver port to match above kubeconfig
 	env := &envtest.Environment{
 		Config: config,
-		ControlPlane: integration.ControlPlane{
-			APIServer: &integration.APIServer{
+		ControlPlane: envtest.ControlPlane{
+			APIServer: &envtest.APIServer{
 				Args: envtest.DefaultKubeAPIServerFlags,
 				URL:  u,
 			},

@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var loginrecordsResource = schema.GroupVersionResource{Group: "iam.kubesphere.io
 var loginrecordsKind = schema.GroupVersionKind{Group: "iam.kubesphere.io", Version: "v1alpha2", Kind: "LoginRecord"}
 
 // Get takes name of the loginRecord, and returns the corresponding loginRecord object, and an error if there is any.
-func (c *FakeLoginRecords) Get(name string, options v1.GetOptions) (result *v1alpha2.LoginRecord, err error) {
+func (c *FakeLoginRecords) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.LoginRecord, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(loginrecordsResource, name), &v1alpha2.LoginRecord{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeLoginRecords) Get(name string, options v1.GetOptions) (result *v1al
 }
 
 // List takes label and field selectors, and returns the list of LoginRecords that match those selectors.
-func (c *FakeLoginRecords) List(opts v1.ListOptions) (result *v1alpha2.LoginRecordList, err error) {
+func (c *FakeLoginRecords) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.LoginRecordList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(loginrecordsResource, loginrecordsKind, opts), &v1alpha2.LoginRecordList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeLoginRecords) List(opts v1.ListOptions) (result *v1alpha2.LoginReco
 }
 
 // Watch returns a watch.Interface that watches the requested loginRecords.
-func (c *FakeLoginRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeLoginRecords) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(loginrecordsResource, opts))
 }
 
 // Create takes the representation of a loginRecord and creates it.  Returns the server's representation of the loginRecord, and an error, if there is any.
-func (c *FakeLoginRecords) Create(loginRecord *v1alpha2.LoginRecord) (result *v1alpha2.LoginRecord, err error) {
+func (c *FakeLoginRecords) Create(ctx context.Context, loginRecord *v1alpha2.LoginRecord, opts v1.CreateOptions) (result *v1alpha2.LoginRecord, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(loginrecordsResource, loginRecord), &v1alpha2.LoginRecord{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeLoginRecords) Create(loginRecord *v1alpha2.LoginRecord) (result *v1
 }
 
 // Update takes the representation of a loginRecord and updates it. Returns the server's representation of the loginRecord, and an error, if there is any.
-func (c *FakeLoginRecords) Update(loginRecord *v1alpha2.LoginRecord) (result *v1alpha2.LoginRecord, err error) {
+func (c *FakeLoginRecords) Update(ctx context.Context, loginRecord *v1alpha2.LoginRecord, opts v1.UpdateOptions) (result *v1alpha2.LoginRecord, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(loginrecordsResource, loginRecord), &v1alpha2.LoginRecord{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeLoginRecords) Update(loginRecord *v1alpha2.LoginRecord) (result *v1
 }
 
 // Delete takes name of the loginRecord and deletes it. Returns an error if one occurs.
-func (c *FakeLoginRecords) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeLoginRecords) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(loginrecordsResource, name), &v1alpha2.LoginRecord{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeLoginRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(loginrecordsResource, listOptions)
+func (c *FakeLoginRecords) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(loginrecordsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.LoginRecordList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched loginRecord.
-func (c *FakeLoginRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.LoginRecord, err error) {
+func (c *FakeLoginRecords) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.LoginRecord, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(loginrecordsResource, name, pt, data, subresources...), &v1alpha2.LoginRecord{})
 	if obj == nil {

@@ -17,9 +17,11 @@ limitations under the License.
 package internal
 
 import (
+	"context"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,10 +32,12 @@ import (
 // InformersMap create and caches Informers for (runtime.Object, schema.GroupVersionKind) pairs.
 // It uses a standard parameter codec constructed based on the given generated Scheme.
 type InformersMap struct {
-	// we abstract over the details of structured vs unstructured with the specificInformerMaps
+	// we abstract over the details of structured/unstructured/metadata with the specificInformerMaps
+	// TODO(directxman12): genericize this over different projections now that we have 3 different maps
 
 	structured   *specificInformersMap
 	unstructured *specificInformersMap
+	metadata     *specificInformersMap
 
 	// Scheme maps runtime.Objects to GroupVersionKinds
 	Scheme *runtime.Scheme
@@ -50,6 +54,7 @@ func NewInformersMap(config *rest.Config,
 	return &InformersMap{
 		structured:   newStructuredInformersMap(config, scheme, mapper, resync, namespace),
 		unstructured: newUnstructuredInformersMap(config, scheme, mapper, resync, namespace),
+		metadata:     newMetadataInformersMap(config, scheme, mapper, resync, namespace),
 
 		Scheme: scheme,
 	}
@@ -59,30 +64,43 @@ func NewInformersMap(config *rest.Config,
 func (m *InformersMap) Start(stop <-chan struct{}) error {
 	go m.structured.Start(stop)
 	go m.unstructured.Start(stop)
+	go m.metadata.Start(stop)
 	<-stop
 	return nil
 }
 
-// WaitForCacheSync waits until all the caches have been synced.
+// WaitForCacheSync waits until all the caches have been started and synced.
 func (m *InformersMap) WaitForCacheSync(stop <-chan struct{}) bool {
 	syncedFuncs := append([]cache.InformerSynced(nil), m.structured.HasSyncedFuncs()...)
 	syncedFuncs = append(syncedFuncs, m.unstructured.HasSyncedFuncs()...)
 
+	if !m.structured.waitForStarted(stop) {
+		return false
+	}
+	if !m.unstructured.waitForStarted(stop) {
+		return false
+	}
+	if !m.metadata.waitForStarted(stop) {
+		return false
+	}
 	return cache.WaitForCacheSync(stop, syncedFuncs...)
 }
 
 // Get will create a new Informer and add it to the map of InformersMap if none exists.  Returns
 // the Informer from the map.
-func (m *InformersMap) Get(gvk schema.GroupVersionKind, obj runtime.Object) (bool, *MapEntry, error) {
-	_, isUnstructured := obj.(*unstructured.Unstructured)
-	_, isUnstructuredList := obj.(*unstructured.UnstructuredList)
-	isUnstructured = isUnstructured || isUnstructuredList
-
-	if isUnstructured {
-		return m.unstructured.Get(gvk, obj)
+func (m *InformersMap) Get(ctx context.Context, gvk schema.GroupVersionKind, obj runtime.Object) (bool, *MapEntry, error) {
+	switch obj.(type) {
+	case *unstructured.Unstructured:
+		return m.unstructured.Get(ctx, gvk, obj)
+	case *unstructured.UnstructuredList:
+		return m.unstructured.Get(ctx, gvk, obj)
+	case *metav1.PartialObjectMetadata:
+		return m.metadata.Get(ctx, gvk, obj)
+	case *metav1.PartialObjectMetadataList:
+		return m.metadata.Get(ctx, gvk, obj)
+	default:
+		return m.structured.Get(ctx, gvk, obj)
 	}
-
-	return m.structured.Get(gvk, obj)
 }
 
 // newStructuredInformersMap creates a new InformersMap for structured objects.
@@ -93,4 +111,9 @@ func newStructuredInformersMap(config *rest.Config, scheme *runtime.Scheme, mapp
 // newUnstructuredInformersMap creates a new InformersMap for unstructured objects.
 func newUnstructuredInformersMap(config *rest.Config, scheme *runtime.Scheme, mapper meta.RESTMapper, resync time.Duration, namespace string) *specificInformersMap {
 	return newSpecificInformersMap(config, scheme, mapper, resync, namespace, createUnstructuredListWatch)
+}
+
+// newMetadataInformersMap creates a new InformersMap for metadata-only objects.
+func newMetadataInformersMap(config *rest.Config, scheme *runtime.Scheme, mapper meta.RESTMapper, resync time.Duration, namespace string) *specificInformersMap {
+	return newSpecificInformersMap(config, scheme, mapper, resync, namespace, createMetadataListWatch)
 }

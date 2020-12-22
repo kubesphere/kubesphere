@@ -120,7 +120,7 @@ func (p *Parser) NeedCRDFor(groupKind schema.GroupKind, maxDescLen *int) {
 		}
 	}
 
-	// fix the name if the plural was changed (this is the form the name *has* to take, so no harm in chaning it).
+	// fix the name if the plural was changed (this is the form the name *has* to take, so no harm in changing it).
 	crd.Name = crd.Spec.Names.Plural + "." + groupKind.Group
 
 	// nothing to actually write
@@ -149,6 +149,19 @@ func (p *Parser) NeedCRDFor(groupKind schema.GroupKind, maxDescLen *int) {
 		// just add the error to the first relevant package for this CRD,
 		// since there's no specific error location
 		packages[0].AddError(fmt.Errorf("CRD for %s has no storage version", groupKind))
+	}
+
+	served := false
+	for _, ver := range crd.Spec.Versions {
+		if ver.Served {
+			served = true
+			break
+		}
+	}
+	if !served {
+		// just add the error to the first relevant package for this CRD,
+		// since there's no specific error location
+		packages[0].AddError(fmt.Errorf("CRD for %s with version(s) %v does not serve any version", groupKind, crd.Spec.Versions))
 	}
 
 	// NB(directxman12): CRD's status doesn't have omitempty markers, which means things

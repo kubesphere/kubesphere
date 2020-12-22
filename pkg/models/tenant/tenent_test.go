@@ -35,8 +35,8 @@ import (
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	fakeapp "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned/fake"
 	"reflect"
-	fakeapp "sigs.k8s.io/application/pkg/client/clientset/versioned/fake"
 	"testing"
 )
 

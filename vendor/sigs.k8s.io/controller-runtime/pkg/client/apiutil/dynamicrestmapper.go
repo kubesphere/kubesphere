@@ -17,11 +17,11 @@ limitations under the License.
 package apiutil
 
 import (
+	"errors"
 	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
-	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -45,7 +45,7 @@ func (e ErrRateLimited) Error() string {
 // time.Duration value and false are returned if err is not a ErrRateLimited.
 func DelayIfRateLimited(err error) (time.Duration, bool) {
 	var rlerr ErrRateLimited
-	if xerrors.As(err, &rlerr) {
+	if errors.As(err, &rlerr) {
 		return rlerr.Delay, true
 	}
 	return 0, false
@@ -182,7 +182,7 @@ func (drm *dynamicRESTMapper) checkAndReload(needsReloadErr error, checkNeedsRel
 	// NB(directxman12): `Is` and `As` have a confusing relationship --
 	// `Is` is like `== or does this implement .Is`, whereas `As` says
 	// `can I type-assert into`
-	needsReload := xerrors.As(err, &needsReloadErr)
+	needsReload := errors.As(err, &needsReloadErr)
 	if !needsReload {
 		return err
 	}
@@ -193,7 +193,7 @@ func (drm *dynamicRESTMapper) checkAndReload(needsReloadErr error, checkNeedsRel
 
 	// ... and double-check that we didn't reload in the meantime
 	err = checkNeedsReload()
-	needsReload = xerrors.As(err, &needsReloadErr)
+	needsReload = errors.As(err, &needsReloadErr)
 	if !needsReload {
 		return err
 	}
@@ -318,5 +318,6 @@ func (b *dynamicLimiter) checkRate() error {
 	if res.Delay() == 0 {
 		return nil
 	}
+	res.Cancel()
 	return ErrRateLimited{res.Delay()}
 }

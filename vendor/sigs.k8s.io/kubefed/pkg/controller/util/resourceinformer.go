@@ -17,6 +17,8 @@ limitations under the License.
 package util
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,11 +54,11 @@ func newResourceInformer(client ResourceClient, namespace string, apiResource *m
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
 				options.LabelSelector = labelSelector
-				return client.Resources(namespace).List(options)
+				return client.Resources(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.LabelSelector = labelSelector
-				return client.Resources(namespace).Watch(options)
+				return client.Resources(namespace).Watch(context.Background(), options)
 			},
 		},
 		obj, // use an unstructured type with apiVersion / kind populated for informer logging purposes

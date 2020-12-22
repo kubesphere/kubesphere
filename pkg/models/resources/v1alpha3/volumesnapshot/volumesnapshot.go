@@ -17,8 +17,8 @@ limitations under the License.
 package volumesnapshot
 
 import (
-	"github.com/kubernetes-csi/external-snapshotter/v2/pkg/apis/volumesnapshot/v1beta1"
-	"github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
+	"github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
+	"github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"

@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var groupbindingsResource = schema.GroupVersionResource{Group: "iam.kubesphere.i
 var groupbindingsKind = schema.GroupVersionKind{Group: "iam.kubesphere.io", Version: "v1alpha2", Kind: "GroupBinding"}
 
 // Get takes name of the groupBinding, and returns the corresponding groupBinding object, and an error if there is any.
-func (c *FakeGroupBindings) Get(name string, options v1.GetOptions) (result *v1alpha2.GroupBinding, err error) {
+func (c *FakeGroupBindings) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.GroupBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(groupbindingsResource, name), &v1alpha2.GroupBinding{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeGroupBindings) Get(name string, options v1.GetOptions) (result *v1a
 }
 
 // List takes label and field selectors, and returns the list of GroupBindings that match those selectors.
-func (c *FakeGroupBindings) List(opts v1.ListOptions) (result *v1alpha2.GroupBindingList, err error) {
+func (c *FakeGroupBindings) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.GroupBindingList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(groupbindingsResource, groupbindingsKind, opts), &v1alpha2.GroupBindingList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeGroupBindings) List(opts v1.ListOptions) (result *v1alpha2.GroupBin
 }
 
 // Watch returns a watch.Interface that watches the requested groupBindings.
-func (c *FakeGroupBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeGroupBindings) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(groupbindingsResource, opts))
 }
 
 // Create takes the representation of a groupBinding and creates it.  Returns the server's representation of the groupBinding, and an error, if there is any.
-func (c *FakeGroupBindings) Create(groupBinding *v1alpha2.GroupBinding) (result *v1alpha2.GroupBinding, err error) {
+func (c *FakeGroupBindings) Create(ctx context.Context, groupBinding *v1alpha2.GroupBinding, opts v1.CreateOptions) (result *v1alpha2.GroupBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(groupbindingsResource, groupBinding), &v1alpha2.GroupBinding{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeGroupBindings) Create(groupBinding *v1alpha2.GroupBinding) (result 
 }
 
 // Update takes the representation of a groupBinding and updates it. Returns the server's representation of the groupBinding, and an error, if there is any.
-func (c *FakeGroupBindings) Update(groupBinding *v1alpha2.GroupBinding) (result *v1alpha2.GroupBinding, err error) {
+func (c *FakeGroupBindings) Update(ctx context.Context, groupBinding *v1alpha2.GroupBinding, opts v1.UpdateOptions) (result *v1alpha2.GroupBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(groupbindingsResource, groupBinding), &v1alpha2.GroupBinding{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeGroupBindings) Update(groupBinding *v1alpha2.GroupBinding) (result 
 }
 
 // Delete takes name of the groupBinding and deletes it. Returns an error if one occurs.
-func (c *FakeGroupBindings) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeGroupBindings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(groupbindingsResource, name), &v1alpha2.GroupBinding{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeGroupBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(groupbindingsResource, listOptions)
+func (c *FakeGroupBindings) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(groupbindingsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.GroupBindingList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched groupBinding.
-func (c *FakeGroupBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.GroupBinding, err error) {
+func (c *FakeGroupBindings) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.GroupBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(groupbindingsResource, name, pt, data, subresources...), &v1alpha2.GroupBinding{})
 	if obj == nil {

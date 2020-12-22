@@ -17,6 +17,7 @@ limitations under the License.
 package ipam
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -52,7 +53,7 @@ var (
 )
 
 func (c IPAMClient) getAllPools() ([]v1alpha1.IPPool, error) {
-	pools, err := c.client.NetworkV1alpha1().IPPools().List(metav1.ListOptions{
+	pools, err := c.client.NetworkV1alpha1().IPPools().List(context.Background(), metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{
 			v1alpha1.IPPoolTypeLabel: c.typeStr,
 		}).String(),
@@ -93,7 +94,7 @@ func (c IPAMClient) AutoAssign(args AutoAssignArgs) (*current.Result, error) {
 	)
 
 	for i := 0; i < datastoreRetries; i++ {
-		pool, err = c.client.NetworkV1alpha1().IPPools().Get(args.Pool, metav1.GetOptions{})
+		pool, err = c.client.NetworkV1alpha1().IPPools().Get(context.Background(), args.Pool, metav1.GetOptions{})
 		if err != nil {
 			return nil, ErrNoQualifiedPool
 		}
@@ -183,7 +184,7 @@ func (c IPAMClient) findOrClaimBlock(pool *v1alpha1.IPPool, minFreeIps int) (*v1
 		return nil, err
 	}
 	controllerutil.SetControllerReference(pool, b, scheme.Scheme)
-	b, err = c.client.NetworkV1alpha1().IPAMBlocks().Create(b)
+	b, err = c.client.NetworkV1alpha1().IPAMBlocks().Create(context.Background(), b, metav1.CreateOptions{})
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			b, err = c.queryBlock(b.BlockName())
@@ -242,7 +243,7 @@ func (c IPAMClient) assignFromExistingBlock(block *v1alpha1.IPAMBlock, handleID 
 		return nil, err
 	}
 
-	_, err = c.client.NetworkV1alpha1().IPAMBlocks().Update(block)
+	_, err = c.client.NetworkV1alpha1().IPAMBlocks().Update(context.Background(), block, metav1.UpdateOptions{})
 	if err != nil {
 		if err := c.decrementHandle(handleID, block, 1); err != nil {
 			klog.Errorf("Failed to decrement handle %s", handleID)
@@ -307,7 +308,7 @@ func (c IPAMClient) releaseByHandle(handleID string, blockName string) error {
 			// Compare and swap the AllocationBlock using the original
 			// KVPair read from before.  No need to update the Value since we
 			// have been directly manipulating the value referenced by the KVPair.
-			_, err = c.client.NetworkV1alpha1().IPAMBlocks().Update(block)
+			_, err = c.client.NetworkV1alpha1().IPAMBlocks().Update(context.Background(), block, metav1.UpdateOptions{})
 			if err != nil {
 				if k8serrors.IsConflict(err) {
 					// Comparison failed - retry.
@@ -355,9 +356,9 @@ func (c IPAMClient) incrementHandle(handleID string, block *v1alpha1.IPAMBlock, 
 		handle.IncrementBlock(block, num)
 
 		if create {
-			_, err = c.client.NetworkV1alpha1().IPAMHandles().Create(handle)
+			_, err = c.client.NetworkV1alpha1().IPAMHandles().Create(context.Background(), handle, metav1.CreateOptions{})
 		} else {
-			_, err = c.client.NetworkV1alpha1().IPAMHandles().Update(handle)
+			_, err = c.client.NetworkV1alpha1().IPAMHandles().Update(context.Background(), handle, metav1.UpdateOptions{})
 		}
 		if err != nil {
 			if k8serrors.IsAlreadyExists(err) || k8serrors.IsConflict(err) {
@@ -397,7 +398,7 @@ func (c IPAMClient) decrementHandle(handleID string, block *v1alpha1.IPAMBlock, 
 				}
 			}
 		} else {
-			if _, err = c.client.NetworkV1alpha1().IPAMHandles().Update(handle); err != nil {
+			if _, err = c.client.NetworkV1alpha1().IPAMHandles().Update(context.Background(), handle, metav1.UpdateOptions{}); err != nil {
 				if k8serrors.IsConflict(err) {
 					// Update conflict - retry.
 					continue
@@ -520,7 +521,7 @@ func (c IPAMClient) findUnclaimedBlock(pool *v1alpha1.IPPool) (*v1alpha1.IPAMBlo
 }
 
 func (c IPAMClient) ListBlocks(pool string) ([]v1alpha1.IPAMBlock, error) {
-	blocks, err := c.client.NetworkV1alpha1().IPAMBlocks().List(metav1.ListOptions{
+	blocks, err := c.client.NetworkV1alpha1().IPAMBlocks().List(context.Background(), metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{
 			v1alpha1.IPPoolNameLabel: pool,
 		}).String(),
@@ -536,16 +537,16 @@ func (c IPAMClient) ListBlocks(pool string) ([]v1alpha1.IPAMBlock, error) {
 func (c IPAMClient) DeleteBlock(b *v1alpha1.IPAMBlock) error {
 	if !b.IsDeleted() {
 		b.MarkDeleted()
-		_, err := c.client.NetworkV1alpha1().IPAMBlocks().Update(b)
+		_, err := c.client.NetworkV1alpha1().IPAMBlocks().Update(context.Background(), b, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
 	}
-	return c.client.NetworkV1alpha1().IPAMBlocks().Delete(b.Name, nil)
+	return c.client.NetworkV1alpha1().IPAMBlocks().Delete(context.Background(), b.Name, metav1.DeleteOptions{})
 }
 
 func (c IPAMClient) queryBlock(blockName string) (*v1alpha1.IPAMBlock, error) {
-	block, err := c.client.NetworkV1alpha1().IPAMBlocks().Get(blockName, metav1.GetOptions{})
+	block, err := c.client.NetworkV1alpha1().IPAMBlocks().Get(context.Background(), blockName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -564,7 +565,7 @@ func (c IPAMClient) queryBlock(blockName string) (*v1alpha1.IPAMBlock, error) {
 
 // queryHandle gets a handle for the given handleID key.
 func (c IPAMClient) queryHandle(handleID string) (*v1alpha1.IPAMHandle, error) {
-	handle, err := c.client.NetworkV1alpha1().IPAMHandles().Get(handleID, metav1.GetOptions{})
+	handle, err := c.client.NetworkV1alpha1().IPAMHandles().Get(context.Background(), handleID, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -585,12 +586,12 @@ func (c IPAMClient) queryHandle(handleID string) (*v1alpha1.IPAMHandle, error) {
 func (c IPAMClient) deleteHandle(h *v1alpha1.IPAMHandle) error {
 	if !h.IsDeleted() {
 		h.MarkDeleted()
-		_, err := c.client.NetworkV1alpha1().IPAMHandles().Update(h)
+		_, err := c.client.NetworkV1alpha1().IPAMHandles().Update(context.Background(), h, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
 	}
-	return c.client.NetworkV1alpha1().IPAMHandles().Delete(h.Name, nil)
+	return c.client.NetworkV1alpha1().IPAMHandles().Delete(context.Background(), h.Name, metav1.DeleteOptions{})
 }
 
 // Generator to get list of block CIDRs which

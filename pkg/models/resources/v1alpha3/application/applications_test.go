@@ -21,10 +21,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
+	appv1beta1 "kubesphere.io/kubesphere/pkg/apis/app/v1beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	appv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
-	"sigs.k8s.io/application/pkg/client/clientset/versioned/fake"
-	"sigs.k8s.io/application/pkg/client/informers/externalversions"
+	"kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned/fake"
+	"kubesphere.io/kubesphere/pkg/simple/client/app/informers/externalversions"
 	"testing"
 )
 

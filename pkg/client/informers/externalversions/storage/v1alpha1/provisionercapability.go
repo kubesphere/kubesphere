@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredProvisionerCapabilityInformer(client versioned.Interface, resync
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.StorageV1alpha1().ProvisionerCapabilities().List(options)
+				return client.StorageV1alpha1().ProvisionerCapabilities().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.StorageV1alpha1().ProvisionerCapabilities().Watch(options)
+				return client.StorageV1alpha1().ProvisionerCapabilities().Watch(context.TODO(), options)
 			},
 		},
 		&storagev1alpha1.ProvisionerCapability{},

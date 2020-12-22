@@ -56,6 +56,10 @@ func (Rule) Help() *markers.DefinitionHelp {
 				Summary: "specifies the API resources that this rule encompasses.",
 				Details: "",
 			},
+			"ResourceNames": markers.DetailedHelp{
+				Summary: "specifies the names of the API resources that this rule encompasses. ",
+				Details: "Create requests cannot be restricted by resourcename, as the object's name is not known at authorization time.",
+			},
 			"Verbs": markers.DetailedHelp{
 				Summary: "specifies the (lowercase) kubernetes API verbs that this rule encompasses.",
 				Details: "",

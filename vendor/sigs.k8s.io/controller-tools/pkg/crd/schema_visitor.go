@@ -44,16 +44,37 @@ type schemaWalker struct {
 	visitor SchemaVisitor
 }
 
-// walkSchema walks the given schema, saving modifications made by the
-// visitor (this is as simple as passing a pointer in most cases,
-// but special care needs to be taken to persist with maps).
+// walkSchema walks the given schema, saving modifications made by the visitor
+// (this is as simple as passing a pointer in most cases, but special care
+// needs to be taken to persist with maps).  It also visits referenced
+// schemata, dealing with circular references appropriately.  The returned
+// visitor will be used to visit all "children" of the current schema, followed
+// by a nil schema with the returned visitor to mark completion.  If a nil visitor
+// is returned, traversal will no continue into the children of the current schema.
 func (w schemaWalker) walkSchema(schema *apiext.JSONSchemaProps) {
-	subVisitor := w.visitor.Visit(schema)
-	if subVisitor == nil {
-		return
+	// Walk a potential chain of schema references, keeping track of seen
+	// references to avoid circular references
+	subVisitor := w.visitor
+	seenRefs := map[string]bool{}
+	if schema.Ref != nil {
+		seenRefs[*schema.Ref] = true
 	}
-	defer subVisitor.Visit(nil)
+	for {
+		subVisitor = subVisitor.Visit(schema)
+		if subVisitor == nil {
+			return
+		}
+		// mark completion of the visitor
+		defer subVisitor.Visit(nil)
 
+		// Break if schema is not a reference or a cycle is detected
+		if schema.Ref == nil || len(*schema.Ref) == 0 || seenRefs[*schema.Ref] {
+			break
+		}
+		seenRefs[*schema.Ref] = true
+	}
+
+	// walk sub-schemata
 	subWalker := schemaWalker{visitor: subVisitor}
 	if schema.Items != nil {
 		subWalker.walkPtr(schema.Items.Schema)

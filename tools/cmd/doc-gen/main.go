@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/version"
 	"log"
 
 	"github.com/emicklei/go-restful"
@@ -55,7 +56,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
-	"kubesphere.io/kubesphere/pkg/version"
 )
 
 var output string
@@ -264,16 +264,20 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		InfoProps: spec.InfoProps{
 			Title:       "KubeSphere",
 			Description: "KubeSphere OpenAPI",
+			Version:     version.Get().GitVersion,
 			Contact: &spec.ContactInfo{
-				Name:  "kubesphere",
-				Email: "kubesphere@yunify.com",
-				URL:   "https://kubesphere.io",
+				ContactInfoProps: spec.ContactInfoProps{
+					Name:  "KubeSphere",
+					URL:   "https://kubesphere.io/",
+					Email: "kubesphere@yunify.com",
+				},
 			},
 			License: &spec.License{
-				Name: "Apache",
-				URL:  "http://www.apache.org/licenses/",
+				LicenseProps: spec.LicenseProps{
+					Name: "Apache 2.0",
+					URL:  "https://www.apache.org/licenses/LICENSE-2.0.html",
+				},
 			},
-			Version: version.Get().GitVersion,
 		},
 	}
 

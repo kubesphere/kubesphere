@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredGroupInformer(client versioned.Interface, resyncPeriod time.Dura
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.IamV1alpha2().Groups().List(options)
+				return client.IamV1alpha2().Groups().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.IamV1alpha2().Groups().Watch(options)
+				return client.IamV1alpha2().Groups().Watch(context.TODO(), options)
 			},
 		},
 		&iamv1alpha2.Group{},

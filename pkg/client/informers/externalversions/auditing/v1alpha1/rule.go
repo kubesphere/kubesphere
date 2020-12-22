@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredRuleInformer(client versioned.Interface, resyncPeriod time.Durat
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AuditingV1alpha1().Rules().List(options)
+				return client.AuditingV1alpha1().Rules().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AuditingV1alpha1().Rules().Watch(options)
+				return client.AuditingV1alpha1().Rules().Watch(context.TODO(), options)
 			},
 		},
 		&auditingv1alpha1.Rule{},

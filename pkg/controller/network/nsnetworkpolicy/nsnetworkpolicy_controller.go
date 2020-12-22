@@ -17,6 +17,7 @@ limitations under the License.
 package nsnetworkpolicy
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sort"
@@ -27,7 +28,6 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	uruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -467,7 +467,7 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 	if delete || matchWorkspace {
 		//delete all namespace np when networkisolate not active
 		if err == nil && len(nsnpList) > 0 {
-			if c.ksclient.NamespaceNetworkPolicies(ns.Name).DeleteCollection(nil, typev1.ListOptions{}) != nil {
+			if c.ksclient.NamespaceNetworkPolicies(ns.Name).DeleteCollection(context.Background(), metav1.DeleteOptions{}, metav1.ListOptions{}) != nil {
 				klog.Errorf("Error when delete all nsnps in namespace %s", ns.Name)
 			}
 		}

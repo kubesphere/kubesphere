@@ -106,6 +106,7 @@ func NewControllerManagerCommand() *cobra.Command {
 }
 
 func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {
+
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
 	if err != nil {
 		klog.Errorf("Failed to create kubernetes clientset %v", err)

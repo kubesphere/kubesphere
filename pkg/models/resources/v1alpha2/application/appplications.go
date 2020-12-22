@@ -17,24 +17,22 @@ limitations under the License.
 package application
 
 import (
-	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"sigs.k8s.io/application/pkg/apis/app/v1beta1"
-	"sigs.k8s.io/application/pkg/client/informers/externalversions"
-	"sort"
+	"sigs.k8s.io/application/api/v1beta1"
 )
 
 type appSearcher struct {
-	informer externalversions.SharedInformerFactory
+	//informer externalversions.SharedInformerFactory
 }
 
-func NewApplicationSearcher(informers externalversions.SharedInformerFactory) v1alpha2.Interface {
-	return &appSearcher{informer: informers}
+func NewApplicationSearcher(informers interface{}) v1alpha2.Interface {
+	return &appSearcher{}
 }
 
 func (s *appSearcher) Get(namespace, name string) (interface{}, error) {
-	return s.informer.App().V1beta1().Applications().Lister().Applications(namespace).Get(name)
+	//return s.informer.App().V1beta1().Applications().Lister().Applications(namespace).Get(name)
+	panic("")
 }
 
 func (s *appSearcher) match(match map[string]string, item *v1beta1.Application) bool {
@@ -56,33 +54,34 @@ func (s *appSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.Application) 
 }
 
 func (s *appSearcher) Search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	apps, err := s.informer.App().V1beta1().Applications().Lister().Applications(namespace).List(labels.Everything())
-
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*v1beta1.Application, 0)
-
-	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
-		result = apps
-	} else {
-		for _, item := range apps {
-			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
-				result = append(result, item)
-			}
-		}
-	}
-	sort.Slice(result, func(i, j int) bool {
-		if reverse {
-			i, j = j, i
-		}
-		return v1alpha2.ObjectMetaCompare(result[i].ObjectMeta, result[j].ObjectMeta, orderBy)
-	})
-
-	r := make([]interface{}, 0)
-	for _, i := range result {
-		r = append(r, i)
-	}
-	return r, nil
+	//apps, err := s.informer.App().V1beta1().Applications().Lister().Applications(namespace).List(labels.Everything())
+	//
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//result := make([]*v1beta1.Application, 0)
+	//
+	//if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
+	//	result = apps
+	//} else {
+	//	for _, item := range apps {
+	//		if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
+	//			result = append(result, item)
+	//		}
+	//	}
+	//}
+	//sort.Slice(result, func(i, j int) bool {
+	//	if reverse {
+	//		i, j = j, i
+	//	}
+	//	return v1alpha2.ObjectMetaCompare(result[i].ObjectMeta, result[j].ObjectMeta, orderBy)
+	//})
+	//
+	//r := make([]interface{}, 0)
+	//for _, i := range result {
+	//	r = append(r, i)
+	//}
+	//return r, nil
+	panic("")
 }

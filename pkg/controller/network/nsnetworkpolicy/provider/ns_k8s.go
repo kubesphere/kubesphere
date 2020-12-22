@@ -145,7 +145,7 @@ func (c *k8sPolicyController) syncToDatastore(key string) error {
 		// The object no longer exists - delete from the datastore.
 		klog.Infof("Deleting NetworkPolicy %s from k8s datastore", key)
 		ns, name := getkey(key)
-		err := c.client.NetworkingV1().NetworkPolicies(ns).Delete(name, nil)
+		err := c.client.NetworkingV1().NetworkPolicies(ns).Delete(context.Background(), name, metav1.DeleteOptions{})
 		if errors.IsNotFound(err) {
 			return nil
 		}
@@ -164,7 +164,7 @@ func (c *k8sPolicyController) syncToDatastore(key string) error {
 			}
 
 			// Doesn't exist - create it.
-			_, err := c.client.NetworkingV1().NetworkPolicies(p.Namespace).Create(&p)
+			_, err := c.client.NetworkingV1().NetworkPolicies(p.Namespace).Create(context.Background(), &p, metav1.CreateOptions{})
 			if err != nil {
 				klog.Warningf("Failed to create NetworkPolicy %s", key)
 				return err
@@ -178,7 +178,7 @@ func (c *k8sPolicyController) syncToDatastore(key string) error {
 
 		// The policy already exists, update it and write it back to the datastore.
 		gp.Spec = p.Spec
-		_, err = c.client.NetworkingV1().NetworkPolicies(p.Namespace).Update(gp)
+		_, err = c.client.NetworkingV1().NetworkPolicies(p.Namespace).Update(context.Background(), gp, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Warningf("Failed to update NetworkPolicy %s", key)
 			return err

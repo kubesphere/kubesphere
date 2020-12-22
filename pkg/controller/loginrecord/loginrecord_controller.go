@@ -17,6 +17,7 @@ limitations under the License.
 package loginrecord
 
 import (
+	"context"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -123,7 +124,7 @@ func (c *loginRecordController) reconcile(key string) error {
 	now := time.Now()
 	// login record beyonds retention period
 	if loginRecord.CreationTimestamp.Add(c.loginHistoryRetentionPeriod).Before(now) {
-		if err = c.ksClient.IamV1alpha2().LoginRecords().Delete(loginRecord.Name, metav1.NewDeleteOptions(0)); err != nil {
+		if err = c.ksClient.IamV1alpha2().LoginRecords().Delete(context.Background(), loginRecord.Name, *metav1.NewDeleteOptions(0)); err != nil {
 			klog.Error(err)
 			return err
 		}
@@ -155,7 +156,7 @@ func (c *loginRecordController) updateUserLastLoginTime(loginRecord *iamv1alpha2
 	if user.DeletionTimestamp.IsZero() &&
 		(user.Status.LastLoginTime == nil || user.Status.LastLoginTime.Before(&loginRecord.CreationTimestamp)) {
 		user.Status.LastLoginTime = &loginRecord.CreationTimestamp
-		user, err = c.ksClient.IamV1alpha2().Users().UpdateStatus(user)
+		user, err = c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), user, metav1.UpdateOptions{})
 		return err
 	}
 	return nil

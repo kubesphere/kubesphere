@@ -34,6 +34,7 @@ import (
 	fedcommon "sigs.k8s.io/kubefed/pkg/apis/core/common"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const (
@@ -321,6 +322,7 @@ func (f *federatedInformerImpl) Start() {
 
 // GetClientForCluster returns a client for the cluster, if present.
 func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (generic.Client, error) {
+	defer metrics.ClusterClientConnectionDurationFromStart(time.Now())
 	f.Lock()
 	defer f.Unlock()
 
@@ -337,6 +339,7 @@ func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (generic
 		return client, err
 	}
 	f.clusterClients[clusterName] = client
+
 	return client, nil
 }
 

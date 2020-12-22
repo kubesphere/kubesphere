@@ -104,6 +104,10 @@ func (r *StandardStorage) Watch(ctx context.Context, options *metainternalversio
 	return nil, nil
 }
 
+func (r *StandardStorage) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
+	return nil, nil
+}
+
 func (r *StandardStorage) NamespaceScoped() bool {
 	return false
 }

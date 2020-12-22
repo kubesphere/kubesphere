@@ -17,6 +17,7 @@ limitations under the License.
 package group
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -143,7 +144,7 @@ func (c *Controller) reconcile(key string) error {
 		}
 
 		if g != nil {
-			if _, err = c.ksClient.IamV1alpha2().Groups().Update(g); err != nil {
+			if _, err = c.ksClient.IamV1alpha2().Groups().Update(context.Background(), g, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 			// Skip reconcile when group is updated.
@@ -166,7 +167,7 @@ func (c *Controller) reconcile(key string) error {
 				return item == finalizer
 			})
 
-			if group, err = c.ksClient.IamV1alpha2().Groups().Update(group); err != nil {
+			if group, err = c.ksClient.IamV1alpha2().Groups().Update(context.Background(), group, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -191,10 +192,8 @@ func (c *Controller) deleteGroupBindings(group *iam1alpha2.Group) error {
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{iam1alpha2.GroupReferenceLabel: group.Name}).String(),
 	}
-	deleteOptions := metav1.NewDeleteOptions(0)
-
 	if err := c.ksClient.IamV1alpha2().GroupBindings().
-		DeleteCollection(deleteOptions, listOptions); err != nil {
+		DeleteCollection(context.Background(), *metav1.NewDeleteOptions(0), listOptions); err != nil {
 		klog.Error(err)
 		return err
 	}
@@ -206,26 +205,26 @@ func (c *Controller) deleteRoleBindings(group *iam1alpha2.Group) error {
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{iam1alpha2.GroupReferenceLabel: group.Name}).String(),
 	}
-	deleteOptions := metav1.NewDeleteOptions(0)
+	deleteOptions := *metav1.NewDeleteOptions(0)
 
 	if err := c.ksClient.IamV1alpha2().WorkspaceRoleBindings().
-		DeleteCollection(deleteOptions, listOptions); err != nil {
+		DeleteCollection(context.Background(), deleteOptions, listOptions); err != nil {
 		klog.Error(err)
 		return err
 	}
 
 	if err := c.k8sClient.RbacV1().ClusterRoleBindings().
-		DeleteCollection(deleteOptions, listOptions); err != nil {
+		DeleteCollection(context.Background(), deleteOptions, listOptions); err != nil {
 		klog.Error(err)
 		return err
 	}
 
-	if result, err := c.k8sClient.CoreV1().Namespaces().List(metav1.ListOptions{}); err != nil {
+	if result, err := c.k8sClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{}); err != nil {
 		klog.Error(err)
 		return err
 	} else {
 		for _, namespace := range result.Items {
-			if err = c.k8sClient.RbacV1().RoleBindings(namespace.Name).DeleteCollection(deleteOptions, listOptions); err != nil {
+			if err = c.k8sClient.RbacV1().RoleBindings(namespace.Name).DeleteCollection(context.Background(), deleteOptions, listOptions); err != nil {
 				klog.Error(err)
 				return err
 			}
@@ -250,7 +249,7 @@ func (c *Controller) multiClusterSync(group *iam1alpha2.Group) error {
 
 		obj.Spec.Template.Labels = group.Labels
 
-		if _, err = c.ksClient.TypesV1beta1().FederatedGroups().Update(obj); err != nil {
+		if _, err = c.ksClient.TypesV1beta1().FederatedGroups().Update(context.Background(), obj, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
@@ -280,7 +279,7 @@ func (c *Controller) createFederatedGroup(group *iam1alpha2.Group) error {
 	if err != nil {
 		return err
 	}
-	if _, err = c.ksClient.TypesV1beta1().FederatedGroups().Create(federatedGroup); err != nil {
+	if _, err = c.ksClient.TypesV1beta1().FederatedGroups().Create(context.Background(), federatedGroup, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil

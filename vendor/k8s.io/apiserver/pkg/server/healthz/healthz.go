@@ -27,7 +27,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/apiserver/pkg/server/httplog"
+	"k8s.io/client-go/informers"
 	"k8s.io/klog"
 )
 
@@ -80,6 +82,39 @@ func (l *log) Check(_ *http.Request) error {
 	return fmt.Errorf("logging blocked")
 }
 
+type informerSync struct {
+	sharedInformerFactory informers.SharedInformerFactory
+}
+
+var _ HealthChecker = &informerSync{}
+
+// NewInformerSyncHealthz returns a new HealthChecker that will pass only if all informers in the given sharedInformerFactory sync.
+func NewInformerSyncHealthz(sharedInformerFactory informers.SharedInformerFactory) HealthChecker {
+	return &informerSync{
+		sharedInformerFactory: sharedInformerFactory,
+	}
+}
+
+func (i *informerSync) Name() string {
+	return "informer-sync"
+}
+
+func (i *informerSync) Check(_ *http.Request) error {
+	stopCh := make(chan struct{})
+	// Close stopCh to force checking if informers are synced now.
+	close(stopCh)
+
+	var informersByStarted map[bool][]string
+	for informerType, started := range i.sharedInformerFactory.WaitForCacheSync(stopCh) {
+		informersByStarted[started] = append(informersByStarted[started], informerType.String())
+	}
+
+	if notStarted := informersByStarted[false]; len(notStarted) > 0 {
+		return fmt.Errorf("%d informers not started yet: %v", len(notStarted), notStarted)
+	}
+	return nil
+}
+
 // NamedCheck returns a healthz checker for the given name and function.
 func NamedCheck(name string, check func(r *http.Request) error) HealthChecker {
 	return &healthzCheck{name, check}
@@ -122,7 +157,15 @@ func InstallPathHandler(mux mux, path string, checks ...HealthChecker) {
 
 	klog.V(5).Infof("Installing health checkers for (%v): %v", path, formatQuoted(checkerNames(checks...)...))
 
-	mux.Handle(path, handleRootHealthz(checks...))
+	mux.Handle(path,
+		metrics.InstrumentHandlerFunc("GET",
+			/* group = */ "",
+			/* version = */ "",
+			/* resource = */ "",
+			/* subresource = */ path,
+			/* scope = */ "",
+			/* component = */ "",
+			handleRootHealthz(checks...)))
 	for _, check := range checks {
 		mux.Handle(fmt.Sprintf("%s/%v", path, check.Name()), adaptCheckToHandler(check.Check))
 	}

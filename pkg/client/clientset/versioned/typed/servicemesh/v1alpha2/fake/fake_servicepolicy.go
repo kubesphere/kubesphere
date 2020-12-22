@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var servicepoliciesResource = schema.GroupVersionResource{Group: "servicemesh.ku
 var servicepoliciesKind = schema.GroupVersionKind{Group: "servicemesh.kubesphere.io", Version: "v1alpha2", Kind: "ServicePolicy"}
 
 // Get takes name of the servicePolicy, and returns the corresponding servicePolicy object, and an error if there is any.
-func (c *FakeServicePolicies) Get(name string, options v1.GetOptions) (result *v1alpha2.ServicePolicy, err error) {
+func (c *FakeServicePolicies) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.ServicePolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(servicepoliciesResource, c.ns, name), &v1alpha2.ServicePolicy{})
 
@@ -50,7 +52,7 @@ func (c *FakeServicePolicies) Get(name string, options v1.GetOptions) (result *v
 }
 
 // List takes label and field selectors, and returns the list of ServicePolicies that match those selectors.
-func (c *FakeServicePolicies) List(opts v1.ListOptions) (result *v1alpha2.ServicePolicyList, err error) {
+func (c *FakeServicePolicies) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.ServicePolicyList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(servicepoliciesResource, servicepoliciesKind, c.ns, opts), &v1alpha2.ServicePolicyList{})
 
@@ -72,14 +74,14 @@ func (c *FakeServicePolicies) List(opts v1.ListOptions) (result *v1alpha2.Servic
 }
 
 // Watch returns a watch.Interface that watches the requested servicePolicies.
-func (c *FakeServicePolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeServicePolicies) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(servicepoliciesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a servicePolicy and creates it.  Returns the server's representation of the servicePolicy, and an error, if there is any.
-func (c *FakeServicePolicies) Create(servicePolicy *v1alpha2.ServicePolicy) (result *v1alpha2.ServicePolicy, err error) {
+func (c *FakeServicePolicies) Create(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.CreateOptions) (result *v1alpha2.ServicePolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(servicepoliciesResource, c.ns, servicePolicy), &v1alpha2.ServicePolicy{})
 
@@ -90,7 +92,7 @@ func (c *FakeServicePolicies) Create(servicePolicy *v1alpha2.ServicePolicy) (res
 }
 
 // Update takes the representation of a servicePolicy and updates it. Returns the server's representation of the servicePolicy, and an error, if there is any.
-func (c *FakeServicePolicies) Update(servicePolicy *v1alpha2.ServicePolicy) (result *v1alpha2.ServicePolicy, err error) {
+func (c *FakeServicePolicies) Update(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.UpdateOptions) (result *v1alpha2.ServicePolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(servicepoliciesResource, c.ns, servicePolicy), &v1alpha2.ServicePolicy{})
 
@@ -102,7 +104,7 @@ func (c *FakeServicePolicies) Update(servicePolicy *v1alpha2.ServicePolicy) (res
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeServicePolicies) UpdateStatus(servicePolicy *v1alpha2.ServicePolicy) (*v1alpha2.ServicePolicy, error) {
+func (c *FakeServicePolicies) UpdateStatus(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.UpdateOptions) (*v1alpha2.ServicePolicy, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(servicepoliciesResource, "status", c.ns, servicePolicy), &v1alpha2.ServicePolicy{})
 
@@ -113,7 +115,7 @@ func (c *FakeServicePolicies) UpdateStatus(servicePolicy *v1alpha2.ServicePolicy
 }
 
 // Delete takes name of the servicePolicy and deletes it. Returns an error if one occurs.
-func (c *FakeServicePolicies) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeServicePolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(servicepoliciesResource, c.ns, name), &v1alpha2.ServicePolicy{})
 
@@ -121,15 +123,15 @@ func (c *FakeServicePolicies) Delete(name string, options *v1.DeleteOptions) err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeServicePolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(servicepoliciesResource, c.ns, listOptions)
+func (c *FakeServicePolicies) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(servicepoliciesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.ServicePolicyList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched servicePolicy.
-func (c *FakeServicePolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.ServicePolicy, err error) {
+func (c *FakeServicePolicies) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.ServicePolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(servicepoliciesResource, c.ns, name, pt, data, subresources...), &v1alpha2.ServicePolicy{})
 

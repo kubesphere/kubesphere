@@ -18,13 +18,8 @@ package app
 
 import (
 	"fmt"
-	"github.com/kiali/kiali/business"
-	kconfig "github.com/kiali/kiali/config"
-	"github.com/kiali/kiali/kubernetes"
-	"github.com/kiali/kiali/prometheus"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/tools/clientcmd"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 
@@ -98,9 +93,6 @@ func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 }
 
 func initializeServicemeshConfig(s *options.ServerRunOptions) {
-	// Initialize kiali config
-	config := kconfig.NewConfig()
-
 	// Config jaeger query endpoint address
 	if s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.JaegerQueryHost) != 0 {
 		tracing.JaegerQueryUrl = s.ServiceMeshOptions.JaegerQueryHost
@@ -109,32 +101,5 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	// Set the kiali query endpoint address
 	if s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.KialiQueryHost) != 0 {
 		tracing.KialiQueryUrl = s.ServiceMeshOptions.KialiQueryHost
-	}
-
-	// Exclude system namespaces
-	config.API.Namespaces.Exclude = []string{"istio-system", "kube-.*"}
-	config.InCluster = true
-
-	// Set default prometheus service url
-	config.ExternalServices.PrometheusServiceURL = s.ServiceMeshOptions.ServicemeshPrometheusHost
-	config.ExternalServices.PrometheusCustomMetricsURL = config.ExternalServices.PrometheusServiceURL
-
-	// Set istio pilot discovery service url
-	config.ExternalServices.Istio.UrlServiceVersion = s.ServiceMeshOptions.IstioPilotHost
-
-	kconfig.Set(config)
-
-	// Set kiali config
-	if len(s.KubernetesOptions.KubeConfig) != 0 {
-		kubeconfig, err := clientcmd.BuildConfigFromFlags("", s.KubernetesOptions.KubeConfig)
-		if err != nil {
-			fmt.Println(err)
-		}
-		k8sClient, err := kubernetes.NewClientFromConfig(kubeconfig)
-		if err != nil {
-			fmt.Println(err)
-		}
-		prometheusClient, _ := prometheus.NewClient()
-		business.SetWithBackends(k8sClient, prometheusClient)
 	}
 }

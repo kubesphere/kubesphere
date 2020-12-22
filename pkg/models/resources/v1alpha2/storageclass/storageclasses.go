@@ -17,7 +17,7 @@ limitations under the License.
 package storageclass
 
 import (
-	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"

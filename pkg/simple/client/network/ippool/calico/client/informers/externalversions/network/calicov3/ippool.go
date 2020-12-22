@@ -19,6 +19,7 @@ limitations under the License.
 package calicov3
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredIPPoolInformer(client versioned.Interface, resyncPeriod time.Dur
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.CrdCalicov3().IPPools().List(options)
+				return client.CrdCalicov3().IPPools().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.CrdCalicov3().IPPools().Watch(options)
+				return client.CrdCalicov3().IPPools().Watch(context.TODO(), options)
 			},
 		},
 		&networkcalicov3.IPPool{},

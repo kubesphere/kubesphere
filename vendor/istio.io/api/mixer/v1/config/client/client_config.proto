@@ -21,6 +21,10 @@ import "mixer/v1/attributes.proto";
 import "mixer/v1/config/client/api_spec.proto";
 import "mixer/v1/config/client/quota.proto";
 
+// $schema: istio.mixer.v1.config.client.HTTPAPISpecBinding
+// $schema: istio.mixer.v1.config.client.HTTPAPISpec
+// $schema: istio.mixer.v1.config.client.QuotaSpecBinding
+// $schema: istio.mixer.v1.config.client.QuotaSpec
 // $title: Mixer Client
 // $description: Configuration state for the Mixer client library.
 // $location: https://istio.io/docs/reference/config/policy-and-telemetry/istio.mixer.v1.config.client

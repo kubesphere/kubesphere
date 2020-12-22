@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedconfigmapsResource = schema.GroupVersionResource{Group: "types.kube
 var federatedconfigmapsKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedConfigMap"}
 
 // Get takes name of the federatedConfigMap, and returns the corresponding federatedConfigMap object, and an error if there is any.
-func (c *FakeFederatedConfigMaps) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedConfigMap, err error) {
+func (c *FakeFederatedConfigMaps) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedConfigMap, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedconfigmapsResource, c.ns, name), &v1beta1.FederatedConfigMap{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedConfigMaps) Get(name string, options v1.GetOptions) (resul
 }
 
 // List takes label and field selectors, and returns the list of FederatedConfigMaps that match those selectors.
-func (c *FakeFederatedConfigMaps) List(opts v1.ListOptions) (result *v1beta1.FederatedConfigMapList, err error) {
+func (c *FakeFederatedConfigMaps) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedConfigMapList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedconfigmapsResource, federatedconfigmapsKind, c.ns, opts), &v1beta1.FederatedConfigMapList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedConfigMaps) List(opts v1.ListOptions) (result *v1beta1.Fed
 }
 
 // Watch returns a watch.Interface that watches the requested federatedConfigMaps.
-func (c *FakeFederatedConfigMaps) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedConfigMaps) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedconfigmapsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedConfigMap and creates it.  Returns the server's representation of the federatedConfigMap, and an error, if there is any.
-func (c *FakeFederatedConfigMaps) Create(federatedConfigMap *v1beta1.FederatedConfigMap) (result *v1beta1.FederatedConfigMap, err error) {
+func (c *FakeFederatedConfigMaps) Create(ctx context.Context, federatedConfigMap *v1beta1.FederatedConfigMap, opts v1.CreateOptions) (result *v1beta1.FederatedConfigMap, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedconfigmapsResource, c.ns, federatedConfigMap), &v1beta1.FederatedConfigMap{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedConfigMaps) Create(federatedConfigMap *v1beta1.FederatedCo
 }
 
 // Update takes the representation of a federatedConfigMap and updates it. Returns the server's representation of the federatedConfigMap, and an error, if there is any.
-func (c *FakeFederatedConfigMaps) Update(federatedConfigMap *v1beta1.FederatedConfigMap) (result *v1beta1.FederatedConfigMap, err error) {
+func (c *FakeFederatedConfigMaps) Update(ctx context.Context, federatedConfigMap *v1beta1.FederatedConfigMap, opts v1.UpdateOptions) (result *v1beta1.FederatedConfigMap, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedconfigmapsResource, c.ns, federatedConfigMap), &v1beta1.FederatedConfigMap{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedConfigMaps) Update(federatedConfigMap *v1beta1.FederatedCo
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedConfigMaps) UpdateStatus(federatedConfigMap *v1beta1.FederatedConfigMap) (*v1beta1.FederatedConfigMap, error) {
+func (c *FakeFederatedConfigMaps) UpdateStatus(ctx context.Context, federatedConfigMap *v1beta1.FederatedConfigMap, opts v1.UpdateOptions) (*v1beta1.FederatedConfigMap, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedconfigmapsResource, "status", c.ns, federatedConfigMap), &v1beta1.FederatedConfigMap{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedConfigMaps) UpdateStatus(federatedConfigMap *v1beta1.Feder
 }
 
 // Delete takes name of the federatedConfigMap and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedConfigMaps) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedConfigMaps) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedconfigmapsResource, c.ns, name), &v1beta1.FederatedConfigMap{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedConfigMaps) Delete(name string, options *v1.DeleteOptions)
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedConfigMaps) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedconfigmapsResource, c.ns, listOptions)
+func (c *FakeFederatedConfigMaps) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedconfigmapsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedConfigMapList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedConfigMap.
-func (c *FakeFederatedConfigMaps) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedConfigMap, err error) {
+func (c *FakeFederatedConfigMaps) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedConfigMap, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedconfigmapsResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedConfigMap{})
 

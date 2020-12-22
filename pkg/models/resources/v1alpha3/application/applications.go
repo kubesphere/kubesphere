@@ -19,10 +19,10 @@ package application
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
+	appv1beta1 "kubesphere.io/kubesphere/pkg/apis/app/v1beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
-	appv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
-	"sigs.k8s.io/application/pkg/client/informers/externalversions"
+	"kubesphere.io/kubesphere/pkg/simple/client/app/informers/externalversions"
 	"time"
 )
 

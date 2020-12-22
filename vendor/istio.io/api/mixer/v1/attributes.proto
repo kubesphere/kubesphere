@@ -54,7 +54,7 @@ option cc_enable_arenas = true;
 // [here](https://istio.io/docs/reference/config/policy-and-telemetry/attribute-vocabulary/).
 //
 // Attributes are strongly typed. The supported attribute types are defined by
-// [ValueType](https://github.com/istio/api/blob/release-1.4/policy/v1beta1/value_type.proto).
+// [ValueType](https://github.com/istio/api/blob/release-1.6/policy/v1beta1/value_type.proto).
 // Each type of value is encoded into one of the so-called transport types present
 // in this message.
 //

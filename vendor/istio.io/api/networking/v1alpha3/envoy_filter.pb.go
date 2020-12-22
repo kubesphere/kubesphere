@@ -14,22 +14,20 @@
 // namespace](https://istio.io/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig),
 // followed by all matching EnvoyFilters in the workload's namespace.
 //
-// **NOTE 1**: Since this is break glass configuration, there will not
-// be any backward compatibility across different Istio releases. In
-// other words, this configuration is subject to change based on
-// internal implementation of Istio networking subsystem.
-//
-// **NOTE 2**: The envoy configuration provided through this mechanism
-// should be carefully monitored across Istio proxy version upgrades,
-// to ensure that deprecated fields are removed and replaced
+// **NOTE 1**: Some aspects of this API is deeply tied to the internal
+// implementation in Istio networking subsystem as well as Envoy's XDS
+// API. While the EnvoyFilter API by itself will maintain backward
+// compatibility, any envoy configuration provided through this
+// mechanism should be carefully monitored across Istio proxy version
+// upgrades, to ensure that deprecated fields are removed and replaced
 // appropriately.
 //
-// **NOTE 3**: When multiple EnvoyFilters are bound to the same
+// **NOTE 2**: When multiple EnvoyFilters are bound to the same
 // workload in a given namespace, all patches will be processed
 // sequentially in order of creation time.  The behavior is undefined
 // if multiple EnvoyFilter configurations conflict with each other.
 //
-// **NOTE 4**: *_To apply an EnvoyFilter resource to all workloads
+// **NOTE 3**: *_To apply an EnvoyFilter resource to all workloads
 // (sidecars and gateways) in the system, define the resource in the
 // config [root
 // namespace](https://istio.io/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig),
@@ -61,6 +59,7 @@
 //     patch:
 //       operation: INSERT_BEFORE
 //       value:
+//         # This is the full filter config including the name and config or typed_config section.
 //         name: "envoy.config.filter.network.custom_protocol"
 //         config:
 //          ...
@@ -74,9 +73,11 @@
 //     patch:
 //       operation: MERGE
 //       value:
+//         name: "envoy.http_connection_manager"
 //         typed_config:
 //           "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager"
-//           idle_timeout: 30s
+//           common_http_protocol_options:
+//             idle_timeout: 30s
 //```
 //
 // The following example enables Envoy's Lua filter for all inbound
@@ -112,7 +113,8 @@
 //       operation: INSERT_BEFORE
 //       value: # lua filter specification
 //        name: envoy.lua
-//        config:
+//        typed_config:
+//          "@type": "type.googleapis.com/envoy.config.filter.http.lua.v2.Lua"
 //          inlineCode: |
 //            function envoy_on_request(request_handle)
 //              -- Make an HTTP call to an upstream host with the following headers, body, and timeout.
@@ -173,7 +175,8 @@
 //     patch:
 //       operation: MERGE
 //       value:
-//         idle_timeout: 30s
+//         common_http_protocol_options:
+//           idle_timeout: 30s
 //         xff_num_trusted_hops: 5
 //```
 //
@@ -301,139 +304,6 @@ func (EnvoyFilter_PatchContext) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 1}
 }
 
-type EnvoyFilter_DeprecatedListenerMatch_ListenerType int32
-
-const (
-	// All listeners
-	EnvoyFilter_DeprecatedListenerMatch_ANY EnvoyFilter_DeprecatedListenerMatch_ListenerType = 0
-	// Inbound listener in sidecar
-	EnvoyFilter_DeprecatedListenerMatch_SIDECAR_INBOUND EnvoyFilter_DeprecatedListenerMatch_ListenerType = 1
-	// Outbound listener in sidecar
-	EnvoyFilter_DeprecatedListenerMatch_SIDECAR_OUTBOUND EnvoyFilter_DeprecatedListenerMatch_ListenerType = 2
-	// Gateway listener
-	EnvoyFilter_DeprecatedListenerMatch_GATEWAY EnvoyFilter_DeprecatedListenerMatch_ListenerType = 3
-)
-
-var EnvoyFilter_DeprecatedListenerMatch_ListenerType_name = map[int32]string{
-	0: "ANY",
-	1: "SIDECAR_INBOUND",
-	2: "SIDECAR_OUTBOUND",
-	3: "GATEWAY",
-}
-
-var EnvoyFilter_DeprecatedListenerMatch_ListenerType_value = map[string]int32{
-	"ANY":              0,
-	"SIDECAR_INBOUND":  1,
-	"SIDECAR_OUTBOUND": 2,
-	"GATEWAY":          3,
-}
-
-func (x EnvoyFilter_DeprecatedListenerMatch_ListenerType) String() string {
-	return proto.EnumName(EnvoyFilter_DeprecatedListenerMatch_ListenerType_name, int32(x))
-}
-
-func (EnvoyFilter_DeprecatedListenerMatch_ListenerType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 0, 0}
-}
-
-type EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol int32
-
-const (
-	// All protocols
-	EnvoyFilter_DeprecatedListenerMatch_ALL EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol = 0
-	// HTTP or HTTPS (with termination) / HTTP2/gRPC
-	EnvoyFilter_DeprecatedListenerMatch_HTTP EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol = 1
-	// Any non-HTTP listener
-	EnvoyFilter_DeprecatedListenerMatch_TCP EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol = 2
-)
-
-var EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol_name = map[int32]string{
-	0: "ALL",
-	1: "HTTP",
-	2: "TCP",
-}
-
-var EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol_value = map[string]int32{
-	"ALL":  0,
-	"HTTP": 1,
-	"TCP":  2,
-}
-
-func (x EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol) String() string {
-	return proto.EnumName(EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol_name, int32(x))
-}
-
-func (EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 0, 1}
-}
-
-// Index/position in the filter chain.
-type EnvoyFilter_InsertPosition_Index int32
-
-const (
-	// Insert first
-	EnvoyFilter_InsertPosition_FIRST EnvoyFilter_InsertPosition_Index = 0
-	// Insert last
-	EnvoyFilter_InsertPosition_LAST EnvoyFilter_InsertPosition_Index = 1
-	// Insert before the named filter.
-	EnvoyFilter_InsertPosition_BEFORE EnvoyFilter_InsertPosition_Index = 2
-	// Insert after the named filter.
-	EnvoyFilter_InsertPosition_AFTER EnvoyFilter_InsertPosition_Index = 3
-)
-
-var EnvoyFilter_InsertPosition_Index_name = map[int32]string{
-	0: "FIRST",
-	1: "LAST",
-	2: "BEFORE",
-	3: "AFTER",
-}
-
-var EnvoyFilter_InsertPosition_Index_value = map[string]int32{
-	"FIRST":  0,
-	"LAST":   1,
-	"BEFORE": 2,
-	"AFTER":  3,
-}
-
-func (x EnvoyFilter_InsertPosition_Index) String() string {
-	return proto.EnumName(EnvoyFilter_InsertPosition_Index_name, int32(x))
-}
-
-func (EnvoyFilter_InsertPosition_Index) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 1, 0}
-}
-
-type EnvoyFilter_Filter_FilterType int32
-
-const (
-	// placeholder
-	EnvoyFilter_Filter_INVALID EnvoyFilter_Filter_FilterType = 0
-	// Http filter
-	EnvoyFilter_Filter_HTTP EnvoyFilter_Filter_FilterType = 1
-	// Network filter
-	EnvoyFilter_Filter_NETWORK EnvoyFilter_Filter_FilterType = 2
-)
-
-var EnvoyFilter_Filter_FilterType_name = map[int32]string{
-	0: "INVALID",
-	1: "HTTP",
-	2: "NETWORK",
-}
-
-var EnvoyFilter_Filter_FilterType_value = map[string]int32{
-	"INVALID": 0,
-	"HTTP":    1,
-	"NETWORK": 2,
-}
-
-func (x EnvoyFilter_Filter_FilterType) String() string {
-	return proto.EnumName(EnvoyFilter_Filter_FilterType_name, int32(x))
-}
-
-func (EnvoyFilter_Filter_FilterType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 2, 0}
-}
-
 // Action refers to the route action taken by Envoy when a http route matches.
 type EnvoyFilter_RouteConfigurationMatch_RouteMatch_Action int32
 
@@ -467,7 +337,7 @@ func (x EnvoyFilter_RouteConfigurationMatch_RouteMatch_Action) String() string {
 }
 
 func (EnvoyFilter_RouteConfigurationMatch_RouteMatch_Action) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 5, 0, 0}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 2, 0, 0}
 }
 
 // Operation denotes how the patch should be applied to the selected
@@ -506,6 +376,14 @@ const (
 	// selected, the specified filter will be inserted at the end
 	// of the list.
 	EnvoyFilter_Patch_INSERT_AFTER EnvoyFilter_Patch_Operation = 5
+	// Insert operation on an array of named objects. This operation
+	// is typically useful only in the context of filters, where the
+	// order of filters matter. For clusters and virtual hosts,
+	// order of the element in the array does not matter. Insert
+	// first in the list based on the presence of selected filter or not.
+	// This is specifically useful when you want your filter first in the
+	// list based on a match condition specified in Match clause.
+	EnvoyFilter_Patch_INSERT_FIRST EnvoyFilter_Patch_Operation = 6
 )
 
 var EnvoyFilter_Patch_Operation_name = map[int32]string{
@@ -515,6 +393,7 @@ var EnvoyFilter_Patch_Operation_name = map[int32]string{
 	3: "REMOVE",
 	4: "INSERT_BEFORE",
 	5: "INSERT_AFTER",
+	6: "INSERT_FIRST",
 }
 
 var EnvoyFilter_Patch_Operation_value = map[string]int32{
@@ -524,6 +403,7 @@ var EnvoyFilter_Patch_Operation_value = map[string]int32{
 	"REMOVE":        3,
 	"INSERT_BEFORE": 4,
 	"INSERT_AFTER":  5,
+	"INSERT_FIRST":  6,
 }
 
 func (x EnvoyFilter_Patch_Operation) String() string {
@@ -531,11 +411,22 @@ func (x EnvoyFilter_Patch_Operation) String() string {
 }
 
 func (EnvoyFilter_Patch_Operation) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 7, 0}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 4, 0}
 }
 
 // EnvoyFilter provides a mechanism to customize the Envoy configuration
 // generated by Istio Pilot.
+//
+// <!-- crd generation tags
+// +cue-gen:EnvoyFilter:groupName:networking.istio.io
+// +cue-gen:EnvoyFilter:version:v1alpha3
+// +cue-gen:EnvoyFilter:storageVersion
+// +cue-gen:EnvoyFilter:annotations:helm.sh/resource-policy=keep
+// +cue-gen:EnvoyFilter:labels:app=istio-pilot,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:EnvoyFilter:subresource:status
+// +cue-gen:EnvoyFilter:scope:Namespaced
+// +cue-gen:EnvoyFilter:resource:categories=istio-io,networking-istio-io
+// -->
 //
 // <!-- go code generation tags
 // +kubetype-gen
@@ -544,11 +435,6 @@ func (EnvoyFilter_Patch_Operation) EnumDescriptor() ([]byte, []int) {
 // +k8s:deepcopy-gen=true
 // -->
 type EnvoyFilter struct {
-	// Deprecated. Use workload_selector instead.
-	// $hide_from_docs
-	WorkloadLabels map[string]string `protobuf:"bytes,1,rep,name=workload_labels,json=workloadLabels,proto3" json:"workload_labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // Deprecated: Do not use.
-	// $hide_from_docs
-	Filters []*EnvoyFilter_Filter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"` // Deprecated: Do not use.
 	// Criteria used to select the specific set of pods/VMs on which
 	// this patch configuration should be applied. If omitted, the set
 	// of patches in this configuration will be applied to all workload
@@ -598,22 +484,6 @@ func (m *EnvoyFilter) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EnvoyFilter proto.InternalMessageInfo
 
-// Deprecated: Do not use.
-func (m *EnvoyFilter) GetWorkloadLabels() map[string]string {
-	if m != nil {
-		return m.WorkloadLabels
-	}
-	return nil
-}
-
-// Deprecated: Do not use.
-func (m *EnvoyFilter) GetFilters() []*EnvoyFilter_Filter {
-	if m != nil {
-		return m.Filters
-	}
-	return nil
-}
-
 func (m *EnvoyFilter) GetWorkloadSelector() *WorkloadSelector {
 	if m != nil {
 		return m.WorkloadSelector
@@ -624,261 +494,6 @@ func (m *EnvoyFilter) GetWorkloadSelector() *WorkloadSelector {
 func (m *EnvoyFilter) GetConfigPatches() []*EnvoyFilter_EnvoyConfigObjectPatch {
 	if m != nil {
 		return m.ConfigPatches
-	}
-	return nil
-}
-
-// Deprecated.
-// Select a listener to add the filter to based on the match conditions.
-// All conditions specified in the ListenerMatch must be met for the filter
-// to be applied to a listener.
-// $hide_from_docs
-type EnvoyFilter_DeprecatedListenerMatch struct {
-	// The service port/gateway port to which traffic is being
-	// sent/received. If not specified, matches all listeners. Even though
-	// inbound listeners are generated for the instance/pod ports, only
-	// service ports should be used to match listeners.
-	PortNumber uint32 `protobuf:"varint,1,opt,name=port_number,json=portNumber,proto3" json:"port_number,omitempty"`
-	// Instead of using specific port numbers, a set of ports matching a
-	// given port name prefix can be selected. E.g., "mongo" selects ports
-	// named mongo-port, mongo, mongoDB, MONGO, etc. Matching is case
-	// insensitive.
-	PortNamePrefix string `protobuf:"bytes,2,opt,name=port_name_prefix,json=portNamePrefix,proto3" json:"port_name_prefix,omitempty"`
-	// Inbound vs outbound sidecar listener or gateway listener. If not specified,
-	// matches all listeners.
-	ListenerType EnvoyFilter_DeprecatedListenerMatch_ListenerType `protobuf:"varint,3,opt,name=listener_type,json=listenerType,proto3,enum=istio.networking.v1alpha3.EnvoyFilter_DeprecatedListenerMatch_ListenerType" json:"listener_type,omitempty"`
-	// Selects a class of listeners for the same protocol. Use the protocol
-	// selection to select all HTTP listeners (includes HTTP2/gRPC/HTTPS
-	// where Envoy terminates TLS) or all TCP listeners (includes HTTPS
-	// passthrough using SNI). When adding a HTTP filter, the listenerProtocol
-	// should be set to HTTP.
-	ListenerProtocol EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol `protobuf:"varint,4,opt,name=listener_protocol,json=listenerProtocol,proto3,enum=istio.networking.v1alpha3.EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol" json:"listener_protocol,omitempty"`
-	// One or more IP addresses to which the listener is bound. If
-	// specified, should match at least one address in the list.
-	Address              []string `protobuf:"bytes,5,rep,name=address,proto3" json:"address,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) Reset()         { *m = EnvoyFilter_DeprecatedListenerMatch{} }
-func (m *EnvoyFilter_DeprecatedListenerMatch) String() string { return proto.CompactTextString(m) }
-func (*EnvoyFilter_DeprecatedListenerMatch) ProtoMessage()    {}
-func (*EnvoyFilter_DeprecatedListenerMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 0}
-}
-func (m *EnvoyFilter_DeprecatedListenerMatch) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *EnvoyFilter_DeprecatedListenerMatch) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_EnvoyFilter_DeprecatedListenerMatch.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *EnvoyFilter_DeprecatedListenerMatch) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EnvoyFilter_DeprecatedListenerMatch.Merge(m, src)
-}
-func (m *EnvoyFilter_DeprecatedListenerMatch) XXX_Size() int {
-	return m.Size()
-}
-func (m *EnvoyFilter_DeprecatedListenerMatch) XXX_DiscardUnknown() {
-	xxx_messageInfo_EnvoyFilter_DeprecatedListenerMatch.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EnvoyFilter_DeprecatedListenerMatch proto.InternalMessageInfo
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) GetPortNumber() uint32 {
-	if m != nil {
-		return m.PortNumber
-	}
-	return 0
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) GetPortNamePrefix() string {
-	if m != nil {
-		return m.PortNamePrefix
-	}
-	return ""
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) GetListenerType() EnvoyFilter_DeprecatedListenerMatch_ListenerType {
-	if m != nil {
-		return m.ListenerType
-	}
-	return EnvoyFilter_DeprecatedListenerMatch_ANY
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) GetListenerProtocol() EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol {
-	if m != nil {
-		return m.ListenerProtocol
-	}
-	return EnvoyFilter_DeprecatedListenerMatch_ALL
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) GetAddress() []string {
-	if m != nil {
-		return m.Address
-	}
-	return nil
-}
-
-// Deprecated.
-// Indicates the relative index in the filter chain where the filter should be inserted.
-// $hide_from_docs
-type EnvoyFilter_InsertPosition struct {
-	// Position of this filter in the filter chain.
-	Index EnvoyFilter_InsertPosition_Index `protobuf:"varint,1,opt,name=index,proto3,enum=istio.networking.v1alpha3.EnvoyFilter_InsertPosition_Index" json:"index,omitempty"`
-	// If BEFORE or AFTER position is specified, specify the name of the
-	// filter relative to which this filter should be inserted.
-	RelativeTo           string   `protobuf:"bytes,2,opt,name=relative_to,json=relativeTo,proto3" json:"relative_to,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *EnvoyFilter_InsertPosition) Reset()         { *m = EnvoyFilter_InsertPosition{} }
-func (m *EnvoyFilter_InsertPosition) String() string { return proto.CompactTextString(m) }
-func (*EnvoyFilter_InsertPosition) ProtoMessage()    {}
-func (*EnvoyFilter_InsertPosition) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 1}
-}
-func (m *EnvoyFilter_InsertPosition) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *EnvoyFilter_InsertPosition) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_EnvoyFilter_InsertPosition.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *EnvoyFilter_InsertPosition) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EnvoyFilter_InsertPosition.Merge(m, src)
-}
-func (m *EnvoyFilter_InsertPosition) XXX_Size() int {
-	return m.Size()
-}
-func (m *EnvoyFilter_InsertPosition) XXX_DiscardUnknown() {
-	xxx_messageInfo_EnvoyFilter_InsertPosition.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EnvoyFilter_InsertPosition proto.InternalMessageInfo
-
-func (m *EnvoyFilter_InsertPosition) GetIndex() EnvoyFilter_InsertPosition_Index {
-	if m != nil {
-		return m.Index
-	}
-	return EnvoyFilter_InsertPosition_FIRST
-}
-
-func (m *EnvoyFilter_InsertPosition) GetRelativeTo() string {
-	if m != nil {
-		return m.RelativeTo
-	}
-	return ""
-}
-
-// Deprecated.
-// Envoy filters to be added to a network or http filter chain.
-// $hide_from_docs
-type EnvoyFilter_Filter struct {
-	// Filter will be added to the listener only if the match
-	// conditions are true.  If not specified, the filters will be
-	// applied to all listeners where possible, potentially resulting
-	// in invalid configurations. It is recommended to specify the
-	// listener match criteria for all filter insertions.
-	ListenerMatch *EnvoyFilter_DeprecatedListenerMatch `protobuf:"bytes,1,opt,name=listener_match,json=listenerMatch,proto3" json:"listener_match,omitempty"`
-	// Insert position in the filter chain. Defaults to FIRST
-	InsertPosition *EnvoyFilter_InsertPosition `protobuf:"bytes,2,opt,name=insert_position,json=insertPosition,proto3" json:"insert_position,omitempty"`
-	// The type of filter to instantiate.
-	FilterType EnvoyFilter_Filter_FilterType `protobuf:"varint,3,opt,name=filter_type,json=filterType,proto3,enum=istio.networking.v1alpha3.EnvoyFilter_Filter_FilterType" json:"filter_type,omitempty"`
-	// The name of the filter to instantiate. The name must match a supported
-	// filter _compiled into_ Envoy.
-	FilterName string `protobuf:"bytes,4,opt,name=filter_name,json=filterName,proto3" json:"filter_name,omitempty"`
-	// Filter specific configuration which depends on the filter being
-	// instantiated.
-	FilterConfig         *types.Struct `protobuf:"bytes,5,opt,name=filter_config,json=filterConfig,proto3" json:"filter_config,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
-}
-
-func (m *EnvoyFilter_Filter) Reset()         { *m = EnvoyFilter_Filter{} }
-func (m *EnvoyFilter_Filter) String() string { return proto.CompactTextString(m) }
-func (*EnvoyFilter_Filter) ProtoMessage()    {}
-func (*EnvoyFilter_Filter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 2}
-}
-func (m *EnvoyFilter_Filter) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *EnvoyFilter_Filter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_EnvoyFilter_Filter.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *EnvoyFilter_Filter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EnvoyFilter_Filter.Merge(m, src)
-}
-func (m *EnvoyFilter_Filter) XXX_Size() int {
-	return m.Size()
-}
-func (m *EnvoyFilter_Filter) XXX_DiscardUnknown() {
-	xxx_messageInfo_EnvoyFilter_Filter.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EnvoyFilter_Filter proto.InternalMessageInfo
-
-func (m *EnvoyFilter_Filter) GetListenerMatch() *EnvoyFilter_DeprecatedListenerMatch {
-	if m != nil {
-		return m.ListenerMatch
-	}
-	return nil
-}
-
-func (m *EnvoyFilter_Filter) GetInsertPosition() *EnvoyFilter_InsertPosition {
-	if m != nil {
-		return m.InsertPosition
-	}
-	return nil
-}
-
-func (m *EnvoyFilter_Filter) GetFilterType() EnvoyFilter_Filter_FilterType {
-	if m != nil {
-		return m.FilterType
-	}
-	return EnvoyFilter_Filter_INVALID
-}
-
-func (m *EnvoyFilter_Filter) GetFilterName() string {
-	if m != nil {
-		return m.FilterName
-	}
-	return ""
-}
-
-func (m *EnvoyFilter_Filter) GetFilterConfig() *types.Struct {
-	if m != nil {
-		return m.FilterConfig
 	}
 	return nil
 }
@@ -910,7 +525,7 @@ func (m *EnvoyFilter_ProxyMatch) Reset()         { *m = EnvoyFilter_ProxyMatch{}
 func (m *EnvoyFilter_ProxyMatch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_ProxyMatch) ProtoMessage()    {}
 func (*EnvoyFilter_ProxyMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 3}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 0}
 }
 func (m *EnvoyFilter_ProxyMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -981,7 +596,7 @@ func (m *EnvoyFilter_ClusterMatch) Reset()         { *m = EnvoyFilter_ClusterMat
 func (m *EnvoyFilter_ClusterMatch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_ClusterMatch) ProtoMessage()    {}
 func (*EnvoyFilter_ClusterMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 4}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 1}
 }
 func (m *EnvoyFilter_ClusterMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1072,7 +687,7 @@ func (m *EnvoyFilter_RouteConfigurationMatch) Reset()         { *m = EnvoyFilter
 func (m *EnvoyFilter_RouteConfigurationMatch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_RouteConfigurationMatch) ProtoMessage()    {}
 func (*EnvoyFilter_RouteConfigurationMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 5}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 2}
 }
 func (m *EnvoyFilter_RouteConfigurationMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1158,7 +773,7 @@ func (m *EnvoyFilter_RouteConfigurationMatch_RouteMatch) String() string {
 }
 func (*EnvoyFilter_RouteConfigurationMatch_RouteMatch) ProtoMessage() {}
 func (*EnvoyFilter_RouteConfigurationMatch_RouteMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 5, 0}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 2, 0}
 }
 func (m *EnvoyFilter_RouteConfigurationMatch_RouteMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1223,7 +838,7 @@ func (m *EnvoyFilter_RouteConfigurationMatch_VirtualHostMatch) String() string {
 }
 func (*EnvoyFilter_RouteConfigurationMatch_VirtualHostMatch) ProtoMessage() {}
 func (*EnvoyFilter_RouteConfigurationMatch_VirtualHostMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 5, 1}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 2, 1}
 }
 func (m *EnvoyFilter_RouteConfigurationMatch_VirtualHostMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1298,7 +913,7 @@ func (m *EnvoyFilter_ListenerMatch) Reset()         { *m = EnvoyFilter_ListenerM
 func (m *EnvoyFilter_ListenerMatch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_ListenerMatch) ProtoMessage()    {}
 func (*EnvoyFilter_ListenerMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 6}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 3}
 }
 func (m *EnvoyFilter_ListenerMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1402,7 +1017,7 @@ func (m *EnvoyFilter_ListenerMatch_FilterChainMatch) String() string {
 }
 func (*EnvoyFilter_ListenerMatch_FilterChainMatch) ProtoMessage() {}
 func (*EnvoyFilter_ListenerMatch_FilterChainMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 6, 0}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 3, 0}
 }
 func (m *EnvoyFilter_ListenerMatch_FilterChainMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1483,7 +1098,7 @@ func (m *EnvoyFilter_ListenerMatch_FilterMatch) Reset()         { *m = EnvoyFilt
 func (m *EnvoyFilter_ListenerMatch_FilterMatch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_ListenerMatch_FilterMatch) ProtoMessage()    {}
 func (*EnvoyFilter_ListenerMatch_FilterMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 6, 1}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 3, 1}
 }
 func (m *EnvoyFilter_ListenerMatch_FilterMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1544,7 +1159,7 @@ func (m *EnvoyFilter_ListenerMatch_SubFilterMatch) Reset() {
 func (m *EnvoyFilter_ListenerMatch_SubFilterMatch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_ListenerMatch_SubFilterMatch) ProtoMessage()    {}
 func (*EnvoyFilter_ListenerMatch_SubFilterMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 6, 2}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 3, 2}
 }
 func (m *EnvoyFilter_ListenerMatch_SubFilterMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1596,7 +1211,7 @@ func (m *EnvoyFilter_Patch) Reset()         { *m = EnvoyFilter_Patch{} }
 func (m *EnvoyFilter_Patch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_Patch) ProtoMessage()    {}
 func (*EnvoyFilter_Patch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 7}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 4}
 }
 func (m *EnvoyFilter_Patch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1662,7 +1277,7 @@ func (m *EnvoyFilter_EnvoyConfigObjectMatch) Reset()         { *m = EnvoyFilter_
 func (m *EnvoyFilter_EnvoyConfigObjectMatch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_EnvoyConfigObjectMatch) ProtoMessage()    {}
 func (*EnvoyFilter_EnvoyConfigObjectMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 8}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 5}
 }
 func (m *EnvoyFilter_EnvoyConfigObjectMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1790,7 +1405,7 @@ func (m *EnvoyFilter_EnvoyConfigObjectPatch) Reset()         { *m = EnvoyFilter_
 func (m *EnvoyFilter_EnvoyConfigObjectPatch) String() string { return proto.CompactTextString(m) }
 func (*EnvoyFilter_EnvoyConfigObjectPatch) ProtoMessage()    {}
 func (*EnvoyFilter_EnvoyConfigObjectPatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 9}
+	return fileDescriptor_16d9b2922bd3e4a9, []int{0, 6}
 }
 func (m *EnvoyFilter_EnvoyConfigObjectPatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1843,17 +1458,9 @@ func (m *EnvoyFilter_EnvoyConfigObjectPatch) GetPatch() *EnvoyFilter_Patch {
 func init() {
 	proto.RegisterEnum("istio.networking.v1alpha3.EnvoyFilter_ApplyTo", EnvoyFilter_ApplyTo_name, EnvoyFilter_ApplyTo_value)
 	proto.RegisterEnum("istio.networking.v1alpha3.EnvoyFilter_PatchContext", EnvoyFilter_PatchContext_name, EnvoyFilter_PatchContext_value)
-	proto.RegisterEnum("istio.networking.v1alpha3.EnvoyFilter_DeprecatedListenerMatch_ListenerType", EnvoyFilter_DeprecatedListenerMatch_ListenerType_name, EnvoyFilter_DeprecatedListenerMatch_ListenerType_value)
-	proto.RegisterEnum("istio.networking.v1alpha3.EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol", EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol_name, EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol_value)
-	proto.RegisterEnum("istio.networking.v1alpha3.EnvoyFilter_InsertPosition_Index", EnvoyFilter_InsertPosition_Index_name, EnvoyFilter_InsertPosition_Index_value)
-	proto.RegisterEnum("istio.networking.v1alpha3.EnvoyFilter_Filter_FilterType", EnvoyFilter_Filter_FilterType_name, EnvoyFilter_Filter_FilterType_value)
 	proto.RegisterEnum("istio.networking.v1alpha3.EnvoyFilter_RouteConfigurationMatch_RouteMatch_Action", EnvoyFilter_RouteConfigurationMatch_RouteMatch_Action_name, EnvoyFilter_RouteConfigurationMatch_RouteMatch_Action_value)
 	proto.RegisterEnum("istio.networking.v1alpha3.EnvoyFilter_Patch_Operation", EnvoyFilter_Patch_Operation_name, EnvoyFilter_Patch_Operation_value)
 	proto.RegisterType((*EnvoyFilter)(nil), "istio.networking.v1alpha3.EnvoyFilter")
-	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.EnvoyFilter.WorkloadLabelsEntry")
-	proto.RegisterType((*EnvoyFilter_DeprecatedListenerMatch)(nil), "istio.networking.v1alpha3.EnvoyFilter.DeprecatedListenerMatch")
-	proto.RegisterType((*EnvoyFilter_InsertPosition)(nil), "istio.networking.v1alpha3.EnvoyFilter.InsertPosition")
-	proto.RegisterType((*EnvoyFilter_Filter)(nil), "istio.networking.v1alpha3.EnvoyFilter.Filter")
 	proto.RegisterType((*EnvoyFilter_ProxyMatch)(nil), "istio.networking.v1alpha3.EnvoyFilter.ProxyMatch")
 	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.EnvoyFilter.ProxyMatch.MetadataEntry")
 	proto.RegisterType((*EnvoyFilter_ClusterMatch)(nil), "istio.networking.v1alpha3.EnvoyFilter.ClusterMatch")
@@ -1874,109 +1481,86 @@ func init() {
 }
 
 var fileDescriptor_16d9b2922bd3e4a9 = []byte{
-	// 1618 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x58, 0xcd, 0x73, 0xe3, 0x4a,
-	0x11, 0x8f, 0x6c, 0xcb, 0x1f, 0xed, 0x8f, 0x28, 0x93, 0xe5, 0xc5, 0x08, 0x6a, 0x5f, 0x30, 0xaf,
-	0xa8, 0x54, 0xc1, 0x2a, 0xbc, 0x04, 0xa8, 0xad, 0xdd, 0x62, 0x17, 0xc5, 0x51, 0x12, 0xd5, 0x3a,
-	0xb6, 0x19, 0x2b, 0x59, 0x16, 0x8a, 0x55, 0xc9, 0xf6, 0x24, 0x11, 0xab, 0x58, 0x46, 0x92, 0x9d,
-	0xb8, 0x8a, 0x2b, 0xf0, 0x87, 0xf0, 0x57, 0x70, 0xe7, 0x40, 0xc1, 0x85, 0x23, 0xc7, 0xad, 0xbd,
-	0x72, 0xa0, 0x8a, 0x03, 0x27, 0x0e, 0xd4, 0x7c, 0x48, 0xb6, 0xb3, 0xce, 0x96, 0x93, 0xec, 0xc9,
-	0x9a, 0x9e, 0xe9, 0xdf, 0xfc, 0xba, 0xa7, 0xbb, 0xa7, 0xc7, 0xf0, 0xbd, 0x01, 0x89, 0xae, 0xfc,
-	0xe0, 0x9d, 0x3b, 0x38, 0xdf, 0x1e, 0x7f, 0xed, 0x78, 0xc3, 0x0b, 0x67, 0x77, 0x9b, 0x0c, 0xc6,
-	0xfe, 0xc4, 0x3e, 0x73, 0xbd, 0x88, 0x04, 0xda, 0x30, 0xf0, 0x23, 0x1f, 0x7d, 0xd3, 0x0d, 0x23,
-	0xd7, 0xd7, 0xa6, 0xab, 0xb5, 0x78, 0xb5, 0xfa, 0xe5, 0xb9, 0xef, 0x9f, 0x7b, 0x64, 0xdb, 0x19,
-	0xba, 0xdb, 0x67, 0x2e, 0xf1, 0xfa, 0x76, 0x97, 0x5c, 0x38, 0x63, 0xd7, 0x17, 0xba, 0xea, 0xb7,
-	0xc5, 0x02, 0x36, 0xea, 0x8e, 0xce, 0xb6, 0xc3, 0x28, 0x18, 0xf5, 0x22, 0x31, 0xfb, 0x9d, 0x45,
-	0x0c, 0x42, 0xb7, 0x4f, 0x7a, 0x8e, 0x00, 0xa8, 0xfd, 0xa1, 0x06, 0x45, 0x83, 0x72, 0x3a, 0x60,
-	0x94, 0xd0, 0x39, 0xac, 0x52, 0x0d, 0xcf, 0x77, 0xfa, 0xb6, 0xe7, 0x74, 0x89, 0x17, 0x56, 0xa5,
-	0xcd, 0xf4, 0x56, 0x71, 0xe7, 0x99, 0x76, 0x2b, 0x4d, 0x6d, 0x06, 0x40, 0x7b, 0x2d, 0xb4, 0x1b,
-	0x4c, 0xd9, 0x18, 0x44, 0xc1, 0x64, 0x2f, 0x55, 0x95, 0x70, 0xe5, 0x6a, 0x6e, 0x02, 0xbd, 0x82,
-	0x1c, 0xf7, 0x42, 0x58, 0x4d, 0xb1, 0x0d, 0x9e, 0x2c, 0xb9, 0x01, 0xff, 0x61, 0x98, 0x31, 0x02,
-	0xfa, 0x05, 0xac, 0x25, 0xac, 0x43, 0xe2, 0x91, 0x5e, 0xe4, 0x07, 0xd5, 0xf4, 0xa6, 0xb4, 0x55,
-	0xdc, 0xf9, 0xfe, 0x27, 0x60, 0x63, 0xae, 0x1d, 0xa1, 0x82, 0x95, 0xab, 0x1b, 0x12, 0xe4, 0x42,
-	0xa5, 0xe7, 0x0f, 0xce, 0xdc, 0x73, 0x7b, 0xe8, 0x44, 0xbd, 0x0b, 0x12, 0x56, 0x33, 0x8c, 0xed,
-	0x4f, 0x97, 0x64, 0xcb, 0xbe, 0xeb, 0x0c, 0xa1, 0xd5, 0xfd, 0x0d, 0xe9, 0x45, 0x6d, 0x0a, 0xb3,
-	0x97, 0x7e, 0xaf, 0xa7, 0x70, 0x99, 0x23, 0xb7, 0x39, 0xb0, 0xfa, 0xef, 0x34, 0x6c, 0xec, 0x93,
-	0x61, 0x40, 0x7a, 0x4e, 0x44, 0xfa, 0x0d, 0x37, 0x8c, 0xc8, 0x80, 0x04, 0xc7, 0x74, 0x16, 0x7d,
-	0x09, 0xc5, 0xa1, 0x1f, 0x44, 0xf6, 0x60, 0x74, 0xd9, 0x25, 0x41, 0x55, 0xda, 0x94, 0xb6, 0xca,
-	0x18, 0xa8, 0xa8, 0xc9, 0x24, 0x68, 0x0b, 0x14, 0xbe, 0xc0, 0xb9, 0x24, 0xf6, 0x30, 0x20, 0x67,
-	0xee, 0x75, 0x35, 0xb5, 0x29, 0x6d, 0x15, 0x70, 0x85, 0xad, 0x72, 0x2e, 0x49, 0x9b, 0x49, 0xd1,
-	0x10, 0xca, 0x9e, 0xc0, 0xb6, 0xa3, 0xc9, 0x90, 0x30, 0x3f, 0x55, 0x76, 0x5e, 0x2d, 0x69, 0xd0,
-	0x2d, 0x0c, 0xb5, 0x78, 0x64, 0x4d, 0x86, 0x04, 0x97, 0xbc, 0x99, 0x11, 0xfa, 0x1d, 0xac, 0x25,
-	0x3b, 0xb2, 0xa8, 0xeb, 0xf9, 0x5e, 0x35, 0xc3, 0x76, 0x6d, 0x7d, 0xa6, 0x5d, 0xdb, 0x02, 0x16,
-	0x2b, 0xde, 0x0d, 0x09, 0xaa, 0x42, 0xce, 0xe9, 0xf7, 0x03, 0x12, 0x86, 0x55, 0x79, 0x33, 0xbd,
-	0x55, 0xc0, 0xf1, 0xb0, 0xd6, 0x82, 0xd2, 0x2c, 0x6b, 0x94, 0x83, 0xb4, 0xde, 0x7c, 0xa3, 0xac,
-	0xa0, 0x75, 0x58, 0xed, 0x98, 0xfb, 0x46, 0x5d, 0xc7, 0xb6, 0xd9, 0xdc, 0x6b, 0x9d, 0x34, 0xf7,
-	0x15, 0x09, 0x3d, 0x02, 0x25, 0x16, 0xb6, 0x4e, 0x2c, 0x2e, 0x4d, 0xa1, 0x22, 0xe4, 0x0e, 0x75,
-	0xcb, 0x78, 0xad, 0xbf, 0x51, 0xd2, 0x35, 0x0d, 0x94, 0x9b, 0x84, 0x18, 0x68, 0xa3, 0xa1, 0xac,
-	0xa0, 0x3c, 0x64, 0x8e, 0x2c, 0xab, 0xad, 0x48, 0x54, 0x64, 0xd5, 0xdb, 0x4a, 0x4a, 0xfd, 0xb3,
-	0x04, 0x15, 0x73, 0x10, 0x92, 0x20, 0x6a, 0xfb, 0xa1, 0x1b, 0xb9, 0xfe, 0x00, 0xfd, 0x1c, 0x64,
-	0x77, 0xd0, 0x27, 0xd7, 0xec, 0x88, 0x2b, 0x3b, 0xcf, 0x97, 0xf4, 0xcf, 0x3c, 0x8a, 0x66, 0x52,
-	0x08, 0xcc, 0x91, 0x68, 0xec, 0x04, 0xc4, 0x73, 0x22, 0x77, 0x4c, 0xec, 0xc8, 0x17, 0x51, 0x01,
-	0xb1, 0xc8, 0xf2, 0x6b, 0xbb, 0x20, 0x33, 0x05, 0x54, 0x00, 0xf9, 0xc0, 0xc4, 0x1d, 0x8b, 0xb3,
-	0x6d, 0xe8, 0x1d, 0x4b, 0x91, 0x10, 0x40, 0x76, 0xcf, 0x38, 0x68, 0x61, 0x43, 0x49, 0xd1, 0x05,
-	0xfa, 0x81, 0x65, 0x60, 0x25, 0xad, 0xfe, 0x2d, 0x0d, 0x59, 0x51, 0x33, 0x08, 0x54, 0x92, 0xf3,
-	0xbd, 0xa4, 0xc7, 0xc2, 0xc8, 0x17, 0x77, 0x5e, 0x3c, 0xec, 0x70, 0x71, 0x12, 0xa7, 0x3c, 0x07,
-	0xde, 0xc2, 0xaa, 0xcb, 0xcc, 0xb4, 0x87, 0xc2, 0x4e, 0x66, 0x4b, 0x71, 0xe7, 0xc7, 0xf7, 0x72,
-	0x12, 0xae, 0xb8, 0xf3, 0xae, 0x7f, 0x0b, 0x45, 0x5e, 0x4f, 0x66, 0xd3, 0xe2, 0xe9, 0x9d, 0xaa,
-	0x92, 0xf8, 0xa1, 0xd1, 0xc4, 0x53, 0x1c, 0xce, 0x12, 0x01, 0xfa, 0x2a, 0xc1, 0xa7, 0x49, 0xca,
-	0x12, 0xa0, 0x30, 0xb7, 0x8a, 0x26, 0x29, 0xd2, 0xa1, 0x2c, 0x56, 0xf1, 0xea, 0x50, 0x95, 0x99,
-	0x8d, 0x1b, 0x1a, 0xaf, 0xf4, 0x5a, 0x5c, 0xe9, 0xb5, 0x0e, 0xab, 0xf4, 0x1c, 0xa0, 0xc4, 0x55,
-	0x78, 0x9d, 0xa9, 0xfd, 0x10, 0x60, 0xca, 0x83, 0x46, 0xa8, 0xd9, 0x3c, 0xd5, 0x1b, 0xe6, 0xfe,
-	0x5c, 0x10, 0x16, 0x21, 0xd7, 0x34, 0xac, 0xd7, 0x2d, 0xfc, 0x4a, 0x49, 0xa9, 0x7f, 0x97, 0x00,
-	0xda, 0x81, 0x7f, 0x3d, 0xe1, 0x9e, 0xfe, 0x2e, 0x94, 0x87, 0x74, 0x64, 0x8f, 0x49, 0x10, 0x52,
-	0x3f, 0x4b, 0x2c, 0x66, 0x4a, 0x4c, 0x78, 0xca, 0x65, 0xe8, 0x57, 0x90, 0xbf, 0x24, 0x91, 0xd3,
-	0x77, 0x22, 0x47, 0x54, 0xf0, 0x97, 0x4b, 0xfa, 0x6a, 0xba, 0x93, 0x76, 0x2c, 0x10, 0xd8, 0x3d,
-	0x81, 0x13, 0x40, 0xf5, 0x39, 0x94, 0xe7, 0xa6, 0x90, 0x02, 0xe9, 0x77, 0x64, 0x22, 0x88, 0xd0,
-	0x4f, 0xf4, 0x08, 0xe4, 0xb1, 0xe3, 0x8d, 0x88, 0x08, 0x68, 0x3e, 0x78, 0x96, 0x7a, 0x2a, 0xa9,
-	0x23, 0x28, 0xd5, 0xbd, 0x51, 0x18, 0x2d, 0x5d, 0x3c, 0xab, 0x90, 0x0b, 0x49, 0x30, 0x76, 0x7b,
-	0x31, 0x58, 0x3c, 0x44, 0x5f, 0x40, 0x36, 0x1c, 0x75, 0x43, 0x12, 0xb1, 0x70, 0x28, 0x60, 0x31,
-	0x42, 0x08, 0x32, 0xd3, 0x43, 0xc4, 0xec, 0x5b, 0xfd, 0x4b, 0x06, 0x36, 0xb0, 0x3f, 0x8a, 0x08,
-	0x3f, 0x86, 0x51, 0xe0, 0xd0, 0xb0, 0x5a, 0x92, 0xc2, 0xb7, 0xa0, 0x90, 0xd4, 0x6f, 0x41, 0x22,
-	0x1f, 0x17, 0x6e, 0xca, 0xef, 0xdc, 0x89, 0xc8, 0x95, 0x33, 0x11, 0x34, 0xe2, 0x21, 0x22, 0x20,
-	0x8f, 0x2f, 0xfc, 0x30, 0x62, 0x44, 0x8a, 0x4b, 0x97, 0xd3, 0x5b, 0x68, 0x6a, 0xa7, 0x6e, 0x10,
-	0x8d, 0x1c, 0xef, 0xc8, 0x0f, 0x23, 0x9e, 0x82, 0x1c, 0x3d, 0x31, 0x57, 0x9e, 0x31, 0x97, 0xc6,
-	0x0c, 0xc3, 0xe1, 0x16, 0xc6, 0x4b, 0xa4, 0xe9, 0x12, 0x74, 0x01, 0x59, 0xa7, 0x97, 0x24, 0x6a,
-	0x65, 0xa7, 0xfd, 0x40, 0x7a, 0xd3, 0xed, 0x34, 0x9d, 0xe1, 0x62, 0x81, 0x5f, 0x7b, 0x09, 0x59,
-	0x2e, 0x99, 0x16, 0xf1, 0x02, 0xc8, 0xb8, 0x75, 0x62, 0x19, 0x8a, 0x84, 0x4a, 0x90, 0xc7, 0xc6,
-	0xbe, 0x89, 0x8d, 0xba, 0xa5, 0xa4, 0x68, 0x75, 0xe7, 0xdf, 0x36, 0x36, 0x3a, 0xed, 0x56, 0xb3,
-	0x63, 0x28, 0x69, 0xf5, 0x8f, 0x12, 0x28, 0x37, 0xad, 0x5f, 0x68, 0x93, 0x0d, 0x72, 0x40, 0x69,
-	0x88, 0xda, 0x63, 0x7e, 0x36, 0x93, 0x30, 0xc7, 0x55, 0xff, 0x93, 0x81, 0xf2, 0x1d, 0x2f, 0xff,
-	0x4f, 0x06, 0xcf, 0x05, 0x94, 0xe2, 0x82, 0x72, 0xe1, 0xb8, 0x03, 0xd1, 0x16, 0x19, 0x4b, 0xf2,
-	0x9e, 0xbf, 0x6e, 0xb9, 0xb0, 0x4e, 0x71, 0x38, 0x67, 0x51, 0xd1, 0x98, 0x64, 0x61, 0x52, 0xfc,
-	0x57, 0x02, 0xe5, 0xa6, 0xd6, 0x42, 0xbf, 0x2a, 0x90, 0x0e, 0x07, 0xae, 0x60, 0x4f, 0x3f, 0xd1,
-	0x13, 0x40, 0x51, 0xe0, 0x0c, 0x42, 0x66, 0x5a, 0xd2, 0x37, 0xf0, 0x04, 0x58, 0x4b, 0x66, 0x92,
-	0x8b, 0x76, 0x17, 0xbe, 0xe1, 0x0c, 0x87, 0x9e, 0xdb, 0x63, 0xde, 0x4d, 0x14, 0x42, 0x41, 0xe7,
-	0xd1, 0xcc, 0x64, 0xac, 0x43, 0x1b, 0xc7, 0x2c, 0xb7, 0x40, 0x94, 0xd9, 0x9f, 0x3d, 0xc0, 0x2d,
-	0xdc, 0x23, 0x02, 0x4f, 0xfd, 0xbd, 0x04, 0xc5, 0x19, 0xf9, 0x42, 0x9b, 0xbb, 0x00, 0xe1, 0xa8,
-	0x2b, 0x5e, 0x03, 0x22, 0xa0, 0xea, 0xf7, 0x62, 0xd0, 0x19, 0x75, 0x67, 0x49, 0x14, 0xc2, 0x78,
-	0xac, 0x7e, 0x05, 0x95, 0xf9, 0xc9, 0x45, 0x4c, 0xd4, 0x7f, 0x49, 0x20, 0xb3, 0x3e, 0x14, 0x59,
-	0x50, 0xf0, 0x87, 0x84, 0x87, 0xa8, 0x68, 0x42, 0x7e, 0xb2, 0x6c, 0x5d, 0x67, 0x54, 0x5a, 0xb1,
-	0x36, 0x9e, 0x02, 0xa1, 0x27, 0xb3, 0xc5, 0xfa, 0xf6, 0xdb, 0x4c, 0x54, 0xf1, 0xda, 0xaf, 0xa1,
-	0x90, 0xc0, 0xcc, 0x5f, 0x60, 0x05, 0x90, 0x8f, 0x0d, 0x7c, 0x68, 0xf0, 0x36, 0x4a, 0xdf, 0xa7,
-	0x3d, 0x18, 0x40, 0x16, 0x1b, 0xc7, 0xad, 0x53, 0x43, 0x49, 0xa3, 0x35, 0x28, 0x9b, 0xcd, 0x8e,
-	0x81, 0x2d, 0x5b, 0x34, 0x2d, 0x19, 0xa4, 0x40, 0x49, 0x88, 0x78, 0xef, 0x22, 0xab, 0xff, 0x4c,
-	0xc3, 0x17, 0x1f, 0x35, 0xe6, 0xdc, 0x39, 0xc7, 0x90, 0xeb, 0xf9, 0x83, 0x88, 0x5c, 0x47, 0xc2,
-	0xf8, 0xdd, 0xbb, 0x18, 0x5f, 0xe7, 0xaa, 0x38, 0xc6, 0x40, 0x87, 0x20, 0xb3, 0x4b, 0x53, 0xd8,
-	0xfd, 0xf5, 0x9d, 0x6f, 0x48, 0xcc, 0xf5, 0x11, 0x86, 0x7c, 0xdc, 0x0d, 0x89, 0x0c, 0xfe, 0xd1,
-	0x7d, 0x02, 0xe5, 0x68, 0x05, 0x27, 0x38, 0xe8, 0xb7, 0xb0, 0xce, 0x4a, 0x8e, 0xe8, 0x34, 0x44,
-	0x5d, 0x12, 0x57, 0xc9, 0x8b, 0x87, 0x15, 0xb6, 0xa3, 0x15, 0x8c, 0x82, 0x8f, 0xa6, 0x50, 0x0b,
-	0x72, 0x3d, 0x7e, 0x35, 0x8b, 0x84, 0x5b, 0xd6, 0xbd, 0xb3, 0x17, 0xfa, 0xd1, 0x0a, 0x8e, 0x51,
-	0xf6, 0x2a, 0x50, 0xf2, 0xd9, 0xf1, 0xb1, 0xa6, 0x2d, 0x54, 0xff, 0x27, 0x2d, 0x38, 0x5a, 0x1e,
-	0xd9, 0x26, 0xe4, 0x69, 0x0d, 0x98, 0xd0, 0x26, 0x98, 0x9f, 0xad, 0xb6, 0xe4, 0xe6, 0x3a, 0x55,
-	0xb3, 0x7c, 0x9c, 0x73, 0xf8, 0x07, 0xea, 0x80, 0xcc, 0x1b, 0x5d, 0x7e, 0xac, 0xf7, 0x7e, 0x0c,
-	0x8a, 0x23, 0x66, 0x58, 0x68, 0x0f, 0x64, 0xf6, 0xc6, 0x14, 0xe7, 0xfb, 0x83, 0xbb, 0x04, 0x1e,
-	0xe6, 0xaa, 0xaa, 0x0e, 0xeb, 0x0b, 0x1e, 0xe0, 0x77, 0xe9, 0x9e, 0x6a, 0x7f, 0x92, 0x20, 0x27,
-	0x0c, 0x9e, 0x4f, 0xbd, 0x12, 0xe4, 0x1b, 0x66, 0xc7, 0x32, 0x9a, 0x06, 0x56, 0x24, 0x9a, 0x55,
-	0x07, 0x66, 0xc3, 0x32, 0xb0, 0x5d, 0x3f, 0xd2, 0xcd, 0xa6, 0x92, 0x42, 0x08, 0x2a, 0xa2, 0xa3,
-	0xb4, 0xf9, 0x8c, 0x92, 0x46, 0xab, 0x50, 0xa4, 0xfd, 0x66, 0x2c, 0xc8, 0xa0, 0x0d, 0x58, 0x67,
-	0xb7, 0xb2, 0x5d, 0x6f, 0x35, 0x0f, 0xcc, 0xc3, 0x13, 0xac, 0x5b, 0x66, 0xab, 0xa9, 0xc8, 0x14,
-	0xef, 0xd4, 0xc4, 0xd6, 0x89, 0xde, 0xb0, 0x8f, 0x5a, 0x1d, 0x4b, 0xc9, 0xa2, 0x0a, 0x00, 0xd3,
-	0xe5, 0xb7, 0x78, 0x8e, 0x92, 0xa9, 0x37, 0x4e, 0x3a, 0x14, 0x27, 0x4f, 0xdf, 0x6e, 0xb3, 0x19,
-	0xf7, 0xe0, 0xb7, 0xdb, 0x9e, 0xf6, 0xd7, 0x0f, 0x8f, 0xa5, 0x7f, 0x7c, 0x78, 0x2c, 0xbd, 0xff,
-	0xf0, 0x58, 0xfa, 0xe5, 0x26, 0xf7, 0xbd, 0xeb, 0xb3, 0xbf, 0x5e, 0x16, 0xfc, 0x8d, 0xd2, 0xcd,
-	0xb2, 0xd2, 0xb5, 0xfb, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0x50, 0xdf, 0x9f, 0x24, 0xe6, 0x11,
-	0x00, 0x00,
+	// 1258 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x57, 0xdd, 0x72, 0xdb, 0x44,
+	0x14, 0x8e, 0xfc, 0xef, 0x63, 0xc7, 0x51, 0x37, 0xa5, 0x31, 0x82, 0x69, 0x43, 0x60, 0x98, 0xce,
+	0x40, 0x95, 0xa9, 0xc3, 0x30, 0x0c, 0x0c, 0x14, 0xc7, 0x51, 0x62, 0x95, 0xc4, 0xf2, 0xac, 0x95,
+	0xb4, 0x85, 0x0b, 0x8d, 0xac, 0x6c, 0x62, 0x51, 0x45, 0x6b, 0xa4, 0xb5, 0x5b, 0x3f, 0x00, 0xc3,
+	0x83, 0xf0, 0x2a, 0x5c, 0x30, 0x70, 0xc3, 0x25, 0x97, 0x9d, 0x3e, 0x02, 0x17, 0x5c, 0xc1, 0x0c,
+	0xa3, 0xdd, 0x95, 0xed, 0xb4, 0x6e, 0xc7, 0x6d, 0xb9, 0xdb, 0xfd, 0x76, 0xcf, 0xe7, 0xef, 0x9c,
+	0x3d, 0x3f, 0x32, 0x7c, 0x18, 0x12, 0xf6, 0x88, 0x46, 0x0f, 0xfd, 0xf0, 0x7c, 0x7b, 0x7c, 0xdb,
+	0x0d, 0x86, 0x03, 0x77, 0x67, 0x9b, 0x84, 0x63, 0x3a, 0x71, 0xce, 0xfc, 0x80, 0x91, 0x48, 0x1f,
+	0x46, 0x94, 0x51, 0xf4, 0xb6, 0x1f, 0x33, 0x9f, 0xea, 0xb3, 0xdb, 0x7a, 0x7a, 0x5b, 0xbb, 0x71,
+	0x4e, 0xe9, 0x79, 0x40, 0xb6, 0xdd, 0xa1, 0xbf, 0x7d, 0xe6, 0x93, 0xe0, 0xd4, 0xe9, 0x93, 0x81,
+	0x3b, 0xf6, 0xa9, 0xb4, 0xd5, 0xde, 0x95, 0x17, 0xf8, 0xae, 0x3f, 0x3a, 0xdb, 0x8e, 0x59, 0x34,
+	0xf2, 0x98, 0x3c, 0x7d, 0x6f, 0x91, 0x82, 0xd8, 0x3f, 0x25, 0x9e, 0x2b, 0x09, 0xb6, 0x7e, 0xdb,
+	0x80, 0x8a, 0x91, 0x68, 0xda, 0xe7, 0x92, 0xd0, 0x7d, 0xb8, 0x92, 0x58, 0x04, 0xd4, 0x3d, 0x75,
+	0x62, 0x12, 0x10, 0x8f, 0xd1, 0xa8, 0x9e, 0xdd, 0x54, 0x6e, 0x56, 0x1a, 0x1f, 0xe9, 0x2f, 0x14,
+	0xaa, 0xdf, 0x93, 0x36, 0x3d, 0x69, 0x82, 0xd5, 0x47, 0xcf, 0x20, 0xc8, 0x87, 0x9a, 0x47, 0xc3,
+	0x33, 0xff, 0xdc, 0x19, 0xba, 0xcc, 0x1b, 0x90, 0xb8, 0x9e, 0xdb, 0xcc, 0xde, 0xac, 0x34, 0xbe,
+	0x7c, 0x09, 0xed, 0x9c, 0x32, 0xb1, 0x6e, 0x71, 0x06, 0xab, 0xff, 0x3d, 0xf1, 0x58, 0x37, 0xa1,
+	0xd9, 0xcd, 0x3e, 0x69, 0x66, 0xf0, 0xaa, 0x60, 0xee, 0x0a, 0x62, 0xed, 0x77, 0x05, 0xa0, 0x1b,
+	0xd1, 0xc7, 0x93, 0xa3, 0x04, 0x40, 0xef, 0xc3, 0xea, 0x30, 0xd9, 0x39, 0x63, 0x12, 0xc5, 0x3e,
+	0x0d, 0xeb, 0xca, 0xa6, 0x72, 0xb3, 0x8c, 0xab, 0x1c, 0x3c, 0x11, 0x18, 0xfa, 0x0e, 0x4a, 0x17,
+	0x84, 0xb9, 0xa7, 0x2e, 0x73, 0xeb, 0x19, 0x2e, 0xec, 0xce, 0x92, 0xc2, 0x66, 0xbf, 0xa4, 0x1f,
+	0x49, 0x06, 0x23, 0x64, 0xd1, 0x04, 0x4f, 0x09, 0xb5, 0x2f, 0x60, 0xf5, 0xd2, 0x11, 0x52, 0x21,
+	0xfb, 0x90, 0x4c, 0xa4, 0x90, 0x64, 0x89, 0xae, 0x42, 0x7e, 0xec, 0x06, 0x23, 0x52, 0xcf, 0x70,
+	0x4c, 0x6c, 0x3e, 0xcf, 0x7c, 0xa6, 0x68, 0x23, 0xa8, 0xb6, 0x82, 0x51, 0xcc, 0x48, 0x24, 0xdc,
+	0xb9, 0x01, 0x95, 0x21, 0x8d, 0x98, 0x13, 0x8e, 0x2e, 0xfa, 0x24, 0xe2, 0x1c, 0xab, 0x18, 0x12,
+	0xa8, 0xc3, 0x11, 0x54, 0x87, 0x62, 0x4c, 0xa2, 0xb1, 0xef, 0xa5, 0x64, 0xe9, 0x16, 0x5d, 0x83,
+	0x42, 0x3c, 0xea, 0xc7, 0x84, 0xf1, 0x27, 0x2d, 0x63, 0xb9, 0x43, 0x08, 0x72, 0xa1, 0x7b, 0x41,
+	0xea, 0x39, 0x8e, 0xf2, 0xb5, 0xf6, 0x4b, 0x0e, 0x36, 0x30, 0x1d, 0x31, 0x22, 0x62, 0x3e, 0x8a,
+	0x5c, 0xe6, 0xd3, 0x70, 0x49, 0x09, 0xef, 0x40, 0x59, 0x5c, 0x48, 0x58, 0x85, 0x88, 0x12, 0x3f,
+	0x76, 0x2f, 0x48, 0xa2, 0xef, 0xdc, 0x65, 0xe4, 0x91, 0x3b, 0x91, 0x32, 0xd2, 0x2d, 0x22, 0x90,
+	0x1f, 0x0f, 0x68, 0xcc, 0xb8, 0x90, 0x4a, 0xc3, 0x5a, 0xf2, 0x05, 0x5e, 0x20, 0x53, 0x3f, 0xf1,
+	0x23, 0x36, 0x72, 0x83, 0x36, 0x8d, 0x19, 0x07, 0xb0, 0x60, 0x9f, 0xba, 0x9b, 0x9f, 0x73, 0x37,
+	0xc9, 0x19, 0xce, 0x23, 0x3c, 0x4c, 0xaf, 0x28, 0xb3, 0x2b, 0x68, 0x00, 0x05, 0xd7, 0x4b, 0xd8,
+	0xb9, 0x47, 0xb5, 0x46, 0xf7, 0x0d, 0xe5, 0xcd, 0x7e, 0x4e, 0x6f, 0x72, 0x5e, 0x2c, 0xf9, 0xb7,
+	0xee, 0x40, 0x41, 0x20, 0xa8, 0x08, 0xd9, 0x66, 0xe7, 0x81, 0xba, 0x82, 0xca, 0x90, 0xc7, 0xd6,
+	0xb1, 0x6d, 0xa8, 0x0a, 0xaa, 0x42, 0x09, 0x1b, 0x7b, 0x26, 0x36, 0x5a, 0xb6, 0x9a, 0x41, 0xeb,
+	0xb0, 0x26, 0xd6, 0x0e, 0x36, 0x7a, 0x5d, 0xab, 0xd3, 0x33, 0xd4, 0xac, 0xf6, 0x93, 0x02, 0xea,
+	0xb3, 0xde, 0x2f, 0xf4, 0xc9, 0x81, 0x7c, 0x94, 0xc8, 0xe0, 0x2e, 0x55, 0x1a, 0xe6, 0xff, 0xe6,
+	0x12, 0x16, 0xbc, 0xda, 0x5f, 0x39, 0x58, 0x3d, 0xf4, 0x63, 0x46, 0xc2, 0xa5, 0xf3, 0xf7, 0xa5,
+	0xc9, 0x33, 0x80, 0xaa, 0xe8, 0x9e, 0x8e, 0x37, 0x70, 0xfd, 0x50, 0xf6, 0x26, 0x63, 0x49, 0xdd,
+	0x97, 0x94, 0xe8, 0x02, 0x6c, 0x25, 0x3c, 0x42, 0x73, 0xe5, 0x6c, 0x86, 0x2c, 0x2c, 0x8a, 0xbf,
+	0x15, 0x50, 0x9f, 0xb5, 0x5a, 0x18, 0x57, 0x15, 0xb2, 0x71, 0xe8, 0x4b, 0xf5, 0xc9, 0x12, 0xdd,
+	0x02, 0xc4, 0x22, 0x37, 0x8c, 0xb9, 0x6b, 0xbc, 0xf9, 0x7a, 0x34, 0x90, 0x05, 0x70, 0x65, 0x7a,
+	0xd2, 0x95, 0x07, 0x68, 0x07, 0xde, 0x72, 0x87, 0xc3, 0xc0, 0xf7, 0x78, 0x74, 0xa7, 0x06, 0xb1,
+	0x94, 0x73, 0x75, 0xee, 0x30, 0xb5, 0x89, 0xd1, 0x7d, 0x28, 0x08, 0x0f, 0x78, 0x6a, 0x57, 0x1a,
+	0x5f, 0xbf, 0x41, 0x58, 0x44, 0x44, 0x24, 0x9f, 0xf6, 0xa3, 0x02, 0x95, 0x39, 0x7c, 0xa1, 0xcf,
+	0x7d, 0x80, 0x78, 0xd4, 0x97, 0xc3, 0x4d, 0x26, 0x54, 0xeb, 0xb5, 0x14, 0xf4, 0x46, 0xfd, 0x79,
+	0x11, 0xe5, 0x38, 0xdd, 0x6b, 0x1f, 0x40, 0xed, 0xf2, 0xe1, 0x22, 0x25, 0xda, 0xbf, 0x0a, 0xe4,
+	0xf9, 0x30, 0x40, 0x36, 0x94, 0xe9, 0x90, 0x88, 0x14, 0xe5, 0x57, 0x6a, 0x8d, 0x4f, 0x97, 0xed,
+	0xeb, 0x5c, 0x8a, 0x95, 0x5a, 0xe3, 0x19, 0x11, 0xba, 0x35, 0xdf, 0xac, 0x2b, 0x8d, 0x0d, 0x5d,
+	0x8c, 0x61, 0x3d, 0x1d, 0xc3, 0x7a, 0x8f, 0x8f, 0x61, 0xd9, 0xc5, 0xb7, 0x28, 0x94, 0xa7, 0x34,
+	0xa8, 0x02, 0x45, 0xb3, 0x73, 0xd2, 0x3c, 0x34, 0xf7, 0x44, 0x55, 0x1f, 0x19, 0xf8, 0x20, 0xa9,
+	0xea, 0xa4, 0xd2, 0xf7, 0xf6, 0xd4, 0x0c, 0x02, 0x28, 0x60, 0xe3, 0xc8, 0x3a, 0x31, 0xd4, 0x2c,
+	0xba, 0x02, 0xab, 0x66, 0xa7, 0x67, 0x60, 0xdb, 0xd9, 0x35, 0xf6, 0x2d, 0x6c, 0xa8, 0x39, 0xa4,
+	0x42, 0x55, 0x42, 0xcd, 0x7d, 0xdb, 0xc0, 0x6a, 0x7e, 0x0e, 0xd9, 0x37, 0x71, 0xcf, 0x56, 0x0b,
+	0xda, 0x9f, 0x59, 0xb8, 0xf6, 0xdc, 0xbc, 0x14, 0xe1, 0x3a, 0x82, 0xa2, 0x47, 0x43, 0x46, 0x1e,
+	0x33, 0x19, 0x8e, 0x9d, 0x57, 0x09, 0x47, 0x4b, 0x98, 0xe2, 0x94, 0x03, 0x1d, 0x40, 0x9e, 0x8f,
+	0x51, 0x19, 0x89, 0xdb, 0xaf, 0x3c, 0x33, 0xb1, 0xb0, 0x47, 0x18, 0x4a, 0x81, 0xcc, 0x01, 0x59,
+	0xd3, 0x9f, 0xbc, 0x4e, 0xea, 0xb4, 0x57, 0xf0, 0x94, 0x07, 0xfd, 0x00, 0xeb, 0xbc, 0x09, 0x39,
+	0xde, 0x7c, 0xa7, 0x92, 0xc3, 0xe5, 0xab, 0x37, 0x6b, 0x75, 0xed, 0x15, 0x8c, 0xa2, 0xe7, 0x8e,
+	0x90, 0x05, 0x45, 0x4f, 0x0c, 0x6b, 0x59, 0x82, 0xcb, 0x86, 0x77, 0x7e, 0xc4, 0xb7, 0x57, 0x70,
+	0xca, 0xb2, 0x5b, 0x83, 0x2a, 0xe5, 0xcf, 0xe7, 0xb0, 0xc9, 0x90, 0xc4, 0xda, 0x3f, 0xca, 0x82,
+	0xa7, 0x15, 0xb9, 0x6e, 0x42, 0x29, 0xe9, 0x0a, 0x13, 0x87, 0x51, 0xf9, 0xb6, 0xfa, 0x92, 0x3f,
+	0xde, 0x4c, 0xcc, 0x6c, 0x8a, 0x8b, 0xae, 0x58, 0xa0, 0x1e, 0xe4, 0x2f, 0x12, 0x4e, 0xf9, 0xac,
+	0xaf, 0xfd, 0x8d, 0x26, 0x9f, 0x98, 0x73, 0xa1, 0x5d, 0xc8, 0xf3, 0x4f, 0x3f, 0xf9, 0xbe, 0x1f,
+	0xbf, 0x4a, 0xe2, 0x61, 0x61, 0xba, 0xf5, 0xb3, 0x02, 0x45, 0xa9, 0xf6, 0x72, 0x25, 0x55, 0xa1,
+	0x74, 0x68, 0xf6, 0x6c, 0xa3, 0x63, 0x60, 0x55, 0x49, 0x4a, 0x62, 0xdf, 0x3c, 0xb4, 0x0d, 0xec,
+	0xb4, 0xda, 0x4d, 0xb3, 0xa3, 0x66, 0x10, 0x82, 0x5a, 0xc7, 0xb0, 0xef, 0x59, 0xf8, 0x1b, 0x47,
+	0x9c, 0xa8, 0x59, 0xb4, 0x06, 0x95, 0xb6, 0x6d, 0x77, 0x53, 0x20, 0x87, 0x36, 0x60, 0x9d, 0x0f,
+	0x59, 0xa7, 0x65, 0x75, 0xf6, 0xcd, 0x83, 0x63, 0xdc, 0xb4, 0x4d, 0xab, 0x23, 0x4a, 0xec, 0xc4,
+	0xc4, 0xf6, 0x71, 0xf3, 0xd0, 0x69, 0x5b, 0x49, 0x89, 0xa1, 0x1a, 0x00, 0xb7, 0x15, 0x43, 0xb9,
+	0x98, 0x88, 0x69, 0x1d, 0x1e, 0xf7, 0x12, 0x9e, 0xd2, 0x96, 0x05, 0xd5, 0xf9, 0x72, 0x99, 0x4d,
+	0xf1, 0x75, 0x58, 0xeb, 0x99, 0x7b, 0x46, 0xab, 0x89, 0x1d, 0xb3, 0xb3, 0x6b, 0x1d, 0x77, 0xf6,
+	0x54, 0x05, 0x5d, 0x05, 0x35, 0x05, 0xad, 0x63, 0x5b, 0xa0, 0x99, 0x84, 0xf0, 0xa0, 0x69, 0x1b,
+	0xf7, 0x9a, 0x0f, 0xd4, 0xec, 0xdd, 0x5c, 0x49, 0x51, 0x33, 0x77, 0x73, 0xa5, 0x8c, 0x9a, 0xc5,
+	0x45, 0xd1, 0x60, 0x63, 0xbc, 0x36, 0xfd, 0x52, 0x0f, 0xdc, 0x3e, 0x09, 0xe2, 0x5d, 0xfd, 0xd7,
+	0xa7, 0xd7, 0x95, 0x3f, 0x9e, 0x5e, 0x57, 0x9e, 0x3c, 0xbd, 0xae, 0x7c, 0xbb, 0x29, 0xc2, 0xeb,
+	0x53, 0xfe, 0xf7, 0x61, 0xc1, 0x5f, 0x81, 0x7e, 0x81, 0xf7, 0xab, 0x9d, 0xff, 0x02, 0x00, 0x00,
+	0xff, 0xff, 0x5f, 0x96, 0x10, 0xbc, 0xaa, 0x0c, 0x00, 0x00,
 }
 
 func (m *EnvoyFilter) Marshal() (dAtA []byte, err error) {
@@ -2028,211 +1612,6 @@ func (m *EnvoyFilter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 		i--
 		dAtA[i] = 0x1a
-	}
-	if len(m.Filters) > 0 {
-		for iNdEx := len(m.Filters) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Filters[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintEnvoyFilter(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if len(m.WorkloadLabels) > 0 {
-		for k := range m.WorkloadLabels {
-			v := m.WorkloadLabels[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintEnvoyFilter(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintEnvoyFilter(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintEnvoyFilter(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0xa
-		}
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.Address) > 0 {
-		for iNdEx := len(m.Address) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Address[iNdEx])
-			copy(dAtA[i:], m.Address[iNdEx])
-			i = encodeVarintEnvoyFilter(dAtA, i, uint64(len(m.Address[iNdEx])))
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
-	if m.ListenerProtocol != 0 {
-		i = encodeVarintEnvoyFilter(dAtA, i, uint64(m.ListenerProtocol))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.ListenerType != 0 {
-		i = encodeVarintEnvoyFilter(dAtA, i, uint64(m.ListenerType))
-		i--
-		dAtA[i] = 0x18
-	}
-	if len(m.PortNamePrefix) > 0 {
-		i -= len(m.PortNamePrefix)
-		copy(dAtA[i:], m.PortNamePrefix)
-		i = encodeVarintEnvoyFilter(dAtA, i, uint64(len(m.PortNamePrefix)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.PortNumber != 0 {
-		i = encodeVarintEnvoyFilter(dAtA, i, uint64(m.PortNumber))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *EnvoyFilter_InsertPosition) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *EnvoyFilter_InsertPosition) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EnvoyFilter_InsertPosition) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.RelativeTo) > 0 {
-		i -= len(m.RelativeTo)
-		copy(dAtA[i:], m.RelativeTo)
-		i = encodeVarintEnvoyFilter(dAtA, i, uint64(len(m.RelativeTo)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.Index != 0 {
-		i = encodeVarintEnvoyFilter(dAtA, i, uint64(m.Index))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *EnvoyFilter_Filter) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *EnvoyFilter_Filter) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EnvoyFilter_Filter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if m.FilterConfig != nil {
-		{
-			size, err := m.FilterConfig.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEnvoyFilter(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.FilterName) > 0 {
-		i -= len(m.FilterName)
-		copy(dAtA[i:], m.FilterName)
-		i = encodeVarintEnvoyFilter(dAtA, i, uint64(len(m.FilterName)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if m.FilterType != 0 {
-		i = encodeVarintEnvoyFilter(dAtA, i, uint64(m.FilterType))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.InsertPosition != nil {
-		{
-			size, err := m.InsertPosition.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEnvoyFilter(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.ListenerMatch != nil {
-		{
-			size, err := m.ListenerMatch.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEnvoyFilter(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -2928,20 +2307,6 @@ func (m *EnvoyFilter) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.WorkloadLabels) > 0 {
-		for k, v := range m.WorkloadLabels {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovEnvoyFilter(uint64(len(k))) + 1 + len(v) + sovEnvoyFilter(uint64(len(v)))
-			n += mapEntrySize + 1 + sovEnvoyFilter(uint64(mapEntrySize))
-		}
-	}
-	if len(m.Filters) > 0 {
-		for _, e := range m.Filters {
-			l = e.Size()
-			n += 1 + l + sovEnvoyFilter(uint64(l))
-		}
-	}
 	if m.WorkloadSelector != nil {
 		l = m.WorkloadSelector.Size()
 		n += 1 + l + sovEnvoyFilter(uint64(l))
@@ -2951,87 +2316,6 @@ func (m *EnvoyFilter) Size() (n int) {
 			l = e.Size()
 			n += 1 + l + sovEnvoyFilter(uint64(l))
 		}
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *EnvoyFilter_DeprecatedListenerMatch) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.PortNumber != 0 {
-		n += 1 + sovEnvoyFilter(uint64(m.PortNumber))
-	}
-	l = len(m.PortNamePrefix)
-	if l > 0 {
-		n += 1 + l + sovEnvoyFilter(uint64(l))
-	}
-	if m.ListenerType != 0 {
-		n += 1 + sovEnvoyFilter(uint64(m.ListenerType))
-	}
-	if m.ListenerProtocol != 0 {
-		n += 1 + sovEnvoyFilter(uint64(m.ListenerProtocol))
-	}
-	if len(m.Address) > 0 {
-		for _, s := range m.Address {
-			l = len(s)
-			n += 1 + l + sovEnvoyFilter(uint64(l))
-		}
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *EnvoyFilter_InsertPosition) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Index != 0 {
-		n += 1 + sovEnvoyFilter(uint64(m.Index))
-	}
-	l = len(m.RelativeTo)
-	if l > 0 {
-		n += 1 + l + sovEnvoyFilter(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *EnvoyFilter_Filter) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.ListenerMatch != nil {
-		l = m.ListenerMatch.Size()
-		n += 1 + l + sovEnvoyFilter(uint64(l))
-	}
-	if m.InsertPosition != nil {
-		l = m.InsertPosition.Size()
-		n += 1 + l + sovEnvoyFilter(uint64(l))
-	}
-	if m.FilterType != 0 {
-		n += 1 + sovEnvoyFilter(uint64(m.FilterType))
-	}
-	l = len(m.FilterName)
-	if l > 0 {
-		n += 1 + l + sovEnvoyFilter(uint64(l))
-	}
-	if m.FilterConfig != nil {
-		l = m.FilterConfig.Size()
-		n += 1 + l + sovEnvoyFilter(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -3390,167 +2674,6 @@ func (m *EnvoyFilter) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: EnvoyFilter: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WorkloadLabels", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.WorkloadLabels == nil {
-				m.WorkloadLabels = make(map[string]string)
-			}
-			var mapkey string
-			var mapvalue string
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowEnvoyFilter
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowEnvoyFilter
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthEnvoyFilter
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthEnvoyFilter
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var stringLenmapvalue uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowEnvoyFilter
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapvalue |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapvalue := int(stringLenmapvalue)
-					if intStringLenmapvalue < 0 {
-						return ErrInvalidLengthEnvoyFilter
-					}
-					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-					if postStringIndexmapvalue < 0 {
-						return ErrInvalidLengthEnvoyFilter
-					}
-					if postStringIndexmapvalue > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
-					iNdEx = postStringIndexmapvalue
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipEnvoyFilter(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if skippy < 0 {
-						return ErrInvalidLengthEnvoyFilter
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.WorkloadLabels[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Filters", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Filters = append(m.Filters, &EnvoyFilter_Filter{})
-			if err := m.Filters[len(m.Filters)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WorkloadSelector", wireType)
@@ -3618,499 +2741,6 @@ func (m *EnvoyFilter) Unmarshal(dAtA []byte) error {
 			}
 			m.ConfigPatches = append(m.ConfigPatches, &EnvoyFilter_EnvoyConfigObjectPatch{})
 			if err := m.ConfigPatches[len(m.ConfigPatches)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipEnvoyFilter(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *EnvoyFilter_DeprecatedListenerMatch) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowEnvoyFilter
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeprecatedListenerMatch: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeprecatedListenerMatch: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PortNumber", wireType)
-			}
-			m.PortNumber = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.PortNumber |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PortNamePrefix", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PortNamePrefix = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ListenerType", wireType)
-			}
-			m.ListenerType = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ListenerType |= EnvoyFilter_DeprecatedListenerMatch_ListenerType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ListenerProtocol", wireType)
-			}
-			m.ListenerProtocol = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ListenerProtocol |= EnvoyFilter_DeprecatedListenerMatch_ListenerProtocol(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Address = append(m.Address, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipEnvoyFilter(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *EnvoyFilter_InsertPosition) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowEnvoyFilter
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: InsertPosition: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: InsertPosition: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
-			}
-			m.Index = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Index |= EnvoyFilter_InsertPosition_Index(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RelativeTo", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RelativeTo = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipEnvoyFilter(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *EnvoyFilter_Filter) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowEnvoyFilter
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Filter: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Filter: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ListenerMatch", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.ListenerMatch == nil {
-				m.ListenerMatch = &EnvoyFilter_DeprecatedListenerMatch{}
-			}
-			if err := m.ListenerMatch.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InsertPosition", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.InsertPosition == nil {
-				m.InsertPosition = &EnvoyFilter_InsertPosition{}
-			}
-			if err := m.InsertPosition.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilterType", wireType)
-			}
-			m.FilterType = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.FilterType |= EnvoyFilter_Filter_FilterType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilterName", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.FilterName = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilterConfig", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowEnvoyFilter
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthEnvoyFilter
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.FilterConfig == nil {
-				m.FilterConfig = &types.Struct{}
-			}
-			if err := m.FilterConfig.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

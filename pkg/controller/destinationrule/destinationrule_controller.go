@@ -17,6 +17,7 @@ limitations under the License.
 package destinationrule
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -226,14 +227,14 @@ func (v *DestinationRuleController) syncService(key string) error {
 	service, err := v.serviceLister.Services(namespace).Get(name)
 	if err != nil {
 		// delete the corresponding destinationrule if there is any, as the service has been deleted.
-		err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Delete(name, nil)
+		err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			log.Errorf("delete destination rule failed %s/%s, error %v.", namespace, name, err)
 			return err
 		}
 
 		// delete orphan service policy if there is any
-		err = v.servicemeshClient.ServicemeshV1alpha2().ServicePolicies(namespace).Delete(name, nil)
+		err = v.servicemeshClient.ServicemeshV1alpha2().ServicePolicies(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			log.Errorf("delete orphan service policy %s/%s failed, %#v", namespace, name, err)
 			return err
@@ -355,9 +356,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 	}
 
 	if createDestinationRule {
-		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Create(newDestinationRule)
+		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Create(context.Background(), newDestinationRule, metav1.CreateOptions{})
 	} else {
-		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Update(newDestinationRule)
+		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Update(context.Background(), newDestinationRule, metav1.UpdateOptions{})
 	}
 
 	if err != nil {

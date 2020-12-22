@@ -17,6 +17,7 @@ limitations under the License.
 package group
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -98,7 +99,7 @@ func (t *groupOperator) CreateGroup(workspace string, group *iamv1alpha2.Group) 
 		return nil, err
 	}
 
-	return t.ksclient.IamV1alpha2().Groups().Create(labelGroupWithWorkspaceName(group, workspace))
+	return t.ksclient.IamV1alpha2().Groups().Create(context.Background(), labelGroupWithWorkspaceName(group, workspace), metav1.CreateOptions{})
 }
 
 func (t *groupOperator) isGenerateNameUnique(workspace, generateName string) (bool, error) {
@@ -137,7 +138,7 @@ func (t *groupOperator) DeleteGroup(workspace, group string) error {
 	if err != nil {
 		return err
 	}
-	return t.ksclient.IamV1alpha2().Groups().Delete(group, metav1.NewDeleteOptions(0))
+	return t.ksclient.IamV1alpha2().Groups().Delete(context.Background(), group, *metav1.NewDeleteOptions(0))
 }
 
 func (t *groupOperator) UpdateGroup(workspace string, group *iamv1alpha2.Group) (*iamv1alpha2.Group, error) {
@@ -146,7 +147,7 @@ func (t *groupOperator) UpdateGroup(workspace string, group *iamv1alpha2.Group) 
 		return nil, err
 	}
 	group = labelGroupWithWorkspaceName(group, workspace)
-	return t.ksclient.IamV1alpha2().Groups().Update(group)
+	return t.ksclient.IamV1alpha2().Groups().Update(context.Background(), group, metav1.UpdateOptions{})
 }
 
 func (t *groupOperator) PatchGroup(workspace string, group *iamv1alpha2.Group) (*iamv1alpha2.Group, error) {
@@ -161,7 +162,7 @@ func (t *groupOperator) PatchGroup(workspace string, group *iamv1alpha2.Group) (
 	if err != nil {
 		return nil, err
 	}
-	return t.ksclient.IamV1alpha2().Groups().Patch(group.Name, types.MergePatchType, data)
+	return t.ksclient.IamV1alpha2().Groups().Patch(context.Background(), group.Name, types.MergePatchType, data, metav1.PatchOptions{})
 }
 
 func (t *groupOperator) DeleteGroupBinding(workspace, name string) error {
@@ -176,7 +177,7 @@ func (t *groupOperator) DeleteGroupBinding(workspace, name string) error {
 		return err
 	}
 
-	return t.ksclient.IamV1alpha2().GroupBindings().Delete(name, metav1.NewDeleteOptions(0))
+	return t.ksclient.IamV1alpha2().GroupBindings().Delete(context.Background(), name, *metav1.NewDeleteOptions(0))
 }
 
 func (t *groupOperator) CreateGroupBinding(workspace, groupName, userName string) (*iamv1alpha2.GroupBinding, error) {
@@ -198,7 +199,7 @@ func (t *groupOperator) CreateGroupBinding(workspace, groupName, userName string
 		},
 	}
 
-	return t.ksclient.IamV1alpha2().GroupBindings().Create(&groupBinding)
+	return t.ksclient.IamV1alpha2().GroupBindings().Create(context.Background(), &groupBinding, metav1.CreateOptions{})
 }
 
 func (t *groupOperator) ListGroupBindings(workspace string, query *query.Query) (*api.ListResult, error) {

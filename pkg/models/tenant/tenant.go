@@ -17,6 +17,7 @@ limitations under the License.
 package tenant
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -306,7 +307,7 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 // The reason here why don't check the existence of workspace anymore is this function is only executed in host cluster.
 // but if the host cluster is not authorized to workspace, there will be no workspace in host cluster.
 func (t *tenantOperator) CreateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
-	return t.k8sclient.CoreV1().Namespaces().Create(labelNamespaceWithWorkspaceName(namespace, workspace))
+	return t.k8sclient.CoreV1().Namespaces().Create(context.Background(), labelNamespaceWithWorkspaceName(namespace, workspace), metav1.CreateOptions{})
 }
 
 // labelNamespaceWithWorkspaceName adds a kubesphere.io/workspace=[workspaceName] label to namespace which
@@ -340,7 +341,7 @@ func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
 	if err != nil {
 		return err
 	}
-	return t.k8sclient.CoreV1().Namespaces().Delete(namespace, metav1.NewDeleteOptions(0))
+	return t.k8sclient.CoreV1().Namespaces().Delete(context.Background(), namespace, *metav1.NewDeleteOptions(0))
 }
 
 func (t *tenantOperator) UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
@@ -349,7 +350,7 @@ func (t *tenantOperator) UpdateNamespace(workspace string, namespace *corev1.Nam
 		return nil, err
 	}
 	namespace = labelNamespaceWithWorkspaceName(namespace, workspace)
-	return t.k8sclient.CoreV1().Namespaces().Update(namespace)
+	return t.k8sclient.CoreV1().Namespaces().Update(context.Background(), namespace, metav1.UpdateOptions{})
 }
 
 func (t *tenantOperator) PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
@@ -364,19 +365,19 @@ func (t *tenantOperator) PatchNamespace(workspace string, namespace *corev1.Name
 	if err != nil {
 		return nil, err
 	}
-	return t.k8sclient.CoreV1().Namespaces().Patch(namespace.Name, types.MergePatchType, data)
+	return t.k8sclient.CoreV1().Namespaces().Patch(context.Background(), namespace.Name, types.MergePatchType, data, metav1.PatchOptions{})
 }
 
 func (t *tenantOperator) PatchWorkspace(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error) {
-	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(workspace, types.MergePatchType, data)
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(context.Background(), workspace, types.MergePatchType, data, metav1.PatchOptions{})
 }
 
 func (t *tenantOperator) CreateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
-	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Create(workspace)
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Create(context.Background(), workspace, metav1.CreateOptions{})
 }
 
 func (t *tenantOperator) UpdateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
-	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Update(workspace)
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Update(context.Background(), workspace, metav1.UpdateOptions{})
 }
 
 func (t *tenantOperator) DescribeWorkspace(workspace string) (*tenantv1alpha2.WorkspaceTemplate, error) {
@@ -514,7 +515,7 @@ func (t *tenantOperator) ListClusters(user user.Info) (*api.ListResult, error) {
 }
 
 func (t *tenantOperator) DeleteWorkspace(workspace string) error {
-	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Delete(workspace, metav1.NewDeleteOptions(0))
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Delete(context.Background(), workspace, *metav1.NewDeleteOptions(0))
 }
 
 // listIntersectedNamespaces returns a list of namespaces that MUST meet ALL the following filters:

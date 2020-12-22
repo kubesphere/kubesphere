@@ -17,8 +17,8 @@ limitations under the License.
 package informers
 
 import (
-	snapshotclient "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned"
-	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
+	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -27,8 +27,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	applicationclient "sigs.k8s.io/application/pkg/client/clientset/versioned"
-	applicationinformers "sigs.k8s.io/application/pkg/client/informers/externalversions"
+	applicationclient "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned"
+	applicationinformers "kubesphere.io/kubesphere/pkg/simple/client/app/informers/externalversions"
 	"time"
 )
 
@@ -59,7 +59,8 @@ type informerFactories struct {
 }
 
 func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interface, istioClient istioclient.Interface,
-	appClient applicationclient.Interface, snapshotClient snapshotclient.Interface, apiextensionsClient apiextensionsclient.Interface) InformerFactory {
+	appClient applicationclient.Interface,
+	snapshotClient snapshotclient.Interface, apiextensionsClient apiextensionsclient.Interface) InformerFactory {
 	factory := &informerFactories{}
 
 	if client != nil {

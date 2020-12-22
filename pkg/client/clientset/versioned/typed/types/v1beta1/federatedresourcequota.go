@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type FederatedResourceQuotasGetter interface {
 
 // FederatedResourceQuotaInterface has methods to work with FederatedResourceQuota resources.
 type FederatedResourceQuotaInterface interface {
-	Create(*v1beta1.FederatedResourceQuota) (*v1beta1.FederatedResourceQuota, error)
-	Update(*v1beta1.FederatedResourceQuota) (*v1beta1.FederatedResourceQuota, error)
-	UpdateStatus(*v1beta1.FederatedResourceQuota) (*v1beta1.FederatedResourceQuota, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.FederatedResourceQuota, error)
-	List(opts v1.ListOptions) (*v1beta1.FederatedResourceQuotaList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedResourceQuota, err error)
+	Create(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.CreateOptions) (*v1beta1.FederatedResourceQuota, error)
+	Update(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.UpdateOptions) (*v1beta1.FederatedResourceQuota, error)
+	UpdateStatus(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.UpdateOptions) (*v1beta1.FederatedResourceQuota, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.FederatedResourceQuota, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.FederatedResourceQuotaList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedResourceQuota, err error)
 	FederatedResourceQuotaExpansion
 }
 
@@ -64,20 +65,20 @@ func newFederatedResourceQuotas(c *TypesV1beta1Client, namespace string) *federa
 }
 
 // Get takes name of the federatedResourceQuota, and returns the corresponding federatedResourceQuota object, and an error if there is any.
-func (c *federatedResourceQuotas) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *federatedResourceQuotas) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedResourceQuota, err error) {
 	result = &v1beta1.FederatedResourceQuota{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("federatedresourcequotas").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of FederatedResourceQuotas that match those selectors.
-func (c *federatedResourceQuotas) List(opts v1.ListOptions) (result *v1beta1.FederatedResourceQuotaList, err error) {
+func (c *federatedResourceQuotas) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedResourceQuotaList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *federatedResourceQuotas) List(opts v1.ListOptions) (result *v1beta1.Fed
 		Resource("federatedresourcequotas").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested federatedResourceQuotas.
-func (c *federatedResourceQuotas) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *federatedResourceQuotas) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *federatedResourceQuotas) Watch(opts v1.ListOptions) (watch.Interface, e
 		Resource("federatedresourcequotas").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a federatedResourceQuota and creates it.  Returns the server's representation of the federatedResourceQuota, and an error, if there is any.
-func (c *federatedResourceQuotas) Create(federatedResourceQuota *v1beta1.FederatedResourceQuota) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *federatedResourceQuotas) Create(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.CreateOptions) (result *v1beta1.FederatedResourceQuota, err error) {
 	result = &v1beta1.FederatedResourceQuota{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("federatedresourcequotas").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedResourceQuota).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a federatedResourceQuota and updates it. Returns the server's representation of the federatedResourceQuota, and an error, if there is any.
-func (c *federatedResourceQuotas) Update(federatedResourceQuota *v1beta1.FederatedResourceQuota) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *federatedResourceQuotas) Update(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.UpdateOptions) (result *v1beta1.FederatedResourceQuota, err error) {
 	result = &v1beta1.FederatedResourceQuota{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("federatedresourcequotas").
 		Name(federatedResourceQuota.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedResourceQuota).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *federatedResourceQuotas) UpdateStatus(federatedResourceQuota *v1beta1.FederatedResourceQuota) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *federatedResourceQuotas) UpdateStatus(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.UpdateOptions) (result *v1beta1.FederatedResourceQuota, err error) {
 	result = &v1beta1.FederatedResourceQuota{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("federatedresourcequotas").
 		Name(federatedResourceQuota.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedResourceQuota).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the federatedResourceQuota and deletes it. Returns an error if one occurs.
-func (c *federatedResourceQuotas) Delete(name string, options *v1.DeleteOptions) error {
+func (c *federatedResourceQuotas) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("federatedresourcequotas").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *federatedResourceQuotas) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *federatedResourceQuotas) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("federatedresourcequotas").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched federatedResourceQuota.
-func (c *federatedResourceQuotas) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *federatedResourceQuotas) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedResourceQuota, err error) {
 	result = &v1beta1.FederatedResourceQuota{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("federatedresourcequotas").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

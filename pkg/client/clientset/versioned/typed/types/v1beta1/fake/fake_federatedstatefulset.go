@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedstatefulsetsResource = schema.GroupVersionResource{Group: "types.ku
 var federatedstatefulsetsKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedStatefulSet"}
 
 // Get takes name of the federatedStatefulSet, and returns the corresponding federatedStatefulSet object, and an error if there is any.
-func (c *FakeFederatedStatefulSets) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedStatefulSet, err error) {
+func (c *FakeFederatedStatefulSets) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedStatefulSet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedstatefulsetsResource, c.ns, name), &v1beta1.FederatedStatefulSet{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedStatefulSets) Get(name string, options v1.GetOptions) (res
 }
 
 // List takes label and field selectors, and returns the list of FederatedStatefulSets that match those selectors.
-func (c *FakeFederatedStatefulSets) List(opts v1.ListOptions) (result *v1beta1.FederatedStatefulSetList, err error) {
+func (c *FakeFederatedStatefulSets) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedStatefulSetList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedstatefulsetsResource, federatedstatefulsetsKind, c.ns, opts), &v1beta1.FederatedStatefulSetList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedStatefulSets) List(opts v1.ListOptions) (result *v1beta1.F
 }
 
 // Watch returns a watch.Interface that watches the requested federatedStatefulSets.
-func (c *FakeFederatedStatefulSets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedStatefulSets) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedstatefulsetsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedStatefulSet and creates it.  Returns the server's representation of the federatedStatefulSet, and an error, if there is any.
-func (c *FakeFederatedStatefulSets) Create(federatedStatefulSet *v1beta1.FederatedStatefulSet) (result *v1beta1.FederatedStatefulSet, err error) {
+func (c *FakeFederatedStatefulSets) Create(ctx context.Context, federatedStatefulSet *v1beta1.FederatedStatefulSet, opts v1.CreateOptions) (result *v1beta1.FederatedStatefulSet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedstatefulsetsResource, c.ns, federatedStatefulSet), &v1beta1.FederatedStatefulSet{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedStatefulSets) Create(federatedStatefulSet *v1beta1.Federat
 }
 
 // Update takes the representation of a federatedStatefulSet and updates it. Returns the server's representation of the federatedStatefulSet, and an error, if there is any.
-func (c *FakeFederatedStatefulSets) Update(federatedStatefulSet *v1beta1.FederatedStatefulSet) (result *v1beta1.FederatedStatefulSet, err error) {
+func (c *FakeFederatedStatefulSets) Update(ctx context.Context, federatedStatefulSet *v1beta1.FederatedStatefulSet, opts v1.UpdateOptions) (result *v1beta1.FederatedStatefulSet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedstatefulsetsResource, c.ns, federatedStatefulSet), &v1beta1.FederatedStatefulSet{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedStatefulSets) Update(federatedStatefulSet *v1beta1.Federat
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedStatefulSets) UpdateStatus(federatedStatefulSet *v1beta1.FederatedStatefulSet) (*v1beta1.FederatedStatefulSet, error) {
+func (c *FakeFederatedStatefulSets) UpdateStatus(ctx context.Context, federatedStatefulSet *v1beta1.FederatedStatefulSet, opts v1.UpdateOptions) (*v1beta1.FederatedStatefulSet, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedstatefulsetsResource, "status", c.ns, federatedStatefulSet), &v1beta1.FederatedStatefulSet{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedStatefulSets) UpdateStatus(federatedStatefulSet *v1beta1.F
 }
 
 // Delete takes name of the federatedStatefulSet and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedStatefulSets) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedStatefulSets) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedstatefulsetsResource, c.ns, name), &v1beta1.FederatedStatefulSet{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedStatefulSets) Delete(name string, options *v1.DeleteOption
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedStatefulSets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedstatefulsetsResource, c.ns, listOptions)
+func (c *FakeFederatedStatefulSets) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedstatefulsetsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedStatefulSetList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedStatefulSet.
-func (c *FakeFederatedStatefulSets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedStatefulSet, err error) {
+func (c *FakeFederatedStatefulSets) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedStatefulSet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedstatefulsetsResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedStatefulSet{})
 

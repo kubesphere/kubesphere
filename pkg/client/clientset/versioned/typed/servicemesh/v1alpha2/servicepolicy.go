@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type ServicePoliciesGetter interface {
 
 // ServicePolicyInterface has methods to work with ServicePolicy resources.
 type ServicePolicyInterface interface {
-	Create(*v1alpha2.ServicePolicy) (*v1alpha2.ServicePolicy, error)
-	Update(*v1alpha2.ServicePolicy) (*v1alpha2.ServicePolicy, error)
-	UpdateStatus(*v1alpha2.ServicePolicy) (*v1alpha2.ServicePolicy, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha2.ServicePolicy, error)
-	List(opts v1.ListOptions) (*v1alpha2.ServicePolicyList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.ServicePolicy, err error)
+	Create(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.CreateOptions) (*v1alpha2.ServicePolicy, error)
+	Update(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.UpdateOptions) (*v1alpha2.ServicePolicy, error)
+	UpdateStatus(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.UpdateOptions) (*v1alpha2.ServicePolicy, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha2.ServicePolicy, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha2.ServicePolicyList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.ServicePolicy, err error)
 	ServicePolicyExpansion
 }
 
@@ -64,20 +65,20 @@ func newServicePolicies(c *ServicemeshV1alpha2Client, namespace string) *service
 }
 
 // Get takes name of the servicePolicy, and returns the corresponding servicePolicy object, and an error if there is any.
-func (c *servicePolicies) Get(name string, options v1.GetOptions) (result *v1alpha2.ServicePolicy, err error) {
+func (c *servicePolicies) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.ServicePolicy, err error) {
 	result = &v1alpha2.ServicePolicy{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("servicepolicies").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ServicePolicies that match those selectors.
-func (c *servicePolicies) List(opts v1.ListOptions) (result *v1alpha2.ServicePolicyList, err error) {
+func (c *servicePolicies) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.ServicePolicyList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *servicePolicies) List(opts v1.ListOptions) (result *v1alpha2.ServicePol
 		Resource("servicepolicies").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested servicePolicies.
-func (c *servicePolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *servicePolicies) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *servicePolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("servicepolicies").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a servicePolicy and creates it.  Returns the server's representation of the servicePolicy, and an error, if there is any.
-func (c *servicePolicies) Create(servicePolicy *v1alpha2.ServicePolicy) (result *v1alpha2.ServicePolicy, err error) {
+func (c *servicePolicies) Create(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.CreateOptions) (result *v1alpha2.ServicePolicy, err error) {
 	result = &v1alpha2.ServicePolicy{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("servicepolicies").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(servicePolicy).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a servicePolicy and updates it. Returns the server's representation of the servicePolicy, and an error, if there is any.
-func (c *servicePolicies) Update(servicePolicy *v1alpha2.ServicePolicy) (result *v1alpha2.ServicePolicy, err error) {
+func (c *servicePolicies) Update(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.UpdateOptions) (result *v1alpha2.ServicePolicy, err error) {
 	result = &v1alpha2.ServicePolicy{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("servicepolicies").
 		Name(servicePolicy.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(servicePolicy).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *servicePolicies) UpdateStatus(servicePolicy *v1alpha2.ServicePolicy) (result *v1alpha2.ServicePolicy, err error) {
+func (c *servicePolicies) UpdateStatus(ctx context.Context, servicePolicy *v1alpha2.ServicePolicy, opts v1.UpdateOptions) (result *v1alpha2.ServicePolicy, err error) {
 	result = &v1alpha2.ServicePolicy{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("servicepolicies").
 		Name(servicePolicy.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(servicePolicy).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the servicePolicy and deletes it. Returns an error if one occurs.
-func (c *servicePolicies) Delete(name string, options *v1.DeleteOptions) error {
+func (c *servicePolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("servicepolicies").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *servicePolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *servicePolicies) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("servicepolicies").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched servicePolicy.
-func (c *servicePolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.ServicePolicy, err error) {
+func (c *servicePolicies) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.ServicePolicy, err error) {
 	result = &v1alpha2.ServicePolicy{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("servicepolicies").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

@@ -18,9 +18,9 @@ package persistentvolumeclaim
 
 import (
 	"github.com/google/go-cmp/cmp"
-	snapshot "github.com/kubernetes-csi/external-snapshotter/v2/pkg/apis/volumesnapshot/v1beta1"
-	snapshotefakeclient "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake"
-	snapshotinformers "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
+	snapshot "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
+	snapshotefakeclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
+	snapshotinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"

@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type FederatedClusterRolesGetter interface {
 
 // FederatedClusterRoleInterface has methods to work with FederatedClusterRole resources.
 type FederatedClusterRoleInterface interface {
-	Create(*v1beta1.FederatedClusterRole) (*v1beta1.FederatedClusterRole, error)
-	Update(*v1beta1.FederatedClusterRole) (*v1beta1.FederatedClusterRole, error)
-	UpdateStatus(*v1beta1.FederatedClusterRole) (*v1beta1.FederatedClusterRole, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.FederatedClusterRole, error)
-	List(opts v1.ListOptions) (*v1beta1.FederatedClusterRoleList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedClusterRole, err error)
+	Create(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.CreateOptions) (*v1beta1.FederatedClusterRole, error)
+	Update(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.UpdateOptions) (*v1beta1.FederatedClusterRole, error)
+	UpdateStatus(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.UpdateOptions) (*v1beta1.FederatedClusterRole, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.FederatedClusterRole, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.FederatedClusterRoleList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedClusterRole, err error)
 	FederatedClusterRoleExpansion
 }
 
@@ -64,20 +65,20 @@ func newFederatedClusterRoles(c *TypesV1beta1Client, namespace string) *federate
 }
 
 // Get takes name of the federatedClusterRole, and returns the corresponding federatedClusterRole object, and an error if there is any.
-func (c *federatedClusterRoles) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *federatedClusterRoles) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedClusterRole, err error) {
 	result = &v1beta1.FederatedClusterRole{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("federatedclusterroles").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of FederatedClusterRoles that match those selectors.
-func (c *federatedClusterRoles) List(opts v1.ListOptions) (result *v1beta1.FederatedClusterRoleList, err error) {
+func (c *federatedClusterRoles) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedClusterRoleList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *federatedClusterRoles) List(opts v1.ListOptions) (result *v1beta1.Feder
 		Resource("federatedclusterroles").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested federatedClusterRoles.
-func (c *federatedClusterRoles) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *federatedClusterRoles) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *federatedClusterRoles) Watch(opts v1.ListOptions) (watch.Interface, err
 		Resource("federatedclusterroles").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a federatedClusterRole and creates it.  Returns the server's representation of the federatedClusterRole, and an error, if there is any.
-func (c *federatedClusterRoles) Create(federatedClusterRole *v1beta1.FederatedClusterRole) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *federatedClusterRoles) Create(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.CreateOptions) (result *v1beta1.FederatedClusterRole, err error) {
 	result = &v1beta1.FederatedClusterRole{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("federatedclusterroles").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedClusterRole).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a federatedClusterRole and updates it. Returns the server's representation of the federatedClusterRole, and an error, if there is any.
-func (c *federatedClusterRoles) Update(federatedClusterRole *v1beta1.FederatedClusterRole) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *federatedClusterRoles) Update(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.UpdateOptions) (result *v1beta1.FederatedClusterRole, err error) {
 	result = &v1beta1.FederatedClusterRole{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("federatedclusterroles").
 		Name(federatedClusterRole.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedClusterRole).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *federatedClusterRoles) UpdateStatus(federatedClusterRole *v1beta1.FederatedClusterRole) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *federatedClusterRoles) UpdateStatus(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.UpdateOptions) (result *v1beta1.FederatedClusterRole, err error) {
 	result = &v1beta1.FederatedClusterRole{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("federatedclusterroles").
 		Name(federatedClusterRole.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedClusterRole).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the federatedClusterRole and deletes it. Returns an error if one occurs.
-func (c *federatedClusterRoles) Delete(name string, options *v1.DeleteOptions) error {
+func (c *federatedClusterRoles) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("federatedclusterroles").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *federatedClusterRoles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *federatedClusterRoles) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("federatedclusterroles").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched federatedClusterRole.
-func (c *federatedClusterRoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *federatedClusterRoles) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedClusterRole, err error) {
 	result = &v1beta1.FederatedClusterRole{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("federatedclusterroles").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

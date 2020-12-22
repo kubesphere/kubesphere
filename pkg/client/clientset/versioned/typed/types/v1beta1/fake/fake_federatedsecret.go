@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedsecretsResource = schema.GroupVersionResource{Group: "types.kubefed
 var federatedsecretsKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedSecret"}
 
 // Get takes name of the federatedSecret, and returns the corresponding federatedSecret object, and an error if there is any.
-func (c *FakeFederatedSecrets) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedSecret, err error) {
+func (c *FakeFederatedSecrets) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedSecret, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedsecretsResource, c.ns, name), &v1beta1.FederatedSecret{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedSecrets) Get(name string, options v1.GetOptions) (result *
 }
 
 // List takes label and field selectors, and returns the list of FederatedSecrets that match those selectors.
-func (c *FakeFederatedSecrets) List(opts v1.ListOptions) (result *v1beta1.FederatedSecretList, err error) {
+func (c *FakeFederatedSecrets) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedSecretList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedsecretsResource, federatedsecretsKind, c.ns, opts), &v1beta1.FederatedSecretList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedSecrets) List(opts v1.ListOptions) (result *v1beta1.Federa
 }
 
 // Watch returns a watch.Interface that watches the requested federatedSecrets.
-func (c *FakeFederatedSecrets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedSecrets) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedsecretsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedSecret and creates it.  Returns the server's representation of the federatedSecret, and an error, if there is any.
-func (c *FakeFederatedSecrets) Create(federatedSecret *v1beta1.FederatedSecret) (result *v1beta1.FederatedSecret, err error) {
+func (c *FakeFederatedSecrets) Create(ctx context.Context, federatedSecret *v1beta1.FederatedSecret, opts v1.CreateOptions) (result *v1beta1.FederatedSecret, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedsecretsResource, c.ns, federatedSecret), &v1beta1.FederatedSecret{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedSecrets) Create(federatedSecret *v1beta1.FederatedSecret) 
 }
 
 // Update takes the representation of a federatedSecret and updates it. Returns the server's representation of the federatedSecret, and an error, if there is any.
-func (c *FakeFederatedSecrets) Update(federatedSecret *v1beta1.FederatedSecret) (result *v1beta1.FederatedSecret, err error) {
+func (c *FakeFederatedSecrets) Update(ctx context.Context, federatedSecret *v1beta1.FederatedSecret, opts v1.UpdateOptions) (result *v1beta1.FederatedSecret, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedsecretsResource, c.ns, federatedSecret), &v1beta1.FederatedSecret{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedSecrets) Update(federatedSecret *v1beta1.FederatedSecret) 
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedSecrets) UpdateStatus(federatedSecret *v1beta1.FederatedSecret) (*v1beta1.FederatedSecret, error) {
+func (c *FakeFederatedSecrets) UpdateStatus(ctx context.Context, federatedSecret *v1beta1.FederatedSecret, opts v1.UpdateOptions) (*v1beta1.FederatedSecret, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedsecretsResource, "status", c.ns, federatedSecret), &v1beta1.FederatedSecret{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedSecrets) UpdateStatus(federatedSecret *v1beta1.FederatedSe
 }
 
 // Delete takes name of the federatedSecret and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedSecrets) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedSecrets) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedsecretsResource, c.ns, name), &v1beta1.FederatedSecret{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedSecrets) Delete(name string, options *v1.DeleteOptions) er
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedSecrets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedsecretsResource, c.ns, listOptions)
+func (c *FakeFederatedSecrets) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedsecretsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedSecretList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedSecret.
-func (c *FakeFederatedSecrets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedSecret, err error) {
+func (c *FakeFederatedSecrets) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedSecret, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedsecretsResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedSecret{})
 

@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var federatedgroupbindingsResource = schema.GroupVersionResource{Group: "types.k
 var federatedgroupbindingsKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedGroupBinding"}
 
 // Get takes name of the federatedGroupBinding, and returns the corresponding federatedGroupBinding object, and an error if there is any.
-func (c *FakeFederatedGroupBindings) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *FakeFederatedGroupBindings) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedGroupBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(federatedgroupbindingsResource, name), &v1beta1.FederatedGroupBinding{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeFederatedGroupBindings) Get(name string, options v1.GetOptions) (re
 }
 
 // List takes label and field selectors, and returns the list of FederatedGroupBindings that match those selectors.
-func (c *FakeFederatedGroupBindings) List(opts v1.ListOptions) (result *v1beta1.FederatedGroupBindingList, err error) {
+func (c *FakeFederatedGroupBindings) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedGroupBindingList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(federatedgroupbindingsResource, federatedgroupbindingsKind, opts), &v1beta1.FederatedGroupBindingList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeFederatedGroupBindings) List(opts v1.ListOptions) (result *v1beta1.
 }
 
 // Watch returns a watch.Interface that watches the requested federatedGroupBindings.
-func (c *FakeFederatedGroupBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedGroupBindings) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(federatedgroupbindingsResource, opts))
 }
 
 // Create takes the representation of a federatedGroupBinding and creates it.  Returns the server's representation of the federatedGroupBinding, and an error, if there is any.
-func (c *FakeFederatedGroupBindings) Create(federatedGroupBinding *v1beta1.FederatedGroupBinding) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *FakeFederatedGroupBindings) Create(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.CreateOptions) (result *v1beta1.FederatedGroupBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(federatedgroupbindingsResource, federatedGroupBinding), &v1beta1.FederatedGroupBinding{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeFederatedGroupBindings) Create(federatedGroupBinding *v1beta1.Feder
 }
 
 // Update takes the representation of a federatedGroupBinding and updates it. Returns the server's representation of the federatedGroupBinding, and an error, if there is any.
-func (c *FakeFederatedGroupBindings) Update(federatedGroupBinding *v1beta1.FederatedGroupBinding) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *FakeFederatedGroupBindings) Update(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.UpdateOptions) (result *v1beta1.FederatedGroupBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(federatedgroupbindingsResource, federatedGroupBinding), &v1beta1.FederatedGroupBinding{})
 	if obj == nil {
@@ -96,7 +98,7 @@ func (c *FakeFederatedGroupBindings) Update(federatedGroupBinding *v1beta1.Feder
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedGroupBindings) UpdateStatus(federatedGroupBinding *v1beta1.FederatedGroupBinding) (*v1beta1.FederatedGroupBinding, error) {
+func (c *FakeFederatedGroupBindings) UpdateStatus(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.UpdateOptions) (*v1beta1.FederatedGroupBinding, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateSubresourceAction(federatedgroupbindingsResource, "status", federatedGroupBinding), &v1beta1.FederatedGroupBinding{})
 	if obj == nil {
@@ -106,22 +108,22 @@ func (c *FakeFederatedGroupBindings) UpdateStatus(federatedGroupBinding *v1beta1
 }
 
 // Delete takes name of the federatedGroupBinding and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedGroupBindings) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedGroupBindings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(federatedgroupbindingsResource, name), &v1beta1.FederatedGroupBinding{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedGroupBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(federatedgroupbindingsResource, listOptions)
+func (c *FakeFederatedGroupBindings) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(federatedgroupbindingsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedGroupBindingList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedGroupBinding.
-func (c *FakeFederatedGroupBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *FakeFederatedGroupBindings) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedGroupBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(federatedgroupbindingsResource, name, pt, data, subresources...), &v1beta1.FederatedGroupBinding{})
 	if obj == nil {

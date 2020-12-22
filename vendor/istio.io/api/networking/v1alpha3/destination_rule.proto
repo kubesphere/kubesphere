@@ -15,13 +15,15 @@ syntax = "proto3";
 
 import "google/api/field_behavior.proto";
 import "google/protobuf/duration.proto";
+import "google/protobuf/wrappers.proto";
 import "networking/v1alpha3/virtual_service.proto";
 import "gogoproto/gogo.proto";
 
+// $schema: istio.networking.v1alpha3.DestinationRule
 // $title: Destination Rule
 // $description: Configuration affecting load balancing, outlier detection, etc.
 // $location: https://istio.io/docs/reference/config/networking/destination-rule.html
-// $aliases: [/docs/reference/config/networking/v1alpha3/destination-rule.html]
+// $aliases: [/docs/reference/config/networking/v1alpha3/destination-rule]
 
 // `DestinationRule` defines policies that apply to traffic intended for a
 // service after routing has occurred. These rules specify configuration
@@ -30,6 +32,8 @@ import "gogoproto/gogo.proto";
 // balancing pool. For example, a simple load balancing policy for the
 // ratings service would look as follows:
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -41,6 +45,22 @@ import "gogoproto/gogo.proto";
 //     loadBalancer:
 //       simple: LEAST_CONN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     loadBalancer:
+//       simple: LEAST_CONN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // Version specific policies can be specified by defining a named
 // `subset` and overriding the settings specified at the service level. The
@@ -48,6 +68,8 @@ import "gogoproto/gogo.proto";
 // going to a subset named testversion that is composed of endpoints (e.g.,
 // pods) with labels (version:v3).
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -66,6 +88,29 @@ import "gogoproto/gogo.proto";
 //       loadBalancer:
 //         simple: ROUND_ROBIN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     loadBalancer:
+//       simple: LEAST_CONN
+//   subsets:
+//   - name: testversion
+//     labels:
+//       version: v3
+//     trafficPolicy:
+//       loadBalancer:
+//         simple: ROUND_ROBIN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // **Note:** Policies specified for subsets will not take effect until
 // a route rule explicitly sends traffic to this subset.
@@ -75,6 +120,8 @@ import "gogoproto/gogo.proto";
 // traffic to port 80, while uses a round robin load balancing setting for
 // traffic to the port 9080.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -93,12 +140,53 @@ import "gogoproto/gogo.proto";
 //       loadBalancer:
 //         simple: ROUND_ROBIN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings-port
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy: # Apply to all ports
+//     portLevelSettings:
+//     - port:
+//         number: 80
+//       loadBalancer:
+//         simple: LEAST_CONN
+//     - port:
+//         number: 9080
+//       loadBalancer:
+//         simple: ROUND_ROBIN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 package istio.networking.v1alpha3;
 
 option go_package = "istio.io/api/networking/v1alpha3";
 
 // DestinationRule defines policies that apply to traffic intended for a service
 // after routing has occurred.
+//
+// <!-- crd generation tags
+// +cue-gen:DestinationRule:groupName:networking.istio.io
+// +cue-gen:DestinationRule:version:v1alpha3
+// +cue-gen:DestinationRule:storageVersion
+// +cue-gen:DestinationRule:annotations:helm.sh/resource-policy=keep
+// +cue-gen:DestinationRule:labels:app=istio-pilot,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:DestinationRule:subresource:status
+// +cue-gen:DestinationRule:scope:Namespaced
+// +cue-gen:DestinationRule:resource:categories=istio-io,networking-istio-io,shortNames=dr
+// +cue-gen:DestinationRule:printerColumn:name=Host,type=string,JSONPath=.spec.host,description="The name of a service from the service registry"
+// +cue-gen:DestinationRule:printerColumn:name=Age,type=date,JSONPath=.metadata.creationTimestamp,description="CreationTimestamp is a timestamp 
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. 
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +cue-gen:DestinationRule:preserveUnknownFields:false
+// -->
 //
 // <!-- go code generation tags
 // +kubetype-gen
@@ -166,7 +254,7 @@ message TrafficPolicy {
   OutlierDetection outlier_detection = 3;
 
   // TLS related settings for connections to the upstream service.
-  TLSSettings tls = 4;
+  ClientTLSSettings tls = 4;
 
   // Traffic policies that apply to specific ports of the service
   message PortTrafficPolicy {
@@ -185,7 +273,7 @@ message TrafficPolicy {
     OutlierDetection outlier_detection = 4;
 
     // TLS related settings for connections to the upstream service.
-    TLSSettings tls = 5;
+    ClientTLSSettings tls = 5;
   }
 
   // Traffic policies specific to individual ports. Note that port level
@@ -205,6 +293,8 @@ message TrafficPolicy {
 // subset named testversion that is composed of endpoints (e.g., pods) with
 // labels (version:v3).
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -223,6 +313,29 @@ message TrafficPolicy {
 //       loadBalancer:
 //         simple: ROUND_ROBIN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     loadBalancer:
+//       simple: LEAST_CONN
+//   subsets:
+//   - name: testversion
+//     labels:
+//       version: v3
+//     trafficPolicy:
+//       loadBalancer:
+//         simple: ROUND_ROBIN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // **Note:** Policies specified for subsets will not take effect until
 // a route rule explicitly sends traffic to this subset.
@@ -230,7 +343,7 @@ message TrafficPolicy {
 // One or more labels are typically required to identify the subset destination,
 // however, when the corresponding DestinationRule represents a host that
 // supports multiple SNI hosts (e.g., an egress gateway), a subset without labels
-// may be meaningful. In this case a traffic policy with [TLSSettings](#TLSSettings)
+// may be meaningful. In this case a traffic policy with [ClientTLSSettings](#ClientTLSSettings)
 // can be used to identify a specific SNI host corresponding to the named subset.
 message Subset {
   // Name of the subset. The service name and the subset name can
@@ -256,6 +369,8 @@ message Subset {
 // For example, the following rule uses a round robin load balancing policy
 // for all traffic going to the ratings service.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -267,11 +382,29 @@ message Subset {
 //     loadBalancer:
 //       simple: ROUND_ROBIN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     loadBalancer:
+//       simple: ROUND_ROBIN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The following example sets up sticky sessions for the ratings service
 // hashing-based load balancer for the same ratings service using the
 // the User cookie as the hash key.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 //  apiVersion: networking.istio.io/v1alpha3
 //  kind: DestinationRule
@@ -286,6 +419,25 @@ message Subset {
 //            name: user
 //            ttl: 0s
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+//  apiVersion: networking.istio.io/v1beta1
+//  kind: DestinationRule
+//  metadata:
+//    name: bookinfo-ratings
+//  spec:
+//    host: ratings.prod.svc.cluster.local
+//    trafficPolicy:
+//      loadBalancer:
+//        consistentHash:
+//          httpCookie:
+//            name: user
+//            ttl: 0s
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 message LoadBalancerSettings {
   // Standard load balancing algorithms that require no tuning.
@@ -327,7 +479,7 @@ message LoadBalancerSettings {
       // Path to set for the cookie.
       string path = 2;
       // Lifetime of the cookie.
-      google.protobuf.Duration ttl = 3 [(google.api.field_behavior) = REQUIRED, (gogoproto.stdduration) = true];
+      google.protobuf.Duration ttl = 3 [(google.api.field_behavior) = REQUIRED];
     };
 
     // The hash key to use.
@@ -340,6 +492,9 @@ message LoadBalancerSettings {
 
       // Hash based on the source IP address.
       bool use_source_ip = 3;
+
+      // Hash based on a specific HTTP query parameter.
+      string http_query_parameter_name = 5;
     };
 
     // The minimum number of virtual nodes to use for the hash
@@ -359,6 +514,10 @@ message LoadBalancerSettings {
     SimpleLB simple = 1;
     ConsistentHashLB consistent_hash = 2;
   }
+
+  // Locality load balancer settings, this will override mesh wide settings in entirety, meaning no merging would be performed
+  // between this object and the object one in MeshConfig
+  LocalityLoadBalancerSetting locality_lb_setting = 3;
 }
 
 // Connection pool settings for an upstream host. The settings apply to
@@ -370,6 +529,8 @@ message LoadBalancerSettings {
 // For example, the following rule sets a limit of 100 connections to redis
 // service called myredissrv with a connect timeout of 30ms
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -386,6 +547,28 @@ message LoadBalancerSettings {
 //           time: 7200s
 //           interval: 75s
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-redis
+// spec:
+//   host: myredissrv.prod.svc.cluster.local
+//   trafficPolicy:
+//     connectionPool:
+//       tcp:
+//         maxConnections: 100
+//         connectTimeout: 30ms
+//         tcpKeepalive:
+//           time: 7200s
+//           interval: 75s
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 message ConnectionPoolSettings {
   // Settings common to both HTTP and TCP upstream connections.
   message TCPSettings {
@@ -410,7 +593,8 @@ message ConnectionPoolSettings {
     // Maximum number of HTTP1 /TCP connections to a destination host. Default 2^32-1.
     int32 max_connections = 1;
 
-    // TCP connection timeout.
+    // TCP connection timeout. format:
+    // 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.
     google.protobuf.Duration connect_timeout = 2;
 
     // If set then set SO_KEEPALIVE on the socket to enable TCP Keepalives.
@@ -435,7 +619,7 @@ message ConnectionPoolSettings {
     int32 max_retries = 4;
 
     // The idle timeout for upstream connection pool connections. The idle timeout is defined as the period in which there are no active requests.
-    // If not set, there is no idle timeout. When the idle timeout is reached the connection will be closed.
+    // If not set, the default is 1 hour. When the idle timeout is reached the connection will be closed.
     // Note that request based timeouts mean that HTTP/2 PINGs will not keep the connection alive. Applies to both HTTP1.1 and HTTP2 connections.
     google.protobuf.Duration idle_timeout = 5;
 
@@ -476,6 +660,8 @@ message ConnectionPoolSettings {
 // hosts to be scanned every 5 mins so that any host that fails 7 consecutive
 // times with a 502, 503, or 504 error code will be ejected for 15 minutes.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -495,13 +681,68 @@ message ConnectionPoolSettings {
 //       interval: 5m
 //       baseEjectionTime: 15m
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-cb-policy
+// spec:
+//   host: reviews.prod.svc.cluster.local
+//   trafficPolicy:
+//     connectionPool:
+//       tcp:
+//         maxConnections: 100
+//       http:
+//         http2MaxRequests: 1000
+//         maxRequestsPerConnection: 10
+//     outlierDetection:
+//       consecutiveErrors: 7
+//       interval: 5m
+//       baseEjectionTime: 15m
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 message OutlierDetection {
   // Number of errors before a host is ejected from the connection
   // pool. Defaults to 5. When the upstream host is accessed over HTTP, a
   // 502, 503, or 504 return code qualifies as an error. When the upstream host
   // is accessed over an opaque TCP connection, connect timeouts and
   // connection error/failure events qualify as an error.
-  int32 consecutive_errors = 1;
+  // $hide_from_docs
+  int32 consecutive_errors = 1 [deprecated=true];
+
+  // Number of gateway errors before a host is ejected from the connection pool.
+  // When the upstream host is accessed over HTTP, a 502, 503, or 504 return
+  // code qualifies as a gateway error. When the upstream host is accessed over
+  // an opaque TCP connection, connect timeouts and connection error/failure
+  // events qualify as a gateway error.
+  // This feature is disabled by default or when set to the value 0.
+  //
+  // Note that consecutive_gateway_errors and consecutive_5xx_errors can be
+  // used separately or together. Because the errors counted by
+  // consecutive_gateway_errors are also included in consecutive_5xx_errors,
+  // if the value of consecutive_gateway_errors is greater than or equal to
+  // the value of consecutive_5xx_errors, consecutive_gateway_errors will have
+  // no effect.
+  google.protobuf.UInt32Value consecutive_gateway_errors = 6;
+
+  // Number of 5xx errors before a host is ejected from the connection pool.
+  // When the upstream host is accessed over an opaque TCP connection, connect
+  // timeouts, connection error/failure and request failure events qualify as a
+  // 5xx error.
+  // This feature defaults to 5 but can be disabled by setting the value to 0.
+  //
+  // Note that consecutive_gateway_errors and consecutive_5xx_errors can be
+  // used separately or together. Because the errors counted by
+  // consecutive_gateway_errors are also included in consecutive_5xx_errors,
+  // if the value of consecutive_gateway_errors is greater than or equal to
+  // the value of consecutive_5xx_errors, consecutive_gateway_errors will have
+  // no effect.
+  google.protobuf.UInt32Value consecutive_5xx_errors = 7;
 
   // Time interval between ejection sweep analysis. format:
   // 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.
@@ -535,6 +776,8 @@ message OutlierDetection {
 // For example, the following rule configures a client to use mutual TLS
 // for connections to upstream database cluster.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -549,10 +792,31 @@ message OutlierDetection {
 //       privateKey: /etc/certs/client_private_key.pem
 //       caCertificates: /etc/certs/rootcacerts.pem
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: db-mtls
+// spec:
+//   host: mydbserver.prod.svc.cluster.local
+//   trafficPolicy:
+//     tls:
+//       mode: MUTUAL
+//       clientCertificate: /etc/certs/myclientcert.pem
+//       privateKey: /etc/certs/client_private_key.pem
+//       caCertificates: /etc/certs/rootcacerts.pem
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The following rule configures a client to use TLS when talking to a
 // foreign service whose domain matches *.foo.com.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -564,10 +828,28 @@ message OutlierDetection {
 //     tls:
 //       mode: SIMPLE
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: tls-foo
+// spec:
+//   host: "*.foo.com"
+//   trafficPolicy:
+//     tls:
+//       mode: SIMPLE
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The following rule configures a client to use Istio mutual TLS when talking
 // to rating services.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -579,7 +861,24 @@ message OutlierDetection {
 //     tls:
 //       mode: ISTIO_MUTUAL
 // ```
-message TLSSettings {
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: ratings-istio-mtls
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     tls:
+//       mode: ISTIO_MUTUAL
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
+message ClientTLSSettings {
   // TLS connection mode
   enum TLSmode {
     // Do not setup a TLS connection to the upstream endpoint.
@@ -596,7 +895,7 @@ message TLSSettings {
     // client certificates for authentication.
     // Compared to Mutual mode, this mode uses certificates generated
     // automatically by Istio for mTLS authentication. When this mode is
-    // used, all other fields in `TLSSettings` should be empty.
+    // used, all other fields in `ClientTLSSettings` should be empty.
     ISTIO_MUTUAL = 3;
   };
 
@@ -629,4 +928,102 @@ message TLSSettings {
 
   // SNI string to present to the server during TLS handshake.
   string sni = 6;
+}
+
+// Locality-weighted load balancing allows administrators to control the
+// distribution of traffic to endpoints based on the localities of where the
+// traffic originates and where it will terminate. These localities are
+// specified using arbitrary labels that designate a hierarchy of localities in
+// {region}/{zone}/{sub-zone} form. For additional detail refer to
+// [Locality Weight](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/locality_weight)
+// The following example shows how to setup locality weights mesh-wide.
+//
+// Given a mesh with workloads and their service deployed to "us-west/zone1/*"
+// and "us-west/zone2/*". This example specifies that when traffic accessing a
+// service originates from workloads in "us-west/zone1/*", 80% of the traffic
+// will be sent to endpoints in "us-west/zone1/*", i.e the same zone, and the
+// remaining 20% will go to endpoints in "us-west/zone2/*". This setup is
+// intended to favor routing traffic to endpoints in the same locality.
+// A similar setting is specified for traffic originating in "us-west/zone2/*".
+//
+// ```yaml
+//   distribute:
+//     - from: us-west/zone1/*
+//       to:
+//         "us-west/zone1/*": 80
+//         "us-west/zone2/*": 20
+//     - from: us-west/zone2/*
+//       to:
+//         "us-west/zone1/*": 20
+//         "us-west/zone2/*": 80
+// ```
+//
+// If the goal of the operator is not to distribute load across zones and
+// regions but rather to restrict the regionality of failover to meet other
+// operational requirements an operator can set a 'failover' policy instead of
+// a 'distribute' policy.
+//
+// The following example sets up a locality failover policy for regions.
+// Assume a service resides in zones within us-east, us-west & eu-west
+// this example specifies that when endpoints within us-east become unhealthy
+// traffic should failover to endpoints in any zone or sub-zone within eu-west
+// and similarly us-west should failover to us-east.
+//
+// ```yaml
+//  failover:
+//    - from: us-east
+//      to: eu-west
+//    - from: us-west
+//      to: us-east
+// ```
+// Locality load balancing settings.
+message LocalityLoadBalancerSetting{
+    // Describes how traffic originating in the 'from' zone or sub-zone is
+    // distributed over a set of 'to' zones. Syntax for specifying a zone is
+    // {region}/{zone}/{sub-zone} and terminal wildcards are allowed on any
+    // segment of the specification. Examples:
+    // * - matches all localities
+    // us-west/* - all zones and sub-zones within the us-west region
+    // us-west/zone-1/* - all sub-zones within us-west/zone-1
+    message Distribute{
+        // Originating locality, '/' separated, e.g. 'region/zone/sub_zone'.
+        string from = 1;
+
+        // Map of upstream localities to traffic distribution weights. The sum of
+        // all weights should be == 100. Any locality not assigned a weight will
+        // receive no traffic.
+        map<string, uint32> to = 2;
+    };
+
+    // Specify the traffic failover policy across regions. Since zone and sub-zone
+    // failover is supported by default this only needs to be specified for
+    // regions when the operator needs to constrain traffic failover so that
+    // the default behavior of failing over to any endpoint globally does not
+    // apply. This is useful when failing over traffic across regions would not
+    // improve service health or may need to be restricted for other reasons
+    // like regulatory controls.
+    message Failover{
+        // Originating region.
+        string from = 1;
+
+        // Destination region the traffic will fail over to when endpoints in
+        // the 'from' region becomes unhealthy.
+        string to = 2;
+    };
+
+    // Optional: only one of distribute or failover can be set.
+    // Explicitly specify loadbalancing weight across different zones and geographical locations.
+    // Refer to [Locality weighted load balancing](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/locality_weight)
+    // If empty, the locality weight is set according to the endpoints number within it.
+    repeated Distribute distribute = 1;
+
+    // Optional: only failover or distribute can be set.
+    // Explicitly specify the region traffic will land on when endpoints in local region becomes unhealthy.
+    // Should be used together with OutlierDetection to detect unhealthy endpoints.
+    // Note: if no OutlierDetection specified, this will not take effect.
+    repeated Failover failover = 2;
+
+    // enable locality load balancing, this is DestinationRule-level and will override mesh wide settings in entirety.
+    // e.g. true means that turn on locality load balancing for this DestinationRule no matter what mesh wide settings is.
+    google.protobuf.BoolValue enabled = 3;
 }

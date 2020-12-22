@@ -4,7 +4,8 @@
 package grpc_recovery
 
 import (
-	"golang.org/x/net/context"
+	"context"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -12,13 +13,17 @@ import (
 // RecoveryHandlerFunc is a function that recovers from the panic `p` by returning an `error`.
 type RecoveryHandlerFunc func(p interface{}) (err error)
 
+// RecoveryHandlerFuncContext is a function that recovers from the panic `p` by returning an `error`.
+// The context can be used to extract request scoped metadata and context values.
+type RecoveryHandlerFuncContext func(ctx context.Context, p interface{}) (err error)
+
 // UnaryServerInterceptor returns a new unary server interceptor for panic recovery.
 func UnaryServerInterceptor(opts ...Option) grpc.UnaryServerInterceptor {
 	o := evaluateOptions(opts)
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ interface{}, err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				err = recoverFrom(r, o.recoveryHandlerFunc)
+				err = recoverFrom(ctx, r, o.recoveryHandlerFunc)
 			}
 		}()
 
@@ -32,7 +37,7 @@ func StreamServerInterceptor(opts ...Option) grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				err = recoverFrom(r, o.recoveryHandlerFunc)
+				err = recoverFrom(stream.Context(), r, o.recoveryHandlerFunc)
 			}
 		}()
 
@@ -40,9 +45,9 @@ func StreamServerInterceptor(opts ...Option) grpc.StreamServerInterceptor {
 	}
 }
 
-func recoverFrom(p interface{}, r RecoveryHandlerFunc) error {
+func recoverFrom(ctx context.Context, p interface{}, r RecoveryHandlerFuncContext) error {
 	if r == nil {
 		return grpc.Errorf(codes.Internal, "%s", p)
 	}
-	return r(p)
+	return r(ctx, p)
 }

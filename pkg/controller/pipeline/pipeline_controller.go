@@ -17,10 +17,12 @@ limitations under the License.
 package pipeline
 
 import (
+	"context"
 	"fmt"
 	"github.com/emicklei/go-restful"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1informer "k8s.io/client-go/informers/core/v1"
@@ -295,7 +297,7 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	if !reflect.DeepEqual(pipeline, copyPipeline) {
-		_, err = c.kubesphereClient.DevopsV1alpha3().Pipelines(nsName).Update(copyPipeline)
+		_, err = c.kubesphereClient.DevopsV1alpha3().Pipelines(nsName).Update(context.Background(), copyPipeline, metav1.UpdateOptions{})
 		if err != nil {
 			klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline %s ", key))
 			return err

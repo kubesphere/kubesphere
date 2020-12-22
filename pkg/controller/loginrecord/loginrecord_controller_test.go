@@ -147,7 +147,7 @@ func (f *fixture) runController(user string, startInformers bool, expectError bo
 	actions := filterInformerActions(f.ksclient.Actions())
 	for j, action := range actions {
 		if len(f.actions) < j+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[j:])
+			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions)
 			break
 		}
 

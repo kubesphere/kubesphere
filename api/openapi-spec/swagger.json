@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "KubeSphere Advanced",
+    "title": "KubeSphere",
     "contact": {
       "name": "KubeSphere",
       "url": "https://kubesphere.io/",
@@ -11,7 +11,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "v2.0.0"
+    "version": "v0.0.0"
   },
   "paths": {
     "/apis/": {

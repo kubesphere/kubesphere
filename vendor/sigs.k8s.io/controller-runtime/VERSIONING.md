@@ -91,7 +91,7 @@ a:
 - Non-breaking feature: :sparkles: (`:sparkles:`)
 - Patch fix: :bug: (`:bug:`)
 - Docs: :book: (`:book:`)
-- Infra/Tests/Other: :running: (`:running:`)
+- Infra/Tests/Other: :seedling: (`:seedling:`)
 - No release note: :ghost: (`:ghost:`)
 
 Use :ghost: (no release note) only for the PRs that change or revert unreleased
@@ -156,7 +156,7 @@ after that.
 
 3. Add a release for controller-runtime on GitHub, using those release
    notes, with a title of `vX.Y.Z`.
- 
+
 4. Do a similar process for
    [controller-tools](https://github.com/kubernetes-sigs/controller-tools)
 
@@ -210,10 +210,10 @@ converging on a ergonomic API.
 
    - Users will intuitively see `List`, and use that in new projects, even
      if it's marked as deprecated.
-   
+
    - Users who don't notice the deprecation may be confused as to the
      difference between `List` and `ListParametric`.
-   
+
    - It's not immediately obvious in isolation (e.g. in surrounding code)
      why the method is called `ListParametric`, and may cause confusion
      when reading code that makes use of that method.
@@ -229,8 +229,8 @@ Development branches:
 
 - don't win us much in terms of maintenance in the case of breaking
   changes (we still have to merge/manage multiple branches for development
-  and stable) 
-  
+  and stable)
+
 - can be confusing to contributors, who often expect master to have the
   latest changes.
 
@@ -241,7 +241,7 @@ leads to API cruft.
 
 Since one of the goals of controller-runtime is to be a friendly and
 intuitive API, we want to avoid too much API cruft over time, and
-occaisonal breaking changes in major releases help accomplish that goal.
+occasional breaking changes in major releases help accomplish that goal.
 
 Furthermore, our dependency on Kubernetes libraries makes this difficult
 (see below)

@@ -18,7 +18,7 @@ package v1alpha3
 
 import (
 	"github.com/google/go-cmp/cmp"
-	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake"
+	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +33,7 @@ import (
 	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
-	fakeapp "sigs.k8s.io/application/pkg/client/clientset/versioned/fake"
+	fakeapp "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned/fake"
 	"testing"
 )
 

@@ -44,6 +44,8 @@
 // be rewritten to /newcatalog and sent to pods with label "version: v2".
 //
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -71,11 +73,45 @@
 //         host: reviews.prod.svc.cluster.local
 //         subset: v1
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+// spec:
+//   hosts:
+//   - reviews.prod.svc.cluster.local
+//   http:
+//   - name: "reviews-v2-routes"
+//     match:
+//     - uri:
+//         prefix: "/wpcatalog"
+//     - uri:
+//         prefix: "/consumercatalog"
+//     rewrite:
+//       uri: "/newcatalog"
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v2
+//   - name: "reviews-v1-route"
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v1
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // A subset/version of a route destination is identified with a reference
 // to a named service subset which must be declared in a corresponding
 // `DestinationRule`.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -91,6 +127,26 @@
 //     labels:
 //       version: v2
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-destination
+// spec:
+//   host: reviews.prod.svc.cluster.local
+//   subsets:
+//   - name: v1
+//     labels:
+//       version: v1
+//   - name: v2
+//     labels:
+//       version: v2
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 
 package v1alpha3

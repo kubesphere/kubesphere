@@ -21,24 +21,17 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/go-logr/logr"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics"
-	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-var log = logf.RuntimeLog.WithName("controller")
 
 var _ inject.Injector = &Controller{}
 
@@ -54,19 +47,6 @@ type Controller struct {
 	// ensures that the state of the system matches the state specified in the object.
 	// Defaults to the DefaultReconcileFunc.
 	Do reconcile.Reconciler
-
-	// Client is a lazily initialized Client.  The controllerManager will initialize this when Start is called.
-	Client client.Client
-
-	// Scheme is injected by the controllerManager when controllerManager.Start is called
-	Scheme *runtime.Scheme
-
-	// informers are injected by the controllerManager when controllerManager.Start is called
-	Cache cache.Cache
-
-	// Config is the rest.Config used to talk to the apiserver.  Defaults to one of in-cluster, environment variable
-	// specified, or the ~/.kube/Config.
-	Config *rest.Config
 
 	// MakeQueue constructs the queue for this controller once the controller is ready to start.
 	// This exists because the standard Kubernetes workqueues start themselves immediately, which
@@ -86,21 +66,16 @@ type Controller struct {
 	// JitterPeriod allows tests to reduce the JitterPeriod so they complete faster
 	JitterPeriod time.Duration
 
-	// WaitForCacheSync allows tests to mock out the WaitForCacheSync function to return an error
-	// defaults to Cache.WaitForCacheSync
-	WaitForCacheSync func(stopCh <-chan struct{}) bool
-
 	// Started is true if the Controller has been Started
 	Started bool
 
-	// Recorder is an event recorder for recording Event resources to the
-	// Kubernetes API.
-	Recorder record.EventRecorder
-
 	// TODO(community): Consider initializing a logger with the Controller Name as the tag
 
-	// watches maintains a list of sources, handlers, and predicates to start when the controller is started.
-	watches []watchDescription
+	// startWatches maintains a list of sources, handlers, and predicates to start when the controller is started.
+	startWatches []watchDescription
+
+	// Log is used to log messages to users during reconciliation, or for example when a watch is started.
+	Log logr.Logger
 }
 
 // watchDescription contains all the information necessary to start a watch.
@@ -133,13 +108,16 @@ func (c *Controller) Watch(src source.Source, evthdler handler.EventHandler, prc
 		}
 	}
 
-	c.watches = append(c.watches, watchDescription{src: src, handler: evthdler, predicates: prct})
-	if c.Started {
-		log.Info("Starting EventSource", "controller", c.Name, "source", src)
-		return src.Start(evthdler, c.Queue, prct...)
+	// Controller hasn't started yet, store the watches locally and return.
+	//
+	// These watches are going to be held on the controller struct until the manager or user calls Start(...).
+	if !c.Started {
+		c.startWatches = append(c.startWatches, watchDescription{src: src, handler: evthdler, predicates: prct})
+		return nil
 	}
 
-	return nil
+	c.Log.Info("Starting EventSource", "source", src)
+	return src.Start(evthdler, c.Queue, prct...)
 }
 
 // Start implements controller.Controller
@@ -160,34 +138,42 @@ func (c *Controller) Start(stop <-chan struct{}) error {
 		// NB(directxman12): launch the sources *before* trying to wait for the
 		// caches to sync so that they have a chance to register their intendeded
 		// caches.
-		for _, watch := range c.watches {
-			log.Info("Starting EventSource", "controller", c.Name, "source", watch.src)
+		for _, watch := range c.startWatches {
+			c.Log.Info("Starting EventSource", "source", watch.src)
 			if err := watch.src.Start(watch.handler, c.Queue, watch.predicates...); err != nil {
 				return err
 			}
 		}
 
 		// Start the SharedIndexInformer factories to begin populating the SharedIndexInformer caches
-		log.Info("Starting Controller", "controller", c.Name)
+		c.Log.Info("Starting Controller")
 
-		// Wait for the caches to be synced before starting workers
-		if c.WaitForCacheSync == nil {
-			c.WaitForCacheSync = c.Cache.WaitForCacheSync
+		for _, watch := range c.startWatches {
+			syncingSource, ok := watch.src.(source.SyncingSource)
+			if !ok {
+				continue
+			}
+			if err := syncingSource.WaitForSync(stop); err != nil {
+				// This code is unreachable in case of kube watches since WaitForCacheSync will never return an error
+				// Leaving it here because that could happen in the future
+				err := fmt.Errorf("failed to wait for %s caches to sync: %w", c.Name, err)
+				c.Log.Error(err, "Could not wait for Cache to sync")
+				return err
+			}
 		}
-		if ok := c.WaitForCacheSync(stop); !ok {
-			// This code is unreachable right now since WaitForCacheSync will never return an error
-			// Leaving it here because that could happen in the future
-			err := fmt.Errorf("failed to wait for %s caches to sync", c.Name)
-			log.Error(err, "Could not wait for Cache to sync", "controller", c.Name)
-			return err
-		}
+
+		// All the watches have been started, we can reset the local slice.
+		//
+		// We should never hold watches more than necessary, each watch source can hold a backing cache,
+		// which won't be garbage collected if we hold a reference to it.
+		c.startWatches = nil
 
 		if c.JitterPeriod == 0 {
 			c.JitterPeriod = 1 * time.Second
 		}
 
 		// Launch workers to process resources
-		log.Info("Starting workers", "controller", c.Name, "worker count", c.MaxConcurrentReconciles)
+		c.Log.Info("Starting workers", "worker count", c.MaxConcurrentReconciles)
 		for i := 0; i < c.MaxConcurrentReconciles; i++ {
 			// Process work items
 			go wait.Until(c.worker, c.JitterPeriod, stop)
@@ -201,7 +187,7 @@ func (c *Controller) Start(stop <-chan struct{}) error {
 	}
 
 	<-stop
-	log.Info("Stopping workers", "controller", c.Name)
+	c.Log.Info("Stopping workers")
 	return nil
 }
 
@@ -236,26 +222,28 @@ func (c *Controller) reconcileHandler(obj interface{}) bool {
 	// Update metrics after processing each item
 	reconcileStartTS := time.Now()
 	defer func() {
-		c.updateMetrics(time.Now().Sub(reconcileStartTS))
+		c.updateMetrics(time.Since(reconcileStartTS))
 	}()
 
-	var req reconcile.Request
-	var ok bool
-	if req, ok = obj.(reconcile.Request); !ok {
+	// Make sure that the the object is a valid request.
+	req, ok := obj.(reconcile.Request)
+	if !ok {
 		// As the item in the workqueue is actually invalid, we call
 		// Forget here else we'd go into a loop of attempting to
 		// process a work item that is invalid.
 		c.Queue.Forget(obj)
-		log.Error(nil, "Queue item was not a Request",
-			"controller", c.Name, "type", fmt.Sprintf("%T", obj), "value", obj)
+		c.Log.Error(nil, "Queue item was not a Request", "type", fmt.Sprintf("%T", obj), "value", obj)
 		// Return true, don't take a break
 		return true
 	}
+
+	log := c.Log.WithValues("name", req.Name, "namespace", req.Namespace)
+
 	// RunInformersAndControllers the syncHandler, passing it the namespace/Name string of the
 	// resource to be synced.
 	if result, err := c.Do.Reconcile(req); err != nil {
 		c.Queue.AddRateLimited(req)
-		log.Error(err, "Reconciler error", "controller", c.Name, "request", req)
+		log.Error(err, "Reconciler error")
 		ctrlmetrics.ReconcileErrors.WithLabelValues(c.Name).Inc()
 		ctrlmetrics.ReconcileTotal.WithLabelValues(c.Name, "error").Inc()
 		return false
@@ -279,7 +267,7 @@ func (c *Controller) reconcileHandler(obj interface{}) bool {
 	c.Queue.Forget(obj)
 
 	// TODO(directxman12): What does 1 mean?  Do we want level constants?  Do we want levels at all?
-	log.V(1).Info("Successfully Reconciled", "controller", c.Name, "request", req)
+	log.V(1).Info("Successfully Reconciled")
 
 	ctrlmetrics.ReconcileTotal.WithLabelValues(c.Name, "success").Inc()
 	// Return true, don't take a break

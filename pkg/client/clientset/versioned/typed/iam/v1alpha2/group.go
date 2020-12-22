@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type GroupsGetter interface {
 
 // GroupInterface has methods to work with Group resources.
 type GroupInterface interface {
-	Create(*v1alpha2.Group) (*v1alpha2.Group, error)
-	Update(*v1alpha2.Group) (*v1alpha2.Group, error)
-	UpdateStatus(*v1alpha2.Group) (*v1alpha2.Group, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha2.Group, error)
-	List(opts v1.ListOptions) (*v1alpha2.GroupList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.Group, err error)
+	Create(ctx context.Context, group *v1alpha2.Group, opts v1.CreateOptions) (*v1alpha2.Group, error)
+	Update(ctx context.Context, group *v1alpha2.Group, opts v1.UpdateOptions) (*v1alpha2.Group, error)
+	UpdateStatus(ctx context.Context, group *v1alpha2.Group, opts v1.UpdateOptions) (*v1alpha2.Group, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha2.Group, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha2.GroupList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.Group, err error)
 	GroupExpansion
 }
 
@@ -62,19 +63,19 @@ func newGroups(c *IamV1alpha2Client) *groups {
 }
 
 // Get takes name of the group, and returns the corresponding group object, and an error if there is any.
-func (c *groups) Get(name string, options v1.GetOptions) (result *v1alpha2.Group, err error) {
+func (c *groups) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.Group, err error) {
 	result = &v1alpha2.Group{}
 	err = c.client.Get().
 		Resource("groups").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Groups that match those selectors.
-func (c *groups) List(opts v1.ListOptions) (result *v1alpha2.GroupList, err error) {
+func (c *groups) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.GroupList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -84,13 +85,13 @@ func (c *groups) List(opts v1.ListOptions) (result *v1alpha2.GroupList, err erro
 		Resource("groups").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested groups.
-func (c *groups) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *groups) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -100,81 +101,84 @@ func (c *groups) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("groups").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a group and creates it.  Returns the server's representation of the group, and an error, if there is any.
-func (c *groups) Create(group *v1alpha2.Group) (result *v1alpha2.Group, err error) {
+func (c *groups) Create(ctx context.Context, group *v1alpha2.Group, opts v1.CreateOptions) (result *v1alpha2.Group, err error) {
 	result = &v1alpha2.Group{}
 	err = c.client.Post().
 		Resource("groups").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(group).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a group and updates it. Returns the server's representation of the group, and an error, if there is any.
-func (c *groups) Update(group *v1alpha2.Group) (result *v1alpha2.Group, err error) {
+func (c *groups) Update(ctx context.Context, group *v1alpha2.Group, opts v1.UpdateOptions) (result *v1alpha2.Group, err error) {
 	result = &v1alpha2.Group{}
 	err = c.client.Put().
 		Resource("groups").
 		Name(group.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(group).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *groups) UpdateStatus(group *v1alpha2.Group) (result *v1alpha2.Group, err error) {
+func (c *groups) UpdateStatus(ctx context.Context, group *v1alpha2.Group, opts v1.UpdateOptions) (result *v1alpha2.Group, err error) {
 	result = &v1alpha2.Group{}
 	err = c.client.Put().
 		Resource("groups").
 		Name(group.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(group).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the group and deletes it. Returns an error if one occurs.
-func (c *groups) Delete(name string, options *v1.DeleteOptions) error {
+func (c *groups) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("groups").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *groups) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *groups) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("groups").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched group.
-func (c *groups) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.Group, err error) {
+func (c *groups) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.Group, err error) {
 	result = &v1alpha2.Group{}
 	err = c.client.Patch(pt).
 		Resource("groups").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

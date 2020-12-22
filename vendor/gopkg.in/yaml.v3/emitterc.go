@@ -727,7 +727,7 @@ func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_
 	if first {
 		// [Go] The original logic here would not indent the sequence when inside a mapping.
 		// In Go we always indent it, but take the sequence indicator out of the indentation.
-		indentless := emitter.best_indent == 2 && emitter.mapping_context && !emitter.indention
+		indentless := emitter.best_indent == 2 && emitter.mapping_context && (emitter.column == 0 || !emitter.indention)
 		original := emitter.indent
 		if !yaml_emitter_increase_indent(emitter, false, indentless) {
 			return false

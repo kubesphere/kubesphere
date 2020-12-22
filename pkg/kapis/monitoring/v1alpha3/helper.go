@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"context"
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -249,7 +250,7 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 
 	// Ensure query start time to be after the namespace creation time
 	if r.namespaceName != "" {
-		ns, err := h.k.CoreV1().Namespaces().Get(r.namespaceName, corev1.GetOptions{})
+		ns, err := h.k.CoreV1().Namespaces().Get(context.Background(), r.namespaceName, corev1.GetOptions{})
 		if err != nil {
 			return q, err
 		}

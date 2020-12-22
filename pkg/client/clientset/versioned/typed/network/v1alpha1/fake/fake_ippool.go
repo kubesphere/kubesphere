@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var ippoolsResource = schema.GroupVersionResource{Group: "network.kubesphere.io"
 var ippoolsKind = schema.GroupVersionKind{Group: "network.kubesphere.io", Version: "v1alpha1", Kind: "IPPool"}
 
 // Get takes name of the iPPool, and returns the corresponding iPPool object, and an error if there is any.
-func (c *FakeIPPools) Get(name string, options v1.GetOptions) (result *v1alpha1.IPPool, err error) {
+func (c *FakeIPPools) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.IPPool, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(ippoolsResource, name), &v1alpha1.IPPool{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeIPPools) Get(name string, options v1.GetOptions) (result *v1alpha1.
 }
 
 // List takes label and field selectors, and returns the list of IPPools that match those selectors.
-func (c *FakeIPPools) List(opts v1.ListOptions) (result *v1alpha1.IPPoolList, err error) {
+func (c *FakeIPPools) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.IPPoolList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(ippoolsResource, ippoolsKind, opts), &v1alpha1.IPPoolList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeIPPools) List(opts v1.ListOptions) (result *v1alpha1.IPPoolList, er
 }
 
 // Watch returns a watch.Interface that watches the requested iPPools.
-func (c *FakeIPPools) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeIPPools) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(ippoolsResource, opts))
 }
 
 // Create takes the representation of a iPPool and creates it.  Returns the server's representation of the iPPool, and an error, if there is any.
-func (c *FakeIPPools) Create(iPPool *v1alpha1.IPPool) (result *v1alpha1.IPPool, err error) {
+func (c *FakeIPPools) Create(ctx context.Context, iPPool *v1alpha1.IPPool, opts v1.CreateOptions) (result *v1alpha1.IPPool, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(ippoolsResource, iPPool), &v1alpha1.IPPool{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeIPPools) Create(iPPool *v1alpha1.IPPool) (result *v1alpha1.IPPool, 
 }
 
 // Update takes the representation of a iPPool and updates it. Returns the server's representation of the iPPool, and an error, if there is any.
-func (c *FakeIPPools) Update(iPPool *v1alpha1.IPPool) (result *v1alpha1.IPPool, err error) {
+func (c *FakeIPPools) Update(ctx context.Context, iPPool *v1alpha1.IPPool, opts v1.UpdateOptions) (result *v1alpha1.IPPool, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(ippoolsResource, iPPool), &v1alpha1.IPPool{})
 	if obj == nil {
@@ -96,7 +98,7 @@ func (c *FakeIPPools) Update(iPPool *v1alpha1.IPPool) (result *v1alpha1.IPPool, 
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeIPPools) UpdateStatus(iPPool *v1alpha1.IPPool) (*v1alpha1.IPPool, error) {
+func (c *FakeIPPools) UpdateStatus(ctx context.Context, iPPool *v1alpha1.IPPool, opts v1.UpdateOptions) (*v1alpha1.IPPool, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateSubresourceAction(ippoolsResource, "status", iPPool), &v1alpha1.IPPool{})
 	if obj == nil {
@@ -106,22 +108,22 @@ func (c *FakeIPPools) UpdateStatus(iPPool *v1alpha1.IPPool) (*v1alpha1.IPPool, e
 }
 
 // Delete takes name of the iPPool and deletes it. Returns an error if one occurs.
-func (c *FakeIPPools) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeIPPools) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(ippoolsResource, name), &v1alpha1.IPPool{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeIPPools) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(ippoolsResource, listOptions)
+func (c *FakeIPPools) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(ippoolsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.IPPoolList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched iPPool.
-func (c *FakeIPPools) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IPPool, err error) {
+func (c *FakeIPPools) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.IPPool, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(ippoolsResource, name, pt, data, subresources...), &v1alpha1.IPPool{})
 	if obj == nil {

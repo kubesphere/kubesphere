@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type FederatedGroupBindingsGetter interface {
 
 // FederatedGroupBindingInterface has methods to work with FederatedGroupBinding resources.
 type FederatedGroupBindingInterface interface {
-	Create(*v1beta1.FederatedGroupBinding) (*v1beta1.FederatedGroupBinding, error)
-	Update(*v1beta1.FederatedGroupBinding) (*v1beta1.FederatedGroupBinding, error)
-	UpdateStatus(*v1beta1.FederatedGroupBinding) (*v1beta1.FederatedGroupBinding, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.FederatedGroupBinding, error)
-	List(opts v1.ListOptions) (*v1beta1.FederatedGroupBindingList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedGroupBinding, err error)
+	Create(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.CreateOptions) (*v1beta1.FederatedGroupBinding, error)
+	Update(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.UpdateOptions) (*v1beta1.FederatedGroupBinding, error)
+	UpdateStatus(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.UpdateOptions) (*v1beta1.FederatedGroupBinding, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.FederatedGroupBinding, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.FederatedGroupBindingList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedGroupBinding, err error)
 	FederatedGroupBindingExpansion
 }
 
@@ -62,19 +63,19 @@ func newFederatedGroupBindings(c *TypesV1beta1Client) *federatedGroupBindings {
 }
 
 // Get takes name of the federatedGroupBinding, and returns the corresponding federatedGroupBinding object, and an error if there is any.
-func (c *federatedGroupBindings) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *federatedGroupBindings) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedGroupBinding, err error) {
 	result = &v1beta1.FederatedGroupBinding{}
 	err = c.client.Get().
 		Resource("federatedgroupbindings").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of FederatedGroupBindings that match those selectors.
-func (c *federatedGroupBindings) List(opts v1.ListOptions) (result *v1beta1.FederatedGroupBindingList, err error) {
+func (c *federatedGroupBindings) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedGroupBindingList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -84,13 +85,13 @@ func (c *federatedGroupBindings) List(opts v1.ListOptions) (result *v1beta1.Fede
 		Resource("federatedgroupbindings").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested federatedGroupBindings.
-func (c *federatedGroupBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *federatedGroupBindings) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -100,81 +101,84 @@ func (c *federatedGroupBindings) Watch(opts v1.ListOptions) (watch.Interface, er
 		Resource("federatedgroupbindings").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a federatedGroupBinding and creates it.  Returns the server's representation of the federatedGroupBinding, and an error, if there is any.
-func (c *federatedGroupBindings) Create(federatedGroupBinding *v1beta1.FederatedGroupBinding) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *federatedGroupBindings) Create(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.CreateOptions) (result *v1beta1.FederatedGroupBinding, err error) {
 	result = &v1beta1.FederatedGroupBinding{}
 	err = c.client.Post().
 		Resource("federatedgroupbindings").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedGroupBinding).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a federatedGroupBinding and updates it. Returns the server's representation of the federatedGroupBinding, and an error, if there is any.
-func (c *federatedGroupBindings) Update(federatedGroupBinding *v1beta1.FederatedGroupBinding) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *federatedGroupBindings) Update(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.UpdateOptions) (result *v1beta1.FederatedGroupBinding, err error) {
 	result = &v1beta1.FederatedGroupBinding{}
 	err = c.client.Put().
 		Resource("federatedgroupbindings").
 		Name(federatedGroupBinding.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedGroupBinding).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *federatedGroupBindings) UpdateStatus(federatedGroupBinding *v1beta1.FederatedGroupBinding) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *federatedGroupBindings) UpdateStatus(ctx context.Context, federatedGroupBinding *v1beta1.FederatedGroupBinding, opts v1.UpdateOptions) (result *v1beta1.FederatedGroupBinding, err error) {
 	result = &v1beta1.FederatedGroupBinding{}
 	err = c.client.Put().
 		Resource("federatedgroupbindings").
 		Name(federatedGroupBinding.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedGroupBinding).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the federatedGroupBinding and deletes it. Returns an error if one occurs.
-func (c *federatedGroupBindings) Delete(name string, options *v1.DeleteOptions) error {
+func (c *federatedGroupBindings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("federatedgroupbindings").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *federatedGroupBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *federatedGroupBindings) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("federatedgroupbindings").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched federatedGroupBinding.
-func (c *federatedGroupBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedGroupBinding, err error) {
+func (c *federatedGroupBindings) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedGroupBinding, err error) {
 	result = &v1beta1.FederatedGroupBinding{}
 	err = c.client.Patch(pt).
 		Resource("federatedgroupbindings").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

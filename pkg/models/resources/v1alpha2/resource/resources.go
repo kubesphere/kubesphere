@@ -84,7 +84,7 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	resourceGetters[v1alpha2.S2iRuns] = s2irun.NewS2iRunSearcher(factory.KubeSphereSharedInformerFactory())
 	resourceGetters[v1alpha2.S2iBuilderTemplates] = s2buildertemplate.NewS2iBuidlerTemplateSearcher(factory.KubeSphereSharedInformerFactory())
 	resourceGetters[v1alpha2.Workspaces] = workspace.NewWorkspaceSearcher(factory.KubeSphereSharedInformerFactory())
-	resourceGetters[v1alpha2.Applications] = application.NewApplicationSearcher(factory.ApplicationSharedInformerFactory())
+	resourceGetters[v1alpha2.Applications] = application.NewApplicationSearcher(nil)
 
 	return &ResourceGetter{resourcesGetters: resourceGetters}
 

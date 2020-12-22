@@ -6,7 +6,7 @@ package controllers
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	appv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
+	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 )
 
 func setReadyCondition(appStatus *appv1beta1.ApplicationStatus, reason, message string) {

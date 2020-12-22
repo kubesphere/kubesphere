@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"context"
 	"time"
 
 	"github.com/pkg/errors"
@@ -68,14 +69,14 @@ func NewGenericInformerWithEventHandler(config *rest.Config, namespace string, o
 			ListFunc: func(opts metav1.ListOptions) (pkgruntime.Object, error) {
 				res := listObj.DeepCopyObject()
 				isNamespaceScoped := namespace != "" && mapping.Scope.Name() != meta.RESTScopeNameRoot
-				err := client.Get().NamespaceIfScoped(namespace, isNamespaceScoped).Resource(mapping.Resource.Resource).VersionedParams(&opts, scheme.ParameterCodec).Do().Into(res)
+				err := client.Get().NamespaceIfScoped(namespace, isNamespaceScoped).Resource(mapping.Resource.Resource).VersionedParams(&opts, scheme.ParameterCodec).Do(context.Background()).Into(res)
 				return res, err
 			},
 			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
 				// Watch needs to be set to true separately
 				opts.Watch = true
 				isNamespaceScoped := namespace != "" && mapping.Scope.Name() != meta.RESTScopeNameRoot
-				return client.Get().NamespaceIfScoped(namespace, isNamespaceScoped).Resource(mapping.Resource.Resource).VersionedParams(&opts, scheme.ParameterCodec).Watch()
+				return client.Get().NamespaceIfScoped(namespace, isNamespaceScoped).Resource(mapping.Resource.Resource).VersionedParams(&opts, scheme.ParameterCodec).Watch(context.Background())
 			},
 		},
 		obj,

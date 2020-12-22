@@ -17,6 +17,7 @@ limitations under the License.
 package leaderelection
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -52,9 +53,9 @@ func NewResourceLock(config *rest.Config, recorderProvider recorder.Provider, op
 		return nil, nil
 	}
 
-	// Default the LeaderElectionID
+	// LeaderElectionID must be provided to prevent clashes
 	if options.LeaderElectionID == "" {
-		options.LeaderElectionID = "controller-leader-election-helper"
+		return nil, errors.New("LeaderElectionID must be configured")
 	}
 
 	// Default the namespace (if running in cluster)
@@ -62,7 +63,7 @@ func NewResourceLock(config *rest.Config, recorderProvider recorder.Provider, op
 		var err error
 		options.LeaderElectionNamespace, err = getInClusterNamespace()
 		if err != nil {
-			return nil, fmt.Errorf("unable to find leader election namespace: %v", err)
+			return nil, fmt.Errorf("unable to find leader election namespace: %w", err)
 		}
 	}
 
@@ -74,7 +75,7 @@ func NewResourceLock(config *rest.Config, recorderProvider recorder.Provider, op
 	id = id + "_" + string(uuid.NewUUID())
 
 	// Construct client for leader election
-	client, err := kubernetes.NewForConfig(config)
+	client, err := kubernetes.NewForConfig(rest.AddUserAgent(config, "leader-election"))
 	if err != nil {
 		return nil, err
 	}
@@ -98,13 +99,13 @@ func getInClusterNamespace() (string, error) {
 	if os.IsNotExist(err) {
 		return "", fmt.Errorf("not running in-cluster, please specify LeaderElectionNamespace")
 	} else if err != nil {
-		return "", fmt.Errorf("error checking namespace file: %v", err)
+		return "", fmt.Errorf("error checking namespace file: %w", err)
 	}
 
 	// Load the namespace file and return its content
 	namespace, err := ioutil.ReadFile(inClusterNamespacePath)
 	if err != nil {
-		return "", fmt.Errorf("error reading namespace file: %v", err)
+		return "", fmt.Errorf("error reading namespace file: %w", err)
 	}
 	return string(namespace), nil
 }

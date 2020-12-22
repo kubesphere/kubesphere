@@ -17,6 +17,7 @@ limitations under the License.
 package application
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -39,9 +40,9 @@ import (
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
-	applicationclient "sigs.k8s.io/application/pkg/client/clientset/versioned"
-	applicationinformers "sigs.k8s.io/application/pkg/client/informers/externalversions/app/v1beta1"
-	applicationlister "sigs.k8s.io/application/pkg/client/listers/app/v1beta1"
+	applicationclient "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned"
+	applicationinformers "kubesphere.io/kubesphere/pkg/simple/client/app/informers/externalversions/app/v1beta1"
+	applicationlister "kubesphere.io/kubesphere/pkg/simple/client/app/listers/app/v1beta1"
 )
 
 const (
@@ -232,7 +233,7 @@ func (v *ApplicationController) syncApplication(key string) error {
 	annotations["kubesphere.io/last-updated"] = time.Now().String()
 	application.SetAnnotations(annotations)
 
-	_, err = v.applicationClient.AppV1beta1().Applications(namespace).Update(application)
+	_, err = v.applicationClient.AppV1beta1().Applications(namespace).Update(context.Background(), application, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.V(4).Info("application has been deleted during update")

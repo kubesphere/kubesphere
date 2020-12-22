@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,14 +38,14 @@ type IPAMHandlesGetter interface {
 
 // IPAMHandleInterface has methods to work with IPAMHandle resources.
 type IPAMHandleInterface interface {
-	Create(*v1alpha1.IPAMHandle) (*v1alpha1.IPAMHandle, error)
-	Update(*v1alpha1.IPAMHandle) (*v1alpha1.IPAMHandle, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.IPAMHandle, error)
-	List(opts v1.ListOptions) (*v1alpha1.IPAMHandleList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IPAMHandle, err error)
+	Create(ctx context.Context, iPAMHandle *v1alpha1.IPAMHandle, opts v1.CreateOptions) (*v1alpha1.IPAMHandle, error)
+	Update(ctx context.Context, iPAMHandle *v1alpha1.IPAMHandle, opts v1.UpdateOptions) (*v1alpha1.IPAMHandle, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.IPAMHandle, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.IPAMHandleList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.IPAMHandle, err error)
 	IPAMHandleExpansion
 }
 
@@ -61,19 +62,19 @@ func newIPAMHandles(c *NetworkV1alpha1Client) *iPAMHandles {
 }
 
 // Get takes name of the iPAMHandle, and returns the corresponding iPAMHandle object, and an error if there is any.
-func (c *iPAMHandles) Get(name string, options v1.GetOptions) (result *v1alpha1.IPAMHandle, err error) {
+func (c *iPAMHandles) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.IPAMHandle, err error) {
 	result = &v1alpha1.IPAMHandle{}
 	err = c.client.Get().
 		Resource("ipamhandles").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of IPAMHandles that match those selectors.
-func (c *iPAMHandles) List(opts v1.ListOptions) (result *v1alpha1.IPAMHandleList, err error) {
+func (c *iPAMHandles) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.IPAMHandleList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,13 +84,13 @@ func (c *iPAMHandles) List(opts v1.ListOptions) (result *v1alpha1.IPAMHandleList
 		Resource("ipamhandles").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested iPAMHandles.
-func (c *iPAMHandles) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *iPAMHandles) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -99,66 +100,69 @@ func (c *iPAMHandles) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("ipamhandles").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a iPAMHandle and creates it.  Returns the server's representation of the iPAMHandle, and an error, if there is any.
-func (c *iPAMHandles) Create(iPAMHandle *v1alpha1.IPAMHandle) (result *v1alpha1.IPAMHandle, err error) {
+func (c *iPAMHandles) Create(ctx context.Context, iPAMHandle *v1alpha1.IPAMHandle, opts v1.CreateOptions) (result *v1alpha1.IPAMHandle, err error) {
 	result = &v1alpha1.IPAMHandle{}
 	err = c.client.Post().
 		Resource("ipamhandles").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(iPAMHandle).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a iPAMHandle and updates it. Returns the server's representation of the iPAMHandle, and an error, if there is any.
-func (c *iPAMHandles) Update(iPAMHandle *v1alpha1.IPAMHandle) (result *v1alpha1.IPAMHandle, err error) {
+func (c *iPAMHandles) Update(ctx context.Context, iPAMHandle *v1alpha1.IPAMHandle, opts v1.UpdateOptions) (result *v1alpha1.IPAMHandle, err error) {
 	result = &v1alpha1.IPAMHandle{}
 	err = c.client.Put().
 		Resource("ipamhandles").
 		Name(iPAMHandle.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(iPAMHandle).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the iPAMHandle and deletes it. Returns an error if one occurs.
-func (c *iPAMHandles) Delete(name string, options *v1.DeleteOptions) error {
+func (c *iPAMHandles) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("ipamhandles").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *iPAMHandles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *iPAMHandles) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("ipamhandles").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched iPAMHandle.
-func (c *iPAMHandles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IPAMHandle, err error) {
+func (c *iPAMHandles) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.IPAMHandle, err error) {
 	result = &v1alpha1.IPAMHandle{}
 	err = c.client.Patch(pt).
 		Resource("ipamhandles").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

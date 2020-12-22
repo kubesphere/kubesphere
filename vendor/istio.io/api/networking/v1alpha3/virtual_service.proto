@@ -18,10 +18,11 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
 
+// $schema: istio.networking.v1alpha3.VirtualService
 // $title: Virtual Service
 // $description: Configuration affecting label/content routing, sni routing, etc.
 // $location: https://istio.io/docs/reference/config/networking/virtual-service.html
-// $aliases: [/docs/reference/config/networking/v1alpha3/virtual-service.html]
+// $aliases: [/docs/reference/config/networking/v1alpha3/virtual-service]
 
 // Configuration affecting traffic routing. Here are a few terms useful to define
 // in the context of traffic routing.
@@ -66,6 +67,8 @@ import "google/protobuf/wrappers.proto";
 // be rewritten to /newcatalog and sent to pods with label "version: v2".
 //
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -93,11 +96,45 @@ import "google/protobuf/wrappers.proto";
 //         host: reviews.prod.svc.cluster.local
 //         subset: v1
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+// spec:
+//   hosts:
+//   - reviews.prod.svc.cluster.local
+//   http:
+//   - name: "reviews-v2-routes"
+//     match:
+//     - uri:
+//         prefix: "/wpcatalog"
+//     - uri:
+//         prefix: "/consumercatalog"
+//     rewrite:
+//       uri: "/newcatalog"
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v2
+//   - name: "reviews-v1-route"
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v1
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // A subset/version of a route destination is identified with a reference
 // to a named service subset which must be declared in a corresponding
 // `DestinationRule`.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -113,12 +150,51 @@ import "google/protobuf/wrappers.proto";
 //     labels:
 //       version: v2
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-destination
+// spec:
+//   host: reviews.prod.svc.cluster.local
+//   subsets:
+//   - name: v1
+//     labels:
+//       version: v1
+//   - name: v2
+//     labels:
+//       version: v2
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 package istio.networking.v1alpha3;
 
 option go_package = "istio.io/api/networking/v1alpha3";
 
 // Configuration affecting traffic routing.
+//
+// <!-- crd generation tags
+// +cue-gen:VirtualService:groupName:networking.istio.io
+// +cue-gen:VirtualService:version:v1alpha3
+// +cue-gen:VirtualService:storageVersion
+// +cue-gen:VirtualService:annotations:helm.sh/resource-policy=keep
+// +cue-gen:VirtualService:labels:app=istio-pilot,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:VirtualService:subresource:status
+// +cue-gen:VirtualService:scope:Namespaced
+// +cue-gen:VirtualService:resource:categories=istio-io,networking-istio-io,shortNames=vs
+// +cue-gen:VirtualService:printerColumn:name=Gateways,type=string,JSONPath=.spec.gateways,description="The names of gateways and sidecars 
+// that should apply these routes"
+// +cue-gen:VirtualService:printerColumn:name=Hosts,type=string,JSONPath=.spec.hosts,description="The destination hosts to which traffic is being sent"
+// +cue-gen:VirtualService:printerColumn:name=Age,type=date,JSONPath=.metadata.creationTimestamp,description="CreationTimestamp is a timestamp 
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. 
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +cue-gen:VirtualService:preserveUnknownFields:false
+// -->
 //
 // <!-- go code generation tags
 // +kubetype-gen
@@ -138,7 +214,7 @@ message VirtualService {
   // HTTP and TCP ports. Alternatively, the traffic properties of a host
   // can be defined using more than one VirtualService, with certain
   // caveats. Refer to the
-  // [Operations Guide](https://istio.io/docs/ops/traffic-management/deploy-guidelines/#multiple-virtual-services-and-destination-rules-for-the-same-host)
+  // [Operations Guide](https://istio.io/docs/ops/best-practices/traffic-management/#split-virtual-services)
   // for details.
   //
   // *Note for Kubernetes users*: When short names are used (e.g. "reviews"
@@ -154,11 +230,16 @@ message VirtualService {
   // the mesh, i.e., those found in the service registry, must always be
   // referred to using their alphanumeric names. IP addresses are allowed
   // only for services defined via the Gateway.
-  repeated string hosts = 1 [(google.api.field_behavior) = REQUIRED];
+  //
+  // *Note*: It must be empty for a delegate VirtualService.
+  repeated string hosts = 1;
 
-  // The names of gateways and sidecars that should apply these routes. A
-  // single VirtualService is used for sidecars inside the mesh as well as
-  // for one or more gateways. The selection condition imposed by this
+  // The names of gateways and sidecars that should apply these routes.
+  // Gateways in other namespaces may be referred to by
+  // `<gateway namespace>/<gateway name>`; specifying a gateway with no
+  // namespace qualifier is the same as specifying the VirtualService's
+  // namespace. A single VirtualService is used for sidecars inside the mesh as
+  // well as for one or more gateways. The selection condition imposed by this
   // field can be overridden using the source field in the match conditions
   // of protocol-specific routes. The reserved word `mesh` is used to imply
   // all the sidecars in the mesh. When this field is omitted, the default
@@ -230,6 +311,8 @@ message VirtualService {
 // of the reviews service with label "version: v1" (i.e., subset v1), and
 // some to subset v2, in a Kubernetes environment.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -256,9 +339,42 @@ message VirtualService {
 //         host: reviews # interpreted as reviews.foo.svc.cluster.local
 //         subset: v1
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+//   namespace: foo
+// spec:
+//   hosts:
+//   - reviews # interpreted as reviews.foo.svc.cluster.local
+//   http:
+//   - match:
+//     - uri:
+//         prefix: "/wpcatalog"
+//     - uri:
+//         prefix: "/consumercatalog"
+//     rewrite:
+//       uri: "/newcatalog"
+//     route:
+//     - destination:
+//         host: reviews # interpreted as reviews.foo.svc.cluster.local
+//         subset: v2
+//   - route:
+//     - destination:
+//         host: reviews # interpreted as reviews.foo.svc.cluster.local
+//         subset: v1
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // And the associated DestinationRule
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -275,6 +391,27 @@ message VirtualService {
 //     labels:
 //       version: v2
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-destination
+//   namespace: foo
+// spec:
+//   host: reviews # interpreted as reviews.foo.svc.cluster.local
+//   subsets:
+//   - name: v1
+//     labels:
+//       version: v1
+//   - name: v2
+//     labels:
+//       version: v2
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The following VirtualService sets a timeout of 5s for all calls to
 // productpage.prod.svc.cluster.local service in Kubernetes. Notice that
@@ -286,6 +423,8 @@ message VirtualService {
 // productpage.prod.svc.cluster.local. Therefore the rule's namespace does
 // not have an impact in resolving the name of the productpage service.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -301,13 +440,35 @@ message VirtualService {
 //     - destination:
 //         host: productpage.prod.svc.cluster.local
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: my-productpage-rule
+//   namespace: istio-system
+// spec:
+//   hosts:
+//   - productpage.prod.svc.cluster.local # ignores rule namespace
+//   http:
+//   - timeout: 5s
+//     route:
+//     - destination:
+//         host: productpage.prod.svc.cluster.local
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // To control routing for traffic bound to services outside the mesh, external
 // services must first be added to Istio's internal service registry using the
 // ServiceEntry resource. VirtualServices can then be defined to control traffic
 // bound to these external services. For example, the following rules define a
-// Service for wikipedia.org and set a timeout of 5s for http requests.
+// Service for wikipedia.org and set a timeout of 5s for HTTP requests.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: ServiceEntry
@@ -336,6 +497,40 @@ message VirtualService {
 //     - destination:
 //         host: wikipedia.org
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: ServiceEntry
+// metadata:
+//   name: external-svc-wikipedia
+// spec:
+//   hosts:
+//   - wikipedia.org
+//   location: MESH_EXTERNAL
+//   ports:
+//   - number: 80
+//     name: example-http
+//     protocol: HTTP
+//   resolution: DNS
+//
+// apiVersion: networking.istio.io/v1alpha3
+// kind: VirtualService
+// metadata:
+//   name: my-wiki-rule
+// spec:
+//   hosts:
+//   - wikipedia.org
+//   http:
+//   - timeout: 5s
+//     route:
+//     - destination:
+//         host: wikipedia.org
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 message Destination {
   // The name of a service from the service registry. Service
   // names are looked up from the platform's service registry (e.g.,
@@ -348,9 +543,9 @@ message Destination {
   // the short name based on the namespace of the rule, not the service. A
   // rule in the "default" namespace containing a host "reviews will be
   // interpreted as "reviews.default.svc.cluster.local", irrespective of
-  // the actual namespace associated with the reviews service. _To avoid
-  // potential misconfigurations, it is recommended to always use fully
-  // qualified domain names over short names._
+  // the actual namespace associated with the reviews service. To avoid
+  // potential misconfiguration, it is recommended to always use fully
+  // qualified domain names over short names.
   string host = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The name of a subset within the service. Applicable only to services
@@ -379,25 +574,34 @@ message HTTPRoute {
   // is matched if any one of the match blocks succeed.
   repeated HTTPMatchRequest match = 1;
 
-  // A http rule can either redirect or forward (default) traffic. The
+  // A HTTP rule can either redirect or forward (default) traffic. The
   // forwarding target can be one of several versions of a service (see
   // glossary in beginning of document). Weights associated with the
   // service version determine the proportion of traffic it receives.
   repeated HTTPRouteDestination route = 2;
 
-  // A http rule can either redirect or forward (default) traffic. If
+  // A HTTP rule can either redirect or forward (default) traffic. If
   // traffic passthrough option is specified in the rule,
   // route/redirect will be ignored. The redirect primitive can be used to
   // send a HTTP 301 redirect to a different URI or Authority.
   HTTPRedirect redirect = 3;
 
+  // Delegate is used to specify the particular VirtualService which
+  // can be used to define delegate HTTPRoute.
+  // It can be set only when `Route` and `Redirect` are empty, and the route rules of the
+  // delegate VirtualService will be merged with that in the current one.
+  // **NOTE**:
+  //    1. Only one level delegation is supported.
+  //    2. The delegate's HTTPMatchRequest must be a strict subset of the root's,
+  //       otherwise there is a conflict and the HTTPRoute will not take effect.
+  Delegate delegate = 20;
+
   // Rewrite HTTP URIs and Authority headers. Rewrite cannot be used with
   // Redirect primitive. Rewrite will be performed before forwarding.
   HTTPRewrite rewrite = 4;
 
-  // Deprecated. Websocket upgrades are done automatically starting from Istio 1.0.
-  // $hide_from_docs
-  bool websocket_upgrade = 5;
+  reserved 5;
+  reserved "websocket_upgrade";
 
   // Timeout for HTTP requests.
   google.protobuf.Duration timeout = 6;
@@ -419,33 +623,99 @@ message HTTPRoute {
   Destination mirror = 9;
 
   // Percentage of the traffic to be mirrored by the `mirror` field.
+  // Use of integer `mirror_percent` value is deprecated. Use the
+  // double `mirror_percentage` field instead
+  google.protobuf.UInt32Value mirror_percent = 18 [deprecated=true];
+
+  // Percentage of the traffic to be mirrored by the `mirror` field.
   // If this field is absent, all the traffic (100%) will be mirrored.
   // Max value is 100.
-  google.protobuf.UInt32Value mirror_percent = 18;
+  Percent mirror_percentage = 19;
 
   // Cross-Origin Resource Sharing policy (CORS). Refer to
   // [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
   // for further details about cross origin resource sharing.
   CorsPolicy cors_policy = 10;
 
-  // $hide_from_docs
-  map<string, string> append_headers = 11 [deprecated=true];
-
-  // $hide_from_docs
-  repeated string remove_response_headers = 12 [deprecated=true];
-
-  // $hide_from_docs
-  map<string, string> append_response_headers = 13 [deprecated=true];
-
-  // $hide_from_docs
-  repeated string remove_request_headers = 14 [deprecated=true];
-
-  // $hide_from_docs
-  map<string, string> append_request_headers = 15 [deprecated=true];
+  reserved 11 to 15;
+  reserved "append_headers", "remove_response_headers", "append_response_headers","remove_request_headers", "append_request_headers";
 
   // Header manipulation rules
   Headers headers = 16;
+
+  // $hide_from_docs
+  // Next available field number: 21
 }
+
+
+// Describes the delegate VirtualService.
+// The following routing rules forward the traffic to `/productpage` by a delegate VirtualService named `productpage`,
+// forward the traffic to `/reviews` by a delegate VirtualService named `reviews`.
+//
+// ```yaml
+// apiVersion: networking.istio.io/v1alpha3
+// kind: VirtualService
+// metadata:
+//   name: bookinfo
+// spec:
+//   hosts:
+//   - "bookinfo.com"
+//   gateways:
+//   - mygateway
+//   http:
+//   - match:
+//     - uri:
+//         prefix: "/productpage"
+//     delegate:
+//        name: productpage
+//        namespace: nsA
+//   - match:
+//     - uri:
+//         prefix: "/reviews"
+//     delegate:
+//         name: reviews
+//         namespace: nsB
+// ```
+//
+// ```yaml
+// apiVersion: networking.istio.io/v1alpha3
+// kind: VirtualService
+// metadata:
+//   name: productpage
+//   namespace: nsA
+// spec:
+//   http:
+//   - match:
+//      - uri:
+//         prefix: "/productpage/v1/"
+//     route:
+//     - destination:
+//         host: productpage-v1.nsA.svc.cluster.local
+//   - route:
+//     - destination:
+//         host: productpage.nsA.svc.cluster.local
+// ```
+//
+// ```yaml
+// apiVersion: networking.istio.io/v1alpha3
+// kind: VirtualService
+// metadata:
+//   name: reviews
+//   namespace: nsB
+// spec:
+//   http:
+//   - route:
+//     - destination:
+//         host: reviews.nsB.svc.cluster.local
+// ```
+message Delegate {
+  // Name specifies the name of the delegate VirtualService.
+  string name = 1;
+  // Namespace specifies the namespace where the delegate VirtualService resides.
+  // By default, it is same to the root's.
+  string namespace = 2;
+}
+
 
 // Message headers can be manipulated when Envoy forwards requests to,
 // or responses from, a destination service. Header manipulation rules can
@@ -455,6 +725,8 @@ message HTTPRoute {
 // It also romoves the `foo` response header, but only from responses
 // coming from the `v1` subset (version) of the `reviews` service.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -482,6 +754,38 @@ message HTTPRoute {
 //           - foo
 //       weight: 75
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+// spec:
+//   hosts:
+//   - reviews.prod.svc.cluster.local
+//   http:
+//   - headers:
+//       request:
+//         set:
+//           test: true
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v2
+//       weight: 25
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v1
+//       headers:
+//         response:
+//           remove:
+//           - foo
+//       weight: 75
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 message Headers {
   // Header manipulation rules to apply before forwarding a request
   // to the destination service
@@ -507,6 +811,8 @@ message Headers {
 // traffic arriving at port 443 of gateway called "mygateway" to internal
 // services in the mesh based on the SNI value.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -533,6 +839,37 @@ message Headers {
 //     - destination:
 //         host: reviews.prod.svc.cluster.local
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: bookinfo-sni
+// spec:
+//   hosts:
+//   - "*.bookinfo.com"
+//   gateways:
+//   - mygateway
+//   tls:
+//   - match:
+//     - port: 443
+//       sniHosts:
+//       - login.bookinfo.com
+//     route:
+//     - destination:
+//         host: login.prod.svc.cluster.local
+//   - match:
+//     - port: 443
+//       sniHosts:
+//       - reviews.bookinfo.com
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 message TLSRoute {
   // Match conditions to be satisfied for the rule to be
   // activated. All conditions inside a single match block have AND
@@ -548,6 +885,8 @@ message TLSRoute {
 // following routing rule forwards traffic arriving at port 27017 for
 // mongo.prod.svc.cluster.local to another Mongo server on port 5555.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -565,6 +904,28 @@ message TLSRoute {
 //         port:
 //           number: 5555
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: bookinfo-Mongo
+// spec:
+//   hosts:
+//   - mongo.prod.svc.cluster.local
+//   tcp:
+//   - match:
+//     - port: 27017
+//     route:
+//     - destination:
+//         host: mongo.backup.svc.cluster.local
+//         port:
+//           number: 5555
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 message TCPRoute {
   // Match conditions to be satisfied for the rule to be
   // activated. All conditions inside a single match block have AND
@@ -582,6 +943,8 @@ message TCPRoute {
 // starts with /ratings/v2/ and the request contains a custom `end-user` header
 // with value `jason`.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -602,8 +965,34 @@ message TCPRoute {
 //     - destination:
 //         host: ratings.prod.svc.cluster.local
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - match:
+//     - headers:
+//         end-user:
+//           exact: jason
+//       uri:
+//         prefix: "/ratings/v2/"
+//       ignoreUriCase: true
+//     route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // HTTPMatchRequest CANNOT be empty.
+// **Note:** No regex string match can be set when delegate VirtualService is specified.
 message HTTPMatchRequest {
   // The name assigned to a match. The match's name will be
   // concatenated with the parent route's name and will be logged in
@@ -667,6 +1056,7 @@ message HTTPMatchRequest {
   //
   // - `regex: "value"` for ECMAscript style regex-based match
   //
+  // If the value is empty and only the name of header is specfied, presence of the header is checked.
   // **Note:** The keys `uri`, `scheme`, `method`, and `authority` will be ignored.
   map<string, StringMatch> headers = 5;
 
@@ -677,11 +1067,13 @@ message HTTPMatchRequest {
 
   // One or more labels that constrain the applicability of a rule to
   // workloads with the given labels. If the VirtualService has a list of
-  // gateways specified at the top, it must include the reserved gateway
+  // gateways specified in the top-level `gateways` field, it must include the reserved gateway
   // `mesh` for this field to be applicable.
   map<string, string> source_labels = 7;
 
-  // $hide_from_docs
+  // Names of gateways where the rule should be applied. Gateway names
+  // in the top-level `gateways` field of the VirtualService (if any) are overridden. The gateway
+  // match is independent of sourceLabels.
   repeated string gateways = 8;
 
   // Query parameters for matching.
@@ -703,6 +1095,15 @@ message HTTPMatchRequest {
   // **Note:** The case will be ignored only in the case of `exact` and `prefix`
   // URI matches.
   bool ignore_uri_case = 10;
+
+  // withoutHeader has the same syntax with the header, but has opposite meaning.
+  // If a header is matched with a matching rule among withoutHeader, the traffic becomes not matched one.
+  map<string, StringMatch> without_headers = 12;
+
+  // Source namespace constraining the applicability of a rule to workloads in that namespace.
+  // If the VirtualService has a list of gateways specified in the top-level `gateways` field,
+  // it must include the reserved gateway `mesh` for this field to be applicable.
+  string source_namespace = 13;
 }
 
 // Each routing rule is associated with one or more service versions (see
@@ -712,6 +1113,8 @@ message HTTPMatchRequest {
 // instances with the "v2" tag and the remaining traffic (i.e., 75%) to
 // "v1".
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -731,9 +1134,35 @@ message HTTPMatchRequest {
 //         subset: v1
 //       weight: 75
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+// spec:
+//   hosts:
+//   - reviews.prod.svc.cluster.local
+//   http:
+//   - route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v2
+//       weight: 25
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v1
+//       weight: 75
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // And the associated DestinationRule
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -749,11 +1178,33 @@ message HTTPMatchRequest {
 //     labels:
 //       version: v2
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-destination
+// spec:
+//   host: reviews.prod.svc.cluster.local
+//   subsets:
+//   - name: v1
+//     labels:
+//       version: v1
+//   - name: v2
+//     labels:
+//       version: v2
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // Traffic can also be split across two entirely different services without
 // having to define new subsets. For example, the following rule forwards 25% of
 // traffic to reviews.com to dev.reviews.com
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -771,6 +1222,29 @@ message HTTPMatchRequest {
 //         host: reviews.com
 //       weight: 75
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route-two-domains
+// spec:
+//   hosts:
+//   - reviews.com
+//   http:
+//   - route:
+//     - destination:
+//         host: dev.reviews.com
+//       weight: 25
+//     - destination:
+//         host: reviews.com
+//       weight: 75
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 message HTTPRouteDestination {
   // Destination uniquely identifies the instances of a service
   // to which the request/connection should be forwarded to.
@@ -782,21 +1256,8 @@ message HTTPRouteDestination {
   // be 100.
   int32 weight = 2;
 
-  // Use of `remove_response_header` is deprecated. Use the `headers`
-  // field instead.
-  repeated string remove_response_headers = 3 [deprecated=true];
-
-  // Use of `append_response_headers` is deprecated. Use the `headers`
-  // field instead.
-  map<string, string> append_response_headers = 4 [deprecated=true];
-
-  // Use of `remove_request_headers` is deprecated. Use the `headers`
-  // field instead.
-  repeated string remove_request_headers = 5 [deprecated=true];
-
-  // Use of `append_request_headers` is deprecated. Use the `headers`
-  // field instead.
-  map<string, string> append_request_headers = 6 [deprecated=true];
+  reserved 3 to 6;
+  reserved "remove_response_headers", "append_response_headers", "remove_request_headers", "append_request_headers";
 
   // Header manipulation rules
   Headers headers = 7;
@@ -833,14 +1294,19 @@ message L4MatchAttributes {
 
   // One or more labels that constrain the applicability of a rule to
   // workloads with the given labels. If the VirtualService has a list of
-  // gateways specified at the top, it should include the reserved gateway
+  // gateways specified in the top-level `gateways` field, it should include the reserved gateway
   // `mesh` in order for this field to be applicable.
   map<string, string> source_labels = 4;
 
-  // Names of gateways where the rule should be applied to. Gateway names
-  // at the top of the VirtualService (if any) are overridden. The gateway
+  // Names of gateways where the rule should be applied. Gateway names
+  // in the top-level `gateways` field of the VirtualService (if any) are overridden. The gateway
   // match is independent of sourceLabels.
   repeated string gateways = 5;
+
+  // Source namespace constraining the applicability of a rule to workloads in that namespace.
+  // If the VirtualService has a list of gateways specified in the top-level `gateways` field,
+  // it must include the reserved gateway `mesh` for this field to be applicable.
+  string source_namespace = 6;
 }
 
 // TLS connection match attributes.
@@ -861,21 +1327,24 @@ message TLSMatchAttributes {
   // port.
   uint32 port = 3;
 
-  // IPv4 or IPv6 ip address of source with optional subnet. E.g., a.b.c.d/xx
-  // form or just a.b.c.d
-  // $hide_from_docs
-  string source_subnet = 4;
+  reserved 4;
+  reserved "source_subnet";
 
   // One or more labels that constrain the applicability of a rule to
   // workloads with the given labels. If the VirtualService has a list of
-  // gateways specified at the top, it should include the reserved gateway
+  // gateways specified in the top-level `gateways` field, it should include the reserved gateway
   // `mesh` in order for this field to be applicable.
   map<string, string> source_labels = 5;
 
-  // Names of gateways where the rule should be applied to. Gateway names
-  // at the top of the VirtualService (if any) are overridden. The gateway
+  // Names of gateways where the rule should be applied. Gateway names
+  // in the top-level `gateways` field of the VirtualService (if any) are overridden. The gateway
   // match is independent of sourceLabels.
   repeated string gateways = 6;
+
+  // Source namespace constraining the applicability of a rule to workloads in that namespace.
+  // If the VirtualService has a list of gateways specified in the top-level `gateways` field,
+  // it must include the reserved gateway `mesh` for this field to be applicable.
+  string source_namespace = 7;
 }
 
 // HTTPRedirect can be used to send a 301 redirect response to the caller,
@@ -884,6 +1353,8 @@ message TLSMatchAttributes {
 // requests for /v1/getProductRatings API on the ratings service to
 // /v1/bookRatings provided by the bookratings service.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -901,6 +1372,29 @@ message TLSMatchAttributes {
 //       authority: newratings.default.svc.cluster.local
 //   ...
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - match:
+//     - uri:
+//         exact: /v1/getProductRatings
+//     redirect:
+//       uri: /v1/bookRatings
+//       authority: newratings.default.svc.cluster.local
+//   ...
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 message HTTPRedirect {
   // On a redirect, overwrite the Path portion of the URL with this
   // value. Note that the entire path will be replaced, irrespective of the
@@ -922,6 +1416,8 @@ message HTTPRedirect {
 // demonstrates how to rewrite the URL prefix for api call (/ratings) to
 // ratings service before making the actual API call.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -941,6 +1437,30 @@ message HTTPRedirect {
 //         host: ratings.prod.svc.cluster.local
 //         subset: v1
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - match:
+//     - uri:
+//         prefix: /ratings
+//     rewrite:
+//       uri: /v1/bookRatings
+//     route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+//         subset: v1
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 message HTTPRewrite {
   // rewrite the path (or the prefix) portion of the URI with this
@@ -963,7 +1483,7 @@ message StringMatch {
     // prefix-based match
     string prefix = 2;
 
-    // ECMAscript style regex-based match
+    // RE2 style regex-based match (https://github.com/google/re2/wiki/Syntax).
     string regex = 3;
   }
 }
@@ -972,6 +1492,8 @@ message StringMatch {
 // example, the following rule sets the maximum number of retries to 3 when
 // calling ratings:v1 service, with a 2s timeout per retry attempt.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -990,11 +1512,35 @@ message StringMatch {
 //       perTryTimeout: 2s
 //       retryOn: gateway-error,connect-failure,refused-stream
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+//         subset: v1
+//     retries:
+//       attempts: 3
+//       perTryTimeout: 2s
+//       retryOn: gateway-error,connect-failure,refused-stream
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 message HTTPRetry {
   // Number of retries for a given request. The interval
   // between retries will be determined automatically (25ms+). Actual
-  // number of retries attempted depends on the httpReqTimeout.
+  // number of retries attempted depends on the request `timeout` of the
+  // [HTTP route](https://istio.io/docs/reference/config/networking/virtual-service/#HTTPRoute).
   int32 attempts = 1 [(google.api.field_behavior) = REQUIRED];
 
   // Timeout per retry attempt for a given request. format: 1h/1m/1s/1ms. MUST BE >=1ms.
@@ -1005,6 +1551,10 @@ message HTTPRetry {
   // See the [retry policies](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/router_filter#x-envoy-retry-on)
   // and [gRPC retry policies](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/router_filter#x-envoy-retry-grpc-on) for more details.
   string retry_on = 3;
+
+  // Flag to specify whether the retries should retry to other localities.
+  // See the [retry plugin configuration](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/http/http_connection_management#retry-plugin-configuration) for more details.
+  google.protobuf.BoolValue retry_remote_localities = 4;
 }
 
 // Describes the Cross-Origin Resource Sharing (CORS) policy, for a given
@@ -1015,6 +1565,8 @@ message HTTPRetry {
 // `Access-Control-Allow-Credentials` header to false. In addition, it only
 // exposes `X-Foo-bar` header and sets an expiry period of 1 day.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -1039,12 +1591,47 @@ message HTTPRetry {
 //       - X-Foo-Bar
 //       maxAge: "24h"
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+//         subset: v1
+//     corsPolicy:
+//       allowOrigin:
+//       - example.com
+//       allowMethods:
+//       - POST
+//       - GET
+//       allowCredentials: false
+//       allowHeaders:
+//       - X-Foo-Bar
+//       maxAge: "24h"
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 message CorsPolicy {
   // The list of origins that are allowed to perform CORS requests. The
   // content will be serialized into the Access-Control-Allow-Origin
   // header. Wildcard * will allow all origins.
-  repeated string allow_origin = 1;
+  // $hide_from_docs
+  repeated string allow_origin = 1 [deprecated=true];
+
+  // String patterns that match allowed origins.
+  // An origin is allowed if any of the string matchers match.
+  // If a match is found, then the outgoing Access-Control-Allow-Origin would be set to the origin as provided by the client.
+  repeated StringMatch allow_origins = 7;
 
   // List of HTTP methods allowed to access the resource. The content will
   // be serialized into the Access-Control-Allow-Methods header.
@@ -1069,7 +1656,7 @@ message CorsPolicy {
 }
 
 // HTTPFaultInjection can be used to specify one or more faults to inject
-// while forwarding http requests to the destination specified in a route.
+// while forwarding HTTP requests to the destination specified in a route.
 // Fault specification is part of a VirtualService rule. Faults include
 // aborting the Http request from downstream service, and/or delaying
 // proxying of requests. A fault rule MUST HAVE delay or abort or both.
@@ -1090,6 +1677,8 @@ message HTTPFaultInjection {
   // in 1 out of every 1000 requests to the "v1" version of the "reviews"
   // service from all pods with label env: prod
   //
+  // {{<tabset category-name="example">}}
+  // {{<tab name="v1alpha3" category-value="v1alpha3">}}
   // ```yaml
   // apiVersion: networking.istio.io/v1alpha3
   // kind: VirtualService
@@ -1112,6 +1701,33 @@ message HTTPFaultInjection {
   //           value: 0.1
   //         fixedDelay: 5s
   // ```
+  // {{</tab>}}
+  //
+  // {{<tab name="v1beta1" category-value="v1beta1">}}
+  // ```yaml
+  // apiVersion: networking.istio.io/v1beta1
+  // kind: VirtualService
+  // metadata:
+  //   name: reviews-route
+  // spec:
+  //   hosts:
+  //   - reviews.prod.svc.cluster.local
+  //   http:
+  //   - match:
+  //     - sourceLabels:
+  //         env: prod
+  //     route:
+  //     - destination:
+  //         host: reviews.prod.svc.cluster.local
+  //         subset: v1
+  //     fault:
+  //       delay:
+  //         percentage:
+  //           value: 0.1
+  //         fixedDelay: 5s
+  // ```
+  // {{</tab>}}
+  // {{</tabset>}}
   //
   // The _fixedDelay_ field is used to indicate the amount of delay in seconds.
   // The optional _percentage_ field can be used to only delay a certain
@@ -1139,6 +1755,8 @@ message HTTPFaultInjection {
   // pre-specified error code. The following example will return an HTTP 400
   // error code for 1 out of every 1000 requests to the "ratings" service "v1".
   //
+  // {{<tabset category-name="example">}}
+  // {{<tab name="v1alpha3" category-value="v1alpha3">}}
   // ```yaml
   // apiVersion: networking.istio.io/v1alpha3
   // kind: VirtualService
@@ -1158,16 +1776,38 @@ message HTTPFaultInjection {
   //           value: 0.1
   //         httpStatus: 400
   // ```
+  // {{</tab>}}
+  //
+  // {{<tab name="v1beta1" category-value="v1beta1">}}
+  // ```yaml
+  // apiVersion: networking.istio.io/v1beta1
+  // kind: VirtualService
+  // metadata:
+  //   name: ratings-route
+  // spec:
+  //   hosts:
+  //   - ratings.prod.svc.cluster.local
+  //   http:
+  //   - route:
+  //     - destination:
+  //         host: ratings.prod.svc.cluster.local
+  //         subset: v1
+  //     fault:
+  //       abort:
+  //         percentage:
+  //           value: 0.1
+  //         httpStatus: 400
+  // ```
+  // {{</tab>}}
+  // {{</tabset>}}
   //
   // The _httpStatus_ field is used to indicate the HTTP status code to
   // return to the caller. The optional _percentage_ field can be used to only
   // abort a certain percentage of requests. If not specified, all requests are
   // aborted.
   message Abort {
-    // Percentage of requests to be aborted with the error code provided (0-100).
-    // Use of integer `percent` value is deprecated. Use the double `percentage`
-    // field instead.
-    int32 percent = 1 [deprecated=true];
+    reserved 1;
+    reserved "percent";
 
     oneof error_type {
       // HTTP status code to use to abort the Http request.

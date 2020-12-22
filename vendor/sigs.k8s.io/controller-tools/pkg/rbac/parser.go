@@ -19,7 +19,7 @@ limitations under the License.
 //
 // The markers take the form:
 //
-//  +kubebuilder:rbac:groups=<groups>,resources=<resources>,verbs=<verbs>,urls=<non resource urls>
+//  +kubebuilder:rbac:groups=<groups>,resources=<resources>,resourceNames=<resource names>,verbs=<verbs>,urls=<non resource urls>
 package rbac
 
 import (
@@ -48,6 +48,11 @@ type Rule struct {
 	Groups []string `marker:",optional"`
 	// Resources specifies the API resources that this rule encompasses.
 	Resources []string `marker:",optional"`
+	// ResourceNames specifies the names of the API resources that this rule encompasses.
+	//
+	// Create requests cannot be restricted by resourcename, as the object's name
+	// is not known at authorization time.
+	ResourceNames []string `marker:",optional"`
 	// Verbs specifies the (lowercase) kubernetes API verbs that this rule encompasses.
 	Verbs []string
 	// URL specifies the non-resource URLs that this rule encompasses.
@@ -60,13 +65,14 @@ type Rule struct {
 
 // ruleKey represents the resources and non-resources a Rule applies.
 type ruleKey struct {
-	Groups    string
-	Resources string
-	URLs      string
+	Groups        string
+	Resources     string
+	ResourceNames string
+	URLs          string
 }
 
 func (key ruleKey) String() string {
-	return fmt.Sprintf("%s + %s + %s", key.Groups, key.Resources, key.URLs)
+	return fmt.Sprintf("%s + %s + %s + %s", key.Groups, key.Resources, key.ResourceNames, key.URLs)
 }
 
 // ruleKeys implements sort.Interface
@@ -80,9 +86,10 @@ func (keys ruleKeys) Less(i, j int) bool { return keys[i].String() < keys[j].Str
 func (r *Rule) key() ruleKey {
 	r.normalize()
 	return ruleKey{
-		Groups:    strings.Join(r.Groups, "&"),
-		Resources: strings.Join(r.Resources, "&"),
-		URLs:      strings.Join(r.URLs, "&"),
+		Groups:        strings.Join(r.Groups, "&"),
+		Resources:     strings.Join(r.Resources, "&"),
+		ResourceNames: strings.Join(r.ResourceNames, "&"),
+		URLs:          strings.Join(r.URLs, "&"),
 	}
 }
 
@@ -96,6 +103,7 @@ func (r *Rule) addVerbs(verbs []string) {
 func (r *Rule) normalize() {
 	r.Groups = removeDupAndSort(r.Groups)
 	r.Resources = removeDupAndSort(r.Resources)
+	r.ResourceNames = removeDupAndSort(r.ResourceNames)
 	r.Verbs = removeDupAndSort(r.Verbs)
 	r.URLs = removeDupAndSort(r.URLs)
 }
@@ -130,6 +138,7 @@ func (r *Rule) ToRule() rbacv1.PolicyRule {
 		APIGroups:       r.Groups,
 		Verbs:           r.Verbs,
 		Resources:       r.Resources,
+		ResourceNames:   r.ResourceNames,
 		NonResourceURLs: r.URLs,
 	}
 }
