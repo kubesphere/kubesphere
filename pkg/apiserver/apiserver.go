@@ -149,7 +149,6 @@ type APIServer struct {
 }
 
 func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
-
 	s.container = restful.NewContainer()
 	s.container.Filter(logRequestAndResponse)
 	s.container.Router(restful.CurlyRouter{})
@@ -158,6 +157,11 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	})
 
 	s.installKubeSphereAPIs()
+
+	s.installAPI()
+	if s.Config.MetricsOptions != nil && s.Config.MetricsOptions.Enable {
+		s.container.Filter(monitorRequest)
+	}
 
 	for _, ws := range s.container.RegisteredWebServices() {
 		klog.V(2).Infof("%s", ws.RootPath())
@@ -168,6 +172,23 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	s.buildHandlerChain(stopCh)
 
 	return nil
+}
+
+func monitorRequest(r *restful.Request, response *restful.Response, chain *restful.FilterChain) {
+	start := time.Now()
+	chain.ProcessFilter(r, response)
+	reqInfo, exists := request.RequestInfoFrom(r.Request.Context())
+	if exists && reqInfo.APIGroup != "" {
+		metrics.RequestCounter.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource, strconv.Itoa(response.StatusCode())).Inc()
+		elapsedSeconds := time.Now().Sub(start).Seconds()
+		metrics.RequestLatencies.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource).Observe(elapsedSeconds)
+	}
+}
+
+func (s *APIServer) installAPI() {
+	if s.Config.MetricsOptions != nil && s.Config.MetricsOptions.Enable {
+		metrics.Defaults.Install(s.container)
+	}
 }
 
 // Install all kubesphere api groups
@@ -297,7 +318,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	default:
 		fallthrough
 	case authorizationoptions.RBAC:
-		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version"}
+		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
 		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))
@@ -321,6 +342,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister())))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
+
 	s.Server.Handler = handler
 }
 
