@@ -31,6 +31,7 @@ func init() {
 	RawMustRegister(prometheus.NewGoCollector())
 }
 
+
 // DefaultMetrics installs the default prometheus metrics handler
 type DefaultMetrics struct{}
 

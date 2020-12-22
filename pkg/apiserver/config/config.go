@@ -30,6 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/metrics"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
@@ -97,6 +98,7 @@ type Config struct {
 	AuditingOptions       *auditingclient.Options                    `json:"auditing,omitempty" yaml:"auditing,omitempty" mapstructure:"auditing"`
 	AlertingOptions       *alerting.Options                          `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
 	NotificationOptions   *notification.Options                      `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
+	MetricsOptions        *metrics.Options                           `json:"metrics,omitempty" yaml:"metrics,omitempty" mapstructure:"metrics"`
 }
 
 // newConfig creates a default non-empty Config
@@ -120,6 +122,7 @@ func New() *Config {
 		MultiClusterOptions:   multicluster.NewOptions(),
 		EventsOptions:         eventsclient.NewElasticSearchOptions(),
 		AuditingOptions:       auditingclient.NewElasticSearchOptions(),
+		MetricsOptions:        metrics.NewMetricsOptions(),
 	}
 }
 
