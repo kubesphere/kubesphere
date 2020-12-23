@@ -421,16 +421,16 @@ func (c *clusterController) syncCluster(key string) error {
 			}
 
 			// clean up openpitrix runtime of the cluster
-			if _, ok := cluster.Annotations[openpitrixRuntime]; ok {
-				if c.openpitrixClient != nil {
-					err = c.openpitrixClient.CleanupRuntime(cluster.Name)
-					if err != nil {
-						klog.Errorf("Unable to delete openpitrix for cluster %s, error %v", cluster.Name, err)
-						return err
-					}
-				}
-				delete(cluster.Annotations, openpitrixRuntime)
-			}
+			//if _, ok := cluster.Annotations[openpitrixRuntime]; ok {
+			//	if c.openpitrixClient != nil {
+			//		err = c.openpitrixClient.CleanupRuntime(cluster.Name)
+			//		if err != nil {
+			//			klog.Errorf("Unable to delete openpitrix for cluster %s, error %v", cluster.Name, err)
+			//			return err
+			//		}
+			//	}
+			//	delete(cluster.Annotations, openpitrixRuntime)
+			//}
 
 			// remove our cluster finalizer
 			finalizers := sets.NewString(cluster.ObjectMeta.Finalizers...)

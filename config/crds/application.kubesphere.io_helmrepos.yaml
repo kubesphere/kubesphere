@@ -1,0 +1,132 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: helmrepos.application.kubesphere.io
+spec:
+  group: application.kubesphere.io
+  names:
+    kind: HelmRepo
+    listKind: HelmRepoList
+    plural: helmrepos
+    singular: helmrepo
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.name
+      name: name
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HelmRepo is the Schema for the helmrepoes API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HelmRepoSpec defines the desired state of HelmRepo
+            properties:
+              creator:
+                type: string
+              credential:
+                description: helm repo credential
+                properties:
+                  caFile:
+                    description: verify certificates of HTTPS-enabled servers using this CA bundle
+                    type: string
+                  certFile:
+                    description: identify HTTPS client using this SSL certificate file
+                    type: string
+                  description:
+                    description: helm repo description
+                    type: string
+                  insecureSkipTLSVerify:
+                    description: skip tls certificate checks for the repository, default is ture
+                    type: boolean
+                  keyFile:
+                    description: identify HTTPS client using this SSL key file
+                    type: string
+                  password:
+                    description: chart repository password
+                    type: string
+                  username:
+                    description: chart repository username
+                    type: string
+                type: object
+              description:
+                description: chart repo description
+                type: string
+              name:
+                type: string
+              reSyncNow:
+                description: if ReSyncNow is true, then sync the repo now and set the value to false
+                type: boolean
+              syncPeriod:
+                description: sync period in seconds, no sync when SyncPeriod=0, the minimum SyncPeriod is 180s
+                type: integer
+              url:
+                description: helm repo path
+                type: string
+              workspace:
+                type: string
+            required:
+            - name
+            - url
+            - workspace
+            type: object
+          status:
+            properties:
+              data:
+                description: repo index, base64 encoded
+                type: Any
+              lastUpdateTime:
+                description: status last update time
+                format: date-time
+                type: string
+              reSyncNow:
+                description: if ReSyncNow is true, then sync the repo now and set the value to false
+                type: boolean
+              syncState:
+                items:
+                  properties:
+                    message:
+                      description: A human readable message indicating details about why the repo is in this state.
+                      type: string
+                    state:
+                      description: 'last sync state, valid state are: "failed", "success", and ""'
+                      type: string
+                    syncTime:
+                      format: date-time
+                      type: string
+                  required:
+                  - syncTime
+                  type: object
+                type: array
+              totalChartVersions:
+                description: total charts of the repo
+                type: integer
+              totalCharts:
+                description: total chart versions of the repo
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -56,6 +56,14 @@ func (c *FakeTypesV1beta1) FederatedGroupBindings() v1beta1.FederatedGroupBindin
 	return &FakeFederatedGroupBindings{c}
 }
 
+func (c *FakeTypesV1beta1) FederatedHelmApplications() v1beta1.FederatedHelmApplicationInterface {
+	return &FakeFederatedHelmApplications{c}
+}
+
+func (c *FakeTypesV1beta1) FederatedHelmApplicationVersions() v1beta1.FederatedHelmApplicationVersionInterface {
+	return &FakeFederatedHelmApplicationVersions{c}
+}
+
 func (c *FakeTypesV1beta1) FederatedIngresses(namespace string) v1beta1.FederatedIngressInterface {
 	return &FakeFederatedIngresses{c, namespace}
 }

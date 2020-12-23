@@ -66,6 +66,14 @@ type FederatedGroupListerExpansion interface{}
 // FederatedGroupBindingLister.
 type FederatedGroupBindingListerExpansion interface{}
 
+// FederatedHelmApplicationListerExpansion allows custom methods to be added to
+// FederatedHelmApplicationLister.
+type FederatedHelmApplicationListerExpansion interface{}
+
+// FederatedHelmApplicationVersionListerExpansion allows custom methods to be added to
+// FederatedHelmApplicationVersionLister.
+type FederatedHelmApplicationVersionListerExpansion interface{}
+
 // FederatedIngressListerExpansion allows custom methods to be added to
 // FederatedIngressLister.
 type FederatedIngressListerExpansion interface{}

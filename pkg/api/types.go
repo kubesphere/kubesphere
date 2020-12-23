@@ -17,6 +17,11 @@ limitations under the License.
 package api
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
+	"io"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -175,3 +180,56 @@ const (
 	WorkspaceNone = ""
 	ClusterNone   = ""
 )
+
+type Encoded string
+
+func (e *Encoded) UnmarshalJSON(b []byte) error {
+	b = bytes.Trim(b, `""`)
+	if len(b) == 0 {
+		*e = ""
+		return nil
+	}
+	raw, err := base64.RawStdEncoding.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+
+	buf := bytes.NewBuffer(raw)
+
+	zr, err := gzip.NewReader(buf)
+	if err != nil {
+		return err
+	}
+
+	defer zr.Close()
+
+	d, err := ioutil.ReadAll(zr)
+
+	if err != nil && err != io.ErrUnexpectedEOF {
+		return err
+	}
+
+	*e = Encoded(d)
+	return nil
+}
+
+func (e Encoded) MarshalJSON() ([]byte, error) {
+	if len(e) == 0 {
+		return []byte(`""`), nil
+	}
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+
+	_, err := zw.Write([]byte(string(e)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer zw.Close()
+
+	zw.Flush()
+	s := base64.RawStdEncoding.EncodeToString(buf.Bytes())
+
+	return []byte(`"` + s + `"`), nil
+}

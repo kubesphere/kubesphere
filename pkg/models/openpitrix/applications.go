@@ -14,408 +14,625 @@ limitations under the License.
 package openpitrix
 
 import (
-	"encoding/json"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/informers"
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
+	"k8s.io/utils/strings"
+	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	v1alpha12 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
+	v1beta12 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/types/v1beta1"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	listers_v1alpha1 "kubesphere.io/kubesphere/pkg/client/listers/application/v1alpha1"
+	v1beta13 "kubesphere.io/kubesphere/pkg/client/listers/types/v1beta1"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/helpers"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"openpitrix.io/openpitrix/pkg/pb"
-	"openpitrix.io/openpitrix/pkg/util/pbutil"
-	"strings"
+	"kubesphere.io/kubesphere/pkg/utils/helmrepoindex"
+	"kubesphere.io/kubesphere/pkg/utils/idutils"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sort"
+	strings2 "strings"
+	"time"
 )
 
 type ApplicationInterface interface {
-	ListApplications(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error)
-	DescribeApplication(namespace, applicationId, clusterName string) (*Application, error)
-	CreateApplication(clusterName, namespace string, request CreateClusterRequest) error
-	ModifyApplication(request ModifyClusterAttributesRequest) error
-	DeleteApplication(id string) error
-	UpgradeApplication(request UpgradeClusterRequest) error
+	ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	DescribeApp(id string) (*App, error)
+	DeleteApp(id string) error
+	CreateApp(req *CreateAppRequest) (*CreateAppResponse, error)
+	ModifyApp(appId string, request *ModifyAppRequest) error
+	DeleteAppVersion(id string) error
+	ModifyAppVersion(id string, request *ModifyAppVersionRequest) error
+	DescribeAppVersion(id string) (*AppVersion, error)
+	CreateAppVersion(request *CreateAppVersionRequest) (*CreateAppVersionResponse, error)
+	ValidatePackage(request *ValidatePackageRequest) (*ValidatePackageResponse, error)
+	//GetAppVersionPackage(appId, versionId string) (*GetAppVersionPackageResponse, error)
+	DoAppAction(appId string, request *ActionRequest) error
+	DoAppVersionAction(versionId string, request *ActionRequest) error
+	ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	GetAppVersionFiles(versionId string, request *GetAppVersionFilesRequest) (*GetAppVersionPackageFilesResponse, error)
+	ListAppVersionReviews(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 }
 
 type applicationOperator struct {
-	informers informers.SharedInformerFactory
-	opClient  openpitrix.Client
+	informers        externalversions.SharedInformerFactory
+	appClient        v1beta12.FederatedHelmApplicationInterface
+	appVersionClient v1beta12.FederatedHelmApplicationVersionInterface
+	auditClient      v1alpha12.HelmAuditInterface
+
+	auditLister   listers_v1alpha1.HelmAuditLister
+	appLister     v1beta13.FederatedHelmApplicationLister
+	versionLister v1beta13.FederatedHelmApplicationVersionLister
+
+	repoLister listers_v1alpha1.HelmRepoLister
+	ctgLister  listers_v1alpha1.HelmCategoryLister
+	rlsLister  listers_v1alpha1.HelmReleaseLister
+
+	useFederatedResource bool
+	cachedRepos          *cachedRepos
 }
 
-func newApplicationOperator(informers informers.SharedInformerFactory, opClient openpitrix.Client) ApplicationInterface {
-	return &applicationOperator{informers: informers, opClient: opClient}
+func newApplicationOperator(cached *cachedRepos, informers externalversions.SharedInformerFactory, ksClient versioned.Interface, useFederatedResource bool) ApplicationInterface {
+	op := &applicationOperator{
+		useFederatedResource: useFederatedResource,
+		informers:            informers,
+		repoLister:           informers.Application().V1alpha1().HelmRepos().Lister(),
+		auditClient:          ksClient.ApplicationV1alpha1().HelmAudits(),
+
+		auditLister: informers.Application().V1alpha1().HelmAudits().Lister(),
+
+		ctgLister:   informers.Application().V1alpha1().HelmCategories().Lister(),
+		rlsLister:   informers.Application().V1alpha1().HelmReleases().Lister(),
+		cachedRepos: cached,
+	}
+
+	if op.useFederatedResource {
+		op.appClient = ksClient.TypesV1beta1().FederatedHelmApplications()
+		op.appVersionClient = ksClient.TypesV1beta1().FederatedHelmApplicationVersions()
+		op.appLister = informers.Types().V1beta1().FederatedHelmApplications().Lister()
+		op.versionLister = informers.Types().V1beta1().FederatedHelmApplicationVersions().Lister()
+	}
+
+	return op
 }
 
-type Application struct {
-	Name      string            `json:"name" description:"application name"`
-	Cluster   *Cluster          `json:"cluster,omitempty" description:"application cluster info"`
-	Version   *AppVersion       `json:"version,omitempty" description:"application template version info"`
-	App       *App              `json:"app,omitempty" description:"application template info"`
-	WorkLoads *workLoads        `json:"workloads,omitempty" description:"application workloads"`
-	Services  []v1.Service      `json:"services,omitempty" description:"application services"`
-	Ingresses []v1beta1.Ingress `json:"ingresses,omitempty" description:"application ingresses"`
-}
+//get helm app by name in workspace
+func (c *applicationOperator) getHelmAppByName(workspace, name string) (*v1beta1.FederatedHelmApplication, error) {
+	ls := map[string]string{
+		constants.WorkspaceLabelKey: workspace,
+	}
 
-type workLoads struct {
-	Deployments  []appsv1.Deployment  `json:"deployments,omitempty" description:"deployment list"`
-	Statefulsets []appsv1.StatefulSet `json:"statefulsets,omitempty" description:"statefulset list"`
-	Daemonsets   []appsv1.DaemonSet   `json:"daemonsets,omitempty" description:"daemonset list"`
-}
+	list, err := c.appLister.List(helpers.MapAsLabelSelector(ls))
 
-type resourceInfo struct {
-	Deployments  []appsv1.Deployment  `json:"deployments,omitempty" description:"deployment list"`
-	Statefulsets []appsv1.StatefulSet `json:"statefulsets,omitempty" description:"statefulset list"`
-	Daemonsets   []appsv1.DaemonSet   `json:"daemonsets,omitempty" description:"daemonset list"`
-	Services     []v1.Service         `json:"services,omitempty" description:"application services"`
-	Ingresses    []v1beta1.Ingress    `json:"ingresses,omitempty" description:"application ingresses"`
-}
-
-func (c *applicationOperator) ListApplications(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error) {
-	describeClustersRequest := &pb.DescribeClustersRequest{
-		Limit:  uint32(limit),
-		Offset: uint32(offset)}
-	if keyword := conditions.Match[Keyword]; keyword != "" {
-		describeClustersRequest.SearchWord = &wrappers.StringValue{Value: keyword}
-	}
-	if runtimeId := conditions.Match[RuntimeId]; runtimeId != "" {
-		describeClustersRequest.RuntimeId = []string{runtimeId}
-	}
-	if appId := conditions.Match[AppId]; appId != "" {
-		describeClustersRequest.AppId = []string{appId}
-	}
-	if versionId := conditions.Match[VersionId]; versionId != "" {
-		describeClustersRequest.VersionId = []string{versionId}
-	}
-	if status := conditions.Match[Status]; status != "" {
-		describeClustersRequest.Status = strings.Split(status, "|")
-	}
-	if zone := conditions.Match[Zone]; zone != "" {
-		describeClustersRequest.Zone = []string{zone}
-	}
-	if orderBy != "" {
-		describeClustersRequest.SortKey = &wrappers.StringValue{Value: orderBy}
-	}
-	describeClustersRequest.Reverse = &wrappers.BoolValue{Value: reverse}
-	resp, err := c.opClient.DescribeClusters(openpitrix.SystemContext(), describeClustersRequest)
-	if err != nil {
-		klog.Errorln(err)
+	if err != nil && !apiErrors.IsNotFound(err) {
 		return nil, err
 	}
-	result := models.PageableResponse{TotalCount: int(resp.TotalCount)}
-	result.Items = make([]interface{}, 0)
-	for _, cluster := range resp.ClusterSet {
-		app, err := c.describeApplication(cluster)
+
+	if len(list) > 0 {
+		for _, a := range list {
+			if a.GetTrueName() == name {
+				return a, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+func (c *applicationOperator) createApp(app *v1beta1.FederatedHelmApplication) (*v1beta1.FederatedHelmApplication, error) {
+	exists, err := c.getHelmAppByName(app.GetWorkspace(), app.GetTrueName())
+	if err != nil {
+		return nil, err
+	}
+	if exists != nil {
+		return nil, ItemExists
+	}
+	app, err = c.appClient.Create(context.TODO(), app, metav1.CreateOptions{})
+	return app, err
+}
+
+func (c *applicationOperator) ValidatePackage(request *ValidatePackageRequest) (*ValidatePackageResponse, error) {
+
+	chrt, err := helmrepoindex.LoadPackage(request.VersionPackage)
+
+	result := &ValidatePackageResponse{}
+
+	if err != nil {
+		matchPackageFailedError(err, result)
+		if result.Error == "" && len(result.ErrorDetails) == 0 {
+			klog.Errorf("package parse failed, error: %s", err.Error())
+			return nil, errors.New("package parse failed")
+		}
+	} else {
+		result.Name = chrt.GetName()
+		result.VersionName = chrt.GetVersionName()
+		result.Description = chrt.GetDescription()
+		result.URL = chrt.GetUrls()
+	}
+
+	return result, nil
+}
+
+func (c *applicationOperator) DoAppAction(appId string, request *ActionRequest) error {
+
+	app, err := c.appLister.Get(appId)
+	if err != nil {
+		return err
+	}
+
+	template := app.Spec.Template
+	var filterState string
+	switch request.Action {
+	case ActionSuspend:
+		if template.Spec.Status != constants.StateActive {
+			err = errors.New("action not support")
+		}
+		filterState = constants.StateActive
+	case ActionRecover:
+		if template.Spec.Status != constants.StateSuspended {
+			err = errors.New("action not support")
+		}
+		filterState = constants.StateSuspended
+	default:
+		err = errors.New("action not support")
+	}
+	if err != nil {
+		return err
+	}
+
+	var versions []*v1beta1.FederatedHelmApplicationVersion
+	ls := map[string]string{
+		constants.ChartApplicationIdLabelKey: appId,
+	}
+	versions, err = c.versionLister.List(helpers.MapAsLabelSelector(ls))
+	if err != nil {
+		klog.Errorf("get helm app %s version failed, error: %s", appId, err)
+		return err
+	}
+
+	for _, version := range versions {
+		version, err = c.fillAppVersionAudit(version)
 		if err != nil {
-			klog.Errorln(err)
+			klog.Errorf("get helm app version audit %s failed, error: %s", version.Name, err)
+			return err
+		}
+	}
+
+	versions = filterAppVersionByState(versions, []string{filterState})
+	for _, version := range versions {
+		err = c.DoAppVersionAction(version.GetHelmApplicationVersionId(), request)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *applicationOperator) CreateApp(req *CreateAppRequest) (*CreateAppResponse, error) {
+
+	chrt, err := helmrepoindex.LoadPackage(req.VersionPackage)
+	if err != nil {
+		return nil, err
+	}
+
+	iconId := ""
+
+	if len(req.Icon) != 0 {
+		//save icon attachment
+		iconId = idutils.GetUuid(constants.HelmAttachmentPrefix)
+		err = attachmentHandler.Save(iconId, bytes.NewBuffer(req.Icon))
+		if err != nil {
+			klog.Errorf("save icon attachment failed, error: %s", err)
 			return nil, err
 		}
-		result.Items = append(result.Items, app)
 	}
 
-	return &result, nil
+	//create helm application resource
+	name := idutils.GetUuid36(constants.HelmApplicationIdPrefix)
+
+	helmApp := &v1alpha1.HelmApplication{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Annotations: map[string]string{
+				constants.CreatorAnnotationKey: req.Username,
+			},
+			Labels: map[string]string{
+				constants.WorkspaceLabelKey: req.Isv,
+			},
+		},
+		Spec: v1alpha1.HelmApplicationSpec{
+			Name:        req.Name,
+			Icon:        iconId,
+			Status:      constants.StateDraft,
+			Description: strings.ShortenString(chrt.GetDescription(), constants.MsgLen),
+		},
+	}
+	app, err := c.createApp(toFederateHelmApplication(helmApp))
+	if err != nil {
+		attachmentHandler.Delete(iconId)
+		return nil, err
+	}
+	chartPackage := req.VersionPackage.String()
+	ver := buildApplicationVersion(app, chrt, &chartPackage, req.Username)
+
+	ver, err = c.createApplicationVersionWithAudit(ver)
+
+	if err != nil {
+		attachmentHandler.Delete(iconId)
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &CreateAppResponse{
+		AppID:     app.GetHelmApplicationId(),
+		VersionID: ver.GetHelmApplicationVersionId(),
+	}, nil
 }
 
-func (c *applicationOperator) describeApplication(cluster *pb.Cluster) (*Application, error) {
-	var app Application
-	app.Name = cluster.Name.Value
-	app.Cluster = convertCluster(cluster)
-	versionInfo, err := c.opClient.DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{VersionId: []string{cluster.GetVersionId().GetValue()}})
-	if err != nil {
-		klog.Errorln(err)
-		return nil, err
-	}
-	if len(versionInfo.AppVersionSet) > 0 {
-		app.Version = convertAppVersion(versionInfo.AppVersionSet[0])
-	}
-	appInfo, err := c.opClient.DescribeApps(openpitrix.SystemContext(), &pb.DescribeAppsRequest{AppId: []string{cluster.GetAppId().GetValue()}, Limit: 1})
-	if err != nil {
-		klog.Errorln(err)
-		return nil, err
-	}
-	if len(appInfo.AppSet) > 0 {
-		app.App = convertApp(appInfo.GetAppSet()[0])
-	}
-	return &app, nil
-}
+func buildLabelSelector(conditions *params.Conditions) map[string]string {
+	ls := make(map[string]string)
 
-func (c *applicationOperator) DescribeApplication(namespace string, applicationId string, clusterName string) (*Application, error) {
-	describeClusterRequest := &pb.DescribeClustersRequest{
-		ClusterId:  []string{applicationId},
-		RuntimeId:  []string{clusterName},
-		Zone:       []string{namespace},
-		WithDetail: pbutil.ToProtoBool(true),
-		Limit:      1,
-	}
-	clusters, err := c.opClient.DescribeClusters(openpitrix.SystemContext(), describeClusterRequest)
-
-	if err != nil {
-		klog.Errorln(err)
-		return nil, err
-	}
-
-	var cluster *pb.Cluster
-	if len(clusters.ClusterSet) > 0 {
-		cluster = clusters.GetClusterSet()[0]
+	repoId := conditions.Match[RepoId]
+	//app store come first
+	if repoId != "" {
+		ls[constants.ChartRepoIdLabelKey] = repoId
 	} else {
-		err := status.New(codes.NotFound, "resource not found").Err()
-		klog.Errorln(err)
+		if conditions.Match[WorkspaceLabel] != "" {
+			ls[constants.WorkspaceLabelKey] = conditions.Match[WorkspaceLabel]
+		}
+	}
+	if conditions.Match[CategoryId] != "" {
+		ls[constants.CategoryIdLabelKey] = conditions.Match[CategoryId]
+	}
+
+	return ls
+}
+
+func (c *applicationOperator) ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+
+	apps, err := c.listApps(conditions)
+	if err != nil {
+		klog.Error(err)
 		return nil, err
 	}
-	app, err := c.describeApplication(cluster)
+	if conditions.Match[Keyword] != "" {
+		apps = helmApplicationFilter(conditions.Match[Keyword], apps)
+	}
+
+	if reverse {
+		sort.Sort(sort.Reverse(FederatedHelmApplicationList(apps)))
+	} else {
+		sort.Sort(FederatedHelmApplicationList(apps))
+	}
+
+	items := make([]interface{}, 0, limit)
+
+	for i, j := offset, 0; i < len(apps) && j < limit; {
+		versions, err := c.listAppVersions(apps[i].GetHelmApplicationId())
+		if err != nil && !apiErrors.IsNotFound(err) {
+			return nil, err
+		}
+
+		rls, _ := c.rlsLister.List(helpers.MapAsLabelSelector(map[string]string{
+			constants.ChartApplicationIdLabelKey: apps[i].GetHelmApplicationId(),
+		}))
+		ctg, _ := c.ctgLister.Get(apps[i].GetHelmCategoryId())
+
+		items = append(items, convertApp(apps[i], versions, ctg, len(rls)))
+		i++
+		j++
+	}
+	return &models.PageableResponse{Items: items, TotalCount: len(apps)}, nil
+}
+
+func (c *applicationOperator) DeleteApp(id string) error {
+	app, err := c.appLister.Get(id)
 	if err != nil {
-		klog.Errorln(err)
+		if apiErrors.IsNotFound(err) {
+			klog.V(4).Infof("app %s has been deleted", id)
+			return nil
+		} else {
+			klog.Error(err)
+			return nil
+		}
+	}
+
+	ls := map[string]string{
+		constants.ChartApplicationIdLabelKey: app.GetHelmApplicationId(),
+	}
+	releases, err := c.rlsLister.List(helpers.MapAsLabelSelector(ls))
+
+	if err != nil && !apiErrors.IsNotFound(err) {
+		klog.Error(err)
+		return err
+	} else if len(releases) > 0 {
+		return fmt.Errorf("app %s has some releases not deleted", id)
+	}
+
+	list, err := c.versionLister.List(helpers.MapAsLabelSelector(ls))
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			klog.V(4).Infof("versions of app %s has been deleted", id)
+		} else {
+			klog.Error(err)
+			return err
+		}
+	} else if len(list) > 0 {
+		return fmt.Errorf("app %s has some versions not deleted", id)
+	}
+
+	err = c.appClient.Delete(context.TODO(), id, metav1.DeleteOptions{})
+	if err != nil {
+		klog.Errorf("delete app %s failed, error: %s", id, err)
+		return err
+	}
+
+	//delete application in app store
+	id = fmt.Sprintf("%s%s", id, constants.HelmApplicationAppStoreSuffix)
+	err = c.appClient.Delete(context.TODO(), id, metav1.DeleteOptions{})
+	if err != nil && !apiErrors.IsNotFound(err) {
+		klog.Errorf("delete app %s failed, error: %s", id, err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *applicationOperator) ModifyApp(appId string, request *ModifyAppRequest) error {
+	app, err := c.appLister.Get(appId)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	appCopy := app.DeepCopy()
+	if request.CategoryID != nil {
+		if *request.CategoryID == "" {
+			delete(appCopy.Labels, constants.CategoryIdLabelKey)
+		} else {
+			appCopy.Labels[constants.CategoryIdLabelKey] = *request.CategoryID
+		}
+	}
+
+	if request.Name != nil && app.GetTrueName() != *request.Name {
+		existsApp, err := c.getHelmAppByName(app.GetWorkspace(), *request.Name)
+		if err != nil {
+			return err
+		}
+		if existsApp != nil {
+			return ItemExists
+		}
+		if *request.Name != "" {
+			//appCopy.Labels[constants.NameLabelKey] = *request.Name
+			appCopy.Spec.Template.Spec.Name = *request.Name
+		}
+	}
+
+	//save app attachment and icon
+	add, err := appAttachment(appCopy, request)
+	if err != nil {
+		klog.Errorf("add app attachment %s failed, error: %s", appCopy.Name, err)
+		return err
+	}
+
+	if request.Description != nil {
+		appCopy.Spec.Template.Spec.Description = *request.Description
+	}
+	if request.Abstraction != nil {
+		appCopy.Spec.Template.Spec.Abstraction = *request.Abstraction
+	}
+
+	if request.Home != nil {
+		appCopy.Spec.Template.Spec.AppHome = *request.Home
+	}
+	appCopy.Spec.Template.Spec.UpdateTime = &metav1.Time{Time: time.Now()}
+
+	patch := client.MergeFrom(app)
+	data, err := patch.Data(appCopy)
+	if err != nil {
+		klog.Errorf("create patch failed, error: %s", err)
+		return err
+	}
+
+	_, err = c.appClient.Patch(context.TODO(), appId, patch.Type(), data, metav1.PatchOptions{})
+	if err != nil {
+		klog.Errorf("patch helm application: %s failed, error: %s", appId, err)
+		if add != "" {
+			attachmentHandler.Delete(add)
+		}
+		return err
+	}
+	return nil
+}
+
+func appAttachment(app *v1beta1.FederatedHelmApplication, request *ModifyAppRequest) (add string, err error) {
+	if request.Type == nil {
+		return "", nil
+	}
+
+	switch *request.Type {
+	case constants.AttachmentTypeScreenshot:
+		if request.Sequence == nil {
+			return "", nil
+		}
+		seq := *request.Sequence
+		attachments := &app.Spec.Template.Spec.Attachments
+		if len(request.AttachmentContent) == 0 {
+			//delete attachment from app
+			if len(*attachments) > int(seq) {
+				del := (*attachments)[seq]
+				err = attachmentHandler.Delete(del)
+				if err != nil {
+					return "", err
+				} else {
+					*attachments = append((*attachments)[:seq], (*attachments)[seq+1:]...)
+				}
+			}
+		} else {
+			if len(*attachments) < 6 {
+				//add attachment to app
+				add := idutils.GetUuid("att-")
+				*attachments = append(*attachments, add)
+				err = attachmentHandler.Save(add, bytes.NewBuffer(request.AttachmentContent))
+				if err != nil {
+					return "", err
+				} else {
+					return add, nil
+				}
+			}
+		}
+	case constants.AttachmentTypeIcon:
+		if app.Spec.Template.Spec.Icon != "" {
+			err = attachmentHandler.Delete(app.Spec.Template.Spec.Icon)
+			if err != nil {
+				return "", err
+			}
+		}
+		if len(request.AttachmentContent) != 0 {
+			add := idutils.GetUuid("att-")
+			err = attachmentHandler.Save(add, bytes.NewBuffer(request.AttachmentContent))
+			if err != nil {
+				return "", err
+			} else {
+				app.Spec.Template.Spec.Icon = add
+				return add, nil
+			}
+		}
+	}
+
+	return "", nil
+}
+
+func (c *applicationOperator) DescribeApp(id string) (*App, error) {
+	var helmApp *v1beta1.FederatedHelmApplication
+	var ctg *v1alpha1.HelmCategory
+	var err error
+
+	helmApp, err = c.getHelmApplication(id)
+	if err != nil {
+		klog.Error(err)
 		return nil, err
 	}
 
-	resource := new(resourceInfo)
-	workloads := cluster.AdditionalInfo.GetValue()
-	if workloads == "" {
-		err := status.New(codes.NotFound, "cannot get workload").Err()
-		klog.Errorln(err)
-		return nil, err
-	}
-	err = json.Unmarshal([]byte(workloads), resource)
+	versions, err := c.listAppVersions(helmApp.GetHelmApplicationId())
 	if err != nil {
-		klog.Errorln(err)
+		klog.Error(err)
 		return nil, err
 	}
 
-	app.WorkLoads = &workLoads{
-		Deployments:  resource.Deployments,
-		Statefulsets: resource.Statefulsets,
-		Daemonsets:   resource.Daemonsets,
+	ctg, err = c.ctgLister.Get(helmApp.GetHelmCategoryId())
+
+	if err != nil && !apiErrors.IsNotFound(err) {
+		klog.Error(err)
+		return nil, err
 	}
-	app.Services = resource.Services
-	app.Ingresses = resource.Ingresses
+
+	app := convertApp(helmApp, versions, ctg, 0)
 	return app, nil
 }
 
-func (c *applicationOperator) getWorkLoads(namespace string, clusterRoles []*pb.ClusterRole) (*workLoads, error) {
+func helmApplicationFilter(namePrefix string, list []*v1beta1.FederatedHelmApplication) (res []*v1beta1.FederatedHelmApplication) {
+	for _, repo := range list {
+		name := repo.GetTrueName()
+		if strings2.HasPrefix(name, namePrefix) {
+			res = append(res, repo)
+		}
+	}
+	return
+}
 
-	var works workLoads
-	for _, clusterRole := range clusterRoles {
-		workLoadName := clusterRole.Role.Value
-		if len(workLoadName) > 0 {
-			if strings.HasSuffix(workLoadName, openpitrix.DeploySuffix) {
-				name := strings.Split(workLoadName, openpitrix.DeploySuffix)[0]
+func (c *applicationOperator) listApps(conditions *params.Conditions) (ret []*v1beta1.FederatedHelmApplication, err error) {
+	repoId := conditions.Match[RepoId]
+	if repoId != "" && repoId != constants.AppStoreRepoId {
+		//get helm application from helm repo
+		c.cachedRepos.RLock()
+		defer c.cachedRepos.RUnlock()
+		cached := c.cachedRepos
+		repo := cached.repos[repoId]
+		if repo == nil {
+			return ret, nil
+		}
 
-				item, err := c.informers.Apps().V1().Deployments().Lister().Deployments(namespace).Get(name)
-
-				if err != nil {
-					// app not ready
-					if errors.IsNotFound(err) {
-						continue
-					}
-					klog.Errorln(err)
-					return nil, err
-				}
-
-				works.Deployments = append(works.Deployments, *item)
-				continue
-			}
-
-			if strings.HasSuffix(workLoadName, openpitrix.DaemonSuffix) {
-				name := strings.Split(workLoadName, openpitrix.DaemonSuffix)[0]
-				item, err := c.informers.Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(name)
-				if err != nil {
-					// app not ready
-					if errors.IsNotFound(err) {
-						continue
-					}
-					klog.Errorln(err)
-					return nil, err
-				}
-				works.Daemonsets = append(works.Daemonsets, *item)
-				continue
-			}
-
-			if strings.HasSuffix(workLoadName, openpitrix.StateSuffix) {
-				name := strings.Split(workLoadName, openpitrix.StateSuffix)[0]
-				item, err := c.informers.Apps().V1().StatefulSets().Lister().StatefulSets(namespace).Get(name)
-				if err != nil {
-					// app not ready
-					if errors.IsNotFound(err) {
-						continue
-					}
-					klog.Errorln(err)
-					return nil, err
-				}
-				works.Statefulsets = append(works.Statefulsets, *item)
-				continue
+		ret = make([]*v1beta1.FederatedHelmApplication, 0, 10)
+		for _, a := range cached.apps {
+			if a.GetHelmRepoId() == repo.Name {
+				ret = append(ret, a)
 			}
 		}
+
+		return ret, nil
+	} else {
+		ret, err = c.appLister.List(helpers.MapAsLabelSelector(buildLabelSelector(conditions)))
+		var states []string
+		if conditions.Match[Status] != "" {
+			states = strings2.Split(conditions.Match[Status], "|")
+		}
+		ret = filterHelmApplicationByStates(ret, states)
 	}
-	return &works, nil
+
+	return
 }
 
-func (c *applicationOperator) getLabels(namespace string, workloads *workLoads) *[]map[string]string {
+func (c *applicationOperator) getHelmApplication(appId string) (*v1beta1.FederatedHelmApplication, error) {
+	c.cachedRepos.RLock()
+	cache := c.cachedRepos
+	if app, exists := cache.apps[appId]; exists {
+		c.cachedRepos.RUnlock()
+		return app, nil
+	} else {
+		c.cachedRepos.RUnlock()
 
-	var workloadLabels []map[string]string
-	if workloads == nil {
-		return nil
+		return c.appLister.Get(appId)
 	}
-
-	for _, workload := range workloads.Deployments {
-		deploy, err := c.informers.Apps().V1().Deployments().Lister().Deployments(namespace).Get(workload.Name)
-		if errors.IsNotFound(err) {
-			continue
-		}
-		workloadLabels = append(workloadLabels, deploy.Labels)
-	}
-
-	for _, workload := range workloads.Daemonsets {
-		daemonset, err := c.informers.Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(workload.Name)
-		if errors.IsNotFound(err) {
-			continue
-		}
-		workloadLabels = append(workloadLabels, daemonset.Labels)
-	}
-
-	for _, workload := range workloads.Statefulsets {
-		statefulset, err := c.informers.Apps().V1().StatefulSets().Lister().StatefulSets(namespace).Get(workload.Name)
-		if errors.IsNotFound(err) {
-			continue
-		}
-		workloadLabels = append(workloadLabels, statefulset.Labels)
-	}
-
-	return &workloadLabels
 }
 
-func (c *applicationOperator) isExist(svcs []v1.Service, svc *v1.Service) bool {
-	for _, item := range svcs {
-		if item.Name == svc.Name && item.Namespace == svc.Namespace {
-			return true
-		}
-	}
-	return false
-}
+func filterHelmApplicationByStates(apps []*v1beta1.FederatedHelmApplication, states []string) []*v1beta1.FederatedHelmApplication {
 
-func (c *applicationOperator) getSvcs(namespace string, workLoadLabels *[]map[string]string) []v1.Service {
-	if len(*workLoadLabels) == 0 {
-		return nil
+	if len(states) == 0 || len(apps) == 0 {
+		return apps
 	}
-	var services []v1.Service
-	for _, label := range *workLoadLabels {
-		labelSelector := labels.Set(label).AsSelector()
-		svcs, err := c.informers.Core().V1().Services().Lister().Services(namespace).List(labelSelector)
-		if err != nil {
-			klog.Errorf("get app's svc failed, reason: %v", err)
+
+	var j = 0
+	for i := 0; i < len(apps); i++ {
+		//state := apps[i].Status.State
+		//TODO, app state
+		state := apps[i].Spec.Template.Spec.Status
+		//default value is draft
+		if state == "" {
+			state = constants.StateDraft
 		}
-		for _, item := range svcs {
-			if !c.isExist(services, item) {
-				services = append(services, *item)
+		if sliceutil.HasString(states, state) {
+			if i != j {
+				apps[j] = apps[i]
 			}
+			j++
 		}
 	}
 
-	return services
+	apps = apps[:j:j]
+	return apps
 }
 
-func (c *applicationOperator) getIng(namespace string, services []v1.Service) []v1beta1.Ingress {
-	if services == nil {
-		return nil
-	}
-
-	var ings []v1beta1.Ingress
-	for _, svc := range services {
-		ingresses, err := c.informers.Extensions().V1beta1().Ingresses().Lister().Ingresses(namespace).List(labels.Everything())
-		if err != nil {
-			klog.Error(err)
-			return ings
-		}
-
-		for _, ingress := range ingresses {
-			if ingress.Spec.Backend.ServiceName != svc.Name {
-				continue
-			}
-
-			exist := false
-			var tmpRules []v1beta1.IngressRule
-			for _, rule := range ingress.Spec.Rules {
-				for _, p := range rule.HTTP.Paths {
-					if p.Backend.ServiceName == svc.Name {
-						exist = true
-						tmpRules = append(tmpRules, rule)
-					}
-				}
-			}
-
-			if exist {
-				ing := v1beta1.Ingress{}
-				ing.Name = ingress.Name
-				ing.Spec.Rules = tmpRules
-				ings = append(ings, ing)
-			}
-		}
-	}
-
-	return ings
-}
-
-func (c *applicationOperator) CreateApplication(clusterName, namespace string, request CreateClusterRequest) error {
-	_, err := c.opClient.CreateCluster(openpitrix.ContextWithUsername(request.Username), &pb.CreateClusterRequest{
-		AppId:     &wrappers.StringValue{Value: request.AppId},
-		VersionId: &wrappers.StringValue{Value: request.VersionId},
-		RuntimeId: &wrappers.StringValue{Value: clusterName},
-		Conf:      &wrappers.StringValue{Value: request.Conf},
-		Zone:      &wrappers.StringValue{Value: namespace},
-	})
-
-	if err != nil {
-		klog.Errorln(err)
-		return err
-	}
-
-	return nil
-}
-
-func (c *applicationOperator) ModifyApplication(request ModifyClusterAttributesRequest) error {
-
-	modifyClusterAttributesRequest := &pb.ModifyClusterAttributesRequest{ClusterId: &wrappers.StringValue{Value: request.ClusterID}}
-	if request.Name != nil {
-		modifyClusterAttributesRequest.Name = &wrappers.StringValue{Value: *request.Name}
-	}
-	if request.Description != nil {
-		modifyClusterAttributesRequest.Description = &wrappers.StringValue{Value: *request.Description}
-	}
-
-	_, err := c.opClient.ModifyClusterAttributes(openpitrix.SystemContext(), modifyClusterAttributesRequest)
-
-	if err != nil {
-		klog.Errorln(err)
-		return err
-	}
-
-	return nil
-}
-
-func (c *applicationOperator) DeleteApplication(applicationId string) error {
-	_, err := c.opClient.DeleteClusters(openpitrix.SystemContext(), &pb.DeleteClustersRequest{ClusterId: []string{applicationId}, Force: &wrappers.BoolValue{Value: true}})
-
-	if err != nil {
-		klog.Errorln(err)
-		return err
-	}
-
-	return nil
-}
-
-func (c *applicationOperator) UpgradeApplication(request UpgradeClusterRequest) error {
-	_, err := c.opClient.UpgradeCluster(openpitrix.ContextWithUsername(request.Username), &pb.UpgradeClusterRequest{
-		ClusterId: &wrappers.StringValue{Value: request.ClusterId},
-		VersionId: &wrappers.StringValue{Value: request.VersionId},
-	})
-
-	if err != nil {
-		klog.Errorln(err)
-		return err
-	}
-
-	return nil
-}
+//func (c *applicationOperator) getAppVersion(id string) (ret *v1alpha1.HelmApplicationVersion, err error) {
+//	cached := c.cachedRepos.Load().(cachedRepos)
+//	ret = cached.versions[id]
+//	if ret != nil {
+//		return ret, nil
+//	}
+//	ret, err = c.versionLister.Get(id)
+//	if err != nil && !apiErrors.IsNotFound(err) {
+//		klog.Error(err)
+//		return nil, err
+//	}
+//
+//	return
+//}

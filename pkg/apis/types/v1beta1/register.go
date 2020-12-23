@@ -81,5 +81,10 @@ func init() {
 		&FederatedWorkspaceRole{},
 		&FederatedWorkspaceRoleList{},
 		&FederatedWorkspaceRoleBinding{},
-		&FederatedWorkspaceRoleBindingList{})
+		&FederatedWorkspaceRoleBindingList{},
+		&FederatedHelmApplication{},
+		&FederatedHelmApplicationList{},
+		&FederatedHelmApplicationVersion{},
+		&FederatedHelmApplicationVersionList{},
+		)
 }

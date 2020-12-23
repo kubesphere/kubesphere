@@ -576,7 +576,7 @@ type CreateRepoRequest struct {
 	// repository description
 	Description string `json:"description,omitempty"`
 
-	// workspace
+	// If workspace is empty, then it's a global repo
 	Workspace *string `json:"workspace,omitempty"`
 
 	// required, repository name
@@ -629,7 +629,8 @@ type ModifyRepoRequest struct {
 }
 
 type RepoActionRequest struct {
-	Action string `json:"action"`
+	Action    string `json:"action"`
+	Workspace string `json:"workspace"`
 }
 
 type ValidateRepoRequest struct {
@@ -732,6 +733,9 @@ type ValidateRepoResponse struct {
 
 type CreateClusterRequest struct {
 
+	//release name
+	Name string `json:"name"`
+
 	// advanced param
 	AdvancedParam []string `json:"advanced_param"`
 
@@ -748,11 +752,20 @@ type CreateClusterRequest struct {
 	VersionId string `json:"version_id,omitempty"`
 
 	Username string `json:"-"`
+
+	//current workspace
+	Workspace string `json:"workspace,omitempty"`
 }
 
 type UpgradeClusterRequest struct {
+	// release namespace
+	Namespace string `json:"namespace,omitempty"`
+
 	// cluster id
 	ClusterId string `json:"cluster_id"`
+
+	//helm app id
+	AppId string `json:"app_id"`
 
 	// advanced param
 	AdvancedParam []string `json:"advanced_param"`
@@ -760,7 +773,7 @@ type UpgradeClusterRequest struct {
 	// required, conf a json string, include cpu, memory info of cluster
 	Conf string `json:"conf,omitempty"`
 
-	// required, id of runtime
+	// Deprecated: required, id of runtime
 	RuntimeId string `json:"runtime_id,omitempty"`
 
 	// required, id of app version
@@ -857,9 +870,11 @@ type Runtime struct {
 }
 
 type ModifyClusterAttributesRequest struct {
+	ClusterName string `json:"clusterName,omitempty"`
+	Namespace   string `json:"namespace,omitempty"`
 
 	// required, id of cluster to modify
-	ClusterID string `json:"cluster_id,omitempty"`
+	ClusterID string `json:"cluster_id"`
 
 	// cluster description
 	Description *string `json:"description,omitempty"`

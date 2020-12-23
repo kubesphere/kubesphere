@@ -32,6 +32,10 @@ type FederatedGroupExpansion interface{}
 
 type FederatedGroupBindingExpansion interface{}
 
+type FederatedHelmApplicationExpansion interface{}
+
+type FederatedHelmApplicationVersionExpansion interface{}
+
 type FederatedIngressExpansion interface{}
 
 type FederatedJobExpansion interface{}

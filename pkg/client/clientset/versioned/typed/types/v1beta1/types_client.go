@@ -33,6 +33,8 @@ type TypesV1beta1Interface interface {
 	FederatedDeploymentsGetter
 	FederatedGroupsGetter
 	FederatedGroupBindingsGetter
+	FederatedHelmApplicationsGetter
+	FederatedHelmApplicationVersionsGetter
 	FederatedIngressesGetter
 	FederatedJobsGetter
 	FederatedLimitRangesGetter
@@ -75,6 +77,14 @@ func (c *TypesV1beta1Client) FederatedGroups() FederatedGroupInterface {
 
 func (c *TypesV1beta1Client) FederatedGroupBindings() FederatedGroupBindingInterface {
 	return newFederatedGroupBindings(c)
+}
+
+func (c *TypesV1beta1Client) FederatedHelmApplications() FederatedHelmApplicationInterface {
+	return newFederatedHelmApplications(c)
+}
+
+func (c *TypesV1beta1Client) FederatedHelmApplicationVersions() FederatedHelmApplicationVersionInterface {
+	return newFederatedHelmApplicationVersions(c)
 }
 
 func (c *TypesV1beta1Client) FederatedIngresses(namespace string) FederatedIngressInterface {

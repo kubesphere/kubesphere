@@ -207,7 +207,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory, s.RuntimeCache))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.MonitoringClient, s.InformerFactory, s.OpenpitrixClient))
-	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
+	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient, s.KubernetesClient.KubeSphere(), s.Config))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory,
 		s.KubernetesClient.Master()))
@@ -457,6 +457,8 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedResourceQuota),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedPersistentVolumeClaim),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedApplication),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedHelmApplication),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedHelmApplicationVersion),
 	}
 
 	// skip caching devops resources if devops not enabled

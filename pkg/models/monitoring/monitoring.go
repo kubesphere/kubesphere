@@ -58,7 +58,7 @@ func NewMonitoringOperator(client monitoring.Interface, k8s kubernetes.Interface
 		c:   client,
 		k8s: k8s,
 		ks:  factory.KubeSphereSharedInformerFactory(),
-		op:  openpitrix.NewOpenpitrixOperator(factory.KubernetesSharedInformerFactory(), opClient),
+		//op:  openpitrix.NewOpenpitrixOperator(factory.KubernetesSharedInformerFactory(), opClient),
 	}
 }
 

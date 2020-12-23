@@ -18,6 +18,9 @@ package app
 
 import (
 	"fmt"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	helmappscheme "kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/controller/helmrelease"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -27,6 +30,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	appcontroller "kubesphere.io/kubesphere/pkg/controller/application"
+	"kubesphere.io/kubesphere/pkg/controller/helmapplication"
+	"kubesphere.io/kubesphere/pkg/controller/helmcategory"
+	"kubesphere.io/kubesphere/pkg/controller/helmrepo"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/user"
@@ -39,7 +45,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
@@ -139,13 +144,13 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Warning("ks-controller-manager starts without ldap provided, it will not sync user into ldap")
 	}
 
-	var openpitrixClient openpitrix.Client
-	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
-		openpitrixClient, err = openpitrix.NewClient(s.OpenPitrixOptions)
-		if err != nil {
-			return fmt.Errorf("failed to connect to openpitrix, please check openpitrix status, error: %v", err)
-		}
-	}
+	//var openpitrixClient openpitrix.Client
+	//if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
+	//	openpitrixClient, err = openpitrix.NewClient(s.OpenPitrixOptions)
+	//	if err != nil {
+	//		return fmt.Errorf("failed to connect to openpitrix, please check openpitrix status, error: %v", err)
+	//	}
+	//}
 
 	var s3Client s3.Interface
 	if s.S3Options != nil && len(s.S3Options.Endpoint) != 0 {
@@ -217,6 +222,45 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Fatal("Unable to create namespace controller")
 	}
 
+	err = helmrepo.Add(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create helm repo controller")
+	}
+
+	err = helmcategory.Add(mgr, s.MultiClusterOptions.Enable)
+	if err != nil {
+		klog.Fatal("Unable to create helm category controller")
+	}
+
+	utilruntime.Must(helmappscheme.AddToScheme(mgr.GetScheme()))
+
+	err = (&helmapplication.ReconcileHelmApplication{
+		MultiClusterEnabled: s.MultiClusterOptions.Enable,
+	}).SetupWithManager(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create helm application controller ", err)
+	}
+
+	err = (&helmapplication.ReconcileHelmApplicationVersion{
+		MultiClusterEnabled: s.MultiClusterOptions.Enable,
+	}).SetupWithManager(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create helm application version controller ", err)
+	}
+
+	err = (&helmapplication.ReconcileAudit{}).SetupWithManager(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create helm audit controller ", err)
+	}
+
+	err = (&helmrelease.ReconcileHelmRelease{
+		MultiClusterEnabled: s.MultiClusterOptions.Enable,
+	}).SetupWithManager(mgr)
+
+	if err != nil {
+		klog.Fatalf("Unable to create helm release controller, error: %s", err)
+	}
+
 	err = appcontroller.Add(mgr)
 	if err != nil {
 		klog.Fatal("Unable to create ks application controller")
@@ -242,7 +286,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		ldapClient,
 		s.KubernetesOptions,
 		s.AuthenticationOptions,
-		openpitrixClient,
+		nil,
 		s.MultiClusterOptions.Enable,
 		s.NetworkOptions,
 		servicemeshEnabled,

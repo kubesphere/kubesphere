@@ -38,6 +38,10 @@ type Interface interface {
 	FederatedGroups() FederatedGroupInformer
 	// FederatedGroupBindings returns a FederatedGroupBindingInformer.
 	FederatedGroupBindings() FederatedGroupBindingInformer
+	// FederatedHelmApplications returns a FederatedHelmApplicationInformer.
+	FederatedHelmApplications() FederatedHelmApplicationInformer
+	// FederatedHelmApplicationVersions returns a FederatedHelmApplicationVersionInformer.
+	FederatedHelmApplicationVersions() FederatedHelmApplicationVersionInformer
 	// FederatedIngresses returns a FederatedIngressInformer.
 	FederatedIngresses() FederatedIngressInformer
 	// FederatedJobs returns a FederatedJobInformer.
@@ -102,6 +106,16 @@ func (v *version) FederatedGroups() FederatedGroupInformer {
 // FederatedGroupBindings returns a FederatedGroupBindingInformer.
 func (v *version) FederatedGroupBindings() FederatedGroupBindingInformer {
 	return &federatedGroupBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedHelmApplications returns a FederatedHelmApplicationInformer.
+func (v *version) FederatedHelmApplications() FederatedHelmApplicationInformer {
+	return &federatedHelmApplicationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedHelmApplicationVersions returns a FederatedHelmApplicationVersionInformer.
+func (v *version) FederatedHelmApplicationVersions() FederatedHelmApplicationVersionInformer {
+	return &federatedHelmApplicationVersionInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedIngresses returns a FederatedIngressInformer.

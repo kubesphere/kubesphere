@@ -32,14 +32,19 @@ const (
 	AdminUserName                 = "admin"
 	IngressControllerPrefix       = "kubesphere-router-"
 
-	WorkspaceLabelKey        = "kubesphere.io/workspace"
-	NamespaceLabelKey        = "kubesphere.io/namespace"
-	DisplayNameAnnotationKey = "kubesphere.io/alias-name"
-	DescriptionAnnotationKey = "kubesphere.io/description"
-	CreatorAnnotationKey     = "kubesphere.io/creator"
-	UsernameLabelKey         = "kubesphere.io/username"
-	DevOpsProjectLabelKey    = "kubesphere.io/devopsproject"
-	KubefedManagedLabel      = "kubefed.io/managed"
+	ClusterNameLabelKey               = "kubesphere.io/cluster"
+	NameLabelKey                      = "kubesphere.io/name"
+	WorkspaceLabelKey                 = "kubesphere.io/workspace"
+	NamespaceLabelKey                 = "kubesphere.io/namespace"
+	DisplayNameAnnotationKey          = "kubesphere.io/alias-name"
+	ChartRepoIdLabelKey               = "kubesphere.io/repo-id"
+	ChartApplicationIdLabelKey        = "kubesphere.io/app-id"
+	ChartApplicationVersionIdLabelKey = "kubesphere.io/ver-id"
+	CategoryIdLabelKey                = "kubesphere.io/ctg-id"
+	CreatorAnnotationKey              = "kubesphere.io/creator"
+	UsernameLabelKey                  = "kubesphere.io/username"
+	DevOpsProjectLabelKey             = "kubesphere.io/devopsproject"
+	KubefedManagedLabel               = "kubefed.io/managed"
 
 	UserNameHeader = "X-Token-Username"
 
@@ -58,6 +63,7 @@ const (
 	DevOpsProjectRoleTag = "DevOps Project Role"
 	NamespaceRoleTag     = "Namespace Role"
 
+	OpenpitrixTag            = "Openpitrix Resources"
 	OpenpitrixAppInstanceTag = "App Instance"
 	OpenpitrixAppTemplateTag = "App Template"
 	OpenpitrixCategoryTag    = "Category"
@@ -104,6 +110,58 @@ const (
 	LogQueryTag      = "Log Query"
 	EventsQueryTag   = "Events Query"
 	AuditingQueryTag = "Auditing Query"
+
+	MsgLen               = 512
+	HelmRepoSyncStateLen = 10
+	HelmAuditLen         = 10
+
+	//app version state
+	StateDraft     = "draft"
+	StateSubmitted = "submitted"
+	StatePassed    = "passed"
+	StateRejected  = "rejected"
+	StateSuspended = "suspended"
+	StateActive    = "active"
+
+	HelmStatusActive      = "active"
+	HelmStatusUsed        = "used"
+	HelmStatusEnabled     = "enabled"
+	HelmStatusDisabled    = "disabled"
+	HelmStatusCreating    = "creating"
+	HelmStatusDeleted     = "deleted"
+	HelmStatusDeleting    = "deleting"
+	HelmStatusUpgrading   = "upgrading"
+	HelmStatusUpdating    = "updating"
+	HelmStatusRollbacking = "rollbacking"
+	HelmStatusStopped     = "stopped"
+	HelmStatusStopping    = "stopping"
+	HelmStatusStarting    = "starting"
+	HelmStatusRecovering  = "recovering"
+	HelmStatusCeased      = "ceased"
+	HelmStatusCeasing     = "ceasing"
+	HelmStatusResizing    = "resizing"
+	HelmStatusScaling     = "scaling"
+	HelmStatusWorking     = "working"
+	HelmStatusPending     = "pending"
+	HelmStatusSuccessful  = "successful"
+	HelmStatusFailed      = "failed"
+
+	AttachmentTypeScreenshot = "screenshot"
+	AttachmentTypeIcon       = "icon"
+
+	StateInReview = "in-review"
+	StateNew      = "new"
+
+	HelmApplicationAppStoreSuffix  = "-store"
+	HelmApplicationIdPrefix        = "app-"
+	HelmRepoIdPrefix               = "repo-"
+	HelmApplicationVersionIdPrefix = "appv-"
+	HelmCategoryIdPrefix           = "ctg-"
+	HelmAttachmentPrefix           = "att-"
+	HelmReleasePrefix              = "rls-"
+	UncategorizedName              = "uncategorized"
+	UncategorizedId                = "ctg-uncategorized"
+	AppStoreRepoId                 = "repo-helm"
 )
 
 var (
