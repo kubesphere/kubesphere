@@ -20,5 +20,5 @@ func (s *Options) ApplyTo(options *Options) {
 }
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
-	fs.BoolVar(&s.Enable, "enable-metric", c.Enable, "If true, allow metric. [default=false]")
+	fs.BoolVar(&s.Enable, "enable-metrics", c.Enable, "If true, allow metrics. [default=false]")
 }

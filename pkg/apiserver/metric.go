@@ -1,7 +1,8 @@
-package metrics
+package apiserver
 
 import (
 	compbasemetrics "k8s.io/component-base/metrics"
+	"kubesphere.io/kubesphere/pkg/utils/metrics"
 )
 
 var (
@@ -28,8 +29,14 @@ var (
 		[]string{"verb", "group", "version", "resource"},
 	)
 
-	metrics = []compbasemetrics.Registerable{
+	metricsList = []compbasemetrics.Registerable{
 		RequestCounter,
 		RequestLatencies,
 	}
 )
+
+func register() {
+	for _, m := range metricsList {
+		metrics.MustRegister(m)
+	}
+}

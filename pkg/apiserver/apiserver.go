@@ -179,14 +179,15 @@ func monitorRequest(r *restful.Request, response *restful.Response, chain *restf
 	chain.ProcessFilter(r, response)
 	reqInfo, exists := request.RequestInfoFrom(r.Request.Context())
 	if exists && reqInfo.APIGroup != "" {
-		metrics.RequestCounter.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource, strconv.Itoa(response.StatusCode())).Inc()
+		RequestCounter.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource, strconv.Itoa(response.StatusCode())).Inc()
 		elapsedSeconds := time.Now().Sub(start).Seconds()
-		metrics.RequestLatencies.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource).Observe(elapsedSeconds)
+		RequestLatencies.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource).Observe(elapsedSeconds)
 	}
 }
 
 func (s *APIServer) installAPI() {
 	if s.Config.MetricsOptions != nil && s.Config.MetricsOptions.Enable {
+		register()
 		metrics.Defaults.Install(s.container)
 	}
 }

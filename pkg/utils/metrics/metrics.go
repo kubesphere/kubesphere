@@ -8,25 +8,28 @@ import (
 	compbasemetrics "k8s.io/component-base/metrics"
 	ksVersion "kubesphere.io/kubesphere/pkg/version"
 	"net/http"
-	"sync"
 )
 
 var (
-	Defaults DefaultMetrics
-	//registerMetrics sync.Once
-	defaultRegistry = compbasemetrics.NewKubeRegistry()
+	Defaults        DefaultMetrics
+	defaultRegistry compbasemetrics.KubeRegistry
 	// MustRegister registers registerable metrics but uses the defaultRegistry, panic upon the first registration that causes an error
-	MustRegister = defaultRegistry.MustRegister
+	MustRegister func(...compbasemetrics.Registerable)
 	// Register registers a collectable metric but uses the defaultRegistry
-	Register = defaultRegistry.Register
+	Register func(compbasemetrics.Registerable) error
 )
+
+func init() {
+	defaultRegistry = compbasemetrics.NewKubeRegistry()
+	MustRegister = defaultRegistry.MustRegister
+	Register = defaultRegistry.Register
+}
 
 // DefaultMetrics installs the default prometheus metrics handler
 type DefaultMetrics struct{}
 
 // Install adds the DefaultMetrics handler
 func (m DefaultMetrics) Install(c *restful.Container) {
-	register()
 	c.Handle("/kapis/metrics", Handler())
 }
 
@@ -50,16 +53,4 @@ func versionGet() apimachineryversion.Info {
 // name).
 func Handler() http.Handler {
 	return promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(defaultRegistry, promhttp.HandlerOpts{}))
-}
-
-var registerMetrics sync.Once
-
-func register() {
-	registerMetrics.Do(func() {
-		defaultRegistry.RawMustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
-		defaultRegistry.RawMustRegister(prometheus.NewGoCollector())
-		for _, metric := range metrics {
-			MustRegister(metric)
-		}
-	})
 }
