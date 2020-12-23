@@ -19,6 +19,7 @@ var (
 	Register func(compbasemetrics.Registerable) error
 
 	RawMustRegister func(...prometheus.Collector)
+
 )
 
 func init() {
@@ -30,7 +31,6 @@ func init() {
 	RawMustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 	RawMustRegister(prometheus.NewGoCollector())
 }
-
 
 // DefaultMetrics installs the default prometheus metrics handler
 type DefaultMetrics struct{}

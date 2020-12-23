@@ -65,6 +65,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			OpenPitrixOptions:     conf.OpenPitrixOptions,
 			NetworkOptions:        conf.NetworkOptions,
 			MultiClusterOptions:   conf.MultiClusterOptions,
+			MetricsOptions:        conf.MetricsOptions,
 			ServiceMeshOptions:    conf.ServiceMeshOptions,
 			LeaderElection:        s.LeaderElection,
 			LeaderElect:           s.LeaderElect,
@@ -264,6 +265,11 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 	klog.V(2).Info("registering metrics to the webhook server")
 	hookServer.Register("/metrics", metrics.Handler())
+
+	if s.MetricsOptions != nil && s.MetricsOptions.Enable {
+		klog.V(2).Info("registering metrics to then webhook server")
+		hookServer.Register("/metrics", metrics.Handler())
+	}
 
 	klog.V(0).Info("Starting the controllers.")
 	if err = mgr.Start(stopCh); err != nil {
