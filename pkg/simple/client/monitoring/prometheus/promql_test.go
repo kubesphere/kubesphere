@@ -138,8 +138,8 @@ func TestMakeExpr(t *testing.T) {
 		{
 			name: "pod_net_bytes_transmitted",
 			opts: monitoring.QueryOptions{
-				Level:          monitoring.LevelPod,
-				ResourceFilter: "elasticsearch-0",
+				Level:                     monitoring.LevelPod,
+				NamespacedResourcesFilter: "logging/elasticsearch-0|ks/redis",
 			},
 		},
 		{

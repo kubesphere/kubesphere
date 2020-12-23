@@ -37,6 +37,7 @@ type QueryOption interface {
 type QueryOptions struct {
 	Level Level
 
+	NamespacedResourcesFilter string
 	ResourceFilter            string
 	NodeName                  string
 	WorkspaceName             string
@@ -108,16 +109,18 @@ func (wo WorkloadOption) Apply(o *QueryOptions) {
 }
 
 type PodOption struct {
-	ResourceFilter string
-	NodeName       string
-	NamespaceName  string
-	WorkloadKind   string
-	WorkloadName   string
-	PodName        string
+	NamespacedResourcesFilter string
+	ResourceFilter            string
+	NodeName                  string
+	NamespaceName             string
+	WorkloadKind              string
+	WorkloadName              string
+	PodName                   string
 }
 
 func (po PodOption) Apply(o *QueryOptions) {
 	o.Level = LevelPod
+	o.NamespacedResourcesFilter = po.NamespacedResourcesFilter
 	o.ResourceFilter = po.ResourceFilter
 	o.NodeName = po.NodeName
 	o.NamespaceName = po.NamespaceName
