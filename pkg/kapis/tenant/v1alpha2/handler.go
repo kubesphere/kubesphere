@@ -45,7 +45,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	opclient "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
 type tenantHandler struct {
@@ -55,11 +54,11 @@ type tenantHandler struct {
 func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface,
 	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
 	am am.AccessManagementInterface, authorizer authorizer.Authorizer,
-	monitoringclient monitoringclient.Interface, opClient opclient.Client,
+	monitoringclient monitoringclient.Interface,
 	resourceGetter *resourcev1alpha3.ResourceGetter) *tenantHandler {
 
 	return &tenantHandler{
-		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, opClient, resourceGetter),
+		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourceGetter),
 	}
 }
 

@@ -88,7 +88,7 @@ docker-build-no-test: ks-apiserver ks-controller-manager
 
 # Run tests
 test: fmt vet
-	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
+	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=2m; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
 
 .PHONY: clean
 clean:

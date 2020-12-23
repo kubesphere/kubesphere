@@ -14,14 +14,22 @@ limitations under the License.
 package openpitrix
 
 import (
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"context"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	typed_v1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	listers_v1alpha1 "kubesphere.io/kubesphere/pkg/client/listers/application/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"openpitrix.io/openpitrix/pkg/pb"
+	"kubesphere.io/kubesphere/pkg/utils/idutils"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sort"
 )
 
 type CategoryInterface interface {
@@ -33,39 +41,85 @@ type CategoryInterface interface {
 }
 
 type categoryOperator struct {
-	opClient openpitrix.Client
+	ctgClient typed_v1alpha1.ApplicationV1alpha1Interface
+	ctgLister listers_v1alpha1.HelmCategoryLister
 }
 
-func newCategoryOperator(opClient openpitrix.Client) CategoryInterface {
-	return &categoryOperator{
-		opClient: opClient,
+func newCategoryOperator(ksFactory externalversions.SharedInformerFactory, ksClient versioned.Interface) CategoryInterface {
+	c := &categoryOperator{
+		ctgClient: ksClient.ApplicationV1alpha1(),
+		ctgLister: ksFactory.Application().V1alpha1().HelmCategories().Lister(),
 	}
+
+	return c
+}
+
+func (c *categoryOperator) getCategoryByName(name string) (*v1alpha1.HelmCategory, error) {
+	ctgs, err := c.ctgLister.List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+	for _, ctg := range ctgs {
+		if name == ctg.Spec.Name {
+			return ctg, nil
+		}
+	}
+	return nil, nil
+}
+
+func (c *categoryOperator) createCategory(name, desc string) (*v1alpha1.HelmCategory, error) {
+	ctg := &v1alpha1.HelmCategory{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: idutils.GetUuid36(v1alpha1.HelmCategoryIdPrefix),
+		},
+		Spec: v1alpha1.HelmCategorySpec{
+			Description: desc,
+			Name:        name,
+		},
+	}
+
+	return c.ctgClient.HelmCategories().Create(context.TODO(), ctg, metav1.CreateOptions{})
 }
 
 func (c *categoryOperator) CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, error) {
-	r := &pb.CreateCategoryRequest{
-		Name:        &wrappers.StringValue{Value: request.Name},
-		Locale:      &wrappers.StringValue{Value: request.Locale},
-		Description: &wrappers.StringValue{Value: request.Description},
-	}
-	if request.Icon != nil {
-		r.Icon = &wrappers.BytesValue{Value: request.Icon}
+
+	ctg, err := c.getCategoryByName(request.Name)
+	if err != nil {
+		return nil, err
 	}
 
-	resp, err := c.opClient.CreateCategory(openpitrix.SystemContext(), r)
+	if ctg != nil {
+		return nil, errors.New("category %s exists", ctg.Spec.Name)
+	}
+
+	ctg, err = c.createCategory(request.Name, request.Description)
+
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
+
 	return &CreateCategoryResponse{
-		CategoryId: resp.GetCategoryId().GetValue(),
+		CategoryId: ctg.Name,
 	}, nil
 }
 
 func (c *categoryOperator) DeleteCategory(id string) error {
-	_, err := c.opClient.DeleteCategories(openpitrix.SystemContext(), &pb.DeleteCategoriesRequest{
-		CategoryId: []string{id},
-	})
+	ctg, err := c.ctgClient.HelmCategories().Get(context.TODO(), id, metav1.GetOptions{})
+
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	if ctg.Status.Total > 0 {
+		return errors.New("category %s owns application", ctg.Spec.Name)
+	}
+
+	err = c.ctgClient.HelmCategories().Delete(context.TODO(), id, metav1.DeleteOptions{})
+
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -74,23 +128,30 @@ func (c *categoryOperator) DeleteCategory(id string) error {
 }
 
 func (c *categoryOperator) ModifyCategory(id string, request *ModifyCategoryRequest) error {
-	modifyCategoryRequest := &pb.ModifyCategoryRequest{
-		CategoryId: &wrappers.StringValue{Value: id},
+
+	ctg, err := c.ctgClient.HelmCategories().Get(context.TODO(), id, metav1.GetOptions{})
+	if err != nil {
+		return errors.New("category %s not found", id)
 	}
+	ctgCopy := ctg.DeepCopy()
+
 	if request.Name != nil {
-		modifyCategoryRequest.Name = &wrappers.StringValue{Value: *request.Name}
-	}
-	if request.Locale != nil {
-		modifyCategoryRequest.Locale = &wrappers.StringValue{Value: *request.Locale}
-	}
-	if request.Description != nil {
-		modifyCategoryRequest.Description = &wrappers.StringValue{Value: *request.Description}
-	}
-	if request.Icon != nil {
-		modifyCategoryRequest.Icon = &wrappers.BytesValue{Value: request.Icon}
+		ctgCopy.Spec.Name = *request.Name
 	}
 
-	_, err := c.opClient.ModifyCategory(openpitrix.SystemContext(), modifyCategoryRequest)
+	if request.Description != nil {
+		ctgCopy.Spec.Description = *request.Description
+	}
+
+	patch := client.MergeFrom(ctg)
+	data, err := patch.Data(ctgCopy)
+	if err != nil {
+		klog.Error("create patch failed", err)
+		return err
+	}
+
+	_, err = c.ctgClient.HelmCategories().Patch(context.TODO(), id, patch.Type(), data, metav1.PatchOptions{})
+
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -99,50 +160,33 @@ func (c *categoryOperator) ModifyCategory(id string, request *ModifyCategoryRequ
 }
 
 func (c *categoryOperator) DescribeCategory(id string) (*Category, error) {
-	resp, err := c.opClient.DescribeCategories(openpitrix.SystemContext(), &pb.DescribeCategoriesRequest{
-		CategoryId: []string{id},
-		Limit:      1,
-	})
+	var err error
+	ctg := &v1alpha1.HelmCategory{}
+	ctg, err = c.ctgClient.HelmCategories().Get(context.TODO(), id, metav1.GetOptions{})
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	var category *Category
-
-	if len(resp.CategorySet) > 0 {
-		category = convertCategory(resp.CategorySet[0])
-		return category, nil
-	} else {
-		err := status.New(codes.NotFound, "resource not found").Err()
-		klog.Error(err)
-		return nil, err
-	}
+	return convertCategory(ctg), nil
 }
 
 func (c *categoryOperator) ListCategories(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	req := &pb.DescribeCategoriesRequest{}
 
-	if keyword := conditions.Match[Keyword]; keyword != "" {
-		req.SearchWord = &wrappers.StringValue{Value: keyword}
-	}
-	if orderBy != "" {
-		req.SortKey = &wrappers.StringValue{Value: orderBy}
-	}
-	req.Reverse = &wrappers.BoolValue{Value: reverse}
-	req.Limit = uint32(limit)
-	req.Offset = uint32(offset)
-	resp, err := c.opClient.DescribeCategories(openpitrix.SystemContext(), req)
+	ctgs, err := c.ctgLister.List(labels.Everything())
+
 	if err != nil {
-		klog.Error(err)
 		return nil, err
 	}
 
-	items := make([]interface{}, 0)
+	sort.Sort(HelmCategoryList(ctgs))
 
-	for _, item := range resp.CategorySet {
-		items = append(items, convertCategory(item))
+	items := make([]interface{}, 0, limit)
+	for i, j := offset, 0; i < len(ctgs) && j < limit; {
+		items = append(items, convertCategory(ctgs[i]))
+		i++
+		j++
 	}
 
-	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: len(ctgs)}, nil
 }

@@ -31,7 +31,6 @@ import (
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
@@ -42,10 +41,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha1"}
 
-func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteringClient monitoring.Interface, factory informers.InformerFactory, opClient openpitrix.Client, cache cache.Cache) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteringClient monitoring.Interface, factory informers.InformerFactory, cache cache.Cache) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	h := newHandler(k8sClient, meteringClient, factory, opClient, resourcev1alpha3.NewResourceGetter(factory, cache))
+	h := newHandler(k8sClient, meteringClient, factory, resourcev1alpha3.NewResourceGetter(factory, cache))
 
 	ws.Route(ws.GET("/cluster").
 		To(h.HandleClusterMetersQuery).

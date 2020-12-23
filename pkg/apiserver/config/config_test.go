@@ -94,12 +94,16 @@ func newTestConfig() (*Config, error) {
 			Bucket:          "ssss",
 		},
 		OpenPitrixOptions: &openpitrix.Options{
-			RuntimeManagerEndpoint:    "openpitrix-hyperpitrix.openpitrix-system.svc:9103",
-			ClusterManagerEndpoint:    "openpitrix-hyperpitrix.openpitrix-system.svc:9104",
-			RepoManagerEndpoint:       "openpitrix-hyperpitrix.openpitrix-system.svc:9101",
-			AppManagerEndpoint:        "openpitrix-hyperpitrix.openpitrix-system.svc:9102",
-			CategoryManagerEndpoint:   "openpitrix-hyperpitrix.openpitrix-system.svc:9113",
-			AttachmentManagerEndpoint: "openpitrix-hyperpitrix.openpitrix-system.svc:9122",
+			S3Options: &s3.Options{
+				Endpoint:        "http://minio.openpitrix-system.svc",
+				Region:          "",
+				DisableSSL:      false,
+				ForcePathStyle:  false,
+				AccessKeyID:     "ABCDEFGHIJKLMN",
+				SecretAccessKey: "OPQRSTUVWXYZ",
+				SessionToken:    "abcdefghijklmn",
+				Bucket:          "app",
+			},
 		},
 		NetworkOptions: &network.Options{
 			EnableNetworkPolicy: true,

@@ -51,7 +51,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	ippoolclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -66,7 +65,6 @@ func addControllers(
 	ldapClient ldapclient.Interface,
 	options *k8s.KubernetesOptions,
 	authenticationOptions *authoptions.AuthenticationOptions,
-	openpitrixClient openpitrix.Client,
 	multiClusterOptions *multicluster.Options,
 	networkOptions *network.Options,
 	serviceMeshEnabled bool,
@@ -233,7 +231,6 @@ func addControllers(
 			client.Config(),
 			kubesphereInformer.Cluster().V1alpha1().Clusters(),
 			client.KubeSphere().ClusterV1alpha1().Clusters(),
-			openpitrixClient,
 			multiClusterOptions.ClusterControllerResyncSecond)
 	}
 

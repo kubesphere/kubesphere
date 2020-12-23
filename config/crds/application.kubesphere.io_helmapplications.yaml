@@ -1,0 +1,101 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: helmapplications.application.kubesphere.io
+spec:
+  group: application.kubesphere.io
+  names:
+    kind: HelmApplication
+    listKind: HelmApplicationList
+    plural: helmapplications
+    shortNames:
+    - happ
+    singular: helmapplication
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.name
+      name: application name
+      type: string
+    - jsonPath: .metadata.labels.kubesphere\.io/workspace
+      name: workspace
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HelmApplication is the Schema for the helmapplications API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HelmApplicationSpec defines the desired state of HelmApplication
+            properties:
+              abstraction:
+                description: info from frontend
+                type: string
+              appHome:
+                type: string
+              attachments:
+                description: attachments id
+                items:
+                  type: string
+                type: array
+              description:
+                description: description from chart's description or frontend
+                type: string
+              icon:
+                description: The attachment id of the icon
+                type: string
+              name:
+                description: the name of the helm application
+                type: string
+            required:
+            - name
+            type: object
+          status:
+            description: HelmApplicationStatus defines the observed state of HelmApplication
+            properties:
+              latestVersion:
+                description: If this application belong to appStore, latestVersion is the the latest version of the active application version. otherwise latestVersion is the latest version of all application version
+                type: string
+              state:
+                description: 'the state of the helm application: draft, submitted, passed, rejected, suspended, active'
+                type: string
+              statusTime:
+                format: date-time
+                type: string
+              updateTime:
+                format: date-time
+                type: string
+            required:
+            - statusTime
+            - updateTime
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

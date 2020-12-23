@@ -18,12 +18,9 @@ package app
 
 import (
 	"fmt"
+	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"kubesphere.io/kubesphere/pkg/controller/application"
-	"os"
-
-	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
@@ -31,8 +28,13 @@ import (
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
+	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmapplication"
+	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmcategory"
+	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmrelease"
+	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmrepo"
 	"kubesphere.io/kubesphere/pkg/controller/quota"
 	"kubesphere.io/kubesphere/pkg/controller/serviceaccount"
 	"kubesphere.io/kubesphere/pkg/controller/user"
@@ -45,10 +47,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -142,14 +144,6 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Warning("ks-controller-manager starts without ldap provided, it will not sync user into ldap")
 	}
 
-	var openpitrixClient openpitrix.Client
-	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
-		openpitrixClient, err = openpitrix.NewClient(s.OpenPitrixOptions)
-		if err != nil {
-			return fmt.Errorf("failed to connect to openpitrix, please check openpitrix status, error: %v", err)
-		}
-	}
-
 	var s3Client s3.Interface
 	if s.S3Options != nil && len(s.S3Options.Endpoint) != 0 {
 		s3Client, err = s3.NewS3Client(s.S3Options)
@@ -224,6 +218,41 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Fatalf("Unable to create namespace controller: %v", err)
 	}
 
+	err = helmrepo.Add(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create helm repo controller")
+	}
+
+	err = helmcategory.Add(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create helm category controller")
+	}
+
+	if !s.OpenPitrixOptions.IsEmpty() {
+		storageClient, err := s3.NewS3Client(s.OpenPitrixOptions.S3Options)
+		if err != nil {
+			klog.Fatalf("failed to connect to s3, please check openpitrix s3 service status, error: %v", err)
+		}
+		err = (&helmapplication.ReconcileHelmApplication{}).SetupWithManager(mgr)
+		if err != nil {
+			klog.Fatalf("Unable to create helm application controller, error: %s", err)
+		}
+
+		err = (&helmapplication.ReconcileHelmApplicationVersion{}).SetupWithManager(mgr)
+		if err != nil {
+			klog.Fatalf("Unable to create helm application version controller, error: %s ", err)
+		}
+
+		err = (&helmrelease.ReconcileHelmRelease{
+			StorageClient: storageClient,
+			KsFactory:     informerFactory.KubeSphereSharedInformerFactory(),
+		}).SetupWithManager(mgr)
+
+		if err != nil {
+			klog.Fatalf("Unable to create helm release controller, error: %s", err)
+		}
+	}
+
 	selector, _ := labels.Parse(s.ApplicationSelector)
 	applicationReconciler := &application.ApplicationReconciler{
 		Scheme:              mgr.GetScheme(),
@@ -255,7 +284,6 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		ldapClient,
 		s.KubernetesOptions,
 		s.AuthenticationOptions,
-		openpitrixClient,
 		s.MultiClusterOptions,
 		s.NetworkOptions,
 		servicemeshEnabled,
@@ -283,7 +311,9 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	hookServer.Register("/validate-quota-kubesphere-io-v1alpha2", &webhook.Admission{Handler: resourceQuotaAdmission})
 
 	klog.V(2).Info("registering metrics to the webhook server")
-	hookServer.Register("/metrics", metrics.Handler())
+	// Add an extra metric endpoint, so we can use the the same metric definition with ks-apiserver
+	// /kapis/metrics is independent of controller-manager's built-in /metrics
+	mgr.AddMetricsExtraHandler("/kapis/metrics", metrics.Handler())
 
 	klog.V(0).Info("Starting the controllers.")
 	if err = mgr.Start(stopCh); err != nil {

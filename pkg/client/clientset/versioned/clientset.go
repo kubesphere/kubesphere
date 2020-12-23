@@ -24,6 +24,7 @@ import (
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
+	applicationv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/auditing/v1alpha1"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/devops/v1alpha1"
@@ -40,6 +41,7 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	ApplicationV1alpha1() applicationv1alpha1.ApplicationV1alpha1Interface
 	AuditingV1alpha1() auditingv1alpha1.AuditingV1alpha1Interface
 	ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface
 	DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface
@@ -58,6 +60,7 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	applicationV1alpha1 *applicationv1alpha1.ApplicationV1alpha1Client
 	auditingV1alpha1    *auditingv1alpha1.AuditingV1alpha1Client
 	clusterV1alpha1     *clusterv1alpha1.ClusterV1alpha1Client
 	devopsV1alpha1      *devopsv1alpha1.DevopsV1alpha1Client
@@ -70,6 +73,11 @@ type Clientset struct {
 	tenantV1alpha1      *tenantv1alpha1.TenantV1alpha1Client
 	tenantV1alpha2      *tenantv1alpha2.TenantV1alpha2Client
 	typesV1beta1        *typesv1beta1.TypesV1beta1Client
+}
+
+// ApplicationV1alpha1 retrieves the ApplicationV1alpha1Client
+func (c *Clientset) ApplicationV1alpha1() applicationv1alpha1.ApplicationV1alpha1Interface {
+	return c.applicationV1alpha1
 }
 
 // AuditingV1alpha1 retrieves the AuditingV1alpha1Client
@@ -153,6 +161,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
+	cs.applicationV1alpha1, err = applicationv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.auditingV1alpha1, err = auditingv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -213,6 +225,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
+	cs.applicationV1alpha1 = applicationv1alpha1.NewForConfigOrDie(c)
 	cs.auditingV1alpha1 = auditingv1alpha1.NewForConfigOrDie(c)
 	cs.clusterV1alpha1 = clusterv1alpha1.NewForConfigOrDie(c)
 	cs.devopsV1alpha1 = devopsv1alpha1.NewForConfigOrDie(c)
@@ -233,6 +246,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.applicationV1alpha1 = applicationv1alpha1.New(c)
 	cs.auditingV1alpha1 = auditingv1alpha1.New(c)
 	cs.clusterV1alpha1 = clusterv1alpha1.New(c)
 	cs.devopsV1alpha1 = devopsv1alpha1.New(c)

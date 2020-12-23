@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
+	"io/ioutil"
 )
 
 type FakeS3 struct {
@@ -60,4 +61,15 @@ func (s *FakeS3) GetDownloadURL(key string, fileName string) (string, error) {
 func (s *FakeS3) Delete(key string) error {
 	delete(s.Storage, key)
 	return nil
+}
+
+func (s *FakeS3) Read(key string) ([]byte, error) {
+	if o, ok := s.Storage[key]; ok && o.Body != nil {
+		data, err := ioutil.ReadAll(o.Body)
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
+	}
+	return nil, awserr.New(s3.ErrCodeNoSuchKey, "no such object", nil)
 }

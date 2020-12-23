@@ -29,7 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
 const (
@@ -39,10 +38,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha3"}
 
-func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, factory informers.InformerFactory, opClient openpitrix.Client) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, factory informers.InformerFactory) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	h := NewHandler(k8sClient, monitoringClient, metricsClient, factory, opClient, nil)
+	h := NewHandler(k8sClient, monitoringClient, metricsClient, factory, nil)
 
 	ws.Route(ws.GET("/kubesphere").
 		To(h.handleKubeSphereMetricsQuery).

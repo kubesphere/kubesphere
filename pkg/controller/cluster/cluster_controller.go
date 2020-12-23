@@ -51,7 +51,6 @@ import (
 	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
 // Cluster controller only runs under multicluster mode. Cluster controller is following below steps,
@@ -145,8 +144,6 @@ type clusterController struct {
 	clusterLister    clusterlister.ClusterLister
 	clusterHasSynced cache.InformerSynced
 
-	openpitrixClient openpitrix.Client
-
 	queue workqueue.RateLimitingInterface
 
 	workerLoopPeriod time.Duration
@@ -163,7 +160,6 @@ func NewClusterController(
 	config *rest.Config,
 	clusterInformer clusterinformer.ClusterInformer,
 	clusterClient clusterclient.ClusterInterface,
-	openpitrixClient openpitrix.Client,
 	resyncPeriod time.Duration,
 ) *clusterController {
 
@@ -180,7 +176,6 @@ func NewClusterController(
 		client:           client,
 		hostConfig:       config,
 		clusterClient:    clusterClient,
-		openpitrixClient: openpitrixClient,
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "cluster"),
 		workerLoopPeriod: time.Second,
 		clusterMap:       make(map[string]*clusterData),
@@ -471,18 +466,6 @@ func (c *clusterController) syncCluster(key string) error {
 				return err
 			}
 
-			// clean up openpitrix runtime of the cluster
-			if _, ok := cluster.Annotations[openpitrixRuntime]; ok {
-				if c.openpitrixClient != nil {
-					err = c.openpitrixClient.CleanupRuntime(cluster.Name)
-					if err != nil {
-						klog.Errorf("Unable to delete openpitrix for cluster %s, error %v", cluster.Name, err)
-						return err
-					}
-				}
-				delete(cluster.Annotations, openpitrixRuntime)
-			}
-
 			// remove our cluster finalizer
 			finalizers := sets.NewString(cluster.ObjectMeta.Finalizers...)
 			finalizers.Delete(clusterv1alpha1.Finalizer)
@@ -583,22 +566,6 @@ func (c *clusterController) syncCluster(key string) error {
 			cluster.Labels = make(map[string]string)
 		}
 		cluster.Labels[clusterv1alpha1.HostCluster] = ""
-	}
-
-	if c.openpitrixClient != nil { // OpenPitrix is enabled, create runtime
-		if cluster.GetAnnotations() == nil {
-			cluster.Annotations = make(map[string]string)
-		}
-
-		if _, ok = cluster.Annotations[openpitrixRuntime]; !ok {
-			err = c.openpitrixClient.UpsertRuntime(cluster.Name, string(cluster.Spec.Connection.KubeConfig))
-			if err != nil {
-				klog.Errorf("Failed to create runtime for cluster %s, error %v", cluster.Name, err)
-				return err
-			} else {
-				cluster.Annotations[openpitrixRuntime] = cluster.Name
-			}
-		}
 	}
 
 	if !reflect.DeepEqual(oldCluster, cluster) {

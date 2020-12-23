@@ -1,9 +1,12 @@
 /*
 Copyright 2020 The KubeSphere Authors.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,96 +17,158 @@ limitations under the License.
 package openpitrix
 
 import (
-	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"context"
+	"encoding/base64"
+	"github.com/go-openapi/strfmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes/fake"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"openpitrix.io/openpitrix/pkg/pb"
+	"k8s.io/client-go/kubernetes"
+	fakek8s "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"testing"
 )
 
-func namespacesToRuntimeObjects(namespaces ...*v1.Namespace) []runtime.Object {
-	var objs []runtime.Object
-	for _, deploy := range namespaces {
-		objs = append(objs, deploy)
+var rawChartData = "H4sIFAAAAAAA/ykAK2FIUjBjSE02THk5NWIzVjBkUzVpWlM5Nk9WVjZNV2xqYW5keVRRbz1IZWxtAOxYUW/bNhDOM3/FTVmBNltoubEdQEAfirTAim1pMA/ZwzAUtHSS2FAkS1JOvLT77QNJ2XGUZEmxJukw34NEkcfj3fG+41EOrRsc1Mw4umCN2LoPStM0nYxG4Z2maf+dDif7W8NROhyP0v3R/t5WOnw+nAy3IL0XbXrUWsfMVvqv1+ob9x8hpvkxGsuVzGD+nDCtV59DOpzQlBRoc8O1C30v4QcUDeQ+YKBUBn5sZ2gkOrREsgYz8AFF3EJjBkxrwXPmZ5L5UmpKhzQlj232hjoK+J8z0aK9twRwG/6fD8d9/I+GG/w/CBkMGD1QrXQZDAnhDaswIwAGtbLcKbPIQFZcnhEA3QpxpATPFxm8KQ+VOzJoUToC4FiVQZJ0Ao5aIaaYG3Q2g9//CLnh7RyN4QUGtrIV4krnYzvjf0gB/w4bLZhDO3hXo9BoLHX6y6WCW/C/t7c/6eF/NN6c/w9D5+eDHZjzJgOLDkou0J/dLxrvlrzGDHYGnz4Rz0Ven2kmC3A1gkcuqDK0Qy1ASce3CwWWXCIkPrKoZ0xg92KItcIBjQXnoZdCj+Phs54M4CM408ocJnuhyZtpW5b8DJLdBDpZKAvfjKodGGQOga1W8OllAR9aJnjJsfClSFCakt8wyg78zq/gDbAww5y1FsGqBteqmmhqyVEUFphBELzhDgtwClzNLTydLYIbXh1OPS+XFViN+TNK3pRgUCCznb9yJR3j0nbVU+jjDk65EDBDaK3X0wILynfaXu/VZfK88CwvV47sZ9alw24cv4uzhV3J+TYonr24+25e6LhyQRRCf4n+iXOXel7q/EzltOHSlZA8sbtPbNKTFRe9e2xd37wUcWtb6bHRVbl+G8N2drERuQSbobhpSwPLxX727Vh3cWx3ZTp89Ae1YDlC8l0Cybvk88GjmkbJqJ69Qb04GPWrUTTU1oOgcgbn58BlLtqiZwqNi/UGLQrMnTI/dQLpWnR0lr1c3UH8GNOanqzgSLkarK4S5+fXTPkIH1rlsGfpVSkNk6zCYne2iIKWkTJFM+d5f3701LRT/p991Tdx99r1423pin8irOn1OnNpHZM5XtZ4HTzXxWg/YdvOQpbnvurzmay1eKMxgfll5D28KelcZqN5XLmX9p9eNvUii9FnNwmS67at4XwpMukayZ0EXMHyY5++j0+9+i9XsuRVw/SXvAze+v9nnPbqv3E63tR/D0InXBYZHIRt/5lp0qBjBXPM3wBXKWoZH1eBG/PU2i+kIVnO9qwZ+C8CsEHaV0oB/9Qf6bySyuB9rHEb/sd7V/7/7E3GG/w/BG3DEXMOjbS+DogxAKc1Spi1XBT+OqNZfsIqtJRsw6/+ymNbrZVxFmyNQkAl1Awa5vKay+p7f+dhjs8RNHP1Wj+TBdkGiVX4IQxPtcGSn2EBp9zV8M0zCm+lWICSYaZXCTQaEFwiJfTV9N3UKYNkG7p69fhgCgU3ltCKu0F4RvUJnf1pBuG57KirgX8sP+1cDi4EzVh+0upw97Vkh9pTTXbojJ2QHeoa31aGV2TnL7INx8xw1Vp48+q1JVQb9R5zRygvkA0iu1HvCZ3bXBU42CS9DW1oQ18z/R0AAP//GfF7tgAeAAA="
+
+func TestOpenPitrixApp(t *testing.T) {
+	appOperator := prepareAppOperator()
+
+	chartData, _ := base64.RawStdEncoding.DecodeString(rawChartData)
+
+	validateReq := &ValidatePackageRequest{
+		VersionPackage: chartData,
+	}
+	// validate package
+	validateResp, err := appOperator.ValidatePackage(validateReq)
+	if err != nil || validateResp.Error != "" {
+		klog.Errorf("validate pacakge failed, error: %s", err)
+		t.FailNow()
 	}
 
-	return objs
+	validateReq = &ValidatePackageRequest{
+		VersionPackage: strfmt.Base64(""),
+	}
+
+	// validate corrupted package
+	validateResp, err = appOperator.ValidatePackage(validateReq)
+	if err == nil {
+		klog.Errorf("validate pacakge failed, error: %s", err)
+		t.FailNow()
+	}
+
+	appReq := &CreateAppRequest{
+		Isv:            testWorkspace,
+		Name:           "test-chart",
+		VersionName:    "0.1.0",
+		VersionPackage: strfmt.Base64(chartData),
+	}
+
+	// create app
+	createAppResp, err := appOperator.CreateApp(appReq)
+	if err != nil {
+		klog.Errorf("create app failed")
+		t.Fail()
+	}
+
+	// add app to indexer
+	apps, err := ksClient.ApplicationV1alpha1().HelmApplications().List(context.TODO(), metav1.ListOptions{})
+	for _, app := range apps.Items {
+		err := fakeInformerFactory.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmApplications().
+			Informer().GetIndexer().Add(&app)
+		if err != nil {
+			klog.Errorf("failed to add app to indexer")
+			t.FailNow()
+		}
+	}
+
+	// add app version to indexer
+	appvers, err := ksClient.ApplicationV1alpha1().HelmApplicationVersions().List(context.TODO(), metav1.ListOptions{})
+	for _, ver := range appvers.Items {
+		err := fakeInformerFactory.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmApplicationVersions().
+			Informer().GetIndexer().Add(&ver)
+		if err != nil {
+			klog.Errorf("failed to add app version to indexer")
+			t.Fail()
+		}
+	}
+
+	// describe app
+	app, err := appOperator.DescribeApp(createAppResp.AppID)
+	if err != nil {
+		klog.Errorf("describe app failed, err: %s", err)
+		t.FailNow()
+	}
+	_ = app
+
+	cond := &params.Conditions{Match: map[string]string{
+		WorkspaceLabel: testWorkspace,
+	}}
+	// list apps
+	listApps, err := appOperator.ListApps(cond, "", false, 10, 0)
+	if err != nil {
+		klog.Errorf("list app failed")
+		t.FailNow()
+	}
+	_ = listApps
+
+	// describe app
+	describeAppVersion, err := appOperator.DescribeAppVersion(createAppResp.VersionID)
+	if err != nil {
+		klog.Errorf("describe app version failed, error: %s", err)
+		t.FailNow()
+	}
+	_ = describeAppVersion
+
+	cond.Match[AppId] = createAppResp.AppID
+	// list app version
+	_, err = appOperator.ListAppVersions(cond, "", false, 10, 0)
+	if err != nil {
+		klog.Errorf("list app version failed")
+		t.FailNow()
+	}
+
+	// get app version file
+	getAppVersionFilesRequest := &GetAppVersionFilesRequest{}
+	_, err = appOperator.GetAppVersionFiles(createAppResp.VersionID, getAppVersionFilesRequest)
+
+	if err != nil {
+		klog.Errorf("get app version files failed")
+		t.FailNow()
+	}
+
+	//delete app
+	err = appOperator.DeleteApp(createAppResp.AppID)
+
+	if err == nil {
+		klog.Errorf("we should delete application version first")
+		t.FailNow()
+	}
+
+	//delete app
+	err = appOperator.DeleteAppVersion(createAppResp.VersionID)
+
+	if err != nil {
+		klog.Errorf("delete application version failed, err: %s", err)
+		t.FailNow()
+	}
+
 }
 
-func TestApplicationOperator_CreateApplication(t *testing.T) {
-	tests := []struct {
-		description          string
-		existNamespaces      []*v1.Namespace
-		targetNamespace      string
-		createClusterRequest CreateClusterRequest
-		expected             error
-	}{
-		{
-			description: "create application test",
-			existNamespaces: []*v1.Namespace{{
-				ObjectMeta: metav1.ObjectMeta{Name: "test", Annotations: map[string]string{openpitrix.RuntimeAnnotationKey: "runtime-ncafface"}},
-			}},
-			targetNamespace: "test",
-			createClusterRequest: CreateClusterRequest{
-				Conf:      "app-agwerl",
-				RuntimeId: "runtime-ncafface",
-				VersionId: "version-acklmalkds",
-				Username:  "system",
-			},
-			expected: nil,
-		},
-		{
-			description:     "create application test2",
-			existNamespaces: []*v1.Namespace{},
-			targetNamespace: "test2",
-			createClusterRequest: CreateClusterRequest{
-				Conf:      "app-agwerl",
-				RuntimeId: "runtime-ncafface",
-				VersionId: "version-acklmalkds",
-				Username:  "system",
-			},
-			expected: errors.NewNotFound(schema.GroupResource{Group: "", Resource: "namespace"}, "test2"),
-		},
-	}
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+var (
+	ksClient            versioned.Interface
+	k8sClient           kubernetes.Interface
+	fakeInformerFactory informers.InformerFactory
+	testWorkspace       = "test-workspace"
+)
 
-	for _, test := range tests {
-		op := openpitrix.NewMockClient(ctrl)
-		objs := namespacesToRuntimeObjects(test.existNamespaces...)
-		k8s := fake.NewSimpleClientset(objs...)
-		informer := informers.NewSharedInformerFactory(k8s, 0)
-		stopChan := make(chan struct{}, 0)
-		informer.Core().V1().Namespaces().Lister()
-		informer.Start(stopChan)
-		informer.WaitForCacheSync(stopChan)
+func prepareAppOperator() ApplicationInterface {
+	ksClient = fakeks.NewSimpleClientset()
+	k8sClient = fakek8s.NewSimpleClientset()
+	fakeInformerFactory = informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
-		applicationOperator := newApplicationOperator(informer, op)
-
-		// setup expect response
-		// op.EXPECT().CreateCluster(gomock.Any(), gomock.Any()).Return(&pb.CreateClusterResponse{}, nil).AnyTimes()
-		op.EXPECT().CreateCluster(openpitrix.ContextWithUsername(test.createClusterRequest.Username), &pb.CreateClusterRequest{
-			AppId:     &wrappers.StringValue{Value: test.createClusterRequest.AppId},
-			VersionId: &wrappers.StringValue{Value: test.createClusterRequest.VersionId},
-			RuntimeId: &wrappers.StringValue{Value: test.createClusterRequest.RuntimeId},
-			Conf:      &wrappers.StringValue{Value: test.createClusterRequest.Conf},
-			Zone:      &wrappers.StringValue{Value: test.targetNamespace},
-		}).Return(&pb.CreateClusterResponse{}, nil).AnyTimes()
-
-		t.Run(test.description, func(t *testing.T) {
-
-			err := applicationOperator.CreateApplication(test.createClusterRequest.RuntimeId, test.targetNamespace, test.createClusterRequest)
-
-			if err != nil && err.Error() != test.expected.Error() {
-				t.Error(err)
-			}
-		})
-	}
+	return newApplicationOperator(cachedReposData, fakeInformerFactory.KubeSphereSharedInformerFactory(), ksClient, fake.NewFakeS3())
 }
