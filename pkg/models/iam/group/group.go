@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes"
@@ -45,7 +46,7 @@ type GroupOperator interface {
 	PatchGroup(workspace string, group *iamv1alpha2.Group) (*iamv1alpha2.Group, error)
 	DeleteGroupBinding(workspace, name string) error
 	CreateGroupBinding(workspace, groupName, userName string) (*iamv1alpha2.GroupBinding, error)
-	ListGroupBindings(workspace, group string, queryParam *query.Query) (*api.ListResult, error)
+	ListGroupBindings(workspace string, queryParam *query.Query) (*api.ListResult, error)
 }
 
 type groupOperator struct {
@@ -200,14 +201,18 @@ func (t *groupOperator) CreateGroupBinding(workspace, groupName, userName string
 	return t.ksclient.IamV1alpha2().GroupBindings().Create(&groupBinding)
 }
 
-func (t *groupOperator) ListGroupBindings(workspace, group string, queryParam *query.Query) (*api.ListResult, error) {
+func (t *groupOperator) ListGroupBindings(workspace string, query *query.Query) (*api.ListResult, error) {
 
-	if group != "" && workspace != "" {
-		// filter by group
-		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", iamv1alpha2.GroupReferenceLabel, group))
+	lableSelector, err := labels.ConvertSelectorToLabelsMap(query.LabelSelector)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
 	}
+	// workspace resources must be filtered by workspace
+	wsSelector := labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}
+	query.LabelSelector = labels.Merge(lableSelector, wsSelector).String()
 
-	result, err := t.resourceGetter.List("groupbindings", "", queryParam)
+	result, err := t.resourceGetter.List("groupbindings", "", query)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
