@@ -18,6 +18,10 @@ package loginrecord
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+	"time"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -29,9 +33,6 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"reflect"
-	"testing"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -228,6 +229,12 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 func filterInformerActions(actions []core.Action) []core.Action {
 	var ret []core.Action
 	for _, action := range actions {
+		if len(action.GetNamespace()) == 0 &&
+			(action.Matches("list", "users") ||
+				action.Matches("watch", "users") ||
+				action.Matches("get", "users")) {
+			continue
+		}
 		ret = append(ret, action)
 	}
 
