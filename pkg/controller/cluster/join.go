@@ -18,22 +18,29 @@ package cluster
 
 import (
 	"context"
+	"reflect"
+	"time"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
-	"reflect"
+	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
-	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	k8sscheme "k8s.io/client-go/kubernetes/scheme"
+	fedapis "sigs.k8s.io/kubefed/pkg/apis"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
-	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 )
 
 var (
@@ -53,11 +60,17 @@ var (
 			Verbs:           []string{"get"},
 		},
 	}
+	localSchemeBuilder = runtime.SchemeBuilder{
+		fedapis.AddToScheme,
+		k8sscheme.AddToScheme,
+		v1beta1.AddToScheme,
+	}
 )
 
 const (
 	tokenKey                    = "token"
 	serviceAccountSecretTimeout = 30 * time.Second
+	kubefedManagedSelector      = "kubefed.io/managed=true"
 )
 
 // joinClusterForNamespace registers a cluster with a KubeFed control
@@ -78,8 +91,9 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 		klog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
 		return nil, err
 	}
-
-	client, err := genericclient.New(hostConfig)
+	scheme := runtime.NewScheme()
+	localSchemeBuilder.AddToScheme(scheme)
+	client, err := client.New(hostConfig, client.Options{Scheme: scheme})
 	if err != nil {
 		klog.V(2).Infof("Failed to get kubefed clientset: %v", err)
 		return nil, err
@@ -116,7 +130,7 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 		disabledTLSValidations = append(disabledTLSValidations, fedv1b1.TLSAll)
 	}
 
-	kubefedCluster, err := createKubeFedCluster(client, joiningClusterName, clusterConfig.Host,
+	kubefedCluster, err := createKubeFedCluster(clusterConfig, client, joiningClusterName, clusterConfig.Host,
 		secret.Name, kubefedNamespace, clusterConfig.CAData, disabledTLSValidations, labels, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Failed to create federated cluster resource: %v", err)
@@ -150,7 +164,7 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 
 // createKubeFedCluster creates a federated cluster resource that associates
 // the cluster and secret.
-func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
+func createKubeFedCluster(clusterConfig *rest.Config, client client.Client, joiningClusterName, apiEndpoint,
 	secretName, kubefedNamespace string, caBundle []byte, disabledTLSValidations []fedv1b1.TLSValidation,
 	labels map[string]string, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
 	fedCluster := &fedv1b1.KubeFedCluster{
@@ -174,7 +188,8 @@ func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEn
 	}
 
 	existingFedCluster := &fedv1b1.KubeFedCluster{}
-	err := client.Get(context.TODO(), existingFedCluster, kubefedNamespace, joiningClusterName)
+	key := types.NamespacedName{Namespace: kubefedNamespace, Name: joiningClusterName}
+	err := client.Get(context.TODO(), key, existingFedCluster)
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		klog.V(2).Infof("Could not retrieve federated cluster %s due to %v", joiningClusterName, err)
@@ -191,6 +206,14 @@ func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEn
 		}
 		return existingFedCluster, nil
 	default:
+
+		err = checkWorkspaces(clusterConfig, client, fedCluster)
+
+		if err != nil {
+			klog.V(2).Infof("Validate federated cluster %s failed due to %v", fedCluster.Name, err)
+			return nil, err
+		}
+
 		err = client.Create(context.TODO(), fedCluster)
 		if err != nil {
 			klog.V(2).Infof("Could not create federated cluster %s due to %v", fedCluster.Name, err)
@@ -733,4 +756,52 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 
 	klog.V(2).Infof("Created secret in host cluster named: %s", v1SecretResult.Name)
 	return v1SecretResult, caBundle, nil
+}
+
+func checkWorkspaces(clusterConfig *rest.Config, hostClient client.Client, cluster *fedv1b1.KubeFedCluster) error {
+
+	tenantclient, err := v1alpha1.NewForConfig(clusterConfig)
+	if err != nil {
+		return err
+	}
+
+	workspaces, err := tenantclient.Workspaces().List(metav1.ListOptions{LabelSelector: kubefedManagedSelector})
+	if err != nil {
+		return err
+	}
+
+	// Workspaces with the `kubefed.io/managed: true` label will be deleted if the FederatedWorkspace's Clusters don't include the cluster.
+	// The user needs to remove the label or delete the workspace manually.
+	for _, ws := range workspaces.Items {
+		fedWorkspace := &v1beta1.FederatedWorkspace{}
+		key := types.NamespacedName{Name: ws.Name}
+		err := hostClient.Get(context.TODO(), key, fedWorkspace)
+		if err != nil {
+			// Continue to check next workspace, when it's not exist in the host.
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return err
+		}
+		if !containsCluster(fedWorkspace.Spec.Placement, cluster.Name) {
+			denied := errors.Errorf("The workspace %s is found in the target member cluster %s, which is conflict with the workspace on host", ws.Name, cluster.Name)
+			return denied
+		}
+	}
+
+	return nil
+}
+
+func containsCluster(placement v1beta1.GenericPlacementFields, str string) bool {
+	// Use selector if clusters are nil. But we ignore selector here.
+	if placement.Clusters == nil {
+		return true
+	}
+
+	for _, s := range placement.Clusters {
+		if s.Name == str {
+			return true
+		}
+	}
+	return false
 }
