@@ -197,6 +197,7 @@ func TestAuditing_LogRequestObject(t *testing.T) {
 				Groups: []string{
 					"system",
 				},
+				Extra: make(map[string]v1.ExtraValue),
 			},
 			SourceIPs: []string{
 				"192.168.0.2",
