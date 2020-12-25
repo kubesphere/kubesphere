@@ -19,6 +19,7 @@ package config
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
@@ -163,6 +164,28 @@ func (conf *Config) ToMap() map[string]bool {
 	for i := 0; i < c.NumField(); i++ {
 		name := strings.Split(c.Type().Field(i).Tag.Get("json"), ",")[0]
 		if strings.HasPrefix(name, "-") {
+			continue
+		}
+
+		if name == "network" {
+			ippoolName := "network.ippool"
+			nsnpName := "network"
+			if conf.NetworkOptions == nil {
+				result[nsnpName] = false
+				result[ippoolName] = false
+			} else {
+				if conf.NetworkOptions.EnableNetworkPolicy {
+					result[nsnpName] = true
+				} else {
+					result[nsnpName] = false
+				}
+
+				if conf.NetworkOptions.IPPoolType == networkv1alpha1.IPPoolTypeNone {
+					result[ippoolName] = false
+				} else {
+					result[ippoolName] = true
+				}
+			}
 			continue
 		}
 
