@@ -18,6 +18,7 @@ package am
 import (
 	"encoding/json"
 	"fmt"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,11 +86,10 @@ type AccessManagementInterface interface {
 	GetDevOpsControlledWorkspace(devops string) (string, error)
 	PatchNamespaceRole(namespace string, role *rbacv1.Role) (*rbacv1.Role, error)
 	PatchClusterRole(clusterRole *rbacv1.ClusterRole) (*rbacv1.ClusterRole, error)
-	ListGroupRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error)
-	ListGroupDevOpsRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error)
+	ListGroupRoleBindings(workspace string, query *query.Query) ([]*rbacv1.RoleBinding, error)
 	CreateRoleBinding(namespace string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error)
 	DeleteRoleBinding(namespace, name string) error
-	ListGroupWorkspaceRoleBindings(group string, workspace string) ([]*iamv1alpha2.WorkspaceRoleBinding, error)
+	ListGroupWorkspaceRoleBindings(workspace string, query *query.Query) (*api.ListResult, error)
 	CreateWorkspaceRoleBinding(workspace string, roleBinding *iamv1alpha2.WorkspaceRoleBinding) (*iamv1alpha2.WorkspaceRoleBinding, error)
 	DeleteWorkspaceRoleBinding(workspaceName, name string) error
 }
@@ -1017,24 +1017,17 @@ func (am *amOperator) GetNamespaceControlledWorkspace(namespace string) (string,
 	return ns.Labels[tenantv1alpha1.WorkspaceLabel], nil
 }
 
-func (am *amOperator) ListGroupWorkspaceRoleBindings(workspace, group string) ([]*iamv1alpha2.WorkspaceRoleBinding, error) {
-	queryParam := query.New()
-	queryParam.LabelSelector = labels.FormatLabels(map[string]string{tenantv1alpha1.WorkspaceLabel: workspace})
-	roleBindings, err := am.workspaceRoleBindingGetter.List("", queryParam)
+func (am *amOperator) ListGroupWorkspaceRoleBindings(workspace string, query *query.Query) (*api.ListResult, error) {
+
+	lableSelector, err := labels.ConvertSelectorToLabelsMap(query.LabelSelector)
 	if err != nil {
+		klog.Error(err)
 		return nil, err
 	}
-
-	result := make([]*iamv1alpha2.WorkspaceRoleBinding, 0)
-	for _, obj := range roleBindings.Items {
-		roleBinding := obj.(*iamv1alpha2.WorkspaceRoleBinding)
-		inSpecifiedWorkspace := workspace == "" || roleBinding.Labels[tenantv1alpha1.WorkspaceLabel] == workspace
-		if containsGroup(roleBinding.Subjects, group) && inSpecifiedWorkspace {
-			result = append(result, roleBinding)
-		}
-	}
-
-	return result, nil
+	// workspace resources must be filtered by workspace
+	wsSelector := labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}
+	query.LabelSelector = labels.Merge(lableSelector, wsSelector).String()
+	return am.workspaceRoleBindingGetter.List("", query)
 }
 
 func (am *amOperator) CreateWorkspaceRoleBinding(workspace string, roleBinding *iamv1alpha2.WorkspaceRoleBinding) (*iamv1alpha2.WorkspaceRoleBinding, error) {
@@ -1071,14 +1064,14 @@ func (am *amOperator) DeleteWorkspaceRoleBinding(workspaceName, name string) err
 	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(name, metav1.NewDeleteOptions(0))
 }
 
-func (am *amOperator) ListGroupRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error) {
+func (am *amOperator) ListGroupRoleBindings(workspace string, query *query.Query) ([]*rbacv1.RoleBinding, error) {
 	namespaces, err := am.namespaceLister.List(labels.SelectorFromSet(labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}))
 	if err != nil {
 		return nil, err
 	}
 	result := make([]*rbacv1.RoleBinding, 0)
 	for _, namespace := range namespaces {
-		roleBindings, err := am.roleBindingGetter.List(namespace.Name, query.New())
+		roleBindings, err := am.roleBindingGetter.List(namespace.Name, query)
 		if err != nil {
 			klog.Error(err)
 			return nil, err
@@ -1086,31 +1079,22 @@ func (am *amOperator) ListGroupRoleBindings(workspace, group string) ([]*rbacv1.
 
 		for _, obj := range roleBindings.Items {
 			roleBinding := obj.(*rbacv1.RoleBinding)
-			if containsGroup(roleBinding.Subjects, group) {
-				result = append(result, roleBinding)
-			}
+			result = append(result, roleBinding)
 		}
 	}
-	return result, nil
-}
-
-func (am *amOperator) ListGroupDevOpsRoleBindings(workspace, group string) ([]*rbacv1.RoleBinding, error) {
 	devOpsProjects, err := am.devopsProjectLister.List(labels.SelectorFromSet(labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}))
 	if err != nil {
 		return nil, err
 	}
-	result := make([]*rbacv1.RoleBinding, 0)
 	for _, devOpsProject := range devOpsProjects {
-		roleBindings, err := am.roleBindingGetter.List(devOpsProject.Name, query.New())
+		roleBindings, err := am.roleBindingGetter.List(devOpsProject.Name, query)
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
 		for _, obj := range roleBindings.Items {
 			roleBinding := obj.(*rbacv1.RoleBinding)
-			if containsGroup(roleBinding.Subjects, group) {
-				result = append(result, roleBinding)
-			}
+			result = append(result, roleBinding)
 		}
 	}
 	return result, nil
@@ -1146,13 +1130,4 @@ func (am *amOperator) CreateRoleBinding(namespace string, roleBinding *rbacv1.Ro
 
 func (am *amOperator) DeleteRoleBinding(namespace, name string) error {
 	return am.k8sclient.RbacV1().RoleBindings(namespace).Delete(name, metav1.NewDeleteOptions(0))
-}
-
-func containsGroup(subjects []rbacv1.Subject, group string) bool {
-	for _, subject := range subjects {
-		if subject.Kind == rbacv1.GroupKind && subject.Name == group {
-			return true
-		}
-	}
-	return false
 }

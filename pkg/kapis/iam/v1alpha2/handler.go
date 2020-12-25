@@ -18,10 +18,11 @@ package v1alpha2
 
 import (
 	"fmt"
+	"strings"
+
 	authuser "k8s.io/apiserver/pkg/authentication/user"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/auth"
-	"strings"
 
 	"github.com/emicklei/go-restful"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -1344,9 +1345,8 @@ func (h *iamHandler) PatchGroup(request *restful.Request, response *restful.Resp
 
 func (h *iamHandler) ListGroupBindings(request *restful.Request, response *restful.Response) {
 	workspaceName := request.PathParameter("workspace")
-	groupName := request.PathParameter("group")
 	queryParam := query.ParseQueryParameter(request)
-	result, err := h.group.ListGroupBindings(workspaceName, groupName, queryParam)
+	result, err := h.group.ListGroupBindings(workspaceName, queryParam)
 	if err != nil {
 		api.HandleError(response, request, err)
 		return
@@ -1357,20 +1357,8 @@ func (h *iamHandler) ListGroupBindings(request *restful.Request, response *restf
 
 func (h *iamHandler) ListGroupRoleBindings(request *restful.Request, response *restful.Response) {
 	workspaceName := request.PathParameter("workspace")
-	groupName := request.PathParameter("group")
-	result, err := h.am.ListGroupRoleBindings(workspaceName, groupName)
-	if err != nil {
-		api.HandleInternalError(response, request, err)
-		return
-	}
-
-	response.WriteEntity(result)
-}
-
-func (h *iamHandler) ListGroupDevOpsRoleBindings(request *restful.Request, response *restful.Response) {
-	workspaceName := request.PathParameter("workspace")
-	groupName := request.PathParameter("group")
-	result, err := h.am.ListGroupDevOpsRoleBindings(workspaceName, groupName)
+	queryParam := query.ParseQueryParameter(request)
+	result, err := h.am.ListGroupRoleBindings(workspaceName, queryParam)
 	if err != nil {
 		api.HandleInternalError(response, request, err)
 		return
@@ -1416,8 +1404,8 @@ func (h *iamHandler) DeleteRoleBinding(request *restful.Request, response *restf
 
 func (h *iamHandler) ListGroupWorkspaceRoleBindings(request *restful.Request, response *restful.Response) {
 	workspaceName := request.PathParameter("workspace")
-	groupName := request.PathParameter("group")
-	result, err := h.am.ListGroupWorkspaceRoleBindings(workspaceName, groupName)
+	queryParam := query.ParseQueryParameter(request)
+	result, err := h.am.ListGroupWorkspaceRoleBindings(workspaceName, queryParam)
 	if err != nil {
 		api.HandleInternalError(response, request, err)
 		return
