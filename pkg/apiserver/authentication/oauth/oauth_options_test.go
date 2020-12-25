@@ -49,7 +49,6 @@ func TestDefaultAuthOptions(t *testing.T) {
 }
 
 func TestClientResolveRedirectURL(t *testing.T) {
-
 	options := NewOptions()
 	defaultClient, err := options.OAuthClient("default")
 	if err != nil {

@@ -99,7 +99,7 @@ func (p *passwordAuthenticator) Authenticate(username, password string) (authuse
 		if username == constants.AdminUserName {
 			break
 		}
-		if genericProvider, _ := identityprovider.CreateGenericProvider(providerOptions.Type, providerOptions.Provider); genericProvider != nil {
+		if genericProvider, _ := identityprovider.GetGenericProvider(providerOptions.Name); genericProvider != nil {
 			authenticated, err := genericProvider.Authenticate(username, password)
 			if err != nil {
 				if errors.IsUnauthorized(err) {
@@ -173,7 +173,6 @@ func preRegistrationUser(idp string, identity identityprovider.Identity) authuse
 			iamv1alpha2.ExtraUID:              {identity.GetUserID()},
 			iamv1alpha2.ExtraUsername:         {identity.GetUsername()},
 			iamv1alpha2.ExtraEmail:            {identity.GetEmail()},
-			iamv1alpha2.ExtraDisplayName:      {identity.GetDisplayName()},
 		},
 		Groups: []string{iamv1alpha2.PreRegistrationUserGroup},
 	}
@@ -186,7 +185,7 @@ func (o oauth2Authenticator) Authenticate(provider, code string) (authuser.Info,
 		klog.Error(err)
 		return nil, "", err
 	}
-	oauthIdentityProvider, err := identityprovider.CreateOAuthProvider(providerOptions.Type, providerOptions.Provider)
+	oauthIdentityProvider, err := identityprovider.GetOAuthProvider(providerOptions.Name)
 	if err != nil {
 		klog.Error(err)
 		return nil, "", err

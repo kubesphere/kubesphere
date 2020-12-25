@@ -41,7 +41,7 @@ func (o *AuthorizationOptions) AddFlags(fs *pflag.FlagSet, s *AuthorizationOptio
 	fs.StringVar(&o.Mode, "authorization", s.Mode, "Authorization setting, allowed values: AlwaysDeny, AlwaysAllow, RBAC.")
 }
 
-func (o AuthorizationOptions) Validate() []error {
+func (o *AuthorizationOptions) Validate() []error {
 	errs := make([]error, 0)
 	if !sliceutil.HasString([]string{AlwaysAllow, AlwaysDeny, RBAC}, o.Mode) {
 		err := fmt.Errorf("authorization mode %s not support", o.Mode)

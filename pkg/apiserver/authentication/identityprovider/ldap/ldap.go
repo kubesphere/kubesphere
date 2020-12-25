@@ -72,9 +72,8 @@ type ldapProvider struct {
 	GroupMemberAttribute string `json:"groupMemberAttribute,omitempty" yaml:"groupMemberAttribute"`
 	// The following three fields are direct mappings of attributes on the user entry.
 	// login attribute used for comparing user entries.
-	LoginAttribute       string `json:"loginAttribute" yaml:"loginAttribute"`
-	MailAttribute        string `json:"mailAttribute" yaml:"mailAttribute"`
-	DisplayNameAttribute string `json:"displayNameAttribute" yaml:"displayNameAttribute"`
+	LoginAttribute string `json:"loginAttribute" yaml:"loginAttribute"`
+	MailAttribute  string `json:"mailAttribute" yaml:"mailAttribute"`
 }
 
 type ldapProviderFactory struct {
@@ -84,7 +83,7 @@ func (l *ldapProviderFactory) Type() string {
 	return ldapIdentityProvider
 }
 
-func (l *ldapProviderFactory) Create(options *oauth.DynamicOptions) (identityprovider.GenericProvider, error) {
+func (l *ldapProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.GenericProvider, error) {
 	var ldapProvider ldapProvider
 	if err := mapstructure.Decode(options, &ldapProvider); err != nil {
 		return nil, err
@@ -96,9 +95,8 @@ func (l *ldapProviderFactory) Create(options *oauth.DynamicOptions) (identitypro
 }
 
 type ldapIdentity struct {
-	Username    string
-	Email       string
-	DisplayName string
+	Username string
+	Email    string
 }
 
 func (l *ldapIdentity) GetUserID() string {
@@ -111,10 +109,6 @@ func (l *ldapIdentity) GetUsername() string {
 
 func (l *ldapIdentity) GetEmail() string {
 	return l.Email
-}
-
-func (l *ldapIdentity) GetDisplayName() string {
-	return l.DisplayName
 }
 
 func (l ldapProvider) Authenticate(username string, password string) (identityprovider.Identity, error) {
@@ -141,7 +135,7 @@ func (l ldapProvider) Authenticate(username string, password string) (identitypr
 		TimeLimit:    0,
 		TypesOnly:    false,
 		Filter:       filter,
-		Attributes:   []string{l.LoginAttribute, l.MailAttribute, l.DisplayNameAttribute},
+		Attributes:   []string{l.LoginAttribute, l.MailAttribute},
 	})
 	if err != nil {
 		klog.Error(err)
@@ -161,11 +155,9 @@ func (l ldapProvider) Authenticate(username string, password string) (identitypr
 		return nil, err
 	}
 	email := entry.GetAttributeValue(l.MailAttribute)
-	displayName := entry.GetAttributeValue(l.DisplayNameAttribute)
 	return &ldapIdentity{
-		Username:    username,
-		DisplayName: displayName,
-		Email:       email,
+		Username: username,
+		Email:    email,
 	}, nil
 }
 

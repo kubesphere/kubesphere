@@ -37,7 +37,7 @@ type aliyunIDaaS struct {
 	ClientID string `json:"clientID" yaml:"clientID"`
 
 	// ClientSecret is the application's secret.
-	ClientSecret string `json:"-" yaml:"clientSecret"`
+	ClientSecret string `json:"clientSecret" yaml:"clientSecret"`
 
 	// Endpoint contains the resource server's token endpoint
 	// URLs. These are constants specific to each server and are
@@ -51,6 +51,8 @@ type aliyunIDaaS struct {
 
 	// Scope specifies optional requested permissions.
 	Scopes []string `json:"scopes" yaml:"scopes"`
+
+	Config *oauth2.Config `json:"-" yaml:"-"`
 }
 
 // endpoint represents an OAuth 2.0 provider's authorization and token
@@ -58,7 +60,7 @@ type aliyunIDaaS struct {
 type endpoint struct {
 	AuthURL     string `json:"authURL" yaml:"authURL"`
 	TokenURL    string `json:"tokenURL" yaml:"tokenURL"`
-	UserInfoURL string `json:"user_info_url" yaml:"userInfoUrl"`
+	UserInfoURL string `json:"userInfoURL" yaml:"userInfoURL"`
 }
 
 type idaasIdentity struct {
@@ -81,14 +83,25 @@ type userInfoResp struct {
 type idaasProviderFactory struct {
 }
 
-func (g *idaasProviderFactory) Type() string {
-	return "AliyunIDaasProvider"
+func (f *idaasProviderFactory) Type() string {
+	return "AliyunIDaaSProvider"
 }
 
-func (g *idaasProviderFactory) Create(options *oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+func (f *idaasProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
 	var idaas aliyunIDaaS
 	if err := mapstructure.Decode(options, &idaas); err != nil {
 		return nil, err
+	}
+	idaas.Config = &oauth2.Config{
+		ClientID:     idaas.ClientID,
+		ClientSecret: idaas.ClientSecret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:   idaas.Endpoint.AuthURL,
+			TokenURL:  idaas.Endpoint.TokenURL,
+			AuthStyle: oauth2.AuthStyleAutoDetect,
+		},
+		RedirectURL: idaas.RedirectURL,
+		Scopes:      idaas.Scopes,
 	}
 	return &idaas, nil
 }
@@ -105,28 +118,13 @@ func (a idaasIdentity) GetEmail() string {
 	return a.Email
 }
 
-func (a idaasIdentity) GetDisplayName() string {
-	return a.Nickname
-}
-
 func (a *aliyunIDaaS) IdentityExchange(code string) (identityprovider.Identity, error) {
-	config := oauth2.Config{
-		ClientID:     a.ClientID,
-		ClientSecret: a.ClientSecret,
-		Endpoint: oauth2.Endpoint{
-			AuthURL:   a.Endpoint.AuthURL,
-			TokenURL:  a.Endpoint.TokenURL,
-			AuthStyle: oauth2.AuthStyleAutoDetect,
-		},
-		RedirectURL: a.RedirectURL,
-		Scopes:      a.Scopes,
-	}
-	token, err := config.Exchange(context.Background(), code)
+	token, err := a.Config.Exchange(context.TODO(), code)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token)).Get(a.Endpoint.UserInfoURL)
+	resp, err := oauth2.NewClient(context.TODO(), oauth2.StaticTokenSource(token)).Get(a.Endpoint.UserInfoURL)
 	if err != nil {
 		return nil, err
 	}

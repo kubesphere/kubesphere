@@ -145,7 +145,7 @@ type IdentityProviderOptions struct {
 	Type string `json:"type" yaml:"type"`
 
 	// The options of identify provider
-	Provider *DynamicOptions `json:"provider" yaml:"provider"`
+	Provider DynamicOptions `json:"provider" yaml:"provider"`
 }
 
 type Token struct {
@@ -231,6 +231,7 @@ func (o *Options) OAuthClient(name string) (Client, error) {
 	}
 	return Client{}, ErrorClientNotFound
 }
+
 func (o *Options) IdentityProviderOptions(name string) (*IdentityProviderOptions, error) {
 	for _, found := range o.IdentityProviders {
 		if found.Name == name {
