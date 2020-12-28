@@ -14,28 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package namespace
+package workspacerolebinding
 
 import (
 	"context"
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/constants"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"time"
 )
 
-var _ = Describe("Namespace", func() {
+var _ = Describe("WorkspaceRoleBinding", func() {
 
 	const timeout = time.Second * 30
 	const interval = time.Second * 1
 
-	workspace := &tenantv1alpha1.Workspace{
+	workspace := &tenantv1alpha2.WorkspaceTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-workspace",
+			Name: "workspace1",
 		},
 	}
 	BeforeEach(func() {
@@ -47,28 +49,33 @@ var _ = Describe("Namespace", func() {
 	// your API definition.
 	// Avoid adding tests for vanilla CRUD operations because they would
 	// test Kubernetes API server, which isn't the goal here.
-	Context("Namespace Controller", func() {
+	Context("WorkspaceRoleBinding Controller", func() {
 		It("Should create successfully", func() {
-			namespace := &corev1.Namespace{
+			workspaceAdminBinding := &iamv1alpha2.WorkspaceRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "test-namespace",
+					Name:   fmt.Sprintf("admin-workspace1-admin"),
 					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: workspace.Name},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: iamv1alpha2.SchemeGroupVersion.String(),
+					Kind:     iamv1alpha2.FedWorkspaceRoleKind,
+					Name:     "workspace1-admin",
 				},
 			}
 
-			// Create namespace
-			Expect(k8sClient.Create(context.Background(), namespace)).Should(Succeed())
+			// Create workspace role binding
+			Expect(k8sClient.Create(context.Background(), workspaceAdminBinding)).Should(Succeed())
 
-			By("Expecting to create namespace successfully")
+			By("Expecting to create workspace role successfully")
 			Eventually(func() bool {
-				k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace.Name}, namespace)
-				return !namespace.CreationTimestamp.IsZero()
+				k8sClient.Get(context.Background(), types.NamespacedName{Name: workspaceAdminBinding.Name}, workspaceAdminBinding)
+				return !workspaceAdminBinding.CreationTimestamp.IsZero()
 			}, timeout, interval).Should(BeTrue())
 
 			By("Expecting to set owner reference successfully")
 			Eventually(func() bool {
-				k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace.Name}, namespace)
-				return len(namespace.OwnerReferences) > 0
+				k8sClient.Get(context.Background(), types.NamespacedName{Name: workspaceAdminBinding.Name}, workspaceAdminBinding)
+				return len(workspaceAdminBinding.OwnerReferences) > 0
 			}, timeout, interval).Should(BeTrue())
 
 			Expect(k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, workspace)).Should(Succeed())
@@ -84,19 +91,7 @@ var _ = Describe("Namespace", func() {
 			}
 
 			By("Expecting to bind workspace successfully")
-			Expect(namespace.OwnerReferences).To(ContainElement(expectedOwnerReference))
-			Expect(k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, workspace)).Should(Succeed())
-
-			By("Expecting to update namespace successfully")
-			updated := namespace.DeepCopy()
-			updated.Labels[constants.WorkspaceLabelKey] = "workspace-not-exist"
-			Expect(k8sClient.Update(context.Background(), updated)).Should(Succeed())
-
-			By("Expecting to unbind workspace successfully")
-			Eventually(func() bool {
-				k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace.Name}, namespace)
-				return len(namespace.OwnerReferences) == 0
-			}, timeout, interval).Should(BeTrue())
+			Expect(workspaceAdminBinding.OwnerReferences).To(ContainElement(expectedOwnerReference))
 		})
 	})
 })

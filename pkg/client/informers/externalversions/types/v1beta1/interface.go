@@ -56,10 +56,6 @@ type Interface interface {
 	FederatedServices() FederatedServiceInformer
 	// FederatedStatefulSets returns a FederatedStatefulSetInformer.
 	FederatedStatefulSets() FederatedStatefulSetInformer
-	// FederatedUsers returns a FederatedUserInformer.
-	FederatedUsers() FederatedUserInformer
-	// FederatedWorkspaces returns a FederatedWorkspaceInformer.
-	FederatedWorkspaces() FederatedWorkspaceInformer
 }
 
 type version struct {
@@ -151,14 +147,4 @@ func (v *version) FederatedServices() FederatedServiceInformer {
 // FederatedStatefulSets returns a FederatedStatefulSetInformer.
 func (v *version) FederatedStatefulSets() FederatedStatefulSetInformer {
 	return &federatedStatefulSetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// FederatedUsers returns a FederatedUserInformer.
-func (v *version) FederatedUsers() FederatedUserInformer {
-	return &federatedUserInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// FederatedWorkspaces returns a FederatedWorkspaceInformer.
-func (v *version) FederatedWorkspaces() FederatedWorkspaceInformer {
-	return &federatedWorkspaceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

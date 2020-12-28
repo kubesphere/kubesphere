@@ -49,21 +49,20 @@ import (
 const (
 	successSynced         = "Synced"
 	messageResourceSynced = "Group synced successfully"
-	controllerName        = "groupbinding-controller"
+	controllerName        = "group-controller"
 	finalizer             = "finalizers.kubesphere.io/groups"
 )
 
 type Controller struct {
 	controller.BaseController
-	scheme                 *runtime.Scheme
-	k8sClient              kubernetes.Interface
-	ksClient               kubesphere.Interface
-	groupInformer          iamv1alpha2informers.GroupInformer
-	groupLister            iamv1alpha1listers.GroupLister
-	recorder               record.EventRecorder
-	federatedGroupInformer fedv1beta1informers.FederatedGroupInformer
-	federatedGroupLister   fedv1beta1lister.FederatedGroupLister
-	multiClusterEnabled    bool
+	scheme               *runtime.Scheme
+	k8sClient            kubernetes.Interface
+	ksClient             kubesphere.Interface
+	groupInformer        iamv1alpha2informers.GroupInformer
+	groupLister          iamv1alpha1listers.GroupLister
+	recorder             record.EventRecorder
+	federatedGroupLister fedv1beta1lister.FederatedGroupLister
+	multiClusterEnabled  bool
 }
 
 // NewController creates Group Controller instance
@@ -81,18 +80,17 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 			Synced:    []cache.InformerSynced{groupInformer.Informer().HasSynced},
 			Name:      controllerName,
 		},
-		recorder:               eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName}),
-		k8sClient:              k8sClient,
-		ksClient:               ksClient,
-		groupInformer:          groupInformer,
-		groupLister:            groupInformer.Lister(),
-		federatedGroupInformer: federatedGroupInformer,
-		federatedGroupLister:   federatedGroupInformer.Lister(),
-		multiClusterEnabled:    multiClusterEnabled,
+		recorder:            eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName}),
+		k8sClient:           k8sClient,
+		ksClient:            ksClient,
+		groupInformer:       groupInformer,
+		groupLister:         groupInformer.Lister(),
+		multiClusterEnabled: multiClusterEnabled,
 	}
 
 	if ctl.multiClusterEnabled {
-		ctl.Synced = append(ctl.Synced, ctl.federatedGroupInformer.Informer().HasSynced)
+		ctl.federatedGroupLister = federatedGroupInformer.Lister()
+		ctl.Synced = append(ctl.Synced, federatedGroupInformer.Informer().HasSynced)
 	}
 
 	ctl.Handler = ctl.reconcile

@@ -27,6 +27,13 @@ import (
 	"k8s.io/klog"
 )
 
+const (
+	// SuccessSynced is used as part of the Event 'reason' when a Foo is synced
+	SuccessSynced = "Synced"
+	// is synced successfully
+	MessageResourceSynced = "Synced successfully"
+)
+
 // BaseController provides a Controller template for watching a primary resources that defined as CRD.
 type BaseController struct {
 	// Workers will wait informer caches to be synced

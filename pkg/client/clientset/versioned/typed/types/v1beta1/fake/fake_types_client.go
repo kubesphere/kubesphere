@@ -92,14 +92,6 @@ func (c *FakeTypesV1beta1) FederatedStatefulSets(namespace string) v1beta1.Feder
 	return &FakeFederatedStatefulSets{c, namespace}
 }
 
-func (c *FakeTypesV1beta1) FederatedUsers(namespace string) v1beta1.FederatedUserInterface {
-	return &FakeFederatedUsers{c, namespace}
-}
-
-func (c *FakeTypesV1beta1) FederatedWorkspaces() v1beta1.FederatedWorkspaceInterface {
-	return &FakeFederatedWorkspaces{c}
-}
-
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeTypesV1beta1) RESTClient() rest.Interface {

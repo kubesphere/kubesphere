@@ -81,7 +81,6 @@ const (
 	ScopeDevOps                           = "devops"
 	PlatformAdmin                         = "platform-admin"
 	NamespaceAdmin                        = "admin"
-	WorkspaceAdminFormat                  = "%s-admin"
 	ClusterAdmin                          = "cluster-admin"
 	PreRegistrationUser                   = "system:pre-registration"
 	PreRegistrationUserGroup              = "pre-registration"

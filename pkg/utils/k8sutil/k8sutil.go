@@ -18,13 +18,28 @@ package k8sutil
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 )
 
-func IsControlledBy(reference []metav1.OwnerReference, kind string, name string) bool {
-	for _, ref := range reference {
-		if ref.Kind == kind && (name == "" || ref.Name == name) {
+// IsControlledBy returns whether the ownerReferences contains the specified resource kind
+func IsControlledBy(ownerReferences []metav1.OwnerReference, kind string, name string) bool {
+	for _, owner := range ownerReferences {
+		if owner.Kind == kind && (name == "" || owner.Name == name) {
 			return true
 		}
 	}
 	return false
+}
+
+// RemoveWorkspaceOwnerReference remove workspace kind owner reference
+func RemoveWorkspaceOwnerReference(ownerReferences []metav1.OwnerReference) []metav1.OwnerReference {
+	tmp := make([]metav1.OwnerReference, 0)
+	for _, owner := range ownerReferences {
+		if owner.Kind != tenantv1alpha1.ResourceKindWorkspace &&
+			owner.Kind != tenantv1alpha2.ResourceKindWorkspaceTemplate {
+			tmp = append(tmp, owner)
+		}
+	}
+	return tmp
 }
