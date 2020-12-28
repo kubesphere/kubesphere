@@ -19,14 +19,21 @@ package elasticsearch
 import (
 	"github.com/spf13/pflag"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
+	"time"
 )
 
 type Options struct {
-	Enable      bool   `json:"enable" yaml:"enable"`
-	WebhookUrl  string `json:"webhookUrl" yaml:"webhookUrl"`
-	Host        string `json:"host" yaml:"host"`
-	IndexPrefix string `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
-	Version     string `json:"version" yaml:"version"`
+	Enable     bool   `json:"enable" yaml:"enable"`
+	WebhookUrl string `json:"webhookUrl" yaml:"webhookUrl"`
+	// The maximum concurrent senders which send auditing events to the auditing webhook.
+	EventSendersNum int `json:"eventSendersNum" yaml:"eventSendersNum"`
+	// The batch size of auditing events.
+	EventBatchSize int `json:"eventBatchSize" yaml:"eventBatchSize"`
+	// The batch interval of auditing events.
+	EventBatchInterval time.Duration `json:"eventBatchInterval" yaml:"eventBatchInterval"`
+	Host               string        `json:"host" yaml:"host"`
+	IndexPrefix        string        `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
+	Version            string        `json:"version" yaml:"version"`
 }
 
 func NewElasticSearchOptions() *Options {
@@ -52,7 +59,12 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.BoolVar(&s.Enable, "auditing-enabled", c.Enable, "Enable auditing component or not. ")
 
 	fs.StringVar(&s.WebhookUrl, "auditing-webhook-url", c.WebhookUrl, "Auditing wehook url")
-
+	fs.IntVar(&s.EventSendersNum, "auditing-event-senders-num", c.EventSendersNum,
+		"The maximum concurrent senders which send auditing events to the auditing webhook.")
+	fs.IntVar(&s.EventBatchSize, "auditing-event-batch-size", c.EventBatchSize,
+		"The batch size of auditing events.")
+	fs.DurationVar(&s.EventBatchInterval, "auditing-event-batch-interval", c.EventBatchInterval,
+		"The batch interval of auditing events.")
 	fs.StringVar(&s.Host, "auditing-elasticsearch-host", c.Host, ""+
 		"Elasticsearch service host. KubeSphere is using elastic as auditing store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin event API instead, and"+

@@ -36,6 +36,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/devops"
+	options "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"net"
 	"net/http"
@@ -46,8 +47,6 @@ const (
 	DefaultWebhook       = "kube-auditing-webhook"
 	DefaultCacheCapacity = 10000
 	CacheTimeout         = time.Second
-	SendTimeout          = time.Second * 3
-	ChannelCapacity      = 10
 )
 
 type Auditing interface {
@@ -60,19 +59,19 @@ type Auditing interface {
 type auditing struct {
 	webhookLister v1alpha1.WebhookLister
 	devopsGetter  v1alpha3.Interface
-	cache         chan *auditv1alpha1.EventList
+	cache         chan *auditv1alpha1.Event
 	backend       *Backend
 }
 
-func NewAuditing(informers informers.InformerFactory, url string, stopCh <-chan struct{}) Auditing {
+func NewAuditing(informers informers.InformerFactory, opts *options.Options, stopCh <-chan struct{}) Auditing {
 
 	a := &auditing{
 		webhookLister: informers.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 		devopsGetter:  devops.New(informers.KubeSphereSharedInformerFactory()),
-		cache:         make(chan *auditv1alpha1.EventList, DefaultCacheCapacity),
+		cache:         make(chan *auditv1alpha1.Event, DefaultCacheCapacity),
 	}
 
-	a.backend = NewBackend(url, ChannelCapacity, a.cache, SendTimeout, stopCh)
+	a.backend = NewBackend(opts, a.cache, stopCh)
 	return a
 }
 
@@ -226,13 +225,11 @@ func (a *auditing) LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCaptu
 
 func (a *auditing) cacheEvent(e auditv1alpha1.Event) {
 
-	eventList := &auditv1alpha1.EventList{}
-	eventList.Items = append(eventList.Items, e)
 	select {
-	case a.cache <- eventList:
+	case a.cache <- &e:
 		return
 	case <-time.After(CacheTimeout):
-		klog.Errorf("cache audit event %s timeout", e.AuditID)
+		klog.V(8).Infof("cache audit event %s timeout", e.AuditID)
 		break
 	}
 }
