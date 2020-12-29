@@ -438,8 +438,6 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedIngress),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedResourceQuota),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedPersistentVolumeClaim),
-		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedWorkspace),
-		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedUser),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedApplication),
 	}
 
