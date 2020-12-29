@@ -22,10 +22,12 @@ import (
 	"time"
 
 	cnet "github.com/projectcalico/libcalico-go/lib/net"
+	podv1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
@@ -39,6 +41,7 @@ import (
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	networkInformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/controller/network/utils"
+	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -62,8 +65,6 @@ type IPPoolController struct {
 
 	client           clientset.Interface
 	kubesphereClient kubesphereclient.Interface
-
-	options ippool.Options
 }
 
 func (c *IPPoolController) ippoolHandle(obj interface{}) {
@@ -112,35 +113,86 @@ func (c *IPPoolController) removeFinalizer(pool *networkv1alpha1.IPPool) error {
 	return nil
 }
 
-// check cidr overlap
-func (c *IPPoolController) checkIPPool(pool *networkv1alpha1.IPPool) (bool, error) {
-	_, poolCIDR, err := cnet.ParseCIDR(pool.Spec.CIDR)
+func (c *IPPoolController) ValidateCreate(obj runtime.Object) error {
+	b := obj.(*networkv1alpha1.IPPool)
+	_, cidr, err := cnet.ParseCIDR(b.Spec.CIDR)
 	if err != nil {
-		return false, err
+		return fmt.Errorf("invalid cidr")
+	}
+
+	size, _ := cidr.Mask.Size()
+	if b.Spec.BlockSize > 0 && b.Spec.BlockSize < size {
+		return fmt.Errorf("the blocksize should be larger than the cidr mask")
+	}
+
+	if b.Spec.RangeStart != "" || b.Spec.RangeEnd != "" {
+		iStart := cnet.ParseIP(b.Spec.RangeStart)
+		iEnd := cnet.ParseIP(b.Spec.RangeEnd)
+		if iStart == nil || iEnd == nil {
+			return fmt.Errorf("invalid rangeStart or rangeEnd")
+		}
+		offsetStart, err := b.IPToOrdinal(*iStart)
+		if err != nil {
+			return err
+		}
+		offsetEnd, err := b.IPToOrdinal(*iEnd)
+		if err != nil {
+			return err
+		}
+		if offsetEnd < offsetStart {
+			return fmt.Errorf("rangeStart should not big than rangeEnd")
+		}
 	}
 
 	pools, err := c.kubesphereClient.NetworkV1alpha1().IPPools().List(metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{
-			networkv1alpha1.IPPoolIDLabel: fmt.Sprintf("%d", pool.ID()),
+			networkv1alpha1.IPPoolIDLabel: fmt.Sprintf("%d", b.ID()),
 		}).String(),
 	})
-
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	for _, p := range pools.Items {
-		_, cidr, err := cnet.ParseCIDR(p.Spec.CIDR)
-		if err != nil {
-			return false, err
-		}
-
-		if cidr.IsNetOverlap(poolCIDR.IPNet) {
-			return false, ErrCIDROverlap
+		if b.Overlapped(p) {
+			return fmt.Errorf("ippool cidr is overlapped with %s", p.Name)
 		}
 	}
 
-	return true, nil
+	return nil
+}
+
+func (c *IPPoolController) ValidateUpdate(old runtime.Object, new runtime.Object) error {
+	oldP := old.(*networkv1alpha1.IPPool)
+	newP := new.(*networkv1alpha1.IPPool)
+
+	if newP.Spec.CIDR != oldP.Spec.CIDR {
+		return fmt.Errorf("cidr cannot be modified")
+	}
+
+	if newP.Spec.Type != oldP.Spec.Type {
+		return fmt.Errorf("ippool type cannot be modified")
+	}
+
+	if newP.Spec.BlockSize != oldP.Spec.BlockSize {
+		return fmt.Errorf("ippool blockSize cannot be modified")
+	}
+
+	if newP.Spec.RangeEnd != oldP.Spec.RangeEnd || newP.Spec.RangeStart != oldP.Spec.RangeStart {
+		return fmt.Errorf("ippool rangeEnd/rangeStart cannot be modified")
+	}
+
+	return nil
+}
+
+func (c *IPPoolController) ValidateDelete(obj runtime.Object) error {
+	p := obj.(*networkv1alpha1.IPPool)
+
+	if p.Status.Allocations > 0 {
+		return fmt.Errorf("ippool is in use, please remove the workload before deleting")
+	}
+
+	return nil
 }
 
 func (c *IPPoolController) disableIPPool(old *networkv1alpha1.IPPool) error {
@@ -159,18 +211,19 @@ func (c *IPPoolController) disableIPPool(old *networkv1alpha1.IPPool) error {
 func (c *IPPoolController) updateIPPoolStatus(old *networkv1alpha1.IPPool) error {
 	new, err := c.provider.GetIPPoolStats(old)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get ippool %s status %v", old.Name, err)
 	}
 
 	if reflect.DeepEqual(old.Status, new.Status) {
 		return nil
 	}
 
-	clone := old.DeepCopy()
-	clone.Status = new.Status
-	old, err = c.kubesphereClient.NetworkV1alpha1().IPPools().Update(clone)
+	_, err = c.kubesphereClient.NetworkV1alpha1().IPPools().UpdateStatus(new)
+	if err != nil {
+		return fmt.Errorf("failed to update ippool %s status  %v", old.Name, err)
+	}
 
-	return err
+	return nil
 }
 
 func (c *IPPoolController) processIPPool(name string) (*time.Duration, error) {
@@ -181,10 +234,16 @@ func (c *IPPoolController) processIPPool(name string) (*time.Duration, error) {
 	}()
 
 	pool, err := c.ippoolInformer.Lister().Get(name)
-	if apierrors.IsNotFound(err) {
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get ippool %s: %v", name, err)
+	}
+
+	if pool.Type() != c.provider.Type() {
+		klog.V(4).Infof("pool %s type not match, ignored", pool.Name)
 		return nil, nil
-	} else if err != nil {
-		return nil, err
 	}
 
 	if utils.IsDeletionCandidate(pool, networkv1alpha1.IPPoolFinalizer) {
@@ -199,6 +258,7 @@ func (c *IPPoolController) processIPPool(name string) (*time.Duration, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		if canDelete {
 			return nil, c.removeFinalizer(pool)
 		}
@@ -209,14 +269,6 @@ func (c *IPPoolController) processIPPool(name string) (*time.Duration, error) {
 	}
 
 	if utils.NeedToAddFinalizer(pool, networkv1alpha1.IPPoolFinalizer) {
-		valid, err := c.checkIPPool(pool)
-		if err != nil {
-			return nil, err
-		}
-		if !valid {
-			return nil, nil
-		}
-
 		err = c.addFinalizer(pool)
 		if err != nil {
 			return nil, err
@@ -310,7 +362,6 @@ func NewIPPoolController(
 	ipamblockInformer networkInformer.IPAMBlockInformer,
 	client clientset.Interface,
 	kubesphereClient kubesphereclient.Interface,
-	options ippool.Options,
 	provider ippool.Provider) *IPPoolController {
 
 	broadcaster := record.NewBroadcaster()
@@ -318,7 +369,7 @@ func NewIPPoolController(
 		klog.Info(fmt.Sprintf(format, args))
 	})
 	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: client.CoreV1().Events("")})
-	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "cluster-controller"})
+	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "ippool-controller"})
 
 	c := &IPPoolController{
 		eventBroadcaster:  broadcaster,
@@ -330,7 +381,6 @@ func NewIPPoolController(
 		ipamblockSynced:   ipamblockInformer.Informer().HasSynced,
 		client:            client,
 		kubesphereClient:  kubesphereClient,
-		options:           options,
 		provider:          provider,
 	}
 
@@ -349,6 +399,12 @@ func NewIPPoolController(
 		},
 		DeleteFunc: c.ipamblockHandle,
 	})
+
+	//register ippool webhook
+	webhooks.RegisterValidator(networkv1alpha1.SchemeGroupVersion.WithKind(networkv1alpha1.ResourceKindIPPool).String(),
+		&webhooks.ValidatorWrap{Obj: &networkv1alpha1.IPPool{}, Helper: c})
+	webhooks.RegisterDefaulter(podv1.SchemeGroupVersion.WithKind("Pod").String(),
+		&webhooks.DefaulterWrap{Obj: &podv1.Pod{}, Helper: provider})
 
 	return c
 }

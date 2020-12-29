@@ -26,7 +26,7 @@ import (
 )
 
 func testNewProvider() provider {
-	return NewProvider(fakeks.NewSimpleClientset(), Options{})
+	return newProvider(fakeks.NewSimpleClientset())
 }
 
 func TestProvider_GetIPPoolStats(t *testing.T) {

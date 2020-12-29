@@ -18,11 +18,11 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/projectcalico/libcalico-go/lib/names"
 	"math/big"
 	"reflect"
 	"strings"
 
+	"github.com/projectcalico/libcalico-go/lib/names"
 	cnet "github.com/projectcalico/libcalico-go/lib/net"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

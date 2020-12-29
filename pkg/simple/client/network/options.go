@@ -18,8 +18,6 @@ package network
 
 import (
 	"github.com/spf13/pflag"
-
-	"kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
 )
 
 type NSNPOptions struct {
@@ -27,23 +25,19 @@ type NSNPOptions struct {
 }
 
 type Options struct {
-	EnableNetworkPolicy bool           `json:"enableNetworkPolicy,omitempty" yaml:"enableNetworkPolicy"`
-	NSNPOptions         NSNPOptions    `json:"nsnpOptions,omitempty" yaml:"nsnpOptions,omitempty"`
-	EnableIPPool        bool           `json:"enableIPPool,omitempty" yaml:"enableIPPool"`
-	IPPoolOptions       ippool.Options `json:"ippoolOptions,omitempty" yaml:"ippoolOptions,omitempty"`
-	WeaveScopeHost      string         `json:"weaveScopeHost,omitempty" yaml:"weaveScopeHost,omitempty"`
+	EnableNetworkPolicy bool        `json:"enableNetworkPolicy,omitempty" yaml:"enableNetworkPolicy"`
+	NSNPOptions         NSNPOptions `json:"nsnpOptions,omitempty" yaml:"nsnpOptions,omitempty"`
+	WeaveScopeHost      string      `json:"weaveScopeHost,omitempty" yaml:"weaveScopeHost,omitempty"`
+	IPPoolType          string      `json:"ippoolType,omitempty" yaml:"ippoolType,omitempty"`
 }
 
 // NewNetworkOptions returns a `zero` instance
 func NewNetworkOptions() *Options {
 	return &Options{
 		EnableNetworkPolicy: false,
-		EnableIPPool:        false,
+		IPPoolType:          "none",
 		NSNPOptions: NSNPOptions{
 			AllowedIngressNamespaces: []string{},
-		},
-		IPPoolOptions: ippool.Options{
-			Calico: nil,
 		},
 		WeaveScopeHost: "",
 	}
@@ -56,16 +50,15 @@ func (s *Options) Validate() []error {
 
 func (s *Options) ApplyTo(options *Options) {
 	options.EnableNetworkPolicy = s.EnableNetworkPolicy
-	options.EnableIPPool = s.EnableIPPool
+	options.IPPoolType = s.IPPoolType
 	options.NSNPOptions = s.NSNPOptions
-	options.IPPoolOptions = s.IPPoolOptions
 	options.WeaveScopeHost = s.WeaveScopeHost
 }
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.BoolVar(&s.EnableNetworkPolicy, "enable-network-policy", c.EnableNetworkPolicy,
 		"This field instructs KubeSphere to enable network policy or not.")
-	fs.BoolVar(&s.EnableIPPool, "enable-ippool", c.EnableIPPool,
+	fs.StringVar(&s.IPPoolType, "ippool-type", c.IPPoolType,
 		"This field instructs KubeSphere to enable ippool or not.")
 	fs.StringVar(&s.WeaveScopeHost, "weave-scope-host", c.WeaveScopeHost,
 		"Weave Scope service endpoint which build a topology API of the applications and the containers running on the hosts")

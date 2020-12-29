@@ -18,6 +18,9 @@ package options
 
 import (
 	"flag"
+	"strings"
+	"time"
+
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -31,8 +34,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
-	"strings"
-	"time"
 )
 
 type KubeSphereControllerManagerOptions struct {

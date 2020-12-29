@@ -30,7 +30,7 @@ func TestIPPool(t *testing.T) {
 		},
 		Spec: IPPoolSpec{
 			Type:       VLAN,
-			CIDR:       "192.168.0.0/24",
+			CIDR:       "192.168.0.1/24",
 			RangeEnd:   "192.168.0.250",
 			RangeStart: "192.168.0.10",
 		},

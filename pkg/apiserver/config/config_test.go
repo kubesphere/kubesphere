@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
@@ -106,6 +107,7 @@ func newTestConfig() (*Config, error) {
 				AllowedIngressNamespaces: []string{},
 			},
 			WeaveScopeHost: "weave-scope-app.weave",
+			IPPoolType:     networkv1alpha1.IPPoolTypeNone,
 		},
 		MonitoringOptions: &prometheus.Options{
 			Endpoint: "http://prometheus.kubesphere-monitoring-system.svc",

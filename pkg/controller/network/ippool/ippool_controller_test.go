@@ -18,6 +18,9 @@ package ippool
 
 import (
 	"flag"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +32,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/network/utils"
 	"kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
 	"kubesphere.io/kubesphere/pkg/simple/client/network/ippool/ipam"
-	"testing"
 )
 
 func TestIPPoolSuit(t *testing.T) {
@@ -49,31 +51,52 @@ var _ = Describe("test ippool", func() {
 			Name: "testippool",
 		},
 		Spec: v1alpha1.IPPoolSpec{
-			Type:      v1alpha1.VLAN,
-			CIDR:      "192.168.0.0/24",
-			BlockSize: 24,
+			Type: v1alpha1.VLAN,
+			CIDR: "192.168.0.0/24",
 		},
 		Status: v1alpha1.IPPoolStatus{},
 	}
 
 	ksclient := ksfake.NewSimpleClientset()
 	k8sclinet := k8sfake.NewSimpleClientset()
-	options := ippool.Options{}
-	p := ippool.NewProvider(ksclient, options)
+	p := ippool.NewProvider(nil, ksclient, k8sclinet, v1alpha1.IPPoolTypeLocal, nil)
 	ipamClient := ipam.NewIPAMClient(ksclient, v1alpha1.VLAN)
 
 	ksInformer := ksinformers.NewSharedInformerFactory(ksclient, 0)
 	ippoolInformer := ksInformer.Network().V1alpha1().IPPools()
 	ipamblockInformer := ksInformer.Network().V1alpha1().IPAMBlocks()
-	c := NewIPPoolController(ippoolInformer, ipamblockInformer, k8sclinet, ksclient, options, p)
+	c := NewIPPoolController(ippoolInformer, ipamblockInformer, k8sclinet, ksclient, p)
 
 	stopCh := make(chan struct{})
 	go ksInformer.Start(stopCh)
 	go c.Start(stopCh)
 
 	It("test create ippool", func() {
-		_, err := ksclient.NetworkV1alpha1().IPPools().Create(pool)
+		clone := pool.DeepCopy()
+		clone.Spec.CIDR = "testxxx"
+		Expect(c.ValidateCreate(clone)).Should(HaveOccurred())
+
+		clone = pool.DeepCopy()
+		clone.Spec.CIDR = "192.168.0.0/24"
+		clone.Spec.RangeStart = "192.168.0.100"
+		clone.Spec.RangeEnd = "192.168.0.99"
+		Expect(c.ValidateCreate(clone)).Should(HaveOccurred())
+
+		clone = pool.DeepCopy()
+		clone.Spec.CIDR = "192.168.0.0/24"
+		clone.Spec.RangeStart = "192.168.3.100"
+		clone.Spec.RangeEnd = "192.168.3.111"
+		Expect(c.ValidateCreate(clone)).Should(HaveOccurred())
+
+		clone = pool.DeepCopy()
+		clone.Spec.CIDR = "192.168.0.0/24"
+		clone.Spec.BlockSize = 23
+		Expect(c.ValidateCreate(clone)).Should(HaveOccurred())
+
+		clone = pool.DeepCopy()
+		_, err := ksclient.NetworkV1alpha1().IPPools().Create(clone)
 		Expect(err).ShouldNot(HaveOccurred())
+
 		Eventually(func() bool {
 			result, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
 			if len(result.Labels) != 3 {
@@ -85,7 +108,17 @@ var _ = Describe("test ippool", func() {
 			}
 
 			return true
-		}).Should(Equal(true))
+		}, 3*time.Second).Should(Equal(true))
+
+		clone = pool.DeepCopy()
+		Expect(c.ValidateCreate(clone)).Should(HaveOccurred())
+	})
+
+	It("test update ippool", func() {
+		old, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
+		new := old.DeepCopy()
+		new.Spec.CIDR = "192.168.1.0/24"
+		Expect(c.ValidateUpdate(old, new)).Should(HaveOccurred())
 	})
 
 	It("test ippool stats", func() {
@@ -102,10 +135,13 @@ var _ = Describe("test ippool", func() {
 			}
 
 			return true
-		}).Should(Equal(true))
+		}, 3*time.Second).Should(Equal(true))
 	})
 
 	It("test delete pool", func() {
+		result, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
+		Expect(c.ValidateDelete(result)).Should(HaveOccurred())
+
 		ipamClient.ReleaseByHandle("testhandle")
 		Eventually(func() bool {
 			result, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
@@ -114,7 +150,7 @@ var _ = Describe("test ippool", func() {
 			}
 
 			return true
-		}).Should(Equal(true))
+		}, 3*time.Second).Should(Equal(true))
 
 		err := ksclient.NetworkV1alpha1().IPPools().Delete(pool.Name, &v1.DeleteOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
