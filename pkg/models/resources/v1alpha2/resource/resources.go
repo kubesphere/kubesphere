@@ -22,7 +22,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/application"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/clusterrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/configmap"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/cronjob"
@@ -84,7 +83,6 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	resourceGetters[v1alpha2.S2iRuns] = s2irun.NewS2iRunSearcher(factory.KubeSphereSharedInformerFactory())
 	resourceGetters[v1alpha2.S2iBuilderTemplates] = s2buildertemplate.NewS2iBuidlerTemplateSearcher(factory.KubeSphereSharedInformerFactory())
 	resourceGetters[v1alpha2.Workspaces] = workspace.NewWorkspaceSearcher(factory.KubeSphereSharedInformerFactory())
-	resourceGetters[v1alpha2.Applications] = application.NewApplicationSearcher(nil)
 
 	return &ResourceGetter{resourcesGetters: resourceGetters}
 

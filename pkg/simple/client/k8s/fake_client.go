@@ -24,8 +24,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	application "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned"
-	applicationclientset "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned"
 )
 
 type FakeClient struct {
@@ -37,8 +35,6 @@ type FakeClient struct {
 
 	// generated clientset
 	KubeSphereClient kubesphere.Interface
-
-	ApplicationClient applicationclientset.Interface
 
 	IstioClient istioclient.Interface
 
@@ -52,14 +48,13 @@ type FakeClient struct {
 }
 
 func NewFakeClientSets(k8sClient kubernetes.Interface, discoveryClient *discovery.DiscoveryClient,
-	kubeSphereClient kubesphere.Interface, applicationClient applicationclientset.Interface,
+	kubeSphereClient kubesphere.Interface,
 	istioClient istioclient.Interface, snapshotClient snapshotclient.Interface,
 	apiextensionsclient apiextensionsclient.Interface, masterURL string, kubeConfig *rest.Config) Client {
 	return &FakeClient{
 		K8sClient:          k8sClient,
 		DiscoveryClient:    discoveryClient,
 		KubeSphereClient:   kubeSphereClient,
-		ApplicationClient:  applicationClient,
 		IstioClient:        istioClient,
 		SnapshotClient:     snapshotClient,
 		ApiExtensionClient: apiextensionsclient,
@@ -78,10 +73,6 @@ func (n *FakeClient) KubeSphere() kubesphere.Interface {
 
 func (n *FakeClient) Istio() istioclient.Interface {
 	return n.IstioClient
-}
-
-func (n *FakeClient) Application() application.Interface {
-	return n.ApplicationClient
 }
 
 func (n *FakeClient) Snapshot() snapshotclient.Interface {

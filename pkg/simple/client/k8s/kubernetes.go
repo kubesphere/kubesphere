@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	applicationclientset "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned"
 	"strings"
 )
 
@@ -33,7 +32,6 @@ type Client interface {
 	Kubernetes() kubernetes.Interface
 	KubeSphere() kubesphere.Interface
 	Istio() istioclient.Interface
-	Application() applicationclientset.Interface
 	Snapshot() snapshotclient.Interface
 	ApiExtensions() apiextensionsclient.Interface
 	Discovery() discovery.DiscoveryInterface
@@ -50,8 +48,6 @@ type kubernetesClient struct {
 
 	// generated clientset
 	ks kubesphere.Interface
-
-	application applicationclientset.Interface
 
 	istio istioclient.Interface
 
@@ -79,7 +75,6 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) Client {
 		discoveryClient: discovery.NewDiscoveryClientForConfigOrDie(config),
 		ks:              kubesphere.NewForConfigOrDie(config),
 		istio:           istioclient.NewForConfigOrDie(config),
-		application:     applicationclientset.NewForConfigOrDie(config),
 		snapshot:        snapshotclient.NewForConfigOrDie(config),
 		apiextensions:   apiextensionsclient.NewForConfigOrDie(config),
 		master:          config.Host,
@@ -124,11 +119,6 @@ func NewKubernetesClient(options *KubernetesOptions) (Client, error) {
 		return nil, err
 	}
 
-	k.application, err = applicationclientset.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
 	k.istio, err = istioclient.NewForConfig(config)
 
 	if err != nil {
@@ -161,10 +151,6 @@ func (k *kubernetesClient) Discovery() discovery.DiscoveryInterface {
 
 func (k *kubernetesClient) KubeSphere() kubesphere.Interface {
 	return k.ks
-}
-
-func (k *kubernetesClient) Application() applicationclientset.Interface {
-	return k.application
 }
 
 func (k *kubernetesClient) Istio() istioclient.Interface {

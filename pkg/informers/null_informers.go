@@ -24,7 +24,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	ksfake "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	appinformers "kubesphere.io/kubesphere/pkg/simple/client/app/informers/externalversions"
 	"time"
 )
 
@@ -55,10 +54,6 @@ func (n nullInformerFactory) KubeSphereSharedInformerFactory() ksinformers.Share
 }
 
 func (n nullInformerFactory) IstioSharedInformerFactory() istioinformers.SharedInformerFactory {
-	return nil
-}
-
-func (n nullInformerFactory) ApplicationSharedInformerFactory() appinformers.SharedInformerFactory {
 	return nil
 }
 

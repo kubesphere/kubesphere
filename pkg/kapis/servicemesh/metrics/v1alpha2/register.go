@@ -21,7 +21,7 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	_ "net/http"
+	"net/http"
 )
 
 const groupName = "servicemesh.kubesphere.io"
@@ -125,6 +125,8 @@ func AddToContainer(c *restful.Container) error {
 		Param(webservice.QueryParameter("groupBy", "app box grouping characteristic. Available groupings: [app, none, version].").DefaultValue("none")).
 		Param(webservice.QueryParameter("queryTime", "from which time point in UNIX timestamp, default now")).
 		Param(webservice.QueryParameter("injectServiceNodes", "flag for injecting the requested service node between source and destination nodes.").DefaultValue("false")).
+		Returns(http.StatusBadRequest, "bad request", BadRequestError{}).
+		Returns(http.StatusNotFound, "not found", NotFoundError{}).
 		Produces(restful.MIME_JSON))
 
 	// Get namespace health
@@ -135,6 +137,8 @@ func AddToContainer(c *restful.Container) error {
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
 		Param(webservice.QueryParameter("rateInterval", "the rate interval used for fetching error rate").DefaultValue("10m").Required(true)).
 		Param(webservice.QueryParameter("queryTime", "the time to use for query")).
+		Returns(http.StatusBadRequest, "bad request", BadRequestError{}).
+		Returns(http.StatusNotFound, "not found", NotFoundError{}).
 		Produces(restful.MIME_JSON))
 
 	// Get workloads health

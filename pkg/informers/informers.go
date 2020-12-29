@@ -27,8 +27,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	applicationclient "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned"
-	applicationinformers "kubesphere.io/kubesphere/pkg/simple/client/app/informers/externalversions"
 	"time"
 )
 
@@ -41,7 +39,6 @@ type InformerFactory interface {
 	KubernetesSharedInformerFactory() k8sinformers.SharedInformerFactory
 	KubeSphereSharedInformerFactory() ksinformers.SharedInformerFactory
 	IstioSharedInformerFactory() istioinformers.SharedInformerFactory
-	ApplicationSharedInformerFactory() applicationinformers.SharedInformerFactory
 	SnapshotSharedInformerFactory() snapshotinformer.SharedInformerFactory
 	ApiExtensionSharedInformerFactory() apiextensionsinformers.SharedInformerFactory
 
@@ -53,13 +50,11 @@ type informerFactories struct {
 	informerFactory              k8sinformers.SharedInformerFactory
 	ksInformerFactory            ksinformers.SharedInformerFactory
 	istioInformerFactory         istioinformers.SharedInformerFactory
-	appInformerFactory           applicationinformers.SharedInformerFactory
 	snapshotInformerFactory      snapshotinformer.SharedInformerFactory
 	apiextensionsInformerFactory apiextensionsinformers.SharedInformerFactory
 }
 
 func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interface, istioClient istioclient.Interface,
-	appClient applicationclient.Interface,
 	snapshotClient snapshotclient.Interface, apiextensionsClient apiextensionsclient.Interface) InformerFactory {
 	factory := &informerFactories{}
 
@@ -69,10 +64,6 @@ func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interf
 
 	if ksClient != nil {
 		factory.ksInformerFactory = ksinformers.NewSharedInformerFactory(ksClient, defaultResync)
-	}
-
-	if appClient != nil {
-		factory.appInformerFactory = applicationinformers.NewSharedInformerFactory(appClient, defaultResync)
 	}
 
 	if istioClient != nil {
@@ -98,10 +89,6 @@ func (f *informerFactories) KubeSphereSharedInformerFactory() ksinformers.Shared
 	return f.ksInformerFactory
 }
 
-func (f *informerFactories) ApplicationSharedInformerFactory() applicationinformers.SharedInformerFactory {
-	return f.appInformerFactory
-}
-
 func (f *informerFactories) IstioSharedInformerFactory() istioinformers.SharedInformerFactory {
 	return f.istioInformerFactory
 }
@@ -125,10 +112,6 @@ func (f *informerFactories) Start(stopCh <-chan struct{}) {
 
 	if f.istioInformerFactory != nil {
 		f.istioInformerFactory.Start(stopCh)
-	}
-
-	if f.appInformerFactory != nil {
-		f.appInformerFactory.Start(stopCh)
 	}
 
 	if f.snapshotInformerFactory != nil {

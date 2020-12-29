@@ -28,7 +28,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
-	fakeapp "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned/fake"
 	"testing"
 )
 
@@ -107,15 +106,14 @@ func prepare() *ResourceGetter {
 	ksClient := fakeks.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
 	istioClient := fakeistio.NewSimpleClientset()
-	appClient := fakeapp.NewSimpleClientset()
 	snapshotClient := fakesnapshot.NewSimpleClientset()
 	apiextensionsClient := fakeapiextensions.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, snapshotClient, apiextensionsClient)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient)
 
 	for _, namespace := range namespaces {
 		fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().
 			Namespaces().Informer().GetIndexer().Add(namespace)
 	}
 
-	return NewResourceGetter(fakeInformerFactory)
+	return NewResourceGetter(fakeInformerFactory, nil)
 }

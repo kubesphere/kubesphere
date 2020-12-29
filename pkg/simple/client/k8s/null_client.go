@@ -24,7 +24,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	application "kubesphere.io/kubesphere/pkg/simple/client/app/clientset/versioned"
 )
 
 type nullClient struct {
@@ -43,10 +42,6 @@ func (n nullClient) KubeSphere() kubesphere.Interface {
 }
 
 func (n nullClient) Istio() istio.Interface {
-	return nil
-}
-
-func (n nullClient) Application() application.Interface {
 	return nil
 }
 

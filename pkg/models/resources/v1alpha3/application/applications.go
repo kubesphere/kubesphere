@@ -17,36 +17,47 @@ limitations under the License.
 package application
 
 import (
+	"context"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
-	appv1beta1 "kubesphere.io/kubesphere/pkg/apis/app/v1beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
-	"kubesphere.io/kubesphere/pkg/simple/client/app/informers/externalversions"
+	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
 
 type applicationsGetter struct {
-	informer externalversions.SharedInformerFactory
+	c cache.Cache
 }
 
-func New(sharedInformers externalversions.SharedInformerFactory) v1alpha3.Interface {
-	return &applicationsGetter{informer: sharedInformers}
+func New(c cache.Cache) v1alpha3.Interface {
+	return &applicationsGetter{c}
 }
 
 func (d *applicationsGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.informer.App().V1beta1().Applications().Lister().Applications(namespace).Get(name)
+	app := appv1beta1.Application{}
+	err := d.c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, &app)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return &app, nil
 }
 
 func (d *applicationsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	applications, err := d.informer.App().V1beta1().Applications().Lister().Applications(namespace).List(query.Selector())
+	applications := appv1beta1.ApplicationList{}
+	err := d.c.List(context.Background(), &applications, &client.ListOptions{Namespace: namespace})
 	if err != nil {
+		klog.Error(err)
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, app := range applications {
-		result = append(result, app)
+	for _, app := range applications.Items {
+		result = append(result, &app)
 	}
 
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil

@@ -765,7 +765,7 @@ func checkWorkspaces(clusterConfig *rest.Config, hostClient client.Client, clust
 		return err
 	}
 
-	workspaces, err := tenantclient.Workspaces().List(metav1.ListOptions{LabelSelector: kubefedManagedSelector})
+	workspaces, err := tenantclient.Workspaces().List(context.TODO(), metav1.ListOptions{LabelSelector: kubefedManagedSelector})
 	if err != nil {
 		return err
 	}
