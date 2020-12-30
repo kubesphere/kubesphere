@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/emicklei/go-restful"
+	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1informer "k8s.io/client-go/informers/core/v1"
@@ -34,6 +36,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	hashutil "k8s.io/kubernetes/pkg/util/hash"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devopsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha3"
@@ -229,9 +232,21 @@ func (c *Controller) syncHandler(key string) error {
 	copyPipeline := pipeline.DeepCopy()
 	// DeletionTimestamp.IsZero() means copyPipeline has not been deleted.
 	if copyPipeline.ObjectMeta.DeletionTimestamp.IsZero() {
+		// make sure Annotations is not nil
+		if copyPipeline.Annotations == nil {
+			copyPipeline.Annotations = map[string]string{}
+		}
+
 		//If the sync is successful, return handle
-		if state, ok := pipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
-			return nil
+		if state, ok := copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+			specHash := computeHash(copyPipeline.Spec)
+			oldHash, _ := copyPipeline.Annotations[devopsv1alpha3.PipelineSpecHash] // don't need to check if it's nil, only compare if they're different
+			if specHash == oldHash {
+				// it was synced successfully, and there's any change with the Pipeline spec, skip this round
+				return nil
+			} else {
+				copyPipeline.Annotations[devopsv1alpha3.PipelineSpecHash] = specHash
+			}
 		}
 
 		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
@@ -261,9 +276,6 @@ func (c *Controller) syncHandler(key string) error {
 		}
 
 		//If there is no early return, then the sync is successful.
-		if copyPipeline.Annotations == nil {
-			copyPipeline.Annotations = map[string]string{}
-		}
 		copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
 	} else {
 		// Finalizers processing logic
@@ -304,6 +316,12 @@ func (c *Controller) syncHandler(key string) error {
 		}
 	}
 	return nil
+}
+
+func computeHash(obj interface{}) string {
+	hasher := fnv.New32a()
+	hashutil.DeepHashObject(hasher, obj)
+	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
 }
 
 func isDevOpsProjectAdminNamespace(namespace *v1.Namespace) bool {
