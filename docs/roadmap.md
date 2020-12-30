@@ -1,8 +1,6 @@
-# KubeSphere Roadmap
-
 KubeSphere Roadmap demonstrates a list of open source product development plans and features being split by the edition and modules, as well as KubeSphere community's anticipation. Obviously, it details the future's direction of KubeSphere, but may change over time. We hope that can help you to get familiar with the project plans and vision through the Roadmap. Of course, if you have any better ideas, welcome to filing [Issues](https://github.com/kubesphere/kubesphere/issues).
 
-## Release Goals
+# Release Goals
 
 | Edition  | Schedule |
 |---|---|
@@ -16,20 +14,32 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 | Release v2.1.1| Feb, 2020 |
 | Release v3.0.0| June, 2020 |
 
-## Features
+# v3.1
+## **Feature:**
 
-### v2.1.1
+### Multitenancy:
 
-- [ ] Most of the work will be bugfix
-- [ ] Refactor RBAC in order to support future versions regarding third-party plugins with custom access control.
-- [ ] Refactor installer
-- [ ] FluentBit Operator upgrade
+- [ ] Add user group, now users can be assigned to a group and invite a group to a workspace or a project.[#2940](https://github.com/kubesphere/kubesphere/issues/2940)
+- [ ] Add resource quota to a workspace. The resource quota is the same with Kubernetes[ResourceQuota](https://kubernetes.io/docs/concepts/policy/resource-quotas/), providesconstraints that limit aggregate resource consumption by all namespaces within.[  ](https://kubernetes.io/docs/concepts/policy/resource-quotas/)[#2939](https://github.com/kubesphere/kubesphere/issues/2939)
+### DevOps:
 
-### v3.0.0
+- [x] Run multiple DevOps pipelines at the same time instead of just one.[#1811](https://github.com/kubesphere/kubesphere/issues/1811)
+- [x] Clone pipeline. Users now can create exactly same pipeline from an existing one.[#3053](https://github.com/kubesphere/kubesphere/issues/3053)
+## **Upgrade:**
 
-#### Multi-cluster
+- [ ] Upgrade isito version from 1.4.8 => 1.6.5[#3326](https://github.com/kubesphere/kubesphere/issues/3236)
 
-#### DevOps
+## **BugFix:**
+
+- [x] Fix unable to get service mesh graph when in a namespace whose name starts with kube[#3126](https://github.com/kubesphere/kubesphere/issues/3162)
+
+
+
+# v3.0
+
+## Multi-cluster
+
+## DevOps
 
 - [ ] Create / Edit Pipeline Process Optimization.
 - [ ] S2I/B2I supports webhook.
@@ -38,7 +48,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [ ] Pipeline integrates the notification of KubeSphere.
 - [ ] Pipeline integrates KubeSphere custom monitoring.
 
-#### Observability
+## Observability
 
 - [ ] Logging console enhancement
 - [ ] Monitoring stack upgrade including Prometheus, Prometheus Operator, Node exporter, kube-state-metrics etc.
@@ -48,9 +58,9 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [ ] K8s Audit Support
 - [ ] Notification Enhancement
 
-#### Network
+## Network
 
-#### Storage
+## Storage
 
 - [ ] Snapshot management
 - [ ] Volume cloning
@@ -59,10 +69,18 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [ ] Restore volume to available status
 - [ ] Unified integrate third-party storage plugin
 
-#### Security & Multitenancy
+## Security & Multitenancy
 
 - [ ] Support the OAuth2 SSO plugin.
 - [ ] Workspace resource quota.
 - [ ] Refactor access management framework to adapt to multi-cluster design.
 
-#### Application Lifecycle Management (OpenPitrix)
+## Application Lifecycle Management (OpenPitrix)
+
+
+# v2.1
+
+- [ ] Most of the work will be bugfix
+- [ ] Refactor RBAC in order to support future versions regarding third-party plugins with custom access control.
+- [ ] Refactor installer
+- [ ] FluentBit Operator upgrade
