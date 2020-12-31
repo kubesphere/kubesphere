@@ -30,6 +30,23 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 ### IAM:
 - [ ] Service account management, allows to assign role to Service Account [#3211](https://github.com/kubesphere/kubesphere/issues/3211)
 
+### Application Lifecycle Management (OpenPitrix)
+
+- [ ] Refactoring OpenPitrix with CRD, while fix bugs caused by legacy architecture [#3036](https://github.com/kubesphere/kubesphere/issues/3036) [#3001](https://github.com/kubesphere/kubesphere/issues/3001) [#2995](https://github.com/kubesphere/kubesphere/issues/2995) [#2981](https://github.com/kubesphere/kubesphere/issues/2981) [#2954](https://github.com/kubesphere/kubesphere/issues/2954) [#2951](https://github.com/kubesphere/kubesphere/issues/2951) [#2783](https://github.com/kubesphere/kubesphere/issues/2783) [#2713](https://github.com/kubesphere/kubesphere/issues/2713) [#2700](https://github.com/kubesphere/kubesphere/issues/2700) [#1903](https://github.com/kubesphere/kubesphere/issues/1903) 
+- [ ] Support global repo [#1598](https://github.com/kubesphere/kubesphere/issues/1598)
+
+### Network
+
+- [ ] IPPool for Calico and VMs [#3057](https://github.com/kubesphere/kubesphere/issues/3057)
+- [ ] Support for deployment using static IPs [#3058](https://github.com/kubesphere/kubesphere/issues/3058)
+- [ ] Support for ks-installer with porter as a system component [#3059](https://github.com/kubesphere/kubesphere/issues/3059)
+- [ ] Support for defining porter-related configuration items in the UI [#3060](https://github.com/kubesphere/kubesphere/issues/3060)
+- [ ] Support network visualization [#3061](https://github.com/kubesphere/kubesphere/issues/3061) [#583](https://github.com/kubesphere/kubesphere/issues/583)
+
+### Metering
+
+- [ ] Support for viewing resource consumption at the cluster, workspace, and application template levels [#3062](https://github.com/kubesphere/kubesphere/issues/3062)
+
 ## **Upgrade:**
 
 - [ ] Upgrade isito version from 1.4.8 => 1.6.5[#3326](https://github.com/kubesphere/kubesphere/issues/3236)
