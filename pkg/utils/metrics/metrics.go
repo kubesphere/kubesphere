@@ -17,12 +17,18 @@ var (
 	MustRegister func(...compbasemetrics.Registerable)
 	// Register registers a collectable metric but uses the defaultRegistry
 	Register func(compbasemetrics.Registerable) error
+
+	RawMustRegister func(...prometheus.Collector)
 )
 
 func init() {
 	defaultRegistry = compbasemetrics.NewKubeRegistry()
 	MustRegister = defaultRegistry.MustRegister
 	Register = defaultRegistry.Register
+	RawMustRegister = defaultRegistry.RawMustRegister
+
+	RawMustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	RawMustRegister(prometheus.NewGoCollector())
 }
 
 // DefaultMetrics installs the default prometheus metrics handler
@@ -33,6 +39,7 @@ func (m DefaultMetrics) Install(c *restful.Container) {
 	c.Handle("/kapis/metrics", Handler())
 }
 
+//Overwrite version.Get
 func versionGet() apimachineryversion.Info {
 	info := ksVersion.Get()
 	return apimachineryversion.Info{

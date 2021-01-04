@@ -82,10 +82,12 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
+	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
 	"net/http"
 	rt "runtime"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"strconv"
 	"time"
 )
 
