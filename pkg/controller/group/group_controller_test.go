@@ -288,6 +288,20 @@ func (f *fixture) expectUpdateGroupsFinalizerAction(group *v1alpha2.Group) {
 	f.actions = append(f.actions, action)
 }
 
+func (f *fixture) expectUpdateParentsRefAction(parent, child *v1alpha2.Group) {
+	expect := child.DeepCopy()
+	if expect.Labels == nil {
+		expect.Labels = make(map[string]string, 0)
+	}
+
+	controllerutil.SetControllerReference(parent, expect, scheme.Scheme)
+
+	expect.Finalizers = []string{"finalizers.kubesphere.io/groups"}
+	expect.Labels[constants.KubefedManagedLabel] = "false"
+	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "groups"}, "", expect)
+	f.actions = append(f.actions, action)
+}
+
 func (f *fixture) expectCreateFederatedGroupsAction(group *v1alpha2.Group) {
 	federatedGroup := newFederatedGroup(group)
 
@@ -355,6 +369,19 @@ func TestDoNothing(t *testing.T) {
 
 	f.expectUpdateGroupsFinalizerAction(group)
 	f.run(getKey(group, t))
+}
+
+func TestGroupCreateWithParent(t *testing.T) {
+	f := newFixture(t)
+	parent := newGroup("parent")
+	child := newGroup("child")
+	child.Labels = map[string]string{v1alpha2.GroupParent: "parent"}
+
+	f.groupLister = append(f.groupLister, parent, child)
+	f.objects = append(f.objects, parent, child)
+
+	f.expectUpdateParentsRefAction(parent, child)
+	f.run(getKey(child, t))
 }
 
 func TestFederetedGroupCreate(t *testing.T) {

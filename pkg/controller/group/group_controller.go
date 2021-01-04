@@ -42,6 +42,7 @@ import (
 	fedv1beta1lister "kubesphere.io/kubesphere/pkg/client/listers/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/controller/utils/controller"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -139,6 +140,30 @@ func (c *Controller) reconcile(key string) error {
 					g.Labels = make(map[string]string, 0)
 				}
 				g.Labels[constants.KubefedManagedLabel] = "false"
+			}
+		}
+
+		if group.Labels != nil {
+			// Set OwnerReferences when the group has a parent.
+			if parent, ok := group.Labels[iam1alpha2.GroupParent]; ok && !k8sutil.IsControlledBy(group.OwnerReferences, "Group", parent) {
+				if g == nil {
+					g = group.DeepCopy()
+				}
+				groupParent, err := c.groupLister.Get(parent)
+				if err != nil {
+					if errors.IsNotFound(err) {
+						utilruntime.HandleError(fmt.Errorf("Parent group '%s' no longer exists", key))
+						delete(group.Labels, iam1alpha2.GroupParent)
+					} else {
+						klog.Error(err)
+						return err
+					}
+				} else {
+					if err := controllerutil.SetControllerReference(groupParent, g, scheme.Scheme); err != nil {
+						klog.Error(err)
+						return err
+					}
+				}
 			}
 		}
 

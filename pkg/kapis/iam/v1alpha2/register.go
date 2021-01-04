@@ -576,7 +576,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Returns(http.StatusOK, api.StatusOK, []v1.RoleBinding{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceRoleTag}))
 
-	ws.Route(ws.DELETE("/namespace/{namespace}/rolebindings/{rolebinding}").
+	ws.Route(ws.DELETE("/namespaces/{namespace}/rolebindings/{rolebinding}").
 		To(handler.DeleteRoleBinding).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("namespace", "groupbinding name")).

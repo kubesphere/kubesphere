@@ -1050,9 +1050,9 @@ func (am *amOperator) CreateWorkspaceRoleBinding(workspace string, roleBinding *
 	}
 
 	if roleBinding.Subjects[0].Kind == rbacv1.GroupKind {
-		roleBinding.Labels[iamv1alpha2.GroupReferenceLabel] = roleBinding.RoleRef.Name
+		roleBinding.Labels[iamv1alpha2.GroupReferenceLabel] = roleBinding.Subjects[0].Name
 	} else if roleBinding.Subjects[0].Kind == rbacv1.UserKind {
-		roleBinding.Labels[iamv1alpha2.UserReferenceLabel] = roleBinding.RoleRef.Name
+		roleBinding.Labels[iamv1alpha2.UserReferenceLabel] = roleBinding.Subjects[0].Name
 	}
 
 	roleBinding.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
