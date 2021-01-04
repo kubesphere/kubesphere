@@ -11,7 +11,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
 )
 
-func TestMixAlertingRules(t *testing.T) {
+func TestGetAlertingRulesStatus(t *testing.T) {
 	var tests = []struct {
 		description       string
 		ruleNamespace     string
@@ -20,26 +20,26 @@ func TestMixAlertingRules(t *testing.T) {
 		extLabels         func() map[string]string
 		expected          []*v1alpha1.GettableAlertingRule
 	}{{
-		description:   "mix custom rules",
+		description:   "get alerting rules status",
 		ruleNamespace: "test",
 		resourceRuleChunk: &ResourceRuleChunk{
 			Level:  v1alpha1.RuleLevelNamespace,
 			Custom: true,
-			ResourceRulesMap: map[string]*ResourceRules{
-				"custom-alerting-rule-jqbgn": &ResourceRules{
+			ResourceRulesMap: map[string]*ResourceRuleCollection{
+				"custom-alerting-rule-jqbgn": &ResourceRuleCollection{
 					GroupSet: map[string]struct{}{"alerting.custom.defaults": struct{}{}},
-					NameRules: map[string][]*ResourceRule{
-						"f89836879157ca88": []*ResourceRule{{
+					NameRules: map[string][]*ResourceRuleItem{
+						"ca7f09e76954e67c": []*ResourceRuleItem{{
 							ResourceName: "custom-alerting-rule-jqbgn",
 							Group:        "alerting.custom.defaults",
-							Id:           "f89836879157ca88",
+							Id:           "ca7f09e76954e67c",
 							Rule: &promresourcesv1.Rule{
 								Alert: "TestCPUUsageHigh",
 								Expr:  intstr.FromString(`namespace:workload_cpu_usage:sum{namespace="test"} > 1`),
 								For:   "1m",
-								Labels: map[string]string{
-									LabelKeyInternalRuleAlias:       "The alias is here",
-									LabelKeyInternalRuleDescription: "The description is here",
+								Annotations: map[string]string{
+									"alias":       "The alias is here",
+									"description": "The description is here",
 								},
 							},
 						}},
@@ -56,34 +56,31 @@ func TestMixAlertingRules(t *testing.T) {
 				Duration: 60,
 				Health:   string(rules.HealthGood),
 				State:    stateInactiveString,
-				Labels: map[string]string{
-					LabelKeyInternalRuleAlias:       "The alias is here",
-					LabelKeyInternalRuleDescription: "The description is here",
+				Annotations: map[string]string{
+					"alias":       "The alias is here",
+					"description": "The description is here",
 				},
 			}},
 		}},
 		expected: []*v1alpha1.GettableAlertingRule{{
-			AlertingRuleQualifier: v1alpha1.AlertingRuleQualifier{
-				Id:     "f89836879157ca88",
-				Name:   "TestCPUUsageHigh",
-				Level:  v1alpha1.RuleLevelNamespace,
-				Custom: true,
-			},
-			AlertingRuleProps: v1alpha1.AlertingRuleProps{
+			AlertingRule: v1alpha1.AlertingRule{
+				Id:       "ca7f09e76954e67c",
+				Name:     "TestCPUUsageHigh",
 				Query:    `namespace:workload_cpu_usage:sum{namespace="test"} > 1`,
 				Duration: "1m",
-				Labels:   map[string]string{},
+				Annotations: map[string]string{
+					"alias":       "The alias is here",
+					"description": "The description is here",
+				},
 			},
-			Alias:       "The alias is here",
-			Description: "The description is here",
-			Health:      string(rules.HealthGood),
-			State:       stateInactiveString,
+			Health: string(rules.HealthGood),
+			State:  stateInactiveString,
 		}},
 	}}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			rules, err := MixAlertingRules(test.ruleNamespace, test.resourceRuleChunk, test.ruleGroups, test.extLabels)
+			rules, err := GetAlertingRulesStatus(test.ruleNamespace, test.resourceRuleChunk, test.ruleGroups, test.extLabels)
 			if err != nil {
 				t.Fatal(err)
 			}

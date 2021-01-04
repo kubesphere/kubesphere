@@ -45,14 +45,10 @@ var (
 
 type RuleLevel string
 
-type AlertingRuleQualifier struct {
-	Id     string    `json:"id,omitempty" description:"rule id is mainly for the builtin rules"`
-	Name   string    `json:"name,omitempty" description:"rule name which should be uniq for custom rules in the specified namespace"`
-	Level  RuleLevel `json:"level,omitempty" description:"rule level is only for the custom rules and its value is one of cluster, namespace"`
-	Custom bool      `json:"custom" description:"whether to be a custom rule. The builtin rules are not custom and can only be viewed"`
-}
+type AlertingRule struct {
+	Id   string `json:"id,omitempty" description:"rule id is only used by built-in alerting rules"`
+	Name string `json:"name,omitempty" description:"rule name should be unique in one namespace for custom alerting rules"`
 
-type AlertingRuleProps struct {
 	Query       string            `json:"query,omitempty" description:"prometheus query expression, grammars of which may be referred to https://prometheus.io/docs/prometheus/latest/querying/basics/"`
 	Duration    string            `json:"duration,omitempty" description:"duration an alert transitions from Pending to Firing state, which must match ^([0-9]+)(y|w|d|h|m|s|ms)$"`
 	Labels      map[string]string `json:"labels,omitempty" description:"extra labels to attach to the resulting alert sample vectors (the key string has to match [a-zA-Z_][a-zA-Z0-9_]*). eg: a typical label called severity, whose value may be info, warning, error, critical, is usually used to indicate the severity of an alert"`
@@ -60,11 +56,7 @@ type AlertingRuleProps struct {
 }
 
 type PostableAlertingRule struct {
-	Name        string `json:"name,omitempty" description:"rule name which should be uniq for custom rules in the specified namespace"`
-	Alias       string `json:"alias,omitempty" description:"alias for the rule"`
-	Description string `json:"description,omitempty" description:"description for the rule"`
-
-	AlertingRuleProps `json:",omitempty"`
+	AlertingRule `json:",omitempty"`
 }
 
 func (r *PostableAlertingRule) Validate() error {
@@ -95,18 +87,15 @@ func (r *PostableAlertingRule) Validate() error {
 }
 
 type GettableAlertingRule struct {
-	AlertingRuleQualifier `json:",omitempty"`
-	AlertingRuleProps     `json:",omitempty"`
-
-	Alias       string `json:"alias,omitempty" description:"alias for the rule"`
-	Description string `json:"description,omitempty" description:"description for the rule"`
+	AlertingRule `json:",omitempty"`
 
 	State                     string     `json:"state,omitempty" description:"state of a rule based on its alerts, one of firing, pending, inactive"`
 	Health                    string     `json:"health,omitempty" description:"health state of a rule based on the last execution, one of ok, err, unknown"`
 	LastError                 string     `json:"lastError,omitempty" description:"error for the last execution"`
 	EvaluationDurationSeconds float64    `json:"evaluationTime,omitempty" description:"taken seconds for evaluation of query expression"`
 	LastEvaluation            *time.Time `json:"lastEvaluation,omitempty" description:"time for last evaluation of query expression"`
-	Alerts                    []*Alert   `json:"alerts,omitempty" description:"alerts"`
+
+	Alerts []*Alert `json:"alerts,omitempty" description:"alerts"`
 }
 
 type GettableAlertingRuleList struct {
@@ -121,7 +110,8 @@ type Alert struct {
 	State       string            `json:"state,omitempty" description:"state"`
 	Value       string            `json:"value,omitempty" description:"the value at the last evaluation of the query expression"`
 
-	Rule *AlertingRuleQualifier `json:"rule,omitempty" description:"rule triggering the alert"`
+	RuleId   string `json:"ruleId,omitempty" description:"rule id triggering the alert"`
+	RuleName string `json:"ruleName,omitempty" description:"rule name triggering the alert"`
 }
 
 type AlertList struct {

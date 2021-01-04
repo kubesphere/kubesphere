@@ -104,7 +104,7 @@ func (c *RuleCache) getResourceRuleCaches(ruler Ruler, ruleNamespace *corev1.Nam
 }
 
 func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
-	extraRuleResourceSelector labels.Selector, idOrName string) (*ResourceRule, error) {
+	extraRuleResourceSelector labels.Selector, idOrName string) (*ResourceRuleItem, error) {
 
 	caches, err := c.getResourceRuleCaches(ruler, ruleNamespace, extraRuleResourceSelector)
 	if err != nil {
@@ -114,12 +114,12 @@ func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
 		return nil, nil
 	}
 
-	var rules []*ResourceRule
+	var rules []*ResourceRuleItem
 	switch ruler.(type) {
 	case *PrometheusRuler:
 		for rn, rc := range caches {
 			if rule, ok := rc.IdRules[idOrName]; ok {
-				rules = append(rules, &ResourceRule{
+				rules = append(rules, &ResourceRuleItem{
 					Group:        rule.Group,
 					Id:           rule.Id,
 					Rule:         rule.Rule.DeepCopy(),
@@ -131,7 +131,7 @@ func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
 		for rn, rc := range caches {
 			if nrules, ok := rc.NameRules[idOrName]; ok {
 				for _, nrule := range nrules {
-					rules = append(rules, &ResourceRule{
+					rules = append(rules, &ResourceRuleItem{
 						Group:        nrule.Group,
 						Id:           nrule.Id,
 						Rule:         nrule.Rule.DeepCopy(),
@@ -156,7 +156,7 @@ func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
 }
 
 func (c *RuleCache) ListRules(ruler Ruler, ruleNamespace *corev1.Namespace,
-	extraRuleResourceSelector labels.Selector) (map[string]*ResourceRules, error) {
+	extraRuleResourceSelector labels.Selector) (map[string]*ResourceRuleCollection, error) {
 
 	caches, err := c.getResourceRuleCaches(ruler, ruleNamespace, extraRuleResourceSelector)
 	if err != nil {
@@ -166,17 +166,17 @@ func (c *RuleCache) ListRules(ruler Ruler, ruleNamespace *corev1.Namespace,
 		return nil, nil
 	}
 
-	ret := make(map[string]*ResourceRules)
+	ret := make(map[string]*ResourceRuleCollection)
 	for rn, rc := range caches {
-		rrs := &ResourceRules{
+		rrs := &ResourceRuleCollection{
 			GroupSet:  make(map[string]struct{}),
-			IdRules:   make(map[string]*ResourceRule),
-			NameRules: make(map[string][]*ResourceRule),
+			IdRules:   make(map[string]*ResourceRuleItem),
+			NameRules: make(map[string][]*ResourceRuleItem),
 		}
 		for name, rules := range rc.NameRules {
 			for _, rule := range rules {
 				rrs.GroupSet[rule.Group] = struct{}{}
-				rr := &ResourceRule{
+				rr := &ResourceRuleItem{
 					Group:        rule.Group,
 					Id:           rule.Id,
 					Rule:         rule.Rule.DeepCopy(),

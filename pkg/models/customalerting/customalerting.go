@@ -47,8 +47,8 @@ type Operator interface {
 		queryParams *v1alpha1.AlertQueryParams) (*v1alpha1.AlertList, error)
 	// GetCustomAlertingRule gets the custom alerting rule with the given name.
 	GetCustomAlertingRule(ctx context.Context, namespace, ruleName string) (*v1alpha1.GettableAlertingRule, error)
-	// ListCustomSpecifiedRuleAlerts lists the alerts of the custom alerting rule with the given name.
-	ListCustomSpecifiedRuleAlerts(ctx context.Context, namespace, ruleName string) ([]*v1alpha1.Alert, error)
+	// ListCustomRuleAlerts lists the alerts of the custom alerting rule with the given name.
+	ListCustomRuleAlerts(ctx context.Context, namespace, ruleName string) ([]*v1alpha1.Alert, error)
 	// CreateCustomAlertingRule creates a custom alerting rule.
 	CreateCustomAlertingRule(ctx context.Context, namespace string, rule *v1alpha1.PostableAlertingRule) error
 	// UpdateCustomAlertingRule updates the custom alerting rule with the given name.
@@ -64,8 +64,8 @@ type Operator interface {
 		queryParams *v1alpha1.AlertQueryParams) (*v1alpha1.AlertList, error)
 	// GetBuiltinAlertingRule gets the builtin(non-custom) alerting rule with the given id
 	GetBuiltinAlertingRule(ctx context.Context, ruleId string) (*v1alpha1.GettableAlertingRule, error)
-	// ListBuiltinSpecifiedRuleAlerts lists the alerts of the builtin(non-custom) alerting rule with the given id
-	ListBuiltinSpecifiedRuleAlerts(ctx context.Context, ruleId string) ([]*v1alpha1.Alert, error)
+	// ListBuiltinRuleAlerts lists the alerts of the builtin(non-custom) alerting rule with the given id
+	ListBuiltinRuleAlerts(ctx context.Context, ruleId string) ([]*v1alpha1.Alert, error)
 }
 
 func NewOperator(informers informers.InformerFactory,
@@ -90,7 +90,7 @@ func NewOperator(informers informers.InformerFactory,
 	if option != nil && len(option.ThanosRuleResourceLabels) != 0 {
 		lblStrings := strings.Split(option.ThanosRuleResourceLabels, ",")
 		for _, lblString := range lblStrings {
-			lbl := strings.Split(lblString, "=")
+			lbl := strings.Split(strings.TrimSpace(lblString), "=")
 			if len(lbl) == 2 {
 				o.thanosRuleResourceLabels[lbl[0]] = lbl[1]
 			}
@@ -183,7 +183,7 @@ func (o *operator) GetCustomAlertingRule(ctx context.Context, namespace, ruleNam
 	return o.getCustomAlertingRule(ctx, ruleNamespace, ruleName, level)
 }
 
-func (o *operator) ListCustomSpecifiedRuleAlerts(ctx context.Context, namespace, ruleName string) (
+func (o *operator) ListCustomRuleAlerts(ctx context.Context, namespace, ruleName string) (
 	[]*v1alpha1.Alert, error) {
 
 	rule, err := o.GetCustomAlertingRule(ctx, namespace, ruleName)
@@ -223,7 +223,7 @@ func (o *operator) GetBuiltinAlertingRule(ctx context.Context, ruleId string) (
 	return o.getBuiltinAlertingRule(ctx, ruleId)
 }
 
-func (o *operator) ListBuiltinSpecifiedRuleAlerts(ctx context.Context, ruleId string) ([]*v1alpha1.Alert, error) {
+func (o *operator) ListBuiltinRuleAlerts(ctx context.Context, ruleId string) ([]*v1alpha1.Alert, error) {
 	rule, err := o.getBuiltinAlertingRule(ctx, ruleId)
 	if err != nil {
 		return nil, err
@@ -290,7 +290,7 @@ func (o *operator) listCustomAlertingRules(ctx context.Context, ruleNamespace *c
 		return nil, err
 	}
 
-	return rules.MixAlertingRules(ruleNamespace.Name, &rules.ResourceRuleChunk{
+	return rules.GetAlertingRulesStatus(ruleNamespace.Name, &rules.ResourceRuleChunk{
 		ResourceRulesMap: resourceRulesMap,
 		Custom:           true,
 		Level:            level,
@@ -322,10 +322,10 @@ func (o *operator) getCustomAlertingRule(ctx context.Context, ruleNamespace *cor
 		return nil, err
 	}
 
-	return rules.MixAlertingRule(ruleNamespace.Name, &rules.ResourceRuleSole{
-		ResourceRule: *resourceRule,
-		Custom:       true,
-		Level:        level,
+	return rules.GetAlertingRuleStatus(ruleNamespace.Name, &rules.ResourceRule{
+		ResourceRuleItem: *resourceRule,
+		Custom:           true,
+		Level:            level,
 	}, ruleGroups, ruler.ExternalLabels())
 }
 
@@ -361,7 +361,7 @@ func (o *operator) listBuiltinAlertingRules(ctx context.Context) (
 		return nil, err
 	}
 
-	return rules.MixAlertingRules(ruleNamespace.Name, &rules.ResourceRuleChunk{
+	return rules.GetAlertingRulesStatus(ruleNamespace.Name, &rules.ResourceRuleChunk{
 		ResourceRulesMap: resourceRulesMap,
 		Custom:           false,
 		Level:            v1alpha1.RuleLevelCluster,
@@ -413,10 +413,10 @@ func (o *operator) getBuiltinAlertingRule(ctx context.Context, ruleId string) (*
 		return nil, v1alpha1.ErrAlertingRuleNotFound
 	}
 
-	return rules.MixAlertingRule(ruleNamespace.Name, &rules.ResourceRuleSole{
-		ResourceRule: *resourceRule,
-		Custom:       false,
-		Level:        v1alpha1.RuleLevelCluster,
+	return rules.GetAlertingRuleStatus(ruleNamespace.Name, &rules.ResourceRule{
+		ResourceRuleItem: *resourceRule,
+		Custom:           false,
+		Level:            v1alpha1.RuleLevelCluster,
 	}, ruleGroups, ruler.ExternalLabels())
 }
 
@@ -562,7 +562,7 @@ func (o *operator) getPrometheusRuler() (rules.Ruler, error) {
 		return nil, errors.Wrap(err, "error listing prometheuses")
 	}
 	if len(prometheuses) > 1 {
-		// it is not supported temporarily to have multiple prometheuses in the monitoring namespace
+		// It is not supported to have multiple Prometheus instances in the monitoring namespace for now
 		return nil, errors.Errorf(
 			"there is more than one prometheus custom resource in %s", rulerNamespace)
 	}
@@ -579,7 +579,7 @@ func (o *operator) getThanosRuler() (rules.Ruler, error) {
 		return nil, errors.Wrap(err, "error listing thanosrulers: ")
 	}
 	if len(thanosrulers) > 1 {
-		// it is not supported temporarily to have multiple thanosrulers in the monitoring namespace
+		// It is not supported to have multiple thanosruler instances in the monitoring namespace for now
 		return nil, errors.Errorf(
 			"there is more than one thanosruler custom resource in %s", rulerNamespace)
 	}
@@ -592,14 +592,11 @@ func (o *operator) getThanosRuler() (rules.Ruler, error) {
 }
 
 func parseToPrometheusRule(rule *v1alpha1.PostableAlertingRule) *promresourcesv1.Rule {
-	lbls := rule.Labels
-	lbls[rules.LabelKeyInternalRuleAlias] = rule.Alias
-	lbls[rules.LabelKeyInternalRuleDescription] = rule.Description
 	return &promresourcesv1.Rule{
 		Alert:       rule.Name,
 		Expr:        intstr.FromString(rule.Query),
 		For:         rule.Duration,
-		Labels:      lbls,
+		Labels:      rule.Labels,
 		Annotations: rule.Annotations,
 	}
 }

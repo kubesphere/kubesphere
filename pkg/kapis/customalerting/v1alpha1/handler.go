@@ -110,11 +110,11 @@ func (h *handler) handleGetCustomAlertingRule(req *restful.Request, resp *restfu
 	resp.WriteEntity(rule)
 }
 
-func (h *handler) handleListCustomSpecifiedRuleAlerts(req *restful.Request, resp *restful.Response) {
+func (h *handler) handleListCustomRuleAlerts(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	ruleName := req.PathParameter("rule_name")
 
-	alerts, err := h.operator.ListCustomSpecifiedRuleAlerts(req.Request.Context(), namespace, ruleName)
+	alerts, err := h.operator.ListCustomRuleAlerts(req.Request.Context(), namespace, ruleName)
 	if err != nil {
 		klog.Error(err)
 		switch {
@@ -266,10 +266,10 @@ func (h *handler) handleGetBuiltinAlertingRule(req *restful.Request, resp *restf
 	resp.WriteEntity(rule)
 }
 
-func (h *handler) handleListBuiltinSpecifiedRuleAlerts(req *restful.Request, resp *restful.Response) {
+func (h *handler) handleListBuiltinRuleAlerts(req *restful.Request, resp *restful.Response) {
 	ruleId := req.PathParameter("rule_id")
 
-	alerts, err := h.operator.ListBuiltinSpecifiedRuleAlerts(req.Request.Context(), ruleId)
+	alerts, err := h.operator.ListBuiltinRuleAlerts(req.Request.Context(), ruleId)
 	if err != nil {
 		klog.Error(err)
 		switch {

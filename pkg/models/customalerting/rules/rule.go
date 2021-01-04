@@ -5,27 +5,27 @@ import (
 	"kubesphere.io/kubesphere/pkg/api/customalerting/v1alpha1"
 )
 
-type ResourceRules struct {
+type ResourceRuleCollection struct {
 	GroupSet  map[string]struct{}
-	IdRules   map[string]*ResourceRule
-	NameRules map[string][]*ResourceRule
+	IdRules   map[string]*ResourceRuleItem
+	NameRules map[string][]*ResourceRuleItem
 }
 
-type ResourceRule struct {
+type ResourceRuleItem struct {
 	ResourceName string
 	Group        string
 	Id           string
 	Rule         *promresourcesv1.Rule
 }
 
-type ResourceRuleSole struct {
+type ResourceRule struct {
 	Level  v1alpha1.RuleLevel
 	Custom bool
-	ResourceRule
+	ResourceRuleItem
 }
 
 type ResourceRuleChunk struct {
 	Level            v1alpha1.RuleLevel
 	Custom           bool
-	ResourceRulesMap map[string]*ResourceRules
+	ResourceRulesMap map[string]*ResourceRuleCollection
 }
