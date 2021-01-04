@@ -18,7 +18,6 @@ package app
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -42,6 +41,7 @@ import (
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
+	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
 	application "sigs.k8s.io/application/controllers"
@@ -65,7 +65,6 @@ func NewControllerManagerCommand() *cobra.Command {
 			OpenPitrixOptions:     conf.OpenPitrixOptions,
 			NetworkOptions:        conf.NetworkOptions,
 			MultiClusterOptions:   conf.MultiClusterOptions,
-			MetricsOptions:        conf.MetricsOptions,
 			ServiceMeshOptions:    conf.ServiceMeshOptions,
 			LeaderElection:        s.LeaderElection,
 			LeaderElect:           s.LeaderElect,
@@ -263,10 +262,8 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	hookServer.Register("/validate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.ValidatingHandler{C: mgr.GetClient()}})
 	hookServer.Register("/mutate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.MutatingHandler{C: mgr.GetClient()}})
 
-	if s.MetricsOptions != nil && s.MetricsOptions.Enable {
-		klog.V(2).Info("registering metrics to then webhook server")
-		hookServer.Register("/metrics", metrics.Handler())
-	}
+	klog.V(2).Info("registering metrics to the webhook server")
+	hookServer.Register("/metrics", metrics.Handler())
 
 	klog.V(0).Info("Starting the controllers.")
 	if err = mgr.Start(stopCh); err != nil {

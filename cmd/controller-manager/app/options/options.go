@@ -29,7 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"kubesphere.io/kubesphere/pkg/simple/client/metrics"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -46,7 +45,6 @@ type KubeSphereControllerManagerOptions struct {
 	OpenPitrixOptions     *openpitrix.Options
 	NetworkOptions        *network.Options
 	MultiClusterOptions   *multicluster.Options
-	MetricsOptions        *metrics.Options
 	ServiceMeshOptions    *servicemesh.Options
 	LeaderElect           bool
 	LeaderElection        *leaderelection.LeaderElectionConfig
@@ -62,7 +60,6 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		OpenPitrixOptions:     openpitrix.NewOptions(),
 		NetworkOptions:        network.NewNetworkOptions(),
 		MultiClusterOptions:   multicluster.NewOptions(),
-		MetricsOptions:        metrics.NewMetricsOptions(),
 		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
 		AuthenticationOptions: authoptions.NewAuthenticateOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
@@ -89,7 +86,6 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	s.NetworkOptions.AddFlags(fss.FlagSet("network"), s.NetworkOptions)
 	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
-	s.MetricsOptions.AddFlags(fss.FlagSet("metrics"), s.MetricsOptions)
 
 	fs := fss.FlagSet("leaderelection")
 	s.bindLeaderElectionFlags(s.LeaderElection, fs)

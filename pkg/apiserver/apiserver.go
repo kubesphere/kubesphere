@@ -158,10 +158,8 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 
 	s.installKubeSphereAPIs()
 
-	s.installAPI()
-	if s.Config.MetricsOptions != nil && s.Config.MetricsOptions.Enable {
-		s.container.Filter(monitorRequest)
-	}
+	s.installMetricsAPI()
+	s.container.Filter(monitorRequest)
 
 	for _, ws := range s.container.RegisteredWebServices() {
 		klog.V(2).Infof("%s", ws.RootPath())
@@ -185,11 +183,9 @@ func monitorRequest(r *restful.Request, response *restful.Response, chain *restf
 	}
 }
 
-func (s *APIServer) installAPI() {
-	if s.Config.MetricsOptions != nil && s.Config.MetricsOptions.Enable {
-		register()
-		metrics.Defaults.Install(s.container)
-	}
+func (s *APIServer) installMetricsAPI() {
+	register()
+	metrics.Defaults.Install(s.container)
 }
 
 // Install all kubesphere api groups
