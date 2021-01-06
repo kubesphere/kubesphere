@@ -16,9 +16,15 @@ tag_for_branch() {
     echo ${tag}
 }
 
+get_repo() {
+    local repo=$1
+    repo=${repo:-kubespheredev}
+    echo "$repo"
+}
+
 # push to kubespheredev with default latest tag
-REPO=${REPO:-kubespheredev}
-TAG=$(tag_for_branch $1)
+TAG=$(tag_for_branch "$1")
+REPO=$(get_repo "$2")
 
 # Push image to dockerhub, need to support multiple push
 cat ~/.docker/config.json | grep index.docker.io
