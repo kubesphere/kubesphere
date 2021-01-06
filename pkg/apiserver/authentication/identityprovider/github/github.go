@@ -19,8 +19,8 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/oauth2"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
@@ -107,16 +107,11 @@ func (g *Github) Type() string {
 }
 
 func (g *Github) Setup(options *oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
-	data, err := yaml.Marshal(options)
-	if err != nil {
+	var github Github
+	if err := mapstructure.Decode(options, &github); err != nil {
 		return nil, err
 	}
-	var provider Github
-	err = yaml.Unmarshal(data, &provider)
-	if err != nil {
-		return nil, err
-	}
-	return &provider, nil
+	return &github, nil
 }
 
 func (g GithubIdentity) GetName() string {

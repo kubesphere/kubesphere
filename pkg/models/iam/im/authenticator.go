@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/go-ldap/ldap"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	authuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
@@ -62,7 +63,10 @@ func NewPasswordAuthenticator(ksClient kubesphere.Interface,
 }
 
 func (im *passwordAuthenticator) Authenticate(username, password string) (authuser.Info, error) {
-
+	// empty username or password are not allowed
+	if username == "" || password == "" {
+		return nil, AuthFailedIncorrectPassword
+	}
 	user, err := im.searchUser(username)
 	if err != nil {
 		// internal error
@@ -90,6 +94,14 @@ func (im *passwordAuthenticator) Authenticate(username, password string) (authus
 		}
 	}
 
+	// verify the password if it exists
+	if user != nil && user.Spec.EncryptedPassword != "" && checkPasswordHash(password, user.Spec.EncryptedPassword) {
+		return &authuser.DefaultInfo{
+			Name: user.Name,
+			UID:  string(user.UID),
+		}, nil
+	}
+
 	// able to login using the locally principal admin account and password in case of a disruption of LDAP services.
 	if ldapProvider != nil && username != constants.AdminUserName {
 		if providerOptions.MappingMethod == oauth.MappingMethodLookup &&
@@ -108,30 +120,30 @@ func (im *passwordAuthenticator) Authenticate(username, password string) (authus
 			klog.Error(err)
 			if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) || ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 				return nil, AuthFailedIncorrectPassword
-			} else {
-				return nil, err
 			}
+			return nil, err
 		}
 
-		if authenticated != nil && user == nil {
-			authenticated.Labels = map[string]string{iamv1alpha2.IdentifyProviderLabel: providerOptions.Name}
-			if authenticated, err = im.ksClient.IamV1alpha2().Users().Create(authenticated); err != nil {
+		if user == nil {
+			created := &iamv1alpha2.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: authenticated.GetName(),
+					Labels: map[string]string{
+						iamv1alpha2.IdentifyProviderLabel: providerOptions.Name,
+					},
+				},
+				Spec: iamv1alpha2.UserSpec{
+					Email: authenticated.GetEmail(),
+				},
+			}
+			if user, err = im.ksClient.IamV1alpha2().Users().Create(created); err != nil {
 				klog.Error(err)
 				return nil, err
 			}
 		}
 
-		if authenticated != nil {
-			return &authuser.DefaultInfo{
-				Name: authenticated.Name,
-				UID:  string(authenticated.UID),
-			}, nil
-		}
-	}
-
-	if checkPasswordHash(password, user.Spec.EncryptedPassword) {
 		return &authuser.DefaultInfo{
-			Name: user.Name,
+			Name: authenticated.GetName(),
 			UID:  string(user.UID),
 		}, nil
 	}
@@ -162,7 +174,7 @@ func (im *passwordAuthenticator) searchUser(username string) (*iamv1alpha2.User,
 func (im *passwordAuthenticator) getLdapProvider() (*oauth.IdentityProviderOptions, identityprovider.LdapProvider) {
 	for _, options := range im.options.OAuthOptions.IdentityProviders {
 		if options.Type == identityprovider.LdapIdentityProvider {
-			if provider, err := identityprovider.NewLdapProvider(options.Provider); err != nil {
+			if provider, err := identityprovider.NewLdapIdentityProvider(options.Provider); err != nil {
 				klog.Error(err)
 			} else {
 				return &options, provider

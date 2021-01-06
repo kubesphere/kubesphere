@@ -133,14 +133,19 @@ func (h *handler) Authorize(req *restful.Request, resp *restful.Response) {
 	http.Redirect(resp, req.Request, redirectURL, http.StatusFound)
 }
 
-func (h *handler) oAuthCallBack(req *restful.Request, resp *restful.Response) {
-
+func (h *handler) oauthCallback(req *restful.Request, resp *restful.Response) {
+	// OAuth2 callback
 	code := req.QueryParameter("code")
+	// CAS callback
+	if code == "" {
+		code = req.QueryParameter("ticket")
+	}
 	name := req.PathParameter("callback")
 
 	if code == "" {
-		err := apierrors.NewUnauthorized("Unauthorized: missing code")
+		err := apierrors.NewUnauthorized("Unauthorized: missing code or ticket")
 		resp.WriteError(http.StatusUnauthorized, err)
+		return
 	}
 
 	providerOptions, err := h.options.OAuthOptions.IdentityProviderOptions(name)
@@ -148,6 +153,7 @@ func (h *handler) oAuthCallBack(req *restful.Request, resp *restful.Response) {
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
+		return
 	}
 
 	oauthIdentityProvider, err := identityprovider.GetOAuthProvider(providerOptions.Type, providerOptions.Provider)
@@ -174,7 +180,7 @@ func (h *handler) oAuthCallBack(req *restful.Request, resp *restful.Response) {
 			apierrors.IsNotFound(err) {
 			create := &iamv1alpha2.User{
 				ObjectMeta: v1.ObjectMeta{Name: identity.GetName(),
-					Annotations: map[string]string{iamv1alpha2.IdentifyProviderLabel: providerOptions.Name}},
+					Labels: map[string]string{iamv1alpha2.IdentifyProviderLabel: providerOptions.Name}},
 				Spec: iamv1alpha2.UserSpec{Email: identity.GetEmail()},
 			}
 			if authenticated, err = h.im.CreateUser(create); err != nil {
@@ -199,7 +205,7 @@ func (h *handler) oAuthCallBack(req *restful.Request, resp *restful.Response) {
 
 	// oauth.MappingMethodAuto
 	// Fails if a user with that user name is already mapped to another identity.
-	if providerOptions.MappingMethod == oauth.MappingMethodAuto && authenticated.Annotations[iamv1alpha2.IdentifyProviderLabel] != providerOptions.Name {
+	if providerOptions.MappingMethod == oauth.MappingMethodAuto && authenticated.Labels[iamv1alpha2.IdentifyProviderLabel] != providerOptions.Name {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("user %s is already bound to other identify provider", identity.GetName()))
 		klog.Error(err)
 		resp.WriteError(http.StatusUnauthorized, err)
@@ -246,18 +252,8 @@ func (h *handler) Token(req *restful.Request, response *restful.Response) {
 	}
 	switch grantType {
 	case "password":
-		username, err := req.BodyParameter("username")
-		if err != nil {
-			klog.Error(err)
-			api.HandleBadRequest(response, req, err)
-			return
-		}
-		password, err := req.BodyParameter("password")
-		if err != nil {
-			klog.Error(err)
-			api.HandleBadRequest(response, req, err)
-			return
-		}
+		username, _ := req.BodyParameter("username")
+		password, _ := req.BodyParameter("password")
 		h.passwordGrant(username, password, req, response)
 		break
 	case "refresh_token":
