@@ -37,13 +37,26 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 ### DevOps:
 
+- [x] Support Gitlab with Kubesphere multi-branch pipeline. [#3100](https://github.com/kubesphere/kubesphere/issues/3100)
 - [x] Run multiple DevOps pipelines at the same time instead of just one.[#1811](https://github.com/kubesphere/kubesphere/issues/1811)
 - [x] Clone pipeline. Users now can create exactly same pipeline from an existing one.[#3053](https://github.com/kubesphere/kubesphere/issues/3053)
+- [x] Add approval control for pipelines. [#2483](https://github.com/kubesphere/kubesphere/issues/2483) [#3006](https://github.com/kubesphere/kubesphere/issues/3006)
+- [ ] Add and display the status of the pipeline on the front page. [#3007](https://github.com/kubesphere/kubesphere/issues/3007)
+- [x] Support tag trigger pipeline. [#3051](https://github.com/kubesphere/kubesphere/issues/3051)
+- [x] Interactive creation pipeline. [#1283](https://github.com/kubesphere/console/issues/1283)
+- [x] Add S2I webhook support. [#6](https://github.com/kubesphere/s2ioperator/issues/6)
 
 ## **Upgrade:**
 
 - [ ] Upgrade isito version from 1.4.8 => 1.6.5[#3326](https://github.com/kubesphere/kubesphere/issues/3236)
 - [x] Upgrade Kubectl version for the Toolbox, and the Kubectl Verion will be matched with the Kubernetes Server version. [#3103](https://github.com/kubesphere/kubesphere/issues/3103)
+
+### DevOps:
+
+- [x] Upgrade Jenkins Version to 2.249.1. [#2618](https://github.com/kubesphere/kubesphere/issues/2618)
+- [x] Using Jenkins distribution solution to deploy Jenkins, [#2182](https://github.com/kubesphere/kubesphere/issues/2182)
+- [x] Using human-readable error message for pipeline cron text , [#2919](https://github.com/kubesphere/kubesphere/issues/2919)
+- [ ] Using human-readable error message for S2I, [#140](https://github.com/kubesphere/s2ioperator/issues/140)
 
 ## **BugFix:**
 
@@ -56,6 +69,13 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Fix self-signed certificate for admission webhook relies on legacy Common Name field. [#2928](https://github.com/kubesphere/kubesphere/issues/2928)
 - [x] Fix workspaces on member cluster would be deleted when joining to host if there are workspaces with same name on the host. [#3169](https://github.com/kubesphere/kubesphere/issues/3169)
 
+### DevOps:
+
+- [x] Fix error webhook link under multicluster. [forum #2626](https://kubesphere.com.cn/forum/d/2626-webhook-jenkins)
+- [x] Fix some data lost in jenkinsfile when users edit pipeline. [#1270](https://github.com/kubesphere/console/issues/1270)
+- [x] Fix error when clicking "Docker Container Registry Credentials". [console #1269](https://github.com/kubesphere/console/issues/1269)
+- [x] Fix chinese show in code quality under English language. [consoel #1278](https://github.com/kubesphere/console/issues/1278)
+- [x] Fix get the error when it displays a bool parameter from InSCM Jenkinsfile. [#3043](https://github.com/kubesphere/kubesphere/issues/3043)
 
 # v3.0
 
