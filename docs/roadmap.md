@@ -46,6 +46,44 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Interactive creation pipeline. [#1283](https://github.com/kubesphere/console/issues/1283)
 - [x] Add S2I webhook support. [#6](https://github.com/kubesphere/s2ioperator/issues/6)
 
+### KubeEdge Integration [#3070](https://github.com/kubesphere/kubesphere/issues/3070)
+
+- [ ] KubeEdge cloud components setup.
+- [ ] KubeEdge edge nodes setup.
+- [x] Edge nodes logging and metrics support.
+- [x] Automatic network configuration on edge node joining/leaving.
+- [ ] Automatic taint edge node on joining.
+- [ ] Cloud workloads (such as daemonset) with wide tolerations should not be scheduled to edge node by adding a node selector.
+- [ ] Scheduling workloads to edge nodes.
+
+### Observability
+
+- [x] Utilizing existing Promethues stack setup. [#3068](https://github.com/kubesphere/kubesphere/issues/3068) [#1164](https://github.com/kubesphere/ks-installer/pull/1164) [Guide](https://kubesphere.io/docs/faq/observability/byop/)
+
+#### Custom monitoring [#3067](https://github.com/kubesphere/kubesphere/issues/3067)
+
+- [x] Configure ServiceMonitor via UI. [#1031](https://github.com/kubesphere/console/pull/1301) 
+- [x] PromQL auto-completion and syntax highlighting. [#1307](https://github.com/kubesphere/console/pull/1307)
+- [ ] Support cluster-level custom monitoring. [#3193](https://github.com/kubesphere/kubesphere/pull/3193)
+- [ ] Import dashboards from Grafana templates.
+
+#### Custom Alerting [#3065](https://github.com/kubesphere/kubesphere/issues/3065)
+
+- [ ] Prometheus alert rule management. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
+- [ ] Alert rule tenant control: global/namespace level alert rules. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
+- [ ] List alerts for a specific alert rule. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
+
+#### Multi-tenant Notification support including Email/DingTalk/Slack/Wechat works/Webhook [#3066](https://github.com/kubesphere/kubesphere/issues/3066)
+
+- [ ] More notification channels including Email, DingTalk, Slack, WeChat works, Webhook
+- [ ] Multi-tenant control of notification
+
+#### Logging
+
+- [x] Support collecting kubelet/docker/containerd logs. [38](https://github.com/kubesphere/fluentbit-operator/pull/38)
+- [x] Support output logs to Loki. [#39](https://github.com/kubesphere/fluentbit-operator/pull/39)
+- [ ] Support containerd log format
+
 ## **Upgrade:**
 
 - [ ] Upgrade isito version from 1.4.8 => 1.6.5[#3326](https://github.com/kubesphere/kubesphere/issues/3236)
@@ -57,6 +95,12 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Using Jenkins distribution solution to deploy Jenkins, [#2182](https://github.com/kubesphere/kubesphere/issues/2182)
 - [x] Using human-readable error message for pipeline cron text , [#2919](https://github.com/kubesphere/kubesphere/issues/2919)
 - [ ] Using human-readable error message for S2I, [#140](https://github.com/kubesphere/s2ioperator/issues/140)
+
+### Observability
+
+- [x] Upgrade Notification Manager to v0.7.0+ [Releases](https://github.com/kubesphere/notification-manager/releases)
+- [x] Upgrade FluentBit Operator to v0.3.0+ [Releases](https://github.com/kubesphere/fluentbit-operator/releases)
+- [ ] Upgrade FluentBit to v1.6.9+
 
 ## **BugFix:**
 
