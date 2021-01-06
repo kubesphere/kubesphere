@@ -29,78 +29,91 @@ import (
 // that client-go registers metrics.  We copy the names and formats
 // from Kubernetes so that we match the core controllers.
 
+// Metrics subsystem and all of the keys used by the rest client.
+const (
+	RestClientSubsystem = "rest_client"
+	LatencyKey          = "request_latency_seconds"
+	ResultKey           = "requests_total"
+)
+
+// Metrics subsystem and all keys used by the reflectors.
+const (
+	ReflectorSubsystem     = "reflector"
+	ListsTotalKey          = "lists_total"
+	ListsDurationKey       = "list_duration_seconds"
+	ItemsPerListKey        = "items_per_list"
+	WatchesTotalKey        = "watches_total"
+	ShortWatchesTotalKey   = "short_watches_total"
+	WatchDurationKey       = "watch_duration_seconds"
+	ItemsPerWatchKey       = "items_per_watch"
+	LastResourceVersionKey = "last_resource_version"
+)
+
 var (
 	// client metrics
+	requestLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Subsystem: RestClientSubsystem,
+		Name:      LatencyKey,
+		Help:      "Request latency in seconds. Broken down by verb and URL.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 10),
+	}, []string{"verb", "url"})
 
-	requestLatency = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "rest_client_request_latency_seconds",
-			Help:    "Request latency in seconds. Broken down by verb and URL.",
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
-		},
-		[]string{"verb", "url"},
-	)
-
-	requestResult = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "rest_client_requests_total",
-			Help: "Number of HTTP requests, partitioned by status code, method, and host.",
-		},
-		[]string{"code", "method", "host"},
-	)
+	requestResult = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Subsystem: RestClientSubsystem,
+		Name:      ResultKey,
+		Help:      "Number of HTTP requests, partitioned by status code, method, and host.",
+	}, []string{"code", "method", "host"})
 
 	// reflector metrics
 
 	// TODO(directxman12): update these to be histograms once the metrics overhaul KEP
 	// PRs start landing.
 
-	reflectorSubsystem = "reflector"
-
 	listsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Subsystem: reflectorSubsystem,
-		Name:      "lists_total",
+		Subsystem: ReflectorSubsystem,
+		Name:      ListsTotalKey,
 		Help:      "Total number of API lists done by the reflectors",
 	}, []string{"name"})
 
 	listsDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Subsystem: reflectorSubsystem,
-		Name:      "list_duration_seconds",
+		Subsystem: ReflectorSubsystem,
+		Name:      ListsDurationKey,
 		Help:      "How long an API list takes to return and decode for the reflectors",
 	}, []string{"name"})
 
 	itemsPerList = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Subsystem: reflectorSubsystem,
-		Name:      "items_per_list",
+		Subsystem: ReflectorSubsystem,
+		Name:      ItemsPerListKey,
 		Help:      "How many items an API list returns to the reflectors",
 	}, []string{"name"})
 
 	watchesTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Subsystem: reflectorSubsystem,
-		Name:      "watches_total",
+		Subsystem: ReflectorSubsystem,
+		Name:      WatchesTotalKey,
 		Help:      "Total number of API watches done by the reflectors",
 	}, []string{"name"})
 
 	shortWatchesTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Subsystem: reflectorSubsystem,
-		Name:      "short_watches_total",
+		Subsystem: ReflectorSubsystem,
+		Name:      ShortWatchesTotalKey,
 		Help:      "Total number of short API watches done by the reflectors",
 	}, []string{"name"})
 
 	watchDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Subsystem: reflectorSubsystem,
-		Name:      "watch_duration_seconds",
+		Subsystem: ReflectorSubsystem,
+		Name:      WatchDurationKey,
 		Help:      "How long an API watch takes to return and decode for the reflectors",
 	}, []string{"name"})
 
 	itemsPerWatch = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Subsystem: reflectorSubsystem,
-		Name:      "items_per_watch",
+		Subsystem: ReflectorSubsystem,
+		Name:      ItemsPerWatchKey,
 		Help:      "How many items an API watch returns to the reflectors",
 	}, []string{"name"})
 
 	lastResourceVersion = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Subsystem: reflectorSubsystem,
-		Name:      "last_resource_version",
+		Subsystem: ReflectorSubsystem,
+		Name:      LastResourceVersionKey,
 		Help:      "Last resource version seen for the reflectors",
 	}, []string{"name"})
 )
@@ -117,7 +130,10 @@ func registerClientMetrics() {
 	Registry.MustRegister(requestResult)
 
 	// register the metrics with client-go
-	clientmetrics.Register(&latencyAdapter{metric: requestLatency}, &resultAdapter{metric: requestResult})
+	clientmetrics.Register(clientmetrics.RegisterOpts{
+		RequestLatency: &latencyAdapter{metric: requestLatency},
+		RequestResult:  &resultAdapter{metric: requestResult},
+	})
 }
 
 // registerReflectorMetrics sets up reflector (reconcile) loop metrics

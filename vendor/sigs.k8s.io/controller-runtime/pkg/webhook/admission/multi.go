@@ -47,7 +47,7 @@ func (hs multiMutating) Handle(ctx context.Context, req Request) Response {
 	var err error
 	marshaledPatch, err := json.Marshal(patches)
 	if err != nil {
-		return Errored(http.StatusBadRequest, fmt.Errorf("error when marshaling the patch: %v", err))
+		return Errored(http.StatusBadRequest, fmt.Errorf("error when marshaling the patch: %w", err))
 	}
 	return Response{
 		AdmissionResponse: admissionv1beta1.AdmissionResponse{

@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredGlobalRoleBindingInformer(client versioned.Interface, resyncPeri
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.IamV1alpha2().GlobalRoleBindings().List(options)
+				return client.IamV1alpha2().GlobalRoleBindings().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.IamV1alpha2().GlobalRoleBindings().Watch(options)
+				return client.IamV1alpha2().GlobalRoleBindings().Watch(context.TODO(), options)
 			},
 		},
 		&iamv1alpha2.GlobalRoleBinding{},

@@ -600,6 +600,7 @@ type yaml_parser_t struct {
 	line_comment []byte // The current line comments
 	foot_comment []byte // The current foot comments
 	tail_comment []byte // Foot comment that happens at the end of a block.
+	stem_comment []byte // Comment in item preceding a nested structure (list inside list item, etc)
 
 	comments      []yaml_comment_t // The folded comments for all parsed tokens
 	comments_head int
@@ -621,6 +622,7 @@ type yaml_parser_t struct {
 
 	simple_key_allowed bool                // May a simple key occur at the current position?
 	simple_keys        []yaml_simple_key_t // The stack of simple keys.
+	simple_keys_by_tok map[int]int         // possible simple_key indexes indexed by token_number
 
 	// Parser stuff
 

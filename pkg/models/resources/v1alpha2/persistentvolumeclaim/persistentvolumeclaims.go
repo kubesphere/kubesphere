@@ -17,7 +17,7 @@ limitations under the License.
 package persistentvolumeclaim
 
 import (
-	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	"k8s.io/client-go/informers"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"strconv"

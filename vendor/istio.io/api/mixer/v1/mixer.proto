@@ -161,6 +161,7 @@ message ReferencedAttributes {
 
     // If a REGEX condition is provided for a STRING_MAP attribute,
     // clients should use the regex value to match against map keys.
+    // RE2 style regex-based match (https://github.com/google/re2/wiki/Syntax).
     string regex = 3;
 
     // A key in a STRING_MAP. When multiple keys from a STRING_MAP

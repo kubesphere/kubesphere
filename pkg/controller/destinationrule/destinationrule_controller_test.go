@@ -17,6 +17,7 @@ limitations under the License.
 package destinationrule
 
 import (
+	"context"
 	"fmt"
 	apiv1alpha3 "istio.io/api/networking/v1alpha3"
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -297,7 +298,7 @@ func (f *fixture) run(service *corev1.Service, expected *v1alpha3.DestinationRul
 		f.t.Fatal("expected error syncing service, got nil")
 	}
 
-	got, err := c.destinationRuleClient.NetworkingV1alpha3().DestinationRules(service.Namespace).Get(service.Name, metav1.GetOptions{})
+	got, err := c.destinationRuleClient.NetworkingV1alpha3().DestinationRules(service.Namespace).Get(context.Background(), service.Name, metav1.GetOptions{})
 	if err != nil {
 		f.t.Fatal(err)
 	}

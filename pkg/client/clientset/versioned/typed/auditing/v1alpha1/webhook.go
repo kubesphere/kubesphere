@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,14 +38,14 @@ type WebhooksGetter interface {
 
 // WebhookInterface has methods to work with Webhook resources.
 type WebhookInterface interface {
-	Create(*v1alpha1.Webhook) (*v1alpha1.Webhook, error)
-	Update(*v1alpha1.Webhook) (*v1alpha1.Webhook, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.Webhook, error)
-	List(opts v1.ListOptions) (*v1alpha1.WebhookList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Webhook, err error)
+	Create(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.CreateOptions) (*v1alpha1.Webhook, error)
+	Update(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.UpdateOptions) (*v1alpha1.Webhook, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.Webhook, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.WebhookList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Webhook, err error)
 	WebhookExpansion
 }
 
@@ -61,19 +62,19 @@ func newWebhooks(c *AuditingV1alpha1Client) *webhooks {
 }
 
 // Get takes name of the webhook, and returns the corresponding webhook object, and an error if there is any.
-func (c *webhooks) Get(name string, options v1.GetOptions) (result *v1alpha1.Webhook, err error) {
+func (c *webhooks) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Webhook, err error) {
 	result = &v1alpha1.Webhook{}
 	err = c.client.Get().
 		Resource("webhooks").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Webhooks that match those selectors.
-func (c *webhooks) List(opts v1.ListOptions) (result *v1alpha1.WebhookList, err error) {
+func (c *webhooks) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.WebhookList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,13 +84,13 @@ func (c *webhooks) List(opts v1.ListOptions) (result *v1alpha1.WebhookList, err 
 		Resource("webhooks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested webhooks.
-func (c *webhooks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *webhooks) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -99,66 +100,69 @@ func (c *webhooks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("webhooks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a webhook and creates it.  Returns the server's representation of the webhook, and an error, if there is any.
-func (c *webhooks) Create(webhook *v1alpha1.Webhook) (result *v1alpha1.Webhook, err error) {
+func (c *webhooks) Create(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.CreateOptions) (result *v1alpha1.Webhook, err error) {
 	result = &v1alpha1.Webhook{}
 	err = c.client.Post().
 		Resource("webhooks").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(webhook).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a webhook and updates it. Returns the server's representation of the webhook, and an error, if there is any.
-func (c *webhooks) Update(webhook *v1alpha1.Webhook) (result *v1alpha1.Webhook, err error) {
+func (c *webhooks) Update(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.UpdateOptions) (result *v1alpha1.Webhook, err error) {
 	result = &v1alpha1.Webhook{}
 	err = c.client.Put().
 		Resource("webhooks").
 		Name(webhook.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(webhook).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the webhook and deletes it. Returns an error if one occurs.
-func (c *webhooks) Delete(name string, options *v1.DeleteOptions) error {
+func (c *webhooks) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("webhooks").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *webhooks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *webhooks) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("webhooks").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched webhook.
-func (c *webhooks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Webhook, err error) {
+func (c *webhooks) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Webhook, err error) {
 	result = &v1alpha1.Webhook{}
 	err = c.client.Patch(pt).
 		Resource("webhooks").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

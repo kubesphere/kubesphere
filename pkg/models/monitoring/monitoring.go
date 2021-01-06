@@ -17,6 +17,7 @@ limitations under the License.
 package monitoring
 
 import (
+	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -230,7 +231,7 @@ func (mo monitoringOperator) GetWorkspaceStats(workspace string) Metrics {
 	selector := labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: workspace})
 	opt := metav1.ListOptions{LabelSelector: selector.String()}
 
-	nsList, err := mo.k8s.CoreV1().Namespaces().List(opt)
+	nsList, err := mo.k8s.CoreV1().Namespaces().List(context.Background(), opt)
 	if err != nil {
 		res.Results = append(res.Results, monitoring.Metric{
 			MetricName: WorkspaceNamespaceCount,

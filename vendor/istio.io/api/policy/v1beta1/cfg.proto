@@ -27,9 +27,24 @@ option go_package="istio.io/api/policy/v1beta1";
 // AttributeManifest describes a set of Attributes produced by some component
 // of an Istio deployment.
 //
+// <!-- crd generation tags
+// +cue-gen:attributemanifest:schema:istio.policy.v1beta1.AttributeManifest
+// +cue-gen:attributemanifest:groupName:config.istio.io
+// +cue-gen:attributemanifest:version:v1alpha2
+// +cue-gen:attributemanifest:storageVersion
+// +cue-gen:attributemanifest:annotations:helm.sh/resource-policy=keep
+// +cue-gen:attributemanifest:labels:app=mixer,chart=istio,heritage=Tiller,istio=core,package=istio.io.mixer,release=istio
+// +cue-gen:attributemanifest:subresource:status
+// +cue-gen:attributemanifest:scope:Namespaced
+// +cue-gen:attributemanifest:resource:categories=istio-io,policy-istio-io
+// +cue-gen:attributemanifest:preserveUnknownFields:false
+// -->
+//
 // <!-- go code generation tags
 // +kubetype-gen
 // +kubetype-gen:groupVersion=config.istio.io/v1alpha2
+// +kubetype-gen:kubeType=AttributeManifest
+// +kubetype-gen:AttributeManifest:tag=kubetype-gen:lowerCaseScheme
 // +genclient
 // +k8s:deepcopy-gen=true
 // -->
@@ -119,9 +134,24 @@ message AttributeManifest {
 //     - RequestCountByService
 // ```
 //
+// <!-- crd generation tags
+// +cue-gen:rule:schema:istio.policy.v1beta1.Rule
+// +cue-gen:rule:groupName:config.istio.io
+// +cue-gen:rule:version:v1alpha2
+// +cue-gen:rule:storageVersion
+// +cue-gen:rule:annotations:helm.sh/resource-policy=keep
+// +cue-gen:rule:labels:app=mixer,chart=istio,heritage=Tiller,istio=core,package=istio.io.mixer,release=istio
+// +cue-gen:rule:subresource:status
+// +cue-gen:rule:scope:Namespaced
+// +cue-gen:rule:resource:categories=istio-io,policy-istio-io
+// +cue-gen:rule:preserveUnknownFields:false
+// -->
+//
 // <!-- go code generation tags
 // +kubetype-gen
 // +kubetype-gen:groupVersion=config.istio.io/v1alpha2
+// +kubetype-gen:kubeType=Rule
+// +kubetype-gen:Rule:tag=kubetype-gen:lowerCaseScheme
 // +genclient
 // +k8s:deepcopy-gen=true
 // -->
@@ -244,9 +274,23 @@ message Action {
 //       destination_ip: destination.ip
 // ```
 //
+// <!-- crd generation tags
+// +cue-gen:instance:schema:istio.policy.v1beta1.Instance
+// +cue-gen:instance:groupName:config.istio.io
+// +cue-gen:instance:version:v1alpha2
+// +cue-gen:instance:storageVersion
+// +cue-gen:instance:annotations:helm.sh/resource-policy=keep
+// +cue-gen:instance:labels:app=mixer,chart=istio,heritage=Tiller,istio=mixer-instance,package=instance,release=istio
+// +cue-gen:instance:subresource:status
+// +cue-gen:instance:scope:Namespaced
+// +cue-gen:instance:resource:categories=istio-io,policy-istio-io
+// -->
+//
 // <!-- go code generation tags
 // +kubetype-gen
 // +kubetype-gen:groupVersion=config.istio.io/v1alpha2
+// +kubetype-gen:kubeType=Instance
+// +kubetype-gen:Instance:tag=kubetype-gen:lowerCaseScheme
 // +genclient
 // +k8s:deepcopy-gen=true
 // -->
@@ -344,9 +388,23 @@ message Instance {
 // ---
 // ```
 //
+// <!-- crd generation tags
+// +cue-gen:handler:schema:istio.policy.v1beta1.Handler
+// +cue-gen:handler:groupName:config.istio.io
+// +cue-gen:handler:version:v1alpha2
+// +cue-gen:handler:storageVersion
+// +cue-gen:handler:annotations:helm.sh/resource-policy=keep
+// +cue-gen:handler:labels:app=mixer,chart=istio,heritage=Tiller,istio=mixer-handler,package=handler,release=istio
+// +cue-gen:handler:subresource:status
+// +cue-gen:handler:scope:Namespaced
+// +cue-gen:handler:resource:categories=istio-io,policy-istio-io
+// -->
+//
 // <!-- go code generation tags
 // +kubetype-gen
 // +kubetype-gen:groupVersion=config.istio.io/v1alpha2
+// +kubetype-gen:kubeType=Handler
+// +kubetype-gen:Handler:tag=kubetype-gen:lowerCaseScheme
 // +genclient
 // +k8s:deepcopy-gen=true
 // -->

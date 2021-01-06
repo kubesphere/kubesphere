@@ -42,7 +42,7 @@ type provider struct {
 func NewProvider(config *rest.Config, scheme *runtime.Scheme, logger logr.Logger, broadcaster record.EventBroadcaster) (recorder.Provider, error) {
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init clientSet: %v", err)
+		return nil, fmt.Errorf("failed to init clientSet: %w", err)
 	}
 
 	p := &provider{scheme: scheme, logger: logger, eventBroadcaster: broadcaster}

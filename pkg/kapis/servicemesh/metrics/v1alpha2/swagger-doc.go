@@ -16,12 +16,6 @@ limitations under the License.
 
 package v1alpha2
 
-import (
-	"github.com/kiali/kiali/graph/cytoscape"
-	"github.com/kiali/kiali/models"
-	"github.com/kiali/kiali/prometheus"
-)
-
 /////////////////////
 // SWAGGER RESPONSES
 /////////////////////
@@ -43,28 +37,4 @@ type BadRequestError struct {
 type NotFoundError struct {
 	Status int32 `json:"status"`
 	Reason error `json:"reason"`
-}
-
-type graphResponse struct {
-	cytoscape.Config
-}
-
-type serviceHealthResponse struct {
-	models.ServiceHealth
-}
-
-type namespaceAppHealthResponse struct {
-	models.NamespaceAppHealth
-}
-
-type workloadHealthResponse struct {
-	models.WorkloadHealth
-}
-
-type appHealthResponse struct {
-	models.AppHealth
-}
-
-type metricsResponse struct {
-	prometheus.Metrics
 }

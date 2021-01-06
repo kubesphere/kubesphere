@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedpersistentvolumeclaimsResource = schema.GroupVersionResource{Group:
 var federatedpersistentvolumeclaimsKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedPersistentVolumeClaim"}
 
 // Get takes name of the federatedPersistentVolumeClaim, and returns the corresponding federatedPersistentVolumeClaim object, and an error if there is any.
-func (c *FakeFederatedPersistentVolumeClaims) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *FakeFederatedPersistentVolumeClaims) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedpersistentvolumeclaimsResource, c.ns, name), &v1beta1.FederatedPersistentVolumeClaim{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedPersistentVolumeClaims) Get(name string, options v1.GetOpt
 }
 
 // List takes label and field selectors, and returns the list of FederatedPersistentVolumeClaims that match those selectors.
-func (c *FakeFederatedPersistentVolumeClaims) List(opts v1.ListOptions) (result *v1beta1.FederatedPersistentVolumeClaimList, err error) {
+func (c *FakeFederatedPersistentVolumeClaims) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedPersistentVolumeClaimList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedpersistentvolumeclaimsResource, federatedpersistentvolumeclaimsKind, c.ns, opts), &v1beta1.FederatedPersistentVolumeClaimList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedPersistentVolumeClaims) List(opts v1.ListOptions) (result 
 }
 
 // Watch returns a watch.Interface that watches the requested federatedPersistentVolumeClaims.
-func (c *FakeFederatedPersistentVolumeClaims) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedPersistentVolumeClaims) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedpersistentvolumeclaimsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedPersistentVolumeClaim and creates it.  Returns the server's representation of the federatedPersistentVolumeClaim, and an error, if there is any.
-func (c *FakeFederatedPersistentVolumeClaims) Create(federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *FakeFederatedPersistentVolumeClaims) Create(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.CreateOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedpersistentvolumeclaimsResource, c.ns, federatedPersistentVolumeClaim), &v1beta1.FederatedPersistentVolumeClaim{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedPersistentVolumeClaims) Create(federatedPersistentVolumeCl
 }
 
 // Update takes the representation of a federatedPersistentVolumeClaim and updates it. Returns the server's representation of the federatedPersistentVolumeClaim, and an error, if there is any.
-func (c *FakeFederatedPersistentVolumeClaims) Update(federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *FakeFederatedPersistentVolumeClaims) Update(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.UpdateOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedpersistentvolumeclaimsResource, c.ns, federatedPersistentVolumeClaim), &v1beta1.FederatedPersistentVolumeClaim{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedPersistentVolumeClaims) Update(federatedPersistentVolumeCl
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedPersistentVolumeClaims) UpdateStatus(federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim) (*v1beta1.FederatedPersistentVolumeClaim, error) {
+func (c *FakeFederatedPersistentVolumeClaims) UpdateStatus(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.UpdateOptions) (*v1beta1.FederatedPersistentVolumeClaim, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedpersistentvolumeclaimsResource, "status", c.ns, federatedPersistentVolumeClaim), &v1beta1.FederatedPersistentVolumeClaim{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedPersistentVolumeClaims) UpdateStatus(federatedPersistentVo
 }
 
 // Delete takes name of the federatedPersistentVolumeClaim and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedPersistentVolumeClaims) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedPersistentVolumeClaims) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedpersistentvolumeclaimsResource, c.ns, name), &v1beta1.FederatedPersistentVolumeClaim{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedPersistentVolumeClaims) Delete(name string, options *v1.De
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedPersistentVolumeClaims) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedpersistentvolumeclaimsResource, c.ns, listOptions)
+func (c *FakeFederatedPersistentVolumeClaims) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedpersistentvolumeclaimsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedPersistentVolumeClaimList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedPersistentVolumeClaim.
-func (c *FakeFederatedPersistentVolumeClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *FakeFederatedPersistentVolumeClaims) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedpersistentvolumeclaimsResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedPersistentVolumeClaim{})
 

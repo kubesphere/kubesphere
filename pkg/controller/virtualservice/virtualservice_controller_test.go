@@ -17,6 +17,7 @@ limitations under the License.
 package virtualservice
 
 import (
+	"context"
 	"fmt"
 	apiv1alpha3 "istio.io/api/networking/v1alpha3"
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -280,7 +281,7 @@ func (f *fixture) run_(serviceKey string, expectedVS *v1alpha3.VirtualService, s
 	}
 
 	if expectedVS != nil {
-		got, err := c.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Get(name, metav1.GetOptions{})
+		got, err := c.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			f.t.Errorf("error getting virtualservice: %v", err)
 			return

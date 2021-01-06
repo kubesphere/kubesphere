@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	appcontroller "kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/user"
@@ -106,6 +107,7 @@ func NewControllerManagerCommand() *cobra.Command {
 }
 
 func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {
+
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
 	if err != nil {
 		klog.Errorf("Failed to create kubernetes clientset %v", err)
@@ -121,7 +123,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	var ldapClient ldapclient.Interface
-	//when there is no ldapOption, we set ldapClient as nil, which means we don't need to sync user info into ldap.
+	// when there is no ldapOption, we set ldapClient as nil, which means we don't need to sync user info into ldap.
 	if s.LdapOptions != nil && len(s.LdapOptions.Host) != 0 {
 		if s.LdapOptions.Host == ldapclient.FAKE_HOST { // for debug only
 			ldapClient = ldapclient.NewSimpleLdap()
@@ -155,7 +157,6 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		kubernetesClient.Kubernetes(),
 		kubernetesClient.KubeSphere(),
 		kubernetesClient.Istio(),
-		kubernetesClient.Application(),
 		kubernetesClient.Snapshot(),
 		kubernetesClient.ApiExtensions())
 
@@ -212,6 +213,11 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	namespaceReconciler := &namespace.Reconciler{}
 	if err = namespaceReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create namespace controller")
+	}
+
+	err = appcontroller.Add(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create ks application controller")
 	}
 
 	applicationReconciler := &application.ApplicationReconciler{

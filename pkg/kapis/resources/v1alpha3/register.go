@@ -28,6 +28,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/components"
 	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+
 	"net/http"
 )
 
@@ -47,12 +49,10 @@ func Resource(resource string) schema.GroupResource {
 	return GroupVersion.WithResource(resource).GroupResource()
 }
 
-func AddToContainer(c *restful.Container, informerFactory informers.InformerFactory) error {
+func AddToContainer(c *restful.Container, informerFactory informers.InformerFactory, cache cache.Cache) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
-	handler := New(resourcev1alpha3.NewResourceGetter(informerFactory),
-		resourcev1alpha2.NewResourceGetter(informerFactory),
-		components.NewComponentsGetter(informerFactory.KubernetesSharedInformerFactory()))
+	handler := New(resourcev1alpha3.NewResourceGetter(informerFactory, cache), resourcev1alpha2.NewResourceGetter(informerFactory), components.NewComponentsGetter(informerFactory.KubernetesSharedInformerFactory()))
 
 	webservice.Route(webservice.GET("/{resources}").
 		To(handler.handleListResources).

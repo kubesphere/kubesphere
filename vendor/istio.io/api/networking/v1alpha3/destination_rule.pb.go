@@ -8,6 +8,8 @@
 // balancing pool. For example, a simple load balancing policy for the
 // ratings service would look as follows:
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -19,6 +21,22 @@
 //     loadBalancer:
 //       simple: LEAST_CONN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     loadBalancer:
+//       simple: LEAST_CONN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // Version specific policies can be specified by defining a named
 // `subset` and overriding the settings specified at the service level. The
@@ -26,6 +44,8 @@
 // going to a subset named testversion that is composed of endpoints (e.g.,
 // pods) with labels (version:v3).
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -44,6 +64,29 @@
 //       loadBalancer:
 //         simple: ROUND_ROBIN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     loadBalancer:
+//       simple: LEAST_CONN
+//   subsets:
+//   - name: testversion
+//     labels:
+//       version: v3
+//     trafficPolicy:
+//       loadBalancer:
+//         simple: ROUND_ROBIN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // **Note:** Policies specified for subsets will not take effect until
 // a route rule explicitly sends traffic to this subset.
@@ -53,6 +96,8 @@
 // traffic to port 80, while uses a round robin load balancing setting for
 // traffic to the port 9080.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -71,6 +116,30 @@
 //       loadBalancer:
 //         simple: ROUND_ROBIN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings-port
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy: # Apply to all ports
+//     portLevelSettings:
+//     - port:
+//         number: 80
+//       loadBalancer:
+//         simple: LEAST_CONN
+//     - port:
+//         number: 9080
+//       loadBalancer:
+//         simple: ROUND_ROBIN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 
 package v1alpha3
 
@@ -78,20 +147,17 @@ import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
 	types "github.com/gogo/protobuf/types"
 	io "io"
 	_ "istio.io/gogo-genproto/googleapis/google/api"
 	math "math"
 	math_bits "math/bits"
-	time "time"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-var _ = time.Kitchen
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -178,48 +244,65 @@ func (ConnectionPoolSettings_HTTPSettings_H2UpgradePolicy) EnumDescriptor() ([]b
 }
 
 // TLS connection mode
-type TLSSettings_TLSmode int32
+type ClientTLSSettings_TLSmode int32
 
 const (
 	// Do not setup a TLS connection to the upstream endpoint.
-	TLSSettings_DISABLE TLSSettings_TLSmode = 0
+	ClientTLSSettings_DISABLE ClientTLSSettings_TLSmode = 0
 	// Originate a TLS connection to the upstream endpoint.
-	TLSSettings_SIMPLE TLSSettings_TLSmode = 1
+	ClientTLSSettings_SIMPLE ClientTLSSettings_TLSmode = 1
 	// Secure connections to the upstream using mutual TLS by presenting
 	// client certificates for authentication.
-	TLSSettings_MUTUAL TLSSettings_TLSmode = 2
+	ClientTLSSettings_MUTUAL ClientTLSSettings_TLSmode = 2
 	// Secure connections to the upstream using mutual TLS by presenting
 	// client certificates for authentication.
 	// Compared to Mutual mode, this mode uses certificates generated
 	// automatically by Istio for mTLS authentication. When this mode is
-	// used, all other fields in `TLSSettings` should be empty.
-	TLSSettings_ISTIO_MUTUAL TLSSettings_TLSmode = 3
+	// used, all other fields in `ClientTLSSettings` should be empty.
+	ClientTLSSettings_ISTIO_MUTUAL ClientTLSSettings_TLSmode = 3
 )
 
-var TLSSettings_TLSmode_name = map[int32]string{
+var ClientTLSSettings_TLSmode_name = map[int32]string{
 	0: "DISABLE",
 	1: "SIMPLE",
 	2: "MUTUAL",
 	3: "ISTIO_MUTUAL",
 }
 
-var TLSSettings_TLSmode_value = map[string]int32{
+var ClientTLSSettings_TLSmode_value = map[string]int32{
 	"DISABLE":      0,
 	"SIMPLE":       1,
 	"MUTUAL":       2,
 	"ISTIO_MUTUAL": 3,
 }
 
-func (x TLSSettings_TLSmode) String() string {
-	return proto.EnumName(TLSSettings_TLSmode_name, int32(x))
+func (x ClientTLSSettings_TLSmode) String() string {
+	return proto.EnumName(ClientTLSSettings_TLSmode_name, int32(x))
 }
 
-func (TLSSettings_TLSmode) EnumDescriptor() ([]byte, []int) {
+func (ClientTLSSettings_TLSmode) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_12899beb695152c8, []int{6, 0}
 }
 
 // DestinationRule defines policies that apply to traffic intended for a service
 // after routing has occurred.
+//
+// <!-- crd generation tags
+// +cue-gen:DestinationRule:groupName:networking.istio.io
+// +cue-gen:DestinationRule:version:v1alpha3
+// +cue-gen:DestinationRule:storageVersion
+// +cue-gen:DestinationRule:annotations:helm.sh/resource-policy=keep
+// +cue-gen:DestinationRule:labels:app=istio-pilot,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:DestinationRule:subresource:status
+// +cue-gen:DestinationRule:scope:Namespaced
+// +cue-gen:DestinationRule:resource:categories=istio-io,networking-istio-io,shortNames=dr
+// +cue-gen:DestinationRule:printerColumn:name=Host,type=string,JSONPath=.spec.host,description="The name of a service from the service registry"
+// +cue-gen:DestinationRule:printerColumn:name=Age,type=date,JSONPath=.metadata.creationTimestamp,description="CreationTimestamp is a timestamp
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations.
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +cue-gen:DestinationRule:preserveUnknownFields:false
+// -->
 //
 // <!-- go code generation tags
 // +kubetype-gen
@@ -345,7 +428,7 @@ type TrafficPolicy struct {
 	// Settings controlling eviction of unhealthy hosts from the load balancing pool
 	OutlierDetection *OutlierDetection `protobuf:"bytes,3,opt,name=outlier_detection,json=outlierDetection,proto3" json:"outlier_detection,omitempty"`
 	// TLS related settings for connections to the upstream service.
-	Tls *TLSSettings `protobuf:"bytes,4,opt,name=tls,proto3" json:"tls,omitempty"`
+	Tls *ClientTLSSettings `protobuf:"bytes,4,opt,name=tls,proto3" json:"tls,omitempty"`
 	// Traffic policies specific to individual ports. Note that port level
 	// settings will override the destination-level settings. Traffic
 	// settings specified at the destination-level will not be inherited when
@@ -411,7 +494,7 @@ func (m *TrafficPolicy) GetOutlierDetection() *OutlierDetection {
 	return nil
 }
 
-func (m *TrafficPolicy) GetTls() *TLSSettings {
+func (m *TrafficPolicy) GetTls() *ClientTLSSettings {
 	if m != nil {
 		return m.Tls
 	}
@@ -438,10 +521,10 @@ type TrafficPolicy_PortTrafficPolicy struct {
 	// Settings controlling eviction of unhealthy hosts from the load balancing pool
 	OutlierDetection *OutlierDetection `protobuf:"bytes,4,opt,name=outlier_detection,json=outlierDetection,proto3" json:"outlier_detection,omitempty"`
 	// TLS related settings for connections to the upstream service.
-	Tls                  *TLSSettings `protobuf:"bytes,5,opt,name=tls,proto3" json:"tls,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	Tls                  *ClientTLSSettings `protobuf:"bytes,5,opt,name=tls,proto3" json:"tls,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
 }
 
 func (m *TrafficPolicy_PortTrafficPolicy) Reset()         { *m = TrafficPolicy_PortTrafficPolicy{} }
@@ -505,7 +588,7 @@ func (m *TrafficPolicy_PortTrafficPolicy) GetOutlierDetection() *OutlierDetectio
 	return nil
 }
 
-func (m *TrafficPolicy_PortTrafficPolicy) GetTls() *TLSSettings {
+func (m *TrafficPolicy_PortTrafficPolicy) GetTls() *ClientTLSSettings {
 	if m != nil {
 		return m.Tls
 	}
@@ -521,6 +604,8 @@ func (m *TrafficPolicy_PortTrafficPolicy) GetTls() *TLSSettings {
 // subset named testversion that is composed of endpoints (e.g., pods) with
 // labels (version:v3).
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -539,6 +624,29 @@ func (m *TrafficPolicy_PortTrafficPolicy) GetTls() *TLSSettings {
 //       loadBalancer:
 //         simple: ROUND_ROBIN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     loadBalancer:
+//       simple: LEAST_CONN
+//   subsets:
+//   - name: testversion
+//     labels:
+//       version: v3
+//     trafficPolicy:
+//       loadBalancer:
+//         simple: ROUND_ROBIN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // **Note:** Policies specified for subsets will not take effect until
 // a route rule explicitly sends traffic to this subset.
@@ -546,7 +654,7 @@ func (m *TrafficPolicy_PortTrafficPolicy) GetTls() *TLSSettings {
 // One or more labels are typically required to identify the subset destination,
 // however, when the corresponding DestinationRule represents a host that
 // supports multiple SNI hosts (e.g., an egress gateway), a subset without labels
-// may be meaningful. In this case a traffic policy with [TLSSettings](#TLSSettings)
+// may be meaningful. In this case a traffic policy with [ClientTLSSettings](#ClientTLSSettings)
 // can be used to identify a specific SNI host corresponding to the named subset.
 type Subset struct {
 	// Name of the subset. The service name and the subset name can
@@ -627,6 +735,8 @@ func (m *Subset) GetTrafficPolicy() *TrafficPolicy {
 // For example, the following rule uses a round robin load balancing policy
 // for all traffic going to the ratings service.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -638,11 +748,29 @@ func (m *Subset) GetTrafficPolicy() *TrafficPolicy {
 //     loadBalancer:
 //       simple: ROUND_ROBIN
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-ratings
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     loadBalancer:
+//       simple: ROUND_ROBIN
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The following example sets up sticky sessions for the ratings service
 // hashing-based load balancer for the same ratings service using the
 // the User cookie as the hash key.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 //  apiVersion: networking.istio.io/v1alpha3
 //  kind: DestinationRule
@@ -657,6 +785,25 @@ func (m *Subset) GetTrafficPolicy() *TrafficPolicy {
 //            name: user
 //            ttl: 0s
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+//  apiVersion: networking.istio.io/v1beta1
+//  kind: DestinationRule
+//  metadata:
+//    name: bookinfo-ratings
+//  spec:
+//    host: ratings.prod.svc.cluster.local
+//    trafficPolicy:
+//      loadBalancer:
+//        consistentHash:
+//          httpCookie:
+//            name: user
+//            ttl: 0s
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 type LoadBalancerSettings struct {
 	// Upstream load balancing policy.
@@ -664,10 +811,13 @@ type LoadBalancerSettings struct {
 	// Types that are valid to be assigned to LbPolicy:
 	//	*LoadBalancerSettings_Simple
 	//	*LoadBalancerSettings_ConsistentHash
-	LbPolicy             isLoadBalancerSettings_LbPolicy `protobuf_oneof:"lb_policy"`
-	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
-	XXX_unrecognized     []byte                          `json:"-"`
-	XXX_sizecache        int32                           `json:"-"`
+	LbPolicy isLoadBalancerSettings_LbPolicy `protobuf_oneof:"lb_policy"`
+	// Locality load balancer settings, this will override mesh wide settings in entirety, meaning no merging would be performed
+	// between this object and the object one in MeshConfig
+	LocalityLbSetting    *LocalityLoadBalancerSetting `protobuf:"bytes,3,opt,name=locality_lb_setting,json=localityLbSetting,proto3" json:"locality_lb_setting,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
+	XXX_unrecognized     []byte                       `json:"-"`
+	XXX_sizecache        int32                        `json:"-"`
 }
 
 func (m *LoadBalancerSettings) Reset()         { *m = LoadBalancerSettings{} }
@@ -740,6 +890,13 @@ func (m *LoadBalancerSettings) GetConsistentHash() *LoadBalancerSettings_Consist
 	return nil
 }
 
+func (m *LoadBalancerSettings) GetLocalityLbSetting() *LocalityLoadBalancerSetting {
+	if m != nil {
+		return m.LocalityLbSetting
+	}
+	return nil
+}
+
 // XXX_OneofWrappers is for the internal use of the proto package.
 func (*LoadBalancerSettings) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
@@ -761,6 +918,7 @@ type LoadBalancerSettings_ConsistentHashLB struct {
 	//	*LoadBalancerSettings_ConsistentHashLB_HttpHeaderName
 	//	*LoadBalancerSettings_ConsistentHashLB_HttpCookie
 	//	*LoadBalancerSettings_ConsistentHashLB_UseSourceIp
+	//	*LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName
 	HashKey isLoadBalancerSettings_ConsistentHashLB_HashKey `protobuf_oneof:"hash_key"`
 	// The minimum number of virtual nodes to use for the hash
 	// ring. Defaults to 1024. Larger ring sizes result in more granular
@@ -821,12 +979,17 @@ type LoadBalancerSettings_ConsistentHashLB_HttpCookie struct {
 type LoadBalancerSettings_ConsistentHashLB_UseSourceIp struct {
 	UseSourceIp bool `protobuf:"varint,3,opt,name=use_source_ip,json=useSourceIp,proto3,oneof"`
 }
+type LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName struct {
+	HttpQueryParameterName string `protobuf:"bytes,5,opt,name=http_query_parameter_name,json=httpQueryParameterName,proto3,oneof"`
+}
 
 func (*LoadBalancerSettings_ConsistentHashLB_HttpHeaderName) isLoadBalancerSettings_ConsistentHashLB_HashKey() {
 }
 func (*LoadBalancerSettings_ConsistentHashLB_HttpCookie) isLoadBalancerSettings_ConsistentHashLB_HashKey() {
 }
 func (*LoadBalancerSettings_ConsistentHashLB_UseSourceIp) isLoadBalancerSettings_ConsistentHashLB_HashKey() {
+}
+func (*LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName) isLoadBalancerSettings_ConsistentHashLB_HashKey() {
 }
 
 func (m *LoadBalancerSettings_ConsistentHashLB) GetHashKey() isLoadBalancerSettings_ConsistentHashLB_HashKey {
@@ -857,6 +1020,13 @@ func (m *LoadBalancerSettings_ConsistentHashLB) GetUseSourceIp() bool {
 	return false
 }
 
+func (m *LoadBalancerSettings_ConsistentHashLB) GetHttpQueryParameterName() string {
+	if x, ok := m.GetHashKey().(*LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName); ok {
+		return x.HttpQueryParameterName
+	}
+	return ""
+}
+
 func (m *LoadBalancerSettings_ConsistentHashLB) GetMinimumRingSize() uint64 {
 	if m != nil {
 		return m.MinimumRingSize
@@ -870,6 +1040,7 @@ func (*LoadBalancerSettings_ConsistentHashLB) XXX_OneofWrappers() []interface{} 
 		(*LoadBalancerSettings_ConsistentHashLB_HttpHeaderName)(nil),
 		(*LoadBalancerSettings_ConsistentHashLB_HttpCookie)(nil),
 		(*LoadBalancerSettings_ConsistentHashLB_UseSourceIp)(nil),
+		(*LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName)(nil),
 	}
 }
 
@@ -882,10 +1053,10 @@ type LoadBalancerSettings_ConsistentHashLB_HTTPCookie struct {
 	// Path to set for the cookie.
 	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	// Lifetime of the cookie.
-	Ttl                  *time.Duration `protobuf:"bytes,3,opt,name=ttl,proto3,stdduration" json:"ttl,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
-	XXX_unrecognized     []byte         `json:"-"`
-	XXX_sizecache        int32          `json:"-"`
+	Ttl                  *types.Duration `protobuf:"bytes,3,opt,name=ttl,proto3" json:"ttl,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
 }
 
 func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) Reset() {
@@ -939,7 +1110,7 @@ func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) GetPath() string {
 	return ""
 }
 
-func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) GetTtl() *time.Duration {
+func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) GetTtl() *types.Duration {
 	if m != nil {
 		return m.Ttl
 	}
@@ -955,6 +1126,8 @@ func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) GetTtl() *time.Durati
 // For example, the following rule sets a limit of 100 connections to redis
 // service called myredissrv with a connect timeout of 30ms
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -971,6 +1144,28 @@ func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) GetTtl() *time.Durati
 //           time: 7200s
 //           interval: 75s
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: bookinfo-redis
+// spec:
+//   host: myredissrv.prod.svc.cluster.local
+//   trafficPolicy:
+//     connectionPool:
+//       tcp:
+//         maxConnections: 100
+//         connectTimeout: 30ms
+//         tcpKeepalive:
+//           time: 7200s
+//           interval: 75s
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 type ConnectionPoolSettings struct {
 	// Settings common to both HTTP and TCP upstream connections.
 	Tcp *ConnectionPoolSettings_TCPSettings `protobuf:"bytes,1,opt,name=tcp,proto3" json:"tcp,omitempty"`
@@ -1032,7 +1227,8 @@ func (m *ConnectionPoolSettings) GetHttp() *ConnectionPoolSettings_HTTPSettings 
 type ConnectionPoolSettings_TCPSettings struct {
 	// Maximum number of HTTP1 /TCP connections to a destination host. Default 2^32-1.
 	MaxConnections int32 `protobuf:"varint,1,opt,name=max_connections,json=maxConnections,proto3" json:"max_connections,omitempty"`
-	// TCP connection timeout.
+	// TCP connection timeout. format:
+	// 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.
 	ConnectTimeout *types.Duration `protobuf:"bytes,2,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
 	// If set then set SO_KEEPALIVE on the socket to enable TCP Keepalives.
 	TcpKeepalive         *ConnectionPoolSettings_TCPSettings_TcpKeepalive `protobuf:"bytes,3,opt,name=tcp_keepalive,json=tcpKeepalive,proto3" json:"tcp_keepalive,omitempty"`
@@ -1186,7 +1382,7 @@ type ConnectionPoolSettings_HTTPSettings struct {
 	// cluster at a given time. Defaults to 2^32-1.
 	MaxRetries int32 `protobuf:"varint,4,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
 	// The idle timeout for upstream connection pool connections. The idle timeout is defined as the period in which there are no active requests.
-	// If not set, there is no idle timeout. When the idle timeout is reached the connection will be closed.
+	// If not set, the default is 1 hour. When the idle timeout is reached the connection will be closed.
 	// Note that request based timeouts mean that HTTP/2 PINGs will not keep the connection alive. Applies to both HTTP1.1 and HTTP2 connections.
 	IdleTimeout *types.Duration `protobuf:"bytes,5,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
 	// Specify if http1.1 connection should be upgraded to http2 for the associated destination.
@@ -1287,6 +1483,8 @@ func (m *ConnectionPoolSettings_HTTPSettings) GetH2UpgradePolicy() ConnectionPoo
 // hosts to be scanned every 5 mins so that any host that fails 7 consecutive
 // times with a 502, 503, or 504 error code will be ejected for 15 minutes.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -1306,13 +1504,66 @@ func (m *ConnectionPoolSettings_HTTPSettings) GetH2UpgradePolicy() ConnectionPoo
 //       interval: 5m
 //       baseEjectionTime: 15m
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-cb-policy
+// spec:
+//   host: reviews.prod.svc.cluster.local
+//   trafficPolicy:
+//     connectionPool:
+//       tcp:
+//         maxConnections: 100
+//       http:
+//         http2MaxRequests: 1000
+//         maxRequestsPerConnection: 10
+//     outlierDetection:
+//       consecutiveErrors: 7
+//       interval: 5m
+//       baseEjectionTime: 15m
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 type OutlierDetection struct {
 	// Number of errors before a host is ejected from the connection
 	// pool. Defaults to 5. When the upstream host is accessed over HTTP, a
 	// 502, 503, or 504 return code qualifies as an error. When the upstream host
 	// is accessed over an opaque TCP connection, connect timeouts and
 	// connection error/failure events qualify as an error.
-	ConsecutiveErrors int32 `protobuf:"varint,1,opt,name=consecutive_errors,json=consecutiveErrors,proto3" json:"consecutive_errors,omitempty"`
+	// $hide_from_docs
+	ConsecutiveErrors int32 `protobuf:"varint,1,opt,name=consecutive_errors,json=consecutiveErrors,proto3" json:"consecutive_errors,omitempty"` // Deprecated: Do not use.
+	// Number of gateway errors before a host is ejected from the connection pool.
+	// When the upstream host is accessed over HTTP, a 502, 503, or 504 return
+	// code qualifies as a gateway error. When the upstream host is accessed over
+	// an opaque TCP connection, connect timeouts and connection error/failure
+	// events qualify as a gateway error.
+	// This feature is disabled by default or when set to the value 0.
+	//
+	// Note that consecutive_gateway_errors and consecutive_5xx_errors can be
+	// used separately or together. Because the errors counted by
+	// consecutive_gateway_errors are also included in consecutive_5xx_errors,
+	// if the value of consecutive_gateway_errors is greater than or equal to
+	// the value of consecutive_5xx_errors, consecutive_gateway_errors will have
+	// no effect.
+	ConsecutiveGatewayErrors *types.UInt32Value `protobuf:"bytes,6,opt,name=consecutive_gateway_errors,json=consecutiveGatewayErrors,proto3" json:"consecutive_gateway_errors,omitempty"`
+	// Number of 5xx errors before a host is ejected from the connection pool.
+	// When the upstream host is accessed over an opaque TCP connection, connect
+	// timeouts, connection error/failure and request failure events qualify as a
+	// 5xx error.
+	// This feature defaults to 5 but can be disabled by setting the value to 0.
+	//
+	// Note that consecutive_gateway_errors and consecutive_5xx_errors can be
+	// used separately or together. Because the errors counted by
+	// consecutive_gateway_errors are also included in consecutive_5xx_errors,
+	// if the value of consecutive_gateway_errors is greater than or equal to
+	// the value of consecutive_5xx_errors, consecutive_gateway_errors will have
+	// no effect.
+	Consecutive_5XxErrors *types.UInt32Value `protobuf:"bytes,7,opt,name=consecutive_5xx_errors,json=consecutive5xxErrors,proto3" json:"consecutive_5xx_errors,omitempty"`
 	// Time interval between ejection sweep analysis. format:
 	// 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.
 	Interval *types.Duration `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
@@ -1371,11 +1622,26 @@ func (m *OutlierDetection) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_OutlierDetection proto.InternalMessageInfo
 
+// Deprecated: Do not use.
 func (m *OutlierDetection) GetConsecutiveErrors() int32 {
 	if m != nil {
 		return m.ConsecutiveErrors
 	}
 	return 0
+}
+
+func (m *OutlierDetection) GetConsecutiveGatewayErrors() *types.UInt32Value {
+	if m != nil {
+		return m.ConsecutiveGatewayErrors
+	}
+	return nil
+}
+
+func (m *OutlierDetection) GetConsecutive_5XxErrors() *types.UInt32Value {
+	if m != nil {
+		return m.Consecutive_5XxErrors
+	}
+	return nil
 }
 
 func (m *OutlierDetection) GetInterval() *types.Duration {
@@ -1413,6 +1679,8 @@ func (m *OutlierDetection) GetMinHealthPercent() int32 {
 // For example, the following rule configures a client to use mutual TLS
 // for connections to upstream database cluster.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -1427,10 +1695,31 @@ func (m *OutlierDetection) GetMinHealthPercent() int32 {
 //       privateKey: /etc/certs/client_private_key.pem
 //       caCertificates: /etc/certs/rootcacerts.pem
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: db-mtls
+// spec:
+//   host: mydbserver.prod.svc.cluster.local
+//   trafficPolicy:
+//     tls:
+//       mode: MUTUAL
+//       clientCertificate: /etc/certs/myclientcert.pem
+//       privateKey: /etc/certs/client_private_key.pem
+//       caCertificates: /etc/certs/rootcacerts.pem
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The following rule configures a client to use TLS when talking to a
 // foreign service whose domain matches *.foo.com.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -1442,10 +1731,28 @@ func (m *OutlierDetection) GetMinHealthPercent() int32 {
 //     tls:
 //       mode: SIMPLE
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: tls-foo
+// spec:
+//   host: "*.foo.com"
+//   trafficPolicy:
+//     tls:
+//       mode: SIMPLE
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The following rule configures a client to use Istio mutual TLS when talking
 // to rating services.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -1457,10 +1764,27 @@ func (m *OutlierDetection) GetMinHealthPercent() int32 {
 //     tls:
 //       mode: ISTIO_MUTUAL
 // ```
-type TLSSettings struct {
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: ratings-istio-mtls
+// spec:
+//   host: ratings.prod.svc.cluster.local
+//   trafficPolicy:
+//     tls:
+//       mode: ISTIO_MUTUAL
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
+type ClientTLSSettings struct {
 	// Indicates whether connections to this port should be secured
 	// using TLS. The value of this field determines how TLS is enforced.
-	Mode TLSSettings_TLSmode `protobuf:"varint,1,opt,name=mode,proto3,enum=istio.networking.v1alpha3.TLSSettings_TLSmode" json:"mode,omitempty"`
+	Mode ClientTLSSettings_TLSmode `protobuf:"varint,1,opt,name=mode,proto3,enum=istio.networking.v1alpha3.ClientTLSSettings_TLSmode" json:"mode,omitempty"`
 	// REQUIRED if mode is `MUTUAL`. The path to the file holding the
 	// client-side TLS certificate to use.
 	// Should be empty if mode is `ISTIO_MUTUAL`.
@@ -1487,18 +1811,18 @@ type TLSSettings struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TLSSettings) Reset()         { *m = TLSSettings{} }
-func (m *TLSSettings) String() string { return proto.CompactTextString(m) }
-func (*TLSSettings) ProtoMessage()    {}
-func (*TLSSettings) Descriptor() ([]byte, []int) {
+func (m *ClientTLSSettings) Reset()         { *m = ClientTLSSettings{} }
+func (m *ClientTLSSettings) String() string { return proto.CompactTextString(m) }
+func (*ClientTLSSettings) ProtoMessage()    {}
+func (*ClientTLSSettings) Descriptor() ([]byte, []int) {
 	return fileDescriptor_12899beb695152c8, []int{6}
 }
-func (m *TLSSettings) XXX_Unmarshal(b []byte) error {
+func (m *ClientTLSSettings) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *TLSSettings) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ClientTLSSettings) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_TLSSettings.Marshal(b, m, deterministic)
+		return xxx_messageInfo_ClientTLSSettings.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -1508,56 +1832,309 @@ func (m *TLSSettings) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return b[:n], nil
 	}
 }
-func (m *TLSSettings) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TLSSettings.Merge(m, src)
+func (m *ClientTLSSettings) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClientTLSSettings.Merge(m, src)
 }
-func (m *TLSSettings) XXX_Size() int {
+func (m *ClientTLSSettings) XXX_Size() int {
 	return m.Size()
 }
-func (m *TLSSettings) XXX_DiscardUnknown() {
-	xxx_messageInfo_TLSSettings.DiscardUnknown(m)
+func (m *ClientTLSSettings) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClientTLSSettings.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_TLSSettings proto.InternalMessageInfo
+var xxx_messageInfo_ClientTLSSettings proto.InternalMessageInfo
 
-func (m *TLSSettings) GetMode() TLSSettings_TLSmode {
+func (m *ClientTLSSettings) GetMode() ClientTLSSettings_TLSmode {
 	if m != nil {
 		return m.Mode
 	}
-	return TLSSettings_DISABLE
+	return ClientTLSSettings_DISABLE
 }
 
-func (m *TLSSettings) GetClientCertificate() string {
+func (m *ClientTLSSettings) GetClientCertificate() string {
 	if m != nil {
 		return m.ClientCertificate
 	}
 	return ""
 }
 
-func (m *TLSSettings) GetPrivateKey() string {
+func (m *ClientTLSSettings) GetPrivateKey() string {
 	if m != nil {
 		return m.PrivateKey
 	}
 	return ""
 }
 
-func (m *TLSSettings) GetCaCertificates() string {
+func (m *ClientTLSSettings) GetCaCertificates() string {
 	if m != nil {
 		return m.CaCertificates
 	}
 	return ""
 }
 
-func (m *TLSSettings) GetSubjectAltNames() []string {
+func (m *ClientTLSSettings) GetSubjectAltNames() []string {
 	if m != nil {
 		return m.SubjectAltNames
 	}
 	return nil
 }
 
-func (m *TLSSettings) GetSni() string {
+func (m *ClientTLSSettings) GetSni() string {
 	if m != nil {
 		return m.Sni
+	}
+	return ""
+}
+
+// Locality-weighted load balancing allows administrators to control the
+// distribution of traffic to endpoints based on the localities of where the
+// traffic originates and where it will terminate. These localities are
+// specified using arbitrary labels that designate a hierarchy of localities in
+// {region}/{zone}/{sub-zone} form. For additional detail refer to
+// [Locality Weight](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/locality_weight)
+// The following example shows how to setup locality weights mesh-wide.
+//
+// Given a mesh with workloads and their service deployed to "us-west/zone1/*"
+// and "us-west/zone2/*". This example specifies that when traffic accessing a
+// service originates from workloads in "us-west/zone1/*", 80% of the traffic
+// will be sent to endpoints in "us-west/zone1/*", i.e the same zone, and the
+// remaining 20% will go to endpoints in "us-west/zone2/*". This setup is
+// intended to favor routing traffic to endpoints in the same locality.
+// A similar setting is specified for traffic originating in "us-west/zone2/*".
+//
+// ```yaml
+//   distribute:
+//     - from: us-west/zone1/*
+//       to:
+//         "us-west/zone1/*": 80
+//         "us-west/zone2/*": 20
+//     - from: us-west/zone2/*
+//       to:
+//         "us-west/zone1/*": 20
+//         "us-west/zone2/*": 80
+// ```
+//
+// If the goal of the operator is not to distribute load across zones and
+// regions but rather to restrict the regionality of failover to meet other
+// operational requirements an operator can set a 'failover' policy instead of
+// a 'distribute' policy.
+//
+// The following example sets up a locality failover policy for regions.
+// Assume a service resides in zones within us-east, us-west & eu-west
+// this example specifies that when endpoints within us-east become unhealthy
+// traffic should failover to endpoints in any zone or sub-zone within eu-west
+// and similarly us-west should failover to us-east.
+//
+// ```yaml
+//  failover:
+//    - from: us-east
+//      to: eu-west
+//    - from: us-west
+//      to: us-east
+// ```
+// Locality load balancing settings.
+type LocalityLoadBalancerSetting struct {
+	// Optional: only one of distribute or failover can be set.
+	// Explicitly specify loadbalancing weight across different zones and geographical locations.
+	// Refer to [Locality weighted load balancing](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/locality_weight)
+	// If empty, the locality weight is set according to the endpoints number within it.
+	Distribute []*LocalityLoadBalancerSetting_Distribute `protobuf:"bytes,1,rep,name=distribute,proto3" json:"distribute,omitempty"`
+	// Optional: only failover or distribute can be set.
+	// Explicitly specify the region traffic will land on when endpoints in local region becomes unhealthy.
+	// Should be used together with OutlierDetection to detect unhealthy endpoints.
+	// Note: if no OutlierDetection specified, this will not take effect.
+	Failover []*LocalityLoadBalancerSetting_Failover `protobuf:"bytes,2,rep,name=failover,proto3" json:"failover,omitempty"`
+	// enable locality load balancing, this is DestinationRule-level and will override mesh wide settings in entirety.
+	// e.g. true means that turn on locality load balancing for this DestinationRule no matter what mesh wide settings is.
+	Enabled              *types.BoolValue `protobuf:"bytes,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
+}
+
+func (m *LocalityLoadBalancerSetting) Reset()         { *m = LocalityLoadBalancerSetting{} }
+func (m *LocalityLoadBalancerSetting) String() string { return proto.CompactTextString(m) }
+func (*LocalityLoadBalancerSetting) ProtoMessage()    {}
+func (*LocalityLoadBalancerSetting) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12899beb695152c8, []int{7}
+}
+func (m *LocalityLoadBalancerSetting) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *LocalityLoadBalancerSetting) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_LocalityLoadBalancerSetting.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *LocalityLoadBalancerSetting) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LocalityLoadBalancerSetting.Merge(m, src)
+}
+func (m *LocalityLoadBalancerSetting) XXX_Size() int {
+	return m.Size()
+}
+func (m *LocalityLoadBalancerSetting) XXX_DiscardUnknown() {
+	xxx_messageInfo_LocalityLoadBalancerSetting.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LocalityLoadBalancerSetting proto.InternalMessageInfo
+
+func (m *LocalityLoadBalancerSetting) GetDistribute() []*LocalityLoadBalancerSetting_Distribute {
+	if m != nil {
+		return m.Distribute
+	}
+	return nil
+}
+
+func (m *LocalityLoadBalancerSetting) GetFailover() []*LocalityLoadBalancerSetting_Failover {
+	if m != nil {
+		return m.Failover
+	}
+	return nil
+}
+
+func (m *LocalityLoadBalancerSetting) GetEnabled() *types.BoolValue {
+	if m != nil {
+		return m.Enabled
+	}
+	return nil
+}
+
+// Describes how traffic originating in the 'from' zone or sub-zone is
+// distributed over a set of 'to' zones. Syntax for specifying a zone is
+// {region}/{zone}/{sub-zone} and terminal wildcards are allowed on any
+// segment of the specification. Examples:
+// * - matches all localities
+// us-west/* - all zones and sub-zones within the us-west region
+// us-west/zone-1/* - all sub-zones within us-west/zone-1
+type LocalityLoadBalancerSetting_Distribute struct {
+	// Originating locality, '/' separated, e.g. 'region/zone/sub_zone'.
+	From string `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	// Map of upstream localities to traffic distribution weights. The sum of
+	// all weights should be == 100. Any locality not assigned a weight will
+	// receive no traffic.
+	To                   map[string]uint32 `protobuf:"bytes,2,rep,name=to,proto3" json:"to,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *LocalityLoadBalancerSetting_Distribute) Reset() {
+	*m = LocalityLoadBalancerSetting_Distribute{}
+}
+func (m *LocalityLoadBalancerSetting_Distribute) String() string { return proto.CompactTextString(m) }
+func (*LocalityLoadBalancerSetting_Distribute) ProtoMessage()    {}
+func (*LocalityLoadBalancerSetting_Distribute) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12899beb695152c8, []int{7, 0}
+}
+func (m *LocalityLoadBalancerSetting_Distribute) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *LocalityLoadBalancerSetting_Distribute) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_LocalityLoadBalancerSetting_Distribute.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *LocalityLoadBalancerSetting_Distribute) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LocalityLoadBalancerSetting_Distribute.Merge(m, src)
+}
+func (m *LocalityLoadBalancerSetting_Distribute) XXX_Size() int {
+	return m.Size()
+}
+func (m *LocalityLoadBalancerSetting_Distribute) XXX_DiscardUnknown() {
+	xxx_messageInfo_LocalityLoadBalancerSetting_Distribute.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LocalityLoadBalancerSetting_Distribute proto.InternalMessageInfo
+
+func (m *LocalityLoadBalancerSetting_Distribute) GetFrom() string {
+	if m != nil {
+		return m.From
+	}
+	return ""
+}
+
+func (m *LocalityLoadBalancerSetting_Distribute) GetTo() map[string]uint32 {
+	if m != nil {
+		return m.To
+	}
+	return nil
+}
+
+// Specify the traffic failover policy across regions. Since zone and sub-zone
+// failover is supported by default this only needs to be specified for
+// regions when the operator needs to constrain traffic failover so that
+// the default behavior of failing over to any endpoint globally does not
+// apply. This is useful when failing over traffic across regions would not
+// improve service health or may need to be restricted for other reasons
+// like regulatory controls.
+type LocalityLoadBalancerSetting_Failover struct {
+	// Originating region.
+	From string `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	// Destination region the traffic will fail over to when endpoints in
+	// the 'from' region becomes unhealthy.
+	To                   string   `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *LocalityLoadBalancerSetting_Failover) Reset()         { *m = LocalityLoadBalancerSetting_Failover{} }
+func (m *LocalityLoadBalancerSetting_Failover) String() string { return proto.CompactTextString(m) }
+func (*LocalityLoadBalancerSetting_Failover) ProtoMessage()    {}
+func (*LocalityLoadBalancerSetting_Failover) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12899beb695152c8, []int{7, 1}
+}
+func (m *LocalityLoadBalancerSetting_Failover) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *LocalityLoadBalancerSetting_Failover) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_LocalityLoadBalancerSetting_Failover.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *LocalityLoadBalancerSetting_Failover) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LocalityLoadBalancerSetting_Failover.Merge(m, src)
+}
+func (m *LocalityLoadBalancerSetting_Failover) XXX_Size() int {
+	return m.Size()
+}
+func (m *LocalityLoadBalancerSetting_Failover) XXX_DiscardUnknown() {
+	xxx_messageInfo_LocalityLoadBalancerSetting_Failover.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LocalityLoadBalancerSetting_Failover proto.InternalMessageInfo
+
+func (m *LocalityLoadBalancerSetting_Failover) GetFrom() string {
+	if m != nil {
+		return m.From
+	}
+	return ""
+}
+
+func (m *LocalityLoadBalancerSetting_Failover) GetTo() string {
+	if m != nil {
+		return m.To
 	}
 	return ""
 }
@@ -1565,7 +2142,7 @@ func (m *TLSSettings) GetSni() string {
 func init() {
 	proto.RegisterEnum("istio.networking.v1alpha3.LoadBalancerSettings_SimpleLB", LoadBalancerSettings_SimpleLB_name, LoadBalancerSettings_SimpleLB_value)
 	proto.RegisterEnum("istio.networking.v1alpha3.ConnectionPoolSettings_HTTPSettings_H2UpgradePolicy", ConnectionPoolSettings_HTTPSettings_H2UpgradePolicy_name, ConnectionPoolSettings_HTTPSettings_H2UpgradePolicy_value)
-	proto.RegisterEnum("istio.networking.v1alpha3.TLSSettings_TLSmode", TLSSettings_TLSmode_name, TLSSettings_TLSmode_value)
+	proto.RegisterEnum("istio.networking.v1alpha3.ClientTLSSettings_TLSmode", ClientTLSSettings_TLSmode_name, ClientTLSSettings_TLSmode_value)
 	proto.RegisterType((*DestinationRule)(nil), "istio.networking.v1alpha3.DestinationRule")
 	proto.RegisterType((*TrafficPolicy)(nil), "istio.networking.v1alpha3.TrafficPolicy")
 	proto.RegisterType((*TrafficPolicy_PortTrafficPolicy)(nil), "istio.networking.v1alpha3.TrafficPolicy.PortTrafficPolicy")
@@ -1579,7 +2156,11 @@ func init() {
 	proto.RegisterType((*ConnectionPoolSettings_TCPSettings_TcpKeepalive)(nil), "istio.networking.v1alpha3.ConnectionPoolSettings.TCPSettings.TcpKeepalive")
 	proto.RegisterType((*ConnectionPoolSettings_HTTPSettings)(nil), "istio.networking.v1alpha3.ConnectionPoolSettings.HTTPSettings")
 	proto.RegisterType((*OutlierDetection)(nil), "istio.networking.v1alpha3.OutlierDetection")
-	proto.RegisterType((*TLSSettings)(nil), "istio.networking.v1alpha3.TLSSettings")
+	proto.RegisterType((*ClientTLSSettings)(nil), "istio.networking.v1alpha3.ClientTLSSettings")
+	proto.RegisterType((*LocalityLoadBalancerSetting)(nil), "istio.networking.v1alpha3.LocalityLoadBalancerSetting")
+	proto.RegisterType((*LocalityLoadBalancerSetting_Distribute)(nil), "istio.networking.v1alpha3.LocalityLoadBalancerSetting.Distribute")
+	proto.RegisterMapType((map[string]uint32)(nil), "istio.networking.v1alpha3.LocalityLoadBalancerSetting.Distribute.ToEntry")
+	proto.RegisterType((*LocalityLoadBalancerSetting_Failover)(nil), "istio.networking.v1alpha3.LocalityLoadBalancerSetting.Failover")
 }
 
 func init() {
@@ -1587,102 +2168,119 @@ func init() {
 }
 
 var fileDescriptor_12899beb695152c8 = []byte{
-	// 1514 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0xcd, 0x6e, 0xdb, 0xc6,
-	0x16, 0xb6, 0x7e, 0x6d, 0x1d, 0xd9, 0x12, 0x3d, 0xd7, 0x48, 0x14, 0x05, 0x70, 0x7c, 0x85, 0x8b,
-	0x1b, 0xdf, 0xdc, 0x86, 0x6e, 0x94, 0x16, 0x48, 0x93, 0xa6, 0x8d, 0x64, 0xa9, 0x96, 0x1b, 0x59,
-	0x12, 0x46, 0x32, 0x50, 0x64, 0x43, 0x8c, 0xa8, 0xb1, 0x34, 0x31, 0xc5, 0x61, 0xc9, 0xa1, 0x6a,
-	0xe7, 0x19, 0xba, 0xe9, 0xa6, 0xe8, 0xb6, 0x2f, 0xd0, 0xe7, 0xe8, 0xae, 0x5d, 0xb4, 0x9b, 0x6e,
-	0x1a, 0xe4, 0x19, 0xba, 0x2a, 0x50, 0xa0, 0x98, 0x21, 0x29, 0xc9, 0x8e, 0x63, 0xc7, 0x70, 0xb3,
-	0x9b, 0x39, 0xe7, 0x3b, 0xdf, 0xfc, 0x9c, 0x8f, 0xe7, 0x0c, 0xe1, 0x8e, 0x4d, 0xc5, 0x57, 0xdc,
-	0x3d, 0x64, 0xf6, 0x70, 0x6b, 0x72, 0x8f, 0x58, 0xce, 0x88, 0xdc, 0xdf, 0x1a, 0x50, 0x4f, 0x30,
-	0x9b, 0x08, 0xc6, 0x6d, 0xc3, 0xf5, 0x2d, 0xaa, 0x3b, 0x2e, 0x17, 0x1c, 0xdd, 0x60, 0x9e, 0x60,
-	0x5c, 0x9f, 0x45, 0xe8, 0x51, 0x44, 0xf1, 0xd6, 0x90, 0xf3, 0xa1, 0x45, 0xb7, 0x88, 0xc3, 0xb6,
-	0x0e, 0x18, 0xb5, 0x06, 0x46, 0x9f, 0x8e, 0xc8, 0x84, 0x71, 0x37, 0x88, 0x2d, 0xae, 0x87, 0x00,
-	0x35, 0xeb, 0xfb, 0x07, 0x5b, 0x03, 0xdf, 0x55, 0x0b, 0x84, 0xfe, 0xff, 0x9d, 0xb5, 0x8f, 0x09,
-	0x73, 0x85, 0x4f, 0x2c, 0xc3, 0xa3, 0xee, 0x84, 0x99, 0xe1, 0x36, 0x8a, 0x6b, 0x43, 0x3e, 0xe4,
-	0x6a, 0xb8, 0x25, 0x47, 0x81, 0xb5, 0xf4, 0x6b, 0x0c, 0xf2, 0xb5, 0xd9, 0xbe, 0xb1, 0x6f, 0x51,
-	0x74, 0x1d, 0x92, 0x23, 0xee, 0x89, 0x42, 0x6c, 0x23, 0xb6, 0x99, 0xa9, 0x26, 0x5e, 0x56, 0xe2,
-	0x58, 0x19, 0x50, 0x1b, 0x72, 0xc2, 0x25, 0x07, 0x07, 0xcc, 0x34, 0x1c, 0x6e, 0x31, 0xf3, 0xb8,
-	0x10, 0xdf, 0x88, 0x6d, 0x66, 0xcb, 0x9b, 0xfa, 0x1b, 0x8f, 0xa8, 0xf7, 0x82, 0x80, 0x8e, 0xc2,
-	0xe3, 0x15, 0x31, 0x3f, 0x45, 0x8f, 0x60, 0xd1, 0xf3, 0xfb, 0x1e, 0x15, 0x5e, 0x21, 0xb1, 0x91,
-	0xd8, 0xcc, 0x96, 0xff, 0x7d, 0x0e, 0x53, 0x57, 0x21, 0x71, 0x14, 0x81, 0x6e, 0x42, 0x86, 0x1e,
-	0x39, 0xdc, 0x15, 0x86, 0xe0, 0x85, 0xe4, 0x46, 0x62, 0x33, 0x83, 0x97, 0x02, 0x43, 0x8f, 0x97,
-	0x7e, 0x4b, 0xc3, 0xca, 0x89, 0xa5, 0x51, 0x0f, 0x56, 0x2c, 0x4e, 0x06, 0x46, 0x9f, 0x58, 0xc4,
-	0x36, 0xa9, 0xab, 0x8e, 0x97, 0x2d, 0x6f, 0x9d, 0xb3, 0x62, 0x93, 0x93, 0x41, 0x35, 0x84, 0x77,
-	0xa9, 0x10, 0xcc, 0x1e, 0x7a, 0x78, 0xd9, 0x9a, 0xb3, 0xa2, 0x67, 0x90, 0x37, 0xb9, 0x6d, 0x53,
-	0x53, 0x65, 0xdd, 0xe1, 0xdc, 0x0a, 0xef, 0xe4, 0xde, 0x39, 0xbc, 0xdb, 0xd3, 0x88, 0x0e, 0xe7,
-	0xd6, 0x94, 0x39, 0x67, 0x9e, 0xb0, 0xa3, 0x2f, 0x60, 0x95, 0xfb, 0xc2, 0x62, 0xd4, 0x35, 0x06,
-	0x54, 0x04, 0x8e, 0x42, 0x42, 0xb1, 0xff, 0xff, 0x1c, 0xf6, 0x76, 0x10, 0x53, 0x8b, 0x42, 0xb0,
-	0xc6, 0x4f, 0x59, 0xd0, 0x03, 0x48, 0x08, 0xcb, 0x2b, 0x24, 0x15, 0xd7, 0x7f, 0xcf, 0xcb, 0x5e,
-	0xb3, 0x3b, 0xdd, 0x9e, 0x0c, 0x41, 0xcf, 0xe1, 0x5f, 0xea, 0xca, 0x2d, 0x3a, 0xa1, 0x52, 0x61,
-	0x81, 0xaf, 0x90, 0x52, 0xd9, 0x7b, 0xf8, 0xb6, 0x3a, 0xd0, 0x3b, 0x32, 0x4b, 0x27, 0x94, 0xb1,
-	0x2a, 0x69, 0x9b, 0x92, 0x35, 0x5a, 0xb0, 0xf8, 0x6d, 0x02, 0x56, 0x5f, 0x03, 0xa2, 0x47, 0x90,
-	0x94, 0xd0, 0x30, 0x7d, 0xb7, 0xcf, 0x59, 0x52, 0xc6, 0x76, 0xa9, 0x45, 0x4d, 0xc1, 0x5d, 0xac,
-	0x82, 0x5e, 0x17, 0x41, 0xfc, 0x1d, 0x89, 0x20, 0xf1, 0x4e, 0x45, 0x90, 0xfc, 0x07, 0x45, 0x90,
-	0xba, 0xb4, 0x08, 0x4a, 0x7f, 0xc4, 0x20, 0x1d, 0x7c, 0x8d, 0xb2, 0x56, 0xd8, 0x64, 0x4c, 0x4f,
-	0xd4, 0x0a, 0x69, 0x40, 0x75, 0x48, 0x5b, 0xa4, 0x4f, 0x2d, 0xaf, 0x10, 0x57, 0xda, 0xb8, 0x7b,
-	0xe1, 0x97, 0xad, 0x37, 0x15, 0xbe, 0x6e, 0x0b, 0xf7, 0x18, 0x87, 0xc1, 0x67, 0x94, 0x9c, 0xc4,
-	0x95, 0x4a, 0x4e, 0xf1, 0x23, 0xc8, 0xce, 0xad, 0x83, 0x34, 0x48, 0x1c, 0xd2, 0xe3, 0x60, 0xfb,
-	0x58, 0x0e, 0xd1, 0x1a, 0xa4, 0x26, 0xc4, 0xf2, 0xa9, 0x92, 0x46, 0x06, 0x07, 0x93, 0x87, 0xf1,
-	0x07, 0xb1, 0xd2, 0x0f, 0x29, 0x58, 0x3b, 0x4b, 0x0d, 0x08, 0x43, 0xda, 0x63, 0x63, 0xc7, 0x0a,
-	0xae, 0x21, 0x57, 0x7e, 0x70, 0x49, 0x39, 0xe9, 0x5d, 0x15, 0xdd, 0xac, 0x36, 0x16, 0x70, 0xc8,
-	0x84, 0x0e, 0x95, 0xa6, 0x3c, 0xe6, 0x09, 0x6a, 0x0b, 0x63, 0x44, 0xbc, 0x51, 0xa8, 0xd5, 0x27,
-	0x97, 0x25, 0xdf, 0x9e, 0xd2, 0x34, 0x88, 0x37, 0x52, 0x8b, 0xe4, 0xcc, 0x13, 0xb6, 0xe2, 0x5f,
-	0x71, 0xd0, 0x4e, 0xc3, 0xd0, 0x1d, 0xd0, 0x46, 0x42, 0x38, 0xc6, 0x88, 0x92, 0x01, 0x75, 0x8d,
-	0x59, 0x9a, 0x25, 0x81, 0xf4, 0x34, 0x94, 0xa3, 0x25, 0xb3, 0x6d, 0x43, 0x56, 0x61, 0x4d, 0xce,
-	0x0f, 0x19, 0x0d, 0x77, 0xfa, 0xf4, 0xaa, 0x3b, 0xd5, 0x1b, 0xbd, 0x5e, 0x67, 0x5b, 0x51, 0x36,
-	0x16, 0x30, 0xc8, 0x15, 0x82, 0x19, 0xfa, 0x0f, 0xac, 0xf8, 0x1e, 0x35, 0x3c, 0xee, 0xbb, 0x26,
-	0x35, 0x98, 0xa3, 0x54, 0xb1, 0xd4, 0x58, 0xc0, 0x59, 0xdf, 0xa3, 0x5d, 0x65, 0xdd, 0x75, 0xd0,
-	0x1d, 0x58, 0x1d, 0x33, 0x9b, 0x8d, 0xfd, 0xb1, 0xe1, 0x32, 0x7b, 0x68, 0x78, 0xec, 0x05, 0x55,
-	0xdf, 0x4e, 0x12, 0xe7, 0x43, 0x07, 0x66, 0xf6, 0xb0, 0xcb, 0x5e, 0xd0, 0x22, 0x07, 0x98, 0xad,
-	0xf6, 0x66, 0x59, 0x23, 0x48, 0x3a, 0x44, 0x8c, 0x42, 0x71, 0xa8, 0x31, 0xfa, 0x00, 0x12, 0x42,
-	0x44, 0x9f, 0xfc, 0x0d, 0x3d, 0x68, 0xd9, 0x7a, 0xd4, 0xb2, 0xf5, 0x5a, 0xd8, 0xb2, 0xab, 0x8b,
-	0x2f, 0x2b, 0xf1, 0xef, 0x7e, 0xbf, 0x15, 0xc3, 0x12, 0x5e, 0x05, 0x58, 0x92, 0x59, 0x35, 0x0e,
-	0xe9, 0x71, 0xa9, 0x01, 0x4b, 0x91, 0x04, 0x50, 0x1e, 0xb2, 0xb8, 0xbd, 0xdf, 0xaa, 0x19, 0xb8,
-	0x5d, 0xdd, 0x6d, 0x69, 0x0b, 0x28, 0x07, 0xd0, 0xac, 0x57, 0xba, 0x3d, 0x63, 0xbb, 0xdd, 0x6a,
-	0x69, 0x31, 0x04, 0x90, 0xc6, 0x95, 0x56, 0xad, 0xbd, 0xa7, 0xc5, 0x25, 0xb8, 0x53, 0xe9, 0x76,
-	0x7b, 0x0d, 0xdc, 0xde, 0xdf, 0x69, 0x68, 0x89, 0x6a, 0x16, 0x32, 0x56, 0x3f, 0xfc, 0x54, 0x4a,
-	0xdf, 0x2c, 0xc1, 0xb5, 0xb3, 0xcb, 0x0c, 0x6a, 0x43, 0x42, 0x98, 0x4e, 0x58, 0x44, 0x1f, 0x5f,
-	0xba, 0x4c, 0xe9, 0xbd, 0xed, 0xce, 0x5c, 0x4d, 0x30, 0x1d, 0x84, 0x21, 0x29, 0xf3, 0x13, 0xa6,
-	0xfe, 0x93, 0xcb, 0x33, 0xca, 0xdb, 0x9f, 0x52, 0x2a, 0xae, 0xe2, 0x9f, 0x71, 0xc8, 0xce, 0x2d,
-	0x84, 0x6e, 0x43, 0x7e, 0x4c, 0x8e, 0x8c, 0x59, 0x85, 0xf4, 0xd4, 0x01, 0x52, 0x38, 0x37, 0x26,
-	0x47, 0x33, 0x5a, 0x0f, 0x55, 0xa7, 0x05, 0xd9, 0x10, 0x6c, 0x4c, 0xb9, 0x2f, 0xc2, 0x7d, 0xbd,
-	0x39, 0x3b, 0xd3, 0xc2, 0xdb, 0x0b, 0x02, 0x10, 0x87, 0x15, 0x61, 0x3a, 0xc6, 0x21, 0xa5, 0x0e,
-	0xb1, 0xd8, 0x84, 0x86, 0xf9, 0xfd, 0xfc, 0x4a, 0x77, 0xa5, 0xf7, 0x4c, 0xe7, 0x69, 0xc4, 0x88,
-	0x97, 0xc5, 0xdc, 0xac, 0xf8, 0x75, 0x0c, 0x96, 0xe7, 0xdd, 0xe8, 0x1a, 0xa4, 0x1d, 0x97, 0xf7,
-	0x69, 0x70, 0xca, 0x15, 0x1c, 0xce, 0xd0, 0x5d, 0x48, 0xca, 0x53, 0x5d, 0x7c, 0x24, 0x05, 0x43,
-	0x1f, 0xc2, 0x12, 0xb3, 0x05, 0x75, 0x27, 0xe4, 0x62, 0x8d, 0xe2, 0x29, 0xb4, 0xf8, 0x4b, 0x02,
-	0x96, 0xe7, 0x73, 0x82, 0x1e, 0x41, 0x51, 0x66, 0xe5, 0x9e, 0x21, 0x73, 0xe0, 0x50, 0x7b, 0x20,
-	0x3f, 0x29, 0x97, 0x7e, 0xe9, 0x53, 0x4f, 0x44, 0x89, 0xb8, 0xae, 0x10, 0x7b, 0xe4, 0xa8, 0x13,
-	0xf8, 0x71, 0xe8, 0x46, 0xef, 0x01, 0x92, 0xae, 0xb2, 0x0a, 0x9e, 0x06, 0xc5, 0x55, 0x90, 0x2a,
-	0x33, 0xe5, 0x3d, 0x72, 0x34, 0x45, 0x3f, 0x86, 0x9b, 0xf3, 0x38, 0xc3, 0xa1, 0xee, 0x5c, 0xd6,
-	0xd5, 0x29, 0x52, 0xb8, 0x30, 0x9e, 0x45, 0x74, 0xa8, 0x3b, 0xbb, 0x7c, 0x74, 0x0b, 0xb2, 0x41,
-	0xb8, 0x70, 0x19, 0x0d, 0x9e, 0x39, 0x29, 0x0c, 0x0a, 0xae, 0x2c, 0xe8, 0x63, 0x58, 0x66, 0x03,
-	0x8b, 0x4e, 0xc5, 0x91, 0xba, 0xe8, 0x5a, 0xb2, 0x12, 0x1e, 0x29, 0xe3, 0x05, 0xac, 0x8e, 0xca,
-	0x86, 0xef, 0x0c, 0x5d, 0x32, 0xa0, 0x51, 0x5b, 0x4a, 0xab, 0xca, 0xdf, 0xba, 0x9a, 0xee, 0xf5,
-	0x46, 0x79, 0x3f, 0xa0, 0x0d, 0x9b, 0x57, 0x7e, 0x74, 0xd2, 0x50, 0xfa, 0x14, 0xf2, 0xa7, 0x30,
-	0x28, 0x0b, 0x8b, 0xb5, 0xfa, 0x67, 0x95, 0xfd, 0x66, 0x4f, 0x5b, 0x40, 0x08, 0x72, 0xb5, 0xb6,
-	0xd1, 0x6a, 0xf7, 0x8c, 0xfd, 0xce, 0x0e, 0xae, 0xd4, 0xea, 0x5a, 0x4c, 0x02, 0xa2, 0x49, 0xbc,
-	0xf4, 0x7d, 0x1c, 0xb4, 0xd3, 0x8f, 0x03, 0x74, 0x17, 0x90, 0xec, 0x08, 0xd4, 0xf4, 0x05, 0x9b,
-	0x50, 0x83, 0xba, 0x2e, 0x77, 0xa3, 0x94, 0xae, 0xce, 0x79, 0xea, 0xca, 0x71, 0x42, 0x51, 0xf1,
-	0xb7, 0x56, 0x14, 0xda, 0x01, 0xd4, 0x27, 0x1e, 0x35, 0xe8, 0xf3, 0xf0, 0xa5, 0xa4, 0x54, 0x7c,
-	0xa1, 0x24, 0x35, 0x19, 0x54, 0x0f, 0x63, 0x64, 0x0e, 0xd0, 0xfb, 0xb0, 0x26, 0xf3, 0x3b, 0xe5,
-	0x71, 0xa8, 0x6b, 0x52, 0x5b, 0x84, 0x89, 0x46, 0x63, 0x72, 0x14, 0xc1, 0x3b, 0x81, 0x47, 0xca,
-	0x6f, 0xcc, 0x6c, 0xd9, 0xca, 0x2c, 0x31, 0x9a, 0xe2, 0x53, 0x81, 0xfc, 0xc6, 0xcc, 0x6e, 0x28,
-	0x47, 0x88, 0x2e, 0xfd, 0x24, 0xeb, 0xce, 0xec, 0xd1, 0x83, 0x76, 0x20, 0x39, 0xe6, 0x83, 0xa8,
-	0xbb, 0xeb, 0x6f, 0xf7, 0x54, 0x92, 0x63, 0x19, 0x15, 0x76, 0x0f, 0x39, 0x54, 0xf7, 0x6c, 0x31,
-	0xd9, 0xd0, 0x4d, 0xea, 0x0a, 0x76, 0xc0, 0x4c, 0x22, 0xa2, 0x87, 0xc6, 0x6a, 0xe0, 0xd9, 0x9e,
-	0x39, 0xa4, 0x8e, 0x1d, 0x97, 0x4d, 0x88, 0xa0, 0xb2, 0x4b, 0xa8, 0x9b, 0xca, 0x60, 0x08, 0x4d,
-	0x4f, 0xe9, 0xb1, 0x2c, 0x88, 0x26, 0x99, 0xe7, 0x0a, 0xc4, 0x9e, 0xc1, 0x39, 0x93, 0xcc, 0x11,
-	0x79, 0xb2, 0x13, 0x7a, 0x7e, 0x5f, 0x5e, 0x8a, 0x41, 0x2c, 0xa1, 0x7a, 0x79, 0xf0, 0x68, 0xcf,
-	0xe0, 0x7c, 0xe8, 0xa8, 0x58, 0x42, 0xb6, 0x72, 0x4f, 0x3e, 0x89, 0x3c, 0x9b, 0x29, 0x41, 0x67,
-	0xb0, 0x1c, 0x96, 0x9e, 0xc0, 0x62, 0x78, 0x18, 0x25, 0xb6, 0xdd, 0x6e, 0xa5, 0xda, 0xac, 0x6b,
-	0x0b, 0xb2, 0x13, 0x75, 0x77, 0xf7, 0x3a, 0xcd, 0x7a, 0xd0, 0x95, 0xf6, 0xf6, 0x7b, 0xfb, 0x95,
-	0xa6, 0x16, 0x47, 0x1a, 0x2c, 0xef, 0x76, 0x7b, 0xbb, 0x6d, 0x23, 0xb4, 0x24, 0xaa, 0xfa, 0x8f,
-	0xaf, 0xd6, 0x63, 0x3f, 0xbf, 0x5a, 0x8f, 0xbd, 0x7c, 0xb5, 0x1e, 0x7b, 0xb6, 0x11, 0x5c, 0x20,
-	0xe3, 0xea, 0xc7, 0xf7, 0x8c, 0x5f, 0xd8, 0x7e, 0x5a, 0xc9, 0xe0, 0xfe, 0xdf, 0x01, 0x00, 0x00,
-	0xff, 0xff, 0xae, 0x5d, 0x93, 0x66, 0x68, 0x0f, 0x00, 0x00,
+	// 1784 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x58, 0x4f, 0x73, 0x1a, 0xc9,
+	0x15, 0x17, 0x0c, 0x42, 0xe2, 0x21, 0x21, 0xe8, 0x75, 0x79, 0x31, 0x4e, 0x79, 0x15, 0x2a, 0x55,
+	0xab, 0x38, 0xeb, 0xd1, 0x1a, 0xaf, 0x53, 0x9b, 0x75, 0xf6, 0x0f, 0x08, 0xd6, 0x28, 0x46, 0x82,
+	0x34, 0x28, 0x95, 0x38, 0x87, 0xa9, 0x66, 0x68, 0x41, 0xaf, 0x86, 0xe9, 0xd9, 0x99, 0x1e, 0x8c,
+	0xfc, 0x19, 0x72, 0xc9, 0x3d, 0x9f, 0x22, 0x87, 0x7c, 0x86, 0xdc, 0x92, 0x43, 0xf6, 0x94, 0xcb,
+	0x96, 0x0f, 0xf9, 0x04, 0x39, 0xa4, 0x72, 0x4a, 0x75, 0x4f, 0x0f, 0x8c, 0x2c, 0x59, 0xb2, 0xac,
+	0xec, 0x6d, 0xfa, 0xfd, 0xf9, 0xf5, 0xeb, 0xd7, 0xbf, 0xd7, 0xef, 0x01, 0xdc, 0x77, 0xa9, 0x78,
+	0xc1, 0xfd, 0x13, 0xe6, 0x8e, 0x77, 0x67, 0x0f, 0x89, 0xe3, 0x4d, 0xc8, 0xa3, 0xdd, 0x11, 0x0d,
+	0x04, 0x73, 0x89, 0x60, 0xdc, 0xb5, 0xfc, 0xd0, 0xa1, 0xa6, 0xe7, 0x73, 0xc1, 0xd1, 0x1d, 0x16,
+	0x08, 0xc6, 0xcd, 0xa5, 0x87, 0x19, 0x7b, 0x54, 0x3e, 0x18, 0x73, 0x3e, 0x76, 0xe8, 0x2e, 0xf1,
+	0xd8, 0xee, 0x31, 0xa3, 0xce, 0xc8, 0x1a, 0xd2, 0x09, 0x99, 0x31, 0xee, 0x47, 0xbe, 0x95, 0x7b,
+	0xda, 0x40, 0xad, 0x86, 0xe1, 0xf1, 0xee, 0x28, 0xf4, 0xd5, 0x06, 0x6f, 0xd2, 0xbf, 0xf0, 0x89,
+	0xe7, 0x51, 0x3f, 0xd0, 0xfa, 0x9f, 0x5e, 0x14, 0xe7, 0x8c, 0xf9, 0x22, 0x24, 0x8e, 0x15, 0x50,
+	0x7f, 0xc6, 0x6c, 0x1d, 0x66, 0xe5, 0xd6, 0x98, 0x8f, 0xb9, 0xfa, 0xdc, 0x95, 0x5f, 0x91, 0xb4,
+	0xfa, 0x5d, 0x0a, 0xb6, 0x9a, 0xcb, 0x73, 0xe1, 0xd0, 0xa1, 0xe8, 0x7d, 0xc8, 0x4c, 0x78, 0x20,
+	0xca, 0xa9, 0xed, 0xd4, 0x4e, 0xae, 0x61, 0x7c, 0x5f, 0x4f, 0x63, 0x25, 0x40, 0x5d, 0x28, 0x08,
+	0x9f, 0x1c, 0x1f, 0x33, 0xdb, 0xf2, 0xb8, 0xc3, 0xec, 0xd3, 0x72, 0x7a, 0x3b, 0xb5, 0x93, 0xaf,
+	0xed, 0x98, 0x6f, 0x4c, 0x81, 0x39, 0x88, 0x1c, 0x7a, 0xca, 0x1e, 0x6f, 0x8a, 0xe4, 0x12, 0x3d,
+	0x81, 0xb5, 0x20, 0x1c, 0x06, 0x54, 0x04, 0x65, 0x63, 0xdb, 0xd8, 0xc9, 0xd7, 0x7e, 0x7c, 0x09,
+	0x52, 0x5f, 0x59, 0xe2, 0xd8, 0x03, 0xdd, 0x85, 0x1c, 0x9d, 0x7b, 0xdc, 0x17, 0x96, 0xe0, 0xe5,
+	0xcc, 0xb6, 0xb1, 0x93, 0xc3, 0xeb, 0x91, 0x60, 0xc0, 0xab, 0xff, 0xca, 0xc2, 0xe6, 0x99, 0xad,
+	0xd1, 0x00, 0x36, 0x1d, 0x4e, 0x46, 0xd6, 0x90, 0x38, 0xc4, 0xb5, 0xa9, 0xaf, 0x8e, 0x97, 0xaf,
+	0xed, 0x5e, 0xb2, 0x63, 0x87, 0x93, 0x51, 0x43, 0x9b, 0xf7, 0xa9, 0x10, 0xcc, 0x1d, 0x07, 0x78,
+	0xc3, 0x49, 0x48, 0xd1, 0x73, 0xd8, 0xb2, 0xb9, 0xeb, 0x52, 0x5b, 0xb1, 0xc2, 0xe3, 0xdc, 0xd1,
+	0x39, 0x79, 0x78, 0x09, 0xee, 0xde, 0xc2, 0xa3, 0xc7, 0xb9, 0xb3, 0x40, 0x2e, 0xd8, 0x67, 0xe4,
+	0xe8, 0xb7, 0x50, 0xe2, 0xa1, 0x70, 0x18, 0xf5, 0xad, 0x11, 0x15, 0x91, 0xa2, 0x6c, 0x28, 0xf4,
+	0x9f, 0x5d, 0x82, 0xde, 0x8d, 0x7c, 0x9a, 0xb1, 0x0b, 0x2e, 0xf2, 0xd7, 0x24, 0xe8, 0x0b, 0x30,
+	0x84, 0x13, 0x94, 0x33, 0x0a, 0xeb, 0xa3, 0xcb, 0x22, 0x75, 0x18, 0x75, 0xc5, 0xa0, 0xd3, 0x5f,
+	0x04, 0x29, 0x1d, 0xd1, 0x37, 0xf0, 0x9e, 0x4a, 0xbc, 0x43, 0x67, 0x54, 0xf2, 0x2c, 0xd2, 0x95,
+	0x57, 0xd5, 0x1d, 0x7e, 0xf6, 0xb6, 0x6c, 0x30, 0x7b, 0xf2, 0xae, 0xce, 0xf0, 0xa3, 0x24, 0x61,
+	0x3b, 0x12, 0x35, 0xde, 0xb0, 0xf2, 0x27, 0x03, 0x4a, 0xe7, 0x0c, 0xd1, 0x13, 0xc8, 0x48, 0x53,
+	0x7d, 0x89, 0x1f, 0x5e, 0xb2, 0xa5, 0xf4, 0xed, 0x53, 0x87, 0xda, 0x82, 0xfb, 0x58, 0x39, 0x9d,
+	0xa7, 0x42, 0xfa, 0x07, 0xa2, 0x82, 0xf1, 0x83, 0x52, 0x21, 0xf3, 0x7f, 0xa4, 0xc2, 0xea, 0x3b,
+	0x52, 0xa1, 0xfa, 0xef, 0x14, 0x64, 0xa3, 0xca, 0x94, 0xef, 0x86, 0x4b, 0xa6, 0xf4, 0xcc, 0xbb,
+	0x21, 0x05, 0xa8, 0x05, 0x59, 0x87, 0x0c, 0xa9, 0x13, 0x94, 0xd3, 0x8a, 0x21, 0x0f, 0xae, 0xac,
+	0x72, 0xb3, 0xa3, 0xec, 0x5b, 0xae, 0xf0, 0x4f, 0xb1, 0x76, 0xbe, 0xe0, 0xf9, 0x31, 0x6e, 0xf4,
+	0xfc, 0x54, 0x7e, 0x01, 0xf9, 0xc4, 0x3e, 0xa8, 0x08, 0xc6, 0x09, 0x3d, 0x8d, 0xc2, 0xc7, 0xf2,
+	0x13, 0xdd, 0x82, 0xd5, 0x19, 0x71, 0x42, 0xaa, 0x08, 0x92, 0xc3, 0xd1, 0xe2, 0xb3, 0xf4, 0xa7,
+	0xa9, 0xea, 0xdf, 0xb2, 0x70, 0xeb, 0x22, 0x4e, 0x20, 0x0c, 0xd9, 0x80, 0x4d, 0x3d, 0x27, 0x4a,
+	0x43, 0xa1, 0xf6, 0xe9, 0x35, 0x49, 0x65, 0xf6, 0x95, 0x77, 0xa7, 0xd1, 0x5e, 0xc1, 0x1a, 0x09,
+	0x9d, 0x28, 0x66, 0x05, 0x2c, 0x10, 0xd4, 0x15, 0xd6, 0x84, 0x04, 0x13, 0xcd, 0xd8, 0xaf, 0xae,
+	0x0b, 0xbe, 0xb7, 0x80, 0x69, 0x93, 0x60, 0xa2, 0x36, 0x29, 0xd8, 0x67, 0x64, 0xe8, 0x18, 0xde,
+	0x73, 0xb8, 0x4d, 0x1c, 0x26, 0x4e, 0x2d, 0x67, 0x18, 0x17, 0xb7, 0x4e, 0xf5, 0xcf, 0x2f, 0xdd,
+	0x30, 0xf2, 0xba, 0x60, 0x63, 0x5c, 0x8a, 0x21, 0x3b, 0x43, 0x2d, 0xaa, 0xfc, 0xc5, 0x80, 0xe2,
+	0xeb, 0xe1, 0xa0, 0xfb, 0x50, 0x9c, 0x08, 0xe1, 0x59, 0x13, 0x4a, 0x46, 0xd4, 0xb7, 0x96, 0x74,
+	0x92, 0x81, 0x4a, 0x4d, 0x5b, 0x29, 0x0e, 0x25, 0xab, 0x5c, 0xc8, 0x2b, 0x5b, 0x9b, 0xf3, 0x13,
+	0x46, 0x75, 0x46, 0x9e, 0xdd, 0x34, 0x23, 0x66, 0x7b, 0x30, 0xe8, 0xed, 0x29, 0xc8, 0xf6, 0x0a,
+	0x06, 0xb9, 0x43, 0xb4, 0x42, 0x3f, 0x81, 0xcd, 0x30, 0xa0, 0x56, 0xc0, 0x43, 0xdf, 0xa6, 0x16,
+	0xf3, 0x54, 0x4a, 0xd6, 0xdb, 0x2b, 0x38, 0x1f, 0x06, 0xb4, 0xaf, 0xa4, 0xfb, 0x1e, 0x7a, 0x02,
+	0x77, 0x54, 0x54, 0xdf, 0x86, 0xd4, 0x3f, 0xb5, 0x3c, 0xe2, 0x93, 0x29, 0x15, 0xf1, 0x51, 0x56,
+	0xf5, 0x51, 0x6e, 0x4b, 0x93, 0x5f, 0x4b, 0x8b, 0x5e, 0x6c, 0xa0, 0x8e, 0x74, 0x1f, 0x4a, 0x53,
+	0xe6, 0xb2, 0x69, 0x38, 0xb5, 0x7c, 0xe6, 0x8e, 0xad, 0x80, 0xbd, 0xa4, 0xaa, 0xcc, 0x33, 0x78,
+	0x4b, 0x2b, 0x30, 0x73, 0xc7, 0x7d, 0xf6, 0x92, 0x56, 0x4e, 0x00, 0x96, 0xa1, 0xbe, 0xb9, 0xf6,
+	0x10, 0x64, 0x3c, 0x22, 0x26, 0x9a, 0xc1, 0xea, 0x1b, 0x7d, 0x0c, 0x86, 0x10, 0xf1, 0xeb, 0x74,
+	0xc7, 0x8c, 0x66, 0x0c, 0x33, 0x9e, 0x31, 0xcc, 0xa6, 0x9e, 0x41, 0x22, 0x18, 0x69, 0xda, 0x00,
+	0x58, 0x97, 0xb4, 0xb3, 0x4e, 0xe8, 0x69, 0xb5, 0x0d, 0xeb, 0x31, 0x47, 0xd1, 0x16, 0xe4, 0x71,
+	0xf7, 0xe8, 0xb0, 0x69, 0xe1, 0x6e, 0x63, 0xff, 0xb0, 0xb8, 0x82, 0x0a, 0x00, 0x9d, 0x56, 0xbd,
+	0x3f, 0xb0, 0xf6, 0xba, 0x87, 0x87, 0xc5, 0x14, 0x02, 0xc8, 0xe2, 0xfa, 0x61, 0xb3, 0x7b, 0x50,
+	0x4c, 0x4b, 0xe3, 0x5e, 0xbd, 0xdf, 0x1f, 0xb4, 0x71, 0xf7, 0xe8, 0x69, 0xbb, 0x68, 0x34, 0xf2,
+	0x90, 0x73, 0x86, 0xba, 0x96, 0xab, 0x7f, 0x5c, 0x87, 0xdb, 0x17, 0xbf, 0x86, 0xa8, 0x0b, 0x86,
+	0xb0, 0x3d, 0xfd, 0xd6, 0x7f, 0x7e, 0xed, 0xd7, 0xd4, 0x1c, 0xec, 0xf5, 0x12, 0x8f, 0x96, 0xed,
+	0x21, 0x0c, 0x19, 0x79, 0x03, 0x9a, 0x33, 0x5f, 0x5c, 0x1f, 0x51, 0x66, 0x7e, 0x01, 0xa9, 0xb0,
+	0x2a, 0xff, 0x4d, 0x43, 0x3e, 0xb1, 0x11, 0xfa, 0x10, 0xb6, 0xa6, 0x64, 0x6e, 0x2d, 0x1f, 0xf2,
+	0x40, 0x1d, 0x60, 0x15, 0x17, 0xa6, 0x64, 0xbe, 0x84, 0x0d, 0x50, 0x63, 0xd1, 0x37, 0x2c, 0xc1,
+	0xa6, 0x94, 0x87, 0x42, 0xc7, 0xf5, 0xe6, 0x9b, 0x59, 0xf4, 0x87, 0x41, 0xe4, 0x80, 0x38, 0x6c,
+	0x0a, 0xdb, 0xb3, 0x4e, 0x28, 0xf5, 0x88, 0xc3, 0x66, 0x54, 0xdf, 0xed, 0xaf, 0x6e, 0x94, 0x2b,
+	0x73, 0x60, 0x7b, 0xcf, 0x62, 0x44, 0xbc, 0x21, 0x12, 0xab, 0xca, 0x1f, 0x52, 0xb0, 0x91, 0x54,
+	0xa3, 0xdb, 0x90, 0xf5, 0x7c, 0x3e, 0xa4, 0xd1, 0x29, 0x37, 0xb1, 0x5e, 0xa1, 0x07, 0x90, 0x91,
+	0xa7, 0xba, 0xfa, 0x48, 0xca, 0x0c, 0x3d, 0x86, 0x75, 0xe6, 0x0a, 0xea, 0xcf, 0xc8, 0xd5, 0xfc,
+	0xc4, 0x0b, 0xd3, 0xca, 0x3f, 0x0c, 0xd8, 0x48, 0xde, 0x09, 0x7a, 0x02, 0x15, 0x79, 0x2b, 0x0f,
+	0x2d, 0x79, 0x07, 0x1e, 0x75, 0x47, 0xb2, 0x9c, 0x7c, 0xfa, 0x6d, 0x48, 0x03, 0x11, 0x5f, 0xc4,
+	0xfb, 0xca, 0xe2, 0x80, 0xcc, 0x7b, 0x91, 0x1e, 0x6b, 0x35, 0xfa, 0x08, 0x90, 0x54, 0xd5, 0x94,
+	0xf3, 0xc2, 0x29, 0xad, 0x9c, 0xd4, 0xfb, 0x54, 0x3b, 0x20, 0xf3, 0x85, 0xf5, 0xe7, 0x70, 0x37,
+	0x69, 0x67, 0x79, 0xd4, 0x4f, 0xdc, 0xba, 0x3a, 0xc5, 0x2a, 0x2e, 0x4f, 0x97, 0x1e, 0x3d, 0xea,
+	0x2f, 0x93, 0x8f, 0x3e, 0x80, 0x7c, 0xe4, 0x2e, 0x7c, 0x46, 0xa3, 0x99, 0x6c, 0x15, 0x83, 0x32,
+	0x57, 0x12, 0xf4, 0x4b, 0xd8, 0x60, 0x23, 0x87, 0x2e, 0xc8, 0xb1, 0x7a, 0x55, 0x5a, 0xf2, 0xd2,
+	0x3c, 0x66, 0xc6, 0x4b, 0x28, 0x4d, 0x6a, 0x56, 0xe8, 0x8d, 0x7d, 0x32, 0xa2, 0x71, 0xdf, 0xcc,
+	0xaa, 0xd6, 0x74, 0x78, 0x33, 0xde, 0x9b, 0xed, 0xda, 0x51, 0x04, 0xab, 0xbb, 0xeb, 0xd6, 0xe4,
+	0xac, 0xa0, 0xfa, 0x25, 0x6c, 0xbd, 0x66, 0x83, 0xf2, 0xb0, 0xd6, 0x6c, 0x7d, 0x5d, 0x3f, 0xea,
+	0x0c, 0x8a, 0x2b, 0x08, 0x41, 0xa1, 0xd9, 0xb5, 0x0e, 0xbb, 0x03, 0xeb, 0xa8, 0xf7, 0x14, 0xd7,
+	0x9b, 0xad, 0x62, 0x4a, 0x1a, 0xc4, 0x8b, 0x74, 0xf5, 0x3b, 0x03, 0x8a, 0xaf, 0xcf, 0x30, 0xe8,
+	0x21, 0x20, 0xd9, 0xb2, 0xa8, 0x1d, 0x0a, 0x36, 0xa3, 0x16, 0xf5, 0x7d, 0xee, 0xeb, 0x2b, 0x6d,
+	0xa4, 0xcb, 0x29, 0x5c, 0x4a, 0x68, 0x5b, 0x4a, 0x89, 0x9e, 0x43, 0x25, 0xe9, 0x32, 0x26, 0x82,
+	0xbe, 0x20, 0xa7, 0xb1, 0x6b, 0x56, 0x25, 0xf4, 0x47, 0xe7, 0x12, 0x7a, 0xb4, 0xef, 0x8a, 0x47,
+	0xb5, 0xdf, 0xc8, 0x9e, 0x8f, 0xcb, 0x09, 0xff, 0xa7, 0x91, 0xbb, 0xc6, 0xc6, 0x70, 0x3b, 0x89,
+	0xfd, 0x78, 0x3e, 0x8f, 0x71, 0xd7, 0xde, 0x02, 0xf7, 0x56, 0xc2, 0xf7, 0xf1, 0x7c, 0xae, 0x31,
+	0x93, 0x55, 0x90, 0x7e, 0xeb, 0x2a, 0x40, 0x4f, 0x01, 0x0d, 0x49, 0x40, 0x2d, 0xfa, 0x8d, 0x1e,
+	0x42, 0x55, 0xe5, 0x5d, 0x59, 0x46, 0x45, 0xe9, 0xd4, 0xd2, 0x3e, 0x92, 0x37, 0xe8, 0x63, 0xb8,
+	0x25, 0x39, 0xb9, 0xc0, 0xf1, 0xa8, 0x6f, 0x53, 0x57, 0x68, 0x72, 0xa2, 0x29, 0x99, 0xc7, 0xe6,
+	0xbd, 0x48, 0x23, 0x4b, 0x66, 0xca, 0x5c, 0xd9, 0xb7, 0x1d, 0x31, 0x59, 0xd8, 0xaf, 0x46, 0x25,
+	0x33, 0x65, 0x6e, 0x5b, 0x29, 0xb4, 0x75, 0xf5, 0x9f, 0x69, 0x28, 0x9d, 0x9b, 0x27, 0xd1, 0x01,
+	0x64, 0xa6, 0x7c, 0x14, 0x0f, 0x4e, 0x9f, 0x5c, 0x67, 0x16, 0x35, 0x07, 0x9d, 0xbe, 0xf4, 0xd5,
+	0x9d, 0x4f, 0x7e, 0xa2, 0x07, 0x80, 0x6c, 0x65, 0x67, 0xd9, 0xd4, 0x17, 0xec, 0x98, 0xd9, 0x44,
+	0xc4, 0x93, 0x5c, 0x29, 0xd2, 0xec, 0x2d, 0x15, 0xb2, 0x0e, 0x3d, 0x9f, 0xcd, 0x88, 0xa0, 0xb2,
+	0xcb, 0xa9, 0xac, 0xe5, 0x30, 0x68, 0xd1, 0x33, 0x7a, 0x2a, 0x1f, 0x74, 0x9b, 0x24, 0xb1, 0xa2,
+	0x62, 0xcd, 0xe1, 0x82, 0x4d, 0x12, 0x40, 0x81, 0xec, 0xe2, 0x41, 0x38, 0x94, 0x09, 0xb2, 0x88,
+	0x23, 0x54, 0xe7, 0x8f, 0x7e, 0x1b, 0xe5, 0xf0, 0x96, 0x56, 0xd4, 0x1d, 0x21, 0x1b, 0x7e, 0x20,
+	0x67, 0xce, 0xc0, 0x65, 0x8a, 0x82, 0x39, 0x2c, 0x3f, 0xab, 0x5f, 0xc1, 0x9a, 0x3e, 0x8c, 0x2a,
+	0x96, 0xfd, 0x7e, 0xbd, 0xd1, 0x69, 0x15, 0x57, 0x64, 0x27, 0xed, 0xef, 0x1f, 0xf4, 0x3a, 0xad,
+	0xa8, 0xab, 0x1e, 0x1c, 0x0d, 0x8e, 0xea, 0x9d, 0x62, 0x1a, 0x15, 0x61, 0x63, 0xbf, 0x3f, 0xd8,
+	0xef, 0x5a, 0x5a, 0x62, 0x54, 0xff, 0x63, 0xc0, 0xdd, 0x4b, 0x86, 0x31, 0x44, 0x00, 0x46, 0x2c,
+	0x10, 0x3e, 0x1b, 0x86, 0x42, 0x66, 0x5b, 0x8e, 0xe4, 0xf5, 0x77, 0x1b, 0xec, 0xcc, 0xe6, 0x02,
+	0x08, 0x27, 0x40, 0xd1, 0xef, 0x61, 0xfd, 0x98, 0x30, 0x87, 0xcf, 0xd4, 0x8f, 0x2b, 0xb9, 0xc1,
+	0x97, 0xef, 0xb8, 0xc1, 0xd7, 0x1a, 0x06, 0x2f, 0x00, 0xd1, 0x27, 0xb0, 0x46, 0x5d, 0x32, 0x74,
+	0xe8, 0x48, 0x73, 0xbb, 0x72, 0x8e, 0xdb, 0x0d, 0xce, 0x9d, 0xa8, 0xc0, 0x62, 0xd3, 0xca, 0x9f,
+	0x53, 0x00, 0xcb, 0x68, 0xe5, 0x5c, 0x74, 0xec, 0xf3, 0xa9, 0x9e, 0xf6, 0xd5, 0x37, 0xfa, 0x1d,
+	0xa4, 0x05, 0xd7, 0xf1, 0xee, 0xdf, 0x38, 0x21, 0xe6, 0x80, 0x47, 0xbf, 0x5f, 0xd2, 0x82, 0x57,
+	0x1e, 0xc3, 0x9a, 0x5e, 0x5e, 0xf5, 0x33, 0x63, 0x33, 0xf1, 0x33, 0xa3, 0x62, 0xc2, 0x7a, 0x9c,
+	0x80, 0x0b, 0x23, 0x2e, 0xe8, 0x88, 0xa5, 0x24, 0x2d, 0x78, 0xc3, 0xfc, 0xeb, 0xab, 0x7b, 0xa9,
+	0xbf, 0xbf, 0xba, 0x97, 0xfa, 0xfe, 0xd5, 0xbd, 0xd4, 0xf3, 0xed, 0xe8, 0x08, 0x8c, 0xab, 0x3f,
+	0xa0, 0x2e, 0xf8, 0xab, 0x68, 0x98, 0x55, 0x19, 0x7b, 0xf4, 0xbf, 0x00, 0x00, 0x00, 0xff, 0xff,
+	0x84, 0x0b, 0x4d, 0xc8, 0xf0, 0x12, 0x00, 0x00,
 }
 
 func (m *DestinationRule) Marshal() (dAtA []byte, err error) {
@@ -2019,6 +2617,18 @@ func (m *LoadBalancerSettings) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if m.LocalityLbSetting != nil {
+		{
+			size, err := m.LocalityLbSetting.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintDestinationRule(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.LbPolicy != nil {
 		{
 			size := m.LbPolicy.Size()
@@ -2086,11 +2696,6 @@ func (m *LoadBalancerSettings_ConsistentHashLB) MarshalToSizedBuffer(dAtA []byte
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if m.MinimumRingSize != 0 {
-		i = encodeVarintDestinationRule(dAtA, i, uint64(m.MinimumRingSize))
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.HashKey != nil {
 		{
 			size := m.HashKey.Size()
@@ -2099,6 +2704,11 @@ func (m *LoadBalancerSettings_ConsistentHashLB) MarshalToSizedBuffer(dAtA []byte
 				return 0, err
 			}
 		}
+	}
+	if m.MinimumRingSize != 0 {
+		i = encodeVarintDestinationRule(dAtA, i, uint64(m.MinimumRingSize))
+		i--
+		dAtA[i] = 0x20
 	}
 	return len(dAtA) - i, nil
 }
@@ -2152,6 +2762,19 @@ func (m *LoadBalancerSettings_ConsistentHashLB_UseSourceIp) MarshalToSizedBuffer
 	dAtA[i] = 0x18
 	return len(dAtA) - i, nil
 }
+func (m *LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName) MarshalTo(dAtA []byte) (int, error) {
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.HttpQueryParameterName)
+	copy(dAtA[i:], m.HttpQueryParameterName)
+	i = encodeVarintDestinationRule(dAtA, i, uint64(len(m.HttpQueryParameterName)))
+	i--
+	dAtA[i] = 0x2a
+	return len(dAtA) - i, nil
+}
 func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -2177,12 +2800,14 @@ func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) MarshalToSizedBuffer(
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.Ttl != nil {
-		n14, err14 := github_com_gogo_protobuf_types.StdDurationMarshalTo(*m.Ttl, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(*m.Ttl):])
-		if err14 != nil {
-			return 0, err14
+		{
+			size, err := m.Ttl.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintDestinationRule(dAtA, i, uint64(size))
 		}
-		i -= n14
-		i = encodeVarintDestinationRule(dAtA, i, uint64(n14))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -2454,6 +3079,30 @@ func (m *OutlierDetection) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if m.Consecutive_5XxErrors != nil {
+		{
+			size, err := m.Consecutive_5XxErrors.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintDestinationRule(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.ConsecutiveGatewayErrors != nil {
+		{
+			size, err := m.ConsecutiveGatewayErrors.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintDestinationRule(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.MinHealthPercent != 0 {
 		i = encodeVarintDestinationRule(dAtA, i, uint64(m.MinHealthPercent))
 		i--
@@ -2496,7 +3145,7 @@ func (m *OutlierDetection) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *TLSSettings) Marshal() (dAtA []byte, err error) {
+func (m *ClientTLSSettings) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -2506,12 +3155,12 @@ func (m *TLSSettings) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *TLSSettings) MarshalTo(dAtA []byte) (int, error) {
+func (m *ClientTLSSettings) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *TLSSettings) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *ClientTLSSettings) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -2561,6 +3210,165 @@ func (m *TLSSettings) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintDestinationRule(dAtA, i, uint64(m.Mode))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LocalityLoadBalancerSetting) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LocalityLoadBalancerSetting) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *LocalityLoadBalancerSetting) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Enabled != nil {
+		{
+			size, err := m.Enabled.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintDestinationRule(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Failover) > 0 {
+		for iNdEx := len(m.Failover) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Failover[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintDestinationRule(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Distribute) > 0 {
+		for iNdEx := len(m.Distribute) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Distribute[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintDestinationRule(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LocalityLoadBalancerSetting_Distribute) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LocalityLoadBalancerSetting_Distribute) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *LocalityLoadBalancerSetting_Distribute) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.To) > 0 {
+		for k := range m.To {
+			v := m.To[k]
+			baseI := i
+			i = encodeVarintDestinationRule(dAtA, i, uint64(v))
+			i--
+			dAtA[i] = 0x10
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarintDestinationRule(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarintDestinationRule(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.From) > 0 {
+		i -= len(m.From)
+		copy(dAtA[i:], m.From)
+		i = encodeVarintDestinationRule(dAtA, i, uint64(len(m.From)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LocalityLoadBalancerSetting_Failover) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LocalityLoadBalancerSetting_Failover) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *LocalityLoadBalancerSetting_Failover) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.To) > 0 {
+		i -= len(m.To)
+		copy(dAtA[i:], m.To)
+		i = encodeVarintDestinationRule(dAtA, i, uint64(len(m.To)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.From) > 0 {
+		i -= len(m.From)
+		copy(dAtA[i:], m.From)
+		i = encodeVarintDestinationRule(dAtA, i, uint64(len(m.From)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -2711,6 +3519,10 @@ func (m *LoadBalancerSettings) Size() (n int) {
 	if m.LbPolicy != nil {
 		n += m.LbPolicy.Size()
 	}
+	if m.LocalityLbSetting != nil {
+		l = m.LocalityLbSetting.Size()
+		n += 1 + l + sovDestinationRule(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -2787,6 +3599,16 @@ func (m *LoadBalancerSettings_ConsistentHashLB_UseSourceIp) Size() (n int) {
 	n += 2
 	return n
 }
+func (m *LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.HttpQueryParameterName)
+	n += 1 + l + sovDestinationRule(uint64(l))
+	return n
+}
 func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) Size() (n int) {
 	if m == nil {
 		return 0
@@ -2802,7 +3624,7 @@ func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) Size() (n int) {
 		n += 1 + l + sovDestinationRule(uint64(l))
 	}
 	if m.Ttl != nil {
-		l = github_com_gogo_protobuf_types.SizeOfStdDuration(*m.Ttl)
+		l = m.Ttl.Size()
 		n += 1 + l + sovDestinationRule(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
@@ -2931,13 +3753,21 @@ func (m *OutlierDetection) Size() (n int) {
 	if m.MinHealthPercent != 0 {
 		n += 1 + sovDestinationRule(uint64(m.MinHealthPercent))
 	}
+	if m.ConsecutiveGatewayErrors != nil {
+		l = m.ConsecutiveGatewayErrors.Size()
+		n += 1 + l + sovDestinationRule(uint64(l))
+	}
+	if m.Consecutive_5XxErrors != nil {
+		l = m.Consecutive_5XxErrors.Size()
+		n += 1 + l + sovDestinationRule(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
 	return n
 }
 
-func (m *TLSSettings) Size() (n int) {
+func (m *ClientTLSSettings) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -2965,6 +3795,78 @@ func (m *TLSSettings) Size() (n int) {
 		}
 	}
 	l = len(m.Sni)
+	if l > 0 {
+		n += 1 + l + sovDestinationRule(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *LocalityLoadBalancerSetting) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Distribute) > 0 {
+		for _, e := range m.Distribute {
+			l = e.Size()
+			n += 1 + l + sovDestinationRule(uint64(l))
+		}
+	}
+	if len(m.Failover) > 0 {
+		for _, e := range m.Failover {
+			l = e.Size()
+			n += 1 + l + sovDestinationRule(uint64(l))
+		}
+	}
+	if m.Enabled != nil {
+		l = m.Enabled.Size()
+		n += 1 + l + sovDestinationRule(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *LocalityLoadBalancerSetting_Distribute) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.From)
+	if l > 0 {
+		n += 1 + l + sovDestinationRule(uint64(l))
+	}
+	if len(m.To) > 0 {
+		for k, v := range m.To {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + sovDestinationRule(uint64(len(k))) + 1 + sovDestinationRule(uint64(v))
+			n += mapEntrySize + 1 + sovDestinationRule(uint64(mapEntrySize))
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *LocalityLoadBalancerSetting_Failover) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.From)
+	if l > 0 {
+		n += 1 + l + sovDestinationRule(uint64(l))
+	}
+	l = len(m.To)
 	if l > 0 {
 		n += 1 + l + sovDestinationRule(uint64(l))
 	}
@@ -3335,7 +4237,7 @@ func (m *TrafficPolicy) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Tls == nil {
-				m.Tls = &TLSSettings{}
+				m.Tls = &ClientTLSSettings{}
 			}
 			if err := m.Tls.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -3603,7 +4505,7 @@ func (m *TrafficPolicy_PortTrafficPolicy) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Tls == nil {
-				m.Tls = &TLSSettings{}
+				m.Tls = &ClientTLSSettings{}
 			}
 			if err := m.Tls.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -3967,6 +4869,42 @@ func (m *LoadBalancerSettings) Unmarshal(dAtA []byte) error {
 			}
 			m.LbPolicy = &LoadBalancerSettings_ConsistentHash{v}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalityLbSetting", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LocalityLbSetting == nil {
+				m.LocalityLbSetting = &LocalityLoadBalancerSetting{}
+			}
+			if err := m.LocalityLbSetting.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDestinationRule(dAtA[iNdEx:])
@@ -4128,6 +5066,38 @@ func (m *LoadBalancerSettings_ConsistentHashLB) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HttpQueryParameterName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.HashKey = &LoadBalancerSettings_ConsistentHashLB_HttpQueryParameterName{string(dAtA[iNdEx:postIndex])}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDestinationRule(dAtA[iNdEx:])
@@ -4276,9 +5246,9 @@ func (m *LoadBalancerSettings_ConsistentHashLB_HTTPCookie) Unmarshal(dAtA []byte
 				return io.ErrUnexpectedEOF
 			}
 			if m.Ttl == nil {
-				m.Ttl = new(time.Duration)
+				m.Ttl = &types.Duration{}
 			}
-			if err := github_com_gogo_protobuf_types.StdDurationUnmarshal(m.Ttl, dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Ttl.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5066,6 +6036,78 @@ func (m *OutlierDetection) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConsecutiveGatewayErrors", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ConsecutiveGatewayErrors == nil {
+				m.ConsecutiveGatewayErrors = &types.UInt32Value{}
+			}
+			if err := m.ConsecutiveGatewayErrors.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Consecutive_5XxErrors", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Consecutive_5XxErrors == nil {
+				m.Consecutive_5XxErrors = &types.UInt32Value{}
+			}
+			if err := m.Consecutive_5XxErrors.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDestinationRule(dAtA[iNdEx:])
@@ -5091,7 +6133,7 @@ func (m *OutlierDetection) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *TLSSettings) Unmarshal(dAtA []byte) error {
+func (m *ClientTLSSettings) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5114,10 +6156,10 @@ func (m *TLSSettings) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: TLSSettings: wiretype end group for non-group")
+			return fmt.Errorf("proto: ClientTLSSettings: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TLSSettings: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ClientTLSSettings: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -5134,7 +6176,7 @@ func (m *TLSSettings) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Mode |= TLSSettings_TLSmode(b&0x7F) << shift
+				m.Mode |= ClientTLSSettings_TLSmode(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -5298,6 +6340,481 @@ func (m *TLSSettings) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Sni = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDestinationRule(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *LocalityLoadBalancerSetting) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDestinationRule
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LocalityLoadBalancerSetting: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LocalityLoadBalancerSetting: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Distribute", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Distribute = append(m.Distribute, &LocalityLoadBalancerSetting_Distribute{})
+			if err := m.Distribute[len(m.Distribute)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failover", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Failover = append(m.Failover, &LocalityLoadBalancerSetting_Failover{})
+			if err := m.Failover[len(m.Failover)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Enabled == nil {
+				m.Enabled = &types.BoolValue{}
+			}
+			if err := m.Enabled.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDestinationRule(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *LocalityLoadBalancerSetting_Distribute) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDestinationRule
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Distribute: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Distribute: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field From", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.From = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field To", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.To == nil {
+				m.To = make(map[string]uint32)
+			}
+			var mapkey string
+			var mapvalue uint32
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowDestinationRule
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowDestinationRule
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLengthDestinationRule
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLengthDestinationRule
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowDestinationRule
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapvalue |= uint32(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipDestinationRule(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if skippy < 0 {
+						return ErrInvalidLengthDestinationRule
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.To[mapkey] = mapvalue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDestinationRule(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *LocalityLoadBalancerSetting_Failover) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDestinationRule
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Failover: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Failover: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field From", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.From = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field To", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDestinationRule
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDestinationRule
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.To = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

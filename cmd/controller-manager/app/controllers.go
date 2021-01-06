@@ -22,7 +22,6 @@ import (
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
-	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
@@ -76,7 +75,6 @@ func addControllers(
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
 	istioInformer := informerFactory.IstioSharedInformerFactory()
 	kubesphereInformer := informerFactory.KubeSphereSharedInformerFactory()
-	applicationInformer := informerFactory.ApplicationSharedInformerFactory()
 
 	var vsController, drController manager.Runnable
 	if serviceMeshEnabled {
@@ -96,15 +94,6 @@ func addControllers(
 			client.Istio(),
 			client.KubeSphere())
 	}
-
-	apController := application.NewApplicationController(kubernetesInformer.Core().V1().Services(),
-		kubernetesInformer.Apps().V1().Deployments(),
-		kubernetesInformer.Apps().V1().StatefulSets(),
-		kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
-		kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
-		applicationInformer.App().V1beta1().Applications(),
-		client.Kubernetes(),
-		client.Application())
 
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
 
@@ -272,7 +261,6 @@ func addControllers(
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":     vsController,
 		"destinationrule-controller":    drController,
-		"application-controller":        apController,
 		"job-controller":                jobController,
 		"s2ibinary-controller":          s2iBinaryController,
 		"s2irun-controller":             s2iRunController,

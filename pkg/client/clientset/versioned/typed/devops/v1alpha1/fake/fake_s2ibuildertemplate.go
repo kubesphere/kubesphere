@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var s2ibuildertemplatesResource = schema.GroupVersionResource{Group: "devops.kub
 var s2ibuildertemplatesKind = schema.GroupVersionKind{Group: "devops.kubesphere.io", Version: "v1alpha1", Kind: "S2iBuilderTemplate"}
 
 // Get takes name of the s2iBuilderTemplate, and returns the corresponding s2iBuilderTemplate object, and an error if there is any.
-func (c *FakeS2iBuilderTemplates) Get(name string, options v1.GetOptions) (result *v1alpha1.S2iBuilderTemplate, err error) {
+func (c *FakeS2iBuilderTemplates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.S2iBuilderTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(s2ibuildertemplatesResource, name), &v1alpha1.S2iBuilderTemplate{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeS2iBuilderTemplates) Get(name string, options v1.GetOptions) (resul
 }
 
 // List takes label and field selectors, and returns the list of S2iBuilderTemplates that match those selectors.
-func (c *FakeS2iBuilderTemplates) List(opts v1.ListOptions) (result *v1alpha1.S2iBuilderTemplateList, err error) {
+func (c *FakeS2iBuilderTemplates) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.S2iBuilderTemplateList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(s2ibuildertemplatesResource, s2ibuildertemplatesKind, opts), &v1alpha1.S2iBuilderTemplateList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeS2iBuilderTemplates) List(opts v1.ListOptions) (result *v1alpha1.S2
 }
 
 // Watch returns a watch.Interface that watches the requested s2iBuilderTemplates.
-func (c *FakeS2iBuilderTemplates) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeS2iBuilderTemplates) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(s2ibuildertemplatesResource, opts))
 }
 
 // Create takes the representation of a s2iBuilderTemplate and creates it.  Returns the server's representation of the s2iBuilderTemplate, and an error, if there is any.
-func (c *FakeS2iBuilderTemplates) Create(s2iBuilderTemplate *v1alpha1.S2iBuilderTemplate) (result *v1alpha1.S2iBuilderTemplate, err error) {
+func (c *FakeS2iBuilderTemplates) Create(ctx context.Context, s2iBuilderTemplate *v1alpha1.S2iBuilderTemplate, opts v1.CreateOptions) (result *v1alpha1.S2iBuilderTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(s2ibuildertemplatesResource, s2iBuilderTemplate), &v1alpha1.S2iBuilderTemplate{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeS2iBuilderTemplates) Create(s2iBuilderTemplate *v1alpha1.S2iBuilder
 }
 
 // Update takes the representation of a s2iBuilderTemplate and updates it. Returns the server's representation of the s2iBuilderTemplate, and an error, if there is any.
-func (c *FakeS2iBuilderTemplates) Update(s2iBuilderTemplate *v1alpha1.S2iBuilderTemplate) (result *v1alpha1.S2iBuilderTemplate, err error) {
+func (c *FakeS2iBuilderTemplates) Update(ctx context.Context, s2iBuilderTemplate *v1alpha1.S2iBuilderTemplate, opts v1.UpdateOptions) (result *v1alpha1.S2iBuilderTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(s2ibuildertemplatesResource, s2iBuilderTemplate), &v1alpha1.S2iBuilderTemplate{})
 	if obj == nil {
@@ -96,7 +98,7 @@ func (c *FakeS2iBuilderTemplates) Update(s2iBuilderTemplate *v1alpha1.S2iBuilder
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeS2iBuilderTemplates) UpdateStatus(s2iBuilderTemplate *v1alpha1.S2iBuilderTemplate) (*v1alpha1.S2iBuilderTemplate, error) {
+func (c *FakeS2iBuilderTemplates) UpdateStatus(ctx context.Context, s2iBuilderTemplate *v1alpha1.S2iBuilderTemplate, opts v1.UpdateOptions) (*v1alpha1.S2iBuilderTemplate, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateSubresourceAction(s2ibuildertemplatesResource, "status", s2iBuilderTemplate), &v1alpha1.S2iBuilderTemplate{})
 	if obj == nil {
@@ -106,22 +108,22 @@ func (c *FakeS2iBuilderTemplates) UpdateStatus(s2iBuilderTemplate *v1alpha1.S2iB
 }
 
 // Delete takes name of the s2iBuilderTemplate and deletes it. Returns an error if one occurs.
-func (c *FakeS2iBuilderTemplates) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeS2iBuilderTemplates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(s2ibuildertemplatesResource, name), &v1alpha1.S2iBuilderTemplate{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeS2iBuilderTemplates) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(s2ibuildertemplatesResource, listOptions)
+func (c *FakeS2iBuilderTemplates) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(s2ibuildertemplatesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.S2iBuilderTemplateList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched s2iBuilderTemplate.
-func (c *FakeS2iBuilderTemplates) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.S2iBuilderTemplate, err error) {
+func (c *FakeS2iBuilderTemplates) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.S2iBuilderTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(s2ibuildertemplatesResource, name, pt, data, subresources...), &v1alpha1.S2iBuilderTemplate{})
 	if obj == nil {

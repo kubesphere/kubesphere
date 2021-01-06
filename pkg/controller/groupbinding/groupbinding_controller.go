@@ -17,6 +17,7 @@ limitations under the License.
 package groupbinding
 
 import (
+	"context"
 	"fmt"
 
 	"reflect"
@@ -134,7 +135,7 @@ func (c *Controller) reconcile(key string) error {
 			}
 		}
 		if g != nil {
-			if groupBinding, err = c.ksClient.IamV1alpha2().GroupBindings().Update(g); err != nil {
+			if groupBinding, err = c.ksClient.IamV1alpha2().GroupBindings().Update(context.Background(), g, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 			// Skip reconcile when group is updated.
@@ -153,7 +154,7 @@ func (c *Controller) reconcile(key string) error {
 				return item == finalizer
 			})
 
-			if groupBinding, err = c.ksClient.IamV1alpha2().GroupBindings().Update(groupBinding); err != nil {
+			if groupBinding, err = c.ksClient.IamV1alpha2().GroupBindings().Update(context.Background(), groupBinding, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -210,7 +211,7 @@ func (c *Controller) updateUserGroups(groupBinding *iamv1alpha2.GroupBinding, op
 
 	for _, u := range groupBinding.Users {
 		// Ignore the user if the user if being deleted.
-		if user, err := c.ksClient.IamV1alpha2().Users().Get(u, metav1.GetOptions{}); err == nil && user.ObjectMeta.DeletionTimestamp.IsZero() {
+		if user, err := c.ksClient.IamV1alpha2().Users().Get(context.Background(), u, metav1.GetOptions{}); err == nil && user.ObjectMeta.DeletionTimestamp.IsZero() {
 
 			if errors.IsNotFound(err) {
 				klog.Infof("user %s doesn't exist any more", u)
@@ -239,7 +240,7 @@ func (c *Controller) patchUser(user *iamv1alpha2.User, groups []string) error {
 	patch := client.MergeFrom(user)
 	patchData, _ := patch.Data(newUser)
 	if _, err := c.ksClient.IamV1alpha2().Users().
-		Patch(user.Name, patch.Type(), patchData); err != nil {
+		Patch(context.Background(), user.Name, patch.Type(), patchData, metav1.PatchOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -265,7 +266,7 @@ func (c *Controller) multiClusterSync(groupBinding *iamv1alpha2.GroupBinding) er
 		fedGroupBinding.Spec.Template.Users = groupBinding.Users
 		fedGroupBinding.Spec.Template.Labels = groupBinding.Labels
 
-		if _, err = c.ksClient.TypesV1beta1().FederatedGroupBindings().Update(fedGroupBinding); err != nil {
+		if _, err = c.ksClient.TypesV1beta1().FederatedGroupBindings().Update(context.Background(), fedGroupBinding, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
@@ -301,7 +302,7 @@ func (c *Controller) createFederatedGroupBinding(groupBinding *iamv1alpha2.Group
 	if err != nil {
 		return err
 	}
-	if _, err = c.ksClient.TypesV1beta1().FederatedGroupBindings().Create(federatedGroup); err != nil {
+	if _, err = c.ksClient.TypesV1beta1().FederatedGroupBindings().Create(context.Background(), federatedGroup, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil

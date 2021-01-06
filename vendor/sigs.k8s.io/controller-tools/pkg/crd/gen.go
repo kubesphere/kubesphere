@@ -31,6 +31,9 @@ import (
 	"sigs.k8s.io/controller-tools/pkg/version"
 )
 
+// The default CustomResourceDefinition version to generate.
+const defaultVersion = "v1"
+
 // +controllertools:marker:generateHelp
 
 // Generator generates CustomResourceDefinition objects.
@@ -53,6 +56,16 @@ type Generator struct {
 	// It's required to be false for v1 CRDs.
 	PreserveUnknownFields *bool `marker:",optional"`
 
+	// AllowDangerousTypes allows types which are usually omitted from CRD generation
+	// because they are not recommended.
+	//
+	// Currently the following additional types are allowed when this is true:
+	// float32
+	// float64
+	//
+	// Left unspecified, the default is false
+	AllowDangerousTypes *bool `marker:",optional"`
+
 	// MaxDescLen specifies the maximum description length for fields in CRD's OpenAPI schema.
 	//
 	// 0 indicates drop the description for all fields completely.
@@ -61,7 +74,7 @@ type Generator struct {
 	MaxDescLen *int `marker:",optional"`
 
 	// CRDVersions specifies the target API versions of the CRD type itself to
-	// generate.  Defaults to v1beta1.
+	// generate. Defaults to v1.
 	//
 	// The first version listed will be assumed to be the "default" version and
 	// will not get a version suffix in the output filename.
@@ -78,6 +91,8 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 	parser := &Parser{
 		Collector: ctx.Collector,
 		Checker:   ctx.Checker,
+		// Perform defaulting here to avoid ambiguity later
+		AllowDangerousTypes: g.AllowDangerousTypes != nil && *g.AllowDangerousTypes == true,
 	}
 
 	AddKnownTypes(parser)
@@ -101,10 +116,10 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 	crdVersions := g.CRDVersions
 
 	if len(crdVersions) == 0 {
-		crdVersions = []string{"v1beta1"}
+		crdVersions = []string{defaultVersion}
 	}
 
-	for _, groupKind := range kubeKinds {
+	for groupKind := range kubeKinds {
 		parser.NeedCRDFor(groupKind, g.MaxDescLen)
 		crdRaw := parser.CustomResourceDefinitions[groupKind]
 		addAttribution(&crdRaw)
@@ -206,9 +221,9 @@ func FindMetav1(roots []*loader.Package) *loader.Package {
 // FindKubeKinds locates all types that contain TypeMeta and ObjectMeta
 // (and thus may be a Kubernetes object), and returns the corresponding
 // group-kinds.
-func FindKubeKinds(parser *Parser, metav1Pkg *loader.Package) []schema.GroupKind {
+func FindKubeKinds(parser *Parser, metav1Pkg *loader.Package) map[schema.GroupKind]struct{} {
 	// TODO(directxman12): technically, we should be finding metav1 per-package
-	var kubeKinds []schema.GroupKind
+	kubeKinds := map[schema.GroupKind]struct{}{}
 	for typeIdent, info := range parser.Types {
 		hasObjectMeta := false
 		hasTypeMeta := false
@@ -257,7 +272,7 @@ func FindKubeKinds(parser *Parser, metav1Pkg *loader.Package) []schema.GroupKind
 			Group: parser.GroupVersions[pkg].Group,
 			Kind:  typeIdent.Name,
 		}
-		kubeKinds = append(kubeKinds, groupKind)
+		kubeKinds[groupKind] = struct{}{}
 	}
 
 	return kubeKinds

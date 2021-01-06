@@ -19,6 +19,7 @@ package manager
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -35,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	internalrecorder "sigs.k8s.io/controller-runtime/pkg/internal/recorder"
 	"sigs.k8s.io/controller-runtime/pkg/leaderelection"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/recorder"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -50,9 +52,21 @@ type Manager interface {
 	// non-leaderelection mode (always running) or leader election mode (managed by leader election if enabled).
 	Add(Runnable) error
 
+	// Elected is closed when this manager is elected leader of a group of
+	// managers, either because it won a leader election or because no leader
+	// election was configured.
+	Elected() <-chan struct{}
+
 	// SetFields will set any dependencies on an object for which the object has implemented the inject
 	// interface - e.g. inject.Client.
 	SetFields(interface{}) error
+
+	// AddMetricsExtraHandler adds an extra handler served on path to the http server that serves metrics.
+	// Might be useful to register some diagnostic endpoints e.g. pprof. Note that these endpoints meant to be
+	// sensitive and shouldn't be exposed publicly.
+	// If the simple path -> handler mapping offered here is not enough, a new http server/listener should be added as
+	// Runnable to the manager via Add method.
+	AddMetricsExtraHandler(path string, handler http.Handler) error
 
 	// AddHealthzCheck allows you to add Healthz checker
 	AddHealthzCheck(name string, check healthz.Checker) error
@@ -62,6 +76,9 @@ type Manager interface {
 
 	// Start starts all registered Controllers and blocks until the Stop channel is closed.
 	// Returns an error if there is an error starting any controller.
+	// If LeaderElection is used, the binary must be exited immediately after this returns,
+	// otherwise components that need leader election might continue to run after the leader
+	// lock was lost.
 	Start(<-chan struct{}) error
 
 	// GetConfig returns an initialized Config
@@ -95,6 +112,9 @@ type Manager interface {
 
 	// GetWebhookServer returns a webhook.Server
 	GetWebhookServer() *webhook.Server
+
+	// GetLogger returns this manager's logger.
+	GetLogger() logr.Logger
 }
 
 // Options are the arguments for creating a new Manager
@@ -111,7 +131,13 @@ type Options struct {
 	// reconciled. A lower period will correct entropy more quickly, but reduce
 	// responsiveness to change if there are many watched resources. Change this
 	// value only if you know what you are doing. Defaults to 10 hours if unset.
+	// there will a 10 percent jitter between the SyncPeriod of all controllers
+	// so that all controllers will not send list requests simultaneously.
 	SyncPeriod *time.Duration
+
+	// Logger is the logger that should be used by this manager.
+	// If none is set, it defaults to log.Log global logger.
+	Logger logr.Logger
 
 	// LeaderElection determines whether or not to use leader election when
 	// starting the manager.
@@ -125,11 +151,15 @@ type Options struct {
 	// will use for holding the leader lock.
 	LeaderElectionID string
 
+	// LeaderElectionConfig can be specified to override the default configuration
+	// that is used to build the leader election client.
+	LeaderElectionConfig *rest.Config
+
 	// LeaseDuration is the duration that non-leader candidates will
 	// wait to force acquire leadership. This is measured against time of
 	// last observed ack. Default is 15 seconds.
 	LeaseDuration *time.Duration
-	// RenewDeadline is the duration that the acting master will retry
+	// RenewDeadline is the duration that the acting controlplane will retry
 	// refreshing leadership before giving up. Default is 10 seconds.
 	RenewDeadline *time.Duration
 	// RetryPeriod is the duration the LeaderElector clients should wait
@@ -168,7 +198,8 @@ type Options struct {
 
 	// CertDir is the directory that contains the server key and certificate.
 	// if not set, webhook server would look up the server key and certificate in
-	// {TempDir}/k8s-webhook-server/serving-certs
+	// {TempDir}/k8s-webhook-server/serving-certs. The server key and certificate
+	// must be named tls.key and tls.crt, respectively.
 	CertDir string
 	// Functions to all for a user to customize the values that will be injected.
 
@@ -181,9 +212,19 @@ type Options struct {
 	// use the cache for reads and the client for writes.
 	NewClient NewClientFunc
 
+	// DryRunClient specifies whether the client should be configured to enforce
+	// dryRun mode.
+	DryRunClient bool
+
 	// EventBroadcaster records Events emitted by the manager and sends them to the Kubernetes API
 	// Use this to customize the event correlator and spam filter
 	EventBroadcaster record.EventBroadcaster
+
+	// GracefulShutdownTimeout is the duration given to runnable to stop before the manager actually returns on stop.
+	// To disable graceful shutdown, set to time.Duration(0)
+	// To use graceful shutdown without timeout, set to a negative duration, e.G. time.Duration(-1)
+	// The graceful shutdown is skipped for safety reasons in case the leadere election lease is lost.
+	GracefulShutdownTimeout *time.Duration
 
 	// Dependency injection for testing
 	newRecorderProvider    func(config *rest.Config, scheme *runtime.Scheme, logger logr.Logger, broadcaster record.EventBroadcaster) (recorder.Provider, error)
@@ -254,6 +295,11 @@ func New(config *rest.Config, options Options) (Manager, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if options.DryRunClient {
+		writeObj = client.NewDryRunClient(writeObj)
+	}
+
 	// Create the recorder provider to inject event recorders for the components.
 	// TODO(directxman12): the log for the event provider should have a context (name, tags, etc) specific
 	// to the particular controller that it's being injected into, rather than a generic one like is here.
@@ -263,7 +309,11 @@ func New(config *rest.Config, options Options) (Manager, error) {
 	}
 
 	// Create the resource lock to enable leader election)
-	resourceLock, err := options.newResourceLock(config, recorderProvider, leaderelection.Options{
+	leaderConfig := config
+	if options.LeaderElectionConfig != nil {
+		leaderConfig = options.LeaderElectionConfig
+	}
+	resourceLock, err := options.newResourceLock(leaderConfig, recorderProvider, leaderelection.Options{
 		LeaderElection:          options.LeaderElection,
 		LeaderElectionID:        options.LeaderElectionID,
 		LeaderElectionNamespace: options.LeaderElectionNamespace,
@@ -279,6 +329,9 @@ func New(config *rest.Config, options Options) (Manager, error) {
 		return nil, err
 	}
 
+	// By default we have no extra endpoints to expose on metrics http server.
+	metricsExtraHandlers := make(map[string]http.Handler)
+
 	// Create health probes listener. This will throw an error if the bind
 	// address is invalid or already in use.
 	healthProbeListener, err := options.newHealthProbeListener(options.HealthProbeBindAddress)
@@ -289,32 +342,36 @@ func New(config *rest.Config, options Options) (Manager, error) {
 	stop := make(chan struct{})
 
 	return &controllerManager{
-		config:                config,
-		scheme:                options.Scheme,
-		cache:                 cache,
-		fieldIndexes:          cache,
-		client:                writeObj,
-		apiReader:             apiReader,
-		recorderProvider:      recorderProvider,
-		resourceLock:          resourceLock,
-		mapper:                mapper,
-		metricsListener:       metricsListener,
-		internalStop:          stop,
-		internalStopper:       stop,
-		port:                  options.Port,
-		host:                  options.Host,
-		certDir:               options.CertDir,
-		leaseDuration:         *options.LeaseDuration,
-		renewDeadline:         *options.RenewDeadline,
-		retryPeriod:           *options.RetryPeriod,
-		healthProbeListener:   healthProbeListener,
-		readinessEndpointName: options.ReadinessEndpointName,
-		livenessEndpointName:  options.LivenessEndpointName,
+		config:                  config,
+		scheme:                  options.Scheme,
+		cache:                   cache,
+		fieldIndexes:            cache,
+		client:                  writeObj,
+		apiReader:               apiReader,
+		recorderProvider:        recorderProvider,
+		resourceLock:            resourceLock,
+		mapper:                  mapper,
+		metricsListener:         metricsListener,
+		metricsExtraHandlers:    metricsExtraHandlers,
+		logger:                  options.Logger,
+		internalStop:            stop,
+		internalStopper:         stop,
+		elected:                 make(chan struct{}),
+		port:                    options.Port,
+		host:                    options.Host,
+		certDir:                 options.CertDir,
+		leaseDuration:           *options.LeaseDuration,
+		renewDeadline:           *options.RenewDeadline,
+		retryPeriod:             *options.RetryPeriod,
+		healthProbeListener:     healthProbeListener,
+		readinessEndpointName:   options.ReadinessEndpointName,
+		livenessEndpointName:    options.LivenessEndpointName,
+		gracefulShutdownTimeout: *options.GracefulShutdownTimeout,
 	}, nil
 }
 
-// defaultNewClient creates the default caching client
-func defaultNewClient(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error) {
+// DefaultNewClient creates the default caching client
+func DefaultNewClient(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error) {
 	// Create the Client for Write operations.
 	c, err := client.New(config, options)
 	if err != nil {
@@ -359,7 +416,7 @@ func setOptionsDefaults(options Options) Options {
 
 	// Allow newClient to be mocked
 	if options.NewClient == nil {
-		options.NewClient = defaultNewClient
+		options.NewClient = DefaultNewClient
 	}
 
 	// Allow newCache to be mocked
@@ -407,6 +464,15 @@ func setOptionsDefaults(options Options) Options {
 
 	if options.newHealthProbeListener == nil {
 		options.newHealthProbeListener = defaultHealthProbeListener
+	}
+
+	if options.GracefulShutdownTimeout == nil {
+		gracefulShutdownTimeout := defaultGracefulShutdownPeriod
+		options.GracefulShutdownTimeout = &gracefulShutdownTimeout
+	}
+
+	if options.Logger == nil {
+		options.Logger = logf.Log
 	}
 
 	return options

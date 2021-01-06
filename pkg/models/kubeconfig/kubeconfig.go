@@ -18,6 +18,7 @@ package kubeconfig
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
@@ -148,7 +149,7 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 		return err
 	}
 
-	if _, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(cm); err != nil {
+	if _, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(context.Background(), cm, metav1.CreateOptions{}); err != nil {
 		klog.Errorln(err)
 		return err
 	}
@@ -239,7 +240,7 @@ func (o *operator) createCSR(username string) error {
 	}
 
 	// create csr
-	if _, err = o.k8sClient.CertificatesV1beta1().CertificateSigningRequests().Create(k8sCSR); err != nil {
+	if _, err = o.k8sClient.CertificatesV1beta1().CertificateSigningRequests().Create(context.Background(), k8sCSR, metav1.CreateOptions{}); err != nil {
 		klog.Errorln(err)
 		return err
 	}
@@ -250,14 +251,14 @@ func (o *operator) createCSR(username string) error {
 // Update client key and client certificate after CertificateSigningRequest has been approved
 func (o *operator) UpdateKubeconfig(username string, csr *certificatesv1beta1.CertificateSigningRequest) error {
 	configName := fmt.Sprintf(kubeconfigNameFormat, username)
-	configMap, err := o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metav1.GetOptions{})
+	configMap, err := o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(context.Background(), configName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err
 	}
 
 	configMap = applyCert(configMap, csr)
-	_, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Update(configMap)
+	_, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Update(context.Background(), configMap, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err

@@ -44,6 +44,8 @@
 // be rewritten to /newcatalog and sent to pods with label "version: v2".
 //
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -71,11 +73,45 @@
 //         host: reviews.prod.svc.cluster.local
 //         subset: v1
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+// spec:
+//   hosts:
+//   - reviews.prod.svc.cluster.local
+//   http:
+//   - name: "reviews-v2-routes"
+//     match:
+//     - uri:
+//         prefix: "/wpcatalog"
+//     - uri:
+//         prefix: "/consumercatalog"
+//     rewrite:
+//       uri: "/newcatalog"
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v2
+//   - name: "reviews-v1-route"
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v1
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // A subset/version of a route destination is identified with a reference
 // to a named service subset which must be declared in a corresponding
 // `DestinationRule`.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -91,6 +127,26 @@
 //     labels:
 //       version: v2
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-destination
+// spec:
+//   host: reviews.prod.svc.cluster.local
+//   subsets:
+//   - name: v1
+//     labels:
+//       version: v1
+//   - name: v2
+//     labels:
+//       version: v2
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 
 package v1alpha3
@@ -119,6 +175,25 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Configuration affecting traffic routing.
 //
+// <!-- crd generation tags
+// +cue-gen:VirtualService:groupName:networking.istio.io
+// +cue-gen:VirtualService:version:v1alpha3
+// +cue-gen:VirtualService:storageVersion
+// +cue-gen:VirtualService:annotations:helm.sh/resource-policy=keep
+// +cue-gen:VirtualService:labels:app=istio-pilot,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:VirtualService:subresource:status
+// +cue-gen:VirtualService:scope:Namespaced
+// +cue-gen:VirtualService:resource:categories=istio-io,networking-istio-io,shortNames=vs
+// +cue-gen:VirtualService:printerColumn:name=Gateways,type=string,JSONPath=.spec.gateways,description="The names of gateways and sidecars
+// that should apply these routes"
+// +cue-gen:VirtualService:printerColumn:name=Hosts,type=string,JSONPath=.spec.hosts,description="The destination hosts to which traffic is being sent"
+// +cue-gen:VirtualService:printerColumn:name=Age,type=date,JSONPath=.metadata.creationTimestamp,description="CreationTimestamp is a timestamp
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations.
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +cue-gen:VirtualService:preserveUnknownFields:false
+// -->
+//
 // <!-- go code generation tags
 // +kubetype-gen
 // +kubetype-gen:groupVersion=networking.istio.io/v1alpha3
@@ -137,7 +212,7 @@ type VirtualService struct {
 	// HTTP and TCP ports. Alternatively, the traffic properties of a host
 	// can be defined using more than one VirtualService, with certain
 	// caveats. Refer to the
-	// [Operations Guide](https://istio.io/docs/ops/traffic-management/deploy-guidelines/#multiple-virtual-services-and-destination-rules-for-the-same-host)
+	// [Operations Guide](https://istio.io/docs/ops/best-practices/traffic-management/#split-virtual-services)
 	// for details.
 	//
 	// *Note for Kubernetes users*: When short names are used (e.g. "reviews"
@@ -153,10 +228,15 @@ type VirtualService struct {
 	// the mesh, i.e., those found in the service registry, must always be
 	// referred to using their alphanumeric names. IP addresses are allowed
 	// only for services defined via the Gateway.
+	//
+	// *Note*: It must be empty for a delegate VirtualService.
 	Hosts []string `protobuf:"bytes,1,rep,name=hosts,proto3" json:"hosts,omitempty"`
-	// The names of gateways and sidecars that should apply these routes. A
-	// single VirtualService is used for sidecars inside the mesh as well as
-	// for one or more gateways. The selection condition imposed by this
+	// The names of gateways and sidecars that should apply these routes.
+	// Gateways in other namespaces may be referred to by
+	// `<gateway namespace>/<gateway name>`; specifying a gateway with no
+	// namespace qualifier is the same as specifying the VirtualService's
+	// namespace. A single VirtualService is used for sidecars inside the mesh as
+	// well as for one or more gateways. The selection condition imposed by this
 	// field can be overridden using the source field in the match conditions
 	// of protocol-specific routes. The reserved word `mesh` is used to imply
 	// all the sidecars in the mesh. When this field is omitted, the default
@@ -302,6 +382,8 @@ func (m *VirtualService) GetExportTo() []string {
 // of the reviews service with label "version: v1" (i.e., subset v1), and
 // some to subset v2, in a Kubernetes environment.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -328,9 +410,42 @@ func (m *VirtualService) GetExportTo() []string {
 //         host: reviews # interpreted as reviews.foo.svc.cluster.local
 //         subset: v1
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+//   namespace: foo
+// spec:
+//   hosts:
+//   - reviews # interpreted as reviews.foo.svc.cluster.local
+//   http:
+//   - match:
+//     - uri:
+//         prefix: "/wpcatalog"
+//     - uri:
+//         prefix: "/consumercatalog"
+//     rewrite:
+//       uri: "/newcatalog"
+//     route:
+//     - destination:
+//         host: reviews # interpreted as reviews.foo.svc.cluster.local
+//         subset: v2
+//   - route:
+//     - destination:
+//         host: reviews # interpreted as reviews.foo.svc.cluster.local
+//         subset: v1
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // And the associated DestinationRule
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -347,6 +462,27 @@ func (m *VirtualService) GetExportTo() []string {
 //     labels:
 //       version: v2
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-destination
+//   namespace: foo
+// spec:
+//   host: reviews # interpreted as reviews.foo.svc.cluster.local
+//   subsets:
+//   - name: v1
+//     labels:
+//       version: v1
+//   - name: v2
+//     labels:
+//       version: v2
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The following VirtualService sets a timeout of 5s for all calls to
 // productpage.prod.svc.cluster.local service in Kubernetes. Notice that
@@ -358,6 +494,8 @@ func (m *VirtualService) GetExportTo() []string {
 // productpage.prod.svc.cluster.local. Therefore the rule's namespace does
 // not have an impact in resolving the name of the productpage service.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -373,13 +511,35 @@ func (m *VirtualService) GetExportTo() []string {
 //     - destination:
 //         host: productpage.prod.svc.cluster.local
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: my-productpage-rule
+//   namespace: istio-system
+// spec:
+//   hosts:
+//   - productpage.prod.svc.cluster.local # ignores rule namespace
+//   http:
+//   - timeout: 5s
+//     route:
+//     - destination:
+//         host: productpage.prod.svc.cluster.local
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // To control routing for traffic bound to services outside the mesh, external
 // services must first be added to Istio's internal service registry using the
 // ServiceEntry resource. VirtualServices can then be defined to control traffic
 // bound to these external services. For example, the following rules define a
-// Service for wikipedia.org and set a timeout of 5s for http requests.
+// Service for wikipedia.org and set a timeout of 5s for HTTP requests.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: ServiceEntry
@@ -408,6 +568,40 @@ func (m *VirtualService) GetExportTo() []string {
 //     - destination:
 //         host: wikipedia.org
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: ServiceEntry
+// metadata:
+//   name: external-svc-wikipedia
+// spec:
+//   hosts:
+//   - wikipedia.org
+//   location: MESH_EXTERNAL
+//   ports:
+//   - number: 80
+//     name: example-http
+//     protocol: HTTP
+//   resolution: DNS
+//
+// apiVersion: networking.istio.io/v1alpha3
+// kind: VirtualService
+// metadata:
+//   name: my-wiki-rule
+// spec:
+//   hosts:
+//   - wikipedia.org
+//   http:
+//   - timeout: 5s
+//     route:
+//     - destination:
+//         host: wikipedia.org
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 type Destination struct {
 	// The name of a service from the service registry. Service
 	// names are looked up from the platform's service registry (e.g.,
@@ -420,9 +614,9 @@ type Destination struct {
 	// the short name based on the namespace of the rule, not the service. A
 	// rule in the "default" namespace containing a host "reviews will be
 	// interpreted as "reviews.default.svc.cluster.local", irrespective of
-	// the actual namespace associated with the reviews service. _To avoid
-	// potential misconfigurations, it is recommended to always use fully
-	// qualified domain names over short names._
+	// the actual namespace associated with the reviews service. To avoid
+	// potential misconfiguration, it is recommended to always use fully
+	// qualified domain names over short names.
 	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	// The name of a subset within the service. Applicable only to services
 	// within the mesh. The subset must be defined in a corresponding
@@ -504,22 +698,28 @@ type HTTPRoute struct {
 	// semantics, while the list of match blocks have OR semantics. The rule
 	// is matched if any one of the match blocks succeed.
 	Match []*HTTPMatchRequest `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
-	// A http rule can either redirect or forward (default) traffic. The
+	// A HTTP rule can either redirect or forward (default) traffic. The
 	// forwarding target can be one of several versions of a service (see
 	// glossary in beginning of document). Weights associated with the
 	// service version determine the proportion of traffic it receives.
 	Route []*HTTPRouteDestination `protobuf:"bytes,2,rep,name=route,proto3" json:"route,omitempty"`
-	// A http rule can either redirect or forward (default) traffic. If
+	// A HTTP rule can either redirect or forward (default) traffic. If
 	// traffic passthrough option is specified in the rule,
 	// route/redirect will be ignored. The redirect primitive can be used to
 	// send a HTTP 301 redirect to a different URI or Authority.
 	Redirect *HTTPRedirect `protobuf:"bytes,3,opt,name=redirect,proto3" json:"redirect,omitempty"`
+	// Delegate is used to specify the particular VirtualService which
+	// can be used to define delegate HTTPRoute.
+	// It can be set only when `Route` and `Redirect` are empty, and the route rules of the
+	// delegate VirtualService will be merged with that in the current one.
+	// **NOTE**:
+	//    1. Only one level delegation is supported.
+	//    2. The delegate's HTTPMatchRequest must be a strict subset of the root's,
+	//       otherwise there is a conflict and the HTTPRoute will not take effect.
+	Delegate *Delegate `protobuf:"bytes,20,opt,name=delegate,proto3" json:"delegate,omitempty"`
 	// Rewrite HTTP URIs and Authority headers. Rewrite cannot be used with
 	// Redirect primitive. Rewrite will be performed before forwarding.
 	Rewrite *HTTPRewrite `protobuf:"bytes,4,opt,name=rewrite,proto3" json:"rewrite,omitempty"`
-	// Deprecated. Websocket upgrades are done automatically starting from Istio 1.0.
-	// $hide_from_docs
-	WebsocketUpgrade bool `protobuf:"varint,5,opt,name=websocket_upgrade,json=websocketUpgrade,proto3" json:"websocket_upgrade,omitempty"`
 	// Timeout for HTTP requests.
 	Timeout *types.Duration `protobuf:"bytes,6,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	// Retry policy for HTTP requests.
@@ -536,23 +736,17 @@ type HTTPRoute struct {
 	// destination.
 	Mirror *Destination `protobuf:"bytes,9,opt,name=mirror,proto3" json:"mirror,omitempty"`
 	// Percentage of the traffic to be mirrored by the `mirror` field.
+	// Use of integer `mirror_percent` value is deprecated. Use the
+	// double `mirror_percentage` field instead
+	MirrorPercent *types.UInt32Value `protobuf:"bytes,18,opt,name=mirror_percent,json=mirrorPercent,proto3" json:"mirror_percent,omitempty"` // Deprecated: Do not use.
+	// Percentage of the traffic to be mirrored by the `mirror` field.
 	// If this field is absent, all the traffic (100%) will be mirrored.
 	// Max value is 100.
-	MirrorPercent *types.UInt32Value `protobuf:"bytes,18,opt,name=mirror_percent,json=mirrorPercent,proto3" json:"mirror_percent,omitempty"`
+	MirrorPercentage *Percent `protobuf:"bytes,19,opt,name=mirror_percentage,json=mirrorPercentage,proto3" json:"mirror_percentage,omitempty"`
 	// Cross-Origin Resource Sharing policy (CORS). Refer to
 	// [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
 	// for further details about cross origin resource sharing.
 	CorsPolicy *CorsPolicy `protobuf:"bytes,10,opt,name=cors_policy,json=corsPolicy,proto3" json:"cors_policy,omitempty"`
-	// $hide_from_docs
-	AppendHeaders map[string]string `protobuf:"bytes,11,rep,name=append_headers,json=appendHeaders,proto3" json:"append_headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // Deprecated: Do not use.
-	// $hide_from_docs
-	RemoveResponseHeaders []string `protobuf:"bytes,12,rep,name=remove_response_headers,json=removeResponseHeaders,proto3" json:"remove_response_headers,omitempty"` // Deprecated: Do not use.
-	// $hide_from_docs
-	AppendResponseHeaders map[string]string `protobuf:"bytes,13,rep,name=append_response_headers,json=appendResponseHeaders,proto3" json:"append_response_headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // Deprecated: Do not use.
-	// $hide_from_docs
-	RemoveRequestHeaders []string `protobuf:"bytes,14,rep,name=remove_request_headers,json=removeRequestHeaders,proto3" json:"remove_request_headers,omitempty"` // Deprecated: Do not use.
-	// $hide_from_docs
-	AppendRequestHeaders map[string]string `protobuf:"bytes,15,rep,name=append_request_headers,json=appendRequestHeaders,proto3" json:"append_request_headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // Deprecated: Do not use.
 	// Header manipulation rules
 	Headers              *Headers `protobuf:"bytes,16,opt,name=headers,proto3" json:"headers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -621,18 +815,18 @@ func (m *HTTPRoute) GetRedirect() *HTTPRedirect {
 	return nil
 }
 
+func (m *HTTPRoute) GetDelegate() *Delegate {
+	if m != nil {
+		return m.Delegate
+	}
+	return nil
+}
+
 func (m *HTTPRoute) GetRewrite() *HTTPRewrite {
 	if m != nil {
 		return m.Rewrite
 	}
 	return nil
-}
-
-func (m *HTTPRoute) GetWebsocketUpgrade() bool {
-	if m != nil {
-		return m.WebsocketUpgrade
-	}
-	return false
 }
 
 func (m *HTTPRoute) GetTimeout() *types.Duration {
@@ -663,9 +857,17 @@ func (m *HTTPRoute) GetMirror() *Destination {
 	return nil
 }
 
+// Deprecated: Do not use.
 func (m *HTTPRoute) GetMirrorPercent() *types.UInt32Value {
 	if m != nil {
 		return m.MirrorPercent
+	}
+	return nil
+}
+
+func (m *HTTPRoute) GetMirrorPercentage() *Percent {
+	if m != nil {
+		return m.MirrorPercentage
 	}
 	return nil
 }
@@ -677,51 +879,129 @@ func (m *HTTPRoute) GetCorsPolicy() *CorsPolicy {
 	return nil
 }
 
-// Deprecated: Do not use.
-func (m *HTTPRoute) GetAppendHeaders() map[string]string {
-	if m != nil {
-		return m.AppendHeaders
-	}
-	return nil
-}
-
-// Deprecated: Do not use.
-func (m *HTTPRoute) GetRemoveResponseHeaders() []string {
-	if m != nil {
-		return m.RemoveResponseHeaders
-	}
-	return nil
-}
-
-// Deprecated: Do not use.
-func (m *HTTPRoute) GetAppendResponseHeaders() map[string]string {
-	if m != nil {
-		return m.AppendResponseHeaders
-	}
-	return nil
-}
-
-// Deprecated: Do not use.
-func (m *HTTPRoute) GetRemoveRequestHeaders() []string {
-	if m != nil {
-		return m.RemoveRequestHeaders
-	}
-	return nil
-}
-
-// Deprecated: Do not use.
-func (m *HTTPRoute) GetAppendRequestHeaders() map[string]string {
-	if m != nil {
-		return m.AppendRequestHeaders
-	}
-	return nil
-}
-
 func (m *HTTPRoute) GetHeaders() *Headers {
 	if m != nil {
 		return m.Headers
 	}
 	return nil
+}
+
+// Describes the delegate VirtualService.
+// The following routing rules forward the traffic to `/productpage` by a delegate VirtualService named `productpage`,
+// forward the traffic to `/reviews` by a delegate VirtualService named `reviews`.
+//
+// ```yaml
+// apiVersion: networking.istio.io/v1alpha3
+// kind: VirtualService
+// metadata:
+//   name: bookinfo
+// spec:
+//   hosts:
+//   - "bookinfo.com"
+//   gateways:
+//   - mygateway
+//   http:
+//   - match:
+//     - uri:
+//         prefix: "/productpage"
+//     delegate:
+//        name: productpage
+//        namespace: nsA
+//   - match:
+//     - uri:
+//         prefix: "/reviews"
+//     delegate:
+//         name: reviews
+//         namespace: nsB
+// ```
+//
+// ```yaml
+// apiVersion: networking.istio.io/v1alpha3
+// kind: VirtualService
+// metadata:
+//   name: productpage
+//   namespace: nsA
+// spec:
+//   http:
+//   - match:
+//      - uri:
+//         prefix: "/productpage/v1/"
+//     route:
+//     - destination:
+//         host: productpage-v1.nsA.svc.cluster.local
+//   - route:
+//     - destination:
+//         host: productpage.nsA.svc.cluster.local
+// ```
+//
+// ```yaml
+// apiVersion: networking.istio.io/v1alpha3
+// kind: VirtualService
+// metadata:
+//   name: reviews
+//   namespace: nsB
+// spec:
+//   http:
+//   - route:
+//     - destination:
+//         host: reviews.nsB.svc.cluster.local
+// ```
+type Delegate struct {
+	// Name specifies the name of the delegate VirtualService.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Namespace specifies the namespace where the delegate VirtualService resides.
+	// By default, it is same to the root's.
+	Namespace            string   `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Delegate) Reset()         { *m = Delegate{} }
+func (m *Delegate) String() string { return proto.CompactTextString(m) }
+func (*Delegate) ProtoMessage()    {}
+func (*Delegate) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e85a9a4fa9c17a22, []int{3}
+}
+func (m *Delegate) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Delegate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Delegate.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Delegate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Delegate.Merge(m, src)
+}
+func (m *Delegate) XXX_Size() int {
+	return m.Size()
+}
+func (m *Delegate) XXX_DiscardUnknown() {
+	xxx_messageInfo_Delegate.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Delegate proto.InternalMessageInfo
+
+func (m *Delegate) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *Delegate) GetNamespace() string {
+	if m != nil {
+		return m.Namespace
+	}
+	return ""
 }
 
 // Message headers can be manipulated when Envoy forwards requests to,
@@ -732,6 +1012,8 @@ func (m *HTTPRoute) GetHeaders() *Headers {
 // It also romoves the `foo` response header, but only from responses
 // coming from the `v1` subset (version) of the `reviews` service.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -759,6 +1041,38 @@ func (m *HTTPRoute) GetHeaders() *Headers {
 //           - foo
 //       weight: 75
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+// spec:
+//   hosts:
+//   - reviews.prod.svc.cluster.local
+//   http:
+//   - headers:
+//       request:
+//         set:
+//           test: true
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v2
+//       weight: 25
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v1
+//       headers:
+//         response:
+//           remove:
+//           - foo
+//       weight: 75
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 type Headers struct {
 	// Header manipulation rules to apply before forwarding a request
 	// to the destination service
@@ -775,7 +1089,7 @@ func (m *Headers) Reset()         { *m = Headers{} }
 func (m *Headers) String() string { return proto.CompactTextString(m) }
 func (*Headers) ProtoMessage()    {}
 func (*Headers) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{3}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{4}
 }
 func (m *Headers) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -836,7 +1150,7 @@ func (m *Headers_HeaderOperations) Reset()         { *m = Headers_HeaderOperatio
 func (m *Headers_HeaderOperations) String() string { return proto.CompactTextString(m) }
 func (*Headers_HeaderOperations) ProtoMessage()    {}
 func (*Headers_HeaderOperations) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{3, 0}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{4, 0}
 }
 func (m *Headers_HeaderOperations) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -891,6 +1205,8 @@ func (m *Headers_HeaderOperations) GetRemove() []string {
 // traffic arriving at port 443 of gateway called "mygateway" to internal
 // services in the mesh based on the SNI value.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -917,6 +1233,37 @@ func (m *Headers_HeaderOperations) GetRemove() []string {
 //     - destination:
 //         host: reviews.prod.svc.cluster.local
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: bookinfo-sni
+// spec:
+//   hosts:
+//   - "*.bookinfo.com"
+//   gateways:
+//   - mygateway
+//   tls:
+//   - match:
+//     - port: 443
+//       sniHosts:
+//       - login.bookinfo.com
+//     route:
+//     - destination:
+//         host: login.prod.svc.cluster.local
+//   - match:
+//     - port: 443
+//       sniHosts:
+//       - reviews.bookinfo.com
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 type TLSRoute struct {
 	// Match conditions to be satisfied for the rule to be
 	// activated. All conditions inside a single match block have AND
@@ -934,7 +1281,7 @@ func (m *TLSRoute) Reset()         { *m = TLSRoute{} }
 func (m *TLSRoute) String() string { return proto.CompactTextString(m) }
 func (*TLSRoute) ProtoMessage()    {}
 func (*TLSRoute) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{4}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{5}
 }
 func (m *TLSRoute) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -981,6 +1328,8 @@ func (m *TLSRoute) GetRoute() []*RouteDestination {
 // following routing rule forwards traffic arriving at port 27017 for
 // mongo.prod.svc.cluster.local to another Mongo server on port 5555.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -998,6 +1347,28 @@ func (m *TLSRoute) GetRoute() []*RouteDestination {
 //         port:
 //           number: 5555
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: bookinfo-Mongo
+// spec:
+//   hosts:
+//   - mongo.prod.svc.cluster.local
+//   tcp:
+//   - match:
+//     - port: 27017
+//     route:
+//     - destination:
+//         host: mongo.backup.svc.cluster.local
+//         port:
+//           number: 5555
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 type TCPRoute struct {
 	// Match conditions to be satisfied for the rule to be
 	// activated. All conditions inside a single match block have AND
@@ -1015,7 +1386,7 @@ func (m *TCPRoute) Reset()         { *m = TCPRoute{} }
 func (m *TCPRoute) String() string { return proto.CompactTextString(m) }
 func (*TCPRoute) ProtoMessage()    {}
 func (*TCPRoute) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{5}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{6}
 }
 func (m *TCPRoute) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1064,6 +1435,8 @@ func (m *TCPRoute) GetRoute() []*RouteDestination {
 // starts with /ratings/v2/ and the request contains a custom `end-user` header
 // with value `jason`.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -1084,8 +1457,34 @@ func (m *TCPRoute) GetRoute() []*RouteDestination {
 //     - destination:
 //         host: ratings.prod.svc.cluster.local
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - match:
+//     - headers:
+//         end-user:
+//           exact: jason
+//       uri:
+//         prefix: "/ratings/v2/"
+//       ignoreUriCase: true
+//     route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // HTTPMatchRequest CANNOT be empty.
+// **Note:** No regex string match can be set when delegate VirtualService is specified.
 type HTTPMatchRequest struct {
 	// The name assigned to a match. The match's name will be
 	// concatenated with the parent route's name and will be logged in
@@ -1144,6 +1543,7 @@ type HTTPMatchRequest struct {
 	//
 	// - `regex: "value"` for ECMAscript style regex-based match
 	//
+	// If the value is empty and only the name of header is specfied, presence of the header is checked.
 	// **Note:** The keys `uri`, `scheme`, `method`, and `authority` will be ignored.
 	Headers map[string]*StringMatch `protobuf:"bytes,5,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Specifies the ports on the host that is being addressed. Many services
@@ -1152,10 +1552,12 @@ type HTTPMatchRequest struct {
 	Port uint32 `protobuf:"varint,6,opt,name=port,proto3" json:"port,omitempty"`
 	// One or more labels that constrain the applicability of a rule to
 	// workloads with the given labels. If the VirtualService has a list of
-	// gateways specified at the top, it must include the reserved gateway
+	// gateways specified in the top-level `gateways` field, it must include the reserved gateway
 	// `mesh` for this field to be applicable.
 	SourceLabels map[string]string `protobuf:"bytes,7,rep,name=source_labels,json=sourceLabels,proto3" json:"source_labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// $hide_from_docs
+	// Names of gateways where the rule should be applied. Gateway names
+	// in the top-level `gateways` field of the VirtualService (if any) are overridden. The gateway
+	// match is independent of sourceLabels.
 	Gateways []string `protobuf:"bytes,8,rep,name=gateways,proto3" json:"gateways,omitempty"`
 	// Query parameters for matching.
 	//
@@ -1174,7 +1576,14 @@ type HTTPMatchRequest struct {
 	//
 	// **Note:** The case will be ignored only in the case of `exact` and `prefix`
 	// URI matches.
-	IgnoreUriCase        bool     `protobuf:"varint,10,opt,name=ignore_uri_case,json=ignoreUriCase,proto3" json:"ignore_uri_case,omitempty"`
+	IgnoreUriCase bool `protobuf:"varint,10,opt,name=ignore_uri_case,json=ignoreUriCase,proto3" json:"ignore_uri_case,omitempty"`
+	// withoutHeader has the same syntax with the header, but has opposite meaning.
+	// If a header is matched with a matching rule among withoutHeader, the traffic becomes not matched one.
+	WithoutHeaders map[string]*StringMatch `protobuf:"bytes,12,rep,name=without_headers,json=withoutHeaders,proto3" json:"without_headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Source namespace constraining the applicability of a rule to workloads in that namespace.
+	// If the VirtualService has a list of gateways specified in the top-level `gateways` field,
+	// it must include the reserved gateway `mesh` for this field to be applicable.
+	SourceNamespace      string   `protobuf:"bytes,13,opt,name=source_namespace,json=sourceNamespace,proto3" json:"source_namespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1184,7 +1593,7 @@ func (m *HTTPMatchRequest) Reset()         { *m = HTTPMatchRequest{} }
 func (m *HTTPMatchRequest) String() string { return proto.CompactTextString(m) }
 func (*HTTPMatchRequest) ProtoMessage()    {}
 func (*HTTPMatchRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{6}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{7}
 }
 func (m *HTTPMatchRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1290,6 +1699,20 @@ func (m *HTTPMatchRequest) GetIgnoreUriCase() bool {
 	return false
 }
 
+func (m *HTTPMatchRequest) GetWithoutHeaders() map[string]*StringMatch {
+	if m != nil {
+		return m.WithoutHeaders
+	}
+	return nil
+}
+
+func (m *HTTPMatchRequest) GetSourceNamespace() string {
+	if m != nil {
+		return m.SourceNamespace
+	}
+	return ""
+}
+
 // Each routing rule is associated with one or more service versions (see
 // glossary in beginning of document). Weights associated with the version
 // determine the proportion of traffic it receives. For example, the
@@ -1297,6 +1720,8 @@ func (m *HTTPMatchRequest) GetIgnoreUriCase() bool {
 // instances with the "v2" tag and the remaining traffic (i.e., 75%) to
 // "v1".
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -1316,9 +1741,35 @@ func (m *HTTPMatchRequest) GetIgnoreUriCase() bool {
 //         subset: v1
 //       weight: 75
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+// spec:
+//   hosts:
+//   - reviews.prod.svc.cluster.local
+//   http:
+//   - route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v2
+//       weight: 25
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v1
+//       weight: 75
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // And the associated DestinationRule
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: DestinationRule
@@ -1334,11 +1785,33 @@ func (m *HTTPMatchRequest) GetIgnoreUriCase() bool {
 //     labels:
 //       version: v2
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: DestinationRule
+// metadata:
+//   name: reviews-destination
+// spec:
+//   host: reviews.prod.svc.cluster.local
+//   subsets:
+//   - name: v1
+//     labels:
+//       version: v1
+//   - name: v2
+//     labels:
+//       version: v2
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // Traffic can also be split across two entirely different services without
 // having to define new subsets. For example, the following rule forwards 25% of
 // traffic to reviews.com to dev.reviews.com
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -1356,6 +1829,29 @@ func (m *HTTPMatchRequest) GetIgnoreUriCase() bool {
 //         host: reviews.com
 //       weight: 75
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route-two-domains
+// spec:
+//   hosts:
+//   - reviews.com
+//   http:
+//   - route:
+//     - destination:
+//         host: dev.reviews.com
+//       weight: 25
+//     - destination:
+//         host: reviews.com
+//       weight: 75
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 type HTTPRouteDestination struct {
 	// Destination uniquely identifies the instances of a service
 	// to which the request/connection should be forwarded to.
@@ -1365,18 +1861,6 @@ type HTTPRouteDestination struct {
 	// If there is only one destination in a rule, the weight value is assumed to
 	// be 100.
 	Weight int32 `protobuf:"varint,2,opt,name=weight,proto3" json:"weight,omitempty"`
-	// Use of `remove_response_header` is deprecated. Use the `headers`
-	// field instead.
-	RemoveResponseHeaders []string `protobuf:"bytes,3,rep,name=remove_response_headers,json=removeResponseHeaders,proto3" json:"remove_response_headers,omitempty"` // Deprecated: Do not use.
-	// Use of `append_response_headers` is deprecated. Use the `headers`
-	// field instead.
-	AppendResponseHeaders map[string]string `protobuf:"bytes,4,rep,name=append_response_headers,json=appendResponseHeaders,proto3" json:"append_response_headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // Deprecated: Do not use.
-	// Use of `remove_request_headers` is deprecated. Use the `headers`
-	// field instead.
-	RemoveRequestHeaders []string `protobuf:"bytes,5,rep,name=remove_request_headers,json=removeRequestHeaders,proto3" json:"remove_request_headers,omitempty"` // Deprecated: Do not use.
-	// Use of `append_request_headers` is deprecated. Use the `headers`
-	// field instead.
-	AppendRequestHeaders map[string]string `protobuf:"bytes,6,rep,name=append_request_headers,json=appendRequestHeaders,proto3" json:"append_request_headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // Deprecated: Do not use.
 	// Header manipulation rules
 	Headers              *Headers `protobuf:"bytes,7,opt,name=headers,proto3" json:"headers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1388,7 +1872,7 @@ func (m *HTTPRouteDestination) Reset()         { *m = HTTPRouteDestination{} }
 func (m *HTTPRouteDestination) String() string { return proto.CompactTextString(m) }
 func (*HTTPRouteDestination) ProtoMessage()    {}
 func (*HTTPRouteDestination) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{7}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{8}
 }
 func (m *HTTPRouteDestination) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1431,38 +1915,6 @@ func (m *HTTPRouteDestination) GetWeight() int32 {
 	return 0
 }
 
-// Deprecated: Do not use.
-func (m *HTTPRouteDestination) GetRemoveResponseHeaders() []string {
-	if m != nil {
-		return m.RemoveResponseHeaders
-	}
-	return nil
-}
-
-// Deprecated: Do not use.
-func (m *HTTPRouteDestination) GetAppendResponseHeaders() map[string]string {
-	if m != nil {
-		return m.AppendResponseHeaders
-	}
-	return nil
-}
-
-// Deprecated: Do not use.
-func (m *HTTPRouteDestination) GetRemoveRequestHeaders() []string {
-	if m != nil {
-		return m.RemoveRequestHeaders
-	}
-	return nil
-}
-
-// Deprecated: Do not use.
-func (m *HTTPRouteDestination) GetAppendRequestHeaders() map[string]string {
-	if m != nil {
-		return m.AppendRequestHeaders
-	}
-	return nil
-}
-
 func (m *HTTPRouteDestination) GetHeaders() *Headers {
 	if m != nil {
 		return m.Headers
@@ -1488,7 +1940,7 @@ func (m *RouteDestination) Reset()         { *m = RouteDestination{} }
 func (m *RouteDestination) String() string { return proto.CompactTextString(m) }
 func (*RouteDestination) ProtoMessage()    {}
 func (*RouteDestination) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{8}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{9}
 }
 func (m *RouteDestination) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1547,13 +1999,17 @@ type L4MatchAttributes struct {
 	SourceSubnet string `protobuf:"bytes,3,opt,name=source_subnet,json=sourceSubnet,proto3" json:"source_subnet,omitempty"`
 	// One or more labels that constrain the applicability of a rule to
 	// workloads with the given labels. If the VirtualService has a list of
-	// gateways specified at the top, it should include the reserved gateway
+	// gateways specified in the top-level `gateways` field, it should include the reserved gateway
 	// `mesh` in order for this field to be applicable.
 	SourceLabels map[string]string `protobuf:"bytes,4,rep,name=source_labels,json=sourceLabels,proto3" json:"source_labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// Names of gateways where the rule should be applied to. Gateway names
-	// at the top of the VirtualService (if any) are overridden. The gateway
+	// Names of gateways where the rule should be applied. Gateway names
+	// in the top-level `gateways` field of the VirtualService (if any) are overridden. The gateway
 	// match is independent of sourceLabels.
-	Gateways             []string `protobuf:"bytes,5,rep,name=gateways,proto3" json:"gateways,omitempty"`
+	Gateways []string `protobuf:"bytes,5,rep,name=gateways,proto3" json:"gateways,omitempty"`
+	// Source namespace constraining the applicability of a rule to workloads in that namespace.
+	// If the VirtualService has a list of gateways specified in the top-level `gateways` field,
+	// it must include the reserved gateway `mesh` for this field to be applicable.
+	SourceNamespace      string   `protobuf:"bytes,6,opt,name=source_namespace,json=sourceNamespace,proto3" json:"source_namespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1563,7 +2019,7 @@ func (m *L4MatchAttributes) Reset()         { *m = L4MatchAttributes{} }
 func (m *L4MatchAttributes) String() string { return proto.CompactTextString(m) }
 func (*L4MatchAttributes) ProtoMessage()    {}
 func (*L4MatchAttributes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{9}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{10}
 }
 func (m *L4MatchAttributes) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1627,6 +2083,13 @@ func (m *L4MatchAttributes) GetGateways() []string {
 	return nil
 }
 
+func (m *L4MatchAttributes) GetSourceNamespace() string {
+	if m != nil {
+		return m.SourceNamespace
+	}
+	return ""
+}
+
 // TLS connection match attributes.
 type TLSMatchAttributes struct {
 	// SNI (server name indicator) to match on. Wildcard prefixes
@@ -1642,19 +2105,19 @@ type TLSMatchAttributes struct {
 	// support, in these cases it is not required to explicitly select the
 	// port.
 	Port uint32 `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
-	// IPv4 or IPv6 ip address of source with optional subnet. E.g., a.b.c.d/xx
-	// form or just a.b.c.d
-	// $hide_from_docs
-	SourceSubnet string `protobuf:"bytes,4,opt,name=source_subnet,json=sourceSubnet,proto3" json:"source_subnet,omitempty"`
 	// One or more labels that constrain the applicability of a rule to
 	// workloads with the given labels. If the VirtualService has a list of
-	// gateways specified at the top, it should include the reserved gateway
+	// gateways specified in the top-level `gateways` field, it should include the reserved gateway
 	// `mesh` in order for this field to be applicable.
 	SourceLabels map[string]string `protobuf:"bytes,5,rep,name=source_labels,json=sourceLabels,proto3" json:"source_labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// Names of gateways where the rule should be applied to. Gateway names
-	// at the top of the VirtualService (if any) are overridden. The gateway
+	// Names of gateways where the rule should be applied. Gateway names
+	// in the top-level `gateways` field of the VirtualService (if any) are overridden. The gateway
 	// match is independent of sourceLabels.
-	Gateways             []string `protobuf:"bytes,6,rep,name=gateways,proto3" json:"gateways,omitempty"`
+	Gateways []string `protobuf:"bytes,6,rep,name=gateways,proto3" json:"gateways,omitempty"`
+	// Source namespace constraining the applicability of a rule to workloads in that namespace.
+	// If the VirtualService has a list of gateways specified in the top-level `gateways` field,
+	// it must include the reserved gateway `mesh` for this field to be applicable.
+	SourceNamespace      string   `protobuf:"bytes,7,opt,name=source_namespace,json=sourceNamespace,proto3" json:"source_namespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1664,7 +2127,7 @@ func (m *TLSMatchAttributes) Reset()         { *m = TLSMatchAttributes{} }
 func (m *TLSMatchAttributes) String() string { return proto.CompactTextString(m) }
 func (*TLSMatchAttributes) ProtoMessage()    {}
 func (*TLSMatchAttributes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{10}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{11}
 }
 func (m *TLSMatchAttributes) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1714,13 +2177,6 @@ func (m *TLSMatchAttributes) GetPort() uint32 {
 	return 0
 }
 
-func (m *TLSMatchAttributes) GetSourceSubnet() string {
-	if m != nil {
-		return m.SourceSubnet
-	}
-	return ""
-}
-
 func (m *TLSMatchAttributes) GetSourceLabels() map[string]string {
 	if m != nil {
 		return m.SourceLabels
@@ -1735,12 +2191,21 @@ func (m *TLSMatchAttributes) GetGateways() []string {
 	return nil
 }
 
+func (m *TLSMatchAttributes) GetSourceNamespace() string {
+	if m != nil {
+		return m.SourceNamespace
+	}
+	return ""
+}
+
 // HTTPRedirect can be used to send a 301 redirect response to the caller,
 // where the Authority/Host and the URI in the response can be swapped with
 // the specified values. For example, the following rule redirects
 // requests for /v1/getProductRatings API on the ratings service to
 // /v1/bookRatings provided by the bookratings service.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -1758,6 +2223,29 @@ func (m *TLSMatchAttributes) GetGateways() []string {
 //       authority: newratings.default.svc.cluster.local
 //   ...
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - match:
+//     - uri:
+//         exact: /v1/getProductRatings
+//     redirect:
+//       uri: /v1/bookRatings
+//       authority: newratings.default.svc.cluster.local
+//   ...
+// ```
+// {{</tab>}}
+// {{</tabset>}}
+//
 type HTTPRedirect struct {
 	// On a redirect, overwrite the Path portion of the URL with this
 	// value. Note that the entire path will be replaced, irrespective of the
@@ -1778,7 +2266,7 @@ func (m *HTTPRedirect) Reset()         { *m = HTTPRedirect{} }
 func (m *HTTPRedirect) String() string { return proto.CompactTextString(m) }
 func (*HTTPRedirect) ProtoMessage()    {}
 func (*HTTPRedirect) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{11}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{12}
 }
 func (m *HTTPRedirect) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1834,6 +2322,8 @@ func (m *HTTPRedirect) GetRedirectCode() uint32 {
 // demonstrates how to rewrite the URL prefix for api call (/ratings) to
 // ratings service before making the actual API call.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -1853,6 +2343,30 @@ func (m *HTTPRedirect) GetRedirectCode() uint32 {
 //         host: ratings.prod.svc.cluster.local
 //         subset: v1
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - match:
+//     - uri:
+//         prefix: /ratings
+//     rewrite:
+//       uri: /v1/bookRatings
+//     route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+//         subset: v1
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 type HTTPRewrite struct {
 	// rewrite the path (or the prefix) portion of the URI with this
@@ -1870,7 +2384,7 @@ func (m *HTTPRewrite) Reset()         { *m = HTTPRewrite{} }
 func (m *HTTPRewrite) String() string { return proto.CompactTextString(m) }
 func (*HTTPRewrite) ProtoMessage()    {}
 func (*HTTPRewrite) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{12}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{13}
 }
 func (m *HTTPRewrite) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1930,7 +2444,7 @@ func (m *StringMatch) Reset()         { *m = StringMatch{} }
 func (m *StringMatch) String() string { return proto.CompactTextString(m) }
 func (*StringMatch) ProtoMessage()    {}
 func (*StringMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{13}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{14}
 }
 func (m *StringMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2020,6 +2534,8 @@ func (*StringMatch) XXX_OneofWrappers() []interface{} {
 // example, the following rule sets the maximum number of retries to 3 when
 // calling ratings:v1 service, with a 2s timeout per retry attempt.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -2038,11 +2554,35 @@ func (*StringMatch) XXX_OneofWrappers() []interface{} {
 //       perTryTimeout: 2s
 //       retryOn: gateway-error,connect-failure,refused-stream
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+//         subset: v1
+//     retries:
+//       attempts: 3
+//       perTryTimeout: 2s
+//       retryOn: gateway-error,connect-failure,refused-stream
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 type HTTPRetry struct {
 	// Number of retries for a given request. The interval
 	// between retries will be determined automatically (25ms+). Actual
-	// number of retries attempted depends on the httpReqTimeout.
+	// number of retries attempted depends on the request `timeout` of the
+	// [HTTP route](https://istio.io/docs/reference/config/networking/virtual-service/#HTTPRoute).
 	Attempts int32 `protobuf:"varint,1,opt,name=attempts,proto3" json:"attempts,omitempty"`
 	// Timeout per retry attempt for a given request. format: 1h/1m/1s/1ms. MUST BE >=1ms.
 	PerTryTimeout *types.Duration `protobuf:"bytes,2,opt,name=per_try_timeout,json=perTryTimeout,proto3" json:"per_try_timeout,omitempty"`
@@ -2050,17 +2590,20 @@ type HTTPRetry struct {
 	// One or more policies can be specified using a ‘,’ delimited list.
 	// See the [retry policies](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/router_filter#x-envoy-retry-on)
 	// and [gRPC retry policies](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/router_filter#x-envoy-retry-grpc-on) for more details.
-	RetryOn              string   `protobuf:"bytes,3,opt,name=retry_on,json=retryOn,proto3" json:"retry_on,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	RetryOn string `protobuf:"bytes,3,opt,name=retry_on,json=retryOn,proto3" json:"retry_on,omitempty"`
+	// Flag to specify whether the retries should retry to other localities.
+	// See the [retry plugin configuration](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/http/http_connection_management#retry-plugin-configuration) for more details.
+	RetryRemoteLocalities *types.BoolValue `protobuf:"bytes,4,opt,name=retry_remote_localities,json=retryRemoteLocalities,proto3" json:"retry_remote_localities,omitempty"`
+	XXX_NoUnkeyedLiteral  struct{}         `json:"-"`
+	XXX_unrecognized      []byte           `json:"-"`
+	XXX_sizecache         int32            `json:"-"`
 }
 
 func (m *HTTPRetry) Reset()         { *m = HTTPRetry{} }
 func (m *HTTPRetry) String() string { return proto.CompactTextString(m) }
 func (*HTTPRetry) ProtoMessage()    {}
 func (*HTTPRetry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{14}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{15}
 }
 func (m *HTTPRetry) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2110,6 +2653,13 @@ func (m *HTTPRetry) GetRetryOn() string {
 	return ""
 }
 
+func (m *HTTPRetry) GetRetryRemoteLocalities() *types.BoolValue {
+	if m != nil {
+		return m.RetryRemoteLocalities
+	}
+	return nil
+}
+
 // Describes the Cross-Origin Resource Sharing (CORS) policy, for a given
 // service. Refer to [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS)
 // for further details about cross origin resource sharing. For example,
@@ -2118,6 +2668,8 @@ func (m *HTTPRetry) GetRetryOn() string {
 // `Access-Control-Allow-Credentials` header to false. In addition, it only
 // exposes `X-Foo-bar` header and sets an expiry period of 1 day.
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -2142,12 +2694,46 @@ func (m *HTTPRetry) GetRetryOn() string {
 //       - X-Foo-Bar
 //       maxAge: "24h"
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+//         subset: v1
+//     corsPolicy:
+//       allowOrigin:
+//       - example.com
+//       allowMethods:
+//       - POST
+//       - GET
+//       allowCredentials: false
+//       allowHeaders:
+//       - X-Foo-Bar
+//       maxAge: "24h"
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 type CorsPolicy struct {
 	// The list of origins that are allowed to perform CORS requests. The
 	// content will be serialized into the Access-Control-Allow-Origin
 	// header. Wildcard * will allow all origins.
-	AllowOrigin []string `protobuf:"bytes,1,rep,name=allow_origin,json=allowOrigin,proto3" json:"allow_origin,omitempty"`
+	// $hide_from_docs
+	AllowOrigin []string `protobuf:"bytes,1,rep,name=allow_origin,json=allowOrigin,proto3" json:"allow_origin,omitempty"` // Deprecated: Do not use.
+	// String patterns that match allowed origins.
+	// An origin is allowed if any of the string matchers match.
+	// If a match is found, then the outgoing Access-Control-Allow-Origin would be set to the origin as provided by the client.
+	AllowOrigins []*StringMatch `protobuf:"bytes,7,rep,name=allow_origins,json=allowOrigins,proto3" json:"allow_origins,omitempty"`
 	// List of HTTP methods allowed to access the resource. The content will
 	// be serialized into the Access-Control-Allow-Methods header.
 	AllowMethods []string `protobuf:"bytes,2,rep,name=allow_methods,json=allowMethods,proto3" json:"allow_methods,omitempty"`
@@ -2173,7 +2759,7 @@ func (m *CorsPolicy) Reset()         { *m = CorsPolicy{} }
 func (m *CorsPolicy) String() string { return proto.CompactTextString(m) }
 func (*CorsPolicy) ProtoMessage()    {}
 func (*CorsPolicy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{15}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{16}
 }
 func (m *CorsPolicy) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2202,9 +2788,17 @@ func (m *CorsPolicy) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_CorsPolicy proto.InternalMessageInfo
 
+// Deprecated: Do not use.
 func (m *CorsPolicy) GetAllowOrigin() []string {
 	if m != nil {
 		return m.AllowOrigin
+	}
+	return nil
+}
+
+func (m *CorsPolicy) GetAllowOrigins() []*StringMatch {
+	if m != nil {
+		return m.AllowOrigins
 	}
 	return nil
 }
@@ -2245,7 +2839,7 @@ func (m *CorsPolicy) GetAllowCredentials() *types.BoolValue {
 }
 
 // HTTPFaultInjection can be used to specify one or more faults to inject
-// while forwarding http requests to the destination specified in a route.
+// while forwarding HTTP requests to the destination specified in a route.
 // Fault specification is part of a VirtualService rule. Faults include
 // aborting the Http request from downstream service, and/or delaying
 // proxying of requests. A fault rule MUST HAVE delay or abort or both.
@@ -2268,7 +2862,7 @@ func (m *HTTPFaultInjection) Reset()         { *m = HTTPFaultInjection{} }
 func (m *HTTPFaultInjection) String() string { return proto.CompactTextString(m) }
 func (*HTTPFaultInjection) ProtoMessage()    {}
 func (*HTTPFaultInjection) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{16}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{17}
 }
 func (m *HTTPFaultInjection) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2316,6 +2910,8 @@ func (m *HTTPFaultInjection) GetAbort() *HTTPFaultInjection_Abort {
 // in 1 out of every 1000 requests to the "v1" version of the "reviews"
 // service from all pods with label env: prod
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -2338,6 +2934,33 @@ func (m *HTTPFaultInjection) GetAbort() *HTTPFaultInjection_Abort {
 //           value: 0.1
 //         fixedDelay: 5s
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: reviews-route
+// spec:
+//   hosts:
+//   - reviews.prod.svc.cluster.local
+//   http:
+//   - match:
+//     - sourceLabels:
+//         env: prod
+//     route:
+//     - destination:
+//         host: reviews.prod.svc.cluster.local
+//         subset: v1
+//     fault:
+//       delay:
+//         percentage:
+//           value: 0.1
+//         fixedDelay: 5s
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The _fixedDelay_ field is used to indicate the amount of delay in seconds.
 // The optional _percentage_ field can be used to only delay a certain
@@ -2362,7 +2985,7 @@ func (m *HTTPFaultInjection_Delay) Reset()         { *m = HTTPFaultInjection_Del
 func (m *HTTPFaultInjection_Delay) String() string { return proto.CompactTextString(m) }
 func (*HTTPFaultInjection_Delay) ProtoMessage()    {}
 func (*HTTPFaultInjection_Delay) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{16, 0}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{17, 0}
 }
 func (m *HTTPFaultInjection_Delay) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2455,6 +3078,8 @@ func (*HTTPFaultInjection_Delay) XXX_OneofWrappers() []interface{} {
 // pre-specified error code. The following example will return an HTTP 400
 // error code for 1 out of every 1000 requests to the "ratings" service "v1".
 //
+// {{<tabset category-name="example">}}
+// {{<tab name="v1alpha3" category-value="v1alpha3">}}
 // ```yaml
 // apiVersion: networking.istio.io/v1alpha3
 // kind: VirtualService
@@ -2474,16 +3099,36 @@ func (*HTTPFaultInjection_Delay) XXX_OneofWrappers() []interface{} {
 //           value: 0.1
 //         httpStatus: 400
 // ```
+// {{</tab>}}
+//
+// {{<tab name="v1beta1" category-value="v1beta1">}}
+// ```yaml
+// apiVersion: networking.istio.io/v1beta1
+// kind: VirtualService
+// metadata:
+//   name: ratings-route
+// spec:
+//   hosts:
+//   - ratings.prod.svc.cluster.local
+//   http:
+//   - route:
+//     - destination:
+//         host: ratings.prod.svc.cluster.local
+//         subset: v1
+//     fault:
+//       abort:
+//         percentage:
+//           value: 0.1
+//         httpStatus: 400
+// ```
+// {{</tab>}}
+// {{</tabset>}}
 //
 // The _httpStatus_ field is used to indicate the HTTP status code to
 // return to the caller. The optional _percentage_ field can be used to only
 // abort a certain percentage of requests. If not specified, all requests are
 // aborted.
 type HTTPFaultInjection_Abort struct {
-	// Percentage of requests to be aborted with the error code provided (0-100).
-	// Use of integer `percent` value is deprecated. Use the double `percentage`
-	// field instead.
-	Percent int32 `protobuf:"varint,1,opt,name=percent,proto3" json:"percent,omitempty"` // Deprecated: Do not use.
 	// Types that are valid to be assigned to ErrorType:
 	//	*HTTPFaultInjection_Abort_HttpStatus
 	//	*HTTPFaultInjection_Abort_GrpcStatus
@@ -2500,7 +3145,7 @@ func (m *HTTPFaultInjection_Abort) Reset()         { *m = HTTPFaultInjection_Abo
 func (m *HTTPFaultInjection_Abort) String() string { return proto.CompactTextString(m) }
 func (*HTTPFaultInjection_Abort) ProtoMessage()    {}
 func (*HTTPFaultInjection_Abort) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{16, 1}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{17, 1}
 }
 func (m *HTTPFaultInjection_Abort) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2556,14 +3201,6 @@ func (m *HTTPFaultInjection_Abort) GetErrorType() isHTTPFaultInjection_Abort_Err
 	return nil
 }
 
-// Deprecated: Do not use.
-func (m *HTTPFaultInjection_Abort) GetPercent() int32 {
-	if m != nil {
-		return m.Percent
-	}
-	return 0
-}
-
 func (m *HTTPFaultInjection_Abort) GetHttpStatus() int32 {
 	if x, ok := m.GetErrorType().(*HTTPFaultInjection_Abort_HttpStatus); ok {
 		return x.HttpStatus
@@ -2615,7 +3252,7 @@ func (m *PortSelector) Reset()         { *m = PortSelector{} }
 func (m *PortSelector) String() string { return proto.CompactTextString(m) }
 func (*PortSelector) ProtoMessage()    {}
 func (*PortSelector) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{17}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{18}
 }
 func (m *PortSelector) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2663,7 +3300,7 @@ func (m *Percent) Reset()         { *m = Percent{} }
 func (m *Percent) String() string { return proto.CompactTextString(m) }
 func (*Percent) ProtoMessage()    {}
 func (*Percent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e85a9a4fa9c17a22, []int{18}
+	return fileDescriptor_e85a9a4fa9c17a22, []int{19}
 }
 func (m *Percent) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2703,9 +3340,7 @@ func init() {
 	proto.RegisterType((*VirtualService)(nil), "istio.networking.v1alpha3.VirtualService")
 	proto.RegisterType((*Destination)(nil), "istio.networking.v1alpha3.Destination")
 	proto.RegisterType((*HTTPRoute)(nil), "istio.networking.v1alpha3.HTTPRoute")
-	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.HTTPRoute.AppendHeadersEntry")
-	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.HTTPRoute.AppendRequestHeadersEntry")
-	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.HTTPRoute.AppendResponseHeadersEntry")
+	proto.RegisterType((*Delegate)(nil), "istio.networking.v1alpha3.Delegate")
 	proto.RegisterType((*Headers)(nil), "istio.networking.v1alpha3.Headers")
 	proto.RegisterType((*Headers_HeaderOperations)(nil), "istio.networking.v1alpha3.Headers.HeaderOperations")
 	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.Headers.HeaderOperations.AddEntry")
@@ -2716,9 +3351,8 @@ func init() {
 	proto.RegisterMapType((map[string]*StringMatch)(nil), "istio.networking.v1alpha3.HTTPMatchRequest.HeadersEntry")
 	proto.RegisterMapType((map[string]*StringMatch)(nil), "istio.networking.v1alpha3.HTTPMatchRequest.QueryParamsEntry")
 	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.HTTPMatchRequest.SourceLabelsEntry")
+	proto.RegisterMapType((map[string]*StringMatch)(nil), "istio.networking.v1alpha3.HTTPMatchRequest.WithoutHeadersEntry")
 	proto.RegisterType((*HTTPRouteDestination)(nil), "istio.networking.v1alpha3.HTTPRouteDestination")
-	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.HTTPRouteDestination.AppendRequestHeadersEntry")
-	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.HTTPRouteDestination.AppendResponseHeadersEntry")
 	proto.RegisterType((*RouteDestination)(nil), "istio.networking.v1alpha3.RouteDestination")
 	proto.RegisterType((*L4MatchAttributes)(nil), "istio.networking.v1alpha3.L4MatchAttributes")
 	proto.RegisterMapType((map[string]string)(nil), "istio.networking.v1alpha3.L4MatchAttributes.SourceLabelsEntry")
@@ -2741,129 +3375,132 @@ func init() {
 }
 
 var fileDescriptor_e85a9a4fa9c17a22 = []byte{
-	// 1951 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x59, 0x4f, 0x73, 0x1b, 0x49,
-	0x15, 0x8f, 0xfe, 0x8c, 0x25, 0xbd, 0x91, 0x12, 0xb9, 0xc9, 0x26, 0x63, 0x91, 0x4a, 0xbc, 0x0a,
-	0x1b, 0x4c, 0x2d, 0x2b, 0x17, 0x36, 0x2c, 0xae, 0x25, 0x9b, 0x5d, 0xd9, 0xc9, 0xae, 0xb2, 0x95,
-	0x10, 0xd3, 0x76, 0xf6, 0xc0, 0x65, 0xaa, 0x35, 0xd3, 0x96, 0x86, 0x48, 0xd3, 0x93, 0x9e, 0x1e,
-	0x5b, 0xaa, 0x3d, 0x52, 0x45, 0x15, 0x14, 0x17, 0x4e, 0x9c, 0xe0, 0xc4, 0xa7, 0xe0, 0xc2, 0x75,
-	0x8f, 0x54, 0xf1, 0x05, 0xb6, 0x42, 0xc1, 0xe7, 0xa0, 0xba, 0x7b, 0x46, 0x1a, 0x4b, 0xb6, 0x46,
-	0x32, 0xa1, 0xd8, 0x93, 0xd5, 0xdd, 0xef, 0xf7, 0xde, 0xeb, 0xd7, 0xdd, 0xef, 0xfd, 0xe6, 0x19,
-	0x7e, 0xe0, 0x53, 0x71, 0xc6, 0xf8, 0x2b, 0xcf, 0xef, 0x6d, 0x9f, 0xfe, 0x88, 0x0c, 0x82, 0x3e,
-	0xd9, 0xdd, 0x3e, 0xf5, 0xb8, 0x88, 0xc8, 0xc0, 0x0e, 0x29, 0x3f, 0xf5, 0x1c, 0xda, 0x0a, 0x38,
-	0x13, 0x0c, 0x6d, 0x78, 0xa1, 0xf0, 0x58, 0x6b, 0x0a, 0x68, 0x25, 0x80, 0xc6, 0xbd, 0x1e, 0x63,
-	0xbd, 0x01, 0xdd, 0x26, 0x81, 0xb7, 0x7d, 0xe2, 0xd1, 0x81, 0x6b, 0x77, 0x69, 0x9f, 0x9c, 0x7a,
-	0x8c, 0x6b, 0x6c, 0xe3, 0x6e, 0x2c, 0xa0, 0x46, 0xdd, 0xe8, 0x64, 0xdb, 0x8d, 0x38, 0x11, 0x1e,
-	0xf3, 0x2f, 0x5b, 0x3f, 0xe3, 0x24, 0x08, 0x28, 0x0f, 0xf5, 0x7a, 0xf3, 0xf7, 0x79, 0xb8, 0xfe,
-	0xa5, 0xf6, 0xea, 0x48, 0x3b, 0x85, 0x36, 0xc0, 0xe8, 0xb3, 0x50, 0x84, 0x56, 0x6e, 0xb3, 0xb0,
-	0x55, 0xd9, 0x2f, 0x7c, 0xd3, 0xce, 0x63, 0x3d, 0x83, 0x1a, 0x50, 0xee, 0x11, 0x41, 0xcf, 0xc8,
-	0x38, 0xb4, 0xf2, 0x72, 0x15, 0x4f, 0xc6, 0x68, 0x0f, 0x8a, 0x7d, 0x21, 0x02, 0xab, 0xb0, 0x59,
-	0xd8, 0x32, 0x77, 0xbe, 0xd7, 0xba, 0x74, 0x53, 0xad, 0xce, 0xf1, 0xf1, 0x21, 0x66, 0x91, 0xa0,
-	0x58, 0x21, 0xd0, 0x4f, 0xa0, 0x20, 0x06, 0xa1, 0x65, 0x28, 0xe0, 0xfd, 0x05, 0xc0, 0xe3, 0x67,
-	0x47, 0x1a, 0x27, 0xe5, 0x15, 0xcc, 0x09, 0xac, 0x62, 0x36, 0xec, 0xe0, 0x30, 0x81, 0x39, 0x01,
-	0xfa, 0x2e, 0x54, 0xe8, 0x28, 0x60, 0x5c, 0xd8, 0x82, 0x59, 0x6b, 0x7a, 0x13, 0x7a, 0xe2, 0x98,
-	0x35, 0xbf, 0x02, 0xf3, 0x31, 0x0d, 0x85, 0xe7, 0xab, 0x18, 0xa2, 0xdb, 0x50, 0x94, 0x1b, 0xb7,
-	0x72, 0x9b, 0xb9, 0x24, 0x12, 0x6a, 0x02, 0xdd, 0x82, 0xb5, 0x30, 0xea, 0x86, 0x54, 0x58, 0x79,
-	0xb9, 0x84, 0xe3, 0x11, 0xfa, 0x19, 0x14, 0xa5, 0x26, 0xab, 0xb0, 0x99, 0xdb, 0x32, 0x77, 0xbe,
-	0xbf, 0xc0, 0xa9, 0x43, 0xc6, 0xc5, 0x11, 0x1d, 0x50, 0x47, 0x30, 0x8e, 0x15, 0xa8, 0xf9, 0xb5,
-	0x09, 0x95, 0x49, 0x6c, 0x10, 0x82, 0xa2, 0x4f, 0x86, 0xd4, 0x5a, 0x57, 0x06, 0xd4, 0x6f, 0xd4,
-	0x06, 0x63, 0x48, 0x84, 0xd3, 0x57, 0x47, 0x63, 0xee, 0xbc, 0x9f, 0x11, 0xe4, 0xe7, 0x52, 0x16,
-	0xd3, 0xd7, 0x11, 0x0d, 0x05, 0xd6, 0x48, 0xf4, 0x04, 0x0c, 0x2e, 0xf5, 0xab, 0xf3, 0x33, 0x77,
-	0xb6, 0x97, 0x39, 0xa7, 0x54, 0x48, 0xb0, 0x46, 0xa3, 0x03, 0x28, 0x73, 0xea, 0x7a, 0x9c, 0x3a,
-	0xcb, 0x6c, 0x56, 0x69, 0x8a, 0xc5, 0xf1, 0x04, 0x88, 0x3e, 0x85, 0x12, 0xa7, 0x67, 0xdc, 0x13,
-	0xd4, 0x2a, 0x2a, 0x1d, 0x0f, 0x32, 0x75, 0x28, 0x69, 0x9c, 0xc0, 0xd0, 0xfb, 0xb0, 0x7e, 0x46,
-	0xbb, 0x21, 0x73, 0x5e, 0x51, 0x61, 0x47, 0x41, 0x8f, 0x13, 0x97, 0x5a, 0xc6, 0x66, 0x6e, 0xab,
-	0x8c, 0xeb, 0x93, 0x85, 0x97, 0x7a, 0x1e, 0xed, 0x42, 0x49, 0x78, 0x43, 0xca, 0x22, 0x61, 0xad,
-	0x29, 0x73, 0x1b, 0x2d, 0xfd, 0x3a, 0x5a, 0xc9, 0xeb, 0x68, 0x3d, 0x8e, 0x5f, 0x0f, 0x4e, 0x24,
-	0xd1, 0x23, 0xe9, 0xa3, 0xe0, 0x1e, 0x0d, 0xad, 0x92, 0x02, 0x65, 0xde, 0x6c, 0x2a, 0xf8, 0x18,
-	0x27, 0x20, 0x74, 0x00, 0xc6, 0x09, 0x89, 0x06, 0xc2, 0x2a, 0x2b, 0xf4, 0x07, 0x19, 0xe8, 0xcf,
-	0xa4, 0xec, 0x53, 0xff, 0x57, 0xd4, 0xd1, 0xd1, 0x56, 0x58, 0xf4, 0x08, 0xd6, 0x86, 0x1e, 0xe7,
-	0x8c, 0x5b, 0x95, 0xcc, 0x38, 0xa5, 0x0f, 0x2b, 0x46, 0xa1, 0x03, 0xb8, 0xae, 0x7f, 0xd9, 0x01,
-	0xe5, 0x0e, 0xf5, 0x85, 0x85, 0x94, 0x9e, 0x3b, 0x73, 0x01, 0x78, 0xf9, 0xd4, 0x17, 0xbb, 0x3b,
-	0x5f, 0x92, 0x41, 0x44, 0x71, 0x4d, 0x63, 0x0e, 0x35, 0x04, 0x7d, 0x06, 0xa6, 0xc3, 0x78, 0x68,
-	0x07, 0x6c, 0xe0, 0x39, 0x63, 0x0b, 0x94, 0x86, 0xf7, 0x16, 0x78, 0x72, 0xc0, 0x78, 0x78, 0xa8,
-	0x84, 0x31, 0x38, 0x93, 0xdf, 0xa8, 0x0b, 0xd7, 0x65, 0x0a, 0xf2, 0x5d, 0xbb, 0x4f, 0x89, 0x4b,
-	0x79, 0x68, 0x99, 0xea, 0x2a, 0xfe, 0x74, 0x99, 0xab, 0xd8, 0x6a, 0x2b, 0x68, 0x47, 0x23, 0x9f,
-	0xf8, 0x82, 0x8f, 0xf7, 0xf3, 0x56, 0x0e, 0xd7, 0x48, 0x7a, 0x1e, 0x7d, 0x04, 0xb7, 0x39, 0x1d,
-	0xb2, 0x53, 0x6a, 0x73, 0x1a, 0x06, 0xcc, 0x0f, 0xe9, 0xc4, 0x58, 0x55, 0x65, 0x35, 0x89, 0x79,
-	0x47, 0x8b, 0xe0, 0x58, 0x22, 0xc1, 0x7e, 0x05, 0xb7, 0x63, 0xff, 0xe6, 0xb0, 0x35, 0xe5, 0xe8,
-	0x27, 0x2b, 0x38, 0x3a, 0xa3, 0x7c, 0xea, 0xf0, 0x3b, 0xe4, 0xa2, 0x75, 0xb4, 0x07, 0xb7, 0x26,
-	0x8e, 0xab, 0x77, 0x3b, 0xb1, 0x7d, 0x7d, 0xe2, 0xf7, 0xcd, 0xc4, 0x6f, 0x25, 0x90, 0x20, 0x47,
-	0x70, 0x6b, 0xe2, 0xf6, 0x79, 0xe4, 0x0d, 0xe5, 0xf5, 0xa3, 0x95, 0xbc, 0x4e, 0xab, 0x9e, 0x3a,
-	0x7d, 0x93, 0x5c, 0xb0, 0x8c, 0x1e, 0x42, 0x29, 0x31, 0x55, 0x57, 0x97, 0xa2, 0xb9, 0xc8, 0x94,
-	0x96, 0xc4, 0x09, 0xa4, 0xf1, 0x29, 0xa0, 0xf9, 0x33, 0x45, 0x75, 0x28, 0xbc, 0xa2, 0x63, 0x9d,
-	0x78, 0xb1, 0xfc, 0x89, 0x6e, 0x82, 0x71, 0x2a, 0xaf, 0x65, 0x9c, 0x71, 0xf5, 0xe0, 0xa3, 0xfc,
-	0x5e, 0xae, 0xd1, 0x81, 0xc6, 0xe5, 0xc1, 0x5e, 0x49, 0xd3, 0xe7, 0xb0, 0x71, 0x69, 0x00, 0x56,
-	0x51, 0xd4, 0xfc, 0x77, 0x01, 0x4a, 0x49, 0x78, 0x9e, 0xcb, 0x0c, 0xa2, 0xd4, 0x29, 0xac, 0xb9,
-	0xb3, 0x9b, 0x1d, 0x9e, 0xf8, 0xef, 0x8b, 0x80, 0xea, 0x7c, 0x14, 0xe2, 0x44, 0x07, 0x7a, 0x21,
-	0x33, 0xaf, 0xde, 0xa7, 0xb2, 0x7b, 0x45, 0x7d, 0x13, 0x25, 0x8d, 0xbf, 0xe6, 0xa1, 0x3e, 0xbb,
-	0x8c, 0x7e, 0x0e, 0x05, 0x59, 0xdd, 0x74, 0x9d, 0x79, 0x78, 0x05, 0x03, 0xad, 0x23, 0x2a, 0x54,
-	0xdc, 0xb0, 0x54, 0x24, 0xf5, 0x11, 0xd7, 0x8d, 0x8b, 0xce, 0x95, 0xf4, 0xb5, 0x5d, 0x37, 0xd6,
-	0x47, 0x5c, 0x57, 0x16, 0x60, 0xfd, 0x0a, 0x14, 0xdf, 0xa8, 0xe0, 0x78, 0xd4, 0xf8, 0x10, 0xca,
-	0x89, 0xe1, 0x95, 0x4e, 0xfe, 0x43, 0x28, 0x27, 0x06, 0x56, 0x3a, 0xe8, 0x3f, 0xe6, 0xa0, 0x9c,
-	0xd0, 0x12, 0xd4, 0x39, 0x5f, 0x9e, 0x3f, 0x58, 0x4c, 0x65, 0x54, 0x75, 0x6e, 0x0b, 0xc1, 0xbd,
-	0x6e, 0x24, 0x68, 0x18, 0x13, 0x2d, 0x5d, 0xa5, 0xdb, 0xe7, 0xab, 0xf4, 0xa2, 0x42, 0x7f, 0x49,
-	0x85, 0x6e, 0xfe, 0x41, 0x7a, 0x16, 0x33, 0x1f, 0xb4, 0x7f, 0xde, 0xb3, 0x1f, 0x2e, 0xd0, 0xf7,
-	0xec, 0xc7, 0x33, 0x8e, 0xbd, 0x45, 0x9f, 0xfe, 0x52, 0x82, 0xfa, 0x2c, 0x31, 0x99, 0x10, 0x1d,
-	0x33, 0x45, 0x74, 0xf6, 0xa0, 0x10, 0x71, 0x2f, 0x7e, 0x2f, 0x8b, 0xaa, 0xdd, 0x91, 0xe0, 0x9e,
-	0xdf, 0xd3, 0xfa, 0x24, 0x44, 0x96, 0xca, 0xd0, 0xe9, 0xd3, 0x61, 0xf2, 0x38, 0x96, 0x05, 0xc7,
-	0x28, 0x55, 0x6a, 0xa9, 0xe8, 0x33, 0x37, 0xa6, 0x35, 0x4b, 0xe3, 0x35, 0x0a, 0x3d, 0x86, 0x0a,
-	0x89, 0x44, 0x9f, 0x71, 0x4f, 0x8c, 0x97, 0x60, 0x35, 0x69, 0x15, 0x53, 0x20, 0xc2, 0xd3, 0x94,
-	0xaa, 0x69, 0xf1, 0xde, 0x0a, 0x54, 0xaf, 0x95, 0x4e, 0x5b, 0x93, 0x44, 0x2b, 0xe3, 0xac, 0xb8,
-	0xa9, 0xe4, 0x3e, 0x35, 0x4d, 0x39, 0x51, 0x17, 0x6a, 0x21, 0x8b, 0xb8, 0x43, 0xed, 0x01, 0xe9,
-	0xd2, 0x81, 0xe4, 0x38, 0xd2, 0xda, 0xc7, 0xab, 0x58, 0x3b, 0x52, 0x0a, 0x9e, 0x29, 0xbc, 0x36,
-	0x59, 0x0d, 0x53, 0x53, 0xe7, 0x3e, 0x1a, 0xca, 0x33, 0x1f, 0x0d, 0x36, 0x54, 0x5f, 0x47, 0x94,
-	0x8f, 0xed, 0x80, 0x70, 0x32, 0x0c, 0xad, 0x4a, 0x76, 0x7e, 0x98, 0x35, 0xff, 0x0b, 0x89, 0x3f,
-	0x54, 0x70, 0x6d, 0xdd, 0x7c, 0x3d, 0x9d, 0x41, 0x0f, 0xe0, 0x86, 0xd7, 0xf3, 0x19, 0xa7, 0x76,
-	0xc4, 0x3d, 0xdb, 0x21, 0x21, 0x55, 0xc4, 0xa5, 0x8c, 0x6b, 0x7a, 0xfa, 0x25, 0xf7, 0x0e, 0x48,
-	0x48, 0x1b, 0x5d, 0xa8, 0x66, 0x24, 0xfb, 0x87, 0xe9, 0x1c, 0xb0, 0xfc, 0xa1, 0xa6, 0x72, 0xcc,
-	0x27, 0xb0, 0x3e, 0x17, 0xab, 0x95, 0x92, 0xd4, 0x09, 0xd4, 0x67, 0x77, 0xfb, 0xbf, 0x70, 0xb4,
-	0xf9, 0x0f, 0x03, 0x6e, 0x5e, 0x44, 0xfe, 0xd1, 0x73, 0x30, 0xdd, 0xe9, 0x70, 0x89, 0xe7, 0x99,
-	0x02, 0xeb, 0xfc, 0x96, 0xc6, 0xcb, 0x24, 0x7e, 0x46, 0xbd, 0x5e, 0x5f, 0x7f, 0x45, 0x19, 0x38,
-	0x1e, 0x2d, 0x62, 0x6f, 0x85, 0x2c, 0xf6, 0xf6, 0x9b, 0xdc, 0xe5, 0xf4, 0x4d, 0x7f, 0x2a, 0x7e,
-	0xb1, 0xe2, 0x27, 0xcf, 0x5b, 0x67, 0x72, 0x46, 0x06, 0x93, 0xfb, 0x75, 0xee, 0x52, 0x2a, 0xb7,
-	0xa6, 0x76, 0xf0, 0xf4, 0xaa, 0x3b, 0xb8, 0x22, 0xab, 0x2b, 0xad, 0xce, 0xea, 0xbe, 0x85, 0x9c,
-	0x6c, 0x0c, 0xf5, 0xff, 0xd3, 0x85, 0x6e, 0xfe, 0x2d, 0x0f, 0xeb, 0x73, 0x75, 0x15, 0x6d, 0xc3,
-	0x77, 0x52, 0x60, 0x3b, 0x8c, 0xba, 0x3e, 0x4d, 0xda, 0x2e, 0x18, 0xa5, 0x96, 0x8e, 0xf4, 0xca,
-	0x24, 0x83, 0xe7, 0x53, 0x19, 0xfc, 0xfe, 0x24, 0x83, 0x6b, 0xbc, 0x2a, 0x5b, 0x95, 0x24, 0x05,
-	0x6b, 0x24, 0x72, 0x66, 0xd3, 0x7c, 0x31, 0xf3, 0x93, 0x60, 0xce, 0xdd, 0x95, 0xf2, 0xbc, 0x71,
-	0x3e, 0xcf, 0xff, 0xd7, 0xa9, 0xaf, 0xf9, 0xcf, 0x3c, 0xa0, 0x79, 0xce, 0x84, 0x36, 0xa1, 0x12,
-	0xfa, 0x9e, 0x3d, 0xd7, 0xaf, 0x2a, 0x87, 0xbe, 0xd7, 0x51, 0x2d, 0xab, 0x4b, 0x82, 0x9c, 0xcf,
-	0x0c, 0x72, 0x61, 0x51, 0x90, 0x8b, 0x17, 0x04, 0xd9, 0x9d, 0x0d, 0xb2, 0x91, 0xf9, 0xb5, 0x38,
-	0xbf, 0xa3, 0x95, 0xa2, 0xbc, 0xf6, 0xb6, 0xa3, 0xec, 0x40, 0x35, 0xdd, 0xaa, 0x91, 0xd8, 0x84,
-	0x86, 0x55, 0x34, 0xbd, 0xba, 0x93, 0xa6, 0x37, 0x1a, 0x9f, 0xa2, 0x2d, 0xf7, 0xa1, 0x96, 0x34,
-	0x77, 0x6c, 0x87, 0xb9, 0x34, 0x0e, 0x62, 0x35, 0x99, 0x3c, 0x60, 0x2e, 0x6d, 0x7e, 0x0c, 0x66,
-	0xaa, 0x97, 0xb3, 0xaa, 0x8d, 0x26, 0x05, 0x33, 0x55, 0xb6, 0xd0, 0x2d, 0x30, 0xe8, 0x88, 0x38,
-	0x71, 0x8f, 0xae, 0x73, 0x0d, 0xeb, 0x21, 0xb2, 0x60, 0x2d, 0xe0, 0xf4, 0xc4, 0x1b, 0x69, 0x0d,
-	0x9d, 0x6b, 0x38, 0x1e, 0x4b, 0x04, 0xa7, 0x3d, 0x3a, 0xd2, 0x2f, 0x45, 0x22, 0xd4, 0x70, 0xbf,
-	0x0a, 0xa0, 0x88, 0xae, 0x2d, 0xc6, 0x01, 0x6d, 0xfe, 0x2e, 0x17, 0x37, 0xe3, 0xa8, 0x0c, 0xe2,
-	0x3d, 0x28, 0x13, 0x21, 0xe8, 0x30, 0x50, 0xd7, 0x2c, 0xb7, 0x65, 0xc4, 0xd7, 0x2c, 0x99, 0x44,
-	0x6d, 0xb8, 0x11, 0x50, 0x6e, 0x0b, 0x3e, 0xb6, 0x93, 0x1e, 0x53, 0x3e, 0xab, 0xc7, 0x54, 0x0b,
-	0x28, 0x3f, 0xe6, 0xe3, 0xe3, 0xb8, 0xd3, 0xb4, 0x21, 0x3f, 0xec, 0xa4, 0x02, 0xe6, 0xc7, 0x8f,
-	0x58, 0x35, 0x91, 0xc6, 0x2f, 0xfc, 0xe6, 0x9f, 0xf2, 0x00, 0xd3, 0x6e, 0x0a, 0x7a, 0x17, 0xaa,
-	0x64, 0x30, 0x60, 0x67, 0x36, 0xe3, 0x5e, 0xcf, 0xf3, 0xe3, 0x8c, 0x61, 0xaa, 0xb9, 0x17, 0x6a,
-	0x4a, 0x9e, 0x84, 0x16, 0xd1, 0xb4, 0x34, 0xb9, 0xf0, 0x1a, 0xf7, 0x5c, 0xcf, 0x4d, 0x85, 0xce,
-	0x55, 0xd7, 0x58, 0x28, 0xa9, 0x03, 0xef, 0xc1, 0x75, 0x3a, 0x0a, 0xd8, 0x4c, 0x19, 0xad, 0xe0,
-	0x9a, 0x9e, 0x4d, 0xc4, 0x76, 0xa0, 0x34, 0x24, 0x23, 0x9b, 0xf4, 0x74, 0xff, 0x6d, 0xe1, 0xc6,
-	0xd7, 0x86, 0x64, 0xd4, 0xee, 0x51, 0xf4, 0x39, 0xac, 0x6b, 0xfb, 0x0e, 0xa7, 0x2e, 0xf5, 0x85,
-	0x47, 0x06, 0x61, 0xdc, 0x9a, 0x6b, 0xcc, 0xa1, 0xf7, 0x19, 0x1b, 0xe8, 0xbe, 0x54, 0x5d, 0x81,
-	0x0e, 0xa6, 0x98, 0xe6, 0x9f, 0x0d, 0x40, 0xf3, 0xdd, 0x33, 0xf4, 0x14, 0x0c, 0x97, 0x0e, 0xc8,
-	0x78, 0x99, 0xef, 0xee, 0x39, 0x74, 0xeb, 0xb1, 0x84, 0x62, 0xad, 0x41, 0xaa, 0x22, 0xdd, 0x24,
-	0xf7, 0xae, 0xac, 0xaa, 0x2d, 0xa1, 0x58, 0x6b, 0x68, 0xfc, 0x36, 0x0f, 0x86, 0xd2, 0x8d, 0xee,
-	0x40, 0x29, 0xe9, 0xc7, 0xe9, 0x4b, 0x25, 0xab, 0x71, 0x32, 0x85, 0xda, 0x60, 0x9e, 0x78, 0x23,
-	0xea, 0xda, 0x7a, 0x0f, 0x59, 0xd7, 0x49, 0xdd, 0xc8, 0xce, 0x35, 0x0c, 0x0a, 0xa4, 0x0d, 0x74,
-	0x60, 0x5d, 0x9e, 0x92, 0xaf, 0xe3, 0x14, 0x2b, 0x2a, 0x64, 0x28, 0xea, 0x5c, 0xc3, 0xf5, 0x14,
-	0x4a, 0x6b, 0xda, 0x07, 0x88, 0xfd, 0x9a, 0x9e, 0xf0, 0x22, 0x42, 0x10, 0x37, 0x0d, 0x71, 0x0a,
-	0xb5, 0xbf, 0x0e, 0x37, 0xfa, 0x42, 0x04, 0xda, 0x0d, 0xf5, 0xca, 0x1a, 0xff, 0xca, 0x81, 0xa1,
-	0x82, 0x93, 0x11, 0x8b, 0x07, 0x60, 0x2a, 0x68, 0x28, 0x88, 0x88, 0x42, 0x5d, 0x5d, 0x27, 0x1b,
-	0x96, 0x2b, 0x47, 0x6a, 0x01, 0xbd, 0x0b, 0x66, 0x8f, 0x07, 0x4e, 0x22, 0x97, 0xbc, 0x70, 0x90,
-	0x93, 0x53, 0x11, 0x09, 0xd8, 0xb1, 0xa9, 0x6a, 0xa8, 0x16, 0x13, 0x11, 0x35, 0xf9, 0x44, 0xb5,
-	0x4b, 0xdf, 0xc6, 0x66, 0xab, 0x00, 0xca, 0x80, 0xce, 0x26, 0x3b, 0x50, 0x4d, 0x37, 0xfc, 0x25,
-	0x51, 0xf0, 0xa3, 0x61, 0x97, 0x72, 0xb5, 0xd9, 0x1a, 0x8e, 0x47, 0x5f, 0x14, 0xcb, 0xf9, 0x7a,
-	0x41, 0x7f, 0x03, 0x37, 0xef, 0x41, 0x29, 0x69, 0xbd, 0x4e, 0x32, 0xb6, 0x94, 0xce, 0xc5, 0x19,
-	0x7b, 0xbf, 0xf5, 0xf5, 0x9b, 0xbb, 0xb9, 0xbf, 0xbf, 0xb9, 0x9b, 0xfb, 0xe6, 0xcd, 0xdd, 0xdc,
-	0x2f, 0x37, 0xb5, 0x7f, 0x1e, 0x53, 0xff, 0x2c, 0xba, 0xe0, 0xbf, 0x4f, 0xdd, 0x35, 0x75, 0xd4,
-	0xbb, 0xff, 0x09, 0x00, 0x00, 0xff, 0xff, 0xa0, 0xe6, 0x9e, 0x31, 0x9b, 0x1a, 0x00, 0x00,
+	// 1989 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x59, 0x4f, 0x73, 0x1b, 0x49,
+	0x15, 0x8f, 0xfe, 0x4b, 0x4f, 0x92, 0x2d, 0x77, 0x42, 0x32, 0x31, 0xa9, 0xc4, 0x4c, 0x48, 0xf0,
+	0x16, 0xac, 0x5c, 0xd8, 0x40, 0xa5, 0x20, 0x9b, 0xe0, 0x3f, 0xd9, 0x75, 0x4c, 0xb2, 0x36, 0x6d,
+	0xef, 0x52, 0xc5, 0x65, 0x6a, 0x34, 0xf3, 0x2c, 0x0d, 0x19, 0x4d, 0x4f, 0x7a, 0x7a, 0x6c, 0xab,
+	0xf8, 0x00, 0x14, 0x27, 0x8a, 0x13, 0x17, 0x6e, 0xf0, 0x29, 0xf8, 0x04, 0x1c, 0x39, 0x71, 0xa4,
+	0xb6, 0x72, 0xe0, 0xc0, 0x81, 0x8f, 0x40, 0x51, 0xdd, 0x3d, 0x23, 0x8d, 0x2c, 0x47, 0x7f, 0x42,
+	0xc2, 0x9e, 0xac, 0x7e, 0xfd, 0x7e, 0xbf, 0xee, 0x79, 0xaf, 0xdf, 0x9f, 0x6e, 0xc3, 0x47, 0x01,
+	0x8a, 0x73, 0xc6, 0x5f, 0x79, 0x41, 0x77, 0xe3, 0xec, 0xfb, 0xb6, 0x1f, 0xf6, 0xec, 0xad, 0x8d,
+	0x33, 0x8f, 0x8b, 0xd8, 0xf6, 0xad, 0x08, 0xf9, 0x99, 0xe7, 0x60, 0x3b, 0xe4, 0x4c, 0x30, 0x72,
+	0xdb, 0x8b, 0x84, 0xc7, 0xda, 0x23, 0x40, 0x3b, 0x05, 0xac, 0xde, 0xeb, 0x32, 0xd6, 0xf5, 0x71,
+	0xc3, 0x0e, 0xbd, 0x8d, 0x53, 0x0f, 0x7d, 0xd7, 0xea, 0x60, 0xcf, 0x3e, 0xf3, 0x18, 0xd7, 0xd8,
+	0xd5, 0xbb, 0x89, 0x82, 0x1a, 0x75, 0xe2, 0xd3, 0x0d, 0x37, 0xe6, 0xb6, 0xf0, 0x58, 0xf0, 0xb6,
+	0xf9, 0x73, 0x6e, 0x87, 0x21, 0xf2, 0x48, 0xcf, 0x9b, 0xbf, 0xc9, 0xc3, 0xd2, 0x97, 0x7a, 0x57,
+	0xc7, 0x7a, 0x53, 0xe4, 0x06, 0x94, 0x7a, 0x2c, 0x12, 0x91, 0x91, 0x5b, 0x2b, 0xac, 0xd7, 0xa8,
+	0x1e, 0x90, 0x55, 0xa8, 0x76, 0x6d, 0x81, 0xe7, 0xf6, 0x20, 0x32, 0xf2, 0x6a, 0x62, 0x38, 0x26,
+	0x8f, 0xa0, 0xd8, 0x13, 0x22, 0x34, 0x0a, 0x6b, 0x85, 0xf5, 0xfa, 0xe6, 0xb7, 0xdb, 0x6f, 0xfd,
+	0x9e, 0xf6, 0xfe, 0xc9, 0xc9, 0x11, 0x65, 0xb1, 0x40, 0xaa, 0x10, 0xe4, 0x87, 0x50, 0x10, 0x7e,
+	0x64, 0x94, 0x14, 0xf0, 0xfe, 0x14, 0xe0, 0xc9, 0x8b, 0x63, 0x8d, 0x93, 0xfa, 0x0a, 0xe6, 0x84,
+	0x46, 0x71, 0x36, 0x6c, 0xf7, 0x28, 0x85, 0x39, 0x21, 0xf9, 0x26, 0xd4, 0xf0, 0x22, 0x64, 0x5c,
+	0x58, 0x82, 0x19, 0x65, 0xfd, 0x11, 0x5a, 0x70, 0xc2, 0xcc, 0x5f, 0x43, 0x7d, 0x0f, 0x23, 0xe1,
+	0x05, 0xca, 0x7c, 0xe4, 0x16, 0x14, 0xe5, 0x87, 0x1b, 0xb9, 0xb5, 0xdc, 0x7a, 0x6d, 0xa7, 0xf0,
+	0xd5, 0x76, 0x9e, 0x2a, 0x01, 0xb9, 0x09, 0xe5, 0x28, 0xee, 0x44, 0x28, 0x8c, 0xbc, 0x9c, 0xa2,
+	0xc9, 0x88, 0xfc, 0x04, 0x8a, 0x92, 0xc9, 0x28, 0xac, 0xe5, 0xd6, 0xeb, 0x9b, 0xdf, 0x99, 0xb2,
+	0xa9, 0x23, 0xc6, 0xc5, 0x31, 0xfa, 0xe8, 0x08, 0xc6, 0xa9, 0x02, 0x99, 0x7f, 0xac, 0x42, 0x6d,
+	0x68, 0x1b, 0x42, 0xa0, 0x18, 0xd8, 0x7d, 0x34, 0x56, 0xd4, 0x02, 0xea, 0x37, 0xd9, 0x86, 0x52,
+	0xdf, 0x16, 0x4e, 0x4f, 0x79, 0xa5, 0xbe, 0xf9, 0xdd, 0x19, 0x46, 0x7e, 0x29, 0x75, 0x29, 0xbe,
+	0x8e, 0x31, 0x12, 0x54, 0x23, 0xc9, 0x33, 0x28, 0x71, 0xc9, 0xaf, 0xfc, 0x57, 0xdf, 0xdc, 0x98,
+	0xc7, 0x4f, 0x19, 0x93, 0x50, 0x8d, 0x26, 0xbb, 0x50, 0xe5, 0xe8, 0x7a, 0x1c, 0x9d, 0x79, 0x3e,
+	0x56, 0x31, 0x25, 0xea, 0x74, 0x08, 0x24, 0x4f, 0xa1, 0xea, 0xa2, 0x8f, 0xf2, 0x08, 0x19, 0x37,
+	0x14, 0xc9, 0x34, 0x37, 0xee, 0x25, 0xaa, 0x74, 0x08, 0x22, 0x3f, 0x85, 0x0a, 0xc7, 0x73, 0xee,
+	0x09, 0x34, 0x8a, 0x0a, 0xff, 0x70, 0xe6, 0x26, 0x94, 0x36, 0x4d, 0x61, 0x64, 0x0b, 0x2a, 0xc2,
+	0xeb, 0x23, 0x8b, 0x85, 0x51, 0x56, 0x0c, 0xb7, 0xdb, 0x3a, 0x58, 0xda, 0x69, 0xb0, 0xb4, 0xf7,
+	0x92, 0x60, 0xa2, 0xa9, 0x26, 0x79, 0x22, 0x97, 0x15, 0xdc, 0xc3, 0xc8, 0xa8, 0x28, 0xd0, 0xcc,
+	0xd3, 0x8e, 0x82, 0x0f, 0x68, 0x0a, 0x22, 0xbb, 0x50, 0x3a, 0xb5, 0x63, 0x5f, 0x18, 0x55, 0x85,
+	0xfe, 0x78, 0x06, 0xfa, 0x53, 0xa9, 0xfb, 0x3c, 0xf8, 0x15, 0x3a, 0xda, 0x03, 0x0a, 0x4b, 0x9e,
+	0x40, 0xb9, 0xef, 0x71, 0xce, 0xb8, 0x51, 0x9b, 0xf9, 0xe9, 0x59, 0x07, 0x26, 0x28, 0xf2, 0x19,
+	0x2c, 0xe9, 0x5f, 0x56, 0x88, 0xdc, 0xc1, 0x40, 0x18, 0x44, 0xf1, 0xdc, 0x99, 0x30, 0xc0, 0x17,
+	0xcf, 0x03, 0xb1, 0xb5, 0xf9, 0xa5, 0xed, 0xc7, 0xb8, 0x93, 0x37, 0x72, 0xb4, 0xa9, 0x71, 0x47,
+	0x1a, 0x46, 0x0e, 0x61, 0x65, 0x9c, 0xc8, 0xee, 0xa2, 0x71, 0x5d, 0x71, 0x99, 0xd3, 0x02, 0x40,
+	0x2b, 0xd3, 0xd6, 0x18, 0x9b, 0xdd, 0x45, 0xf2, 0x29, 0xd4, 0x1d, 0xc6, 0x23, 0x2b, 0x64, 0xbe,
+	0xe7, 0x0c, 0x0c, 0x50, 0x54, 0x0f, 0xa6, 0x50, 0xed, 0x32, 0x1e, 0x1d, 0x29, 0x65, 0x0a, 0xce,
+	0xf0, 0x37, 0x79, 0x0c, 0x95, 0x1e, 0xda, 0x2e, 0xf2, 0xc8, 0x68, 0xcd, 0xdc, 0xce, 0xbe, 0xd6,
+	0xa4, 0x29, 0xe4, 0xa0, 0x58, 0x2d, 0xb5, 0xca, 0x07, 0xc5, 0x6a, 0xbd, 0xd5, 0xa2, 0x2b, 0xe7,
+	0xd8, 0x89, 0x98, 0xf3, 0x0a, 0x85, 0x15, 0x87, 0x5d, 0x6e, 0xbb, 0x48, 0x97, 0x64, 0x06, 0x0d,
+	0x5c, 0x2b, 0x51, 0xa7, 0xb7, 0x38, 0xf6, 0xd9, 0x19, 0x5a, 0x1c, 0xa3, 0x90, 0x05, 0x11, 0x8e,
+	0x26, 0x12, 0xc5, 0x89, 0x89, 0x9b, 0x43, 0x84, 0x0a, 0xd0, 0x91, 0x7c, 0x08, 0x18, 0x93, 0x9b,
+	0x8f, 0xa1, 0x9a, 0x86, 0xc0, 0x30, 0x39, 0xe4, 0x32, 0xc9, 0xe1, 0x0e, 0xd4, 0xe4, 0xdf, 0x28,
+	0xb4, 0x1d, 0x4c, 0xd2, 0xd2, 0x48, 0x60, 0xfe, 0xb3, 0x00, 0x95, 0xe4, 0x1b, 0xc9, 0x4b, 0x79,
+	0x7e, 0x15, 0xb9, 0x22, 0xa8, 0x6f, 0x6e, 0xcd, 0x36, 0x4c, 0xf2, 0xf7, 0x30, 0x44, 0x1d, 0x0d,
+	0x11, 0x4d, 0x39, 0xc8, 0xa1, 0xcc, 0x05, 0xfa, 0xe3, 0xd4, 0xba, 0xef, 0xc8, 0x37, 0x24, 0x59,
+	0xfd, 0x4b, 0x1e, 0x5a, 0x97, 0xa7, 0xc9, 0xe7, 0x50, 0x90, 0xf9, 0x56, 0x67, 0xbe, 0xc7, 0xef,
+	0xb0, 0x40, 0xfb, 0x18, 0xc5, 0xb3, 0x40, 0x06, 0xa2, 0x24, 0x92, 0x7c, 0xb6, 0xeb, 0x26, 0x69,
+	0xf0, 0x9d, 0xf8, 0xb6, 0x5d, 0x37, 0xe1, 0xb3, 0x5d, 0x57, 0x96, 0x04, 0xed, 0x50, 0x55, 0x01,
+	0x6b, 0x34, 0x19, 0xad, 0xfe, 0x08, 0xaa, 0xe9, 0xc2, 0xa4, 0x05, 0x85, 0x57, 0x38, 0x48, 0xbc,
+	0x26, 0x7f, 0xca, 0x3a, 0x7b, 0x26, 0x03, 0x2b, 0x71, 0x98, 0x1e, 0xfc, 0x38, 0xff, 0x28, 0x27,
+	0x71, 0xe9, 0x02, 0x8b, 0xe0, 0xcc, 0x3f, 0xe4, 0xa0, 0x9a, 0x16, 0x4a, 0xb2, 0x3f, 0x5e, 0x30,
+	0x3e, 0x9e, 0x5e, 0x5c, 0x55, 0xbd, 0xd8, 0x16, 0x82, 0x7b, 0x9d, 0x58, 0x60, 0xa4, 0x0b, 0x5e,
+	0x52, 0x37, 0xb6, 0xc7, 0xeb, 0xc6, 0xb4, 0xd2, 0xf3, 0x96, 0x9a, 0x61, 0xfe, 0x5e, 0xee, 0x2c,
+	0xa9, 0xc5, 0x64, 0x67, 0x7c, 0x67, 0xdf, 0x9b, 0xc2, 0xf7, 0xe2, 0x07, 0x97, 0x36, 0xf6, 0x1e,
+	0xf7, 0xf4, 0xe7, 0x1a, 0xb4, 0x2e, 0x97, 0xca, 0x61, 0x74, 0xd5, 0x33, 0xd1, 0xf5, 0x08, 0x0a,
+	0x31, 0xf7, 0x92, 0x78, 0x99, 0x96, 0x6b, 0x8f, 0x05, 0xf7, 0x82, 0xae, 0xe6, 0x93, 0x10, 0x99,
+	0xa8, 0x23, 0xa7, 0x87, 0xfd, 0x34, 0x38, 0xe6, 0x05, 0x27, 0x28, 0x95, 0xe8, 0x51, 0xf4, 0x98,
+	0x9b, 0x14, 0xda, 0xb9, 0xf1, 0x1a, 0x45, 0xf6, 0xa0, 0x66, 0xc7, 0xa2, 0xc7, 0xb8, 0x27, 0x06,
+	0x73, 0x94, 0xc9, 0x2c, 0xc5, 0x08, 0x48, 0xe8, 0x28, 0x99, 0xea, 0x46, 0xed, 0xd1, 0x02, 0xcd,
+	0x47, 0x1a, 0x43, 0x3a, 0x5c, 0x52, 0x22, 0x69, 0x67, 0xd5, 0x2d, 0xc9, 0xca, 0xdb, 0xd4, 0x4d,
+	0x10, 0xe9, 0x40, 0x33, 0x62, 0x31, 0x77, 0xd0, 0xf2, 0xed, 0x0e, 0xfa, 0xb2, 0xc2, 0xca, 0xd5,
+	0x3e, 0x59, 0x64, 0xb5, 0x63, 0x45, 0xf0, 0x42, 0xe1, 0xf5, 0x92, 0x8d, 0x28, 0x23, 0x1a, 0x6b,
+	0x63, 0xab, 0x97, 0xda, 0x58, 0x0b, 0x1a, 0xaf, 0x63, 0xe4, 0x03, 0x2b, 0xb4, 0xb9, 0xdd, 0x8f,
+	0x8c, 0xda, 0xec, 0xfc, 0x70, 0x79, 0xf9, 0x9f, 0x4b, 0xfc, 0x91, 0x82, 0xeb, 0xd5, 0xeb, 0xaf,
+	0x47, 0x12, 0xf2, 0x10, 0x96, 0xbd, 0x6e, 0xc0, 0x38, 0x5a, 0x31, 0xf7, 0x2c, 0xc7, 0x8e, 0x50,
+	0x55, 0xb8, 0x2a, 0x6d, 0x6a, 0xf1, 0x17, 0xdc, 0xdb, 0xb5, 0x23, 0x24, 0x3d, 0x58, 0x3e, 0xf7,
+	0x44, 0x8f, 0xc5, 0xc3, 0x0a, 0x60, 0x34, 0xd4, 0x5e, 0x9e, 0x2e, 0xb2, 0x97, 0x5f, 0x68, 0x8a,
+	0x31, 0xfb, 0x2f, 0x9d, 0x8f, 0x09, 0xc9, 0x47, 0xd0, 0x4a, 0x4c, 0x3e, 0xaa, 0x1f, 0x4d, 0x75,
+	0xf4, 0x97, 0xb5, 0xfc, 0xf3, 0x54, 0xbc, 0xda, 0x81, 0x46, 0x96, 0xea, 0x8a, 0xc4, 0xf4, 0x38,
+	0x9b, 0x98, 0xe6, 0x3f, 0x69, 0x99, 0xc4, 0xf7, 0x14, 0x56, 0x26, 0x1c, 0xb8, 0x50, 0xe6, 0x3c,
+	0x85, 0xd6, 0x65, 0x17, 0x7c, 0x90, 0x8d, 0x7a, 0x70, 0xfd, 0x0a, 0xf3, 0x7e, 0x88, 0xa5, 0xcc,
+	0x3f, 0xe5, 0xe1, 0xc6, 0x55, 0xed, 0x38, 0x79, 0x09, 0x75, 0x77, 0x34, 0x9c, 0x23, 0x3d, 0x65,
+	0xc0, 0x3a, 0xbf, 0x67, 0xf1, 0xb2, 0x88, 0x9d, 0xa3, 0xd7, 0xed, 0xe9, 0x7b, 0x4d, 0x89, 0x26,
+	0xa3, 0x6c, 0x2b, 0x55, 0x79, 0x97, 0x56, 0xaa, 0xd0, 0xaa, 0xfc, 0x1f, 0x3a, 0xa4, 0x01, 0xb4,
+	0xbe, 0x26, 0x03, 0x99, 0xff, 0xca, 0xc3, 0xca, 0x44, 0x9d, 0x22, 0x1b, 0x70, 0x3d, 0x03, 0xb6,
+	0xa2, 0xb8, 0x13, 0xe0, 0xf0, 0x4e, 0x4d, 0x32, 0x53, 0xc7, 0x7a, 0x66, 0x98, 0x11, 0xf3, 0x99,
+	0x8c, 0x78, 0x7f, 0x98, 0x11, 0x35, 0x5e, 0x95, 0x81, 0x5a, 0x9a, 0xd2, 0x34, 0x92, 0x38, 0x97,
+	0xd3, 0xa6, 0xbe, 0x16, 0x3f, 0x59, 0xa4, 0xac, 0x2e, 0x94, 0x37, 0x4b, 0x97, 0xf2, 0xe6, 0x55,
+	0x49, 0xa4, 0x7c, 0x75, 0x12, 0xf9, 0x5f, 0x03, 0xdc, 0xfc, 0x4f, 0x1e, 0xc8, 0x64, 0xbb, 0x42,
+	0xd6, 0xa0, 0x16, 0x05, 0x9e, 0x95, 0x79, 0xb7, 0xd0, 0x0e, 0xac, 0x46, 0x81, 0xb7, 0xaf, 0xde,
+	0x2f, 0xde, 0xe2, 0x8f, 0xfc, 0x4c, 0x7f, 0x14, 0x32, 0xfe, 0x70, 0x2f, 0x9b, 0xba, 0x34, 0x33,
+	0x2d, 0x4f, 0x6e, 0x76, 0x21, 0x5b, 0x97, 0xe7, 0xb0, 0x75, 0xe5, 0xc3, 0xd8, 0xfa, 0xa0, 0x58,
+	0x2d, 0xb6, 0x4a, 0x74, 0xfc, 0x04, 0x9a, 0x0e, 0x34, 0xb2, 0x57, 0x7a, 0x49, 0x98, 0x36, 0x47,
+	0x35, 0xdd, 0xf4, 0xdc, 0xc9, 0x36, 0x1d, 0xc9, 0x65, 0x64, 0xd4, 0x4c, 0xdc, 0x87, 0x66, 0xfa,
+	0x08, 0x60, 0x39, 0xcc, 0xc5, 0xc4, 0xbe, 0x8d, 0x54, 0xb8, 0xcb, 0x5c, 0x34, 0x3f, 0x81, 0x7a,
+	0xe6, 0xca, 0xbe, 0xe8, 0x1a, 0x26, 0x42, 0x3d, 0x93, 0x4c, 0xc9, 0x4d, 0x28, 0xe1, 0x85, 0xed,
+	0x24, 0x6f, 0x39, 0xfb, 0xd7, 0xa8, 0x1e, 0x12, 0x03, 0xca, 0x21, 0xc7, 0x53, 0xef, 0x42, 0x33,
+	0xec, 0x5f, 0xa3, 0xc9, 0x58, 0x22, 0x38, 0x76, 0xf1, 0x42, 0xc7, 0x9b, 0x44, 0xa8, 0xe1, 0x4e,
+	0x03, 0x40, 0xb5, 0x9f, 0x96, 0x18, 0x84, 0x68, 0xfe, 0x23, 0x97, 0x3c, 0xda, 0xc8, 0x2b, 0x3e,
+	0xb9, 0x07, 0x55, 0x5b, 0x08, 0xec, 0x87, 0xea, 0x04, 0xe6, 0xd6, 0x4b, 0xc9, 0x09, 0x4c, 0x85,
+	0x64, 0x1b, 0x96, 0x43, 0xe4, 0x96, 0xe0, 0x03, 0x2b, 0x7d, 0x77, 0xc8, 0xcf, 0x7a, 0x77, 0x68,
+	0x86, 0xc8, 0x4f, 0xf8, 0xe0, 0x24, 0x79, 0x7d, 0xb8, 0x2d, 0xaf, 0x5b, 0x92, 0x80, 0x05, 0x49,
+	0x2a, 0x50, 0x0f, 0x0b, 0x83, 0xc3, 0x80, 0x50, 0xb8, 0xa5, 0xa7, 0x64, 0xe2, 0x14, 0x68, 0xf9,
+	0xcc, 0xb1, 0x7d, 0x4f, 0x78, 0x18, 0x25, 0x8d, 0xdf, 0xea, 0xc4, 0x2a, 0x3b, 0x8c, 0xf9, 0xea,
+	0x6a, 0x4f, 0xbf, 0xa1, 0xa0, 0x54, 0x21, 0x5f, 0x0c, 0x81, 0xe6, 0xbf, 0xf3, 0x00, 0xa3, 0x0b,
+	0x36, 0x79, 0x00, 0x0d, 0xdb, 0xf7, 0xd9, 0xb9, 0xc5, 0xb8, 0xd7, 0xf5, 0x82, 0x24, 0xce, 0xf2,
+	0x46, 0x8e, 0xd6, 0x95, 0xfc, 0x50, 0x89, 0xc9, 0xcf, 0xa0, 0x99, 0x55, 0x4b, 0xdb, 0xb8, 0x79,
+	0x4b, 0x5f, 0x23, 0xc3, 0x15, 0xc9, 0xe3, 0xa2, 0xc9, 0x74, 0x47, 0x9b, 0x06, 0xac, 0x56, 0x7a,
+	0xa9, 0x65, 0x23, 0xa5, 0xb4, 0x50, 0x15, 0x32, 0x4a, 0x69, 0xab, 0xf3, 0x00, 0x96, 0xf0, 0x22,
+	0x64, 0xa3, 0x1a, 0xa3, 0xf2, 0x64, 0x8d, 0x36, 0xb5, 0x34, 0x55, 0xdb, 0x84, 0x4a, 0xdf, 0xbe,
+	0xb0, 0xec, 0x2e, 0x1a, 0xa5, 0x59, 0xde, 0x29, 0xf7, 0xed, 0x8b, 0xed, 0x2e, 0x92, 0xcf, 0x60,
+	0x45, 0xaf, 0xef, 0x70, 0x74, 0x31, 0x10, 0x9e, 0xed, 0x47, 0xc9, 0x9b, 0xd2, 0x34, 0xab, 0xb7,
+	0x14, 0x68, 0x77, 0x84, 0x31, 0x7f, 0x57, 0x02, 0x32, 0xf9, 0xec, 0x43, 0x9e, 0x43, 0xc9, 0x45,
+	0xdf, 0x1e, 0xcc, 0x73, 0x65, 0x9f, 0x40, 0xb7, 0xf7, 0x24, 0x94, 0x6a, 0x06, 0x49, 0x65, 0x77,
+	0xd2, 0x32, 0xb3, 0x30, 0xd5, 0xb6, 0x84, 0x52, 0xcd, 0xb0, 0xfa, 0xdb, 0x3c, 0x94, 0x14, 0x37,
+	0xb9, 0x03, 0x95, 0xf4, 0x21, 0x49, 0x9f, 0x7c, 0x79, 0x26, 0x52, 0x11, 0xd9, 0x86, 0xfa, 0xa9,
+	0x77, 0x81, 0xae, 0xa5, 0xbf, 0x61, 0xd6, 0x99, 0x57, 0x61, 0xb3, 0x7f, 0x8d, 0x82, 0x02, 0xe9,
+	0x05, 0xf6, 0x61, 0x45, 0x7a, 0x29, 0xd0, 0x76, 0x4a, 0x88, 0x0a, 0x33, 0x88, 0xf6, 0xaf, 0xd1,
+	0x56, 0x06, 0xa5, 0x99, 0x76, 0x00, 0x32, 0x4f, 0x55, 0xa5, 0xb9, 0x9f, 0xaa, 0x32, 0xa8, 0x9d,
+	0x15, 0x58, 0xee, 0x09, 0x11, 0xea, 0x6d, 0xa8, 0x54, 0xb0, 0xfa, 0xf7, 0x1c, 0x94, 0x94, 0x71,
+	0xc8, 0x43, 0xa8, 0xab, 0xc9, 0x48, 0xd8, 0x22, 0x8e, 0x74, 0xab, 0x30, 0xfc, 0x24, 0x39, 0x73,
+	0xac, 0x26, 0xc8, 0xb7, 0xa0, 0xde, 0xe5, 0xa1, 0x93, 0xea, 0xa5, 0x89, 0x06, 0xa4, 0x70, 0xa4,
+	0x22, 0x01, 0x9b, 0x16, 0xaa, 0xb7, 0xbe, 0x62, 0xaa, 0xa2, 0x84, 0xcf, 0xd4, 0x4b, 0xde, 0xfb,
+	0xf8, 0x9c, 0x06, 0x80, 0x5a, 0x40, 0x7d, 0xc9, 0x41, 0xb1, 0x9a, 0x6b, 0xe5, 0x87, 0xce, 0x33,
+	0x37, 0xa1, 0x91, 0x7d, 0xae, 0x96, 0x4d, 0x50, 0x10, 0xf7, 0x3b, 0xc8, 0x95, 0xa7, 0x9b, 0x34,
+	0x19, 0x1d, 0x14, 0xab, 0xf9, 0x56, 0x41, 0xdf, 0x97, 0xcd, 0x7b, 0x50, 0x49, 0x1f, 0x08, 0x87,
+	0xc5, 0x45, 0x6a, 0xe7, 0x92, 0xe2, 0xb2, 0xd3, 0xfe, 0xeb, 0x9b, 0xbb, 0xb9, 0xbf, 0xbd, 0xb9,
+	0x9b, 0xfb, 0xea, 0xcd, 0xdd, 0xdc, 0x2f, 0xd7, 0xf4, 0x76, 0x3d, 0xa6, 0xfe, 0xcb, 0x71, 0xc5,
+	0xbf, 0x4d, 0x3a, 0x65, 0xe5, 0xdb, 0xad, 0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0xc4, 0xf5, 0xff,
+	0x26, 0x54, 0x19, 0x00, 0x00,
 }
 
 func (m *VirtualService) Marshal() (dAtA []byte, err error) {
@@ -3039,6 +3676,34 @@ func (m *HTTPRoute) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if m.Delegate != nil {
+		{
+			size, err := m.Delegate.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintVirtualService(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.MirrorPercentage != nil {
+		{
+			size, err := m.MirrorPercentage.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintVirtualService(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	}
 	if m.MirrorPercent != nil {
 		{
 			size, err := m.MirrorPercent.MarshalToSizedBuffer(dAtA[:i])
@@ -3075,81 +3740,6 @@ func (m *HTTPRoute) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0x1
 		i--
 		dAtA[i] = 0x82
-	}
-	if len(m.AppendRequestHeaders) > 0 {
-		for k := range m.AppendRequestHeaders {
-			v := m.AppendRequestHeaders[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintVirtualService(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x7a
-		}
-	}
-	if len(m.RemoveRequestHeaders) > 0 {
-		for iNdEx := len(m.RemoveRequestHeaders) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.RemoveRequestHeaders[iNdEx])
-			copy(dAtA[i:], m.RemoveRequestHeaders[iNdEx])
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(m.RemoveRequestHeaders[iNdEx])))
-			i--
-			dAtA[i] = 0x72
-		}
-	}
-	if len(m.AppendResponseHeaders) > 0 {
-		for k := range m.AppendResponseHeaders {
-			v := m.AppendResponseHeaders[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintVirtualService(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x6a
-		}
-	}
-	if len(m.RemoveResponseHeaders) > 0 {
-		for iNdEx := len(m.RemoveResponseHeaders) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.RemoveResponseHeaders[iNdEx])
-			copy(dAtA[i:], m.RemoveResponseHeaders[iNdEx])
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(m.RemoveResponseHeaders[iNdEx])))
-			i--
-			dAtA[i] = 0x62
-		}
-	}
-	if len(m.AppendHeaders) > 0 {
-		for k := range m.AppendHeaders {
-			v := m.AppendHeaders[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintVirtualService(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x5a
-		}
 	}
 	if m.CorsPolicy != nil {
 		{
@@ -3211,16 +3801,6 @@ func (m *HTTPRoute) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x32
 	}
-	if m.WebsocketUpgrade {
-		i--
-		if m.WebsocketUpgrade {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x28
-	}
 	if m.Rewrite != nil {
 		{
 			size, err := m.Rewrite.MarshalToSizedBuffer(dAtA[:i])
@@ -3272,6 +3852,47 @@ func (m *HTTPRoute) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Delegate) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Delegate) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Delegate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.Namespace) > 0 {
+		i -= len(m.Namespace)
+		copy(dAtA[i:], m.Namespace)
+		i = encodeVarintVirtualService(dAtA, i, uint64(len(m.Namespace)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = encodeVarintVirtualService(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -3535,6 +4156,39 @@ func (m *HTTPMatchRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if len(m.SourceNamespace) > 0 {
+		i -= len(m.SourceNamespace)
+		copy(dAtA[i:], m.SourceNamespace)
+		i = encodeVarintVirtualService(dAtA, i, uint64(len(m.SourceNamespace)))
+		i--
+		dAtA[i] = 0x6a
+	}
+	if len(m.WithoutHeaders) > 0 {
+		for k := range m.WithoutHeaders {
+			v := m.WithoutHeaders[k]
+			baseI := i
+			if v != nil {
+				{
+					size, err := v.MarshalToSizedBuffer(dAtA[:i])
+					if err != nil {
+						return 0, err
+					}
+					i -= size
+					i = encodeVarintVirtualService(dAtA, i, uint64(size))
+				}
+				i--
+				dAtA[i] = 0x12
+			}
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarintVirtualService(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarintVirtualService(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x62
+		}
+	}
 	if len(m.Name) > 0 {
 		i -= len(m.Name)
 		copy(dAtA[i:], m.Name)
@@ -3724,62 +4378,6 @@ func (m *HTTPRouteDestination) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x3a
 	}
-	if len(m.AppendRequestHeaders) > 0 {
-		for k := range m.AppendRequestHeaders {
-			v := m.AppendRequestHeaders[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintVirtualService(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x32
-		}
-	}
-	if len(m.RemoveRequestHeaders) > 0 {
-		for iNdEx := len(m.RemoveRequestHeaders) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.RemoveRequestHeaders[iNdEx])
-			copy(dAtA[i:], m.RemoveRequestHeaders[iNdEx])
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(m.RemoveRequestHeaders[iNdEx])))
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
-	if len(m.AppendResponseHeaders) > 0 {
-		for k := range m.AppendResponseHeaders {
-			v := m.AppendResponseHeaders[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintVirtualService(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	if len(m.RemoveResponseHeaders) > 0 {
-		for iNdEx := len(m.RemoveResponseHeaders) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.RemoveResponseHeaders[iNdEx])
-			copy(dAtA[i:], m.RemoveResponseHeaders[iNdEx])
-			i = encodeVarintVirtualService(dAtA, i, uint64(len(m.RemoveResponseHeaders[iNdEx])))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
 	if m.Weight != 0 {
 		i = encodeVarintVirtualService(dAtA, i, uint64(m.Weight))
 		i--
@@ -3868,6 +4466,13 @@ func (m *L4MatchAttributes) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if len(m.SourceNamespace) > 0 {
+		i -= len(m.SourceNamespace)
+		copy(dAtA[i:], m.SourceNamespace)
+		i = encodeVarintVirtualService(dAtA, i, uint64(len(m.SourceNamespace)))
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.Gateways) > 0 {
 		for iNdEx := len(m.Gateways) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.Gateways[iNdEx])
@@ -3944,6 +4549,13 @@ func (m *TLSMatchAttributes) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if len(m.SourceNamespace) > 0 {
+		i -= len(m.SourceNamespace)
+		copy(dAtA[i:], m.SourceNamespace)
+		i = encodeVarintVirtualService(dAtA, i, uint64(len(m.SourceNamespace)))
+		i--
+		dAtA[i] = 0x3a
+	}
 	if len(m.Gateways) > 0 {
 		for iNdEx := len(m.Gateways) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.Gateways[iNdEx])
@@ -3971,13 +4583,6 @@ func (m *TLSMatchAttributes) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0x2a
 		}
-	}
-	if len(m.SourceSubnet) > 0 {
-		i -= len(m.SourceSubnet)
-		copy(dAtA[i:], m.SourceSubnet)
-		i = encodeVarintVirtualService(dAtA, i, uint64(len(m.SourceSubnet)))
-		i--
-		dAtA[i] = 0x22
 	}
 	if m.Port != 0 {
 		i = encodeVarintVirtualService(dAtA, i, uint64(m.Port))
@@ -4191,6 +4796,18 @@ func (m *HTTPRetry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if m.RetryRemoteLocalities != nil {
+		{
+			size, err := m.RetryRemoteLocalities.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintVirtualService(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.RetryOn) > 0 {
 		i -= len(m.RetryOn)
 		copy(dAtA[i:], m.RetryOn)
@@ -4241,6 +4858,20 @@ func (m *CorsPolicy) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.XXX_unrecognized != nil {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.AllowOrigins) > 0 {
+		for iNdEx := len(m.AllowOrigins) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.AllowOrigins[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintVirtualService(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x3a
+		}
 	}
 	if m.AllowCredentials != nil {
 		{
@@ -4494,11 +5125,6 @@ func (m *HTTPFaultInjection_Abort) MarshalToSizedBuffer(dAtA []byte) (int, error
 			}
 		}
 	}
-	if m.Percent != 0 {
-		i = encodeVarintVirtualService(dAtA, i, uint64(m.Percent))
-		i--
-		dAtA[i] = 0x8
-	}
 	return len(dAtA) - i, nil
 }
 
@@ -4713,9 +5339,6 @@ func (m *HTTPRoute) Size() (n int) {
 		l = m.Rewrite.Size()
 		n += 1 + l + sovVirtualService(uint64(l))
 	}
-	if m.WebsocketUpgrade {
-		n += 2
-	}
 	if m.Timeout != nil {
 		l = m.Timeout.Size()
 		n += 1 + l + sovVirtualService(uint64(l))
@@ -4736,42 +5359,6 @@ func (m *HTTPRoute) Size() (n int) {
 		l = m.CorsPolicy.Size()
 		n += 1 + l + sovVirtualService(uint64(l))
 	}
-	if len(m.AppendHeaders) > 0 {
-		for k, v := range m.AppendHeaders {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovVirtualService(uint64(len(k))) + 1 + len(v) + sovVirtualService(uint64(len(v)))
-			n += mapEntrySize + 1 + sovVirtualService(uint64(mapEntrySize))
-		}
-	}
-	if len(m.RemoveResponseHeaders) > 0 {
-		for _, s := range m.RemoveResponseHeaders {
-			l = len(s)
-			n += 1 + l + sovVirtualService(uint64(l))
-		}
-	}
-	if len(m.AppendResponseHeaders) > 0 {
-		for k, v := range m.AppendResponseHeaders {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovVirtualService(uint64(len(k))) + 1 + len(v) + sovVirtualService(uint64(len(v)))
-			n += mapEntrySize + 1 + sovVirtualService(uint64(mapEntrySize))
-		}
-	}
-	if len(m.RemoveRequestHeaders) > 0 {
-		for _, s := range m.RemoveRequestHeaders {
-			l = len(s)
-			n += 1 + l + sovVirtualService(uint64(l))
-		}
-	}
-	if len(m.AppendRequestHeaders) > 0 {
-		for k, v := range m.AppendRequestHeaders {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovVirtualService(uint64(len(k))) + 1 + len(v) + sovVirtualService(uint64(len(v)))
-			n += mapEntrySize + 1 + sovVirtualService(uint64(mapEntrySize))
-		}
-	}
 	if m.Headers != nil {
 		l = m.Headers.Size()
 		n += 2 + l + sovVirtualService(uint64(l))
@@ -4783,6 +5370,34 @@ func (m *HTTPRoute) Size() (n int) {
 	if m.MirrorPercent != nil {
 		l = m.MirrorPercent.Size()
 		n += 2 + l + sovVirtualService(uint64(l))
+	}
+	if m.MirrorPercentage != nil {
+		l = m.MirrorPercentage.Size()
+		n += 2 + l + sovVirtualService(uint64(l))
+	}
+	if m.Delegate != nil {
+		l = m.Delegate.Size()
+		n += 2 + l + sovVirtualService(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *Delegate) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + sovVirtualService(uint64(l))
+	}
+	l = len(m.Namespace)
+	if l > 0 {
+		n += 1 + l + sovVirtualService(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -4964,6 +5579,23 @@ func (m *HTTPMatchRequest) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovVirtualService(uint64(l))
 	}
+	if len(m.WithoutHeaders) > 0 {
+		for k, v := range m.WithoutHeaders {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.Size()
+				l += 1 + sovVirtualService(uint64(l))
+			}
+			mapEntrySize := 1 + len(k) + sovVirtualService(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sovVirtualService(uint64(mapEntrySize))
+		}
+	}
+	l = len(m.SourceNamespace)
+	if l > 0 {
+		n += 1 + l + sovVirtualService(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -4982,34 +5614,6 @@ func (m *HTTPRouteDestination) Size() (n int) {
 	}
 	if m.Weight != 0 {
 		n += 1 + sovVirtualService(uint64(m.Weight))
-	}
-	if len(m.RemoveResponseHeaders) > 0 {
-		for _, s := range m.RemoveResponseHeaders {
-			l = len(s)
-			n += 1 + l + sovVirtualService(uint64(l))
-		}
-	}
-	if len(m.AppendResponseHeaders) > 0 {
-		for k, v := range m.AppendResponseHeaders {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovVirtualService(uint64(len(k))) + 1 + len(v) + sovVirtualService(uint64(len(v)))
-			n += mapEntrySize + 1 + sovVirtualService(uint64(mapEntrySize))
-		}
-	}
-	if len(m.RemoveRequestHeaders) > 0 {
-		for _, s := range m.RemoveRequestHeaders {
-			l = len(s)
-			n += 1 + l + sovVirtualService(uint64(l))
-		}
-	}
-	if len(m.AppendRequestHeaders) > 0 {
-		for k, v := range m.AppendRequestHeaders {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovVirtualService(uint64(len(k))) + 1 + len(v) + sovVirtualService(uint64(len(v)))
-			n += mapEntrySize + 1 + sovVirtualService(uint64(mapEntrySize))
-		}
 	}
 	if m.Headers != nil {
 		l = m.Headers.Size()
@@ -5073,6 +5677,10 @@ func (m *L4MatchAttributes) Size() (n int) {
 			n += 1 + l + sovVirtualService(uint64(l))
 		}
 	}
+	l = len(m.SourceNamespace)
+	if l > 0 {
+		n += 1 + l + sovVirtualService(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -5100,10 +5708,6 @@ func (m *TLSMatchAttributes) Size() (n int) {
 	if m.Port != 0 {
 		n += 1 + sovVirtualService(uint64(m.Port))
 	}
-	l = len(m.SourceSubnet)
-	if l > 0 {
-		n += 1 + l + sovVirtualService(uint64(l))
-	}
 	if len(m.SourceLabels) > 0 {
 		for k, v := range m.SourceLabels {
 			_ = k
@@ -5117,6 +5721,10 @@ func (m *TLSMatchAttributes) Size() (n int) {
 			l = len(s)
 			n += 1 + l + sovVirtualService(uint64(l))
 		}
+	}
+	l = len(m.SourceNamespace)
+	if l > 0 {
+		n += 1 + l + sovVirtualService(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -5229,6 +5837,10 @@ func (m *HTTPRetry) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovVirtualService(uint64(l))
 	}
+	if m.RetryRemoteLocalities != nil {
+		l = m.RetryRemoteLocalities.Size()
+		n += 1 + l + sovVirtualService(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -5272,6 +5884,12 @@ func (m *CorsPolicy) Size() (n int) {
 	if m.AllowCredentials != nil {
 		l = m.AllowCredentials.Size()
 		n += 1 + l + sovVirtualService(uint64(l))
+	}
+	if len(m.AllowOrigins) > 0 {
+		for _, e := range m.AllowOrigins {
+			l = e.Size()
+			n += 1 + l + sovVirtualService(uint64(l))
+		}
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -5351,9 +5969,6 @@ func (m *HTTPFaultInjection_Abort) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Percent != 0 {
-		n += 1 + sovVirtualService(uint64(m.Percent))
-	}
 	if m.ErrorType != nil {
 		n += m.ErrorType.Size()
 	}
@@ -6007,26 +6622,6 @@ func (m *HTTPRoute) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WebsocketUpgrade", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.WebsocketUpgrade = bool(v != 0)
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Timeout", wireType)
@@ -6207,451 +6802,6 @@ func (m *HTTPRoute) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 11:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AppendHeaders", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.AppendHeaders == nil {
-				m.AppendHeaders = make(map[string]string)
-			}
-			var mapkey string
-			var mapvalue string
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowVirtualService
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var stringLenmapvalue uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapvalue |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapvalue := int(stringLenmapvalue)
-					if intStringLenmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-					if postStringIndexmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapvalue > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
-					iNdEx = postStringIndexmapvalue
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipVirtualService(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if skippy < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.AppendHeaders[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 12:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RemoveResponseHeaders", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RemoveResponseHeaders = append(m.RemoveResponseHeaders, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 13:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AppendResponseHeaders", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.AppendResponseHeaders == nil {
-				m.AppendResponseHeaders = make(map[string]string)
-			}
-			var mapkey string
-			var mapvalue string
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowVirtualService
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var stringLenmapvalue uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapvalue |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapvalue := int(stringLenmapvalue)
-					if intStringLenmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-					if postStringIndexmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapvalue > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
-					iNdEx = postStringIndexmapvalue
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipVirtualService(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if skippy < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.AppendResponseHeaders[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 14:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RemoveRequestHeaders", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RemoveRequestHeaders = append(m.RemoveRequestHeaders, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 15:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AppendRequestHeaders", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.AppendRequestHeaders == nil {
-				m.AppendRequestHeaders = make(map[string]string)
-			}
-			var mapkey string
-			var mapvalue string
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowVirtualService
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var stringLenmapvalue uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapvalue |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapvalue := int(stringLenmapvalue)
-					if intStringLenmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-					if postStringIndexmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapvalue > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
-					iNdEx = postStringIndexmapvalue
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipVirtualService(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if skippy < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.AppendRequestHeaders[mapkey] = mapvalue
-			iNdEx = postIndex
 		case 16:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Headers", wireType)
@@ -6755,6 +6905,196 @@ func (m *HTTPRoute) Unmarshal(dAtA []byte) error {
 			if err := m.MirrorPercent.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MirrorPercentage", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.MirrorPercentage == nil {
+				m.MirrorPercentage = &Percent{}
+			}
+			if err := m.MirrorPercentage.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Delegate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Delegate == nil {
+				m.Delegate = &Delegate{}
+			}
+			if err := m.Delegate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipVirtualService(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Delegate) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowVirtualService
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Delegate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Delegate: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Namespace = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -8152,6 +8492,167 @@ func (m *HTTPMatchRequest) Unmarshal(dAtA []byte) error {
 			}
 			m.Name = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WithoutHeaders", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.WithoutHeaders == nil {
+				m.WithoutHeaders = make(map[string]*StringMatch)
+			}
+			var mapkey string
+			var mapvalue *StringMatch
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowVirtualService
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowVirtualService
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLengthVirtualService
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLengthVirtualService
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowVirtualService
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLengthVirtualService
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLengthVirtualService
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &StringMatch{}
+					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipVirtualService(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if skippy < 0 {
+						return ErrInvalidLengthVirtualService
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.WithoutHeaders[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceNamespace", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SourceNamespace = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipVirtualService(dAtA[iNdEx:])
@@ -8261,324 +8762,6 @@ func (m *HTTPRouteDestination) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RemoveResponseHeaders", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RemoveResponseHeaders = append(m.RemoveResponseHeaders, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AppendResponseHeaders", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.AppendResponseHeaders == nil {
-				m.AppendResponseHeaders = make(map[string]string)
-			}
-			var mapkey string
-			var mapvalue string
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowVirtualService
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var stringLenmapvalue uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapvalue |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapvalue := int(stringLenmapvalue)
-					if intStringLenmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-					if postStringIndexmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapvalue > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
-					iNdEx = postStringIndexmapvalue
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipVirtualService(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if skippy < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.AppendResponseHeaders[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RemoveRequestHeaders", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RemoveRequestHeaders = append(m.RemoveRequestHeaders, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AppendRequestHeaders", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.AppendRequestHeaders == nil {
-				m.AppendRequestHeaders = make(map[string]string)
-			}
-			var mapkey string
-			var mapvalue string
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowVirtualService
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var stringLenmapvalue uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowVirtualService
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapvalue |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapvalue := int(stringLenmapvalue)
-					if intStringLenmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-					if postStringIndexmapvalue < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if postStringIndexmapvalue > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
-					iNdEx = postStringIndexmapvalue
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipVirtualService(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if skippy < 0 {
-						return ErrInvalidLengthVirtualService
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.AppendRequestHeaders[mapkey] = mapvalue
-			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Headers", wireType)
@@ -9020,6 +9203,38 @@ func (m *L4MatchAttributes) Unmarshal(dAtA []byte) error {
 			}
 			m.Gateways = append(m.Gateways, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceNamespace", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SourceNamespace = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipVirtualService(dAtA[iNdEx:])
@@ -9157,38 +9372,6 @@ func (m *TLSMatchAttributes) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SourceSubnet", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthVirtualService
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.SourceSubnet = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SourceLabels", wireType)
@@ -9347,6 +9530,38 @@ func (m *TLSMatchAttributes) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Gateways = append(m.Gateways, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceNamespace", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SourceNamespace = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -9894,6 +10109,42 @@ func (m *HTTPRetry) Unmarshal(dAtA []byte) error {
 			}
 			m.RetryOn = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryRemoteLocalities", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RetryRemoteLocalities == nil {
+				m.RetryRemoteLocalities = &types.BoolValue{}
+			}
+			if err := m.RetryRemoteLocalities.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipVirtualService(dAtA[iNdEx:])
@@ -10145,6 +10396,40 @@ func (m *CorsPolicy) Unmarshal(dAtA []byte) error {
 				m.AllowCredentials = &types.BoolValue{}
 			}
 			if err := m.AllowCredentials.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllowOrigins", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowVirtualService
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthVirtualService
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AllowOrigins = append(m.AllowOrigins, &StringMatch{})
+			if err := m.AllowOrigins[len(m.AllowOrigins)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -10507,25 +10792,6 @@ func (m *HTTPFaultInjection_Abort) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: Abort: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Percent", wireType)
-			}
-			m.Percent = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowVirtualService
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Percent |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field HttpStatus", wireType)

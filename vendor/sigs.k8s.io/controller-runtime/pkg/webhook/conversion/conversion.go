@@ -161,12 +161,12 @@ func (wh *Webhook) convertViaHub(src, dst conversion.Convertible) error {
 
 	err = src.ConvertTo(hub)
 	if err != nil {
-		return fmt.Errorf("%T failed to convert to hub version %T : %v", src, hub, err)
+		return fmt.Errorf("%T failed to convert to hub version %T : %w", src, hub, err)
 	}
 
 	err = dst.ConvertFrom(hub)
 	if err != nil {
-		return fmt.Errorf("%T failed to convert from hub version %T : %v", dst, hub, err)
+		return fmt.Errorf("%T failed to convert from hub version %T : %w", dst, hub, err)
 	}
 
 	return nil
@@ -187,7 +187,7 @@ func (wh *Webhook) getHub(obj runtime.Object) (conversion.Hub, error) {
 	for _, gvk := range gvks {
 		instance, err := wh.scheme.New(gvk)
 		if err != nil {
-			return nil, fmt.Errorf("failed to allocate an instance for gvk %v %v", gvk, err)
+			return nil, fmt.Errorf("failed to allocate an instance for gvk %v: %w", gvk, err)
 		}
 		if val, isHub := instance.(conversion.Hub); isHub {
 			if hubFoundAlready {
@@ -237,7 +237,7 @@ func IsConvertible(scheme *runtime.Scheme, obj runtime.Object) (bool, error) {
 	for _, gvk := range gvks {
 		instance, err := scheme.New(gvk)
 		if err != nil {
-			return false, fmt.Errorf("failed to allocate an instance for gvk %v %v", gvk, err)
+			return false, fmt.Errorf("failed to allocate an instance for gvk %v: %w", gvk, err)
 		}
 
 		if isHub(instance) {
@@ -264,10 +264,6 @@ func IsConvertible(scheme *runtime.Scheme, obj runtime.Object) (bool, error) {
 	}
 
 	if len(hubs) == 1 && len(nonSpokes) == 0 { // convertible
-		spokeVersions := []string{}
-		for _, sp := range spokes {
-			spokeVersions = append(spokeVersions, sp.GetObjectKind().GroupVersionKind().String())
-		}
 		return true, nil
 	}
 

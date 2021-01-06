@@ -29,6 +29,19 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Determines the quotas used for individual requests.
 //
+// <!-- crd generation tags
+// +cue-gen:QuotaSpec:schema:istio.mixer.v1.config.client.QuotaSpec
+// +cue-gen:QuotaSpec:groupName:config.istio.io
+// +cue-gen:QuotaSpec:version:v1alpha2
+// +cue-gen:QuotaSpec:storageVersion
+// +cue-gen:QuotaSpec:annotations:helm.sh/resource-policy=keep
+// +cue-gen:QuotaSpec:labels:app=istio-mixer,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:QuotaSpec:subresource:status
+// +cue-gen:QuotaSpec:scope:Namespaced
+// +cue-gen:QuotaSpec:resource:categories=istio-io,apim-istio-io
+// +cue-gen:QuotaSpec:preserveUnknownFields:false
+// -->
+//
 // <!-- go code generation tags
 // +kubetype-gen
 // +kubetype-gen:groupVersion=config.istio.io/v1alpha2
@@ -283,6 +296,19 @@ var xxx_messageInfo_Quota proto.InternalMessageInfo
 // QuotaSpecBinding defines the binding between QuotaSpecs and one or more
 // IstioService.
 //
+// <!-- crd generation tags
+// +cue-gen:QuotaSpecBinding:schema:istio.mixer.v1.config.client.QuotaSpecBinding
+// +cue-gen:QuotaSpecBinding:groupName:config.istio.io
+// +cue-gen:QuotaSpecBinding:version:v1alpha2
+// +cue-gen:QuotaSpecBinding:storageVersion
+// +cue-gen:QuotaSpecBinding:annotations:helm.sh/resource-policy=keep
+// +cue-gen:QuotaSpecBinding:labels:app=istio-mixer,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:QuotaSpecBinding:subresource:status
+// +cue-gen:QuotaSpecBinding:scope:Namespaced
+// +cue-gen:QuotaSpecBinding:resource:categories=istio-io,apim-istio-io
+// +cue-gen:QuotaSpecBinding:preserveUnknownFields:false
+// -->
+//
 // <!-- go code generation tags
 // +kubetype-gen
 // +kubetype-gen:groupVersion=config.istio.io/v1alpha2
@@ -376,7 +402,9 @@ func init() {
 	proto.RegisterType((*QuotaSpecBinding_QuotaSpecReference)(nil), "istio.mixer.v1.config.client.QuotaSpecBinding.QuotaSpecReference")
 }
 
-func init() { proto.RegisterFile("mixer/v1/config/client/quota.proto", fileDescriptor_81777b5d047af315) }
+func init() {
+	proto.RegisterFile("mixer/v1/config/client/quota.proto", fileDescriptor_81777b5d047af315)
+}
 
 var fileDescriptor_81777b5d047af315 = []byte{
 	// 569 bytes of a gzipped FileDescriptorProto

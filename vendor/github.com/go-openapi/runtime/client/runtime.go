@@ -31,10 +31,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/logger"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/strfmt"
 )
 
 // TLSClientOptions to configure client authentication with mutual TLS
@@ -66,6 +67,13 @@ type TLSClientOptions struct {
 	// If this field (and CA) is not set, the system certificate pool is used.
 	LoadedCA *x509.Certificate
 
+	// LoadedCAPool specifies a pool of RootCAs to use when validating the server's TLS certificate.
+	// If set, it will be combined with the the other loaded certificates (see LoadedCA and CA).
+	// If neither LoadedCA or CA is set, the provided pool with override the system
+	// certificate pool.
+	// The caller must not use the supplied pool after calling TLSClientAuth.
+	LoadedCAPool *x509.CertPool
+
 	// ServerName specifies the hostname to use when verifying the server certificate.
 	// If this field is set then InsecureSkipVerify will be ignored and treated as
 	// false.
@@ -74,6 +82,26 @@ type TLSClientOptions struct {
 	// InsecureSkipVerify controls whether the certificate chain and hostname presented
 	// by the server are validated. If false, any certificate is accepted.
 	InsecureSkipVerify bool
+
+	// VerifyPeerCertificate, if not nil, is called after normal
+	// certificate verification. It receives the raw ASN.1 certificates
+	// provided by the peer and also any verified chains that normal processing found.
+	// If it returns a non-nil error, the handshake is aborted and that error results.
+	//
+	// If normal verification fails then the handshake will abort before
+	// considering this callback. If normal verification is disabled by
+	// setting InsecureSkipVerify then this callback will be considered but
+	// the verifiedChains argument will always be nil.
+	VerifyPeerCertificate func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
+
+	// SessionTicketsDisabled may be set to true to disable session ticket and
+	// PSK (resumption) support. Note that on clients, session ticket support is
+	// also disabled if ClientSessionCache is nil.
+	SessionTicketsDisabled bool
+
+	// ClientSessionCache is a cache of ClientSessionState entries for TLS
+	// session resumption. It is only used by clients.
+	ClientSessionCache tls.ClientSessionCache
 
 	// Prevents callers using unkeyed fields.
 	_ struct{}
@@ -121,11 +149,15 @@ func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 
 	cfg.InsecureSkipVerify = opts.InsecureSkipVerify
 
+	cfg.VerifyPeerCertificate = opts.VerifyPeerCertificate
+	cfg.SessionTicketsDisabled = opts.SessionTicketsDisabled
+	cfg.ClientSessionCache = opts.ClientSessionCache
+
 	// When no CA certificate is provided, default to the system cert pool
 	// that way when a request is made to a server known by the system trust store,
 	// the name is still verified
 	if opts.LoadedCA != nil {
-		caCertPool := x509.NewCertPool()
+		caCertPool := basePool(opts.LoadedCAPool)
 		caCertPool.AddCert(opts.LoadedCA)
 		cfg.RootCAs = caCertPool
 	} else if opts.CA != "" {
@@ -134,9 +166,11 @@ func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tls client ca: %v", err)
 		}
-		caCertPool := x509.NewCertPool()
+		caCertPool := basePool(opts.LoadedCAPool)
 		caCertPool.AppendCertsFromPEM(caCert)
 		cfg.RootCAs = caCertPool
+	} else if opts.LoadedCAPool != nil {
+		cfg.RootCAs = opts.LoadedCAPool
 	}
 
 	// apply servername overrride
@@ -148,6 +182,13 @@ func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 	cfg.BuildNameToCertificate()
 
 	return cfg, nil
+}
+
+func basePool(pool *x509.CertPool) *x509.CertPool {
+	if pool == nil {
+		return x509.NewCertPool()
+	}
+	return pool
 }
 
 // TLSTransport creates a http client transport suitable for mutual tls auth
@@ -350,6 +391,7 @@ func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error
 	}
 	req.URL.Scheme = r.pickScheme(operation.Schemes)
 	req.URL.Host = r.Host
+	req.Host = r.Host
 
 	r.clientOnce.Do(func() {
 		r.client = &http.Client{

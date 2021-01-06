@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,13 +62,13 @@ func NewFilteredFederatedPersistentVolumeClaimInformer(client versioned.Interfac
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TypesV1beta1().FederatedPersistentVolumeClaims(namespace).List(options)
+				return client.TypesV1beta1().FederatedPersistentVolumeClaims(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TypesV1beta1().FederatedPersistentVolumeClaims(namespace).Watch(options)
+				return client.TypesV1beta1().FederatedPersistentVolumeClaims(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&typesv1beta1.FederatedPersistentVolumeClaim{},

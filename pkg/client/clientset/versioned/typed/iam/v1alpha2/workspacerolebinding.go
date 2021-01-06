@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,14 +38,14 @@ type WorkspaceRoleBindingsGetter interface {
 
 // WorkspaceRoleBindingInterface has methods to work with WorkspaceRoleBinding resources.
 type WorkspaceRoleBindingInterface interface {
-	Create(*v1alpha2.WorkspaceRoleBinding) (*v1alpha2.WorkspaceRoleBinding, error)
-	Update(*v1alpha2.WorkspaceRoleBinding) (*v1alpha2.WorkspaceRoleBinding, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha2.WorkspaceRoleBinding, error)
-	List(opts v1.ListOptions) (*v1alpha2.WorkspaceRoleBindingList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.WorkspaceRoleBinding, err error)
+	Create(ctx context.Context, workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding, opts v1.CreateOptions) (*v1alpha2.WorkspaceRoleBinding, error)
+	Update(ctx context.Context, workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding, opts v1.UpdateOptions) (*v1alpha2.WorkspaceRoleBinding, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha2.WorkspaceRoleBinding, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha2.WorkspaceRoleBindingList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.WorkspaceRoleBinding, err error)
 	WorkspaceRoleBindingExpansion
 }
 
@@ -61,19 +62,19 @@ func newWorkspaceRoleBindings(c *IamV1alpha2Client) *workspaceRoleBindings {
 }
 
 // Get takes name of the workspaceRoleBinding, and returns the corresponding workspaceRoleBinding object, and an error if there is any.
-func (c *workspaceRoleBindings) Get(name string, options v1.GetOptions) (result *v1alpha2.WorkspaceRoleBinding, err error) {
+func (c *workspaceRoleBindings) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.WorkspaceRoleBinding, err error) {
 	result = &v1alpha2.WorkspaceRoleBinding{}
 	err = c.client.Get().
 		Resource("workspacerolebindings").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of WorkspaceRoleBindings that match those selectors.
-func (c *workspaceRoleBindings) List(opts v1.ListOptions) (result *v1alpha2.WorkspaceRoleBindingList, err error) {
+func (c *workspaceRoleBindings) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.WorkspaceRoleBindingList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,13 +84,13 @@ func (c *workspaceRoleBindings) List(opts v1.ListOptions) (result *v1alpha2.Work
 		Resource("workspacerolebindings").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested workspaceRoleBindings.
-func (c *workspaceRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *workspaceRoleBindings) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -99,66 +100,69 @@ func (c *workspaceRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, err
 		Resource("workspacerolebindings").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a workspaceRoleBinding and creates it.  Returns the server's representation of the workspaceRoleBinding, and an error, if there is any.
-func (c *workspaceRoleBindings) Create(workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding) (result *v1alpha2.WorkspaceRoleBinding, err error) {
+func (c *workspaceRoleBindings) Create(ctx context.Context, workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding, opts v1.CreateOptions) (result *v1alpha2.WorkspaceRoleBinding, err error) {
 	result = &v1alpha2.WorkspaceRoleBinding{}
 	err = c.client.Post().
 		Resource("workspacerolebindings").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(workspaceRoleBinding).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a workspaceRoleBinding and updates it. Returns the server's representation of the workspaceRoleBinding, and an error, if there is any.
-func (c *workspaceRoleBindings) Update(workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding) (result *v1alpha2.WorkspaceRoleBinding, err error) {
+func (c *workspaceRoleBindings) Update(ctx context.Context, workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding, opts v1.UpdateOptions) (result *v1alpha2.WorkspaceRoleBinding, err error) {
 	result = &v1alpha2.WorkspaceRoleBinding{}
 	err = c.client.Put().
 		Resource("workspacerolebindings").
 		Name(workspaceRoleBinding.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(workspaceRoleBinding).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the workspaceRoleBinding and deletes it. Returns an error if one occurs.
-func (c *workspaceRoleBindings) Delete(name string, options *v1.DeleteOptions) error {
+func (c *workspaceRoleBindings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("workspacerolebindings").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *workspaceRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *workspaceRoleBindings) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("workspacerolebindings").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched workspaceRoleBinding.
-func (c *workspaceRoleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.WorkspaceRoleBinding, err error) {
+func (c *workspaceRoleBindings) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.WorkspaceRoleBinding, err error) {
 	result = &v1alpha2.WorkspaceRoleBinding{}
 	err = c.client.Patch(pt).
 		Resource("workspacerolebindings").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

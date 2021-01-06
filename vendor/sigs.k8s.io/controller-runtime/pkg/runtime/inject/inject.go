@@ -33,7 +33,7 @@ type Cache interface {
 }
 
 // CacheInto will set informers on i and return the result if it implements Cache.  Returns
-//// false if i does not implement Cache.
+// false if i does not implement Cache.
 func CacheInto(c cache.Cache, i interface{}) (bool, error) {
 	if s, ok := i.(Cache); ok {
 		return true, s.InjectCache(c)
@@ -62,7 +62,7 @@ type Config interface {
 }
 
 // ConfigInto will set config on i and return the result if it implements Config.  Returns
-//// false if i does not implement Config.
+// false if i does not implement Config.
 func ConfigInto(config *rest.Config, i interface{}) (bool, error) {
 	if s, ok := i.(Config); ok {
 		return true, s.InjectConfig(config)

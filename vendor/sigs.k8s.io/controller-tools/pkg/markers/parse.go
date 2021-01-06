@@ -588,7 +588,7 @@ func ArgumentFromType(rawType reflect.Type) (Argument, error) {
 		arg.Type = SliceType
 		itemType, err := ArgumentFromType(rawType.Elem())
 		if err != nil {
-			return Argument{}, fmt.Errorf("bad slice item type: %v", err)
+			return Argument{}, fmt.Errorf("bad slice item type: %w", err)
 		}
 		arg.ItemType = &itemType
 	case reflect.Map:
@@ -598,7 +598,7 @@ func ArgumentFromType(rawType reflect.Type) (Argument, error) {
 		}
 		itemType, err := ArgumentFromType(rawType.Elem())
 		if err != nil {
-			return Argument{}, fmt.Errorf("bad slice item type: %v", err)
+			return Argument{}, fmt.Errorf("bad slice item type: %w", err)
 		}
 		arg.ItemType = &itemType
 	default:
@@ -720,7 +720,7 @@ func (d *Definition) loadFields() error {
 
 		argType, err := ArgumentFromType(field.Type)
 		if err != nil {
-			return fmt.Errorf("unable to extract type information for field %q: %v", field.Name, err)
+			return fmt.Errorf("unable to extract type information for field %q: %w", field.Name, err)
 		}
 
 		if argType.Type == RawType {

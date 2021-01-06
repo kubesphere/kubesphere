@@ -17,6 +17,7 @@ limitations under the License.
 package user
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"kubesphere.io/kubesphere/pkg/controller/utils/controller"
@@ -163,7 +164,7 @@ func (c *userController) reconcile(key string) error {
 		if !sliceutil.HasString(user.Finalizers, finalizer) {
 			user.ObjectMeta.Finalizers = append(user.ObjectMeta.Finalizers, finalizer)
 
-			if user, err = c.ksClient.IamV1alpha2().Users().Update(user); err != nil {
+			if user, err = c.ksClient.IamV1alpha2().Users().Update(context.Background(), user, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -208,7 +209,7 @@ func (c *userController) reconcile(key string) error {
 				return item == finalizer
 			})
 
-			if user, err = c.ksClient.IamV1alpha2().Users().Update(user); err != nil {
+			if user, err = c.ksClient.IamV1alpha2().Users().Update(context.Background(), user, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -279,7 +280,7 @@ func (c *userController) encryptPassword(user *iamv1alpha2.User) (*iamv1alpha2.U
 		}
 		// ensure plain text password won't be kept anywhere
 		delete(user.Annotations, corev1.LastAppliedConfigAnnotation)
-		return c.ksClient.IamV1alpha2().Users().Update(user)
+		return c.ksClient.IamV1alpha2().Users().Update(context.Background(), user, metav1.UpdateOptions{})
 	}
 	return user, nil
 }
@@ -291,7 +292,7 @@ func (c *userController) ensureNotControlledByKubefed(user *iamv1alpha2.User) er
 		}
 		user = user.DeepCopy()
 		user.Labels[constants.KubefedManagedLabel] = "false"
-		_, err := c.ksClient.IamV1alpha2().Users().Update(user)
+		_, err := c.ksClient.IamV1alpha2().Users().Update(context.Background(), user, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Error(err)
 		}
@@ -369,7 +370,7 @@ func (c *userController) createFederatedUser(user *iamv1alpha2.User) error {
 		AbsPath(fmt.Sprintf("/apis/%s/%s/%s", iamv1alpha2.FedUserResource.Group,
 			iamv1alpha2.FedUserResource.Version, iamv1alpha2.FedUserResource.Name)).
 		Body(data).
-		Do().Error()
+		Do(context.Background()).Error()
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil
@@ -391,7 +392,7 @@ func (c *userController) updateFederatedUser(fedUser *iamv1alpha2.FederatedUser)
 		AbsPath(fmt.Sprintf("/apis/%s/%s/%s/%s", iamv1alpha2.FedUserResource.Group,
 			iamv1alpha2.FedUserResource.Version, iamv1alpha2.FedUserResource.Name, fedUser.Name)).
 		Body(data).
-		Do().Error()
+		Do(context.Background()).Error()
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -441,9 +442,8 @@ func (c *userController) deleteGroupBindings(user *iamv1alpha2.User) error {
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: user.Name}).String(),
 	}
-	deleteOptions := metav1.NewDeleteOptions(0)
 	if err := c.ksClient.IamV1alpha2().GroupBindings().
-		DeleteCollection(deleteOptions, listOptions); err != nil {
+		DeleteCollection(context.Background(), *metav1.NewDeleteOptions(0), listOptions); err != nil {
 		klog.Error(err)
 		return err
 	}
@@ -454,31 +454,31 @@ func (c *userController) deleteRoleBindings(user *iamv1alpha2.User) error {
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: user.Name}).String(),
 	}
-	deleteOptions := metav1.NewDeleteOptions(0)
+	deleteOptions := *metav1.NewDeleteOptions(0)
 	if err := c.ksClient.IamV1alpha2().GlobalRoleBindings().
-		DeleteCollection(deleteOptions, listOptions); err != nil {
+		DeleteCollection(context.Background(), deleteOptions, listOptions); err != nil {
 		klog.Error(err)
 		return err
 	}
 
 	if err := c.ksClient.IamV1alpha2().WorkspaceRoleBindings().
-		DeleteCollection(deleteOptions, listOptions); err != nil {
+		DeleteCollection(context.Background(), deleteOptions, listOptions); err != nil {
 		klog.Error(err)
 		return err
 	}
 
 	if err := c.k8sClient.RbacV1().ClusterRoleBindings().
-		DeleteCollection(deleteOptions, listOptions); err != nil {
+		DeleteCollection(context.Background(), deleteOptions, listOptions); err != nil {
 		klog.Error(err)
 		return err
 	}
 
-	if result, err := c.k8sClient.CoreV1().Namespaces().List(metav1.ListOptions{}); err != nil {
+	if result, err := c.k8sClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{}); err != nil {
 		klog.Error(err)
 		return err
 	} else {
 		for _, namespace := range result.Items {
-			if err = c.k8sClient.RbacV1().RoleBindings(namespace.Name).DeleteCollection(deleteOptions, listOptions); err != nil {
+			if err = c.k8sClient.RbacV1().RoleBindings(namespace.Name).DeleteCollection(context.Background(), deleteOptions, listOptions); err != nil {
 				klog.Error(err)
 				return err
 			}
@@ -492,10 +492,8 @@ func (c *userController) deleteLoginRecords(user *iamv1alpha2.User) error {
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: user.Name}).String(),
 	}
-	deleteOptions := metav1.NewDeleteOptions(0)
-
 	if err := c.ksClient.IamV1alpha2().LoginRecords().
-		DeleteCollection(deleteOptions, listOptions); err != nil {
+		DeleteCollection(context.Background(), *metav1.NewDeleteOptions(0), listOptions); err != nil {
 		klog.Error(err)
 		return err
 	}
@@ -519,7 +517,7 @@ func (c *userController) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.Us
 			State:              &active,
 			LastTransitionTime: &metav1.Time{Time: time.Now()},
 		}
-		return c.ksClient.IamV1alpha2().Users().UpdateStatus(expected)
+		return c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), expected, metav1.UpdateOptions{})
 	}
 
 	// becomes inactive after setting a blank password
@@ -530,7 +528,7 @@ func (c *userController) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.Us
 			State:              nil,
 			LastTransitionTime: &metav1.Time{Time: time.Now()},
 		}
-		return c.ksClient.IamV1alpha2().Users().UpdateStatus(expected)
+		return c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), expected, metav1.UpdateOptions{})
 	}
 
 	// becomes active after password encrypted
@@ -542,7 +540,7 @@ func (c *userController) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.Us
 			State:              &active,
 			LastTransitionTime: &metav1.Time{Time: time.Now()},
 		}
-		return c.ksClient.IamV1alpha2().Users().UpdateStatus(expected)
+		return c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), expected, metav1.UpdateOptions{})
 	}
 
 	// blocked user, check if need to unblock user
@@ -556,7 +554,7 @@ func (c *userController) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.Us
 				State:              &active,
 				LastTransitionTime: &metav1.Time{Time: time.Now()},
 			}
-			return c.ksClient.IamV1alpha2().Users().UpdateStatus(expected)
+			return c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), expected, metav1.UpdateOptions{})
 		}
 	}
 
@@ -588,7 +586,7 @@ func (c *userController) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.Us
 		}
 		// block user for AuthenticateRateLimiterDuration duration, after that put it back to the queue to unblock
 		c.Workqueue.AddAfter(user.Name, c.authenticationOptions.AuthenticateRateLimiterDuration)
-		return c.ksClient.IamV1alpha2().Users().UpdateStatus(expect)
+		return c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), expect, metav1.UpdateOptions{})
 	}
 
 	return user, nil

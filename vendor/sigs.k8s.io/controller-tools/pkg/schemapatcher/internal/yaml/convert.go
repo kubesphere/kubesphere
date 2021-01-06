@@ -33,12 +33,12 @@ func ToYAML(rawObj interface{}) (*yaml.Node, error) {
 
 	rawJSON, err := json.Marshal(rawObj)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal object: %v", err)
+		return nil, fmt.Errorf("failed to marshal object: %w", err)
 	}
 
 	var out yaml.Node
 	if err := yaml.Unmarshal(rawJSON, &out); err != nil {
-		return nil, fmt.Errorf("unable to unmarshal marshalled object: %v", err)
+		return nil, fmt.Errorf("unable to unmarshal marshalled object: %w", err)
 	}
 	return &out, nil
 }

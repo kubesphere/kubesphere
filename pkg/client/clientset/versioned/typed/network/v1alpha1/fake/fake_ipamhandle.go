@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var ipamhandlesResource = schema.GroupVersionResource{Group: "network.kubesphere
 var ipamhandlesKind = schema.GroupVersionKind{Group: "network.kubesphere.io", Version: "v1alpha1", Kind: "IPAMHandle"}
 
 // Get takes name of the iPAMHandle, and returns the corresponding iPAMHandle object, and an error if there is any.
-func (c *FakeIPAMHandles) Get(name string, options v1.GetOptions) (result *v1alpha1.IPAMHandle, err error) {
+func (c *FakeIPAMHandles) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.IPAMHandle, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(ipamhandlesResource, name), &v1alpha1.IPAMHandle{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeIPAMHandles) Get(name string, options v1.GetOptions) (result *v1alp
 }
 
 // List takes label and field selectors, and returns the list of IPAMHandles that match those selectors.
-func (c *FakeIPAMHandles) List(opts v1.ListOptions) (result *v1alpha1.IPAMHandleList, err error) {
+func (c *FakeIPAMHandles) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.IPAMHandleList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(ipamhandlesResource, ipamhandlesKind, opts), &v1alpha1.IPAMHandleList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeIPAMHandles) List(opts v1.ListOptions) (result *v1alpha1.IPAMHandle
 }
 
 // Watch returns a watch.Interface that watches the requested iPAMHandles.
-func (c *FakeIPAMHandles) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeIPAMHandles) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(ipamhandlesResource, opts))
 }
 
 // Create takes the representation of a iPAMHandle and creates it.  Returns the server's representation of the iPAMHandle, and an error, if there is any.
-func (c *FakeIPAMHandles) Create(iPAMHandle *v1alpha1.IPAMHandle) (result *v1alpha1.IPAMHandle, err error) {
+func (c *FakeIPAMHandles) Create(ctx context.Context, iPAMHandle *v1alpha1.IPAMHandle, opts v1.CreateOptions) (result *v1alpha1.IPAMHandle, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(ipamhandlesResource, iPAMHandle), &v1alpha1.IPAMHandle{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeIPAMHandles) Create(iPAMHandle *v1alpha1.IPAMHandle) (result *v1alp
 }
 
 // Update takes the representation of a iPAMHandle and updates it. Returns the server's representation of the iPAMHandle, and an error, if there is any.
-func (c *FakeIPAMHandles) Update(iPAMHandle *v1alpha1.IPAMHandle) (result *v1alpha1.IPAMHandle, err error) {
+func (c *FakeIPAMHandles) Update(ctx context.Context, iPAMHandle *v1alpha1.IPAMHandle, opts v1.UpdateOptions) (result *v1alpha1.IPAMHandle, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(ipamhandlesResource, iPAMHandle), &v1alpha1.IPAMHandle{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeIPAMHandles) Update(iPAMHandle *v1alpha1.IPAMHandle) (result *v1alp
 }
 
 // Delete takes name of the iPAMHandle and deletes it. Returns an error if one occurs.
-func (c *FakeIPAMHandles) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeIPAMHandles) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(ipamhandlesResource, name), &v1alpha1.IPAMHandle{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeIPAMHandles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(ipamhandlesResource, listOptions)
+func (c *FakeIPAMHandles) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(ipamhandlesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.IPAMHandleList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched iPAMHandle.
-func (c *FakeIPAMHandles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IPAMHandle, err error) {
+func (c *FakeIPAMHandles) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.IPAMHandle, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(ipamhandlesResource, name, pt, data, subresources...), &v1alpha1.IPAMHandle{})
 	if obj == nil {

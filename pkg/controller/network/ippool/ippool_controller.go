@@ -17,6 +17,7 @@ limitations under the License.
 package ippool
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"time"
@@ -92,7 +93,7 @@ func (c *IPPoolController) addFinalizer(pool *networkv1alpha1.IPPool) error {
 		networkv1alpha1.IPPoolTypeLabel: clone.Spec.Type,
 		networkv1alpha1.IPPoolIDLabel:   fmt.Sprintf("%d", clone.ID()),
 	}
-	pool, err := c.kubesphereClient.NetworkV1alpha1().IPPools().Update(clone)
+	pool, err := c.kubesphereClient.NetworkV1alpha1().IPPools().Update(context.TODO(), clone, metav1.UpdateOptions{})
 	if err != nil {
 		klog.V(3).Infof("Error adding  finalizer to pool %s: %v", pool.Name, err)
 		return err
@@ -104,7 +105,7 @@ func (c *IPPoolController) addFinalizer(pool *networkv1alpha1.IPPool) error {
 func (c *IPPoolController) removeFinalizer(pool *networkv1alpha1.IPPool) error {
 	clone := pool.DeepCopy()
 	controllerutil.RemoveFinalizer(clone, networkv1alpha1.IPPoolFinalizer)
-	pool, err := c.kubesphereClient.NetworkV1alpha1().IPPools().Update(clone)
+	pool, err := c.kubesphereClient.NetworkV1alpha1().IPPools().Update(context.TODO(), clone, metav1.UpdateOptions{})
 	if err != nil {
 		klog.V(3).Infof("Error removing  finalizer from pool %s: %v", pool.Name, err)
 		return err
@@ -144,7 +145,7 @@ func (c *IPPoolController) ValidateCreate(obj runtime.Object) error {
 		}
 	}
 
-	pools, err := c.kubesphereClient.NetworkV1alpha1().IPPools().List(metav1.ListOptions{
+	pools, err := c.kubesphereClient.NetworkV1alpha1().IPPools().List(context.TODO(), metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{
 			networkv1alpha1.IPPoolIDLabel: fmt.Sprintf("%d", b.ID()),
 		}).String(),
@@ -203,7 +204,7 @@ func (c *IPPoolController) disableIPPool(old *networkv1alpha1.IPPool) error {
 	clone := old.DeepCopy()
 	clone.Spec.Disabled = true
 
-	old, err := c.kubesphereClient.NetworkV1alpha1().IPPools().Update(clone)
+	old, err := c.kubesphereClient.NetworkV1alpha1().IPPools().Update(context.TODO(), clone, metav1.UpdateOptions{})
 
 	return err
 }
@@ -218,7 +219,7 @@ func (c *IPPoolController) updateIPPoolStatus(old *networkv1alpha1.IPPool) error
 		return nil
 	}
 
-	_, err = c.kubesphereClient.NetworkV1alpha1().IPPools().UpdateStatus(new)
+	_, err = c.kubesphereClient.NetworkV1alpha1().IPPools().UpdateStatus(context.TODO(), new, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update ippool %s status  %v", old.Name, err)
 	}

@@ -17,6 +17,7 @@ limitations under the License.
 package virtualservice
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -236,14 +237,14 @@ func (v *VirtualServiceController) syncService(key string) error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Delete the corresponding virtualservice, as the service has been deleted.
-			err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Delete(name, nil)
+			err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 			if err != nil && !errors.IsNotFound(err) {
 				log.Error(err, "delete orphan virtualservice failed", "namespace", namespace, "name", service.Name)
 				return err
 			}
 
 			// delete the orphan strategy if there is any
-			err = v.servicemeshClient.ServicemeshV1alpha2().Strategies(namespace).Delete(name, nil)
+			err = v.servicemeshClient.ServicemeshV1alpha2().Strategies(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 			if err != nil && !errors.IsNotFound(err) {
 				log.Error(err, "delete orphan strategy failed", "namespace", namespace, "name", service.Name)
 				return err
@@ -411,9 +412,9 @@ func (v *VirtualServiceController) syncService(key string) error {
 	}
 
 	if createVirtualService {
-		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(newVirtualService)
+		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(context.Background(), newVirtualService, metav1.CreateOptions{})
 	} else {
-		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Update(newVirtualService)
+		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Update(context.Background(), newVirtualService, metav1.UpdateOptions{})
 	}
 
 	if err != nil {

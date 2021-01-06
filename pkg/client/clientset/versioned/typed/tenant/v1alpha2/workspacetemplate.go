@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,14 +38,14 @@ type WorkspaceTemplatesGetter interface {
 
 // WorkspaceTemplateInterface has methods to work with WorkspaceTemplate resources.
 type WorkspaceTemplateInterface interface {
-	Create(*v1alpha2.WorkspaceTemplate) (*v1alpha2.WorkspaceTemplate, error)
-	Update(*v1alpha2.WorkspaceTemplate) (*v1alpha2.WorkspaceTemplate, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha2.WorkspaceTemplate, error)
-	List(opts v1.ListOptions) (*v1alpha2.WorkspaceTemplateList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.WorkspaceTemplate, err error)
+	Create(ctx context.Context, workspaceTemplate *v1alpha2.WorkspaceTemplate, opts v1.CreateOptions) (*v1alpha2.WorkspaceTemplate, error)
+	Update(ctx context.Context, workspaceTemplate *v1alpha2.WorkspaceTemplate, opts v1.UpdateOptions) (*v1alpha2.WorkspaceTemplate, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha2.WorkspaceTemplate, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha2.WorkspaceTemplateList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.WorkspaceTemplate, err error)
 	WorkspaceTemplateExpansion
 }
 
@@ -61,19 +62,19 @@ func newWorkspaceTemplates(c *TenantV1alpha2Client) *workspaceTemplates {
 }
 
 // Get takes name of the workspaceTemplate, and returns the corresponding workspaceTemplate object, and an error if there is any.
-func (c *workspaceTemplates) Get(name string, options v1.GetOptions) (result *v1alpha2.WorkspaceTemplate, err error) {
+func (c *workspaceTemplates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.WorkspaceTemplate, err error) {
 	result = &v1alpha2.WorkspaceTemplate{}
 	err = c.client.Get().
 		Resource("workspacetemplates").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of WorkspaceTemplates that match those selectors.
-func (c *workspaceTemplates) List(opts v1.ListOptions) (result *v1alpha2.WorkspaceTemplateList, err error) {
+func (c *workspaceTemplates) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.WorkspaceTemplateList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,13 +84,13 @@ func (c *workspaceTemplates) List(opts v1.ListOptions) (result *v1alpha2.Workspa
 		Resource("workspacetemplates").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested workspaceTemplates.
-func (c *workspaceTemplates) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *workspaceTemplates) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -99,66 +100,69 @@ func (c *workspaceTemplates) Watch(opts v1.ListOptions) (watch.Interface, error)
 		Resource("workspacetemplates").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a workspaceTemplate and creates it.  Returns the server's representation of the workspaceTemplate, and an error, if there is any.
-func (c *workspaceTemplates) Create(workspaceTemplate *v1alpha2.WorkspaceTemplate) (result *v1alpha2.WorkspaceTemplate, err error) {
+func (c *workspaceTemplates) Create(ctx context.Context, workspaceTemplate *v1alpha2.WorkspaceTemplate, opts v1.CreateOptions) (result *v1alpha2.WorkspaceTemplate, err error) {
 	result = &v1alpha2.WorkspaceTemplate{}
 	err = c.client.Post().
 		Resource("workspacetemplates").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(workspaceTemplate).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a workspaceTemplate and updates it. Returns the server's representation of the workspaceTemplate, and an error, if there is any.
-func (c *workspaceTemplates) Update(workspaceTemplate *v1alpha2.WorkspaceTemplate) (result *v1alpha2.WorkspaceTemplate, err error) {
+func (c *workspaceTemplates) Update(ctx context.Context, workspaceTemplate *v1alpha2.WorkspaceTemplate, opts v1.UpdateOptions) (result *v1alpha2.WorkspaceTemplate, err error) {
 	result = &v1alpha2.WorkspaceTemplate{}
 	err = c.client.Put().
 		Resource("workspacetemplates").
 		Name(workspaceTemplate.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(workspaceTemplate).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the workspaceTemplate and deletes it. Returns an error if one occurs.
-func (c *workspaceTemplates) Delete(name string, options *v1.DeleteOptions) error {
+func (c *workspaceTemplates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("workspacetemplates").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *workspaceTemplates) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *workspaceTemplates) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("workspacetemplates").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched workspaceTemplate.
-func (c *workspaceTemplates) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.WorkspaceTemplate, err error) {
+func (c *workspaceTemplates) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.WorkspaceTemplate, err error) {
 	result = &v1alpha2.WorkspaceTemplate{}
 	err = c.client.Patch(pt).
 		Resource("workspacetemplates").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -325,7 +326,7 @@ func (c *clusterController) reconcileHostCluster() error {
 	// no host cluster, create one
 	if len(clusters) == 0 {
 		hostCluster.Spec.Connection.KubeConfig = hostKubeConfig
-		_, err = c.clusterClient.Create(hostCluster)
+		_, err = c.clusterClient.Create(context.TODO(), hostCluster, metav1.CreateOptions{})
 		return err
 	} else if len(clusters) > 1 {
 		return fmt.Errorf("there MUST not be more than one host clusters, while there are %d", len(clusters))
@@ -349,7 +350,7 @@ func (c *clusterController) reconcileHostCluster() error {
 	}
 
 	// update host cluster config
-	_, err = c.clusterClient.Update(cluster)
+	_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
 	return err
 }
 
@@ -387,7 +388,7 @@ func (c *clusterController) syncCluster(key string) error {
 		// registering our finalizer.
 		if !sets.NewString(cluster.ObjectMeta.Finalizers...).Has(clusterv1alpha1.Finalizer) {
 			cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1alpha1.Finalizer)
-			if cluster, err = c.clusterClient.Update(cluster); err != nil {
+			if cluster, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -403,7 +404,7 @@ func (c *clusterController) syncCluster(key string) error {
 				return err
 			}
 
-			_, err = c.client.CoreV1().Services(defaultAgentNamespace).Get(serviceName, metav1.GetOptions{})
+			_, err = c.client.CoreV1().Services(defaultAgentNamespace).Get(context.TODO(), serviceName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					// nothing to do
@@ -412,7 +413,7 @@ func (c *clusterController) syncCluster(key string) error {
 					return err
 				}
 			} else {
-				err = c.client.CoreV1().Services(defaultAgentNamespace).Delete(serviceName, metav1.NewDeleteOptions(0))
+				err = c.client.CoreV1().Services(defaultAgentNamespace).Delete(context.TODO(), serviceName, *metav1.NewDeleteOptions(0))
 				if err != nil {
 					klog.Errorf("Unable to delete service %s, error %v", serviceName, err)
 					return err
@@ -435,7 +436,7 @@ func (c *clusterController) syncCluster(key string) error {
 			finalizers := sets.NewString(cluster.ObjectMeta.Finalizers...)
 			finalizers.Delete(clusterv1alpha1.Finalizer)
 			cluster.ObjectMeta.Finalizers = finalizers.List()
-			if _, err = c.clusterClient.Update(cluster); err != nil {
+			if _, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -504,10 +505,10 @@ func (c *clusterController) syncCluster(key string) error {
 			},
 		}
 
-		service, err := c.client.CoreV1().Services(defaultAgentNamespace).Get(serviceName, metav1.GetOptions{})
+		service, err := c.client.CoreV1().Services(defaultAgentNamespace).Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil { // proxy service not found
 			if errors.IsNotFound(err) {
-				service, err = c.client.CoreV1().Services(defaultAgentNamespace).Create(&mcService)
+				service, err = c.client.CoreV1().Services(defaultAgentNamespace).Create(context.TODO(), &mcService, metav1.CreateOptions{})
 				if err != nil {
 					return err
 				}
@@ -519,7 +520,7 @@ func (c *clusterController) syncCluster(key string) error {
 				mcService.ObjectMeta = service.ObjectMeta
 				mcService.Spec.ClusterIP = service.Spec.ClusterIP
 
-				service, err = c.client.CoreV1().Services(defaultAgentNamespace).Update(&mcService)
+				service, err = c.client.CoreV1().Services(defaultAgentNamespace).Update(context.TODO(), &mcService, metav1.UpdateOptions{})
 				if err != nil {
 					return err
 				}
@@ -544,7 +545,7 @@ func (c *clusterController) syncCluster(key string) error {
 		}
 
 		if !reflect.DeepEqual(oldCluster, cluster) {
-			cluster, err = c.clusterClient.Update(cluster)
+			cluster, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
 			if err != nil {
 				klog.Errorf("Error updating cluster %s, error %s", cluster.Name, err)
 				return err
@@ -567,7 +568,7 @@ func (c *clusterController) syncCluster(key string) error {
 
 		c.updateClusterCondition(cluster, clusterNotReadyCondition)
 
-		cluster, err = c.clusterClient.Update(cluster)
+		cluster, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Error updating cluster %s, error %s", cluster.Name, err)
 		}
@@ -630,7 +631,7 @@ func (c *clusterController) syncCluster(key string) error {
 
 	cluster.Status.KubernetesVersion = version.GitVersion
 
-	nodes, err := clusterDt.client.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodes, err := clusterDt.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get cluster nodes, %#v", err)
 		return err
@@ -679,7 +680,7 @@ func (c *clusterController) syncCluster(key string) error {
 	}
 
 	if !reflect.DeepEqual(oldCluster, cluster) {
-		_, err = c.clusterClient.Update(cluster)
+		_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Failed to update cluster status, %#v", err)
 			return err
@@ -690,7 +691,7 @@ func (c *clusterController) syncCluster(key string) error {
 }
 
 func (c *clusterController) checkIfClusterIsHostCluster(memberClusterNodes *v1.NodeList) bool {
-	hostNodes, err := c.client.CoreV1().Nodes().List(metav1.ListOptions{})
+	hostNodes, err := c.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return false
 	}

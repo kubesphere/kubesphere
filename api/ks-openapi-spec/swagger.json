@@ -4,13 +4,13 @@
     "description": "KubeSphere OpenAPI",
     "title": "KubeSphere",
     "contact": {
-      "name": "kubesphere",
-      "url": "https://kubesphere.io",
+      "name": "KubeSphere",
+      "url": "https://kubesphere.io/",
       "email": "kubesphere@yunify.com"
     },
     "license": {
-      "name": "Apache",
-      "url": "http://www.apache.org/licenses/"
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
     "version": "v0.0.0",
     "x-taggroups": [
@@ -275,6 +275,39 @@
             "schema": {
               "$ref": "#/definitions/devops.Credential"
             }
+          }
+        }
+      }
+    },
+    "/kapis/devops.kubesphere.io/v1alpha2/devops/{devops}/jenkins/{path}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Jenkins"
+        ],
+        "operationId": "func2",
+        "parameters": [
+          {
+            "pattern": "*",
+            "type": "string",
+            "description": "Path stands for any suffix path.",
+            "name": "path",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "DevOps project's ID, e.g. project-RRRRAzLBlLEm",
+            "name": "devops",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok"
           }
         }
       }
@@ -6965,6 +6998,91 @@
         }
       }
     },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/pods": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Pod Metrics"
+        ],
+        "summary": "Get pod-level metric data of the whole cluster's pods.",
+        "operationId": "handlePodMetricsQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both pod CPU usage and memory usage: `pod_cpu_usage|pod_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).",
+            "name": "metrics_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The pod filter consists of a regexp pattern. It specifies which pod data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.",
+            "name": "resources_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ",
+            "name": "start",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ",
+            "name": "end",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "10m",
+            "description": "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).",
+            "name": "step",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.",
+            "name": "time",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Sort pods by the specified metric. Not applicable if **start** and **end** are provided.",
+            "name": "sort_metric",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "desc.",
+            "description": "Sort order. One of asc, desc.",
+            "name": "sort_type",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 5,
+            "description": "Page size, the maximum number of results in a single page. Defaults to 5.",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metrics"
+            }
+          }
+        }
+      }
+    },
     "/kapis/monitoring.kubesphere.io/v1alpha3/storageclasses/{storageclass}/persistentvolumeclaims": {
       "get": {
         "produces": [
@@ -7052,6 +7170,122 @@
             "description": "ok",
             "schema": {
               "$ref": "#/definitions/monitoring.Metrics"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/targets/labelsets": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Custom Metrics"
+        ],
+        "summary": "List all available labels and values of a metric within a specific time span in the whole cluster.",
+        "operationId": "handleMetricLabelSetQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the metric",
+            "name": "metric",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Start time of query. It is a string with Unix time format, eg. 1559347200. ",
+            "name": "start",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "End time of query. It is a string with Unix time format, eg. 1561939200. ",
+            "name": "end",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.MetricLabelSet"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/targets/metadata": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Custom Metrics"
+        ],
+        "summary": "Get metadata of metrics in the whole cluster.",
+        "operationId": "handleMetadataQuery",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metadata"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/targets/query": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Custom Metrics"
+        ],
+        "summary": "Make an ad-hoc query in the whole cluster.",
+        "operationId": "handleAdhocQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The expression to be evaluated.",
+            "name": "expr",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ",
+            "name": "start",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ",
+            "name": "end",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "10m",
+            "description": "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).",
+            "name": "step",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.",
+            "name": "time",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metric"
             }
           }
         }
@@ -10678,74 +10912,6 @@
         }
       }
     },
-    "/kapis/servicemesh.kubesphere.io/v1alpha2/namespaces/graph": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "ServiceMesh"
-        ],
-        "summary": "Get graph from all namespaces",
-        "operationId": "getNamespacesGraph",
-        "parameters": [
-          {
-            "type": "string",
-            "default": "10m",
-            "description": "duration of the query period, in seconds",
-            "name": "duration",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "default": "workload",
-            "description": "type of the generated service graph. Available graph types: [app, service, versionedApp, workload].",
-            "name": "graphType",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "default": "none",
-            "description": "app box grouping characteristic. Available groupings: [app, none, version].",
-            "name": "groupBy",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "from which time point in UNIX timestamp, default now",
-            "name": "queryTime",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "default": false,
-            "description": "flag for injecting the requested service node between source and destination nodes.",
-            "name": "injectServiceNodes",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.graphResponse"
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.BadRequestError"
-            }
-          },
-          "404": {
-            "description": "not found",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.NotFoundError"
-            }
-          }
-        }
-      }
-    },
     "/kapis/servicemesh.kubesphere.io/v1alpha2/namespaces/{namespace}/apps/{app}/health": {
       "get": {
         "produces": [
@@ -12698,7 +12864,7 @@
           "Authentication"
         ],
         "summary": "OAuth callback API, the path param callback is config by identity provider",
-        "operationId": "oAuthCallBack",
+        "operationId": "oauthCallBack",
         "parameters": [
           {
             "type": "string",
@@ -13313,171 +13479,6 @@
         }
       }
     },
-    "cytoscape.EdgeData": {
-      "required": [
-        "id",
-        "source",
-        "target"
-      ],
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "isMTLS": {
-          "type": "string"
-        },
-        "isUnused": {
-          "type": "boolean"
-        },
-        "responseTime": {
-          "type": "string"
-        },
-        "source": {
-          "type": "string"
-        },
-        "target": {
-          "type": "string"
-        },
-        "traffic": {
-          "$ref": "#/definitions/cytoscape.ProtocolTraffic"
-        }
-      }
-    },
-    "cytoscape.EdgeWrapper": {
-      "required": [
-        "data"
-      ],
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/cytoscape.EdgeData"
-        }
-      }
-    },
-    "cytoscape.Elements": {
-      "required": [
-        "nodes",
-        "edges"
-      ],
-      "properties": {
-        "edges": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cytoscape.EdgeWrapper"
-          }
-        },
-        "nodes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cytoscape.NodeWrapper"
-          }
-        }
-      }
-    },
-    "cytoscape.NodeData": {
-      "required": [
-        "id",
-        "nodeType",
-        "namespace"
-      ],
-      "properties": {
-        "app": {
-          "type": "string"
-        },
-        "destServices": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "boolean"
-          }
-        },
-        "hasCB": {
-          "type": "boolean"
-        },
-        "hasMissingSC": {
-          "type": "boolean"
-        },
-        "hasVS": {
-          "type": "boolean"
-        },
-        "id": {
-          "type": "string"
-        },
-        "isDead": {
-          "type": "boolean"
-        },
-        "isGroup": {
-          "type": "string"
-        },
-        "isInaccessible": {
-          "type": "boolean"
-        },
-        "isMisconfigured": {
-          "type": "string"
-        },
-        "isOutside": {
-          "type": "boolean"
-        },
-        "isRoot": {
-          "type": "boolean"
-        },
-        "isServiceEntry": {
-          "type": "string"
-        },
-        "isUnused": {
-          "type": "boolean"
-        },
-        "namespace": {
-          "type": "string"
-        },
-        "nodeType": {
-          "type": "string"
-        },
-        "parent": {
-          "type": "string"
-        },
-        "service": {
-          "type": "string"
-        },
-        "traffic": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cytoscape.ProtocolTraffic"
-          }
-        },
-        "version": {
-          "type": "string"
-        },
-        "workload": {
-          "type": "string"
-        }
-      }
-    },
-    "cytoscape.NodeWrapper": {
-      "required": [
-        "data"
-      ],
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/cytoscape.NodeData"
-        }
-      }
-    },
-    "cytoscape.ProtocolTraffic": {
-      "required": [
-        "protocol",
-        "rates"
-      ],
-      "properties": {
-        "protocol": {
-          "type": "string"
-        },
-        "rates": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "devops.Artifacts": {
       "properties": {
         "_class": {
@@ -14018,6 +14019,9 @@
     "devops.Input.parameters": {},
     "devops.Input.submitter": {},
     "devops.NodeSteps": {
+      "required": [
+        "aprovable"
+      ],
       "properties": {
         "_class": {
           "description": "It’s a fully qualified name and is an identifier of the producer of this resource's capability.",
@@ -14032,6 +14036,10 @@
           "items": {
             "$ref": "#/definitions/devops.NodeSteps.actions"
           }
+        },
+        "aprovable": {
+          "description": "indicate if this step can be approved by current user",
+          "type": "boolean"
         },
         "displayDescription": {
           "description": "display description",
@@ -14191,6 +14199,9 @@
       }
     },
     "devops.Pipeline": {
+      "required": [
+        "weatherScore"
+      ],
       "properties": {
         "_class": {
           "description": "It’s a fully qualified name and is an identifier of the producer of this resource's capability.",
@@ -15324,59 +15335,6 @@
         }
       }
     },
-    "model.SamplePair": {
-      "required": [
-        "Timestamp",
-        "Value"
-      ],
-      "properties": {
-        "Timestamp": {
-          "type": "string",
-          "format": "int64"
-        },
-        "Value": {
-          "type": "string",
-          "format": "double"
-        }
-      }
-    },
-    "model.SampleStream": {
-      "required": [
-        "metric",
-        "values"
-      ],
-      "properties": {
-        "metric": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "values": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/model.SamplePair"
-          }
-        }
-      }
-    },
-    "models.AppHealth": {
-      "required": [
-        "workloadStatuses",
-        "requests"
-      ],
-      "properties": {
-        "requests": {
-          "$ref": "#/definitions/models.RequestHealth"
-        },
-        "workloadStatuses": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/models.WorkloadStatus"
-          }
-        }
-      }
-    },
     "models.PageableResponse": {
       "required": [
         "items",
@@ -15416,67 +15374,6 @@
         "pod": {
           "description": "pod name",
           "type": "string"
-        }
-      }
-    },
-    "models.RequestHealth": {
-      "required": [
-        "inboundErrorRate",
-        "outboundErrorRate",
-        "inboundRequestRate",
-        "outboundRequestRate",
-        "errorRatio",
-        "inboundErrorRatio",
-        "outboundErrorRatio"
-      ],
-      "properties": {
-        "errorRatio": {
-          "type": "number",
-          "format": "double"
-        },
-        "inboundErrorRate": {
-          "type": "number",
-          "format": "double"
-        },
-        "inboundErrorRatio": {
-          "type": "number",
-          "format": "double"
-        },
-        "inboundRequestRate": {
-          "type": "number",
-          "format": "double"
-        },
-        "outboundErrorRate": {
-          "type": "number",
-          "format": "double"
-        },
-        "outboundErrorRatio": {
-          "type": "number",
-          "format": "double"
-        },
-        "outboundRequestRate": {
-          "type": "number",
-          "format": "double"
-        }
-      }
-    },
-    "models.WorkloadStatus": {
-      "required": [
-        "name",
-        "replicas",
-        "available"
-      ],
-      "properties": {
-        "available": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "name": {
-          "type": "string"
-        },
-        "replicas": {
-          "type": "integer",
-          "format": "int32"
         }
       }
     },
@@ -16568,29 +16465,6 @@
         }
       }
     },
-    "prometheus.Metric": {
-      "required": [
-        "matrix",
-        "err"
-      ],
-      "properties": {
-        "err": {
-          "$ref": "#/definitions/error"
-        },
-        "matrix": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/model.SampleStream"
-          }
-        }
-      }
-    },
-    "prometheus.Metrics.histograms": {
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/definitions/prometheus.Metric"
-      }
-    },
     "registries.Config": {
       "properties": {
         "ArgsEscaped": {
@@ -17410,7 +17284,7 @@
           "$ref": "#/definitions/v1.SecurityContext"
         },
         "startupProbe": {
-          "description": "StartupProbe indicates that the Pod has successfully initialized. If specified, no other probes are executed until this completes successfully. If this probe fails, the Pod will be restarted, just as if the livenessProbe failed. This can be used to provide different probe parameters at the beginning of a Pod's lifecycle, when it might take a long time to load data or warm a cache, than during steady-state operation. This cannot be updated. This is an alpha feature enabled by the StartupProbe feature flag. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes",
+          "description": "StartupProbe indicates that the Pod has successfully initialized. If specified, no other probes are executed until this completes successfully. If this probe fails, the Pod will be restarted, just as if the livenessProbe failed. This can be used to provide different probe parameters at the beginning of a Pod's lifecycle, when it might take a long time to load data or warm a cache, than during steady-state operation. This cannot be updated. This is a beta feature enabled by the StartupProbe feature flag. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes",
           "$ref": "#/definitions/v1.Probe"
         },
         "stdin": {
@@ -17434,7 +17308,7 @@
           "type": "boolean"
         },
         "volumeDevices": {
-          "description": "volumeDevices is the list of block devices to be used by the container. This is a beta feature.",
+          "description": "volumeDevices is the list of block devices to be used by the container.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/v1.VolumeDevice"
@@ -18034,7 +17908,7 @@
           "type": "boolean"
         },
         "volumeDevices": {
-          "description": "volumeDevices is the list of block devices to be used by the container. This is a beta feature.",
+          "description": "volumeDevices is the list of block devices to be used by the container.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/v1.VolumeDevice"
@@ -19025,7 +18899,7 @@
           }
         },
         "dataSource": {
-          "description": "This field requires the VolumeSnapshotDataSource alpha feature gate to be enabled and currently VolumeSnapshot is the only supported data source. If the provisioner can support VolumeSnapshot data source, it will create a new volume and data will be restored to the volume at the same time. If the provisioner does not support VolumeSnapshot data source, volume will not be created and the failure will be reported as an event. In the future, we plan to support more data source types and the behavior of the provisioner may change.",
+          "description": "This field can be used to specify either: * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot - Beta) * An existing PVC (PersistentVolumeClaim) * An existing custom resource/object that implements data population (Alpha) In order to use VolumeSnapshot object types, the appropriate feature gate must be enabled (VolumeSnapshotDataSource or AnyVolumeDataSource) If the provisioner or an external controller can support the specified data source, it will create a new volume based on the contents of the specified data source. If the specified data source is not supported, the volume will not be created and the failure will be reported as an event. In the future, we plan to support more data source types and the behavior of the provisioner may change.",
           "$ref": "#/definitions/v1.TypedLocalObjectReference"
         },
         "resources": {
@@ -19041,7 +18915,7 @@
           "type": "string"
         },
         "volumeMode": {
-          "description": "volumeMode defines what type of volume is required by the claim. Value of Filesystem is implied when not included in claim spec. This is a beta feature.",
+          "description": "volumeMode defines what type of volume is required by the claim. Value of Filesystem is implied when not included in claim spec.",
           "type": "string"
         },
         "volumeName": {
@@ -19230,6 +19104,10 @@
           "description": "A special supplemental group that applies to all containers in a pod. Some volume types allow the Kubelet to change the ownership of that volume to be owned by the pod:\n\n1. The owning GID will be the FSGroup 2. The setgid bit is set (new files created in the volume will be owned by FSGroup) 3. The permission bits are OR'd with rw-rw ",
           "type": "integer",
           "format": "int64"
+        },
+        "fsGroupChangePolicy": {
+          "description": "fsGroupChangePolicy defines behavior of changing ownership and permission of the volume before being exposed inside Pod. This field will only apply to volume types which support fsGroup based ownership(and permissions). It will have no effect on ephemeral volume types such as: secret, configmaps and emptydir. Valid values are \"OnRootMismatch\" and \"Always\". If not specified defaults to \"Always\".",
+          "type": "string"
         },
         "runAsGroup": {
           "description": "The GID to run the entrypoint of the container process. Uses runtime default if unset. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container.",
@@ -19434,7 +19312,7 @@
           }
         },
         "topologySpreadConstraints": {
-          "description": "TopologySpreadConstraints describes how a group of pods ought to spread across topology domains. Scheduler will schedule pods in a way which abides by the constraints. This field is alpha-level and is only honored by clusters that enables the EvenPodsSpread feature. All topologySpreadConstraints are ANDed.",
+          "description": "TopologySpreadConstraints describes how a group of pods ought to spread across topology domains. Scheduler will schedule pods in a way which abides by the constraints. This field is only honored by clusters that enable the EvenPodsSpread feature. All topologySpreadConstraints are ANDed.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/v1.TopologySpreadConstraint"
@@ -20057,6 +19935,10 @@
             "type": "string"
           }
         },
+        "immutable": {
+          "description": "Immutable, if set to true, ensures that data stored in the Secret cannot be updated (only object metadata can be modified). If not set to true, the field can be modified at any time. Defaulted to nil. This is an alpha field enabled by ImmutableEphemeralVolumes feature gate.",
+          "type": "boolean"
+        },
         "kind": {
           "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
           "type": "string"
@@ -20268,6 +20150,10 @@
         "port"
       ],
       "properties": {
+        "appProtocol": {
+          "description": "The application protocol for this port. This field follows standard Kubernetes label syntax. Un-prefixed names are reserved for IANA standard service names (as per RFC-6335 and http://www.iana.org/assignments/service-names). Non-standard protocols should use prefixed names such as mycompany.com/my-custom-protocol. Field can be enabled with ServiceAppProtocol feature gate.",
+          "type": "string"
+        },
         "name": {
           "description": "The name of this port within the service. This must be a DNS_LABEL. All ports within a ServiceSpec must have unique names. When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort. Optional if only one ServicePort is defined on this service.",
           "type": "string"
@@ -20956,15 +20842,15 @@
       "description": "WindowsSecurityContextOptions contain Windows-specific options and credentials.",
       "properties": {
         "gmsaCredentialSpec": {
-          "description": "GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field. This field is alpha-level and is only honored by servers that enable the WindowsGMSA feature flag.",
+          "description": "GMSACredentialSpec is where the GMSA admission webhook (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.",
           "type": "string"
         },
         "gmsaCredentialSpecName": {
-          "description": "GMSACredentialSpecName is the name of the GMSA credential spec to use. This field is alpha-level and is only honored by servers that enable the WindowsGMSA feature flag.",
+          "description": "GMSACredentialSpecName is the name of the GMSA credential spec to use.",
           "type": "string"
         },
         "runAsUserName": {
-          "description": "The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence. This field is beta-level and may be disabled with the WindowsRunAsUserName feature flag.",
+          "description": "The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.",
           "type": "string"
         }
       }
@@ -21421,9 +21307,9 @@
     "v1alpha2.Node": {
       "required": [
         "id",
-        "label",
         "labelMinor",
         "rank",
+        "label",
         "controls"
       ],
       "properties": {
@@ -21531,10 +21417,10 @@
     },
     "v1alpha2.NodeSummary": {
       "required": [
-        "labelMinor",
-        "rank",
         "id",
-        "label"
+        "label",
+        "labelMinor",
+        "rank"
       ],
       "properties": {
         "adjacency": {
@@ -21891,104 +21777,12 @@
         }
       }
     },
-    "v1alpha2.appHealthResponse": {
-      "required": [
-        "workloadStatuses",
-        "requests"
-      ],
-      "properties": {
-        "requests": {
-          "$ref": "#/definitions/models.RequestHealth"
-        },
-        "workloadStatuses": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/models.WorkloadStatus"
-          }
-        }
-      }
-    },
-    "v1alpha2.graphResponse": {
-      "required": [
-        "timestamp",
-        "duration",
-        "graphType",
-        "elements"
-      ],
-      "properties": {
-        "duration": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "elements": {
-          "$ref": "#/definitions/cytoscape.Elements"
-        },
-        "graphType": {
-          "type": "string"
-        },
-        "timestamp": {
-          "type": "integer",
-          "format": "int64"
-        }
-      }
-    },
-    "v1alpha2.metricsResponse": {
-      "required": [
-        "metrics",
-        "histograms"
-      ],
-      "properties": {
-        "histograms": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/prometheus.Metrics.histograms"
-          }
-        },
-        "metrics": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/prometheus.Metric"
-          }
-        }
-      }
-    },
-    "v1alpha2.namespaceAppHealthResponse": {
-      "required": [
-        "NamespaceAppHealth"
-      ],
-      "properties": {
-        "NamespaceAppHealth": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/models.AppHealth"
-          }
-        }
-      }
-    },
-    "v1alpha2.serviceHealthResponse": {
-      "required": [
-        "requests"
-      ],
-      "properties": {
-        "requests": {
-          "$ref": "#/definitions/models.RequestHealth"
-        }
-      }
-    },
-    "v1alpha2.workloadHealthResponse": {
-      "required": [
-        "workloadStatus",
-        "requests"
-      ],
-      "properties": {
-        "requests": {
-          "$ref": "#/definitions/models.RequestHealth"
-        },
-        "workloadStatus": {
-          "$ref": "#/definitions/models.WorkloadStatus"
-        }
-      }
-    },
+    "v1alpha2.appHealthResponse": {},
+    "v1alpha2.graphResponse": {},
+    "v1alpha2.metricsResponse": {},
+    "v1alpha2.namespaceAppHealthResponse": {},
+    "v1alpha2.serviceHealthResponse": {},
+    "v1alpha2.workloadHealthResponse": {},
     "v1alpha3.BitbucketServerSource": {
       "properties": {
         "api_uri": {
@@ -22564,7 +22358,7 @@
       }
     },
     "v1beta1.HTTPIngressPath": {
-      "description": "HTTPIngressPath associates a path regex with a backend. Incoming urls matching the path are forwarded to the backend.",
+      "description": "HTTPIngressPath associates a path with a backend. Incoming urls matching the path are forwarded to the backend.",
       "required": [
         "backend"
       ],
@@ -22574,7 +22368,11 @@
           "$ref": "#/definitions/v1beta1.IngressBackend"
         },
         "path": {
-          "description": "Path is an extended POSIX regex as defined by IEEE Std 1003.1, (i.e this follows the egrep/unix syntax, not the perl syntax) matched against the path of an incoming request. Currently it can contain characters disallowed from the conventional \"path\" part of a URL as defined by RFC 3986. Paths must begin with a '/'. If unspecified, the path defaults to a catch all sending traffic to the backend.",
+          "description": "Path is matched against the path of an incoming request. Currently it can contain characters disallowed from the conventional \"path\" part of a URL as defined by RFC 3986. Paths must begin with a '/'. When unspecified, all paths from incoming requests are matched.",
+          "type": "string"
+        },
+        "pathType": {
+          "description": "PathType determines the interpretation of the Path matching. PathType can be one of the following values: * Exact: Matches the URL path exactly. * Prefix: Matches based on a URL path prefix split by '/'. Matching is\n  done on a path element by element basis. A path element refers is the\n  list of labels in the path split by the '/' separator. A request is a\n  match for path p if every p is an element-wise prefix of p of the\n  request path. Note that if the last element of the path is a substring\n  of the last element in request path, it is not a match (e.g. /foo/bar\n  matches /foo/bar/baz, but does not match /foo/barbaz).\n* ImplementationSpecific: Interpretation of the Path matching is up to\n  the IngressClass. Implementations can treat this as a separate PathType\n  or treat it identically to Prefix or Exact path types.\nImplementations are required to support all path types. Defaults to ImplementationSpecific.",
           "type": "string"
         }
       }
@@ -22621,11 +22419,11 @@
     },
     "v1beta1.IngressBackend": {
       "description": "IngressBackend describes all endpoints for a given service and port.",
-      "required": [
-        "serviceName",
-        "servicePort"
-      ],
       "properties": {
+        "resource": {
+          "description": "Resource is an ObjectRef to another Kubernetes resource in the namespace of the Ingress object. If resource is specified, serviceName and servicePort must not be specified.",
+          "$ref": "#/definitions/v1.TypedLocalObjectReference"
+        },
         "serviceName": {
           "description": "Specifies the name of the referenced service.",
           "type": "string"
@@ -22640,7 +22438,7 @@
       "description": "IngressRule represents the rules mapping the paths under a specified host to the related backend services. Incoming requests are first evaluated for a host match, then routed to the backend associated with the matching IngressRuleValue.",
       "properties": {
         "host": {
-          "description": "Host is the fully qualified domain name of a network host, as defined by RFC 3986. Note the following deviations from the \"host\" part of the URI as defined in the RFC: 1. IPs are not allowed. Currently an IngressRuleValue can only apply to the\n\t  IP in the Spec of the parent Ingress.\n2. The `:` delimiter is not respected because ports are not allowed.\n\t  Currently the port of an Ingress is implicitly :80 for http and\n\t  :443 for https.\nBoth these may change in the future. Incoming requests are matched against the host before the IngressRuleValue. If the host is unspecified, the Ingress routes all traffic based on the specified IngressRuleValue.",
+          "description": "Host is the fully qualified domain name of a network host, as defined by RFC 3986. Note the following deviations from the \"host\" part of the URI as defined in RFC 3986: 1. IPs are not allowed. Currently an IngressRuleValue can only apply to\n   the IP in the Spec of the parent Ingress.\n2. The `:` delimiter is not respected because ports are not allowed.\n\t  Currently the port of an Ingress is implicitly :80 for http and\n\t  :443 for https.\nBoth these may change in the future. Incoming requests are matched against the host before the IngressRuleValue. If the host is unspecified, the Ingress routes all traffic based on the specified IngressRuleValue.\n\nHost can be \"precise\" which is a domain name without the terminating dot of a network host (e.g. \"foo.bar.com\") or \"wildcard\", which is a domain name prefixed with a single wildcard label (e.g. \"*.foo.com\"). The wildcard character '*' must appear by itself as the first DNS label and matches only a single label. You cannot have a wildcard label by itself (e.g. Host == \"*\"). Requests will be matched against the Host field in the following way: 1. If Host is precise, the request matches this rule if the http host header is equal to Host. 2. If Host is a wildcard, then the request matches this rule if the http host header is to equal to the suffix (removing the first label) of the wildcard rule.",
           "type": "string"
         },
         "http": {
@@ -22654,6 +22452,10 @@
         "backend": {
           "description": "A default backend capable of servicing requests that don't match any rule. At least one of 'backend' or 'rules' must be specified. This field is optional to allow the loadbalancer controller or defaulting logic to specify a global default.",
           "$ref": "#/definitions/v1beta1.IngressBackend"
+        },
+        "ingressClassName": {
+          "description": "IngressClassName is the name of the IngressClass cluster resource. The associated IngressClass defines which controller will implement the resource. This replaces the deprecated `kubernetes.io/ingress.class` annotation. For backwards compatibility, when that annotation is set, it must be given precedence over this field. The controller may emit a warning if the field and annotation have different values. Implementations of this API should ignore Ingresses without a class specified. An IngressClass resource may be marked as default, which can be used to set a default value for this field. For more information, refer to the IngressClass documentation.",
+          "type": "string"
         },
         "rules": {
           "description": "A list of host rules used to configure the Ingress. If unspecified, or no rule matches, all traffic is sent to the default backend.",

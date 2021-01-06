@@ -55,7 +55,12 @@ var KnownPackages = map[string]PackageOverride{
 	"k8s.io/apimachinery/pkg/api/resource": func(p *Parser, pkg *loader.Package) {
 		p.Schemata[TypeIdent{Name: "Quantity", Package: pkg}] = apiext.JSONSchemaProps{
 			// TODO(directxman12): regexp validation for this (or get kube to support it as a format value)
-			Type: "string",
+			XIntOrString: true,
+			AnyOf: []apiext.JSONSchemaProps{
+				{Type: "integer"},
+				{Type: "string"},
+			},
+			Pattern: "^(\\+|-)?(([0-9]+(\\.[0-9]*)?)|(\\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\\+|-)?(([0-9]+(\\.[0-9]*)?)|(\\.[0-9]+))))?$",
 		}
 		// No point in calling AddPackage, this is the sole inhabitant
 	},

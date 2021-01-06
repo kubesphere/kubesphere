@@ -17,6 +17,7 @@ limitations under the License.
 package certificatesigningrequest
 
 import (
+	"context"
 	"fmt"
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -225,7 +226,7 @@ func (c *Controller) reconcile(key string) error {
 				return err
 			}
 			// release
-			err := c.k8sclient.CertificatesV1beta1().CertificateSigningRequests().Delete(csr.Name, metav1.NewDeleteOptions(0))
+			err := c.k8sclient.CertificatesV1beta1().CertificateSigningRequests().Delete(context.Background(), csr.Name, *metav1.NewDeleteOptions(0))
 			if err != nil {
 				klog.Error(err)
 				return err
@@ -258,7 +259,7 @@ func (c *Controller) Approve(csr *certificatesv1beta1.CertificateSigningRequest)
 	}
 
 	// approve csr
-	csr, err := c.k8sclient.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr)
+	csr, err := c.k8sclient.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(context.Background(), csr, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err

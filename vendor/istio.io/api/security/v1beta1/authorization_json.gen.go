@@ -3,18 +3,32 @@
 
 // Istio Authorization Policy enables access control on workloads in the mesh.
 //
-// For example, the following authorization policy applies to workloads matched with
-// label selector "app: httpbin, version: v1".
+// Authorization policy supports both allow and deny policies. When allow and
+// deny policies are used for a workload at the same time, the deny policies are
+// evaluated first. The evaluation is determined by the following rules:
+//
+// 1. If there are any DENY policies that match the request, deny the request.
+// 2. If there are no ALLOW policies for the workload, allow the request.
+// 3. If any of the ALLOW policies match the request, allow the request.
+// 4. Deny the request.
+//
+// For example, the following authorization policy sets the `action` to "ALLOW"
+// to create an allow policy. The default action is "ALLOW" but it is useful
+// to be explicit in the policy.
 //
 // It allows requests from:
+//
 // - service account "cluster.local/ns/default/sa/sleep" or
 // - namespace "test"
+//
 // to access the workload with:
+//
 // - "GET" method at paths of prefix "/info" or,
 // - "POST" method at path "/data".
+//
 // when the request has a valid JWT token issued by "https://accounts.google.com".
 //
-// Any other requests will be rejected.
+// Any other requests will be denied.
 //
 // ```yaml
 // apiVersion: security.istio.io/v1beta1
@@ -23,10 +37,7 @@
 //  name: httpbin
 //  namespace: foo
 // spec:
-//  selector:
-//    matchLabels:
-//      app: httpbin
-//      version: v1
+//  action: ALLOW
 //  rules:
 //  - from:
 //    - source:
@@ -45,16 +56,30 @@
 //      values: ["https://accounts.google.com"]
 // ```
 //
-// Access control is enabled on a workload if there is any authorization policies selecting
-// the workload. When access control is enabled, the default behavior is deny (deny-by-default)
-// which means requests to the workload will be rejected if the request is not allowed by any of
-// the authorization policies selecting the workload.
+// The following is another example that sets `action` to "DENY" to create a deny policy.
+// It denies requests from the "dev" namespace to the "POST" method on all workloads
+// in the "foo" namespace.
 //
-// Currently AuthorizationPolicy only supports "ALLOW" action. This means that
-// if multiple authorization policies apply to the same workload, the effect is additive.
+// ```yaml
+// apiVersion: security.istio.io/v1beta1
+// kind: AuthorizationPolicy
+// metadata:
+//  name: httpbin
+//  namespace: foo
+// spec:
+//  action: DENY
+//  rules:
+//  - from:
+//    - source:
+//        namespaces: ["dev"]
+//    to:
+//    - operation:
+//        methods: ["POST"]
+// ```
 //
 // Authorization Policy scope (target) is determined by "metadata/namespace" and
 // an optional "selector".
+//
 // - "metadata/namespace" tells which namespace the policy applies. If set to root
 // namespace, the policy applies to all namespaces in a mesh.
 // - workload "selector" can be used to further restrict where a policy applies.
@@ -85,6 +110,7 @@
 //  name: policy
 //  namespace: foo
 // spec:
+//   {}
 // ```
 //
 // The following authorization policy applies to workloads containing label

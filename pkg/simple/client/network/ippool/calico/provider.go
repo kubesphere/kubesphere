@@ -17,6 +17,7 @@ limitations under the License.
 package calico
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -120,7 +121,7 @@ func (c provider) CreateIPPool(pool *v1alpha1.IPPool) error {
 		klog.Warningf("cannot set reference for calico ippool %s, err=%v", pool.Name, err)
 	}
 
-	_, err = c.client.CrdCalicov3().IPPools().Create(calicoPool)
+	_, err = c.client.CrdCalicov3().IPPools().Create(context.TODO(), calicoPool, v1.CreateOptions{})
 	if k8serrors.IsAlreadyExists(err) {
 		return nil
 	}
@@ -135,7 +136,7 @@ func (c provider) UpdateIPPool(pool *v1alpha1.IPPool) error {
 func (c provider) GetIPPoolStats(pool *v1alpha1.IPPool) (*v1alpha1.IPPool, error) {
 	stats := pool.DeepCopy()
 
-	calicoPool, err := c.client.CrdCalicov3().IPPools().Get(pool.Name, v1.GetOptions{})
+	calicoPool, err := c.client.CrdCalicov3().IPPools().Get(context.TODO(), pool.Name, v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +196,7 @@ func setBlockAffiDeletion(c calicoset.Interface, blockAffi *calicov3.BlockAffini
 	}
 
 	blockAffi.Spec.State = string(model.StatePendingDeletion)
-	_, err := c.CrdCalicov3().BlockAffinities().Update(blockAffi)
+	_, err := c.CrdCalicov3().BlockAffinities().Update(context.TODO(), blockAffi, v1.UpdateOptions{})
 	return err
 }
 
@@ -203,13 +204,13 @@ func deleteBlockAffi(c calicoset.Interface, blockAffi *calicov3.BlockAffinity) e
 	trueStr := fmt.Sprintf("%t", true)
 	if blockAffi.Spec.Deleted != trueStr {
 		blockAffi.Spec.Deleted = trueStr
-		_, err := c.CrdCalicov3().BlockAffinities().Update(blockAffi)
+		_, err := c.CrdCalicov3().BlockAffinities().Update(context.TODO(), blockAffi, v1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
 	}
 
-	err := c.CrdCalicov3().BlockAffinities().Delete(blockAffi.Name, &v1.DeleteOptions{})
+	err := c.CrdCalicov3().BlockAffinities().Delete(context.TODO(), blockAffi.Name, v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -220,7 +221,7 @@ func deleteBlockAffi(c calicoset.Interface, blockAffi *calicov3.BlockAffinity) e
 func (c provider) doBlockAffis(pool *calicov3.IPPool, do func(calicoset.Interface, *calicov3.BlockAffinity) error) error {
 	_, cidrNet, _ := cnet.ParseCIDR(pool.Spec.CIDR)
 
-	blockAffis, err := c.client.CrdCalicov3().BlockAffinities().List(v1.ListOptions{})
+	blockAffis, err := c.client.CrdCalicov3().BlockAffinities().List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -243,7 +244,7 @@ func (c provider) doBlockAffis(pool *calicov3.IPPool, do func(calicoset.Interfac
 func (c provider) listBlocks(pool *calicov3.IPPool) ([]calicov3.IPAMBlock, error) {
 	_, cidrNet, _ := cnet.ParseCIDR(pool.Spec.CIDR)
 
-	blocks, err := c.client.CrdCalicov3().IPAMBlocks().List(v1.ListOptions{})
+	blocks, err := c.client.CrdCalicov3().IPAMBlocks().List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +281,7 @@ func deleteBlock(c calicoset.Interface, block *calicov3.IPAMBlock) error {
 	if block.Empty() {
 		if !block.Spec.Deleted {
 			block.Spec.Deleted = true
-			_, err := c.CrdCalicov3().IPAMBlocks().Update(block)
+			_, err := c.CrdCalicov3().IPAMBlocks().Update(context.TODO(), block, v1.UpdateOptions{})
 			if err != nil {
 				return err
 			}
@@ -288,7 +289,7 @@ func deleteBlock(c calicoset.Interface, block *calicov3.IPAMBlock) error {
 	} else {
 		return ErrBlockInuse
 	}
-	err := c.CrdCalicov3().IPAMBlocks().Delete(block.Name, &v1.DeleteOptions{})
+	err := c.CrdCalicov3().IPAMBlocks().Delete(context.TODO(), block.Name, v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -305,7 +306,7 @@ func (c provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 	// -  delete the pool
 
 	// Get the pool so that we can find the CIDR associated with it.
-	calicoPool, err := c.client.CrdCalicov3().IPPools().Get(pool.Name, v1.GetOptions{})
+	calicoPool, err := c.client.CrdCalicov3().IPPools().Get(context.TODO(), pool.Name, v1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return true, nil
@@ -317,7 +318,7 @@ func (c provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 	if !calicoPool.Spec.Disabled {
 		calicoPool.Spec.Disabled = true
 
-		calicoPool, err = c.client.CrdCalicov3().IPPools().Update(calicoPool)
+		calicoPool, err = c.client.CrdCalicov3().IPPools().Update(context.TODO(), calicoPool, v1.UpdateOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -354,7 +355,7 @@ func (c provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 	}
 
 	//delete calico ippool
-	err = c.client.CrdCalicov3().IPPools().Delete(calicoPool.Name, &v1.DeleteOptions{})
+	err = c.client.CrdCalicov3().IPPools().Delete(context.TODO(), calicoPool.Name, v1.DeleteOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -365,13 +366,13 @@ func (c provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 
 //Synchronizing address pools at boot time
 func (c provider) syncIPPools() error {
-	calicoPools, err := c.client.CrdCalicov3().IPPools().List(v1.ListOptions{})
+	calicoPools, err := c.client.CrdCalicov3().IPPools().List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		klog.V(4).Infof("syncIPPools: cannot list calico ippools, err=%v", err)
 		return err
 	}
 
-	pools, err := c.ksclient.NetworkV1alpha1().IPPools().List(v1.ListOptions{})
+	pools, err := c.ksclient.NetworkV1alpha1().IPPools().List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		klog.V(4).Infof("syncIPPools: cannot list kubesphere ippools, err=%v", err)
 		return err
@@ -401,7 +402,7 @@ func (c provider) syncIPPools() error {
 				Status: v1alpha1.IPPoolStatus{},
 			}
 
-			_, err = c.ksclient.NetworkV1alpha1().IPPools().Create(pool)
+			_, err = c.ksclient.NetworkV1alpha1().IPPools().Create(context.TODO(), pool, v1.CreateOptions{})
 			if err != nil {
 				klog.V(4).Infof("syncIPPools: cannot create kubesphere ippools, err=%v", err)
 				return err
@@ -417,7 +418,7 @@ func (p provider) getAssociatedWorkspaces(pool *v1alpha1.IPPool) ([]string, erro
 
 	poolLabel := constants.WorkspaceLabelKey
 	if pool.GetLabels() == nil || pool.GetLabels()[poolLabel] == "" {
-		wks, err := p.ksclient.TenantV1alpha1().Workspaces().List(v1.ListOptions{})
+		wks, err := p.ksclient.TenantV1alpha1().Workspaces().List(context.TODO(), v1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -435,7 +436,7 @@ func (p provider) getAssociatedWorkspaces(pool *v1alpha1.IPPool) ([]string, erro
 func (p provider) getWorkspaceStatus(name string, poolName string) (*v1alpha1.WorkspaceStatus, error) {
 	var result v1alpha1.WorkspaceStatus
 
-	namespaces, err := p.k8sclient.CoreV1().Namespaces().List(v1.ListOptions{
+	namespaces, err := p.k8sclient.CoreV1().Namespaces().List(context.TODO(), v1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(
 			map[string]string{
 				constants.WorkspaceLabelKey: name,
@@ -447,7 +448,7 @@ func (p provider) getWorkspaceStatus(name string, poolName string) (*v1alpha1.Wo
 	}
 
 	for _, ns := range namespaces.Items {
-		pods, err := p.k8sclient.CoreV1().Pods(ns.GetName()).List(v1.ListOptions{})
+		pods, err := p.k8sclient.CoreV1().Pods(ns.GetName()).List(context.TODO(), v1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -499,7 +500,7 @@ func (p provider) processBlock(name string) error {
 
 	poolName := block.Labels[v1alpha1.IPPoolNameLabel]
 	if poolName == "" {
-		pools, err := p.ksclient.NetworkV1alpha1().IPPools().List(v1.ListOptions{})
+		pools, err := p.ksclient.NetworkV1alpha1().IPPools().List(context.TODO(), v1.ListOptions{})
 		if err != nil {
 			return err
 		}
@@ -512,7 +513,7 @@ func (p provider) processBlock(name string) error {
 				block.Labels = map[string]string{
 					v1alpha1.IPPoolNameLabel: pool.Name,
 				}
-				p.client.CrdCalicov3().IPAMBlocks().Update(block)
+				p.client.CrdCalicov3().IPAMBlocks().Update(context.TODO(), block, v1.UpdateOptions{})
 				break
 			}
 		}
@@ -540,7 +541,7 @@ func (p provider) processBlock(name string) error {
 		}
 
 		retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			pod, err = p.k8sclient.CoreV1().Pods(namespace).Get(name, v1.GetOptions{})
+			pod, err = p.k8sclient.CoreV1().Pods(namespace).Get(context.TODO(), name, v1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -563,7 +564,7 @@ func (p provider) processBlock(name string) error {
 			pod.GetAnnotations()[CalicoAnnotationIPPoolV4] = string(annostrs)
 			pod.Labels[v1alpha1.IPPoolNameLabel] = poolName
 
-			_, err = p.k8sclient.CoreV1().Pods(namespace).Update(pod)
+			_, err = p.k8sclient.CoreV1().Pods(namespace).Update(context.TODO(), pod, v1.UpdateOptions{})
 
 			return err
 		})
@@ -617,7 +618,7 @@ func (p provider) Default(obj runtime.Object) error {
 	}
 
 	if annos[CalicoAnnotationIPPoolV4] == "" {
-		pools, err := p.ksclient.NetworkV1alpha1().IPPools().List(v1.ListOptions{
+		pools, err := p.ksclient.NetworkV1alpha1().IPPools().List(context.TODO(), v1.ListOptions{
 			LabelSelector: labels.SelectorFromSet(map[string]string{
 				v1alpha1.IPPoolDefaultLabel: "",
 			}).String(),
@@ -650,7 +651,7 @@ func NewProvider(podInformer informercorev1.PodInformer, ksclient kubesphereclie
 		klog.Fatalf("failed to new calico client , err=%v", err)
 	}
 
-	ds, err := k8sClient.AppsV1().DaemonSets(CalicoNodeNamespace).Get(CalicoNodeDaemonset, v1.GetOptions{})
+	ds, err := k8sClient.AppsV1().DaemonSets(CalicoNodeNamespace).Get(context.TODO(), CalicoNodeDaemonset, v1.GetOptions{})
 	if err != nil {
 		klog.Fatalf("failed to get calico-node deployment in kube-system, err=%v", err)
 	}

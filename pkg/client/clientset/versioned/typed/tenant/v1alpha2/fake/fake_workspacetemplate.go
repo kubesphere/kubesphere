@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var workspacetemplatesResource = schema.GroupVersionResource{Group: "tenant.kube
 var workspacetemplatesKind = schema.GroupVersionKind{Group: "tenant.kubesphere.io", Version: "v1alpha2", Kind: "WorkspaceTemplate"}
 
 // Get takes name of the workspaceTemplate, and returns the corresponding workspaceTemplate object, and an error if there is any.
-func (c *FakeWorkspaceTemplates) Get(name string, options v1.GetOptions) (result *v1alpha2.WorkspaceTemplate, err error) {
+func (c *FakeWorkspaceTemplates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.WorkspaceTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(workspacetemplatesResource, name), &v1alpha2.WorkspaceTemplate{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeWorkspaceTemplates) Get(name string, options v1.GetOptions) (result
 }
 
 // List takes label and field selectors, and returns the list of WorkspaceTemplates that match those selectors.
-func (c *FakeWorkspaceTemplates) List(opts v1.ListOptions) (result *v1alpha2.WorkspaceTemplateList, err error) {
+func (c *FakeWorkspaceTemplates) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.WorkspaceTemplateList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(workspacetemplatesResource, workspacetemplatesKind, opts), &v1alpha2.WorkspaceTemplateList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeWorkspaceTemplates) List(opts v1.ListOptions) (result *v1alpha2.Wor
 }
 
 // Watch returns a watch.Interface that watches the requested workspaceTemplates.
-func (c *FakeWorkspaceTemplates) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeWorkspaceTemplates) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(workspacetemplatesResource, opts))
 }
 
 // Create takes the representation of a workspaceTemplate and creates it.  Returns the server's representation of the workspaceTemplate, and an error, if there is any.
-func (c *FakeWorkspaceTemplates) Create(workspaceTemplate *v1alpha2.WorkspaceTemplate) (result *v1alpha2.WorkspaceTemplate, err error) {
+func (c *FakeWorkspaceTemplates) Create(ctx context.Context, workspaceTemplate *v1alpha2.WorkspaceTemplate, opts v1.CreateOptions) (result *v1alpha2.WorkspaceTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(workspacetemplatesResource, workspaceTemplate), &v1alpha2.WorkspaceTemplate{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeWorkspaceTemplates) Create(workspaceTemplate *v1alpha2.WorkspaceTem
 }
 
 // Update takes the representation of a workspaceTemplate and updates it. Returns the server's representation of the workspaceTemplate, and an error, if there is any.
-func (c *FakeWorkspaceTemplates) Update(workspaceTemplate *v1alpha2.WorkspaceTemplate) (result *v1alpha2.WorkspaceTemplate, err error) {
+func (c *FakeWorkspaceTemplates) Update(ctx context.Context, workspaceTemplate *v1alpha2.WorkspaceTemplate, opts v1.UpdateOptions) (result *v1alpha2.WorkspaceTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(workspacetemplatesResource, workspaceTemplate), &v1alpha2.WorkspaceTemplate{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeWorkspaceTemplates) Update(workspaceTemplate *v1alpha2.WorkspaceTem
 }
 
 // Delete takes name of the workspaceTemplate and deletes it. Returns an error if one occurs.
-func (c *FakeWorkspaceTemplates) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeWorkspaceTemplates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(workspacetemplatesResource, name), &v1alpha2.WorkspaceTemplate{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeWorkspaceTemplates) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(workspacetemplatesResource, listOptions)
+func (c *FakeWorkspaceTemplates) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(workspacetemplatesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.WorkspaceTemplateList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched workspaceTemplate.
-func (c *FakeWorkspaceTemplates) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.WorkspaceTemplate, err error) {
+func (c *FakeWorkspaceTemplates) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.WorkspaceTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(workspacetemplatesResource, name, pt, data, subresources...), &v1alpha2.WorkspaceTemplate{})
 	if obj == nil {

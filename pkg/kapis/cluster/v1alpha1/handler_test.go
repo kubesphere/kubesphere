@@ -33,7 +33,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/testing_frameworks/integration"
 	"testing"
 )
 
@@ -126,7 +125,7 @@ func TestGeranteAgentDeployment(t *testing.T) {
 	k8sclient := k8sfake.NewSimpleClientset(service)
 	ksclient := fake.NewSimpleClientset(cluster)
 
-	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil, nil)
+	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil)
 
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)
@@ -234,7 +233,7 @@ func TestValidateKubeConfig(t *testing.T) {
 	k8sclient := k8sfake.NewSimpleClientset(service)
 	ksclient := fake.NewSimpleClientset(cluster)
 
-	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil, nil)
+	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil)
 
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)
@@ -259,8 +258,8 @@ func TestValidateKubeConfig(t *testing.T) {
 	// we need to specify apiserver port to match above kubeconfig
 	env := &envtest.Environment{
 		Config: config,
-		ControlPlane: integration.ControlPlane{
-			APIServer: &integration.APIServer{
+		ControlPlane: envtest.ControlPlane{
+			APIServer: &envtest.APIServer{
 				Args: envtest.DefaultKubeAPIServerFlags,
 				URL:  u,
 			},

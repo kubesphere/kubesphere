@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredWorkspaceTemplateInformer(client versioned.Interface, resyncPeri
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TenantV1alpha2().WorkspaceTemplates().List(options)
+				return client.TenantV1alpha2().WorkspaceTemplates().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TenantV1alpha2().WorkspaceTemplates().Watch(options)
+				return client.TenantV1alpha2().WorkspaceTemplates().Watch(context.TODO(), options)
 			},
 		},
 		&tenantv1alpha2.WorkspaceTemplate{},

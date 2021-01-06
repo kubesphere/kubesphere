@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var s2ibuildersResource = schema.GroupVersionResource{Group: "devops.kubesphere.
 var s2ibuildersKind = schema.GroupVersionKind{Group: "devops.kubesphere.io", Version: "v1alpha1", Kind: "S2iBuilder"}
 
 // Get takes name of the s2iBuilder, and returns the corresponding s2iBuilder object, and an error if there is any.
-func (c *FakeS2iBuilders) Get(name string, options v1.GetOptions) (result *v1alpha1.S2iBuilder, err error) {
+func (c *FakeS2iBuilders) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.S2iBuilder, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(s2ibuildersResource, c.ns, name), &v1alpha1.S2iBuilder{})
 
@@ -50,7 +52,7 @@ func (c *FakeS2iBuilders) Get(name string, options v1.GetOptions) (result *v1alp
 }
 
 // List takes label and field selectors, and returns the list of S2iBuilders that match those selectors.
-func (c *FakeS2iBuilders) List(opts v1.ListOptions) (result *v1alpha1.S2iBuilderList, err error) {
+func (c *FakeS2iBuilders) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.S2iBuilderList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(s2ibuildersResource, s2ibuildersKind, c.ns, opts), &v1alpha1.S2iBuilderList{})
 
@@ -72,14 +74,14 @@ func (c *FakeS2iBuilders) List(opts v1.ListOptions) (result *v1alpha1.S2iBuilder
 }
 
 // Watch returns a watch.Interface that watches the requested s2iBuilders.
-func (c *FakeS2iBuilders) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeS2iBuilders) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(s2ibuildersResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a s2iBuilder and creates it.  Returns the server's representation of the s2iBuilder, and an error, if there is any.
-func (c *FakeS2iBuilders) Create(s2iBuilder *v1alpha1.S2iBuilder) (result *v1alpha1.S2iBuilder, err error) {
+func (c *FakeS2iBuilders) Create(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.CreateOptions) (result *v1alpha1.S2iBuilder, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(s2ibuildersResource, c.ns, s2iBuilder), &v1alpha1.S2iBuilder{})
 
@@ -90,7 +92,7 @@ func (c *FakeS2iBuilders) Create(s2iBuilder *v1alpha1.S2iBuilder) (result *v1alp
 }
 
 // Update takes the representation of a s2iBuilder and updates it. Returns the server's representation of the s2iBuilder, and an error, if there is any.
-func (c *FakeS2iBuilders) Update(s2iBuilder *v1alpha1.S2iBuilder) (result *v1alpha1.S2iBuilder, err error) {
+func (c *FakeS2iBuilders) Update(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.UpdateOptions) (result *v1alpha1.S2iBuilder, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(s2ibuildersResource, c.ns, s2iBuilder), &v1alpha1.S2iBuilder{})
 
@@ -102,7 +104,7 @@ func (c *FakeS2iBuilders) Update(s2iBuilder *v1alpha1.S2iBuilder) (result *v1alp
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeS2iBuilders) UpdateStatus(s2iBuilder *v1alpha1.S2iBuilder) (*v1alpha1.S2iBuilder, error) {
+func (c *FakeS2iBuilders) UpdateStatus(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.UpdateOptions) (*v1alpha1.S2iBuilder, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(s2ibuildersResource, "status", c.ns, s2iBuilder), &v1alpha1.S2iBuilder{})
 
@@ -113,7 +115,7 @@ func (c *FakeS2iBuilders) UpdateStatus(s2iBuilder *v1alpha1.S2iBuilder) (*v1alph
 }
 
 // Delete takes name of the s2iBuilder and deletes it. Returns an error if one occurs.
-func (c *FakeS2iBuilders) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeS2iBuilders) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(s2ibuildersResource, c.ns, name), &v1alpha1.S2iBuilder{})
 
@@ -121,15 +123,15 @@ func (c *FakeS2iBuilders) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeS2iBuilders) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(s2ibuildersResource, c.ns, listOptions)
+func (c *FakeS2iBuilders) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(s2ibuildersResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.S2iBuilderList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched s2iBuilder.
-func (c *FakeS2iBuilders) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.S2iBuilder, err error) {
+func (c *FakeS2iBuilders) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.S2iBuilder, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(s2ibuildersResource, c.ns, name, pt, data, subresources...), &v1alpha1.S2iBuilder{})
 

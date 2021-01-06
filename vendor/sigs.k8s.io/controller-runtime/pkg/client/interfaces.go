@@ -122,7 +122,7 @@ type FieldIndexer interface {
 	// and "equality" in the field selector means that at least one key matches the value.
 	// The FieldIndexer will automatically take care of indexing over namespace
 	// and supporting efficient all-namespace queries.
-	IndexField(obj runtime.Object, field string, extractValue IndexerFunc) error
+	IndexField(ctx context.Context, obj runtime.Object, field string, extractValue IndexerFunc) error
 }
 
 // IgnoreNotFound returns nil on NotFound errors.

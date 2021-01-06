@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -48,12 +49,33 @@ func NewDiscoveryRESTMapper(c *rest.Config) (meta.RESTMapper, error) {
 
 // GVKForObject finds the GroupVersionKind associated with the given object, if there is only a single such GVK.
 func GVKForObject(obj runtime.Object, scheme *runtime.Scheme) (schema.GroupVersionKind, error) {
+	// TODO(directxman12): do we want to generalize this to arbitrary container types?
+	// I think we'd need a generalized form of scheme or something.  It's a
+	// shame there's not a reliable "GetGVK" interface that works by default
+	// for unpopulated static types and populated "dynamic" types
+	// (unstructured, partial, etc)
+
+	// check for PartialObjectMetadata, which is analogous to unstructured, but isn't handled by ObjectKinds
+	_, isPartial := obj.(*metav1.PartialObjectMetadata)
+	_, isPartialList := obj.(*metav1.PartialObjectMetadataList)
+	if isPartial || isPartialList {
+		// we require that the GVK be populated in order to recognize the object
+		gvk := obj.GetObjectKind().GroupVersionKind()
+		if len(gvk.Kind) == 0 {
+			return schema.GroupVersionKind{}, runtime.NewMissingKindErr("unstructured object has no kind")
+		}
+		if len(gvk.Version) == 0 {
+			return schema.GroupVersionKind{}, runtime.NewMissingVersionErr("unstructured object has no version")
+		}
+		return gvk, nil
+	}
+
 	gvks, isUnversioned, err := scheme.ObjectKinds(obj)
 	if err != nil {
 		return schema.GroupVersionKind{}, err
 	}
 	if isUnversioned {
-		return schema.GroupVersionKind{}, fmt.Errorf("cannot create a new informer for the unversioned type %T", obj)
+		return schema.GroupVersionKind{}, fmt.Errorf("cannot create group-version-kind for unversioned type %T", obj)
 	}
 
 	if len(gvks) < 1 {

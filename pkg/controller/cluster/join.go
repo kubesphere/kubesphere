@@ -147,7 +147,7 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 	kubefedNamespace string, errorOnExisting bool) error {
 	// Make sure there is no existing service account in the joining cluster.
 	saName := util.ClusterServiceAccountName(name, hostClusterName)
-	_, err := clusterClientset.CoreV1().ServiceAccounts(kubefedNamespace).Get(saName, metav1.GetOptions{})
+	_, err := clusterClientset.CoreV1().ServiceAccounts(kubefedNamespace).Get(context.Background(), saName, metav1.GetOptions{})
 
 	switch {
 	case apierrors.IsNotFound(err):
@@ -237,7 +237,7 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 		return fedNamespace, nil
 	}
 
-	_, err := clusterClientset.CoreV1().Namespaces().Get(kubefedNamespace, metav1.GetOptions{})
+	_, err := clusterClientset.CoreV1().Namespaces().Get(context.Background(), kubefedNamespace, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		klog.V(2).Infof("Could not get %s namespace: %v", kubefedNamespace, err)
 		return nil, err
@@ -249,7 +249,7 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 	}
 
 	// Not found, so create.
-	_, err = clusterClientset.CoreV1().Namespaces().Create(fedNamespace)
+	_, err = clusterClientset.CoreV1().Namespaces().Create(context.Background(), fedNamespace, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		klog.V(2).Infof("Could not create %s namespace: %v", kubefedNamespace, err)
 		return nil, err
@@ -337,7 +337,7 @@ func createServiceAccount(clusterClientset kubeclient.Interface, namespace,
 	}
 
 	// Create a new service account.
-	_, err := clusterClientset.CoreV1().ServiceAccounts(namespace).Create(sa)
+	_, err := clusterClientset.CoreV1().ServiceAccounts(namespace).Create(context.Background(), sa, metav1.CreateOptions{})
 	switch {
 	case apierrors.IsAlreadyExists(err) && errorOnExisting:
 		klog.V(2).Infof("Service account %s/%s already exists in target cluster %s", namespace, saName, joiningClusterName)
@@ -377,7 +377,7 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 		},
 		Rules: clusterPolicyRules,
 	}
-	existingRole, err := clientset.RbacV1().ClusterRoles().Get(roleName, metav1.GetOptions{})
+	existingRole, err := clientset.RbacV1().ClusterRoles().Get(context.Background(), roleName, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		klog.V(2).Infof("Could not get cluster role for service account %s in joining cluster %s due to %v",
@@ -387,14 +387,14 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 		return errors.Errorf("cluster role for service account %s in joining cluster %s already exists", saName, clusterName)
 	case err == nil:
 		existingRole.Rules = role.Rules
-		_, err := clientset.RbacV1().ClusterRoles().Update(existingRole)
+		_, err := clientset.RbacV1().ClusterRoles().Update(context.Background(), existingRole, metav1.UpdateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not update cluster role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
 	default: // role was not found
-		_, err := clientset.RbacV1().ClusterRoles().Create(role)
+		_, err := clientset.RbacV1().ClusterRoles().Create(context.Background(), role, metav1.CreateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not create cluster role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
@@ -414,7 +414,7 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 			Name:     roleName,
 		},
 	}
-	existingBinding, err := clientset.RbacV1().ClusterRoleBindings().Get(binding.Name, metav1.GetOptions{})
+	existingBinding, err := clientset.RbacV1().ClusterRoleBindings().Get(context.Background(), binding.Name, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		klog.V(2).Infof("Could not get cluster role binding for service account %s in joining cluster %s due to %v",
@@ -426,13 +426,13 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 		// The roleRef cannot be updated, therefore if the existing roleRef is different, the existing rolebinding
 		// must be deleted and recreated with the correct roleRef
 		if !reflect.DeepEqual(existingBinding.RoleRef, binding.RoleRef) {
-			err = clientset.RbacV1().ClusterRoleBindings().Delete(existingBinding.Name, &metav1.DeleteOptions{})
+			err = clientset.RbacV1().ClusterRoleBindings().Delete(context.Background(), existingBinding.Name, metav1.DeleteOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not delete existing cluster role binding for service account %s in joining cluster %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
-			_, err = clientset.RbacV1().ClusterRoleBindings().Create(binding)
+			_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.Background(), binding, metav1.CreateOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not create cluster role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
@@ -440,7 +440,7 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 			}
 		} else {
 			existingBinding.Subjects = binding.Subjects
-			_, err := clientset.RbacV1().ClusterRoleBindings().Update(existingBinding)
+			_, err := clientset.RbacV1().ClusterRoleBindings().Update(context.Background(), existingBinding, metav1.UpdateOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not update cluster role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
@@ -448,7 +448,7 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 			}
 		}
 	default:
-		_, err = clientset.RbacV1().ClusterRoleBindings().Create(binding)
+		_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.Background(), binding, metav1.CreateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not create cluster role binding for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
@@ -474,7 +474,7 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 		},
 		Rules: namespacedPolicyRules,
 	}
-	existingRole, err := clientset.RbacV1().Roles(namespace).Get(roleName, metav1.GetOptions{})
+	existingRole, err := clientset.RbacV1().Roles(namespace).Get(context.Background(), roleName, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		klog.V(2).Infof("Could not retrieve role for service account %s in joining cluster %s due to %v", saName, clusterName, err)
@@ -483,14 +483,14 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 		return errors.Errorf("role for service account %s in joining cluster %s already exists", saName, clusterName)
 	case err == nil:
 		existingRole.Rules = role.Rules
-		_, err = clientset.RbacV1().Roles(namespace).Update(existingRole)
+		_, err = clientset.RbacV1().Roles(namespace).Update(context.Background(), existingRole, metav1.UpdateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not update role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
 	default:
-		_, err := clientset.RbacV1().Roles(namespace).Create(role)
+		_, err := clientset.RbacV1().Roles(namespace).Create(context.Background(), role, metav1.CreateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not create role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
@@ -510,7 +510,7 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 		},
 	}
 
-	existingBinding, err := clientset.RbacV1().RoleBindings(namespace).Get(binding.Name, metav1.GetOptions{})
+	existingBinding, err := clientset.RbacV1().RoleBindings(namespace).Get(context.Background(), binding.Name, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		klog.V(2).Infof("Could not retrieve role binding for service account %s in joining cluster %s due to: %v",
@@ -522,13 +522,13 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 		// The roleRef cannot be updated, therefore if the existing roleRef is different, the existing rolebinding
 		// must be deleted and recreated with the correct roleRef
 		if !reflect.DeepEqual(existingBinding.RoleRef, binding.RoleRef) {
-			err = clientset.RbacV1().RoleBindings(namespace).Delete(existingBinding.Name, &metav1.DeleteOptions{})
+			err = clientset.RbacV1().RoleBindings(namespace).Delete(context.Background(), existingBinding.Name, metav1.DeleteOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not delete existing role binding for service account %s in joining cluster %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
-			_, err = clientset.RbacV1().RoleBindings(namespace).Create(binding)
+			_, err = clientset.RbacV1().RoleBindings(namespace).Create(context.Background(), binding, metav1.CreateOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not create role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
@@ -536,7 +536,7 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 			}
 		} else {
 			existingBinding.Subjects = binding.Subjects
-			_, err = clientset.RbacV1().RoleBindings(namespace).Update(existingBinding)
+			_, err = clientset.RbacV1().RoleBindings(namespace).Update(context.Background(), existingBinding, metav1.UpdateOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not update role binding for service account %s in joining cluster %s due to: %v",
 					saName, clusterName, err)
@@ -544,7 +544,7 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 			}
 		}
 	default:
-		_, err = clientset.RbacV1().RoleBindings(namespace).Create(binding)
+		_, err = clientset.RbacV1().RoleBindings(namespace).Create(context.Background(), binding, metav1.CreateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not create role binding for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
@@ -583,7 +583,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 			},
 		},
 	}
-	existingRole, err := clientset.RbacV1().ClusterRoles().Get(role.Name, metav1.GetOptions{})
+	existingRole, err := clientset.RbacV1().ClusterRoles().Get(context.Background(), role.Name, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		klog.V(2).Infof("Could not get health check cluster role for service account %s in joining cluster %s due to %v",
@@ -593,14 +593,14 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 		return errors.Errorf("health check cluster role for service account %s in joining cluster %s already exists", saName, clusterName)
 	case err == nil:
 		existingRole.Rules = role.Rules
-		_, err := clientset.RbacV1().ClusterRoles().Update(existingRole)
+		_, err := clientset.RbacV1().ClusterRoles().Update(context.Background(), existingRole, metav1.UpdateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not update health check cluster role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
 	default: // role was not found
-		_, err := clientset.RbacV1().ClusterRoles().Create(role)
+		_, err := clientset.RbacV1().ClusterRoles().Create(context.Background(), role, metav1.CreateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not create health check cluster role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
@@ -619,7 +619,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 			Name:     roleName,
 		},
 	}
-	existingBinding, err := clientset.RbacV1().ClusterRoleBindings().Get(binding.Name, metav1.GetOptions{})
+	existingBinding, err := clientset.RbacV1().ClusterRoleBindings().Get(context.Background(), binding.Name, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		klog.V(2).Infof("Could not get health check cluster role binding for service account %s in joining cluster %s due to %v",
@@ -631,13 +631,13 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 		// The roleRef cannot be updated, therefore if the existing roleRef is different, the existing rolebinding
 		// must be deleted and recreated with the correct roleRef
 		if !reflect.DeepEqual(existingBinding.RoleRef, binding.RoleRef) {
-			err = clientset.RbacV1().ClusterRoleBindings().Delete(existingBinding.Name, &metav1.DeleteOptions{})
+			err = clientset.RbacV1().ClusterRoleBindings().Delete(context.Background(), existingBinding.Name, metav1.DeleteOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not delete existing health check cluster role binding for service account %s in joining cluster %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
-			_, err = clientset.RbacV1().ClusterRoleBindings().Create(binding)
+			_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.Background(), binding, metav1.CreateOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not create health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
@@ -645,7 +645,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 			}
 		} else {
 			existingBinding.Subjects = binding.Subjects
-			_, err := clientset.RbacV1().ClusterRoleBindings().Update(existingBinding)
+			_, err := clientset.RbacV1().ClusterRoleBindings().Update(context.Background(), existingBinding, metav1.UpdateOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not update health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
@@ -653,7 +653,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 			}
 		}
 	default:
-		_, err = clientset.RbacV1().ClusterRoleBindings().Create(binding)
+		_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.Background(), binding, metav1.CreateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Could not create health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
@@ -682,7 +682,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 	// Get the secret from the joining cluster.
 	var secret *corev1.Secret
 	err := wait.PollImmediate(1*time.Second, serviceAccountSecretTimeout, func() (bool, error) {
-		sa, err := clusterClientset.CoreV1().ServiceAccounts(joiningNamespace).Get(saName,
+		sa, err := clusterClientset.CoreV1().ServiceAccounts(joiningNamespace).Get(context.Background(), saName,
 			metav1.GetOptions{})
 		if err != nil {
 			return false, nil
@@ -691,7 +691,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 		for _, objReference := range sa.Secrets {
 			saSecretName := objReference.Name
 			var err error
-			secret, err = clusterClientset.CoreV1().Secrets(joiningNamespace).Get(saSecretName, metav1.GetOptions{})
+			secret, err = clusterClientset.CoreV1().Secrets(joiningNamespace).Get(context.Background(), saSecretName, metav1.GetOptions{})
 			if err != nil {
 				return false, nil
 			}
@@ -730,10 +730,10 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 	}
 
 	var v1SecretResult *corev1.Secret
-	_, err = hostClientset.CoreV1().Secrets(hostNamespace).Get(v1Secret.Name, metav1.GetOptions{})
+	_, err = hostClientset.CoreV1().Secrets(hostNamespace).Get(context.Background(), v1Secret.Name, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			v1SecretResult, err = hostClientset.CoreV1().Secrets(hostNamespace).Create(&v1Secret)
+			v1SecretResult, err = hostClientset.CoreV1().Secrets(hostNamespace).Create(context.Background(), &v1Secret, metav1.CreateOptions{})
 			if err != nil {
 				klog.V(2).Infof("Could not create secret in host cluster: %v", err)
 				return nil, nil, err
@@ -743,7 +743,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 		klog.V(2).Infof("Could not get secret %s in host cluster: %v", v1Secret.Name, err)
 		return nil, nil, err
 	} else {
-		v1SecretResult, err = hostClientset.CoreV1().Secrets(hostNamespace).Update(&v1Secret)
+		v1SecretResult, err = hostClientset.CoreV1().Secrets(hostNamespace).Update(context.Background(), &v1Secret, metav1.UpdateOptions{})
 		if err != nil {
 			klog.V(2).Infof("Update secret %s in host cluster failed: %v", v1Secret.Name, err)
 			return nil, nil, err
@@ -765,7 +765,7 @@ func checkWorkspaces(clusterConfig *rest.Config, hostClient client.Client, clust
 		return err
 	}
 
-	workspaces, err := tenantclient.Workspaces().List(metav1.ListOptions{LabelSelector: kubefedManagedSelector})
+	workspaces, err := tenantclient.Workspaces().List(context.TODO(), metav1.ListOptions{LabelSelector: kubefedManagedSelector})
 	if err != nil {
 		return err
 	}

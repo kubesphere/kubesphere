@@ -17,6 +17,7 @@ limitations under the License.
 package devopsproject
 
 import (
+	"context"
 	"fmt"
 	"github.com/emicklei/go-restful"
 	v1 "k8s.io/api/core/v1"
@@ -237,7 +238,7 @@ func (c *Controller) syncHandler(key string) error {
 			} else if errors.IsNotFound(err) {
 				// if admin ns is not found, clean project status, rerun reconcile
 				copyProject.Status.AdminNamespace = ""
-				_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
+				_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), copyProject, metav1.UpdateOptions{})
 				if err != nil {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update project %s ", key))
 					return err
@@ -258,7 +259,7 @@ func (c *Controller) syncHandler(key string) error {
 					return err
 				}
 				copyNs.Labels[constants.DevOpsProjectLabelKey] = project.Name
-				_, err = c.client.CoreV1().Namespaces().Update(copyNs)
+				_, err = c.client.CoreV1().Namespaces().Update(context.Background(), copyNs, metav1.UpdateOptions{})
 				if err != nil {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
 					return err
@@ -276,7 +277,7 @@ func (c *Controller) syncHandler(key string) error {
 			// if there is no ns, generate new one
 			if len(namespaces) == 0 {
 				ns := c.generateNewNamespace(project)
-				ns, err := c.client.CoreV1().Namespaces().Create(ns)
+				ns, err := c.client.CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
 				if err != nil {
 					// devops project name is conflict, cannot create admin namespace
 					if errors.IsAlreadyExists(err) {
@@ -300,7 +301,7 @@ func (c *Controller) syncHandler(key string) error {
 						return err
 					}
 					copyNs.Labels[constants.DevOpsProjectLabelKey] = project.Name
-					_, err = c.client.CoreV1().Namespaces().Update(copyNs)
+					_, err = c.client.CoreV1().Namespaces().Update(context.Background(), copyNs, metav1.UpdateOptions{})
 					if err != nil {
 						klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
 						return err
@@ -332,7 +333,7 @@ func (c *Controller) syncHandler(key string) error {
 		}
 		copyProject.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
 		if !reflect.DeepEqual(copyProject, project) {
-			copyProject, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
+			copyProject, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), copyProject, metav1.UpdateOptions{})
 			if err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
 				return err
@@ -368,7 +369,7 @@ func (c *Controller) syncHandler(key string) error {
 				return fmt.Errorf("failed to remove devopsproject finalizer due to bad communication with Jenkins")
 			}
 
-			_, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
+			_, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), project, metav1.UpdateOptions{})
 			if err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to update project %s ", key))
 				return err
@@ -405,7 +406,7 @@ func (c *Controller) bindWorkspace(project *devopsv1alpha3.DevOpsProject) (*devo
 			return nil, err
 		}
 
-		return c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
+		return c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), project, metav1.UpdateOptions{})
 	}
 
 	return project, nil

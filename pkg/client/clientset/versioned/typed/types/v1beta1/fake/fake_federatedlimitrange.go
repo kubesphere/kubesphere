@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedlimitrangesResource = schema.GroupVersionResource{Group: "types.kub
 var federatedlimitrangesKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedLimitRange"}
 
 // Get takes name of the federatedLimitRange, and returns the corresponding federatedLimitRange object, and an error if there is any.
-func (c *FakeFederatedLimitRanges) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedLimitRange, err error) {
+func (c *FakeFederatedLimitRanges) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedLimitRange, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedlimitrangesResource, c.ns, name), &v1beta1.FederatedLimitRange{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedLimitRanges) Get(name string, options v1.GetOptions) (resu
 }
 
 // List takes label and field selectors, and returns the list of FederatedLimitRanges that match those selectors.
-func (c *FakeFederatedLimitRanges) List(opts v1.ListOptions) (result *v1beta1.FederatedLimitRangeList, err error) {
+func (c *FakeFederatedLimitRanges) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedLimitRangeList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedlimitrangesResource, federatedlimitrangesKind, c.ns, opts), &v1beta1.FederatedLimitRangeList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedLimitRanges) List(opts v1.ListOptions) (result *v1beta1.Fe
 }
 
 // Watch returns a watch.Interface that watches the requested federatedLimitRanges.
-func (c *FakeFederatedLimitRanges) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedLimitRanges) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedlimitrangesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedLimitRange and creates it.  Returns the server's representation of the federatedLimitRange, and an error, if there is any.
-func (c *FakeFederatedLimitRanges) Create(federatedLimitRange *v1beta1.FederatedLimitRange) (result *v1beta1.FederatedLimitRange, err error) {
+func (c *FakeFederatedLimitRanges) Create(ctx context.Context, federatedLimitRange *v1beta1.FederatedLimitRange, opts v1.CreateOptions) (result *v1beta1.FederatedLimitRange, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedlimitrangesResource, c.ns, federatedLimitRange), &v1beta1.FederatedLimitRange{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedLimitRanges) Create(federatedLimitRange *v1beta1.Federated
 }
 
 // Update takes the representation of a federatedLimitRange and updates it. Returns the server's representation of the federatedLimitRange, and an error, if there is any.
-func (c *FakeFederatedLimitRanges) Update(federatedLimitRange *v1beta1.FederatedLimitRange) (result *v1beta1.FederatedLimitRange, err error) {
+func (c *FakeFederatedLimitRanges) Update(ctx context.Context, federatedLimitRange *v1beta1.FederatedLimitRange, opts v1.UpdateOptions) (result *v1beta1.FederatedLimitRange, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedlimitrangesResource, c.ns, federatedLimitRange), &v1beta1.FederatedLimitRange{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedLimitRanges) Update(federatedLimitRange *v1beta1.Federated
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedLimitRanges) UpdateStatus(federatedLimitRange *v1beta1.FederatedLimitRange) (*v1beta1.FederatedLimitRange, error) {
+func (c *FakeFederatedLimitRanges) UpdateStatus(ctx context.Context, federatedLimitRange *v1beta1.FederatedLimitRange, opts v1.UpdateOptions) (*v1beta1.FederatedLimitRange, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedlimitrangesResource, "status", c.ns, federatedLimitRange), &v1beta1.FederatedLimitRange{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedLimitRanges) UpdateStatus(federatedLimitRange *v1beta1.Fed
 }
 
 // Delete takes name of the federatedLimitRange and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedLimitRanges) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedLimitRanges) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedlimitrangesResource, c.ns, name), &v1beta1.FederatedLimitRange{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedLimitRanges) Delete(name string, options *v1.DeleteOptions
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedLimitRanges) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedlimitrangesResource, c.ns, listOptions)
+func (c *FakeFederatedLimitRanges) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedlimitrangesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedLimitRangeList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedLimitRange.
-func (c *FakeFederatedLimitRanges) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedLimitRange, err error) {
+func (c *FakeFederatedLimitRanges) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedLimitRange, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedlimitrangesResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedLimitRange{})
 

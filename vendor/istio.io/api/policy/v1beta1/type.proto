@@ -14,6 +14,8 @@
 
 syntax = "proto3";
 
+// $schema: istio.policy.v1beta1.Rule
+// $schema: istio.policy.v1beta1.AttributeManifest
 // $title: Rules
 // $description: Describes the rules used to configure Mixer's policy and telemetry features.
 // $location: https://istio.io/docs/reference/config/policy-and-telemetry/istio.policy.v1beta1.html

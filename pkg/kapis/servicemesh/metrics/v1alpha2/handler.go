@@ -19,7 +19,6 @@ package v1alpha2
 import (
 	"fmt"
 	"github.com/emicklei/go-restful"
-	"github.com/kiali/kiali/handlers"
 	"io/ioutil"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -46,14 +45,10 @@ var KialiQueryUrl string
 
 // Get app metrics
 func getAppMetrics(request *restful.Request, response *restful.Response) {
-	if len(KialiQueryUrl) == 0 {
-		handlers.AppMetrics(request, response)
-	} else {
-		namespace := request.PathParameter("namespace")
-		app := request.PathParameter("app")
-		url := fmt.Sprintf("%s/kiali/api/namespaces/%s/apps/%s/metrics?%s", KialiQueryUrl, namespace, app, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
+	namespace := request.PathParameter("namespace")
+	app := request.PathParameter("app")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/apps/%s/metrics?%s", KialiQueryUrl, namespace, app, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get workload metrics
@@ -65,35 +60,23 @@ func getWorkloadMetrics(request *restful.Request, response *restful.Response) {
 		request.Request.URL.RawQuery = fmt.Sprintf("%s&namespaces=%s&workload=%s", request.Request.URL.RawQuery, namespace, workload)
 	}
 
-	if len(KialiQueryUrl) == 0 {
-		handlers.WorkloadMetrics(request, response)
-	} else {
-		url := fmt.Sprintf("%s/kiali/api/namespaces/%s/workloads/%s/metrics?%s", KialiQueryUrl, namespace, workload, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/workloads/%s/metrics?%s", KialiQueryUrl, namespace, workload, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get service metrics
 func getServiceMetrics(request *restful.Request, response *restful.Response) {
-	if len(KialiQueryUrl) == 0 {
-		handlers.ServiceMetrics(request, response)
-	} else {
-		namespace := request.PathParameter("namespace")
-		service := request.PathParameter("service")
-		url := fmt.Sprintf("%s/kiali/api/namespaces/%s/services/%s/metrics?%s", KialiQueryUrl, namespace, service, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
+	namespace := request.PathParameter("namespace")
+	service := request.PathParameter("service")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/services/%s/metrics?%s", KialiQueryUrl, namespace, service, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get namespace metrics
 func getNamespaceMetrics(request *restful.Request, response *restful.Response) {
-	if len(KialiQueryUrl) == 0 {
-		handlers.NamespaceMetrics(request, response)
-	} else {
-		namespace := request.PathParameter("namespace")
-		url := fmt.Sprintf("%s/kiali/api/namespaces/%s/metrics?%s", KialiQueryUrl, namespace, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
+	namespace := request.PathParameter("namespace")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/metrics?%s", KialiQueryUrl, namespace, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get service graph for namespace
@@ -104,65 +87,39 @@ func getNamespaceGraph(request *restful.Request, response *restful.Response) {
 		request.Request.URL.RawQuery = fmt.Sprintf("%s&namespaces=%s", request.Request.URL.RawQuery, namespace)
 	}
 
-	if len(KialiQueryUrl) == 0 {
-		handlers.GetNamespaceGraph(request, response)
-	} else {
-		url := fmt.Sprintf("%s/kiali/api/namespaces/graph?%s", KialiQueryUrl, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
-}
-
-// Deprecated
-// Get service graph for namespaces
-func getNamespacesGraph(request *restful.Request, response *restful.Response) {
-	handlers.GraphNamespaces(request, response)
+	url := fmt.Sprintf("%s/kiali/api/namespaces/graph?%s", KialiQueryUrl, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get namespace health
 func getNamespaceHealth(request *restful.Request, response *restful.Response) {
-	if len(KialiQueryUrl) == 0 {
-		handlers.NamespaceHealth(request, response)
-	} else {
-		namespace := request.PathParameter("namespace")
-		url := fmt.Sprintf("%s/kiali/api/namespaces/%s/health?%s", KialiQueryUrl, namespace, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
+	namespace := request.PathParameter("namespace")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/health?%s", KialiQueryUrl, namespace, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get workload health
 func getWorkloadHealth(request *restful.Request, response *restful.Response) {
-	if len(KialiQueryUrl) == 0 {
-		handlers.WorkloadHealth(request, response)
-	} else {
-		namespace := request.PathParameter("namespace")
-		workload := request.PathParameter("workload")
-		url := fmt.Sprintf("%s/kiali/api/namespaces/%s/workloads/%s/health?%s", KialiQueryUrl, namespace, workload, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
+	namespace := request.PathParameter("namespace")
+	workload := request.PathParameter("workload")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/workloads/%s/health?%s", KialiQueryUrl, namespace, workload, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get app health
 func getAppHealth(request *restful.Request, response *restful.Response) {
-	if len(KialiQueryUrl) == 0 {
-		handlers.AppHealth(request, response)
-	} else {
-		namespace := request.PathParameter("namespace")
-		app := request.PathParameter("app")
-		url := fmt.Sprintf("%s/kiali/api/namespaces/%s/apps/%s/health?%s", KialiQueryUrl, namespace, app, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
+	namespace := request.PathParameter("namespace")
+	app := request.PathParameter("app")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/apps/%s/health?%s", KialiQueryUrl, namespace, app, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get service health
 func getServiceHealth(request *restful.Request, response *restful.Response) {
-	if len(KialiQueryUrl) == 0 {
-		handlers.ServiceHealth(request, response)
-	} else {
-		namespace := request.PathParameter("namespace")
-		service := request.PathParameter("service")
-		url := fmt.Sprintf("%s/kiali/api/namespaces/%s/services/%s/health?%s", KialiQueryUrl, namespace, service, request.Request.URL.RawQuery)
-		getData(response, url)
-	}
+	namespace := request.PathParameter("namespace")
+	service := request.PathParameter("service")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/services/%s/health?%s", KialiQueryUrl, namespace, service, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 func getServiceTracing(request *restful.Request, response *restful.Response) {

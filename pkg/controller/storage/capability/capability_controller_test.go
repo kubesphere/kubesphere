@@ -23,9 +23,9 @@ import (
 	"math/rand"
 
 	//"github.com/google/go-cmp/cmp"
-	snapbeta1 "github.com/kubernetes-csi/external-snapshotter/v2/pkg/apis/volumesnapshot/v1beta1"
-	snapfake "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake"
-	snapinformers "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
+	snapbeta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
+	snapfake "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
+	snapinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	storagev1 "k8s.io/api/storage/v1"
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"

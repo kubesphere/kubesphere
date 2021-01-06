@@ -58,7 +58,7 @@ func asCloseAsPossible(root *yaml.Node, path ...string) (*yaml.Node, []string, e
 
 		nextNode, err := ValueInMapping(currNode, path[0])
 		if err != nil {
-			return nil, nil, fmt.Errorf("unable to get next node in path %v: %v", path, err)
+			return nil, nil, fmt.Errorf("unable to get next node in path %v: %w", path, err)
 		}
 
 		if nextNode == nil {

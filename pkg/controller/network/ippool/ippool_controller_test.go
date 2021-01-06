@@ -17,6 +17,7 @@ limitations under the License.
 package ippool
 
 import (
+	"context"
 	"flag"
 	"testing"
 	"time"
@@ -94,11 +95,11 @@ var _ = Describe("test ippool", func() {
 		Expect(c.ValidateCreate(clone)).Should(HaveOccurred())
 
 		clone = pool.DeepCopy()
-		_, err := ksclient.NetworkV1alpha1().IPPools().Create(clone)
+		_, err := ksclient.NetworkV1alpha1().IPPools().Create(context.TODO(), clone, v1.CreateOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() bool {
-			result, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
+			result, _ := ksclient.NetworkV1alpha1().IPPools().Get(context.TODO(), pool.Name, v1.GetOptions{})
 			if len(result.Labels) != 3 {
 				return false
 			}
@@ -115,7 +116,7 @@ var _ = Describe("test ippool", func() {
 	})
 
 	It("test update ippool", func() {
-		old, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
+		old, _ := ksclient.NetworkV1alpha1().IPPools().Get(context.TODO(), pool.Name, v1.GetOptions{})
 		new := old.DeepCopy()
 		new.Spec.CIDR = "192.168.1.0/24"
 		Expect(c.ValidateUpdate(old, new)).Should(HaveOccurred())
@@ -129,7 +130,7 @@ var _ = Describe("test ippool", func() {
 		})
 
 		Eventually(func() bool {
-			result, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
+			result, _ := ksclient.NetworkV1alpha1().IPPools().Get(context.TODO(), pool.Name, v1.GetOptions{})
 			if result.Status.Allocations != 1 {
 				return false
 			}
@@ -139,12 +140,12 @@ var _ = Describe("test ippool", func() {
 	})
 
 	It("test delete pool", func() {
-		result, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
+		result, _ := ksclient.NetworkV1alpha1().IPPools().Get(context.TODO(), pool.Name, v1.GetOptions{})
 		Expect(c.ValidateDelete(result)).Should(HaveOccurred())
 
 		ipamClient.ReleaseByHandle("testhandle")
 		Eventually(func() bool {
-			result, _ := ksclient.NetworkV1alpha1().IPPools().Get(pool.Name, v1.GetOptions{})
+			result, _ := ksclient.NetworkV1alpha1().IPPools().Get(context.TODO(), pool.Name, v1.GetOptions{})
 			if result.Status.Allocations != 0 {
 				return false
 			}
@@ -152,9 +153,9 @@ var _ = Describe("test ippool", func() {
 			return true
 		}, 3*time.Second).Should(Equal(true))
 
-		err := ksclient.NetworkV1alpha1().IPPools().Delete(pool.Name, &v1.DeleteOptions{})
+		err := ksclient.NetworkV1alpha1().IPPools().Delete(context.TODO(), pool.Name, v1.DeleteOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
-		blocks, _ := ksclient.NetworkV1alpha1().IPAMBlocks().List(v1.ListOptions{})
+		blocks, _ := ksclient.NetworkV1alpha1().IPAMBlocks().List(context.TODO(), v1.ListOptions{})
 		Expect(len(blocks.Items)).Should(Equal(0))
 	})
 })

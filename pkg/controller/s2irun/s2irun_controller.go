@@ -17,6 +17,7 @@ limitations under the License.
 package s2irun
 
 import (
+	"context"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -205,7 +206,7 @@ func (c Controller) syncHandler(key string) error {
 			if s2irun.ObjectMeta.DeletionTimestamp.IsZero() {
 				if !sliceutil.HasString(s2irun.ObjectMeta.Finalizers, devopsv1alpha1.S2iBinaryFinalizerName) {
 					s2irun.ObjectMeta.Finalizers = append(s2irun.ObjectMeta.Finalizers, devopsv1alpha1.S2iBinaryFinalizerName)
-					_, err = c.devopsClient.DevopsV1alpha1().S2iRuns(namespace).Update(s2irun)
+					_, err = c.devopsClient.DevopsV1alpha1().S2iRuns(namespace).Update(context.Background(), s2irun, metav1.UpdateOptions{})
 					if err != nil {
 						klog.Error(err, fmt.Sprintf("failed to update s2irun %s", key))
 						return err
@@ -221,7 +222,7 @@ func (c Controller) syncHandler(key string) error {
 					s2irun.ObjectMeta.Finalizers = sliceutil.RemoveString(s2irun.ObjectMeta.Finalizers, func(item string) bool {
 						return item == devopsv1alpha1.S2iBinaryFinalizerName
 					})
-					_, err = c.devopsClient.DevopsV1alpha1().S2iRuns(namespace).Update(s2irun)
+					_, err = c.devopsClient.DevopsV1alpha1().S2iRuns(namespace).Update(context.Background(), s2irun, metav1.UpdateOptions{})
 					if err != nil {
 						klog.Error(err, fmt.Sprintf("failed to update s2irun %s ", key))
 						return err
@@ -250,7 +251,7 @@ func (c Controller) DeleteS2iBinary(s2irun *devopsv1alpha1.S2iRun) error {
 		klog.Error(err, fmt.Sprintf("failed to get s2ibin %s/%s ", s2irun.Namespace, s2iBinName))
 		return err
 	}
-	err = c.devopsClient.DevopsV1alpha1().S2iBinaries(s2iBin.Namespace).Delete(s2iBinName, nil)
+	err = c.devopsClient.DevopsV1alpha1().S2iBinaries(s2iBin.Namespace).Delete(context.Background(), s2iBinName, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			klog.Info(fmt.Sprintf("s2ibin '%s/%s' has been delted ", s2irun.Namespace, s2iBinName))
@@ -284,7 +285,7 @@ func (c Controller) cleanOtherS2iBinary(namespace string) error {
 				return err
 			}
 			if len(runs) == 0 {
-				err = c.devopsClient.DevopsV1alpha1().S2iBinaries(namespace).Delete(s2iBin.Name, nil)
+				err = c.devopsClient.DevopsV1alpha1().S2iBinaries(namespace).Delete(context.Background(), s2iBin.Name, metav1.DeleteOptions{})
 				if err != nil {
 					if errors.IsNotFound(err) {
 						klog.Info(fmt.Sprintf("s2ibin '%s/%s' has been deleted ", namespace, s2iBin.Name))

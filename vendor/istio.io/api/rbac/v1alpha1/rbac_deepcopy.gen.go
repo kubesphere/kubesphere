@@ -11,7 +11,7 @@
 // the following standard fields:
 //
 //   * services: a list of services.
-//   * methods: A list of HTTP methods. You can set the value to `\*` to include all HTTP methods.
+//   * methods: A list of HTTP methods. You can set the value to `["*"]` to include all HTTP methods.
 //              This field should not be set for TCP services. The policy will be ignored.
 //              For gRPC services, only `POST` is allowed; other methods will result in denying services.
 //   * paths: HTTP paths or gRPC methods. Note that gRPC methods should be

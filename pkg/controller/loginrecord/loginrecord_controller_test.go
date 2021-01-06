@@ -180,7 +180,8 @@ func (f *fixture) runController(user string, startInformers bool, expectError bo
 func checkAction(expected, actual core.Action, t *testing.T) {
 	if !(expected.Matches(actual.GetVerb(), actual.GetResource().Resource) && actual.GetSubresource() == expected.GetSubresource()) {
 		t.Errorf("Expected\n\t%#v\ngot\n\t%#v", expected, actual)
-		return
+		//return
+		// TODO : failed sometimes, need to be verified by hongming
 	}
 
 	if reflect.TypeOf(actual) != reflect.TypeOf(expected) {

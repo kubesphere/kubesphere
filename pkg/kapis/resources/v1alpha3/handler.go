@@ -48,6 +48,7 @@ func (h *Handler) handleGetResources(request *restful.Request, response *restful
 	resourceType := request.PathParameter("resources")
 	name := request.PathParameter("name")
 
+	// use informers to retrieve resources
 	result, err := h.resourceGetterV1alpha3.Get(resourceType, namespace, name)
 	if err == nil {
 		response.WriteEntity(result)
@@ -100,7 +101,6 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 		api.HandleInternalError(response, nil, err)
 		return
 	}
-
 	response.WriteEntity(result)
 }
 

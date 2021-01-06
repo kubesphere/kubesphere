@@ -423,6 +423,7 @@ func yaml_parser_set_event_comments(parser *yaml_parser_t, event *yaml_event_t) 
 	parser.line_comment = nil
 	parser.foot_comment = nil
 	parser.tail_comment = nil
+	parser.stem_comment = nil
 }
 
 // Parse the productions:
@@ -629,6 +630,10 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:   implicit,
 			style:      yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
 		}
+		if parser.stem_comment != nil {
+			event.head_comment = parser.stem_comment
+			parser.stem_comment = nil
+		}
 		return true
 	}
 	if block && token.typ == yaml_BLOCK_MAPPING_START_TOKEN {
@@ -689,10 +694,24 @@ func yaml_parser_parse_block_sequence_entry(parser *yaml_parser_t, event *yaml_e
 
 	if token.typ == yaml_BLOCK_ENTRY_TOKEN {
 		mark := token.end_mark
+		prior_head := len(parser.head_comment)
 		skip_token(parser)
 		token = peek_token(parser)
 		if token == nil {
 			return false
+		}
+		if prior_head > 0 && token.typ == yaml_BLOCK_SEQUENCE_START_TOKEN {
+			// [Go] It's a sequence under a sequence entry, so the former head comment
+			//      is for the list itself, not the first list item under it.
+			parser.stem_comment = parser.head_comment[:prior_head]
+			if len(parser.head_comment) == prior_head {
+				parser.head_comment = nil
+			} else {
+				// Copy suffix to prevent very strange bugs if someone ever appends
+				// further bytes to the prefix in the stem_comment slice above.
+				parser.head_comment = append([]byte(nil), parser.head_comment[prior_head+1:]...)
+			}
+
 		}
 		if token.typ != yaml_BLOCK_ENTRY_TOKEN && token.typ != yaml_BLOCK_END_TOKEN {
 			parser.states = append(parser.states, yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE)

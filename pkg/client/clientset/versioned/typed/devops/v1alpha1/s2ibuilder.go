@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type S2iBuildersGetter interface {
 
 // S2iBuilderInterface has methods to work with S2iBuilder resources.
 type S2iBuilderInterface interface {
-	Create(*v1alpha1.S2iBuilder) (*v1alpha1.S2iBuilder, error)
-	Update(*v1alpha1.S2iBuilder) (*v1alpha1.S2iBuilder, error)
-	UpdateStatus(*v1alpha1.S2iBuilder) (*v1alpha1.S2iBuilder, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.S2iBuilder, error)
-	List(opts v1.ListOptions) (*v1alpha1.S2iBuilderList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.S2iBuilder, err error)
+	Create(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.CreateOptions) (*v1alpha1.S2iBuilder, error)
+	Update(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.UpdateOptions) (*v1alpha1.S2iBuilder, error)
+	UpdateStatus(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.UpdateOptions) (*v1alpha1.S2iBuilder, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.S2iBuilder, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.S2iBuilderList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.S2iBuilder, err error)
 	S2iBuilderExpansion
 }
 
@@ -64,20 +65,20 @@ func newS2iBuilders(c *DevopsV1alpha1Client, namespace string) *s2iBuilders {
 }
 
 // Get takes name of the s2iBuilder, and returns the corresponding s2iBuilder object, and an error if there is any.
-func (c *s2iBuilders) Get(name string, options v1.GetOptions) (result *v1alpha1.S2iBuilder, err error) {
+func (c *s2iBuilders) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.S2iBuilder, err error) {
 	result = &v1alpha1.S2iBuilder{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("s2ibuilders").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of S2iBuilders that match those selectors.
-func (c *s2iBuilders) List(opts v1.ListOptions) (result *v1alpha1.S2iBuilderList, err error) {
+func (c *s2iBuilders) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.S2iBuilderList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *s2iBuilders) List(opts v1.ListOptions) (result *v1alpha1.S2iBuilderList
 		Resource("s2ibuilders").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested s2iBuilders.
-func (c *s2iBuilders) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *s2iBuilders) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *s2iBuilders) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("s2ibuilders").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a s2iBuilder and creates it.  Returns the server's representation of the s2iBuilder, and an error, if there is any.
-func (c *s2iBuilders) Create(s2iBuilder *v1alpha1.S2iBuilder) (result *v1alpha1.S2iBuilder, err error) {
+func (c *s2iBuilders) Create(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.CreateOptions) (result *v1alpha1.S2iBuilder, err error) {
 	result = &v1alpha1.S2iBuilder{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("s2ibuilders").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(s2iBuilder).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a s2iBuilder and updates it. Returns the server's representation of the s2iBuilder, and an error, if there is any.
-func (c *s2iBuilders) Update(s2iBuilder *v1alpha1.S2iBuilder) (result *v1alpha1.S2iBuilder, err error) {
+func (c *s2iBuilders) Update(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.UpdateOptions) (result *v1alpha1.S2iBuilder, err error) {
 	result = &v1alpha1.S2iBuilder{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("s2ibuilders").
 		Name(s2iBuilder.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(s2iBuilder).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *s2iBuilders) UpdateStatus(s2iBuilder *v1alpha1.S2iBuilder) (result *v1alpha1.S2iBuilder, err error) {
+func (c *s2iBuilders) UpdateStatus(ctx context.Context, s2iBuilder *v1alpha1.S2iBuilder, opts v1.UpdateOptions) (result *v1alpha1.S2iBuilder, err error) {
 	result = &v1alpha1.S2iBuilder{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("s2ibuilders").
 		Name(s2iBuilder.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(s2iBuilder).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the s2iBuilder and deletes it. Returns an error if one occurs.
-func (c *s2iBuilders) Delete(name string, options *v1.DeleteOptions) error {
+func (c *s2iBuilders) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("s2ibuilders").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *s2iBuilders) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *s2iBuilders) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("s2ibuilders").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched s2iBuilder.
-func (c *s2iBuilders) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.S2iBuilder, err error) {
+func (c *s2iBuilders) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.S2iBuilder, err error) {
 	result = &v1alpha1.S2iBuilder{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("s2ibuilders").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

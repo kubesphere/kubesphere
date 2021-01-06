@@ -17,104 +17,78 @@ limitations under the License.
 package application
 
 import (
-	"github.com/google/go-cmp/cmp"
+	"context"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"kubesphere.io/kubesphere/pkg/api"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	appv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
-	"sigs.k8s.io/application/pkg/client/clientset/versioned/fake"
-	"sigs.k8s.io/application/pkg/client/informers/externalversions"
+	"path/filepath"
+	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
 	"testing"
 )
 
-func applicationsToRuntimeObjects(applications ...*appv1beta1.Application) []runtime.Object {
-	var objs []runtime.Object
-	for _, app := range applications {
-		objs = append(objs, app)
+var c client.Client
+
+func createNamespace(name string, ctx context.Context) {
+	namespace := &core.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
 	}
-	return objs
+	err := c.Create(ctx, namespace)
+	if err != nil {
+		klog.Error(err)
+	}
 }
 
-func TestListApplications(t *testing.T) {
-	tests := []struct {
-		description string
-		namespace   string
-		deployments []*appv1beta1.Application
-		query       *query.Query
-		expected    api.ListResult
-		expectedErr error
-	}{
-		{
-			"test name filter",
-			"bar2",
-			[]*appv1beta1.Application{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-1",
-						Namespace: "bar",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-2",
-						Namespace: "bar",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "bar-2",
-						Namespace: "bar2",
-					},
-				},
-			},
-			&query.Query{
-				Pagination: &query.Pagination{
-					Limit:  10,
-					Offset: 0,
-				},
-				SortBy:    query.FieldName,
-				Ascending: false,
-				Filters:   map[query.Field]query.Value{query.FieldNamespace: query.Value("bar2")},
-			},
-			api.ListResult{
-				Items: []interface{}{
-					&appv1beta1.Application{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "bar-2",
-							Namespace: "bar2",
-						},
-					},
-				},
-				TotalItems: 2,
-			},
-			nil,
+func TestGetListApplications(t *testing.T) {
+	e := &envtest.Environment{CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "..", "config", "crds")}}
+	cfg, err := e.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sch := scheme.Scheme
+	if err := appv1beta1.AddToScheme(sch); err != nil {
+		t.Fatalf("unable add APIs to scheme: %v", err)
+	}
+
+	stopCh := make(chan struct{})
+
+	ce, _ := cache.New(cfg, cache.Options{Scheme: sch})
+	go ce.Start(stopCh)
+	ce.WaitForCacheSync(stopCh)
+
+	c, _ = client.New(cfg, client.Options{Scheme: sch})
+
+	var labelSet1 = map[string]string{"foo": "bar"}
+	application := &appv1beta1.Application{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+			Labels:    labelSet1,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			objs := applicationsToRuntimeObjects(test.deployments...)
-			client := fake.NewSimpleClientset(objs...)
+	ctx := context.TODO()
+	createNamespace("foo", ctx)
+	_ = c.Create(ctx, application)
 
-			informer := externalversions.NewSharedInformerFactory(client, 0)
+	getter := New(ce)
 
-			for _, deployment := range test.deployments {
-				informer.App().V1beta1().Applications().Informer().GetIndexer().Add(deployment)
-			}
-
-			getter := New(informer)
-
-			got, err := getter.List(test.namespace, test.query)
-			if test.expectedErr != nil && err != test.expectedErr {
-				t.Errorf("expected error, got nothing")
-			} else if err != nil {
-				t.Fatal(err)
-			}
-
-			if diff := cmp.Diff(got.Items, test.expected.Items); diff != "" {
-				t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
-			}
-		})
+	_, err = getter.List("foo", &query.Query{})
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	_, err = getter.Get("foo", "bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 }

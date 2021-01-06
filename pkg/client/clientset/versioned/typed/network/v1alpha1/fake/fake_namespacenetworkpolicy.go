@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var namespacenetworkpoliciesResource = schema.GroupVersionResource{Group: "netwo
 var namespacenetworkpoliciesKind = schema.GroupVersionKind{Group: "network.kubesphere.io", Version: "v1alpha1", Kind: "NamespaceNetworkPolicy"}
 
 // Get takes name of the namespaceNetworkPolicy, and returns the corresponding namespaceNetworkPolicy object, and an error if there is any.
-func (c *FakeNamespaceNetworkPolicies) Get(name string, options v1.GetOptions) (result *v1alpha1.NamespaceNetworkPolicy, err error) {
+func (c *FakeNamespaceNetworkPolicies) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.NamespaceNetworkPolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(namespacenetworkpoliciesResource, c.ns, name), &v1alpha1.NamespaceNetworkPolicy{})
 
@@ -50,7 +52,7 @@ func (c *FakeNamespaceNetworkPolicies) Get(name string, options v1.GetOptions) (
 }
 
 // List takes label and field selectors, and returns the list of NamespaceNetworkPolicies that match those selectors.
-func (c *FakeNamespaceNetworkPolicies) List(opts v1.ListOptions) (result *v1alpha1.NamespaceNetworkPolicyList, err error) {
+func (c *FakeNamespaceNetworkPolicies) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.NamespaceNetworkPolicyList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(namespacenetworkpoliciesResource, namespacenetworkpoliciesKind, c.ns, opts), &v1alpha1.NamespaceNetworkPolicyList{})
 
@@ -72,14 +74,14 @@ func (c *FakeNamespaceNetworkPolicies) List(opts v1.ListOptions) (result *v1alph
 }
 
 // Watch returns a watch.Interface that watches the requested namespaceNetworkPolicies.
-func (c *FakeNamespaceNetworkPolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeNamespaceNetworkPolicies) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(namespacenetworkpoliciesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a namespaceNetworkPolicy and creates it.  Returns the server's representation of the namespaceNetworkPolicy, and an error, if there is any.
-func (c *FakeNamespaceNetworkPolicies) Create(namespaceNetworkPolicy *v1alpha1.NamespaceNetworkPolicy) (result *v1alpha1.NamespaceNetworkPolicy, err error) {
+func (c *FakeNamespaceNetworkPolicies) Create(ctx context.Context, namespaceNetworkPolicy *v1alpha1.NamespaceNetworkPolicy, opts v1.CreateOptions) (result *v1alpha1.NamespaceNetworkPolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(namespacenetworkpoliciesResource, c.ns, namespaceNetworkPolicy), &v1alpha1.NamespaceNetworkPolicy{})
 
@@ -90,7 +92,7 @@ func (c *FakeNamespaceNetworkPolicies) Create(namespaceNetworkPolicy *v1alpha1.N
 }
 
 // Update takes the representation of a namespaceNetworkPolicy and updates it. Returns the server's representation of the namespaceNetworkPolicy, and an error, if there is any.
-func (c *FakeNamespaceNetworkPolicies) Update(namespaceNetworkPolicy *v1alpha1.NamespaceNetworkPolicy) (result *v1alpha1.NamespaceNetworkPolicy, err error) {
+func (c *FakeNamespaceNetworkPolicies) Update(ctx context.Context, namespaceNetworkPolicy *v1alpha1.NamespaceNetworkPolicy, opts v1.UpdateOptions) (result *v1alpha1.NamespaceNetworkPolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(namespacenetworkpoliciesResource, c.ns, namespaceNetworkPolicy), &v1alpha1.NamespaceNetworkPolicy{})
 
@@ -101,7 +103,7 @@ func (c *FakeNamespaceNetworkPolicies) Update(namespaceNetworkPolicy *v1alpha1.N
 }
 
 // Delete takes name of the namespaceNetworkPolicy and deletes it. Returns an error if one occurs.
-func (c *FakeNamespaceNetworkPolicies) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeNamespaceNetworkPolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(namespacenetworkpoliciesResource, c.ns, name), &v1alpha1.NamespaceNetworkPolicy{})
 
@@ -109,15 +111,15 @@ func (c *FakeNamespaceNetworkPolicies) Delete(name string, options *v1.DeleteOpt
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeNamespaceNetworkPolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(namespacenetworkpoliciesResource, c.ns, listOptions)
+func (c *FakeNamespaceNetworkPolicies) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(namespacenetworkpoliciesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.NamespaceNetworkPolicyList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched namespaceNetworkPolicy.
-func (c *FakeNamespaceNetworkPolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.NamespaceNetworkPolicy, err error) {
+func (c *FakeNamespaceNetworkPolicies) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.NamespaceNetworkPolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(namespacenetworkpoliciesResource, c.ns, name, pt, data, subresources...), &v1alpha1.NamespaceNetworkPolicy{})
 

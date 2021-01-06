@@ -16,6 +16,7 @@ limitations under the License.
 package im
 
 import (
+	"context"
 	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
@@ -68,7 +69,7 @@ func (im *imOperator) UpdateUser(new *iamv1alpha2.User) (*iamv1alpha2.User, erro
 	}
 	// keep encrypted password
 	new.Spec.EncryptedPassword = old.Spec.EncryptedPassword
-	updated, err := im.ksClient.IamV1alpha2().Users().Update(old)
+	updated, err := im.ksClient.IamV1alpha2().Users().Update(context.Background(), old, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -93,7 +94,7 @@ func (im *imOperator) ModifyPassword(username string, password string) error {
 		return err
 	}
 	user.Spec.EncryptedPassword = password
-	_, err = im.ksClient.IamV1alpha2().Users().Update(user)
+	_, err = im.ksClient.IamV1alpha2().Users().Update(context.Background(), user, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -141,11 +142,11 @@ func (im *imOperator) DescribeUser(username string) (*iamv1alpha2.User, error) {
 }
 
 func (im *imOperator) DeleteUser(username string) error {
-	return im.ksClient.IamV1alpha2().Users().Delete(username, metav1.NewDeleteOptions(0))
+	return im.ksClient.IamV1alpha2().Users().Delete(context.Background(), username, *metav1.NewDeleteOptions(0))
 }
 
 func (im *imOperator) CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
-	user, err := im.ksClient.IamV1alpha2().Users().Create(user)
+	user, err := im.ksClient.IamV1alpha2().Users().Create(context.Background(), user, metav1.CreateOptions{})
 	if err != nil {
 		klog.Error(err)
 		return nil, err

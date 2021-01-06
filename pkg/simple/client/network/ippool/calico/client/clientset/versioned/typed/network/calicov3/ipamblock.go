@@ -19,6 +19,7 @@ limitations under the License.
 package calicov3
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,14 +38,14 @@ type IPAMBlocksGetter interface {
 
 // IPAMBlockInterface has methods to work with IPAMBlock resources.
 type IPAMBlockInterface interface {
-	Create(*calicov3.IPAMBlock) (*calicov3.IPAMBlock, error)
-	Update(*calicov3.IPAMBlock) (*calicov3.IPAMBlock, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*calicov3.IPAMBlock, error)
-	List(opts v1.ListOptions) (*calicov3.IPAMBlockList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *calicov3.IPAMBlock, err error)
+	Create(ctx context.Context, iPAMBlock *calicov3.IPAMBlock, opts v1.CreateOptions) (*calicov3.IPAMBlock, error)
+	Update(ctx context.Context, iPAMBlock *calicov3.IPAMBlock, opts v1.UpdateOptions) (*calicov3.IPAMBlock, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*calicov3.IPAMBlock, error)
+	List(ctx context.Context, opts v1.ListOptions) (*calicov3.IPAMBlockList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *calicov3.IPAMBlock, err error)
 	IPAMBlockExpansion
 }
 
@@ -61,19 +62,19 @@ func newIPAMBlocks(c *CrdCalicov3Client) *iPAMBlocks {
 }
 
 // Get takes name of the iPAMBlock, and returns the corresponding iPAMBlock object, and an error if there is any.
-func (c *iPAMBlocks) Get(name string, options v1.GetOptions) (result *calicov3.IPAMBlock, err error) {
+func (c *iPAMBlocks) Get(ctx context.Context, name string, options v1.GetOptions) (result *calicov3.IPAMBlock, err error) {
 	result = &calicov3.IPAMBlock{}
 	err = c.client.Get().
 		Resource("ipamblocks").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of IPAMBlocks that match those selectors.
-func (c *iPAMBlocks) List(opts v1.ListOptions) (result *calicov3.IPAMBlockList, err error) {
+func (c *iPAMBlocks) List(ctx context.Context, opts v1.ListOptions) (result *calicov3.IPAMBlockList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,13 +84,13 @@ func (c *iPAMBlocks) List(opts v1.ListOptions) (result *calicov3.IPAMBlockList, 
 		Resource("ipamblocks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested iPAMBlocks.
-func (c *iPAMBlocks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *iPAMBlocks) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -99,66 +100,69 @@ func (c *iPAMBlocks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("ipamblocks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a iPAMBlock and creates it.  Returns the server's representation of the iPAMBlock, and an error, if there is any.
-func (c *iPAMBlocks) Create(iPAMBlock *calicov3.IPAMBlock) (result *calicov3.IPAMBlock, err error) {
+func (c *iPAMBlocks) Create(ctx context.Context, iPAMBlock *calicov3.IPAMBlock, opts v1.CreateOptions) (result *calicov3.IPAMBlock, err error) {
 	result = &calicov3.IPAMBlock{}
 	err = c.client.Post().
 		Resource("ipamblocks").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(iPAMBlock).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a iPAMBlock and updates it. Returns the server's representation of the iPAMBlock, and an error, if there is any.
-func (c *iPAMBlocks) Update(iPAMBlock *calicov3.IPAMBlock) (result *calicov3.IPAMBlock, err error) {
+func (c *iPAMBlocks) Update(ctx context.Context, iPAMBlock *calicov3.IPAMBlock, opts v1.UpdateOptions) (result *calicov3.IPAMBlock, err error) {
 	result = &calicov3.IPAMBlock{}
 	err = c.client.Put().
 		Resource("ipamblocks").
 		Name(iPAMBlock.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(iPAMBlock).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the iPAMBlock and deletes it. Returns an error if one occurs.
-func (c *iPAMBlocks) Delete(name string, options *v1.DeleteOptions) error {
+func (c *iPAMBlocks) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("ipamblocks").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *iPAMBlocks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *iPAMBlocks) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("ipamblocks").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched iPAMBlock.
-func (c *iPAMBlocks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *calicov3.IPAMBlock, err error) {
+func (c *iPAMBlocks) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *calicov3.IPAMBlock, err error) {
 	result = &calicov3.IPAMBlock{}
 	err = c.client.Patch(pt).
 		Resource("ipamblocks").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

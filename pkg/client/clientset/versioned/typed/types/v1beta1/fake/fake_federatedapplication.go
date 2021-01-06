@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedapplicationsResource = schema.GroupVersionResource{Group: "types.ku
 var federatedapplicationsKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedApplication"}
 
 // Get takes name of the federatedApplication, and returns the corresponding federatedApplication object, and an error if there is any.
-func (c *FakeFederatedApplications) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedApplication, err error) {
+func (c *FakeFederatedApplications) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedApplication, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedapplicationsResource, c.ns, name), &v1beta1.FederatedApplication{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedApplications) Get(name string, options v1.GetOptions) (res
 }
 
 // List takes label and field selectors, and returns the list of FederatedApplications that match those selectors.
-func (c *FakeFederatedApplications) List(opts v1.ListOptions) (result *v1beta1.FederatedApplicationList, err error) {
+func (c *FakeFederatedApplications) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedApplicationList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedapplicationsResource, federatedapplicationsKind, c.ns, opts), &v1beta1.FederatedApplicationList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedApplications) List(opts v1.ListOptions) (result *v1beta1.F
 }
 
 // Watch returns a watch.Interface that watches the requested federatedApplications.
-func (c *FakeFederatedApplications) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedApplications) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedapplicationsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedApplication and creates it.  Returns the server's representation of the federatedApplication, and an error, if there is any.
-func (c *FakeFederatedApplications) Create(federatedApplication *v1beta1.FederatedApplication) (result *v1beta1.FederatedApplication, err error) {
+func (c *FakeFederatedApplications) Create(ctx context.Context, federatedApplication *v1beta1.FederatedApplication, opts v1.CreateOptions) (result *v1beta1.FederatedApplication, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedapplicationsResource, c.ns, federatedApplication), &v1beta1.FederatedApplication{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedApplications) Create(federatedApplication *v1beta1.Federat
 }
 
 // Update takes the representation of a federatedApplication and updates it. Returns the server's representation of the federatedApplication, and an error, if there is any.
-func (c *FakeFederatedApplications) Update(federatedApplication *v1beta1.FederatedApplication) (result *v1beta1.FederatedApplication, err error) {
+func (c *FakeFederatedApplications) Update(ctx context.Context, federatedApplication *v1beta1.FederatedApplication, opts v1.UpdateOptions) (result *v1beta1.FederatedApplication, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedapplicationsResource, c.ns, federatedApplication), &v1beta1.FederatedApplication{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedApplications) Update(federatedApplication *v1beta1.Federat
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedApplications) UpdateStatus(federatedApplication *v1beta1.FederatedApplication) (*v1beta1.FederatedApplication, error) {
+func (c *FakeFederatedApplications) UpdateStatus(ctx context.Context, federatedApplication *v1beta1.FederatedApplication, opts v1.UpdateOptions) (*v1beta1.FederatedApplication, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedapplicationsResource, "status", c.ns, federatedApplication), &v1beta1.FederatedApplication{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedApplications) UpdateStatus(federatedApplication *v1beta1.F
 }
 
 // Delete takes name of the federatedApplication and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedApplications) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedApplications) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedapplicationsResource, c.ns, name), &v1beta1.FederatedApplication{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedApplications) Delete(name string, options *v1.DeleteOption
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedApplications) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedapplicationsResource, c.ns, listOptions)
+func (c *FakeFederatedApplications) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedapplicationsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedApplicationList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedApplication.
-func (c *FakeFederatedApplications) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedApplication, err error) {
+func (c *FakeFederatedApplications) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedApplication, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedapplicationsResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedApplication{})
 

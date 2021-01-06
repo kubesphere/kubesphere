@@ -16,6 +16,7 @@ limitations under the License.
 package am
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -391,7 +392,7 @@ func (am *amOperator) CreateGlobalRoleBinding(username string, role string) erro
 		if role == roleBinding.RoleRef.Name {
 			return nil
 		}
-		err := am.ksclient.IamV1alpha2().GlobalRoleBindings().Delete(roleBinding.Name, metav1.NewDeleteOptions(0))
+		err := am.ksclient.IamV1alpha2().GlobalRoleBindings().Delete(context.Background(), roleBinding.Name, *metav1.NewDeleteOptions(0))
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -420,7 +421,7 @@ func (am *amOperator) CreateGlobalRoleBinding(username string, role string) erro
 		},
 	}
 
-	if _, err := am.ksclient.IamV1alpha2().GlobalRoleBindings().Create(&globalRoleBinding); err != nil {
+	if _, err := am.ksclient.IamV1alpha2().GlobalRoleBindings().Create(context.Background(), &globalRoleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -446,9 +447,9 @@ func (am *amOperator) CreateOrUpdateWorkspaceRole(workspace string, workspaceRol
 	var created *iamv1alpha2.WorkspaceRole
 	var err error
 	if workspaceRole.ResourceVersion != "" {
-		created, err = am.ksclient.IamV1alpha2().WorkspaceRoles().Update(workspaceRole)
+		created, err = am.ksclient.IamV1alpha2().WorkspaceRoles().Update(context.Background(), workspaceRole, metav1.UpdateOptions{})
 	} else {
-		created, err = am.ksclient.IamV1alpha2().WorkspaceRoles().Create(workspaceRole)
+		created, err = am.ksclient.IamV1alpha2().WorkspaceRoles().Create(context.Background(), workspaceRole, metav1.CreateOptions{})
 	}
 
 	return created, err
@@ -481,7 +482,7 @@ func (am *amOperator) PatchGlobalRole(globalRole *iamv1alpha2.GlobalRole) (*iamv
 		return nil, err
 	}
 
-	return am.ksclient.IamV1alpha2().GlobalRoles().Patch(globalRole.Name, types.MergePatchType, data)
+	return am.ksclient.IamV1alpha2().GlobalRoles().Patch(context.Background(), globalRole.Name, types.MergePatchType, data, metav1.PatchOptions{})
 }
 
 func (am *amOperator) getAggregateRoles(obj metav1.ObjectMeta) []string {
@@ -527,7 +528,7 @@ func (am *amOperator) PatchWorkspaceRole(workspace string, workspaceRole *iamv1a
 		return nil, err
 	}
 
-	return am.ksclient.IamV1alpha2().WorkspaceRoles().Patch(workspaceRole.Name, types.MergePatchType, data)
+	return am.ksclient.IamV1alpha2().WorkspaceRoles().Patch(context.Background(), workspaceRole.Name, types.MergePatchType, data, metav1.PatchOptions{})
 }
 
 func (am *amOperator) PatchNamespaceRole(namespace string, role *rbacv1.Role) (*rbacv1.Role, error) {
@@ -557,7 +558,7 @@ func (am *amOperator) PatchNamespaceRole(namespace string, role *rbacv1.Role) (*
 		return nil, err
 	}
 
-	return am.k8sclient.RbacV1().Roles(namespace).Patch(role.Name, types.MergePatchType, data)
+	return am.k8sclient.RbacV1().Roles(namespace).Patch(context.Background(), role.Name, types.MergePatchType, data, metav1.PatchOptions{})
 }
 
 func (am *amOperator) PatchClusterRole(clusterRole *rbacv1.ClusterRole) (*rbacv1.ClusterRole, error) {
@@ -587,7 +588,7 @@ func (am *amOperator) PatchClusterRole(clusterRole *rbacv1.ClusterRole) (*rbacv1
 		return nil, err
 	}
 
-	return am.k8sclient.RbacV1().ClusterRoles().Patch(clusterRole.Name, types.MergePatchType, data)
+	return am.k8sclient.RbacV1().ClusterRoles().Patch(context.Background(), clusterRole.Name, types.MergePatchType, data, metav1.PatchOptions{})
 }
 
 func (am *amOperator) CreateUserWorkspaceRoleBinding(username string, workspace string, role string) error {
@@ -607,7 +608,7 @@ func (am *amOperator) CreateUserWorkspaceRoleBinding(username string, workspace 
 		if role == roleBinding.RoleRef.Name {
 			return nil
 		}
-		err := am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(roleBinding.Name, metav1.NewDeleteOptions(0))
+		err := am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(context.Background(), roleBinding.Name, *metav1.NewDeleteOptions(0))
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -637,7 +638,7 @@ func (am *amOperator) CreateUserWorkspaceRoleBinding(username string, workspace 
 		},
 	}
 
-	if _, err := am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Create(&roleBinding); err != nil {
+	if _, err := am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Create(context.Background(), &roleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -662,7 +663,7 @@ func (am *amOperator) CreateClusterRoleBinding(username string, role string) err
 		if role == roleBinding.RoleRef.Name {
 			return nil
 		}
-		err := am.k8sclient.RbacV1().ClusterRoleBindings().Delete(roleBinding.Name, metav1.NewDeleteOptions(0))
+		err := am.k8sclient.RbacV1().ClusterRoleBindings().Delete(context.Background(), roleBinding.Name, *metav1.NewDeleteOptions(0))
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -691,7 +692,7 @@ func (am *amOperator) CreateClusterRoleBinding(username string, role string) err
 		},
 	}
 
-	if _, err := am.k8sclient.RbacV1().ClusterRoleBindings().Create(&roleBinding); err != nil {
+	if _, err := am.k8sclient.RbacV1().ClusterRoleBindings().Create(context.Background(), &roleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -717,7 +718,7 @@ func (am *amOperator) CreateNamespaceRoleBinding(username string, namespace stri
 		if role == roleBinding.RoleRef.Name {
 			return nil
 		}
-		err := am.k8sclient.RbacV1().RoleBindings(namespace).Delete(roleBinding.Name, metav1.NewDeleteOptions(0))
+		err := am.k8sclient.RbacV1().RoleBindings(namespace).Delete(context.Background(), roleBinding.Name, *metav1.NewDeleteOptions(0))
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -746,7 +747,7 @@ func (am *amOperator) CreateNamespaceRoleBinding(username string, namespace stri
 		},
 	}
 
-	if _, err := am.k8sclient.RbacV1().RoleBindings(namespace).Create(&roleBinding); err != nil {
+	if _, err := am.k8sclient.RbacV1().RoleBindings(namespace).Create(context.Background(), &roleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -762,7 +763,7 @@ func (am *amOperator) RemoveUserFromWorkspace(username string, workspace string)
 	}
 
 	for _, roleBinding := range roleBindings {
-		err := am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(roleBinding.Name, metav1.NewDeleteOptions(0))
+		err := am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(context.Background(), roleBinding.Name, *metav1.NewDeleteOptions(0))
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -784,7 +785,7 @@ func (am *amOperator) RemoveUserFromNamespace(username string, namespace string)
 	}
 
 	for _, roleBinding := range roleBindings {
-		err := am.k8sclient.RbacV1().RoleBindings(namespace).Delete(roleBinding.Name, metav1.NewDeleteOptions(0))
+		err := am.k8sclient.RbacV1().RoleBindings(namespace).Delete(context.Background(), roleBinding.Name, *metav1.NewDeleteOptions(0))
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -805,7 +806,7 @@ func (am *amOperator) RemoveUserFromCluster(username string) error {
 	}
 
 	for _, roleBinding := range roleBindings {
-		err := am.k8sclient.RbacV1().ClusterRoleBindings().Delete(roleBinding.Name, metav1.NewDeleteOptions(0))
+		err := am.k8sclient.RbacV1().ClusterRoleBindings().Delete(context.Background(), roleBinding.Name, *metav1.NewDeleteOptions(0))
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -833,9 +834,9 @@ func (am *amOperator) CreateOrUpdateGlobalRole(globalRole *iamv1alpha2.GlobalRol
 	var created *iamv1alpha2.GlobalRole
 	var err error
 	if globalRole.ResourceVersion != "" {
-		created, err = am.ksclient.IamV1alpha2().GlobalRoles().Update(globalRole)
+		created, err = am.ksclient.IamV1alpha2().GlobalRoles().Update(context.Background(), globalRole, metav1.UpdateOptions{})
 	} else {
-		created, err = am.ksclient.IamV1alpha2().GlobalRoles().Create(globalRole)
+		created, err = am.ksclient.IamV1alpha2().GlobalRoles().Create(context.Background(), globalRole, metav1.CreateOptions{})
 	}
 	return created, err
 }
@@ -855,9 +856,9 @@ func (am *amOperator) CreateOrUpdateClusterRole(clusterRole *rbacv1.ClusterRole)
 	var created *rbacv1.ClusterRole
 	var err error
 	if clusterRole.ResourceVersion != "" {
-		created, err = am.k8sclient.RbacV1().ClusterRoles().Update(clusterRole)
+		created, err = am.k8sclient.RbacV1().ClusterRoles().Update(context.Background(), clusterRole, metav1.UpdateOptions{})
 	} else {
-		created, err = am.k8sclient.RbacV1().ClusterRoles().Create(clusterRole)
+		created, err = am.k8sclient.RbacV1().ClusterRoles().Create(context.Background(), clusterRole, metav1.CreateOptions{})
 	}
 	return created, err
 }
@@ -878,9 +879,9 @@ func (am *amOperator) CreateOrUpdateNamespaceRole(namespace string, role *rbacv1
 	var created *rbacv1.Role
 	var err error
 	if role.ResourceVersion != "" {
-		created, err = am.k8sclient.RbacV1().Roles(namespace).Update(role)
+		created, err = am.k8sclient.RbacV1().Roles(namespace).Update(context.Background(), role, metav1.UpdateOptions{})
 	} else {
-		created, err = am.k8sclient.RbacV1().Roles(namespace).Create(role)
+		created, err = am.k8sclient.RbacV1().Roles(namespace).Create(context.Background(), role, metav1.CreateOptions{})
 	}
 
 	return created, err
@@ -891,18 +892,18 @@ func (am *amOperator) DeleteWorkspaceRole(workspace string, name string) error {
 	if err != nil {
 		return err
 	}
-	return am.ksclient.IamV1alpha2().WorkspaceRoles().Delete(workspaceRole.Name, metav1.NewDeleteOptions(0))
+	return am.ksclient.IamV1alpha2().WorkspaceRoles().Delete(context.Background(), workspaceRole.Name, *metav1.NewDeleteOptions(0))
 }
 
 func (am *amOperator) DeleteGlobalRole(name string) error {
-	return am.ksclient.IamV1alpha2().GlobalRoles().Delete(name, metav1.NewDeleteOptions(0))
+	return am.ksclient.IamV1alpha2().GlobalRoles().Delete(context.Background(), name, *metav1.NewDeleteOptions(0))
 }
 
 func (am *amOperator) DeleteClusterRole(name string) error {
-	return am.k8sclient.RbacV1().ClusterRoles().Delete(name, metav1.NewDeleteOptions(0))
+	return am.k8sclient.RbacV1().ClusterRoles().Delete(context.Background(), name, *metav1.NewDeleteOptions(0))
 }
 func (am *amOperator) DeleteNamespaceRole(namespace string, name string) error {
-	return am.k8sclient.RbacV1().Roles(namespace).Delete(name, metav1.NewDeleteOptions(0))
+	return am.k8sclient.RbacV1().Roles(namespace).Delete(context.Background(), name, *metav1.NewDeleteOptions(0))
 }
 
 // GetRoleReferenceRules attempts to resolve the RoleBinding or ClusterRoleBinding.
@@ -1057,11 +1058,11 @@ func (am *amOperator) CreateWorkspaceRoleBinding(workspace string, roleBinding *
 
 	roleBinding.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
 
-	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Create(roleBinding)
+	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Create(context.Background(), roleBinding, metav1.CreateOptions{})
 
 }
 func (am *amOperator) DeleteWorkspaceRoleBinding(workspaceName, name string) error {
-	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(name, metav1.NewDeleteOptions(0))
+	return am.ksclient.IamV1alpha2().WorkspaceRoleBindings().Delete(context.Background(), name, *metav1.NewDeleteOptions(0))
 }
 
 func (am *amOperator) ListGroupRoleBindings(workspace string, query *query.Query) ([]*rbacv1.RoleBinding, error) {
@@ -1125,9 +1126,9 @@ func (am *amOperator) CreateRoleBinding(namespace string, roleBinding *rbacv1.Ro
 		roleBinding.Labels[iamv1alpha2.UserReferenceLabel] = roleBinding.Subjects[0].Name
 	}
 
-	return am.k8sclient.RbacV1().RoleBindings(namespace).Create(roleBinding)
+	return am.k8sclient.RbacV1().RoleBindings(namespace).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 }
 
 func (am *amOperator) DeleteRoleBinding(namespace, name string) error {
-	return am.k8sclient.RbacV1().RoleBindings(namespace).Delete(name, metav1.NewDeleteOptions(0))
+	return am.k8sclient.RbacV1().RoleBindings(namespace).Delete(context.Background(), name, *metav1.NewDeleteOptions(0))
 }

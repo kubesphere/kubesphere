@@ -18,7 +18,7 @@ package v1alpha3
 
 import (
 	"github.com/google/go-cmp/cmp"
-	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake"
+	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +33,6 @@ import (
 	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
-	fakeapp "sigs.k8s.io/application/pkg/client/clientset/versioned/fake"
 	"testing"
 )
 
@@ -91,9 +90,7 @@ func TestResourceV1alpha2Fallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handler := New(resourcev1alpha3.NewResourceGetter(factory),
-		resourcev1alpha2.NewResourceGetter(factory),
-		components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()))
+	handler := New(resourcev1alpha3.NewResourceGetter(factory, nil), resourcev1alpha2.NewResourceGetter(factory), components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()))
 
 	for _, test := range tests {
 		got, err := listResources(test.namespace, test.resource, test.query, handler)
@@ -186,11 +183,10 @@ func prepare() (informers.InformerFactory, error) {
 	ksClient := fakeks.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
 	istioClient := fakeistio.NewSimpleClientset()
-	appClient := fakeapp.NewSimpleClientset()
 	snapshotClient := fakesnapshot.NewSimpleClientset()
 	apiextensionsClient := fakeapiextensions.NewSimpleClientset()
 
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, snapshotClient, apiextensionsClient)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient)
 
 	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
 
