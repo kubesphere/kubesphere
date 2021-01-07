@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"strings"
 	"time"
 )
 
@@ -118,11 +119,11 @@ func (g *githubProviderFactory) Create(options *oauth.DynamicOptions) (identityp
 }
 
 func (g githubIdentity) GetUserID() string {
-	return g.Login
+	return g.GetUsername()
 }
 
 func (g githubIdentity) GetUsername() string {
-	return g.Login
+	return strings.ToLower(g.Login)
 }
 
 func (g githubIdentity) GetEmail() string {

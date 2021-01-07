@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"strings"
 	"time"
 )
 
@@ -106,7 +107,7 @@ func (l *ldapIdentity) GetUserID() string {
 }
 
 func (l *ldapIdentity) GetUsername() string {
-	return l.Username
+	return strings.ToLower(l.Username)
 }
 
 func (l *ldapIdentity) GetEmail() string {

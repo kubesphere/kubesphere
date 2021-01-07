@@ -22,6 +22,7 @@ import (
 	"errors"
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
+	"strings"
 
 	"golang.org/x/oauth2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
@@ -98,7 +99,7 @@ func (a idaasIdentity) GetUserID() string {
 }
 
 func (a idaasIdentity) GetUsername() string {
-	return a.Username
+	return strings.ToLower(a.Username)
 }
 
 func (a idaasIdentity) GetEmail() string {
