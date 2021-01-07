@@ -17,8 +17,15 @@ tag_for_branch() {
 }
 
 get_repo() {
-    local repo=$1
-    repo=${repo:-kubespheredev}
+    local repo=${REPO} # read from env
+    if [[ "$1" != "" ]]; then
+      repo="$1"
+    fi
+
+    # set the default value if there's no user defined
+    if [[ "${repo}" == "" ]]; then
+      repo="kubespheredev"
+    fi
     echo "$repo"
 }
 
