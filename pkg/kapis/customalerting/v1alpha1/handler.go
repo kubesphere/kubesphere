@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	"github.com/emicklei/go-restful"
+	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	"k8s.io/klog"
 	ksapi "kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/customalerting/v1alpha1"

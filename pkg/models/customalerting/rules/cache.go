@@ -23,6 +23,7 @@ func NewRuleCache(ruleResourceInformer prominformersv1.PrometheusRuleInformer) *
 	rc := RuleCache{
 		namespaces: make(map[string]*namespaceRuleCache),
 	}
+
 	ruleResourceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: rc.addCache,
 		UpdateFunc: func(oldObj, newObj interface{}) {

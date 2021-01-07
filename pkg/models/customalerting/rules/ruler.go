@@ -22,7 +22,7 @@ const (
 
 var (
 	maxSecretSize        = corev1.MaxSecretSize
-	maxConfigMapDataSize = int(float64(maxSecretSize) * 0.3)
+	maxConfigMapDataSize = int(float64(maxSecretSize) * 0.45)
 
 	errOutOfConfigMapSize = errors.New("out of config map size")
 )
@@ -124,7 +124,7 @@ func (r *ruleResource) updateAlertingRule(groupName string, rule *promresourcesv
 		}
 
 		npr.Spec.Groups = groups
-		content, err := yaml.Marshal(npr)
+		content, err := yaml.Marshal(npr.Spec)
 		if err != nil {
 			return false, errors.Wrap(err, "failed to unmarshal content")
 		}
@@ -160,7 +160,7 @@ func (r *ruleResource) addAlertingRule(group string, rule *promresourcesv1.Rule)
 		})
 	}
 
-	content, err := yaml.Marshal(npr)
+	content, err := yaml.Marshal(npr.Spec)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to unmarshal content")
 	}

@@ -19,9 +19,9 @@ package v1alpha1
 import (
 	"net/http"
 
-	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ksapi "kubesphere.io/kubesphere/pkg/api"
 	customalertingv1alpha1 "kubesphere.io/kubesphere/pkg/api/customalerting/v1alpha1"

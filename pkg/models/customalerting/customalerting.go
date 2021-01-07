@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	promresourcesv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	prominformersv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring/v1"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"

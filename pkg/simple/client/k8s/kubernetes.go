@@ -17,8 +17,10 @@ limitations under the License.
 package k8s
 
 import (
-	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
+	"strings"
+
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
+	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
@@ -26,7 +28,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	"strings"
 )
 
 type Client interface {
