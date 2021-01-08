@@ -19,13 +19,15 @@ package prometheus
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/prometheus/client_golang/api"
 	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"sync"
-	"time"
 )
 
 // prometheus implements monitoring interface backed by Prometheus
@@ -49,7 +51,7 @@ func (p prometheus) GetMetric(expr string, ts time.Time) monitoring.Metric {
 	if err != nil {
 		parsedResp.Error = err.Error()
 	} else {
-		parsedResp.MetricData = parseQueryResp(value)
+		parsedResp.MetricData = parseQueryResp(value, nil)
 	}
 
 	return parsedResp
@@ -68,7 +70,7 @@ func (p prometheus) GetMetricOverTime(expr string, start, end time.Time, step ti
 	if err != nil {
 		parsedResp.Error = err.Error()
 	} else {
-		parsedResp.MetricData = parseQueryRangeResp(value)
+		parsedResp.MetricData = parseQueryRangeResp(value, nil)
 	}
 	return parsedResp
 }
@@ -90,7 +92,7 @@ func (p prometheus) GetNamedMetrics(metrics []string, ts time.Time, o monitoring
 			if err != nil {
 				parsedResp.Error = err.Error()
 			} else {
-				parsedResp.MetricData = parseQueryResp(value)
+				parsedResp.MetricData = parseQueryResp(value, genMetricFilter(o))
 			}
 
 			mtx.Lock()
@@ -129,7 +131,7 @@ func (p prometheus) GetNamedMetricsOverTime(metrics []string, start, end time.Ti
 			if err != nil {
 				parsedResp.Error = err.Error()
 			} else {
-				parsedResp.MetricData = parseQueryRangeResp(value)
+				parsedResp.MetricData = parseQueryRangeResp(value, genMetricFilter(o))
 			}
 
 			mtx.Lock()
@@ -200,12 +202,15 @@ func (p prometheus) GetMetricLabelSet(expr string, start, end time.Time) []map[s
 	return res
 }
 
-func parseQueryRangeResp(value model.Value) monitoring.MetricData {
+func parseQueryRangeResp(value model.Value, metricFilter func(metric model.Metric) bool) monitoring.MetricData {
 	res := monitoring.MetricData{MetricType: monitoring.MetricTypeMatrix}
 
 	data, _ := value.(model.Matrix)
 
 	for _, v := range data {
+		if metricFilter != nil && !metricFilter(v.Metric) {
+			continue
+		}
 		mv := monitoring.MetricValue{
 			Metadata: make(map[string]string),
 		}
@@ -224,12 +229,15 @@ func parseQueryRangeResp(value model.Value) monitoring.MetricData {
 	return res
 }
 
-func parseQueryResp(value model.Value) monitoring.MetricData {
+func parseQueryResp(value model.Value, metricFilter func(metric model.Metric) bool) monitoring.MetricData {
 	res := monitoring.MetricData{MetricType: monitoring.MetricTypeVector}
 
 	data, _ := value.(model.Vector)
 
 	for _, v := range data {
+		if metricFilter != nil && !metricFilter(v.Metric) {
+			continue
+		}
 		mv := monitoring.MetricValue{
 			Metadata: make(map[string]string),
 		}
@@ -244,4 +252,27 @@ func parseQueryResp(value model.Value) monitoring.MetricData {
 	}
 
 	return res
+}
+
+func genMetricFilter(o monitoring.QueryOption) func(metric model.Metric) bool {
+	if o != nil {
+		if po, ok := o.(monitoring.PodOption); ok {
+			if po.NamespacedResourcesFilter != "" {
+				namespacedPodsMap := make(map[string]struct{})
+				for _, s := range strings.Split(po.NamespacedResourcesFilter, "|") {
+					namespacedPodsMap[s] = struct{}{}
+				}
+				return func(metric model.Metric) bool {
+					if len(metric) == 0 {
+						return false
+					}
+					_, ok := namespacedPodsMap[string(metric["namespace"])+"/"+string(metric["pod"])]
+					return ok
+				}
+			}
+		}
+	}
+	return func(metric model.Metric) bool {
+		return true
+	}
 }

@@ -46,28 +46,29 @@ const (
 )
 
 type reqParams struct {
-	time             string
-	start            string
-	end              string
-	step             string
-	target           string
-	order            string
-	page             string
-	limit            string
-	metricFilter     string
-	resourceFilter   string
-	nodeName         string
-	workspaceName    string
-	namespaceName    string
-	workloadKind     string
-	workloadName     string
-	podName          string
-	containerName    string
-	pvcName          string
-	storageClassName string
-	componentType    string
-	expression       string
-	metric           string
+	time                      string
+	start                     string
+	end                       string
+	step                      string
+	target                    string
+	order                     string
+	page                      string
+	limit                     string
+	metricFilter              string
+	namespacedResourcesFilter string
+	resourceFilter            string
+	nodeName                  string
+	workspaceName             string
+	namespaceName             string
+	workloadKind              string
+	workloadName              string
+	podName                   string
+	containerName             string
+	pvcName                   string
+	storageClassName          string
+	componentType             string
+	expression                string
+	metric                    string
 }
 
 type queryOptions struct {
@@ -107,6 +108,7 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.page = req.QueryParameter("page")
 	r.limit = req.QueryParameter("limit")
 	r.metricFilter = req.QueryParameter("metrics_filter")
+	r.namespacedResourcesFilter = req.QueryParameter("namespaced_resources_filter")
 	r.resourceFilter = req.QueryParameter("resources_filter")
 	r.nodeName = req.PathParameter("node")
 	r.workspaceName = req.PathParameter("workspace")
@@ -171,12 +173,13 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 		q.identifier = model.IdentifierPod
 		q.namedMetrics = model.PodMetrics
 		q.option = monitoring.PodOption{
-			ResourceFilter: r.resourceFilter,
-			NodeName:       r.nodeName,
-			NamespaceName:  r.namespaceName,
-			WorkloadKind:   r.workloadKind,
-			WorkloadName:   r.workloadName,
-			PodName:        r.podName,
+			NamespacedResourcesFilter: r.namespacedResourcesFilter,
+			ResourceFilter:            r.resourceFilter,
+			NodeName:                  r.nodeName,
+			NamespaceName:             r.namespaceName,
+			WorkloadKind:              r.workloadKind,
+			WorkloadName:              r.workloadName,
+			PodName:                   r.podName,
 		}
 	case monitoring.LevelContainer:
 		q.identifier = model.IdentifierContainer

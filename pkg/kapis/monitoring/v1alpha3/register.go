@@ -18,6 +18,8 @@
 package v1alpha3
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,7 +30,6 @@ import (
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"net/http"
 )
 
 const (
@@ -223,7 +224,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		To(h.handlePodMetricsQuery).
 		Doc("Get pod-level metric data of the whole cluster's pods.").
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both pod CPU usage and memory usage: `pod_cpu_usage|pod_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("resources_filter", "The pod filter consists of a regexp pattern. It specifies which pod data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("namespaced_resources_filter", "Specifies a namespaced resources filter in `<namespace>/<pod_name>|<namespace>/<pod_name>` format. For example, a namespaced resources filter like `ns1/pod1|ns2/pod2` will request the data of pod1 in ns1 together with pod2 in ns2.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
@@ -298,6 +299,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.PathParameter("node", "Node name.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both pod CPU usage and memory usage: `pod_cpu_usage|pod_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "The pod filter consists of a regexp pattern. It specifies which pod data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("namespaced_resources_filter", "Specifies a namespaced resources filter in `<namespace>/<pod_name>|<namespace>/<pod_name>` format. For example, a namespaced resources filter like `ns1/pod1|ns2/pod2` will request the data of pod1 in ns1 together with pod2 in ns2.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
@@ -313,7 +315,8 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 
 	ws.Route(ws.GET("/nodes/{node}/pods/{pod}").
 		To(h.handlePodMetricsQuery).
-		Doc("Get pod-level metric data of a specific pod. Navigate to the pod by the node where it is scheduled.").
+		Deprecate().
+		Doc("Get pod-level metric data of a specific pod. Navigate to the pod by the node where it is scheduled. Deprecated: please use `/namespaces/{namespace}/pods/{pod}` or `/pods` instead.").
 		Param(ws.PathParameter("node", "Node name.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both pod CPU usage and memory usage: `pod_cpu_usage|pod_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
