@@ -186,7 +186,7 @@ func monitorRequest(r *restful.Request, response *restful.Response, chain *restf
 }
 
 func (s *APIServer) installMetricsAPI() {
-	register()
+	registerMetrics()
 	metrics.Defaults.Install(s.container)
 }
 

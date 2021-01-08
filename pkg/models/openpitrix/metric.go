@@ -17,9 +17,5 @@ var (
 )
 
 func init() {
-	Register()
-}
-
-func Register() {
 	metrics.MustRegister(appTemplateCreationCounter)
 }

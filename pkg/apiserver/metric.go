@@ -35,7 +35,7 @@ var (
 	}
 )
 
-func register() {
+func registerMetrics() {
 	for _, m := range metricsList {
 		metrics.MustRegister(m)
 	}
