@@ -170,6 +170,7 @@ func (conf *Config) ToMap() map[string]bool {
 		if name == "network" {
 			ippoolName := "network.ippool"
 			nsnpName := "network"
+			networkTopologyName := "network.topology"
 			if conf.NetworkOptions == nil {
 				result[nsnpName] = false
 				result[ippoolName] = false
@@ -184,6 +185,12 @@ func (conf *Config) ToMap() map[string]bool {
 					result[ippoolName] = false
 				} else {
 					result[ippoolName] = true
+				}
+
+				if conf.NetworkOptions.WeaveScopeHost == "" {
+					result[networkTopologyName] = false
+				} else {
+					result[networkTopologyName] = true
 				}
 			}
 			continue
@@ -226,7 +233,7 @@ func (conf *Config) stripEmptyOptions() {
 		conf.OpenPitrixOptions = nil
 	}
 
-	if conf.NetworkOptions != nil && conf.NetworkOptions.EnableNetworkPolicy == false {
+	if conf.NetworkOptions != nil && conf.NetworkOptions.IsEmpty() {
 		conf.NetworkOptions = nil
 	}
 

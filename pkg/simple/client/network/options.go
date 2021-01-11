@@ -18,6 +18,8 @@ package network
 
 import (
 	"github.com/spf13/pflag"
+
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 )
 
 type NSNPOptions struct {
@@ -35,12 +37,18 @@ type Options struct {
 func NewNetworkOptions() *Options {
 	return &Options{
 		EnableNetworkPolicy: false,
-		IPPoolType:          "none",
+		IPPoolType:          networkv1alpha1.IPPoolTypeNone,
 		NSNPOptions: NSNPOptions{
 			AllowedIngressNamespaces: []string{},
 		},
 		WeaveScopeHost: "",
 	}
+}
+
+func (s *Options) IsEmpty() bool {
+	return s.EnableNetworkPolicy == false &&
+		s.WeaveScopeHost == "" &&
+		s.IPPoolType == networkv1alpha1.IPPoolTypeNone
 }
 
 func (s *Options) Validate() []error {
