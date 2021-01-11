@@ -30,6 +30,7 @@ const (
 	ResourceSingularPipeline  = "pipeline"
 	ResourcePluralPipeline    = "pipelines"
 	PipelinePrefix            = "pipeline.devops.kubesphere.io/"
+	PipelineSpecHash          = PipelinePrefix + "spechash"
 	PipelineSyncStatusAnnoKey = PipelinePrefix + "syncstatus"
 	PipelineSyncTimeAnnoKey   = PipelinePrefix + "synctime"
 	PipelineSyncMsgAnnoKey    = PipelinePrefix + "syncmsg"
