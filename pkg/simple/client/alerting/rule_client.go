@@ -1,4 +1,4 @@
-package customalerting
+package alerting
 
 import (
 	"context"

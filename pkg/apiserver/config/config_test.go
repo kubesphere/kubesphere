@@ -28,7 +28,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -120,6 +119,10 @@ func newTestConfig() (*Config, error) {
 		},
 		AlertingOptions: &alerting.Options{
 			Endpoint: "http://alerting-client-server.kubesphere-alerting-system.svc:9200/api",
+
+			PrometheusEndpoint:       "http://prometheus-operated.kubesphere-monitoring-system.svc",
+			ThanosRulerEndpoint:      "http://thanos-ruler-operated.kubesphere-monitoring-system.svc",
+			ThanosRuleResourceLabels: "thanosruler=thanos-ruler,role=thanos-alerting-rules",
 		},
 		NotificationOptions: &notification.Options{
 			Endpoint: "http://notification.kubesphere-alerting-system.svc:9200",
@@ -156,11 +159,6 @@ func newTestConfig() (*Config, error) {
 			Host:        "http://elasticsearch-logging-data.kubesphere-logging-system.svc:9200",
 			IndexPrefix: "ks-logstash-auditing",
 			Version:     "6",
-		},
-		CustomAlertingOptions: &customalerting.Options{
-			PrometheusEndpoint:       "http://prometheus-operated.kubesphere-monitoring-system.svc",
-			ThanosRulerEndpoint:      "http://thanos-ruler-operated.kubesphere-monitoring-system.svc",
-			ThanosRuleResourceLabels: "thanosruler=thanos-ruler,role=thanos-alerting-rules",
 		},
 	}
 	return conf, nil

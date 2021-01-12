@@ -1,14 +1,14 @@
 package rules
 
 import (
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	promresourcesv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/prometheus/rules"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"kubesphere.io/kubesphere/pkg/api/customalerting/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
+	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
 )
 
 func TestGetAlertingRulesStatus(t *testing.T) {
@@ -16,14 +16,14 @@ func TestGetAlertingRulesStatus(t *testing.T) {
 		description       string
 		ruleNamespace     string
 		resourceRuleChunk *ResourceRuleChunk
-		ruleGroups        []*customalerting.RuleGroup
+		ruleGroups        []*alerting.RuleGroup
 		extLabels         func() map[string]string
-		expected          []*v1alpha1.GettableAlertingRule
+		expected          []*v2alpha1.GettableAlertingRule
 	}{{
 		description:   "get alerting rules status",
 		ruleNamespace: "test",
 		resourceRuleChunk: &ResourceRuleChunk{
-			Level:  v1alpha1.RuleLevelNamespace,
+			Level:  v2alpha1.RuleLevelNamespace,
 			Custom: true,
 			ResourceRulesMap: map[string]*ResourceRuleCollection{
 				"custom-alerting-rule-jqbgn": &ResourceRuleCollection{
@@ -47,10 +47,10 @@ func TestGetAlertingRulesStatus(t *testing.T) {
 				},
 			},
 		},
-		ruleGroups: []*customalerting.RuleGroup{{
+		ruleGroups: []*alerting.RuleGroup{{
 			Name: "alerting.custom.defaults",
 			File: "/etc/thanos/rules/thanos-ruler-thanos-ruler-rulefiles-0/test-custom-alerting-rule-jqbgn.yaml",
-			Rules: []*customalerting.AlertingRule{{
+			Rules: []*alerting.AlertingRule{{
 				Name:     "TestCPUUsageHigh",
 				Query:    `namespace:workload_cpu_usage:sum{namespace="test"} > 1`,
 				Duration: 60,
@@ -62,8 +62,8 @@ func TestGetAlertingRulesStatus(t *testing.T) {
 				},
 			}},
 		}},
-		expected: []*v1alpha1.GettableAlertingRule{{
-			AlertingRule: v1alpha1.AlertingRule{
+		expected: []*v2alpha1.GettableAlertingRule{{
+			AlertingRule: v2alpha1.AlertingRule{
 				Id:       "ca7f09e76954e67c",
 				Name:     "TestCPUUsageHigh",
 				Query:    `namespace:workload_cpu_usage:sum{namespace="test"} > 1`,

@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"kubesphere.io/kubesphere/pkg/api/customalerting/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
 )
 
 const (
@@ -438,7 +438,7 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 	}
 
 	if !found {
-		return v1alpha1.ErrAlertingRuleNotFound
+		return v2alpha1.ErrAlertingRuleNotFound
 	}
 
 	if !success {
@@ -478,7 +478,7 @@ func (r *ThanosRuler) DeleteAlertingRule(ctx context.Context, ruleNamespace *cor
 		}
 	}
 	if !success {
-		return v1alpha1.ErrAlertingRuleNotFound
+		return v2alpha1.ErrAlertingRuleNotFound
 	}
 	return nil
 }

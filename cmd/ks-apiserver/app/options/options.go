@@ -28,11 +28,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 
-	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -83,7 +83,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
 	s.EventsOptions.AddFlags(fss.FlagSet("events"), s.EventsOptions)
 	s.AuditingOptions.AddFlags(fss.FlagSet("auditing"), s.AuditingOptions)
-	s.CustomAlertingOptions.AddFlags(fss.FlagSet("customalerting"), s.CustomAlertingOptions)
+	s.AlertingOptions.AddFlags(fss.FlagSet("alerting"), s.AlertingOptions)
 
 	fs = fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
@@ -201,12 +201,12 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		apiServer.OpenpitrixClient = opClient
 	}
 
-	if s.CustomAlertingOptions != nil {
-		customAlertingClient, err := customalerting.NewRuleClient(s.CustomAlertingOptions)
+	if s.AlertingOptions != nil && (s.AlertingOptions.PrometheusEndpoint != "" || s.AlertingOptions.ThanosRulerEndpoint != "") {
+		alertingClient, err := alerting.NewRuleClient(s.AlertingOptions)
 		if err != nil {
-			return nil, fmt.Errorf("failed to init custom alerting client")
+			return nil, fmt.Errorf("failed to init alerting client: %v", err)
 		}
-		apiServer.CustomAlertingClient = customAlertingClient
+		apiServer.AlertingClient = alertingClient
 	}
 
 	server := &http.Server{

@@ -9,7 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	"kubesphere.io/kubesphere/pkg/api/customalerting/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
@@ -150,7 +150,7 @@ func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
 	} else if l > 1 {
 		// guarantees the stability of the get operations.
 		sort.Slice(rules, func(i, j int) bool {
-			return v1alpha1.AlertingRuleIdCompare(rules[i].Id, rules[j].Id)
+			return v2alpha1.AlertingRuleIdCompare(rules[i].Id, rules[j].Id)
 		})
 	}
 	return rules[0], nil

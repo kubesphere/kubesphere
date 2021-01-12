@@ -105,7 +105,7 @@ const (
 	EventsQueryTag   = "Events Query"
 	AuditingQueryTag = "Auditing Query"
 
-	CustomAlertingTag = "Custom Alerting"
+	AlertingTag = "Alerting"
 )
 
 var (

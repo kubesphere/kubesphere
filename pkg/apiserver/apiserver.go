@@ -49,9 +49,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
 	alertingv1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v1"
+	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2alpha1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
-	customalertingv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/customalerting/v1alpha1"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
@@ -73,9 +73,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -146,7 +146,7 @@ type APIServer struct {
 
 	AuditingClient auditing.Client
 
-	CustomAlertingClient customalerting.RuleClient
+	AlertingClient alerting.RuleClient
 
 	// controller-runtime cache
 	RuntimeCache runtimecache.Cache
@@ -239,9 +239,9 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.InformerFactory.KubernetesSharedInformerFactory()))
 	urlruntime.Must(notificationv1.AddToContainer(s.container, s.Config.NotificationOptions.Endpoint))
 	urlruntime.Must(alertingv1.AddToContainer(s.container, s.Config.AlertingOptions.Endpoint))
+	urlruntime.Must(alertingv2alpha1.AddToContainer(s.container, s.InformerFactory,
+		s.KubernetesClient.Prometheus(), s.AlertingClient, s.Config.AlertingOptions))
 	urlruntime.Must(version.AddToContainer(s.container, s.KubernetesClient.Discovery()))
-	urlruntime.Must(customalertingv1alpha1.AddToContainer(s.container, s.InformerFactory,
-		s.KubernetesClient.Prometheus(), s.CustomAlertingClient, s.Config.CustomAlertingOptions))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {

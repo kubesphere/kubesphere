@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -14,8 +15,7 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/rules"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/customalerting/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
+	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
 )
 
 const (
@@ -92,7 +92,7 @@ func GenResourceRuleIdIgnoreFormat(group string, rule *promresourcesv1.Rule) str
 	return prommodel.Fingerprint(prommodel.LabelsToSignature(lbls)).String()
 }
 
-func GenEndpointRuleId(group string, epRule *customalerting.AlertingRule,
+func GenEndpointRuleId(group string, epRule *alerting.AlertingRule,
 	externalLabels func() map[string]string) (string, error) {
 	query, err := FormatExpr(epRule.Query)
 	if err != nil {
@@ -127,13 +127,13 @@ func GenEndpointRuleId(group string, epRule *customalerting.AlertingRule,
 
 // GetAlertingRulesStatus mix rules from prometheusrule custom resources and rules from endpoints.
 // Use rules from prometheusrule custom resources as the main reference.
-func GetAlertingRulesStatus(ruleNamespace string, ruleChunk *ResourceRuleChunk, epRuleGroups []*customalerting.RuleGroup,
-	extLabels func() map[string]string) ([]*v1alpha1.GettableAlertingRule, error) {
+func GetAlertingRulesStatus(ruleNamespace string, ruleChunk *ResourceRuleChunk, epRuleGroups []*alerting.RuleGroup,
+	extLabels func() map[string]string) ([]*v2alpha1.GettableAlertingRule, error) {
 
 	var (
-		idEpRules = make(map[string]*customalerting.AlertingRule)
+		idEpRules = make(map[string]*alerting.AlertingRule)
 		nameIds   = make(map[string][]string)
-		ret       []*v1alpha1.GettableAlertingRule
+		ret       []*v2alpha1.GettableAlertingRule
 	)
 	for _, group := range epRuleGroups {
 		fileShort := strings.TrimSuffix(filepath.Base(group.File), filepath.Ext(group.File))
@@ -169,7 +169,7 @@ func GetAlertingRulesStatus(ruleNamespace string, ruleChunk *ResourceRuleChunk, 
 			if l := len(rrArr); l > 0 {
 				if l > 1 {
 					sort.Slice(rrArr, func(i, j int) bool {
-						return v1alpha1.AlertingRuleIdCompare(rrArr[i].Id, rrArr[j].Id)
+						return v2alpha1.AlertingRuleIdCompare(rrArr[i].Id, rrArr[j].Id)
 					})
 				}
 				resRule := rrArr[0]
@@ -181,7 +181,7 @@ func GetAlertingRulesStatus(ruleNamespace string, ruleChunk *ResourceRuleChunk, 
 		}
 	} else {
 		// guarantee the ids of the builtin alerting rules not to be repeated
-		var m = make(map[string]*v1alpha1.GettableAlertingRule)
+		var m = make(map[string]*v2alpha1.GettableAlertingRule)
 		for _, resourceRules := range ruleChunk.ResourceRulesMap {
 			for id, rule := range resourceRules.IdRules {
 				if r := getAlertingRuleStatus(rule, idEpRules[id], ruleChunk.Custom, ruleChunk.Level); r != nil {
@@ -197,14 +197,14 @@ func GetAlertingRulesStatus(ruleNamespace string, ruleChunk *ResourceRuleChunk, 
 	return ret, nil
 }
 
-func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroups []*customalerting.RuleGroup,
-	extLabels func() map[string]string) (*v1alpha1.GettableAlertingRule, error) {
+func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroups []*alerting.RuleGroup,
+	extLabels func() map[string]string) (*v2alpha1.GettableAlertingRule, error) {
 
 	if rule == nil || rule.Rule == nil {
 		return nil, nil
 	}
 
-	var epRules = make(map[string]*customalerting.AlertingRule)
+	var epRules = make(map[string]*alerting.AlertingRule)
 	for _, group := range epRuleGroups {
 		fileShort := strings.TrimSuffix(filepath.Base(group.File), filepath.Ext(group.File))
 		if !strings.HasPrefix(fileShort, ruleNamespace+"-") {
@@ -224,7 +224,7 @@ func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroup
 			}
 		}
 	}
-	var epRule *customalerting.AlertingRule
+	var epRule *alerting.AlertingRule
 	if rule.Custom {
 		// guarantees the stability of the get operations.
 		var ids []string
@@ -234,7 +234,7 @@ func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroup
 		if l := len(ids); l > 0 {
 			if l > 1 {
 				sort.Slice(ids, func(i, j int) bool {
-					return v1alpha1.AlertingRuleIdCompare(ids[i], ids[j])
+					return v2alpha1.AlertingRuleIdCompare(ids[i], ids[j])
 				})
 			}
 			epRule = epRules[ids[0]]
@@ -246,15 +246,15 @@ func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroup
 	return getAlertingRuleStatus(&rule.ResourceRuleItem, epRule, rule.Custom, rule.Level), nil
 }
 
-func getAlertingRuleStatus(resRule *ResourceRuleItem, epRule *customalerting.AlertingRule,
-	custom bool, level v1alpha1.RuleLevel) *v1alpha1.GettableAlertingRule {
+func getAlertingRuleStatus(resRule *ResourceRuleItem, epRule *alerting.AlertingRule,
+	custom bool, level v2alpha1.RuleLevel) *v2alpha1.GettableAlertingRule {
 
 	if resRule == nil || resRule.Rule == nil {
 		return nil
 	}
 
-	rule := v1alpha1.GettableAlertingRule{
-		AlertingRule: v1alpha1.AlertingRule{
+	rule := v2alpha1.GettableAlertingRule{
+		AlertingRule: v2alpha1.AlertingRule{
 			Id:          resRule.Id,
 			Name:        resRule.Rule.Alert,
 			Query:       resRule.Rule.Expr.String(),
@@ -289,7 +289,7 @@ func getAlertingRuleStatus(resRule *ResourceRuleItem, epRule *customalerting.Ale
 					rule.State = aState
 				}
 			}
-			rule.Alerts = append(rule.Alerts, &v1alpha1.Alert{
+			rule.Alerts = append(rule.Alerts, &v2alpha1.Alert{
 				ActiveAt:    a.ActiveAt,
 				Labels:      a.Labels,
 				Annotations: a.Annotations,
@@ -304,10 +304,10 @@ func getAlertingRuleStatus(resRule *ResourceRuleItem, epRule *customalerting.Ale
 	return &rule
 }
 
-func ParseAlertingRules(epRuleGroups []*customalerting.RuleGroup, custom bool, level v1alpha1.RuleLevel,
-	filterFunc func(group, ruleId string, rule *customalerting.AlertingRule) bool) ([]*v1alpha1.GettableAlertingRule, error) {
+func ParseAlertingRules(epRuleGroups []*alerting.RuleGroup, custom bool, level v2alpha1.RuleLevel,
+	filterFunc func(group, ruleId string, rule *alerting.AlertingRule) bool) ([]*v2alpha1.GettableAlertingRule, error) {
 
-	var ret []*v1alpha1.GettableAlertingRule
+	var ret []*v2alpha1.GettableAlertingRule
 	for _, g := range epRuleGroups {
 		for _, r := range g.Rules {
 			id, err := GenEndpointRuleId(g.Name, r, nil)
@@ -315,8 +315,8 @@ func ParseAlertingRules(epRuleGroups []*customalerting.RuleGroup, custom bool, l
 				return nil, err
 			}
 			if filterFunc(g.Name, id, r) {
-				rule := &v1alpha1.GettableAlertingRule{
-					AlertingRule: v1alpha1.AlertingRule{
+				rule := &v2alpha1.GettableAlertingRule{
+					AlertingRule: v2alpha1.AlertingRule{
 						Id:          id,
 						Name:        r.Name,
 						Query:       r.Query,
@@ -344,7 +344,7 @@ func ParseAlertingRules(epRuleGroups []*customalerting.RuleGroup, custom bool, l
 							rule.State = aState
 						}
 					}
-					rule.Alerts = append(rule.Alerts, &v1alpha1.Alert{
+					rule.Alerts = append(rule.Alerts, &v2alpha1.Alert{
 						ActiveAt:    a.ActiveAt,
 						Labels:      a.Labels,
 						Annotations: a.Annotations,

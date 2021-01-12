@@ -14,35 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v2alpha1
 
 import (
 	"github.com/emicklei/go-restful"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	"k8s.io/klog"
 	ksapi "kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/api/customalerting/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/informers"
-	customalertingmodels "kubesphere.io/kubesphere/pkg/models/customalerting"
-	"kubesphere.io/kubesphere/pkg/simple/client/customalerting"
+	alertingmodels "kubesphere.io/kubesphere/pkg/models/alerting"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 )
 
 type handler struct {
-	operator customalertingmodels.Operator
+	operator alertingmodels.Operator
 }
 
 func newHandler(informers informers.InformerFactory,
-	promResourceClient promresourcesclient.Interface, ruleClient customalerting.RuleClient,
-	option *customalerting.Options) *handler {
+	promResourceClient promresourcesclient.Interface, ruleClient alerting.RuleClient,
+	option *alerting.Options) *handler {
 	return &handler{
-		operator: customalertingmodels.NewOperator(
+		operator: alertingmodels.NewOperator(
 			informers, promResourceClient, ruleClient, option),
 	}
 }
 
 func (h *handler) handleListCustomAlertingRules(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
-	query, err := v1alpha1.ParseAlertingRuleQueryParams(req)
+	query, err := v2alpha1.ParseAlertingRuleQueryParams(req)
 	if err != nil {
 		klog.Error(err)
 		ksapi.HandleBadRequest(resp, nil, err)
@@ -53,7 +53,7 @@ func (h *handler) handleListCustomAlertingRules(req *restful.Request, resp *rest
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrThanosRulerNotEnabled:
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
 			ksapi.HandleBadRequest(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
@@ -65,7 +65,7 @@ func (h *handler) handleListCustomAlertingRules(req *restful.Request, resp *rest
 
 func (h *handler) handleListCustomRulesAlerts(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
-	query, err := v1alpha1.ParseAlertQueryParams(req)
+	query, err := v2alpha1.ParseAlertQueryParams(req)
 	if err != nil {
 		klog.Error(err)
 		ksapi.HandleBadRequest(resp, nil, err)
@@ -76,7 +76,7 @@ func (h *handler) handleListCustomRulesAlerts(req *restful.Request, resp *restfu
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrThanosRulerNotEnabled:
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
 			ksapi.HandleBadRequest(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
@@ -94,9 +94,9 @@ func (h *handler) handleGetCustomAlertingRule(req *restful.Request, resp *restfu
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrThanosRulerNotEnabled:
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
 			ksapi.HandleBadRequest(resp, nil, err)
-		case err == v1alpha1.ErrAlertingRuleNotFound:
+		case err == v2alpha1.ErrAlertingRuleNotFound:
 			ksapi.HandleNotFound(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
@@ -118,9 +118,9 @@ func (h *handler) handleListCustomRuleAlerts(req *restful.Request, resp *restful
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrThanosRulerNotEnabled:
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
 			ksapi.HandleBadRequest(resp, nil, err)
-		case err == v1alpha1.ErrAlertingRuleNotFound:
+		case err == v2alpha1.ErrAlertingRuleNotFound:
 			ksapi.HandleNotFound(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
@@ -133,7 +133,7 @@ func (h *handler) handleListCustomRuleAlerts(req *restful.Request, resp *restful
 func (h *handler) handleCreateCustomAlertingRule(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 
-	var rule v1alpha1.PostableAlertingRule
+	var rule v2alpha1.PostableAlertingRule
 	if err := req.ReadEntity(&rule); err != nil {
 		klog.Error(err)
 		ksapi.HandleBadRequest(resp, nil, err)
@@ -149,9 +149,9 @@ func (h *handler) handleCreateCustomAlertingRule(req *restful.Request, resp *res
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrThanosRulerNotEnabled:
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
 			ksapi.HandleBadRequest(resp, nil, err)
-		case err == v1alpha1.ErrAlertingRuleAlreadyExists:
+		case err == v2alpha1.ErrAlertingRuleAlreadyExists:
 			ksapi.HandleConflict(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
@@ -164,7 +164,7 @@ func (h *handler) handleUpdateCustomAlertingRule(req *restful.Request, resp *res
 	namespace := req.PathParameter("namespace")
 	ruleName := req.PathParameter("rule_name")
 
-	var rule v1alpha1.PostableAlertingRule
+	var rule v2alpha1.PostableAlertingRule
 	if err := req.ReadEntity(&rule); err != nil {
 		klog.Error(err)
 		ksapi.HandleBadRequest(resp, nil, err)
@@ -180,9 +180,9 @@ func (h *handler) handleUpdateCustomAlertingRule(req *restful.Request, resp *res
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrThanosRulerNotEnabled:
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
 			ksapi.HandleBadRequest(resp, nil, err)
-		case err == v1alpha1.ErrAlertingRuleNotFound:
+		case err == v2alpha1.ErrAlertingRuleNotFound:
 			ksapi.HandleNotFound(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
@@ -199,9 +199,9 @@ func (h *handler) handleDeleteCustomAlertingRule(req *restful.Request, resp *res
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrThanosRulerNotEnabled:
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
 			ksapi.HandleBadRequest(resp, nil, err)
-		case err == v1alpha1.ErrAlertingRuleNotFound:
+		case err == v2alpha1.ErrAlertingRuleNotFound:
 			ksapi.HandleNotFound(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
@@ -211,7 +211,7 @@ func (h *handler) handleDeleteCustomAlertingRule(req *restful.Request, resp *res
 }
 
 func (h *handler) handleListBuiltinAlertingRules(req *restful.Request, resp *restful.Response) {
-	query, err := v1alpha1.ParseAlertingRuleQueryParams(req)
+	query, err := v2alpha1.ParseAlertingRuleQueryParams(req)
 	if err != nil {
 		klog.Error(err)
 		ksapi.HandleBadRequest(resp, nil, err)
@@ -228,7 +228,7 @@ func (h *handler) handleListBuiltinAlertingRules(req *restful.Request, resp *res
 }
 
 func (h *handler) handleListBuiltinRulesAlerts(req *restful.Request, resp *restful.Response) {
-	query, err := v1alpha1.ParseAlertQueryParams(req)
+	query, err := v2alpha1.ParseAlertQueryParams(req)
 	if err != nil {
 		klog.Error(err)
 		ksapi.HandleBadRequest(resp, nil, err)
@@ -251,7 +251,7 @@ func (h *handler) handleGetBuiltinAlertingRule(req *restful.Request, resp *restf
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrAlertingRuleNotFound:
+		case err == v2alpha1.ErrAlertingRuleNotFound:
 			ksapi.HandleNotFound(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
@@ -273,7 +273,7 @@ func (h *handler) handleListBuiltinRuleAlerts(req *restful.Request, resp *restfu
 	if err != nil {
 		klog.Error(err)
 		switch {
-		case err == v1alpha1.ErrAlertingRuleNotFound:
+		case err == v2alpha1.ErrAlertingRuleNotFound:
 			ksapi.HandleNotFound(resp, nil, err)
 		default:
 			ksapi.HandleInternalError(resp, nil, err)
