@@ -65,6 +65,7 @@ const (
 	UserReferenceLabel                    = "iam.kubesphere.io/user-ref"
 	IdentifyProviderLabel                 = "iam.kubesphere.io/identify-provider"
 	OriginUIDLabel                        = "iam.kubesphere.io/origin-uid"
+	ServiceAccountReferenceLabel          = "iam.kubesphere.io/serviceaccount-ref"
 	FieldEmail                            = "email"
 	ExtraEmail                            = FieldEmail
 	ExtraIdentityProvider                 = "idp"

@@ -18,6 +18,8 @@ package app
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -29,6 +31,7 @@ import (
 	appcontroller "kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
+	"kubesphere.io/kubesphere/pkg/controller/serviceaccount"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
 	"kubesphere.io/kubesphere/pkg/controller/workspacerole"
@@ -43,7 +46,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
-	"os"
 	application "sigs.k8s.io/application/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -229,6 +231,12 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 	if err = applicationReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create application controller")
+	}
+
+	saReconciler := &serviceaccount.Reconciler{}
+
+	if err = saReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatal("Unable to create ServiceAccount controller")
 	}
 
 	// TODO(jeff): refactor config with CRD
