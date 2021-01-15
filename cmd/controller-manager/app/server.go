@@ -41,6 +41,7 @@ import (
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
+	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
 	application "sigs.k8s.io/application/controllers"
@@ -260,6 +261,9 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
 	hookServer.Register("/validate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.ValidatingHandler{C: mgr.GetClient()}})
 	hookServer.Register("/mutate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.MutatingHandler{C: mgr.GetClient()}})
+
+	klog.V(2).Info("registering metrics to the webhook server")
+	hookServer.Register("/metrics", metrics.Handler())
 
 	klog.V(0).Info("Starting the controllers.")
 	if err = mgr.Start(stopCh); err != nil {

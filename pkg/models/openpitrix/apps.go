@@ -154,7 +154,10 @@ func (c *appTemplateOperator) CreateApp(request *CreateAppRequest) (*CreateAppRe
 	resp, err := c.opClient.CreateApp(openpitrix.ContextWithUsername(request.Username), createAppRequest)
 	if err != nil {
 		klog.Error(err)
+		appTemplateCreationCounter.WithLabelValues(request.Isv, request.Name, "failed").Inc()
 		return nil, err
+	} else {
+		appTemplateCreationCounter.WithLabelValues(request.Isv, request.Name, "success").Inc()
 	}
 	return &CreateAppResponse{
 		AppID:     resp.GetAppId().GetValue(),

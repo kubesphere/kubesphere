@@ -98,6 +98,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if err := r.Update(rootCtx, workspace); err != nil {
 				return ctrl.Result{}, err
 			}
+			workspaceOperation.WithLabelValues("create", workspace.Name).Inc()
 		}
 	} else {
 		// The object is being deleted
@@ -111,6 +112,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				logger.Error(err, "update workspace failed")
 				return ctrl.Result{}, err
 			}
+			workspaceOperation.WithLabelValues("delete", workspace.Name).Inc()
 		}
 		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
