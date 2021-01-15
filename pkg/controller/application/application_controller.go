@@ -24,10 +24,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"sigs.k8s.io/application/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -40,7 +41,7 @@ import (
 	"time"
 )
 
-// Add creates a new Workspace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// Add creates a new Application Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -71,11 +72,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	for _, s := range sources {
 		// Watch for changes to Application
-		err = c.Watch(&source.Kind{Type: s},
-			&handler.EnqueueRequestForOwner{OwnerType: &v1beta1.Application{}, IsController: false},
+		err = c.Watch(
+			&source.Kind{Type: s},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(
+				func(h handler.MapObject) []reconcile.Request {
+					return []reconcile.Request{{NamespacedName: types.NamespacedName{
+						Name:      servicemesh.GetApplictionName(h.Meta.GetLabels()),
+						Namespace: h.Meta.GetNamespace()}}}
+				})},
 			predicate.Funcs{
 				UpdateFunc: func(e event.UpdateEvent) bool {
-					return isApp(e.MetaOld)
+					return isApp(e.MetaOld, e.MetaNew)
 				},
 				CreateFunc: func(e event.CreateEvent) bool {
 					return isApp(e.Meta)
@@ -84,12 +91,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					return isApp(e.Meta)
 				},
 			})
-
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -110,6 +115,7 @@ func (r *ReconcileApplication) Reconcile(request reconcile.Request) (reconcile.R
 	err := r.Get(ctx, request.NamespacedName, app)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			klog.Errorf("application %s not found in namespace %s", request.Name, request.Namespace)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -126,16 +132,18 @@ func (r *ReconcileApplication) Reconcile(request reconcile.Request) (reconcile.R
 	err = r.Update(ctx, app)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			klog.V(4).Info("application has been deleted during update")
+			klog.V(4).Infof("application %s has been deleted during update in namespace %s", request.Name, request.Namespace)
 			return reconcile.Result{}, nil
 		}
 	}
 	return reconcile.Result{}, nil
 }
 
-func isApp(o metav1.Object) bool {
-	if o.GetLabels() == nil || !util.IsApplicationComponent(o.GetLabels()) {
-		return false
+func isApp(obs ...metav1.Object) bool {
+	for _, o := range obs {
+		if o.GetLabels() != nil && servicemesh.IsAppComponent(o.GetLabels()) {
+			return true
+		}
 	}
-	return true
+	return false
 }

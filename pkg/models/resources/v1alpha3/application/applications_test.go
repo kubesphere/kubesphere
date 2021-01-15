@@ -24,11 +24,11 @@ import (
 	"k8s.io/klog/v2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"path/filepath"
+	"reflect"
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-
 	"testing"
 )
 
@@ -44,6 +44,15 @@ func createNamespace(name string, ctx context.Context) {
 	if err != nil {
 		klog.Error(err)
 	}
+}
+
+func compare(actual *appv1beta1.Application, expects ...*appv1beta1.Application) bool {
+	for _, app := range expects {
+		if actual.Name == app.Name && actual.Namespace == app.Namespace && reflect.DeepEqual(actual.Labels, app.Labels) {
+			return true
+		}
+	}
+	return false
 }
 
 func TestGetListApplications(t *testing.T) {
@@ -66,29 +75,68 @@ func TestGetListApplications(t *testing.T) {
 
 	c, _ = client.New(cfg, client.Options{Scheme: sch})
 
-	var labelSet1 = map[string]string{"foo": "bar"}
-	application := &appv1beta1.Application{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bar",
-			Namespace: "foo",
-			Labels:    labelSet1,
+	var labelSet1 = map[string]string{"foo-1": "bar-1"}
+	var labelSet2 = map[string]string{"foo-2": "bar-2"}
+
+	var ns = "ns-1"
+	testCases := []*appv1beta1.Application{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "app-1",
+				Namespace: ns,
+				Labels:    labelSet1,
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "app-2",
+				Namespace: ns,
+				Labels:    labelSet2,
+			},
 		},
 	}
 
 	ctx := context.TODO()
-	createNamespace("foo", ctx)
-	_ = c.Create(ctx, application)
+	createNamespace(ns, ctx)
+
+	for _, app := range testCases {
+		if err = c.Create(ctx, app); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	getter := New(ce)
 
-	_, err = getter.List("foo", &query.Query{})
+	results, err := getter.List(ns, &query.Query{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = getter.Get("foo", "bar")
+	if results.TotalItems != len(testCases) {
+		t.Fatal("TotalItems is not match")
+	}
+
+	if len(results.Items) != len(testCases) {
+		t.Fatal("Items numbers is not match mock data")
+	}
+
+	for _, app := range results.Items {
+		app, err := app.(*appv1beta1.Application)
+		if !err {
+			t.Fatal(err)
+		}
+		if !compare(app, testCases...) {
+			t.Errorf("The results %v not match testcases %v", results.Items, testCases)
+		}
+	}
+
+	result, err := getter.Get(ns, "app-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	app := result.(*appv1beta1.Application)
+	if !compare(app, testCases...) {
+		t.Errorf("The results %v not match testcases %v", result, testCases)
+	}
 }

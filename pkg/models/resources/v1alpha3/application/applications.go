@@ -50,14 +50,14 @@ func (d *applicationsGetter) Get(namespace, name string) (runtime.Object, error)
 
 func (d *applicationsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
 	applications := appv1beta1.ApplicationList{}
-	err := d.c.List(context.Background(), &applications, &client.ListOptions{Namespace: namespace})
+	err := d.c.List(context.Background(), &applications, &client.ListOptions{Namespace: namespace, LabelSelector: query.Selector()})
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 	var result []runtime.Object
-	for _, app := range applications.Items {
-		result = append(result, &app)
+	for i := range applications.Items {
+		result = append(result, &applications.Items[i])
 	}
 
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
