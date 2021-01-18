@@ -247,7 +247,8 @@ func (conf *Config) stripEmptyOptions() {
 		conf.S3Options = nil
 	}
 
-	if conf.AlertingOptions != nil && conf.AlertingOptions.Endpoint == "" {
+	if conf.AlertingOptions != nil && conf.AlertingOptions.Endpoint == "" &&
+		conf.AlertingOptions.PrometheusEndpoint == "" && conf.AlertingOptions.ThanosRulerEndpoint == "" {
 		conf.AlertingOptions = nil
 	}
 

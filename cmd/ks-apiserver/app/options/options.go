@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
@@ -82,6 +83,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
 	s.EventsOptions.AddFlags(fss.FlagSet("events"), s.EventsOptions)
 	s.AuditingOptions.AddFlags(fss.FlagSet("auditing"), s.AuditingOptions)
+	s.AlertingOptions.AddFlags(fss.FlagSet("alerting"), s.AlertingOptions)
 
 	fs = fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
@@ -109,7 +111,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	apiServer.KubernetesClient = kubernetesClient
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(),
-		kubernetesClient.Istio(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions())
+		kubernetesClient.Istio(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions(), kubernetesClient.Prometheus())
 	apiServer.InformerFactory = informerFactory
 
 	if s.MonitoringOptions == nil || len(s.MonitoringOptions.Endpoint) == 0 {
@@ -197,6 +199,14 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			return nil, fmt.Errorf("failed to connect to openpitrix, please check openpitrix status, error: %v", err)
 		}
 		apiServer.OpenpitrixClient = opClient
+	}
+
+	if s.AlertingOptions != nil && (s.AlertingOptions.PrometheusEndpoint != "" || s.AlertingOptions.ThanosRulerEndpoint != "") {
+		alertingClient, err := alerting.NewRuleClient(s.AlertingOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init alerting client: %v", err)
+		}
+		apiServer.AlertingClient = alertingClient
 	}
 
 	server := &http.Server{

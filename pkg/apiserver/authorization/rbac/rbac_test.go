@@ -857,7 +857,7 @@ func newMockRBACAuthorizer(staticRoles *StaticRoles) (*RBACAuthorizer, error) {
 
 	ksClient := fakeks.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
 	ksInformerFactory := fakeInformerFactory.KubeSphereSharedInformerFactory()

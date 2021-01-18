@@ -186,7 +186,7 @@ func prepare() (informers.InformerFactory, error) {
 	snapshotClient := fakesnapshot.NewSimpleClientset()
 	apiextensionsClient := fakeapiextensions.NewSimpleClientset()
 
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient, nil)
 
 	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
 

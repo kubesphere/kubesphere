@@ -119,6 +119,10 @@ func newTestConfig() (*Config, error) {
 		},
 		AlertingOptions: &alerting.Options{
 			Endpoint: "http://alerting-client-server.kubesphere-alerting-system.svc:9200/api",
+
+			PrometheusEndpoint:       "http://prometheus-operated.kubesphere-monitoring-system.svc",
+			ThanosRulerEndpoint:      "http://thanos-ruler-operated.kubesphere-monitoring-system.svc",
+			ThanosRuleResourceLabels: "thanosruler=thanos-ruler,role=thanos-alerting-rules",
 		},
 		NotificationOptions: &notification.Options{
 			Endpoint: "http://notification.kubesphere-alerting-system.svc:9200",
