@@ -113,6 +113,14 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Using human-readable error message for pipeline cron text , [#2919](https://github.com/kubesphere/kubesphere/issues/2919)
 - [ ] Using human-readable error message for S2I, [#140](https://github.com/kubesphere/s2ioperator/issues/140)
 
+### MultiCluster:
+
+- [x] Validate member cluster configuration if the member cluster config(e.g. jwtSecret) is not same as host cluster, which can reduce the complexity of joining clusters. [#3232](https://github.com/kubesphere/kubesphere/issues/3232)
+- [ ] Support configuring cluster controller resync period, some users need to update the cluster component more quickly. [#3213](https://github.com/kubesphere/kubesphere/issues/3213)
+- [x] Lightweight member cluster installation, support running kubepshere without redis and ldap and so on. [#3056](https://github.com/kubesphere/kubesphere/issues/3056)
+- [ ] The cluster controller updates the cluster.staus field instead of the tower server when using proxy connection.  [#3234](https://github.com/kubesphere/kubesphere/issues/3234)
+- [ ] Support the tower server and agent running highly available(server with leader election option and running more than one agent). [#31](https://github.com/kubesphere/tower/issues/31)
+- [ ] Support adding member clusters for an existing project(ns), wich can be helpful when there are new clusters joined. [#3246](https://github.com/kubesphere/kubesphere/issues/3246)
 ### Observability
 
 - [x] Upgrade Notification Manager to v0.7.0+ [Releases](https://github.com/kubesphere/notification-manager/releases)
@@ -129,6 +137,10 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [ ] Fix some resources cannot be deleted in cascade. [#2912](https://github.com/kubesphere/kubesphere/issues/2912)
 - [x] Fix self-signed certificate for admission webhook relies on legacy Common Name field. [#2928](https://github.com/kubesphere/kubesphere/issues/2928)
 - [x] Fix workspaces on member cluster would be deleted when joining to host if there are workspaces with same name on the host. [#3169](https://github.com/kubesphere/kubesphere/issues/3169)
+- [x] Fix cluster unjoin federation plane when using proxy connection. [#3202](https://github.com/kubesphere/kubesphere/pull/3203)
+- [x] Fix multi-cluster-status-condition. [#3135](https://github.com/kubesphere/kubesphere/issues/3135)
+- [x] Fix edge cluster can't join to the host cluster. [#3198](https://github.com/kubesphere/kubesphere/issues/3198)
+- [x] Fix can not rollout restart tower agent. [#29](https://github.com/kubesphere/tower/issues/29)
 
 ### DevOps:
 
