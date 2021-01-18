@@ -17,9 +17,11 @@ limitations under the License.
 package devops
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type PipelineList struct {
@@ -79,7 +81,7 @@ type Pipeline struct {
 	NumberOfFolders                int           `json:"numberOfFolders,omitempty" description:"number of folders"`
 	NumberOfPipelines              int           `json:"numberOfPipelines,omitempty" description:"number of pipelines"`
 	PipelineFolderNames            []interface{} `json:"pipelineFolderNames,omitempty" description:"pipeline folder names"`
-	WeatherScore                   int           `json:"weatherScore,omitempty" description:"the score to description the result of pipeline activity"`
+	WeatherScore                   int           `json:"weatherScore" description:"the score to description the result of pipeline activity"`
 	BranchNames                    []string      `json:"branchNames,omitempty" description:"branch names"`
 	NumberOfFailingBranches        int           `json:"numberOfFailingBranches,omitempty" description:"number of failing branches"`
 	NumberOfFailingPullRequests    int           `json:"numberOfFailingPullRequests,omitempty" description:"number of failing pull requests"`
@@ -890,9 +892,9 @@ type BranchPipeline struct {
 	Parameters   []struct {
 		Class                 string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		DefaultParameterValue struct {
-			Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-			Name  string `json:"name,omitempty" description:"name"`
-			Value string `json:"value,omitempty" description:"value"`
+			Class string      `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+			Name  string      `json:"name,omitempty" description:"name"`
+			Value interface{} `json:"value,omitempty" description:"value, string or bool type"`
 		} `json:"defaultParameterValue,omitempty" description:""`
 		Description string        `json:"description,omitempty" description:"description"`
 		Name        string        `json:"name,omitempty" description:"name"`
@@ -979,6 +981,8 @@ type NodeSteps struct {
 	StartTime          string `json:"startTime,omitempty" description:"the time of starts"`
 	State              string `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
 	Type               string `json:"type,omitempty" description:"type"`
+	// Approvable indicates if this step can be approved by current user
+	Approvable bool `json:"aprovable" description:"indicate if this step can be approved by current user"`
 }
 
 // CheckScriptCompile
@@ -1075,6 +1079,11 @@ type NodesDetail struct {
 	Steps              []NodeSteps   `json:"steps,omitempty" description:"steps"`
 }
 
+const (
+	// StatePaused indicates a node or a step was paused, for example it's waiting for an iput
+	StatePaused = "PAUSED"
+)
+
 type NodesStepsIndex struct {
 	Id    int         `json:"id,omitempty" description:"id"`
 	Steps []NodeSteps `json:"steps,omitempty" description:"steps"`
@@ -1095,6 +1104,37 @@ type Input struct {
 	Submitter  interface{}   `json:"submitter,omitempty" description:"check submitter"`
 }
 
+// GetSubmitters returns the all submitters related to this input
+func (i *Input) GetSubmitters() (submitters []string) {
+	if i.Submitter == nil {
+		return
+	}
+
+	submitterArray := strings.Split(fmt.Sprintf("%v", i.Submitter), ",")
+	submitters = make([]string, len(submitterArray))
+	for i, submitter := range submitterArray {
+		submitters[i] = strings.TrimSpace(submitter)
+	}
+	return
+}
+
+// Approvable returns the result if the given identify (username or group name) can approve this input
+func (i *Input) Approvable(identify string) (ok bool) {
+	submitters := i.GetSubmitters()
+
+	// it means anyone can approve this if there's no specific one
+	if len(submitters) == 0 {
+		ok = true
+	} else {
+		for _, submitter := range submitters {
+			if submitter == identify {
+				ok = true
+			}
+		}
+	}
+	return
+}
+
 type HttpParameters struct {
 	Method   string        `json:"method,omitempty"`
 	Header   http.Header   `json:"header,omitempty"`
@@ -1105,7 +1145,6 @@ type HttpParameters struct {
 }
 
 type PipelineOperator interface {
-
 	// Pipelinne operator interface
 	GetPipeline(projectName, pipelineName string, httpParameters *HttpParameters) (*Pipeline, error)
 	ListPipelines(httpParameters *HttpParameters) (*PipelineList, error)

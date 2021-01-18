@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,13 +62,13 @@ func NewFilteredS2iRunInformer(client versioned.Interface, namespace string, res
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.DevopsV1alpha1().S2iRuns(namespace).List(options)
+				return client.DevopsV1alpha1().S2iRuns(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.DevopsV1alpha1().S2iRuns(namespace).Watch(options)
+				return client.DevopsV1alpha1().S2iRuns(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&devopsv1alpha1.S2iRun{},

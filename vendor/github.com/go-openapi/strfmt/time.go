@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,15 +16,16 @@ package strfmt
 
 import (
 	"database/sql/driver"
-	"errors"
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
-	"github.com/mailru/easyjson/jlexer"
-	"github.com/mailru/easyjson/jwriter"
+	"go.mongodb.org/mongo-driver/bson"
+
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func init() {
@@ -56,12 +57,18 @@ const (
 	RFC3339Millis = "2006-01-02T15:04:05.000Z07:00"
 	// RFC3339Micro represents a ISO8601 format to micro instead of to nano
 	RFC3339Micro = "2006-01-02T15:04:05.000000Z07:00"
+	// ISO8601LocalTime represents a ISO8601 format to ISO8601 in local time (no timezone)
+	ISO8601LocalTime = "2006-01-02T15:04:05"
+	// ISO8601TimeWithReducedPrecision represents a ISO8601 format with reduced precision (dropped secs)
+	ISO8601TimeWithReducedPrecision = "2006-01-02T15:04Z"
+	// ISO8601TimeWithReducedPrecision represents a ISO8601 format with reduced precision and no timezone (dropped seconds + no timezone)
+	ISO8601TimeWithReducedPrecisionLocaltime = "2006-01-02T15:04"
 	// DateTimePattern pattern to match for the date-time format from http://tools.ietf.org/html/rfc3339#section-5.6
 	DateTimePattern = `^([0-9]{2}):([0-9]{2}):([0-9]{2})(.[0-9]+)?(z|([+-][0-9]{2}:[0-9]{2}))$`
 )
 
 var (
-	dateTimeFormats = []string{RFC3339Micro, RFC3339Millis, time.RFC3339, time.RFC3339Nano}
+	dateTimeFormats = []string{RFC3339Micro, RFC3339Millis, time.RFC3339, time.RFC3339Nano, ISO8601LocalTime, ISO8601TimeWithReducedPrecision, ISO8601TimeWithReducedPrecisionLocaltime}
 	rxDateTime      = regexp.MustCompile(DateTimePattern)
 	// MarshalFormat sets the time resolution format used for marshaling time (set to milliseconds)
 	MarshalFormat = RFC3339Millis
@@ -79,7 +86,6 @@ func ParseDateTime(data string) (DateTime, error) {
 			lastError = err
 			continue
 		}
-		lastError = nil
 		return DateTime(dd), nil
 	}
 	return DateTime{}, lastError
@@ -144,54 +150,72 @@ func (t DateTime) Value() (driver.Value, error) {
 
 // MarshalJSON returns the DateTime as JSON
 func (t DateTime) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	t.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the DateTime to a easyjson.Writer
-func (t DateTime) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(time.Time(t).Format(MarshalFormat))
+	return json.Marshal(time.Time(t).Format(MarshalFormat))
 }
 
 // UnmarshalJSON sets the DateTime from JSON
 func (t *DateTime) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	t.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the DateTime from a easyjson.Lexer
-func (t *DateTime) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		tt, err := ParseDateTime(data)
-		if err != nil {
-			in.AddError(err)
-			return
-		}
-		*t = tt
+	if string(data) == jsonNull {
+		return nil
 	}
+
+	var tstr string
+	if err := json.Unmarshal(data, &tstr); err != nil {
+		return err
+	}
+	tt, err := ParseDateTime(tstr)
+	if err != nil {
+		return err
+	}
+	*t = tt
+	return nil
 }
 
-// GetBSON returns the DateTime as a bson.M{} map.
-func (t *DateTime) GetBSON() (interface{}, error) {
-	return bson.M{"data": t.String()}, nil
+// MarshalBSON renders the DateTime as a BSON document
+func (t DateTime) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(bson.M{"data": t})
 }
 
-// SetBSON sets the DateTime from raw bson data
-func (t *DateTime) SetBSON(raw bson.Raw) error {
-	var m bson.M
-	if err := raw.Unmarshal(&m); err != nil {
+// UnmarshalBSON reads the DateTime from a BSON document
+func (t *DateTime) UnmarshalBSON(data []byte) error {
+	var obj struct {
+		Data DateTime
+	}
+
+	if err := bson.Unmarshal(data, &obj); err != nil {
 		return err
 	}
 
-	if data, ok := m["data"].(string); ok {
-		var err error
-		*t, err = ParseDateTime(data)
-		return err
-	}
+	*t = obj.Data
 
-	return errors.New("couldn't unmarshal bson raw value as Duration")
+	return nil
+}
+
+// MarshalBSONValue is an interface implemented by types that can marshal themselves
+// into a BSON document represented as bytes. The bytes returned must be a valid
+// BSON document if the error is nil.
+// Marshals a DateTime as a bsontype.DateTime, an int64 representing
+// milliseconds since epoch.
+func (t DateTime) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	// UnixNano cannot be used, the result of calling UnixNano on the zero
+	// Time is undefined.
+	i64 := time.Time(t).Unix() * 1000
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, uint64(i64))
+
+	return bsontype.DateTime, buf, nil
+}
+
+// UnmarshalBSONValue is an interface implemented by types that can unmarshal a
+// BSON value representation of themselves. The BSON bytes and type can be
+// assumed to be valid. UnmarshalBSONValue must copy the BSON value bytes if it
+// wishes to retain the data after returning.
+func (t *DateTime) UnmarshalBSONValue(tpe bsontype.Type, data []byte) error {
+	i64 := int64(binary.LittleEndian.Uint64(data))
+	// TODO: Use bsonprim.DateTime.Time() method
+	*t = DateTime(time.Unix(i64/1000, i64%1000*1000000))
+
+	return nil
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -207,4 +231,33 @@ func (t *DateTime) DeepCopy() *DateTime {
 	out := new(DateTime)
 	t.DeepCopyInto(out)
 	return out
+}
+
+// GobEncode implements the gob.GobEncoder interface.
+func (t DateTime) GobEncode() ([]byte, error) {
+	return t.MarshalBinary()
+}
+
+// GobDecode implements the gob.GobDecoder interface.
+func (t *DateTime) GobDecode(data []byte) error {
+	return t.UnmarshalBinary(data)
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (t DateTime) MarshalBinary() ([]byte, error) {
+	return time.Time(t).MarshalBinary()
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (t *DateTime) UnmarshalBinary(data []byte) error {
+	var original time.Time
+
+	err := original.UnmarshalBinary(data)
+	if err != nil {
+		return err
+	}
+
+	*t = DateTime(original)
+
+	return nil
 }

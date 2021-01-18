@@ -21,36 +21,8 @@ func AddPlural(suffix string, repl string) {
 }
 
 var singleToPlural = map[string]string{
-	"human":       "humans",
-	"matrix":      "matrices",
-	"vertix":      "vertices",
-	"index":       "indices",
-	"mouse":       "mice",
-	"louse":       "lice",
-	"ress":        "resses",
-	"ox":          "oxen",
-	"quiz":        "quizzes",
-	"series":      "series",
-	"octopus":     "octopi",
-	"equipment":   "equipment",
-	"information": "information",
-	"rice":        "rice",
-	"money":       "money",
-	"species":     "species",
-	"fish":        "fish",
-	"sheep":       "sheep",
-	"jeans":       "jeans",
-	"police":      "police",
-	"dear":        "dear",
-	"goose":       "geese",
-	"tooth":       "teeth",
-	"foot":        "feet",
-	"bus":         "buses",
-	"fez":         "fezzes",
-	"piano":       "pianos",
-	"halo":        "halos",
-	"photo":       "photos",
 	"aircraft":    "aircraft",
+	"alias":       "aliases",
 	"alumna":      "alumnae",
 	"alumnus":     "alumni",
 	"analysis":    "analyses",
@@ -65,48 +37,84 @@ var singleToPlural = map[string]string{
 	"beau":        "beaus",
 	"bison":       "bison",
 	"bureau":      "bureaus",
+	"bus":         "buses",
 	"campus":      "campuses",
+	"caucus":      "caucuses",
 	"château":     "châteaux",
+	"circus":      "circuses",
 	"codex":       "codices",
 	"concerto":    "concertos",
 	"corpus":      "corpora",
 	"crisis":      "crises",
 	"curriculum":  "curriculums",
+	"datum":       "data",
+	"dear":        "dear",
 	"deer":        "deer",
 	"diagnosis":   "diagnoses",
 	"die":         "dice",
 	"dwarf":       "dwarves",
 	"ellipsis":    "ellipses",
+	"equipment":   "equipment",
 	"erratum":     "errata",
 	"faux pas":    "faux pas",
+	"fez":         "fezzes",
+	"fish":        "fish",
 	"focus":       "foci",
+	"foo":         "foos",
+	"foot":        "feet",
 	"formula":     "formulas",
 	"fungus":      "fungi",
 	"genus":       "genera",
+	"goose":       "geese",
 	"graffito":    "graffiti",
 	"grouse":      "grouse",
 	"half":        "halves",
+	"halo":        "halos",
 	"hoof":        "hooves",
+	"human":       "humans",
 	"hypothesis":  "hypotheses",
+	"index":       "indices",
+	"information": "information",
+	"jeans":       "jeans",
 	"larva":       "larvae",
 	"libretto":    "librettos",
 	"loaf":        "loaves",
 	"locus":       "loci",
+	"louse":       "lice",
+	"matrix":      "matrices",
 	"minutia":     "minutiae",
+	"money":       "money",
 	"moose":       "moose",
+	"mouse":       "mice",
 	"nebula":      "nebulae",
+	"news":        "news",
 	"nucleus":     "nuclei",
 	"oasis":       "oases",
+	"octopus":     "octopi",
 	"offspring":   "offspring",
 	"opus":        "opera",
+	"ovum":        "ova",
+	"ox":          "oxen",
 	"parenthesis": "parentheses",
 	"phenomenon":  "phenomena",
+	"photo":       "photos",
 	"phylum":      "phyla",
+	"piano":       "pianos",
+	"plus":        "pluses",
+	"police":      "police",
 	"prognosis":   "prognoses",
+	"prometheus":  "prometheuses",
+	"quiz":        "quizzes",
 	"radius":      "radiuses",
 	"referendum":  "referendums",
+	"ress":        "resses",
+	"rice":        "rice",
 	"salmon":      "salmon",
+	"series":      "series",
+	"sheep":       "sheep",
+	"shoe":        "shoes",
 	"shrimp":      "shrimp",
+	"species":     "species",
 	"stimulus":    "stimuli",
 	"stratum":     "strata",
 	"swine":       "swine",
@@ -114,24 +122,20 @@ var singleToPlural = map[string]string{
 	"symposium":   "symposiums",
 	"synopsis":    "synopses",
 	"tableau":     "tableaus",
+	"testis":      "testes",
 	"thesis":      "theses",
 	"thief":       "thieves",
+	"tooth":       "teeth",
 	"trout":       "trout",
 	"tuna":        "tuna",
 	"vertebra":    "vertebrae",
+	"vertix":      "vertices",
 	"vita":        "vitae",
 	"vortex":      "vortices",
 	"wharf":       "wharves",
 	"wife":        "wives",
 	"wolf":        "wolves",
-	"datum":       "data",
-	"testis":      "testes",
-	"alias":       "aliases",
-	"house":       "houses",
-	"shoe":        "shoes",
-	"news":        "news",
-	"ovum":        "ova",
-	"foo":         "foos",
+	"you":         "you",
 }
 
 var pluralToSingle = map[string]string{}
@@ -141,100 +145,140 @@ func init() {
 		pluralToSingle[v] = k
 	}
 }
+
+type singularToPluralSuffix struct {
+	singular string
+	plural   string
+}
+
+var singularToPluralSuffixList = []singularToPluralSuffix{
+	{"iterion", "iteria"},
+	{"campus", "campuses"},
+	{"genera", "genus"},
+	{"person", "people"},
+	{"phylum", "phyla"},
+	{"randum", "randa"},
+	{"actus", "acti"},
+	{"adium", "adia"},
+	{"alias", "aliases"},
+	{"basis", "basis"},
+	{"child", "children"},
+	{"chive", "chives"},
+	{"focus", "foci"},
+	{"hello", "hellos"},
+	{"jeans", "jeans"},
+	{"louse", "lice"},
+	{"mouse", "mice"},
+	{"movie", "movies"},
+	{"oasis", "oasis"},
+	{"atum", "ata"},
+	{"atus", "atuses"},
+	{"base", "bases"},
+	{"cess", "cesses"},
+	{"dium", "diums"},
+	{"eses", "esis"},
+	{"half", "halves"},
+	{"hive", "hives"},
+	{"iano", "ianos"},
+	{"irus", "iri"},
+	{"isis", "ises"},
+	{"leus", "li"},
+	{"mnus", "mni"},
+	{"move", "moves"},
+	{"news", "news"},
+	{"odex", "odice"},
+	{"oose", "eese"},
+	{"ouse", "ouses"},
+	{"ovum", "ova"},
+	{"rion", "ria"},
+	{"shoe", "shoes"},
+	{"stis", "stes"},
+	{"tive", "tives"},
+	{"wife", "wives"},
+	{"afe", "aves"},
+	{"bfe", "bves"},
+	{"box", "boxes"},
+	{"cfe", "cves"},
+	{"dfe", "dves"},
+	{"dge", "dges"},
+	{"efe", "eves"},
+	{"gfe", "gves"},
+	{"hfe", "hves"},
+	{"ife", "ives"},
+	{"itz", "itzes"},
+	{"ium", "ia"},
+	{"ize", "izes"},
+	{"jfe", "jves"},
+	{"kfe", "kves"},
+	{"man", "men"},
+	{"mfe", "mves"},
+	{"nfe", "nves"},
+	{"nna", "nnas"},
+	{"oaf", "oaves"},
+	{"oci", "ocus"},
+	{"ode", "odes"},
+	{"ofe", "oves"},
+	{"oot", "eet"},
+	{"pfe", "pves"},
+	{"pse", "psis"},
+	{"qfe", "qves"},
+	{"quy", "quies"},
+	{"rfe", "rves"},
+	{"sfe", "sves"},
+	{"tfe", "tves"},
+	{"tum", "ta"},
+	{"tus", "tuses"},
+	{"ufe", "uves"},
+	{"ula", "ulae"},
+	{"ula", "ulas"},
+	{"uli", "ulus"},
+	{"use", "uses"},
+	{"uss", "usses"},
+	{"vfe", "vves"},
+	{"wfe", "wves"},
+	{"xfe", "xves"},
+	{"yfe", "yves"},
+	{"you", "you"},
+	{"zfe", "zves"},
+	{"by", "bies"},
+	{"ch", "ches"},
+	{"cy", "cies"},
+	{"dy", "dies"},
+	{"ex", "ices"},
+	{"fy", "fies"},
+	{"gy", "gies"},
+	{"hy", "hies"},
+	{"io", "ios"},
+	{"jy", "jies"},
+	{"ky", "kies"},
+	{"ld", "ldren"},
+	{"lf", "lves"},
+	{"ly", "lies"},
+	{"my", "mies"},
+	{"ny", "nies"},
+	{"ox", "oxen"},
+	{"py", "pies"},
+	{"qy", "qies"},
+	{"rf", "rves"},
+	{"ry", "ries"},
+	{"sh", "shes"},
+	{"ss", "sses"},
+	{"sy", "sies"},
+	{"ty", "ties"},
+	{"tz", "tzes"},
+	{"va", "vae"},
+	{"vy", "vies"},
+	{"wy", "wies"},
+	{"xy", "xies"},
+	{"zy", "zies"},
+	{"zz", "zzes"},
+	{"o", "oes"},
+	{"x", "xes"},
+}
+
 func init() {
-	AddPlural("campus", "campuses")
-	AddPlural("man", "men")
-	AddPlural("tz", "tzes")
-	AddPlural("alias", "aliases")
-	AddPlural("oasis", "oasis")
-	AddPlural("wife", "wives")
-	AddPlural("basis", "basis")
-	AddPlural("atum", "ata")
-	AddPlural("adium", "adia")
-	AddPlural("actus", "acti")
-	AddPlural("irus", "iri")
-	AddPlural("iterion", "iteria")
-	AddPlural("dium", "diums")
-	AddPlural("ovum", "ova")
-	AddPlural("ize", "izes")
-	AddPlural("dge", "dges")
-	AddPlural("focus", "foci")
-	AddPlural("child", "children")
-	AddPlural("oaf", "oaves")
-	AddPlural("randum", "randa")
-	AddPlural("base", "bases")
-	AddPlural("atus", "atuses")
-	AddPlural("ode", "odes")
-	AddPlural("person", "people")
-	AddPlural("va", "vae")
-	AddPlural("leus", "li")
-	AddPlural("oot", "eet")
-	AddPlural("oose", "eese")
-	AddPlural("box", "boxes")
-	AddPlural("ium", "ia")
-	AddPlural("sis", "ses")
-	AddPlural("nna", "nnas")
-	AddPlural("eses", "esis")
-	AddPlural("stis", "stes")
-	AddPlural("ex", "ices")
-	AddPlural("ula", "ulae")
-	AddPlural("isis", "ises")
-	AddPlural("ouses", "ouse")
-	AddPlural("olves", "olf")
-	AddPlural("lf", "lves")
-	AddPlural("rf", "rves")
-	AddPlural("afe", "aves")
-	AddPlural("bfe", "bves")
-	AddPlural("cfe", "cves")
-	AddPlural("dfe", "dves")
-	AddPlural("efe", "eves")
-	AddPlural("gfe", "gves")
-	AddPlural("hfe", "hves")
-	AddPlural("ife", "ives")
-	AddPlural("jfe", "jves")
-	AddPlural("kfe", "kves")
-	AddPlural("lfe", "lves")
-	AddPlural("mfe", "mves")
-	AddPlural("nfe", "nves")
-	AddPlural("ofe", "oves")
-	AddPlural("pfe", "pves")
-	AddPlural("qfe", "qves")
-	AddPlural("rfe", "rves")
-	AddPlural("sfe", "sves")
-	AddPlural("tfe", "tves")
-	AddPlural("ufe", "uves")
-	AddPlural("vfe", "vves")
-	AddPlural("wfe", "wves")
-	AddPlural("xfe", "xves")
-	AddPlural("yfe", "yves")
-	AddPlural("zfe", "zves")
-	AddPlural("hive", "hives")
-	AddPlural("quy", "quies")
-	AddPlural("by", "bies")
-	AddPlural("cy", "cies")
-	AddPlural("dy", "dies")
-	AddPlural("fy", "fies")
-	AddPlural("gy", "gies")
-	AddPlural("hy", "hies")
-	AddPlural("jy", "jies")
-	AddPlural("ky", "kies")
-	AddPlural("ly", "lies")
-	AddPlural("my", "mies")
-	AddPlural("ny", "nies")
-	AddPlural("py", "pies")
-	AddPlural("qy", "qies")
-	AddPlural("ry", "ries")
-	AddPlural("sy", "sies")
-	AddPlural("ty", "ties")
-	AddPlural("vy", "vies")
-	AddPlural("wy", "wies")
-	AddPlural("xy", "xies")
-	AddPlural("zy", "zies")
-	AddPlural("x", "xes")
-	AddPlural("ch", "ches")
-	AddPlural("ss", "sses")
-	AddPlural("sh", "shes")
-	AddPlural("oe", "oes")
-	AddPlural("io", "ios")
-	AddPlural("o", "oes")
+	for _, suffix := range singularToPluralSuffixList {
+		AddPlural(suffix.singular, suffix.plural)
+		AddSingular(suffix.plural, suffix.singular)
+	}
 }

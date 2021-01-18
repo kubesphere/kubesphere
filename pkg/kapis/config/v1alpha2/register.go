@@ -18,11 +18,7 @@ package v1alpha2
 
 import (
 	"github.com/emicklei/go-restful"
-	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	kubesphereconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 )
@@ -39,20 +35,7 @@ func AddToContainer(c *restful.Container, config *kubesphereconfig.Config) error
 	webservice.Route(webservice.GET("/configs/oauth").
 		Doc("Information about the authorization server are published.").
 		To(func(request *restful.Request, response *restful.Response) {
-			// workaround for this issue https://github.com/go-yaml/yaml/issues/139
-			// fixed in gopkg.in/yaml.v3
-			yamlData, err := yaml.Marshal(config.AuthenticationOptions.OAuthOptions)
-			if err != nil {
-				klog.Error(err)
-				api.HandleInternalError(response, request, err)
-			}
-			var options oauth.Options
-			err = yaml.Unmarshal(yamlData, &options)
-			if err != nil {
-				klog.Error(err)
-				api.HandleInternalError(response, request, err)
-			}
-			response.WriteEntity(options)
+			response.WriteEntity(config.AuthenticationOptions.OAuthOptions)
 		}))
 
 	webservice.Route(webservice.GET("/configs/configz").

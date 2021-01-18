@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var provisionercapabilitiesResource = schema.GroupVersionResource{Group: "storag
 var provisionercapabilitiesKind = schema.GroupVersionKind{Group: "storage.kubesphere.io", Version: "v1alpha1", Kind: "ProvisionerCapability"}
 
 // Get takes name of the provisionerCapability, and returns the corresponding provisionerCapability object, and an error if there is any.
-func (c *FakeProvisionerCapabilities) Get(name string, options v1.GetOptions) (result *v1alpha1.ProvisionerCapability, err error) {
+func (c *FakeProvisionerCapabilities) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ProvisionerCapability, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(provisionercapabilitiesResource, name), &v1alpha1.ProvisionerCapability{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeProvisionerCapabilities) Get(name string, options v1.GetOptions) (r
 }
 
 // List takes label and field selectors, and returns the list of ProvisionerCapabilities that match those selectors.
-func (c *FakeProvisionerCapabilities) List(opts v1.ListOptions) (result *v1alpha1.ProvisionerCapabilityList, err error) {
+func (c *FakeProvisionerCapabilities) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ProvisionerCapabilityList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(provisionercapabilitiesResource, provisionercapabilitiesKind, opts), &v1alpha1.ProvisionerCapabilityList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeProvisionerCapabilities) List(opts v1.ListOptions) (result *v1alpha
 }
 
 // Watch returns a watch.Interface that watches the requested provisionerCapabilities.
-func (c *FakeProvisionerCapabilities) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeProvisionerCapabilities) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(provisionercapabilitiesResource, opts))
 }
 
 // Create takes the representation of a provisionerCapability and creates it.  Returns the server's representation of the provisionerCapability, and an error, if there is any.
-func (c *FakeProvisionerCapabilities) Create(provisionerCapability *v1alpha1.ProvisionerCapability) (result *v1alpha1.ProvisionerCapability, err error) {
+func (c *FakeProvisionerCapabilities) Create(ctx context.Context, provisionerCapability *v1alpha1.ProvisionerCapability, opts v1.CreateOptions) (result *v1alpha1.ProvisionerCapability, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(provisionercapabilitiesResource, provisionerCapability), &v1alpha1.ProvisionerCapability{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeProvisionerCapabilities) Create(provisionerCapability *v1alpha1.Pro
 }
 
 // Update takes the representation of a provisionerCapability and updates it. Returns the server's representation of the provisionerCapability, and an error, if there is any.
-func (c *FakeProvisionerCapabilities) Update(provisionerCapability *v1alpha1.ProvisionerCapability) (result *v1alpha1.ProvisionerCapability, err error) {
+func (c *FakeProvisionerCapabilities) Update(ctx context.Context, provisionerCapability *v1alpha1.ProvisionerCapability, opts v1.UpdateOptions) (result *v1alpha1.ProvisionerCapability, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(provisionercapabilitiesResource, provisionerCapability), &v1alpha1.ProvisionerCapability{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeProvisionerCapabilities) Update(provisionerCapability *v1alpha1.Pro
 }
 
 // Delete takes name of the provisionerCapability and deletes it. Returns an error if one occurs.
-func (c *FakeProvisionerCapabilities) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeProvisionerCapabilities) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(provisionercapabilitiesResource, name), &v1alpha1.ProvisionerCapability{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeProvisionerCapabilities) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(provisionercapabilitiesResource, listOptions)
+func (c *FakeProvisionerCapabilities) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(provisionercapabilitiesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.ProvisionerCapabilityList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched provisionerCapability.
-func (c *FakeProvisionerCapabilities) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ProvisionerCapability, err error) {
+func (c *FakeProvisionerCapabilities) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ProvisionerCapability, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(provisionercapabilitiesResource, name, pt, data, subresources...), &v1alpha1.ProvisionerCapability{})
 	if obj == nil {

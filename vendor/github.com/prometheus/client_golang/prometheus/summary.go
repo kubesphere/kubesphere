@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/beorn7/perks/quantile"
+	//lint:ignore SA1019 Need to keep deprecated package for compatibility.
 	"github.com/golang/protobuf/proto"
 
 	dto "github.com/prometheus/client_model/go"
@@ -58,16 +59,8 @@ type Summary interface {
 	Observe(float64)
 }
 
-// DefObjectives are the default Summary quantile values.
-//
-// Deprecated: DefObjectives will not be used as the default objectives in
-// v1.0.0 of the library. The default Summary will have no quantiles then.
-var (
-	DefObjectives = map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001}
-
-	errQuantileLabelNotAllowed = fmt.Errorf(
-		"%q is not allowed as label name in summaries", quantileLabel,
-	)
+var errQuantileLabelNotAllowed = fmt.Errorf(
+	"%q is not allowed as label name in summaries", quantileLabel,
 )
 
 // Default values for SummaryOpts.
@@ -123,14 +116,8 @@ type SummaryOpts struct {
 	// Objectives defines the quantile rank estimates with their respective
 	// absolute error. If Objectives[q] = e, then the value reported for q
 	// will be the φ-quantile value for some φ between q-e and q+e.  The
-	// default value is DefObjectives. It is used if Objectives is left at
-	// its zero value (i.e. nil). To create a Summary without Objectives,
-	// set it to an empty map (i.e. map[float64]float64{}).
-	//
-	// Note that the current value of DefObjectives is deprecated. It will
-	// be replaced by an empty map in v1.0.0 of the library. Please
-	// explicitly set Objectives to the desired value to avoid problems
-	// during the transition.
+	// default value is an empty map, resulting in a summary without
+	// quantiles.
 	Objectives map[float64]float64
 
 	// MaxAge defines the duration for which an observation stays relevant
@@ -199,7 +186,7 @@ func newSummary(desc *Desc, opts SummaryOpts, labelValues ...string) Summary {
 	}
 
 	if opts.Objectives == nil {
-		opts.Objectives = DefObjectives
+		opts.Objectives = map[float64]float64{}
 	}
 
 	if opts.MaxAge < 0 {
@@ -222,7 +209,7 @@ func newSummary(desc *Desc, opts SummaryOpts, labelValues ...string) Summary {
 		s := &noObjectivesSummary{
 			desc:       desc,
 			labelPairs: makeLabelPairs(desc, labelValues),
-			counts:     [2]*summaryCounts{&summaryCounts{}, &summaryCounts{}},
+			counts:     [2]*summaryCounts{{}, {}},
 		}
 		s.init(s) // Init self-collection.
 		return s

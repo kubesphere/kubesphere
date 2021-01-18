@@ -35,7 +35,7 @@ func AsVersion(original apiext.CustomResourceDefinition, gv schema.GroupVersion)
 	// questionable decision.
 	intVer, err := conversionScheme.ConvertToVersion(&original, apiextinternal.SchemeGroupVersion)
 	if err != nil {
-		return nil, fmt.Errorf("unable to convert to internal CRD version: %v", err)
+		return nil, fmt.Errorf("unable to convert to internal CRD version: %w", err)
 	}
 
 	return conversionScheme.ConvertToVersion(intVer, gv)

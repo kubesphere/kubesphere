@@ -48,6 +48,14 @@ func (c *FakeTypesV1beta1) FederatedDeployments(namespace string) v1beta1.Federa
 	return &FakeFederatedDeployments{c, namespace}
 }
 
+func (c *FakeTypesV1beta1) FederatedGroups() v1beta1.FederatedGroupInterface {
+	return &FakeFederatedGroups{c}
+}
+
+func (c *FakeTypesV1beta1) FederatedGroupBindings() v1beta1.FederatedGroupBindingInterface {
+	return &FakeFederatedGroupBindings{c}
+}
+
 func (c *FakeTypesV1beta1) FederatedIngresses(namespace string) v1beta1.FederatedIngressInterface {
 	return &FakeFederatedIngresses{c, namespace}
 }
@@ -82,14 +90,6 @@ func (c *FakeTypesV1beta1) FederatedServices(namespace string) v1beta1.Federated
 
 func (c *FakeTypesV1beta1) FederatedStatefulSets(namespace string) v1beta1.FederatedStatefulSetInterface {
 	return &FakeFederatedStatefulSets{c, namespace}
-}
-
-func (c *FakeTypesV1beta1) FederatedUsers(namespace string) v1beta1.FederatedUserInterface {
-	return &FakeFederatedUsers{c, namespace}
-}
-
-func (c *FakeTypesV1beta1) FederatedWorkspaces() v1beta1.FederatedWorkspaceInterface {
-	return &FakeFederatedWorkspaces{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

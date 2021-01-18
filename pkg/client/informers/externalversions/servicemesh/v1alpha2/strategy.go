@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,13 +62,13 @@ func NewFilteredStrategyInformer(client versioned.Interface, namespace string, r
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ServicemeshV1alpha2().Strategies(namespace).List(options)
+				return client.ServicemeshV1alpha2().Strategies(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ServicemeshV1alpha2().Strategies(namespace).Watch(options)
+				return client.ServicemeshV1alpha2().Strategies(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&servicemeshv1alpha2.Strategy{},

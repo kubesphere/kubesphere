@@ -17,9 +17,14 @@ limitations under the License.
 package pipeline
 
 import (
+	"context"
 	"fmt"
+	"github.com/emicklei/go-restful"
+	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1informer "k8s.io/client-go/informers/core/v1"
@@ -31,14 +36,17 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	hashutil "k8s.io/kubernetes/pkg/util/hash"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devopsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha3"
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"net/http"
 	"reflect"
 	"time"
 )
@@ -224,6 +232,23 @@ func (c *Controller) syncHandler(key string) error {
 	copyPipeline := pipeline.DeepCopy()
 	// DeletionTimestamp.IsZero() means copyPipeline has not been deleted.
 	if copyPipeline.ObjectMeta.DeletionTimestamp.IsZero() {
+		// make sure Annotations is not nil
+		if copyPipeline.Annotations == nil {
+			copyPipeline.Annotations = map[string]string{}
+		}
+
+		//If the sync is successful, return handle
+		if state, ok := copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+			specHash := computeHash(copyPipeline.Spec)
+			oldHash, _ := copyPipeline.Annotations[devopsv1alpha3.PipelineSpecHash] // don't need to check if it's nil, only compare if they're different
+			if specHash == oldHash {
+				// it was synced successfully, and there's any change with the Pipeline spec, skip this round
+				return nil
+			} else {
+				copyPipeline.Annotations[devopsv1alpha3.PipelineSpecHash] = specHash
+			}
+		}
+
 		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
 		if !sliceutil.HasString(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName) {
 			copyPipeline.ObjectMeta.Finalizers = append(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName)
@@ -239,6 +264,8 @@ func (c *Controller) syncHandler(key string) error {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline config %s ", key))
 					return err
 				}
+			} else {
+				klog.V(8).Info(fmt.Sprintf("nothing was changed, pipeline '%v'", copyPipeline.Spec))
 			}
 		} else {
 			_, err := c.devopsClient.CreateProjectPipeline(nsName, copyPipeline)
@@ -248,27 +275,53 @@ func (c *Controller) syncHandler(key string) error {
 			}
 		}
 
+		//If there is no early return, then the sync is successful.
+		copyPipeline.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName) {
+			delSuccess := false
 			if _, err := c.devopsClient.DeleteProjectPipeline(nsName, pipeline.Name); err != nil {
-				klog.V(8).Info(err, fmt.Sprintf("failed to delete pipeline %s in devops", key))
-			}
-			copyPipeline.ObjectMeta.Finalizers = sliceutil.RemoveString(copyPipeline.ObjectMeta.Finalizers, func(item string) bool {
-				return item == devopsv1alpha3.PipelineFinalizerName
-			})
+				// the status code should be 404 if the job does not exists
+				if srvErr, ok := err.(restful.ServiceError); ok {
+					delSuccess = srvErr.Code == http.StatusNotFound
+				} else if srvErr, ok := err.(*devopsClient.ErrorResponse); ok {
+					delSuccess = srvErr.Response.StatusCode == http.StatusNotFound
+				} else {
+					klog.Error(fmt.Sprintf("unexpected error type: %v, should be *restful.ServiceError", err))
+				}
 
+				klog.V(8).Info(err, fmt.Sprintf("failed to delete pipeline %s in devops", key))
+			} else {
+				delSuccess = true
+			}
+
+			if delSuccess {
+				copyPipeline.ObjectMeta.Finalizers = sliceutil.RemoveString(copyPipeline.ObjectMeta.Finalizers, func(item string) bool {
+					return item == devopsv1alpha3.PipelineFinalizerName
+				})
+			} else {
+				// make sure the corresponding Jenkins job can be clean
+				// You can remove the finalizer via kubectl manually in a very special case that Jenkins might be not able to available anymore
+				return fmt.Errorf("failed to remove pipeline job finalizer due to bad communication with Jenkins")
+			}
 		}
 	}
+
 	if !reflect.DeepEqual(pipeline, copyPipeline) {
-		_, err = c.kubesphereClient.DevopsV1alpha3().Pipelines(nsName).Update(copyPipeline)
+		_, err = c.kubesphereClient.DevopsV1alpha3().Pipelines(nsName).Update(context.Background(), copyPipeline, metav1.UpdateOptions{})
 		if err != nil {
 			klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline %s ", key))
 			return err
 		}
 	}
-
 	return nil
+}
+
+func computeHash(obj interface{}) string {
+	hasher := fnv.New32a()
+	hashutil.DeepHashObject(hasher, obj)
+	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
 }
 
 func isDevOpsProjectAdminNamespace(namespace *v1.Namespace) bool {

@@ -286,7 +286,9 @@ func init() {
 	proto.RegisterMapType((map[string]string)(nil), "istio.policy.v1beta1.DirectHttpResponse.HeadersEntry")
 }
 
-func init() { proto.RegisterFile("policy/v1beta1/http_response.proto", fileDescriptor_dffd274153c8a074) }
+func init() {
+	proto.RegisterFile("policy/v1beta1/http_response.proto", fileDescriptor_dffd274153c8a074)
+}
 
 var fileDescriptor_dffd274153c8a074 = []byte{
 	// 1042 bytes of a gzipped FileDescriptorProto

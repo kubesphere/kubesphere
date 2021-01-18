@@ -17,7 +17,9 @@ limitations under the License.
 package jenkins
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
@@ -73,8 +75,8 @@ const (
 	GithubWebhookUrl      = "/github-webhook/"
 	CheckScriptCompileUrl = "/job/%s/job/%s/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile"
 
-	CheckPipelienCronUrl = "/job/%s/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
-	CheckCronUrl         = "/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
+	CheckPipelienCronUrl = "/job/%s/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?%s"
+	CheckCronUrl         = "/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?%s"
 	ToJenkinsfileUrl     = "/pipeline-model-converter/toJenkinsfile"
 	ToJsonUrl            = "/pipeline-model-converter/toJson"
 
@@ -98,9 +100,20 @@ func (p *Pipeline) GetPipeline() (*devops.Pipeline, error) {
 }
 
 func (p *Pipeline) ListPipelines() (*devops.PipelineList, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	res, _, err := p.Jenkins.SendPureRequestWithHeaderResp(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
+		if jErr, ok := err.(*JkError); ok {
+			switch jErr.Code {
+			case 404:
+				err = fmt.Errorf("please check if there're any Jenkins plugins issues exist")
+			default:
+				err = fmt.Errorf("please check if Jenkins is running well")
+			}
+			klog.Errorf("API '%s' request response code is '%d'", p.Path, jErr.Code)
+		} else {
+			err = fmt.Errorf("unknow errors happend when coumunicate with Jenkins")
+		}
 		return nil, err
 	}
 	count, err := p.searchPipelineCount()
@@ -661,52 +674,80 @@ func (p *Pipeline) CheckScriptCompile() (*devops.CheckScript, error) {
 }
 
 func (p *Pipeline) CheckCron() (*devops.CheckCronRes, error) {
-
 	var res = new(devops.CheckCronRes)
-
-	Url, err := url.Parse(p.Jenkins.Server + p.Path)
 
 	reqJenkins := &http.Request{
 		Method: http.MethodGet,
-		URL:    Url,
 		Header: p.HttpParameters.Header,
+	}
+	if cronServiceURL, err := url.Parse(p.Jenkins.Server + p.Path); err != nil {
+		klog.Errorf(fmt.Sprintf("cannot parse Jenkins cronService URL, error: %#v", err))
+		return interanlErrorMessage(), err
+	} else {
+		reqJenkins.URL = cronServiceURL
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
-
+	reqJenkins.SetBasicAuth(p.Jenkins.Requester.BasicAuth.Username, p.Jenkins.Requester.BasicAuth.Password)
 	resp, err := client.Do(reqJenkins)
-
-	if resp != nil && resp.StatusCode != http.StatusOK {
-		resBody, _ := getRespBody(resp)
-		return &devops.CheckCronRes{
-			Result:  "error",
-			Message: string(resBody),
-		}, err
-	}
 	if err != nil {
 		klog.Error(err)
-		return nil, err
+		return interanlErrorMessage(), err
 	}
-	defer resp.Body.Close()
 
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	var responseText string
+	if resp != nil {
+		if responseData, err := getRespBody(resp); err == nil {
+			responseText = string(responseData)
+		} else {
+			klog.Error(err)
+			return interanlErrorMessage(), fmt.Errorf("cannot get the response body from the Jenkins cron service request, %#v", err)
+		}
+
+		defer func() {
+			_ = resp.Body.Close()
+		}()
+
+		statusCode := resp.StatusCode
+		if statusCode != http.StatusOK && statusCode != http.StatusBadRequest {
+			// the response body is meaningless for the users, but it's useful for a contributor
+			klog.Errorf("cron service from Jenkins is unavailable, error response: %v, status code: %d", responseText, statusCode)
+			return interanlErrorMessage(), err
+		}
+	}
+	klog.V(8).Infof("response text: %s", responseText)
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader([]byte(responseText)))
 	if err != nil {
 		klog.Error(err)
-		return nil, err
+		return interanlErrorMessage(), err
 	}
+	// it gives a message which located in <div>...</div> when the status code is 200
 	doc.Find("div").Each(func(i int, selection *goquery.Selection) {
 		res.Message = selection.Text()
 		res.Result, _ = selection.Attr("class")
+	})
+	// it gives a message which located in <pre>...</pre> when the status code is 400
+	doc.Find("pre").Each(func(i int, selection *goquery.Selection) {
+		res.Message = selection.Text()
+		res.Result = "error"
 	})
 	if res.Result == "ok" {
 		res.LastTime, res.NextTime, err = parseCronJobTime(res.Message)
 		if err != nil {
 			klog.Error(err)
-			return nil, err
+			return interanlErrorMessage(), err
 		}
 	}
 
 	return res, err
+}
+
+func interanlErrorMessage() *devops.CheckCronRes {
+	return &devops.CheckCronRes{
+		Result:  "error",
+		Message: "internal errors happened, get more details by checking ks-apiserver log output",
+	}
 }
 
 func parseCronJobTime(msg string) (string, string, error) {

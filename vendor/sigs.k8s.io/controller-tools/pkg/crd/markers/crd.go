@@ -45,6 +45,9 @@ var CRDMarkers = []*definitionWithHelp{
 
 	must(markers.MakeDefinition("kubebuilder:skipversion", markers.DescribesType, SkipVersion{})).
 		WithHelp(SkipVersion{}.Help()),
+
+	must(markers.MakeDefinition("kubebuilder:unservedversion", markers.DescribesType, UnservedVersion{})).
+		WithHelp(UnservedVersion{}.Help()),
 }
 
 // TODO: categories and singular used to be annotations types
@@ -277,6 +280,9 @@ func (s Resource) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version s
 	if s.Path != "" {
 		crd.Names.Plural = s.Path
 	}
+	if s.Singular != "" {
+		crd.Names.Singular = s.Singular
+	}
 	crd.Names.ShortNames = s.ShortName
 	crd.Names.Categories = s.Categories
 
@@ -287,6 +293,25 @@ func (s Resource) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version s
 		crd.Scope = apiext.ResourceScope(s.Scope)
 	}
 
+	return nil
+}
+
+// +controllertools:marker:generateHelp:category=CRD
+
+// UnservedVersion does not serve this version.
+//
+// This is useful if you need to drop support for a version in favor of a newer version.
+type UnservedVersion struct{}
+
+func (s UnservedVersion) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version string) error {
+	for i := range crd.Versions {
+		ver := &crd.Versions[i]
+		if ver.Name != version {
+			continue
+		}
+		ver.Served = false
+		break
+	}
 	return nil
 }
 

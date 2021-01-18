@@ -41,6 +41,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/rbac"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
@@ -54,6 +55,7 @@ import (
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
+	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
 	notificationv1 "kubesphere.io/kubesphere/pkg/kapis/notification/v1"
 	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
@@ -64,8 +66,12 @@ import (
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/kapis/version"
+	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/group"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
@@ -76,9 +82,12 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
+	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
 	"net/http"
 	rt "runtime"
+	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"strconv"
 	"time"
 )
 
@@ -136,10 +145,12 @@ type APIServer struct {
 	EventsClient events.Client
 
 	AuditingClient auditing.Client
+
+	// controller-runtime cache
+	RuntimeCache runtimecache.Cache
 }
 
 func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
-
 	s.container = restful.NewContainer()
 	s.container.Filter(logRequestAndResponse)
 	s.container.Router(restful.CurlyRouter{})
@@ -148,6 +159,9 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	})
 
 	s.installKubeSphereAPIs()
+
+	s.installMetricsAPI()
+	s.container.Filter(monitorRequest)
 
 	for _, ws := range s.container.RegisteredWebServices() {
 		klog.V(2).Infof("%s", ws.RootPath())
@@ -160,19 +174,45 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	return nil
 }
 
+func monitorRequest(r *restful.Request, response *restful.Response, chain *restful.FilterChain) {
+	start := time.Now()
+	chain.ProcessFilter(r, response)
+	reqInfo, exists := request.RequestInfoFrom(r.Request.Context())
+	if exists && reqInfo.APIGroup != "" {
+		RequestCounter.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource, strconv.Itoa(response.StatusCode())).Inc()
+		elapsedSeconds := time.Now().Sub(start).Seconds()
+		RequestLatencies.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource).Observe(elapsedSeconds)
+	}
+}
+
+func (s *APIServer) installMetricsAPI() {
+	registerMetrics()
+	metrics.Defaults.Install(s.container)
+}
+
 // Install all kubesphere api groups
 // Installation happens before all informers start to cache objects, so
 //   any attempt to list objects using listers will get empty results.
 func (s *APIServer) installKubeSphereAPIs() {
+	imOperator := im.NewOperator(s.KubernetesClient.KubeSphere(),
+		user.New(s.InformerFactory.KubeSphereSharedInformerFactory(),
+			s.InformerFactory.KubernetesSharedInformerFactory()),
+		loginrecord.New(s.InformerFactory.KubeSphereSharedInformerFactory()),
+		s.Config.AuthenticationOptions)
+	amOperator := am.NewOperator(s.KubernetesClient.KubeSphere(),
+		s.KubernetesClient.Kubernetes(),
+		s.InformerFactory)
+	rbacAuthorizer := rbac.NewRBACAuthorizer(amOperator)
+
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
-	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
+	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory, s.RuntimeCache))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.MonitoringClient, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory,
 		s.KubernetesClient.Master()))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
-		s.KubernetesClient.KubeSphere(), s.EventsClient, s.LoggingClient, s.AuditingClient))
+		s.KubernetesClient.KubeSphere(), s.EventsClient, s.LoggingClient, s.AuditingClient, amOperator, rbacAuthorizer))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(s.container,
 		s.InformerFactory.KubernetesSharedInformerFactory(),
@@ -180,29 +220,33 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.MultiClusterOptions.ProxyPublishService,
 		s.Config.MultiClusterOptions.ProxyPublishAddress,
 		s.Config.MultiClusterOptions.AgentImage))
-	imOperator := im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory, s.Config.AuthenticationOptions)
-	urlruntime.Must(iamapi.AddToContainer(s.container, imOperator,
-		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
-		s.Config.AuthenticationOptions))
+	urlruntime.Must(iamapi.AddToContainer(s.container, imOperator, amOperator,
+		group.New(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
+		rbacAuthorizer))
 
 	urlruntime.Must(oauth.AddToContainer(s.container, imOperator,
-		im.NewTokenOperator(
+		auth.NewTokenOperator(
 			s.CacheClient,
 			s.Config.AuthenticationOptions),
-		im.NewPasswordAuthenticator(
+		auth.NewPasswordAuthenticator(
 			s.KubernetesClient.KubeSphere(),
 			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
 			s.Config.AuthenticationOptions),
-		im.NewLoginRecorder(s.KubernetesClient.KubeSphere()),
+		auth.NewOAuth2Authenticator(s.KubernetesClient.KubeSphere(),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
+			s.Config.AuthenticationOptions),
+		auth.NewLoginRecorder(s.KubernetesClient.KubeSphere()),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
+	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container,
 		s.InformerFactory.KubeSphereSharedInformerFactory(),
 		s.DevopsClient,
 		s.SonarClient,
 		s.KubernetesClient.KubeSphere(),
 		s.S3Client,
-		s.Config.DevopsOptions.Host))
+		s.Config.DevopsOptions.Host,
+		amOperator))
 	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container,
 		s.DevopsClient,
 		s.KubernetesClient.Kubernetes(),
@@ -260,7 +304,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 
 	if s.Config.AuditingOptions.Enable {
 		handler = filters.WithAuditing(handler,
-			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions.WebhookUrl, stopCh))
+			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions, stopCh))
 	}
 
 	var authorizers authorizer.Authorizer
@@ -273,10 +317,10 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	default:
 		fallthrough
 	case authorizationoptions.RBAC:
-		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version"}
+		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
-		authorizers = unionauthorizer.New(pathAuthorizer, authorizerfactory.NewRBACAuthorizer(amOperator))
+		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))
 	}
 
 	handler = filters.WithAuthorization(handler, authorizers)
@@ -286,13 +330,18 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
 	}
 
-	loginRecorder := im.NewLoginRecorder(s.KubernetesClient.KubeSphere())
+	loginRecorder := auth.NewLoginRecorder(s.KubernetesClient.KubeSphere())
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(im.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(), s.Config.AuthenticationOptions))),
-		bearertoken.New(jwttoken.NewTokenAuthenticator(im.NewTokenOperator(s.CacheClient, s.Config.AuthenticationOptions))))
-	handler = filters.WithAuthentication(handler, authn, loginRecorder)
+		basictoken.New(basic.NewBasicAuthenticator(auth.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
+			s.Config.AuthenticationOptions), loginRecorder)),
+		bearertoken.New(jwttoken.NewTokenAuthenticator(auth.NewTokenOperator(s.CacheClient,
+			s.Config.AuthenticationOptions),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister())))
+	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
+
 	s.Server.Handler = handler
 }
 
@@ -328,27 +377,20 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "", Version: "v1", Resource: "persistentvolumeclaims"},
 		{Group: "", Version: "v1", Resource: "secrets"},
 		{Group: "", Version: "v1", Resource: "configmaps"},
-
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "roles"},
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "rolebindings"},
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"},
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"},
-
 		{Group: "apps", Version: "v1", Resource: "deployments"},
 		{Group: "apps", Version: "v1", Resource: "daemonsets"},
 		{Group: "apps", Version: "v1", Resource: "replicasets"},
 		{Group: "apps", Version: "v1", Resource: "statefulsets"},
 		{Group: "apps", Version: "v1", Resource: "controllerrevisions"},
-
 		{Group: "storage.k8s.io", Version: "v1", Resource: "storageclasses"},
-
 		{Group: "batch", Version: "v1", Resource: "jobs"},
 		{Group: "batch", Version: "v1beta1", Resource: "cronjobs"},
-
 		{Group: "extensions", Version: "v1beta1", Resource: "ingresses"},
-
 		{Group: "autoscaling", Version: "v2beta2", Resource: "horizontalpodautoscalers"},
-
 		{Group: "networking.k8s.io", Version: "v1", Resource: "networkpolicies"},
 	}
 
@@ -375,11 +417,16 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "users"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalroles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalrolebindings"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groups"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspaceroles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspacerolebindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "loginrecords"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groups"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
+		{Group: "network.kubesphere.io", Version: "v1alpha1", Resource: "ippools"},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{
@@ -409,8 +456,6 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedIngress),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedResourceQuota),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedPersistentVolumeClaim),
-		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedWorkspace),
-		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedUser),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedApplication),
 	}
 
@@ -441,26 +486,6 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 
 	ksInformerFactory.Start(stopCh)
 	ksInformerFactory.WaitForCacheSync(stopCh)
-
-	appInformerFactory := s.InformerFactory.ApplicationSharedInformerFactory()
-
-	appGVRs := []schema.GroupVersionResource{
-		{Group: "app.k8s.io", Version: "v1beta1", Resource: "applications"},
-	}
-
-	for _, gvr := range appGVRs {
-		if !isResourceExists(gvr) {
-			klog.Warningf("resource %s not exists in the cluster", gvr)
-		} else {
-			_, err = appInformerFactory.ForResource(gvr)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	appInformerFactory.Start(stopCh)
-	appInformerFactory.WaitForCacheSync(stopCh)
 
 	snapshotInformerFactory := s.InformerFactory.SnapshotSharedInformerFactory()
 	snapshotGVRs := []schema.GroupVersionResource{
@@ -498,6 +523,10 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	}
 	apiextensionsInformerFactory.Start(stopCh)
 	apiextensionsInformerFactory.WaitForCacheSync(stopCh)
+
+	// controller runtime cache for resources
+	go s.RuntimeCache.Start(stopCh)
+	s.RuntimeCache.WaitForCacheSync(stopCh)
 
 	klog.V(0).Info("Finished caching objects")
 

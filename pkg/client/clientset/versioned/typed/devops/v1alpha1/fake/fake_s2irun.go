@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var s2irunsResource = schema.GroupVersionResource{Group: "devops.kubesphere.io",
 var s2irunsKind = schema.GroupVersionKind{Group: "devops.kubesphere.io", Version: "v1alpha1", Kind: "S2iRun"}
 
 // Get takes name of the s2iRun, and returns the corresponding s2iRun object, and an error if there is any.
-func (c *FakeS2iRuns) Get(name string, options v1.GetOptions) (result *v1alpha1.S2iRun, err error) {
+func (c *FakeS2iRuns) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.S2iRun, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(s2irunsResource, c.ns, name), &v1alpha1.S2iRun{})
 
@@ -50,7 +52,7 @@ func (c *FakeS2iRuns) Get(name string, options v1.GetOptions) (result *v1alpha1.
 }
 
 // List takes label and field selectors, and returns the list of S2iRuns that match those selectors.
-func (c *FakeS2iRuns) List(opts v1.ListOptions) (result *v1alpha1.S2iRunList, err error) {
+func (c *FakeS2iRuns) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.S2iRunList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(s2irunsResource, s2irunsKind, c.ns, opts), &v1alpha1.S2iRunList{})
 
@@ -72,14 +74,14 @@ func (c *FakeS2iRuns) List(opts v1.ListOptions) (result *v1alpha1.S2iRunList, er
 }
 
 // Watch returns a watch.Interface that watches the requested s2iRuns.
-func (c *FakeS2iRuns) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeS2iRuns) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(s2irunsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a s2iRun and creates it.  Returns the server's representation of the s2iRun, and an error, if there is any.
-func (c *FakeS2iRuns) Create(s2iRun *v1alpha1.S2iRun) (result *v1alpha1.S2iRun, err error) {
+func (c *FakeS2iRuns) Create(ctx context.Context, s2iRun *v1alpha1.S2iRun, opts v1.CreateOptions) (result *v1alpha1.S2iRun, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(s2irunsResource, c.ns, s2iRun), &v1alpha1.S2iRun{})
 
@@ -90,7 +92,7 @@ func (c *FakeS2iRuns) Create(s2iRun *v1alpha1.S2iRun) (result *v1alpha1.S2iRun, 
 }
 
 // Update takes the representation of a s2iRun and updates it. Returns the server's representation of the s2iRun, and an error, if there is any.
-func (c *FakeS2iRuns) Update(s2iRun *v1alpha1.S2iRun) (result *v1alpha1.S2iRun, err error) {
+func (c *FakeS2iRuns) Update(ctx context.Context, s2iRun *v1alpha1.S2iRun, opts v1.UpdateOptions) (result *v1alpha1.S2iRun, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(s2irunsResource, c.ns, s2iRun), &v1alpha1.S2iRun{})
 
@@ -102,7 +104,7 @@ func (c *FakeS2iRuns) Update(s2iRun *v1alpha1.S2iRun) (result *v1alpha1.S2iRun, 
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeS2iRuns) UpdateStatus(s2iRun *v1alpha1.S2iRun) (*v1alpha1.S2iRun, error) {
+func (c *FakeS2iRuns) UpdateStatus(ctx context.Context, s2iRun *v1alpha1.S2iRun, opts v1.UpdateOptions) (*v1alpha1.S2iRun, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(s2irunsResource, "status", c.ns, s2iRun), &v1alpha1.S2iRun{})
 
@@ -113,7 +115,7 @@ func (c *FakeS2iRuns) UpdateStatus(s2iRun *v1alpha1.S2iRun) (*v1alpha1.S2iRun, e
 }
 
 // Delete takes name of the s2iRun and deletes it. Returns an error if one occurs.
-func (c *FakeS2iRuns) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeS2iRuns) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(s2irunsResource, c.ns, name), &v1alpha1.S2iRun{})
 
@@ -121,15 +123,15 @@ func (c *FakeS2iRuns) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeS2iRuns) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(s2irunsResource, c.ns, listOptions)
+func (c *FakeS2iRuns) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(s2irunsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.S2iRunList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched s2iRun.
-func (c *FakeS2iRuns) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.S2iRun, err error) {
+func (c *FakeS2iRuns) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.S2iRun, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(s2irunsResource, c.ns, name, pt, data, subresources...), &v1alpha1.S2iRun{})
 

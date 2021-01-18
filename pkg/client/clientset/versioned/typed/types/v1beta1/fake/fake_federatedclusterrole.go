@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedclusterrolesResource = schema.GroupVersionResource{Group: "types.ku
 var federatedclusterrolesKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedClusterRole"}
 
 // Get takes name of the federatedClusterRole, and returns the corresponding federatedClusterRole object, and an error if there is any.
-func (c *FakeFederatedClusterRoles) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *FakeFederatedClusterRoles) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedClusterRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedclusterrolesResource, c.ns, name), &v1beta1.FederatedClusterRole{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedClusterRoles) Get(name string, options v1.GetOptions) (res
 }
 
 // List takes label and field selectors, and returns the list of FederatedClusterRoles that match those selectors.
-func (c *FakeFederatedClusterRoles) List(opts v1.ListOptions) (result *v1beta1.FederatedClusterRoleList, err error) {
+func (c *FakeFederatedClusterRoles) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedClusterRoleList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedclusterrolesResource, federatedclusterrolesKind, c.ns, opts), &v1beta1.FederatedClusterRoleList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedClusterRoles) List(opts v1.ListOptions) (result *v1beta1.F
 }
 
 // Watch returns a watch.Interface that watches the requested federatedClusterRoles.
-func (c *FakeFederatedClusterRoles) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedClusterRoles) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedclusterrolesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedClusterRole and creates it.  Returns the server's representation of the federatedClusterRole, and an error, if there is any.
-func (c *FakeFederatedClusterRoles) Create(federatedClusterRole *v1beta1.FederatedClusterRole) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *FakeFederatedClusterRoles) Create(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.CreateOptions) (result *v1beta1.FederatedClusterRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedclusterrolesResource, c.ns, federatedClusterRole), &v1beta1.FederatedClusterRole{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedClusterRoles) Create(federatedClusterRole *v1beta1.Federat
 }
 
 // Update takes the representation of a federatedClusterRole and updates it. Returns the server's representation of the federatedClusterRole, and an error, if there is any.
-func (c *FakeFederatedClusterRoles) Update(federatedClusterRole *v1beta1.FederatedClusterRole) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *FakeFederatedClusterRoles) Update(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.UpdateOptions) (result *v1beta1.FederatedClusterRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedclusterrolesResource, c.ns, federatedClusterRole), &v1beta1.FederatedClusterRole{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedClusterRoles) Update(federatedClusterRole *v1beta1.Federat
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedClusterRoles) UpdateStatus(federatedClusterRole *v1beta1.FederatedClusterRole) (*v1beta1.FederatedClusterRole, error) {
+func (c *FakeFederatedClusterRoles) UpdateStatus(ctx context.Context, federatedClusterRole *v1beta1.FederatedClusterRole, opts v1.UpdateOptions) (*v1beta1.FederatedClusterRole, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedclusterrolesResource, "status", c.ns, federatedClusterRole), &v1beta1.FederatedClusterRole{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedClusterRoles) UpdateStatus(federatedClusterRole *v1beta1.F
 }
 
 // Delete takes name of the federatedClusterRole and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedClusterRoles) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedClusterRoles) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedclusterrolesResource, c.ns, name), &v1beta1.FederatedClusterRole{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedClusterRoles) Delete(name string, options *v1.DeleteOption
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedClusterRoles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedclusterrolesResource, c.ns, listOptions)
+func (c *FakeFederatedClusterRoles) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedclusterrolesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedClusterRoleList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedClusterRole.
-func (c *FakeFederatedClusterRoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedClusterRole, err error) {
+func (c *FakeFederatedClusterRoles) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedClusterRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedclusterrolesResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedClusterRole{})
 

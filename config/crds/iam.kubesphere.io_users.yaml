@@ -24,7 +24,8 @@ spec:
     plural: users
     singular: user
   scope: Cluster
-  subresources: {}
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: User is the Schema for the users API

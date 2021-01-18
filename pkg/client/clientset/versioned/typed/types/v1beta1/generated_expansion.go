@@ -28,6 +28,10 @@ type FederatedConfigMapExpansion interface{}
 
 type FederatedDeploymentExpansion interface{}
 
+type FederatedGroupExpansion interface{}
+
+type FederatedGroupBindingExpansion interface{}
+
 type FederatedIngressExpansion interface{}
 
 type FederatedJobExpansion interface{}
@@ -45,7 +49,3 @@ type FederatedSecretExpansion interface{}
 type FederatedServiceExpansion interface{}
 
 type FederatedStatefulSetExpansion interface{}
-
-type FederatedUserExpansion interface{}
-
-type FederatedWorkspaceExpansion interface{}

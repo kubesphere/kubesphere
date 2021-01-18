@@ -1,4 +1,7 @@
 #!/bin/bash
 
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+cat ~/.docker/config.json | grep index.docker.io
+if [[ $? != 0 ]]; then
+  echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+fi
 docker push kubespheredev/ks-apiserver:latest

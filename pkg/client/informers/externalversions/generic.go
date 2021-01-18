@@ -93,6 +93,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().GlobalRoles().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("globalrolebindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().GlobalRoleBindings().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("groups"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().Groups().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("groupbindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().GroupBindings().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("loginrecords"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().LoginRecords().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("rolebases"):
@@ -105,6 +109,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().WorkspaceRoleBindings().Informer()}, nil
 
 		// Group=network.kubesphere.io, Version=v1alpha1
+	case networkv1alpha1.SchemeGroupVersion.WithResource("ipamblocks"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().IPAMBlocks().Informer()}, nil
+	case networkv1alpha1.SchemeGroupVersion.WithResource("ipamhandles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().IPAMHandles().Informer()}, nil
+	case networkv1alpha1.SchemeGroupVersion.WithResource("ippools"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().IPPools().Informer()}, nil
 	case networkv1alpha1.SchemeGroupVersion.WithResource("namespacenetworkpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().NamespaceNetworkPolicies().Informer()}, nil
 
@@ -139,6 +149,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedConfigMaps().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federateddeployments"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedDeployments().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedgroups"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedGroups().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedgroupbindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedGroupBindings().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatedingresses"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedIngresses().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatedjobs"):
@@ -157,10 +171,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedServices().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatedstatefulsets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedStatefulSets().Informer()}, nil
-	case v1beta1.SchemeGroupVersion.WithResource("federatedusers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedUsers().Informer()}, nil
-	case v1beta1.SchemeGroupVersion.WithResource("federatedworkspaces"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedWorkspaces().Informer()}, nil
 
 	}
 

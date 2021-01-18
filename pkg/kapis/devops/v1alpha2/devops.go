@@ -17,11 +17,21 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/emicklei/go-restful"
+	"k8s.io/apiserver/pkg/authentication/user"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	clientDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -41,15 +51,80 @@ func (h *ProjectPipelineHandler) GetPipeline(req *restful.Request, resp *restful
 	resp.WriteAsJson(res)
 }
 
+func (h *ProjectPipelineHandler) getPipelinesByRequest(req *restful.Request) (api.ListResult, error) {
+	// this is a very trick way, but don't have a better solution for now
+	var (
+		err       error
+		start     int
+		limit     int
+		namespace string
+	)
+
+	// parse query from the request
+	query := req.QueryParameter("q")
+	for _, val := range strings.Split(query, ";") {
+		if strings.HasPrefix(val, "pipeline:") {
+			namespace = strings.TrimLeft(val, "pipeline:")
+			namespace = strings.Split(namespace, "/")[0]
+		}
+	}
+
+	// make sure we have an appropriate value
+	if start, err = strconv.Atoi(req.QueryParameter("start")); err != nil {
+		start = 0
+	}
+	if limit, err = strconv.Atoi(req.QueryParameter("limit")); err != nil {
+		limit = 10
+	}
+
+	defer req.Request.Form.Set("limit", "10000") // assume the pipelines no more than 10k
+
+	return h.devopsOperator.ListPipelineObj(namespace, func(list []*v1alpha3.Pipeline, i int, j int) bool {
+		return strings.Compare(strings.ToUpper(list[i].Name), strings.ToUpper(list[j].Name)) < 0
+	}, limit, start)
+}
+
 func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restful.Response) {
-	res, err := h.devopsOperator.ListPipelines(req.Request)
+	objs, err := h.getPipelinesByRequest(req)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
+	// get all pipelines which come from ks
+	pipelineList := &clientDevOps.PipelineList{
+		Total: objs.TotalItems,
+		Items: make([]clientDevOps.Pipeline, objs.TotalItems),
+	}
+	pipelineMap := make(map[string]int, objs.TotalItems)
+	for i, item := range objs.Items {
+		if pipeline, ok := item.(v1alpha3.Pipeline); !ok {
+			continue
+		} else {
+			pip := clientDevOps.Pipeline{
+				Name: pipeline.Name,
+			}
+
+			pipelineMap[pipeline.Name] = i
+			pipelineList.Items[i] = pip
+		}
+	}
+
+	// get all pipelines which come from Jenkins
+	// fill out the rest fields
+	res, err := h.devopsOperator.ListPipelines(req.Request)
+	if err != nil {
+		log.Error(err)
+	} else {
+		for _, item := range res.Items {
+			if index, ok := pipelineMap[item.Name]; ok {
+				pipelineList.Items[index] = item
+			}
+		}
+	}
+
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.WriteAsJson(res)
+	resp.WriteAsJson(pipelineList)
 }
 
 func (h *ProjectPipelineHandler) GetPipelineRun(req *restful.Request, resp *restful.Response) {
@@ -202,6 +277,101 @@ func (h *ProjectPipelineHandler) GetPipelineRunNodes(req *restful.Request, resp 
 	resp.WriteAsJson(res)
 }
 
+func (h *ProjectPipelineHandler) approvableCheck(nodes []clientDevOps.NodesDetail, req *restful.Request) {
+	currentUserName, roleName := h.getCurrentUser(req)
+	// check if current user belong to the admin group, grant it if it's true
+	isAdmin := roleName == iamv1alpha2.PlatformAdmin
+
+	for i, node := range nodes {
+		if node.State != clientDevOps.StatePaused {
+			continue
+		}
+
+		for j, step := range node.Steps {
+			if step.State != clientDevOps.StatePaused || step.Input == nil {
+				continue
+			}
+
+			nodes[i].Steps[j].Approvable = isAdmin || step.Input.Approvable(currentUserName)
+		}
+	}
+}
+
+func (h *ProjectPipelineHandler) createdBy(projectName string, pipelineName string, currentUserName string) bool {
+	if pipeline, err := h.devopsOperator.GetPipelineObj(projectName, pipelineName); err == nil {
+		if creator, ok := pipeline.Annotations[constants.CreatorAnnotationKey]; ok {
+			return creator == currentUserName
+		}
+	} else {
+		log.V(4).Infof("cannot get pipeline %s/%s, error %#v", projectName, pipelineName, err)
+	}
+	return false
+}
+
+func (h *ProjectPipelineHandler) getCurrentUser(req *restful.Request) (username, roleName string) {
+	var userInfo user.Info
+	var ok bool
+	var err error
+
+	ctx := req.Request.Context()
+	if userInfo, ok = request.UserFrom(ctx); ok {
+		var role *iamv1alpha2.GlobalRole
+		username = userInfo.GetName()
+		if role, err = h.amInterface.GetGlobalRoleOfUser(username); err == nil {
+			roleName = role.Name
+		}
+	}
+	return
+}
+
+func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasPermit bool, err error) {
+	currentUserName, roleName := h.getCurrentUser(req)
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+	// check if current user belong to the admin group or he's the owner, grant it if it's true
+	if roleName == iamv1alpha2.PlatformAdmin || h.createdBy(projectName, pipelineName, currentUserName) {
+		hasPermit = true
+		return
+	}
+
+	// step 2, check if current user if was addressed
+	httpReq := &http.Request{
+		URL:      req.Request.URL,
+		Header:   req.Request.Header,
+		Form:     req.Request.Form,
+		PostForm: req.Request.PostForm,
+	}
+
+	runId := req.PathParameter("run")
+	nodeId := req.PathParameter("node")
+	stepId := req.PathParameter("step")
+
+	// check if current user can approve this input
+	var res []clientDevOps.NodesDetail
+	if res, err = h.devopsOperator.GetNodesDetail(projectName, pipelineName, runId, httpReq); err == nil {
+		for _, node := range res {
+			if node.ID != nodeId {
+				continue
+			}
+
+			for _, step := range node.Steps {
+				if step.ID != stepId || step.Input == nil {
+					continue
+				}
+
+				hasPermit = step.Input.Approvable(currentUserName)
+				break
+			}
+			break
+		}
+	} else {
+		log.V(4).Infof("cannot get nodes detail, error: %v", err)
+		err = errors.New("cannot get the submitters of current pipeline run")
+		return
+	}
+	return
+}
+
 func (h *ProjectPipelineHandler) SubmitInputStep(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
@@ -209,13 +379,25 @@ func (h *ProjectPipelineHandler) SubmitInputStep(req *restful.Request, resp *res
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	res, err := h.devopsOperator.SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
+	var response []byte
+	var err error
+	var ok bool
 
-	resp.Write(res)
+	if ok, err = h.hasSubmitPermission(req); !ok || err != nil {
+		msg := map[string]string{
+			"allow":   "false",
+			"message": fmt.Sprintf("%v", err),
+		}
+
+		response, _ = json.Marshal(msg)
+	} else {
+		response, err = h.devopsOperator.SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId, req.Request)
+		if err != nil {
+			parseErr(err, resp)
+			return
+		}
+	}
+	resp.Write(response)
 }
 
 func (h *ProjectPipelineHandler) GetNodesDetail(req *restful.Request, resp *restful.Response) {
@@ -228,6 +410,8 @@ func (h *ProjectPipelineHandler) GetNodesDetail(req *restful.Request, resp *rest
 		parseErr(err, resp)
 		return
 	}
+	h.approvableCheck(res, req)
+
 	resp.WriteAsJson(res)
 }
 
@@ -401,13 +585,26 @@ func (h *ProjectPipelineHandler) SubmitBranchInputStep(req *restful.Request, res
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	res, err := h.devopsOperator.SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
+	var response []byte
+	var err error
+	var ok bool
+
+	if ok, err = h.hasSubmitPermission(req); !ok || err != nil {
+		msg := map[string]string{
+			"allow":   "false",
+			"message": fmt.Sprintf("%v", err),
+		}
+
+		response, _ = json.Marshal(msg)
+	} else {
+		response, err = h.devopsOperator.SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
+		if err != nil {
+			parseErr(err, resp)
+			return
+		}
 	}
 
-	resp.Write(res)
+	resp.Write(response)
 }
 
 func (h *ProjectPipelineHandler) GetBranchNodesDetail(req *restful.Request, resp *restful.Response) {
@@ -421,6 +618,7 @@ func (h *ProjectPipelineHandler) GetBranchNodesDetail(req *restful.Request, resp
 		parseErr(err, resp)
 		return
 	}
+	h.approvableCheck(res, req)
 	resp.WriteAsJson(res)
 }
 

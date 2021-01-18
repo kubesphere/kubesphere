@@ -17,7 +17,9 @@ limitations under the License.
 package devopsproject
 
 import (
+	"context"
 	"fmt"
+	"github.com/emicklei/go-restful"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,9 +39,11 @@ import (
 	tenantv1alpha1informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	tenantv1alpha1listers "kubesphere.io/kubesphere/pkg/client/listers/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"net/http"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
@@ -215,6 +219,11 @@ func (c *Controller) syncHandler(key string) error {
 	copyProject := project.DeepCopy()
 	// DeletionTimestamp.IsZero() means DevOps project has not been deleted.
 	if project.ObjectMeta.DeletionTimestamp.IsZero() {
+		//If the sync is successful, return handle
+		if state, ok := project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+			return nil
+		}
+
 		// Use Finalizers to sync DevOps status when DevOps project was deleted
 		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
 		if !sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
@@ -229,7 +238,7 @@ func (c *Controller) syncHandler(key string) error {
 			} else if errors.IsNotFound(err) {
 				// if admin ns is not found, clean project status, rerun reconcile
 				copyProject.Status.AdminNamespace = ""
-				_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
+				_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), copyProject, metav1.UpdateOptions{})
 				if err != nil {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update project %s ", key))
 					return err
@@ -250,7 +259,7 @@ func (c *Controller) syncHandler(key string) error {
 					return err
 				}
 				copyNs.Labels[constants.DevOpsProjectLabelKey] = project.Name
-				_, err = c.client.CoreV1().Namespaces().Update(copyNs)
+				_, err = c.client.CoreV1().Namespaces().Update(context.Background(), copyNs, metav1.UpdateOptions{})
 				if err != nil {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
 					return err
@@ -268,7 +277,7 @@ func (c *Controller) syncHandler(key string) error {
 			// if there is no ns, generate new one
 			if len(namespaces) == 0 {
 				ns := c.generateNewNamespace(project)
-				ns, err := c.client.CoreV1().Namespaces().Create(ns)
+				ns, err := c.client.CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
 				if err != nil {
 					// devops project name is conflict, cannot create admin namespace
 					if errors.IsAlreadyExists(err) {
@@ -292,21 +301,13 @@ func (c *Controller) syncHandler(key string) error {
 						return err
 					}
 					copyNs.Labels[constants.DevOpsProjectLabelKey] = project.Name
-					_, err = c.client.CoreV1().Namespaces().Update(copyNs)
+					_, err = c.client.CoreV1().Namespaces().Update(context.Background(), copyNs, metav1.UpdateOptions{})
 					if err != nil {
 						klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
 						return err
 					}
 				}
 				copyProject.Status.AdminNamespace = ns.Name
-			}
-		}
-
-		if !reflect.DeepEqual(copyProject, project) {
-			copyProject, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
-			if err != nil {
-				klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
-				return err
 			}
 		}
 
@@ -326,18 +327,49 @@ func (c *Controller) syncHandler(key string) error {
 			}
 		}
 
+		//If there is no early return, then the sync is successful.
+		if copyProject.Annotations == nil {
+			copyProject.Annotations = map[string]string{}
+		}
+		copyProject.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
+		if !reflect.DeepEqual(copyProject, project) {
+			copyProject, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), copyProject, metav1.UpdateOptions{})
+			if err != nil {
+				klog.V(8).Info(err, fmt.Sprintf("failed to update ns %s ", key))
+				return err
+			}
+		}
+
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
+			delSuccess := false
 			if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
-				klog.V(8).Info(err, fmt.Sprintf("failed to delete resource %s in devops", key))
-				return err
-			}
-			project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
-				return item == devopsv1alpha3.DevOpsProjectFinalizerName
-			})
+				// the status code should be 404 if the job does not exists
+				if srvErr, ok := err.(restful.ServiceError); ok {
+					delSuccess = srvErr.Code == http.StatusNotFound
+				} else if srvErr, ok := err.(*devopsClient.ErrorResponse); ok {
+					delSuccess = srvErr.Response.StatusCode == http.StatusNotFound
+				} else {
+					klog.Error(fmt.Sprintf("unexpected error type: %v, should be *restful.ServiceError", err))
+				}
 
-			_, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
+				klog.V(8).Info(err, fmt.Sprintf("failed to delete resource %s in devops", key))
+			} else {
+				delSuccess = true
+			}
+
+			if delSuccess {
+				project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
+					return item == devopsv1alpha3.DevOpsProjectFinalizerName
+				})
+			} else {
+				// make sure the corresponding Jenkins job can be clean
+				// You can remove the finalizer via kubectl manually in a very special case that Jenkins might be not able to available anymore
+				return fmt.Errorf("failed to remove devopsproject finalizer due to bad communication with Jenkins")
+			}
+
+			_, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), project, metav1.UpdateOptions{})
 			if err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to update project %s ", key))
 				return err
@@ -374,20 +406,15 @@ func (c *Controller) bindWorkspace(project *devopsv1alpha3.DevOpsProject) (*devo
 			return nil, err
 		}
 
-		return c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
+		return c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), project, metav1.UpdateOptions{})
 	}
 
 	return project, nil
 }
 
-func (c *Controller) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsProject) error {
-
-	err := c.devopsClient.DeleteDevOpsProject(project.Status.AdminNamespace)
-	if err != nil {
-		klog.Errorf("error happened while deleting %s, %v", project.Name, err)
-	}
-
-	return nil
+func (c *Controller) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsProject) (err error) {
+	err = c.devopsClient.DeleteDevOpsProject(project.Status.AdminNamespace)
+	return
 }
 
 func (c *Controller) generateNewNamespace(project *devopsv1alpha3.DevOpsProject) *v1.Namespace {

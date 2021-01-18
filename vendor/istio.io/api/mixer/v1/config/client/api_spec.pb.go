@@ -83,6 +83,19 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 //   - query: api-key
 // ```
 //
+// <!-- crd generation tags
+// +cue-gen:HTTPAPISpec:schema:istio.mixer.v1.config.client.HTTPAPISpec
+// +cue-gen:HTTPAPISpec:groupName:config.istio.io
+// +cue-gen:HTTPAPISpec:version:v1alpha2
+// +cue-gen:HTTPAPISpec:storageVersion
+// +cue-gen:HTTPAPISpec:annotations:helm.sh/resource-policy=keep
+// +cue-gen:HTTPAPISpec:labels:app=istio-mixer,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:HTTPAPISpec:subresource:status
+// +cue-gen:HTTPAPISpec:scope:Namespaced
+// +cue-gen:HTTPAPISpec:resource:categories=istio-io,apim-istio-io
+// +cue-gen:HTTPAPISpec:preserveUnknownFields:false
+// -->
+//
 // <!-- go code generation tags
 // +kubetype-gen
 // +kubetype-gen:groupVersion=config.istio.io/v1alpha2
@@ -399,6 +412,19 @@ var xxx_messageInfo_HTTPAPISpecReference proto.InternalMessageInfo
 //   - name: petstore
 //     namespace: default
 // ```
+//
+// <!-- crd generation tags
+// +cue-gen:HTTPAPISpecBinding:schema:istio.mixer.v1.config.client.HTTPAPISpecBinding
+// +cue-gen:HTTPAPISpecBinding:groupName:config.istio.io
+// +cue-gen:HTTPAPISpecBinding:version:v1alpha2
+// +cue-gen:HTTPAPISpecBinding:storageVersion
+// +cue-gen:HTTPAPISpecBinding:annotations:helm.sh/resource-policy=keep
+// +cue-gen:HTTPAPISpecBinding:labels:app=istio-mixer,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:HTTPAPISpecBinding:subresource:status
+// +cue-gen:HTTPAPISpecBinding:scope:Namespaced
+// +cue-gen:HTTPAPISpecBinding:resource:categories=istio-io,apim-istio-io
+// +cue-gen:HTTPAPISpecBinding:preserveUnknownFields:false
+// -->
 //
 // <!-- go code generation tags
 // +kubetype-gen

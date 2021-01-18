@@ -18,8 +18,15 @@ package cluster
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"net/http"
+	"reflect"
+	"sync"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -39,17 +46,13 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"math/rand"
-	"net/http"
-	"reflect"
-	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
-	"sync"
-	"time"
 )
 
 // Cluster controller only runs under multicluster mode. Cluster controller is following below steps,
@@ -323,7 +326,7 @@ func (c *clusterController) reconcileHostCluster() error {
 	// no host cluster, create one
 	if len(clusters) == 0 {
 		hostCluster.Spec.Connection.KubeConfig = hostKubeConfig
-		_, err = c.clusterClient.Create(hostCluster)
+		_, err = c.clusterClient.Create(context.TODO(), hostCluster, metav1.CreateOptions{})
 		return err
 	} else if len(clusters) > 1 {
 		return fmt.Errorf("there MUST not be more than one host clusters, while there are %d", len(clusters))
@@ -347,7 +350,7 @@ func (c *clusterController) reconcileHostCluster() error {
 	}
 
 	// update host cluster config
-	_, err = c.clusterClient.Update(cluster)
+	_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
 	return err
 }
 
@@ -385,7 +388,7 @@ func (c *clusterController) syncCluster(key string) error {
 		// registering our finalizer.
 		if !sets.NewString(cluster.ObjectMeta.Finalizers...).Has(clusterv1alpha1.Finalizer) {
 			cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1alpha1.Finalizer)
-			if cluster, err = c.clusterClient.Update(cluster); err != nil {
+			if cluster, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -401,7 +404,7 @@ func (c *clusterController) syncCluster(key string) error {
 				return err
 			}
 
-			_, err = c.client.CoreV1().Services(defaultAgentNamespace).Get(serviceName, metav1.GetOptions{})
+			_, err = c.client.CoreV1().Services(defaultAgentNamespace).Get(context.TODO(), serviceName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					// nothing to do
@@ -410,7 +413,7 @@ func (c *clusterController) syncCluster(key string) error {
 					return err
 				}
 			} else {
-				err = c.client.CoreV1().Services(defaultAgentNamespace).Delete(serviceName, metav1.NewDeleteOptions(0))
+				err = c.client.CoreV1().Services(defaultAgentNamespace).Delete(context.TODO(), serviceName, *metav1.NewDeleteOptions(0))
 				if err != nil {
 					klog.Errorf("Unable to delete service %s, error %v", serviceName, err)
 					return err
@@ -433,7 +436,7 @@ func (c *clusterController) syncCluster(key string) error {
 			finalizers := sets.NewString(cluster.ObjectMeta.Finalizers...)
 			finalizers.Delete(clusterv1alpha1.Finalizer)
 			cluster.ObjectMeta.Finalizers = finalizers.List()
-			if _, err = c.clusterClient.Update(cluster); err != nil {
+			if _, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -502,10 +505,10 @@ func (c *clusterController) syncCluster(key string) error {
 			},
 		}
 
-		service, err := c.client.CoreV1().Services(defaultAgentNamespace).Get(serviceName, metav1.GetOptions{})
+		service, err := c.client.CoreV1().Services(defaultAgentNamespace).Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil { // proxy service not found
 			if errors.IsNotFound(err) {
-				service, err = c.client.CoreV1().Services(defaultAgentNamespace).Create(&mcService)
+				service, err = c.client.CoreV1().Services(defaultAgentNamespace).Create(context.TODO(), &mcService, metav1.CreateOptions{})
 				if err != nil {
 					return err
 				}
@@ -517,7 +520,7 @@ func (c *clusterController) syncCluster(key string) error {
 				mcService.ObjectMeta = service.ObjectMeta
 				mcService.Spec.ClusterIP = service.Spec.ClusterIP
 
-				service, err = c.client.CoreV1().Services(defaultAgentNamespace).Update(&mcService)
+				service, err = c.client.CoreV1().Services(defaultAgentNamespace).Update(context.TODO(), &mcService, metav1.UpdateOptions{})
 				if err != nil {
 					return err
 				}
@@ -536,21 +539,40 @@ func (c *clusterController) syncCluster(key string) error {
 			LastUpdateTime:     metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 		}
-		c.updateClusterCondition(cluster, initializedCondition)
+
+		if !isConditionTrue(cluster, clusterv1alpha1.ClusterInitialized) {
+			c.updateClusterCondition(cluster, initializedCondition)
+		}
 
 		if !reflect.DeepEqual(oldCluster, cluster) {
-			cluster, err = c.clusterClient.Update(cluster)
+			cluster, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
 			if err != nil {
 				klog.Errorf("Error updating cluster %s, error %s", cluster.Name, err)
 				return err
 			}
-			return nil
 		}
 	}
 
-	// kubeconfig not ready, nothing to do
-	if len(cluster.Spec.Connection.KubeConfig) == 0 {
-		return nil
+	// agent status unavailable, which means the agent disconnected from the server or has not connected to the server
+	// we need to update the cluster ready status unavailable and return.
+	if cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeProxy &&
+		!isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) {
+		clusterNotReadyCondition := clusterv1alpha1.ClusterCondition{
+			Type:               clusterv1alpha1.ClusterReady,
+			Status:             v1.ConditionFalse,
+			LastUpdateTime:     metav1.Now(),
+			LastTransitionTime: metav1.Now(),
+			Reason:             "Unable to establish connection with cluster",
+			Message:            "Cluster is not available now",
+		}
+
+		c.updateClusterCondition(cluster, clusterNotReadyCondition)
+
+		cluster, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
+		if err != nil {
+			klog.Errorf("Error updating cluster %s, error %s", cluster.Name, err)
+		}
+		return err
 	}
 
 	// build up cached cluster data if there isn't any
@@ -597,67 +619,49 @@ func (c *clusterController) syncCluster(key string) error {
 	// cluster agent is ready, we can pull kubernetes cluster info through agent
 	// since there is no agent necessary for host cluster, so updates for host cluster
 	// is safe.
-	if isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) ||
-		cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeDirect {
-
-		if len(cluster.Spec.Connection.KubernetesAPIEndpoint) == 0 {
-			cluster.Spec.Connection.KubernetesAPIEndpoint = clusterDt.config.Host
-		}
-
-		version, err := clusterDt.client.Discovery().ServerVersion()
-		if err != nil {
-			klog.Errorf("Failed to get kubernetes version, %#v", err)
-			return err
-		}
-
-		cluster.Status.KubernetesVersion = version.GitVersion
-
-		nodes, err := clusterDt.client.CoreV1().Nodes().List(metav1.ListOptions{})
-		if err != nil {
-			klog.Errorf("Failed to get cluster nodes, %#v", err)
-			return err
-		}
-
-		cluster.Status.NodeCount = len(nodes.Items)
-
-		configz, err := c.tryToFetchKubeSphereComponents(clusterDt.config.Host, clusterDt.transport)
-		if err == nil {
-			cluster.Status.Configz = configz
-		}
-
-		// label cluster host cluster if configz["multicluster"]==true, this is
-		if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
-			if cluster.Labels == nil {
-				cluster.Labels = make(map[string]string)
-			}
-			cluster.Labels[clusterv1alpha1.HostCluster] = ""
-		}
-
-		clusterReadyCondition := clusterv1alpha1.ClusterCondition{
-			Type:               clusterv1alpha1.ClusterReady,
-			Status:             v1.ConditionTrue,
-			LastUpdateTime:     metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             string(clusterv1alpha1.ClusterReady),
-			Message:            "Cluster is available now",
-		}
-
-		c.updateClusterCondition(cluster, clusterReadyCondition)
+	if len(cluster.Spec.Connection.KubernetesAPIEndpoint) == 0 {
+		cluster.Spec.Connection.KubernetesAPIEndpoint = clusterDt.config.Host
 	}
 
-	if cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeProxy &&
-		!isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) {
-		clusterNotReadyCondition := clusterv1alpha1.ClusterCondition{
-			Type:               clusterv1alpha1.ClusterReady,
-			Status:             v1.ConditionFalse,
-			LastUpdateTime:     metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             "Unable to establish connection with cluster",
-			Message:            "Cluster is not available now",
-		}
-
-		c.updateClusterCondition(cluster, clusterNotReadyCondition)
+	version, err := clusterDt.client.Discovery().ServerVersion()
+	if err != nil {
+		klog.Errorf("Failed to get kubernetes version, %#v", err)
+		return err
 	}
+
+	cluster.Status.KubernetesVersion = version.GitVersion
+
+	nodes, err := clusterDt.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		klog.Errorf("Failed to get cluster nodes, %#v", err)
+		return err
+	}
+
+	cluster.Status.NodeCount = len(nodes.Items)
+
+	configz, err := c.tryToFetchKubeSphereComponents(clusterDt.config.Host, clusterDt.transport)
+	if err == nil {
+		cluster.Status.Configz = configz
+	}
+
+	// label cluster host cluster if configz["multicluster"]==true, this is
+	if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
+		if cluster.Labels == nil {
+			cluster.Labels = make(map[string]string)
+		}
+		cluster.Labels[clusterv1alpha1.HostCluster] = ""
+	}
+
+	clusterReadyCondition := clusterv1alpha1.ClusterCondition{
+		Type:               clusterv1alpha1.ClusterReady,
+		Status:             v1.ConditionTrue,
+		LastUpdateTime:     metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             string(clusterv1alpha1.ClusterReady),
+		Message:            "Cluster is available now",
+	}
+
+	c.updateClusterCondition(cluster, clusterReadyCondition)
 
 	if c.openpitrixClient != nil { // OpenPitrix is enabled, create runtime
 		if cluster.GetAnnotations() == nil {
@@ -676,7 +680,7 @@ func (c *clusterController) syncCluster(key string) error {
 	}
 
 	if !reflect.DeepEqual(oldCluster, cluster) {
-		_, err = c.clusterClient.Update(cluster)
+		_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Failed to update cluster status, %#v", err)
 			return err
@@ -687,7 +691,7 @@ func (c *clusterController) syncCluster(key string) error {
 }
 
 func (c *clusterController) checkIfClusterIsHostCluster(memberClusterNodes *v1.NodeList) bool {
-	hostNodes, err := c.client.CoreV1().Nodes().List(metav1.ListOptions{})
+	hostNodes, err := c.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return false
 	}
@@ -792,23 +796,15 @@ func (c *clusterController) updateClusterCondition(cluster *clusterv1alpha1.Clus
 	}
 
 	newConditions := make([]clusterv1alpha1.ClusterCondition, 0)
-	needToUpdate := true
 	for _, cond := range cluster.Status.Conditions {
 		if cond.Type == condition.Type {
-			if cond.Status == condition.Status {
-				needToUpdate = false
-				continue
-			} else {
-				newConditions = append(newConditions, cond)
-			}
+			continue
 		}
 		newConditions = append(newConditions, cond)
 	}
 
-	if needToUpdate {
-		newConditions = append(newConditions, condition)
-		cluster.Status.Conditions = newConditions
-	}
+	newConditions = append(newConditions, condition)
+	cluster.Status.Conditions = newConditions
 }
 
 // joinFederation joins a cluster into federation clusters.

@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var workspacerolesResource = schema.GroupVersionResource{Group: "iam.kubesphere.
 var workspacerolesKind = schema.GroupVersionKind{Group: "iam.kubesphere.io", Version: "v1alpha2", Kind: "WorkspaceRole"}
 
 // Get takes name of the workspaceRole, and returns the corresponding workspaceRole object, and an error if there is any.
-func (c *FakeWorkspaceRoles) Get(name string, options v1.GetOptions) (result *v1alpha2.WorkspaceRole, err error) {
+func (c *FakeWorkspaceRoles) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.WorkspaceRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(workspacerolesResource, name), &v1alpha2.WorkspaceRole{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeWorkspaceRoles) Get(name string, options v1.GetOptions) (result *v1
 }
 
 // List takes label and field selectors, and returns the list of WorkspaceRoles that match those selectors.
-func (c *FakeWorkspaceRoles) List(opts v1.ListOptions) (result *v1alpha2.WorkspaceRoleList, err error) {
+func (c *FakeWorkspaceRoles) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.WorkspaceRoleList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(workspacerolesResource, workspacerolesKind, opts), &v1alpha2.WorkspaceRoleList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeWorkspaceRoles) List(opts v1.ListOptions) (result *v1alpha2.Workspa
 }
 
 // Watch returns a watch.Interface that watches the requested workspaceRoles.
-func (c *FakeWorkspaceRoles) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeWorkspaceRoles) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(workspacerolesResource, opts))
 }
 
 // Create takes the representation of a workspaceRole and creates it.  Returns the server's representation of the workspaceRole, and an error, if there is any.
-func (c *FakeWorkspaceRoles) Create(workspaceRole *v1alpha2.WorkspaceRole) (result *v1alpha2.WorkspaceRole, err error) {
+func (c *FakeWorkspaceRoles) Create(ctx context.Context, workspaceRole *v1alpha2.WorkspaceRole, opts v1.CreateOptions) (result *v1alpha2.WorkspaceRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(workspacerolesResource, workspaceRole), &v1alpha2.WorkspaceRole{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeWorkspaceRoles) Create(workspaceRole *v1alpha2.WorkspaceRole) (resu
 }
 
 // Update takes the representation of a workspaceRole and updates it. Returns the server's representation of the workspaceRole, and an error, if there is any.
-func (c *FakeWorkspaceRoles) Update(workspaceRole *v1alpha2.WorkspaceRole) (result *v1alpha2.WorkspaceRole, err error) {
+func (c *FakeWorkspaceRoles) Update(ctx context.Context, workspaceRole *v1alpha2.WorkspaceRole, opts v1.UpdateOptions) (result *v1alpha2.WorkspaceRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(workspacerolesResource, workspaceRole), &v1alpha2.WorkspaceRole{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeWorkspaceRoles) Update(workspaceRole *v1alpha2.WorkspaceRole) (resu
 }
 
 // Delete takes name of the workspaceRole and deletes it. Returns an error if one occurs.
-func (c *FakeWorkspaceRoles) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeWorkspaceRoles) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(workspacerolesResource, name), &v1alpha2.WorkspaceRole{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeWorkspaceRoles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(workspacerolesResource, listOptions)
+func (c *FakeWorkspaceRoles) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(workspacerolesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.WorkspaceRoleList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched workspaceRole.
-func (c *FakeWorkspaceRoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.WorkspaceRole, err error) {
+func (c *FakeWorkspaceRoles) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.WorkspaceRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(workspacerolesResource, name, pt, data, subresources...), &v1alpha2.WorkspaceRole{})
 	if obj == nil {

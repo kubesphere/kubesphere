@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedingressesResource = schema.GroupVersionResource{Group: "types.kubef
 var federatedingressesKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedIngress"}
 
 // Get takes name of the federatedIngress, and returns the corresponding federatedIngress object, and an error if there is any.
-func (c *FakeFederatedIngresses) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedIngress, err error) {
+func (c *FakeFederatedIngresses) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedIngress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedingressesResource, c.ns, name), &v1beta1.FederatedIngress{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedIngresses) Get(name string, options v1.GetOptions) (result
 }
 
 // List takes label and field selectors, and returns the list of FederatedIngresses that match those selectors.
-func (c *FakeFederatedIngresses) List(opts v1.ListOptions) (result *v1beta1.FederatedIngressList, err error) {
+func (c *FakeFederatedIngresses) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedIngressList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedingressesResource, federatedingressesKind, c.ns, opts), &v1beta1.FederatedIngressList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedIngresses) List(opts v1.ListOptions) (result *v1beta1.Fede
 }
 
 // Watch returns a watch.Interface that watches the requested federatedIngresses.
-func (c *FakeFederatedIngresses) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedIngresses) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedingressesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedIngress and creates it.  Returns the server's representation of the federatedIngress, and an error, if there is any.
-func (c *FakeFederatedIngresses) Create(federatedIngress *v1beta1.FederatedIngress) (result *v1beta1.FederatedIngress, err error) {
+func (c *FakeFederatedIngresses) Create(ctx context.Context, federatedIngress *v1beta1.FederatedIngress, opts v1.CreateOptions) (result *v1beta1.FederatedIngress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedingressesResource, c.ns, federatedIngress), &v1beta1.FederatedIngress{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedIngresses) Create(federatedIngress *v1beta1.FederatedIngre
 }
 
 // Update takes the representation of a federatedIngress and updates it. Returns the server's representation of the federatedIngress, and an error, if there is any.
-func (c *FakeFederatedIngresses) Update(federatedIngress *v1beta1.FederatedIngress) (result *v1beta1.FederatedIngress, err error) {
+func (c *FakeFederatedIngresses) Update(ctx context.Context, federatedIngress *v1beta1.FederatedIngress, opts v1.UpdateOptions) (result *v1beta1.FederatedIngress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedingressesResource, c.ns, federatedIngress), &v1beta1.FederatedIngress{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedIngresses) Update(federatedIngress *v1beta1.FederatedIngre
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedIngresses) UpdateStatus(federatedIngress *v1beta1.FederatedIngress) (*v1beta1.FederatedIngress, error) {
+func (c *FakeFederatedIngresses) UpdateStatus(ctx context.Context, federatedIngress *v1beta1.FederatedIngress, opts v1.UpdateOptions) (*v1beta1.FederatedIngress, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedingressesResource, "status", c.ns, federatedIngress), &v1beta1.FederatedIngress{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedIngresses) UpdateStatus(federatedIngress *v1beta1.Federate
 }
 
 // Delete takes name of the federatedIngress and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedIngresses) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedIngresses) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedingressesResource, c.ns, name), &v1beta1.FederatedIngress{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedIngresses) Delete(name string, options *v1.DeleteOptions) 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedIngresses) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedingressesResource, c.ns, listOptions)
+func (c *FakeFederatedIngresses) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedingressesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedIngressList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedIngress.
-func (c *FakeFederatedIngresses) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedIngress, err error) {
+func (c *FakeFederatedIngresses) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedIngress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedingressesResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedIngress{})
 

@@ -26,12 +26,27 @@ import (
 
 type NetworkV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	IPAMBlocksGetter
+	IPAMHandlesGetter
+	IPPoolsGetter
 	NamespaceNetworkPoliciesGetter
 }
 
 // NetworkV1alpha1Client is used to interact with features provided by the network.kubesphere.io group.
 type NetworkV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *NetworkV1alpha1Client) IPAMBlocks() IPAMBlockInterface {
+	return newIPAMBlocks(c)
+}
+
+func (c *NetworkV1alpha1Client) IPAMHandles() IPAMHandleInterface {
+	return newIPAMHandles(c)
+}
+
+func (c *NetworkV1alpha1Client) IPPools() IPPoolInterface {
+	return newIPPools(c)
 }
 
 func (c *NetworkV1alpha1Client) NamespaceNetworkPolicies(namespace string) NamespaceNetworkPolicyInterface {

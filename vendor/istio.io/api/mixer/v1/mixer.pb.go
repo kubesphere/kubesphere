@@ -398,6 +398,7 @@ type ReferencedAttributes_AttributeMatch struct {
 	Condition ReferencedAttributes_Condition `protobuf:"varint,2,opt,name=condition,proto3,enum=istio.mixer.v1.ReferencedAttributes_Condition" json:"condition,omitempty"`
 	// If a REGEX condition is provided for a STRING_MAP attribute,
 	// clients should use the regex value to match against map keys.
+	// RE2 style regex-based match (https://github.com/google/re2/wiki/Syntax).
 	Regex string `protobuf:"bytes,3,opt,name=regex,proto3" json:"regex,omitempty"`
 	// A key in a STRING_MAP. When multiple keys from a STRING_MAP
 	// attribute were referenced, there will be multiple AttributeMatch

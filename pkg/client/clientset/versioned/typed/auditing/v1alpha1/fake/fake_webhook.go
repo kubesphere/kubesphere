@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var webhooksResource = schema.GroupVersionResource{Group: "auditing.kubesphere.i
 var webhooksKind = schema.GroupVersionKind{Group: "auditing.kubesphere.io", Version: "v1alpha1", Kind: "Webhook"}
 
 // Get takes name of the webhook, and returns the corresponding webhook object, and an error if there is any.
-func (c *FakeWebhooks) Get(name string, options v1.GetOptions) (result *v1alpha1.Webhook, err error) {
+func (c *FakeWebhooks) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Webhook, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(webhooksResource, name), &v1alpha1.Webhook{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeWebhooks) Get(name string, options v1.GetOptions) (result *v1alpha1
 }
 
 // List takes label and field selectors, and returns the list of Webhooks that match those selectors.
-func (c *FakeWebhooks) List(opts v1.ListOptions) (result *v1alpha1.WebhookList, err error) {
+func (c *FakeWebhooks) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.WebhookList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(webhooksResource, webhooksKind, opts), &v1alpha1.WebhookList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeWebhooks) List(opts v1.ListOptions) (result *v1alpha1.WebhookList, 
 }
 
 // Watch returns a watch.Interface that watches the requested webhooks.
-func (c *FakeWebhooks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeWebhooks) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(webhooksResource, opts))
 }
 
 // Create takes the representation of a webhook and creates it.  Returns the server's representation of the webhook, and an error, if there is any.
-func (c *FakeWebhooks) Create(webhook *v1alpha1.Webhook) (result *v1alpha1.Webhook, err error) {
+func (c *FakeWebhooks) Create(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.CreateOptions) (result *v1alpha1.Webhook, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(webhooksResource, webhook), &v1alpha1.Webhook{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeWebhooks) Create(webhook *v1alpha1.Webhook) (result *v1alpha1.Webho
 }
 
 // Update takes the representation of a webhook and updates it. Returns the server's representation of the webhook, and an error, if there is any.
-func (c *FakeWebhooks) Update(webhook *v1alpha1.Webhook) (result *v1alpha1.Webhook, err error) {
+func (c *FakeWebhooks) Update(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.UpdateOptions) (result *v1alpha1.Webhook, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(webhooksResource, webhook), &v1alpha1.Webhook{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeWebhooks) Update(webhook *v1alpha1.Webhook) (result *v1alpha1.Webho
 }
 
 // Delete takes name of the webhook and deletes it. Returns an error if one occurs.
-func (c *FakeWebhooks) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeWebhooks) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(webhooksResource, name), &v1alpha1.Webhook{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeWebhooks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(webhooksResource, listOptions)
+func (c *FakeWebhooks) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(webhooksResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.WebhookList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched webhook.
-func (c *FakeWebhooks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Webhook, err error) {
+func (c *FakeWebhooks) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Webhook, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(webhooksResource, name, pt, data, subresources...), &v1alpha1.Webhook{})
 	if obj == nil {

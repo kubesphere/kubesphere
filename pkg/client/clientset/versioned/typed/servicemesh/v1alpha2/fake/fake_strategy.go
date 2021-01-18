@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var strategiesResource = schema.GroupVersionResource{Group: "servicemesh.kubesph
 var strategiesKind = schema.GroupVersionKind{Group: "servicemesh.kubesphere.io", Version: "v1alpha2", Kind: "Strategy"}
 
 // Get takes name of the strategy, and returns the corresponding strategy object, and an error if there is any.
-func (c *FakeStrategies) Get(name string, options v1.GetOptions) (result *v1alpha2.Strategy, err error) {
+func (c *FakeStrategies) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.Strategy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(strategiesResource, c.ns, name), &v1alpha2.Strategy{})
 
@@ -50,7 +52,7 @@ func (c *FakeStrategies) Get(name string, options v1.GetOptions) (result *v1alph
 }
 
 // List takes label and field selectors, and returns the list of Strategies that match those selectors.
-func (c *FakeStrategies) List(opts v1.ListOptions) (result *v1alpha2.StrategyList, err error) {
+func (c *FakeStrategies) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.StrategyList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(strategiesResource, strategiesKind, c.ns, opts), &v1alpha2.StrategyList{})
 
@@ -72,14 +74,14 @@ func (c *FakeStrategies) List(opts v1.ListOptions) (result *v1alpha2.StrategyLis
 }
 
 // Watch returns a watch.Interface that watches the requested strategies.
-func (c *FakeStrategies) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeStrategies) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(strategiesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a strategy and creates it.  Returns the server's representation of the strategy, and an error, if there is any.
-func (c *FakeStrategies) Create(strategy *v1alpha2.Strategy) (result *v1alpha2.Strategy, err error) {
+func (c *FakeStrategies) Create(ctx context.Context, strategy *v1alpha2.Strategy, opts v1.CreateOptions) (result *v1alpha2.Strategy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(strategiesResource, c.ns, strategy), &v1alpha2.Strategy{})
 
@@ -90,7 +92,7 @@ func (c *FakeStrategies) Create(strategy *v1alpha2.Strategy) (result *v1alpha2.S
 }
 
 // Update takes the representation of a strategy and updates it. Returns the server's representation of the strategy, and an error, if there is any.
-func (c *FakeStrategies) Update(strategy *v1alpha2.Strategy) (result *v1alpha2.Strategy, err error) {
+func (c *FakeStrategies) Update(ctx context.Context, strategy *v1alpha2.Strategy, opts v1.UpdateOptions) (result *v1alpha2.Strategy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(strategiesResource, c.ns, strategy), &v1alpha2.Strategy{})
 
@@ -102,7 +104,7 @@ func (c *FakeStrategies) Update(strategy *v1alpha2.Strategy) (result *v1alpha2.S
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeStrategies) UpdateStatus(strategy *v1alpha2.Strategy) (*v1alpha2.Strategy, error) {
+func (c *FakeStrategies) UpdateStatus(ctx context.Context, strategy *v1alpha2.Strategy, opts v1.UpdateOptions) (*v1alpha2.Strategy, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(strategiesResource, "status", c.ns, strategy), &v1alpha2.Strategy{})
 
@@ -113,7 +115,7 @@ func (c *FakeStrategies) UpdateStatus(strategy *v1alpha2.Strategy) (*v1alpha2.St
 }
 
 // Delete takes name of the strategy and deletes it. Returns an error if one occurs.
-func (c *FakeStrategies) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeStrategies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(strategiesResource, c.ns, name), &v1alpha2.Strategy{})
 
@@ -121,15 +123,15 @@ func (c *FakeStrategies) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeStrategies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(strategiesResource, c.ns, listOptions)
+func (c *FakeStrategies) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(strategiesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.StrategyList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched strategy.
-func (c *FakeStrategies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.Strategy, err error) {
+func (c *FakeStrategies) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.Strategy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(strategiesResource, c.ns, name, pt, data, subresources...), &v1alpha2.Strategy{})
 

@@ -17,7 +17,9 @@ limitations under the License.
 package oauth
 
 import (
+	"encoding/json"
 	"github.com/google/go-cmp/cmp"
+	"gopkg.in/yaml.v3"
 	"testing"
 	"time"
 )
@@ -99,5 +101,44 @@ func TestClientResolveRedirectURL(t *testing.T) {
 		if test.expectError == nil && test.expectURL != redirectURL {
 			t.Errorf("expected redirect url: %s, got: %s", test.expectURL, redirectURL)
 		}
+	}
+}
+
+func TestDynamicOptions_MarshalJSON(t *testing.T) {
+	config := `
+accessTokenMaxAge: 1h
+accessTokenInactivityTimeout: 30m
+identityProviders:
+  - name: ldap
+    type: LDAPIdentityProvider
+    mappingMethod: auto
+    provider:
+      host: xxxx.sn.mynetname.net:389
+      managerDN: uid=root,cn=users,dc=xxxx,dc=sn,dc=mynetname,dc=net
+      managerPassword: xxxx
+      userSearchBase: dc=xxxx,dc=sn,dc=mynetname,dc=net
+      loginAttribute: uid
+      mailAttribute: mail
+  - name: github
+    type: GitHubIdentityProvider
+    mappingMethod: mixed
+    provider:
+      clientID: 'xxxxxx'
+      clientSecret: 'xxxxxx'
+      endpoint:
+        authURL: 'https://github.com/login/oauth/authorize'
+        tokenURL: 'https://github.com/login/oauth/access_token'
+      redirectURL: 'https://ks-console/oauth/redirect'
+      scopes:
+      - user
+`
+	var options Options
+	if err := yaml.Unmarshal([]byte(config), &options); err != nil {
+		t.Error(err)
+	}
+	expected := `{"identityProviders":[{"name":"ldap","mappingMethod":"auto","type":"LDAPIdentityProvider","provider":{"host":"xxxx.sn.mynetname.net:389","loginAttribute":"uid","mailAttribute":"mail","managerDN":"uid=root,cn=users,dc=xxxx,dc=sn,dc=mynetname,dc=net","userSearchBase":"dc=xxxx,dc=sn,dc=mynetname,dc=net"}},{"name":"github","mappingMethod":"mixed","type":"GitHubIdentityProvider","provider":{"clientID":"xxxxxx","endpoint":{"authURL":"https://github.com/login/oauth/authorize","tokenURL":"https://github.com/login/oauth/access_token"},"redirectURL":"https://ks-console/oauth/redirect","scopes":["user"]}}],"accessTokenMaxAge":3600000000000,"accessTokenInactivityTimeout":1800000000000}`
+	output, _ := json.Marshal(options)
+	if expected != string(output) {
+		t.Errorf("expected: %s, but got: %s", expected, output)
 	}
 }

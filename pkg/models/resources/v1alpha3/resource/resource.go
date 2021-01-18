@@ -18,13 +18,14 @@ package resource
 
 import (
 	"errors"
-	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/v2/pkg/apis/volumesnapshot/v1beta1"
+	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
@@ -51,7 +52,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedstatefulset"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrolebinding"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/group"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/groupbinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/ingress"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/ippool"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/job"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/namespace"
@@ -69,6 +73,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspacerole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspacerolebinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspacetemplate"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
 var ErrResourceNotSupported = errors.New("resource is not supported")
@@ -77,7 +82,7 @@ type ResourceGetter struct {
 	getters map[schema.GroupVersionResource]v1alpha3.Interface
 }
 
-func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
+func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *ResourceGetter {
 	getters := make(map[schema.GroupVersionResource]v1alpha3.Interface)
 
 	getters[schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}] = deployment.New(factory.KubernetesSharedInformerFactory())
@@ -89,13 +94,14 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}] = pod.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "nodes"}] = node.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}] = ingress.New(factory.KubernetesSharedInformerFactory())
-	getters[schema.GroupVersionResource{Group: "app.k8s.io", Version: "v1beta1", Resource: "applications"}] = application.New(factory.ApplicationSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "networking.k8s.io", Version: "v1", Resource: "networkpolicies"}] = networkpolicy.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "batch", Version: "v1", Resource: "jobs"}] = job.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "app.k8s.io", Version: "v1beta1", Resource: "applications"}] = application.New(cache)
 
 	// kubesphere resources
 	getters[devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject)] = devops.New(factory.KubeSphereSharedInformerFactory())
 	getters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha1.ResourcePluralWorkspace)] = workspace.New(factory.KubeSphereSharedInformerFactory())
+	getters[networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralIPPool)] = ippool.New(factory.KubeSphereSharedInformerFactory(), factory.KubernetesSharedInformerFactory())
 	getters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha2.ResourcePluralWorkspaceTemplate)] = workspacetemplate.New(factory.KubeSphereSharedInformerFactory())
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralGlobalRole)] = globalrole.New(factory.KubeSphereSharedInformerFactory())
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralWorkspaceRole)] = workspacerole.New(factory.KubeSphereSharedInformerFactory())
@@ -103,6 +109,8 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralGlobalRoleBinding)] = globalrolebinding.New(factory.KubeSphereSharedInformerFactory())
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralWorkspaceRoleBinding)] = workspacerolebinding.New(factory.KubeSphereSharedInformerFactory())
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralLoginRecord)] = loginrecord.New(factory.KubeSphereSharedInformerFactory())
+	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcePluralGroup)] = group.New(factory.KubeSphereSharedInformerFactory())
+	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcePluralGroupBinding)] = groupbinding.New(factory.KubeSphereSharedInformerFactory())
 	getters[rbacv1.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralRole)] = role.New(factory.KubernetesSharedInformerFactory())
 	getters[rbacv1.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralClusterRole)] = clusterrole.New(factory.KubernetesSharedInformerFactory())
 	getters[rbacv1.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralRoleBinding)] = rolebinding.New(factory.KubernetesSharedInformerFactory())
@@ -128,9 +136,9 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	}
 }
 
-// tryResource will retrieve a getter with resource name, it doesn't guarantee find resource with correct group version
+// TryResource will retrieve a getter with resource name, it doesn't guarantee find resource with correct group version
 // need to refactor this use schema.GroupVersionResource
-func (r *ResourceGetter) tryResource(resource string) v1alpha3.Interface {
+func (r *ResourceGetter) TryResource(resource string) v1alpha3.Interface {
 	for k, v := range r.getters {
 		if k.Resource == resource {
 			return v
@@ -140,7 +148,7 @@ func (r *ResourceGetter) tryResource(resource string) v1alpha3.Interface {
 }
 
 func (r *ResourceGetter) Get(resource, namespace, name string) (runtime.Object, error) {
-	getter := r.tryResource(resource)
+	getter := r.TryResource(resource)
 	if getter == nil {
 		return nil, ErrResourceNotSupported
 	}
@@ -148,7 +156,7 @@ func (r *ResourceGetter) Get(resource, namespace, name string) (runtime.Object, 
 }
 
 func (r *ResourceGetter) List(resource, namespace string, query *query.Query) (*api.ListResult, error) {
-	getter := r.tryResource(resource)
+	getter := r.TryResource(resource)
 	if getter == nil {
 		return nil, ErrResourceNotSupported
 	}

@@ -17,8 +17,10 @@ limitations under the License.
 package job
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -234,7 +236,7 @@ func (v *JobController) makeRevision(job *batchv1.Job) error {
 	}
 
 	job.Annotations[revisionsAnnotationKey] = string(revisionsByte)
-	_, err = v.client.BatchV1().Jobs(job.Namespace).Update(job)
+	_, err = v.client.BatchV1().Jobs(job.Namespace).Update(context.Background(), job, metav1.UpdateOptions{})
 
 	if err != nil {
 		return err

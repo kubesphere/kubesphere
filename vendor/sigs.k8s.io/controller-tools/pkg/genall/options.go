@@ -128,7 +128,7 @@ func protoFromOptions(optionsRegistry *markers.Registry, options []string) (prot
 
 		val, err := defn.Parse(rawOpt)
 		if err != nil {
-			return protoRuntime{}, fmt.Errorf("unable to parse option %q: %v", rawOpt[1:], err)
+			return protoRuntime{}, fmt.Errorf("unable to parse option %q: %w", rawOpt[1:], err)
 		}
 
 		switch val := val.(type) {

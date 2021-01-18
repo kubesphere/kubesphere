@@ -34,6 +34,10 @@ type Interface interface {
 	FederatedConfigMaps() FederatedConfigMapInformer
 	// FederatedDeployments returns a FederatedDeploymentInformer.
 	FederatedDeployments() FederatedDeploymentInformer
+	// FederatedGroups returns a FederatedGroupInformer.
+	FederatedGroups() FederatedGroupInformer
+	// FederatedGroupBindings returns a FederatedGroupBindingInformer.
+	FederatedGroupBindings() FederatedGroupBindingInformer
 	// FederatedIngresses returns a FederatedIngressInformer.
 	FederatedIngresses() FederatedIngressInformer
 	// FederatedJobs returns a FederatedJobInformer.
@@ -52,10 +56,6 @@ type Interface interface {
 	FederatedServices() FederatedServiceInformer
 	// FederatedStatefulSets returns a FederatedStatefulSetInformer.
 	FederatedStatefulSets() FederatedStatefulSetInformer
-	// FederatedUsers returns a FederatedUserInformer.
-	FederatedUsers() FederatedUserInformer
-	// FederatedWorkspaces returns a FederatedWorkspaceInformer.
-	FederatedWorkspaces() FederatedWorkspaceInformer
 }
 
 type version struct {
@@ -92,6 +92,16 @@ func (v *version) FederatedConfigMaps() FederatedConfigMapInformer {
 // FederatedDeployments returns a FederatedDeploymentInformer.
 func (v *version) FederatedDeployments() FederatedDeploymentInformer {
 	return &federatedDeploymentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedGroups returns a FederatedGroupInformer.
+func (v *version) FederatedGroups() FederatedGroupInformer {
+	return &federatedGroupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedGroupBindings returns a FederatedGroupBindingInformer.
+func (v *version) FederatedGroupBindings() FederatedGroupBindingInformer {
+	return &federatedGroupBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedIngresses returns a FederatedIngressInformer.
@@ -137,14 +147,4 @@ func (v *version) FederatedServices() FederatedServiceInformer {
 // FederatedStatefulSets returns a FederatedStatefulSetInformer.
 func (v *version) FederatedStatefulSets() FederatedStatefulSetInformer {
 	return &federatedStatefulSetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// FederatedUsers returns a FederatedUserInformer.
-func (v *version) FederatedUsers() FederatedUserInformer {
-	return &federatedUserInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// FederatedWorkspaces returns a FederatedWorkspaceInformer.
-func (v *version) FederatedWorkspaces() FederatedWorkspaceInformer {
-	return &federatedWorkspaceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

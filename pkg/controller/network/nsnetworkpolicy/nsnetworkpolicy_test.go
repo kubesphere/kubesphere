@@ -37,7 +37,7 @@ import (
 	nsnppolicyinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"
 	workspaceinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/controller/network/provider"
+	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	options "kubesphere.io/kubesphere/pkg/simple/client/network"
 )
 

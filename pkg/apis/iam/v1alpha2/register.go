@@ -63,6 +63,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&WorkspaceRoleBindingList{},
 		&RoleBase{},
 		&RoleBaseList{},
+		&Group{},
+		&GroupList{},
+		&GroupBinding{},
+		&GroupBindingList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

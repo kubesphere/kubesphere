@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var workspacerolebindingsResource = schema.GroupVersionResource{Group: "iam.kube
 var workspacerolebindingsKind = schema.GroupVersionKind{Group: "iam.kubesphere.io", Version: "v1alpha2", Kind: "WorkspaceRoleBinding"}
 
 // Get takes name of the workspaceRoleBinding, and returns the corresponding workspaceRoleBinding object, and an error if there is any.
-func (c *FakeWorkspaceRoleBindings) Get(name string, options v1.GetOptions) (result *v1alpha2.WorkspaceRoleBinding, err error) {
+func (c *FakeWorkspaceRoleBindings) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.WorkspaceRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(workspacerolebindingsResource, name), &v1alpha2.WorkspaceRoleBinding{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeWorkspaceRoleBindings) Get(name string, options v1.GetOptions) (res
 }
 
 // List takes label and field selectors, and returns the list of WorkspaceRoleBindings that match those selectors.
-func (c *FakeWorkspaceRoleBindings) List(opts v1.ListOptions) (result *v1alpha2.WorkspaceRoleBindingList, err error) {
+func (c *FakeWorkspaceRoleBindings) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.WorkspaceRoleBindingList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(workspacerolebindingsResource, workspacerolebindingsKind, opts), &v1alpha2.WorkspaceRoleBindingList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeWorkspaceRoleBindings) List(opts v1.ListOptions) (result *v1alpha2.
 }
 
 // Watch returns a watch.Interface that watches the requested workspaceRoleBindings.
-func (c *FakeWorkspaceRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeWorkspaceRoleBindings) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(workspacerolebindingsResource, opts))
 }
 
 // Create takes the representation of a workspaceRoleBinding and creates it.  Returns the server's representation of the workspaceRoleBinding, and an error, if there is any.
-func (c *FakeWorkspaceRoleBindings) Create(workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding) (result *v1alpha2.WorkspaceRoleBinding, err error) {
+func (c *FakeWorkspaceRoleBindings) Create(ctx context.Context, workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding, opts v1.CreateOptions) (result *v1alpha2.WorkspaceRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(workspacerolebindingsResource, workspaceRoleBinding), &v1alpha2.WorkspaceRoleBinding{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeWorkspaceRoleBindings) Create(workspaceRoleBinding *v1alpha2.Worksp
 }
 
 // Update takes the representation of a workspaceRoleBinding and updates it. Returns the server's representation of the workspaceRoleBinding, and an error, if there is any.
-func (c *FakeWorkspaceRoleBindings) Update(workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding) (result *v1alpha2.WorkspaceRoleBinding, err error) {
+func (c *FakeWorkspaceRoleBindings) Update(ctx context.Context, workspaceRoleBinding *v1alpha2.WorkspaceRoleBinding, opts v1.UpdateOptions) (result *v1alpha2.WorkspaceRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(workspacerolebindingsResource, workspaceRoleBinding), &v1alpha2.WorkspaceRoleBinding{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeWorkspaceRoleBindings) Update(workspaceRoleBinding *v1alpha2.Worksp
 }
 
 // Delete takes name of the workspaceRoleBinding and deletes it. Returns an error if one occurs.
-func (c *FakeWorkspaceRoleBindings) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeWorkspaceRoleBindings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(workspacerolebindingsResource, name), &v1alpha2.WorkspaceRoleBinding{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeWorkspaceRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(workspacerolebindingsResource, listOptions)
+func (c *FakeWorkspaceRoleBindings) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(workspacerolebindingsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.WorkspaceRoleBindingList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched workspaceRoleBinding.
-func (c *FakeWorkspaceRoleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.WorkspaceRoleBinding, err error) {
+func (c *FakeWorkspaceRoleBindings) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.WorkspaceRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(workspacerolebindingsResource, name, pt, data, subresources...), &v1alpha2.WorkspaceRoleBinding{})
 	if obj == nil {

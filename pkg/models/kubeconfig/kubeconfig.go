@@ -18,6 +18,7 @@ package kubeconfig
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
@@ -44,7 +45,7 @@ import (
 )
 
 const (
-	inClusterCAFilePath  = "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	inClusterCAFilePath  = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 	configMapPrefix      = "kubeconfig-"
 	kubeconfigNameFormat = configMapPrefix + "%s"
 	defaultClusterName   = "local"
@@ -52,12 +53,13 @@ const (
 	kubeconfigFileName   = "config"
 	configMapKind        = "ConfigMap"
 	configMapAPIVersion  = "v1"
+	privateKeyAnnotation = "kubesphere.io/private-key"
 )
 
 type Interface interface {
 	GetKubeConfig(username string) (string, error)
 	CreateKubeConfig(user *iamv1alpha2.User) error
-	UpdateKubeconfig(username string, certificate []byte) error
+	UpdateKubeconfig(username string, csr *certificatesv1beta1.CertificateSigningRequest) error
 }
 
 type operator struct {
@@ -76,11 +78,8 @@ func NewReadOnlyOperator(configMapInformer corev1informers.ConfigMapInformer, ma
 }
 
 func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
-
 	configName := fmt.Sprintf(kubeconfigNameFormat, user.Name)
-
 	_, err := o.configMapInformer.Lister().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName)
-
 	// already exist
 	if err == nil {
 		return nil
@@ -104,15 +103,12 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 		}
 	}
 
-	clientKey, err := o.createCSR(user.Name)
-
-	if err != nil {
+	if err = o.createCSR(user.Name); err != nil {
 		klog.Errorln(err)
 		return err
 	}
 
 	currentContext := fmt.Sprintf("%s@%s", user.Name, defaultClusterName)
-
 	config := clientcmdapi.Config{
 		Kind:        configMapKind,
 		APIVersion:  configMapAPIVersion,
@@ -121,9 +117,6 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 			Server:                   o.config.Host,
 			InsecureSkipTLSVerify:    false,
 			CertificateAuthorityData: ca,
-		}},
-		AuthInfos: map[string]*clientcmdapi.AuthInfo{user.Name: {
-			ClientKeyData: clientKey,
 		}},
 		Contexts: map[string]*clientcmdapi.Context{currentContext: {
 			Cluster:   defaultClusterName,
@@ -134,26 +127,29 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 	}
 
 	kubeconfig, err := clientcmd.Write(config)
-
 	if err != nil {
 		klog.Error(err)
 		return err
 	}
 
-	cm := &corev1.ConfigMap{TypeMeta: metav1.TypeMeta{Kind: configMapKind, APIVersion: configMapAPIVersion},
-		ObjectMeta: metav1.ObjectMeta{Name: configName, Labels: map[string]string{constants.UsernameLabelKey: user.Name}},
-		Data:       map[string]string{kubeconfigFileName: string(kubeconfig)}}
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       configMapKind,
+			APIVersion: configMapAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   configName,
+			Labels: map[string]string{constants.UsernameLabelKey: user.Name},
+		},
+		Data: map[string]string{kubeconfigFileName: string(kubeconfig)},
+	}
 
-	err = controllerutil.SetControllerReference(user, cm, scheme.Scheme)
-
-	if err != nil {
+	if err = controllerutil.SetControllerReference(user, cm, scheme.Scheme); err != nil {
 		klog.Errorln(err)
 		return err
 	}
 
-	_, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(cm)
-
-	if err != nil {
+	if _, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(context.Background(), cm, metav1.CreateOptions{}); err != nil {
 		klog.Errorln(err)
 		return err
 	}
@@ -170,23 +166,19 @@ func (o *operator) GetKubeConfig(username string) (string, error) {
 	}
 
 	data := []byte(configMap.Data[kubeconfigFileName])
-
 	kubeconfig, err := clientcmd.Load(data)
-
 	if err != nil {
 		klog.Errorln(err)
 		return "", err
 	}
 
 	masterURL := o.masterURL
-
 	// server host override
 	if cluster := kubeconfig.Clusters[defaultClusterName]; cluster != nil && masterURL != "" {
 		cluster.Server = masterURL
 	}
 
 	data, err = clientcmd.Write(*kubeconfig)
-
 	if err != nil {
 		klog.Errorln(err)
 		return "", err
@@ -195,55 +187,49 @@ func (o *operator) GetKubeConfig(username string) (string, error) {
 	return string(data), nil
 }
 
-func (o *operator) createCSR(username string) ([]byte, error) {
+func (o *operator) createCSR(username string) error {
 	csrConfig := &certutil.Config{
 		CommonName:   username,
 		Organization: nil,
 		AltNames:     certutil.AltNames{},
 		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
+
 	x509csr, x509key, err := pkiutil.NewCSRAndKey(csrConfig)
 	if err != nil {
 		klog.Errorln(err)
-		return nil, err
+		return err
 	}
 
 	var csrBuffer, keyBuffer bytes.Buffer
-
-	err = pem.Encode(&keyBuffer, &pem.Block{Type: "PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(x509key)})
-
-	if err != nil {
+	if err = pem.Encode(&keyBuffer, &pem.Block{Type: "PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(x509key)}); err != nil {
 		klog.Errorln(err)
-		return nil, err
+		return err
 	}
 
-	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, x509csr, x509key)
-
-	if err != nil {
+	var csrBytes []byte
+	if csrBytes, err = x509.CreateCertificateRequest(rand.Reader, x509csr, x509key); err != nil {
 		klog.Errorln(err)
-		return nil, err
+		return err
 	}
 
-	err = pem.Encode(&csrBuffer, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
-
-	if err != nil {
+	if err = pem.Encode(&csrBuffer, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes}); err != nil {
 		klog.Errorln(err)
-		return nil, err
+		return err
 	}
 
 	csr := csrBuffer.Bytes()
 	key := keyBuffer.Bytes()
-
 	csrName := fmt.Sprintf("%s-csr-%d", username, time.Now().Unix())
-
 	k8sCSR := &certificatesv1beta1.CertificateSigningRequest{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CertificateSigningRequest",
 			APIVersion: "certificates.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   csrName,
-			Labels: map[string]string{constants.UsernameLabelKey: username},
+			Name:        csrName,
+			Labels:      map[string]string{constants.UsernameLabelKey: username},
+			Annotations: map[string]string{privateKeyAnnotation: string(key)},
 		},
 		Spec: certificatesv1beta1.CertificateSigningRequestSpec{
 			Request:  csr,
@@ -254,26 +240,25 @@ func (o *operator) createCSR(username string) ([]byte, error) {
 	}
 
 	// create csr
-	k8sCSR, err = o.k8sClient.CertificatesV1beta1().CertificateSigningRequests().Create(k8sCSR)
-
-	if err != nil {
+	if _, err = o.k8sClient.CertificatesV1beta1().CertificateSigningRequests().Create(context.Background(), k8sCSR, metav1.CreateOptions{}); err != nil {
 		klog.Errorln(err)
-		return nil, err
+		return err
 	}
 
-	return key, nil
+	return nil
 }
 
-func (o *operator) UpdateKubeconfig(username string, certificate []byte) error {
+// Update client key and client certificate after CertificateSigningRequest has been approved
+func (o *operator) UpdateKubeconfig(username string, csr *certificatesv1beta1.CertificateSigningRequest) error {
 	configName := fmt.Sprintf(kubeconfigNameFormat, username)
-	configMap, err := o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metav1.GetOptions{})
+	configMap, err := o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(context.Background(), configName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err
 	}
 
-	configMap = appendCert(configMap, certificate)
-	_, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Update(configMap)
+	configMap = applyCert(configMap, csr)
+	_, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Update(context.Background(), configMap, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err
@@ -281,33 +266,31 @@ func (o *operator) UpdateKubeconfig(username string, certificate []byte) error {
 	return nil
 }
 
-func appendCert(cm *corev1.ConfigMap, cert []byte) *corev1.ConfigMap {
+func applyCert(cm *corev1.ConfigMap, csr *certificatesv1beta1.CertificateSigningRequest) *corev1.ConfigMap {
 	data := []byte(cm.Data[kubeconfigFileName])
-
 	kubeconfig, err := clientcmd.Load(data)
-
-	// ignore if invalid format
 	if err != nil {
-		klog.Warning(err)
+		klog.Error(err)
 		return cm
 	}
 
 	username := getControlledUsername(cm)
-
-	if kubeconfig.AuthInfos[username] != nil {
-		kubeconfig.AuthInfos[username].ClientCertificateData = cert
+	privateKey := csr.Annotations[privateKeyAnnotation]
+	clientCert := csr.Status.Certificate
+	kubeconfig.AuthInfos = map[string]*clientcmdapi.AuthInfo{
+		username: {
+			ClientKeyData:         []byte(privateKey),
+			ClientCertificateData: clientCert,
+		},
 	}
 
 	data, err = clientcmd.Write(*kubeconfig)
-
-	// ignore if invalid format
 	if err != nil {
-		klog.Warning(err)
+		klog.Error(err)
 		return cm
 	}
 
 	cm.Data[kubeconfigFileName] = string(data)
-
 	return cm
 }
 

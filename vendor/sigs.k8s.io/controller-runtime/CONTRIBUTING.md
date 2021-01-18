@@ -16,12 +16,4 @@ Please see https://git.k8s.io/community/CLA.md for more info
 
 ## Test locally
 
-1. Setup tools
-    ```bash
-    $ curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.17.1
-    ```
-1. Test
-    ```bash
-    GO111MODULE=on TRACE=1 ./hack/check-everything.sh
-    ```
-
+Run the command `make test` to test the changes locally.

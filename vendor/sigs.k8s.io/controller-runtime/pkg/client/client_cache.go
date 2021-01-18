@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"reflect"
 	"strings"
 	"sync"
 
@@ -45,19 +44,14 @@ type clientCache struct {
 	codecs serializer.CodecFactory
 
 	// resourceByType caches type metadata
-	resourceByType map[reflect.Type]*resourceMeta
+	resourceByType map[schema.GroupVersionKind]*resourceMeta
 	mu             sync.RWMutex
 }
 
 // newResource maps obj to a Kubernetes Resource and constructs a client for that Resource.
 // If the object is a list, the resource represents the item's type instead.
-func (c *clientCache) newResource(obj runtime.Object) (*resourceMeta, error) {
-	gvk, err := apiutil.GVKForObject(obj, c.scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	if strings.HasSuffix(gvk.Kind, "List") && meta.IsListType(obj) {
+func (c *clientCache) newResource(gvk schema.GroupVersionKind, isList bool) (*resourceMeta, error) {
+	if strings.HasSuffix(gvk.Kind, "List") && isList {
 		// if this was a list, treat it as a request for the item's resource
 		gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
 	}
@@ -76,12 +70,15 @@ func (c *clientCache) newResource(obj runtime.Object) (*resourceMeta, error) {
 // getResource returns the resource meta information for the given type of object.
 // If the object is a list, the resource represents the item's type instead.
 func (c *clientCache) getResource(obj runtime.Object) (*resourceMeta, error) {
-	typ := reflect.TypeOf(obj)
+	gvk, err := apiutil.GVKForObject(obj, c.scheme)
+	if err != nil {
+		return nil, err
+	}
 
 	// It's better to do creation work twice than to not let multiple
 	// people make requests at once
 	c.mu.RLock()
-	r, known := c.resourceByType[typ]
+	r, known := c.resourceByType[gvk]
 	c.mu.RUnlock()
 
 	if known {
@@ -91,11 +88,11 @@ func (c *clientCache) getResource(obj runtime.Object) (*resourceMeta, error) {
 	// Initialize a new Client
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	r, err := c.newResource(obj)
+	r, err = c.newResource(gvk, meta.IsListType(obj))
 	if err != nil {
 		return nil, err
 	}
-	c.resourceByType[typ] = r
+	c.resourceByType[gvk] = r
 	return r, err
 }
 
@@ -124,10 +121,8 @@ type resourceMeta struct {
 
 // isNamespaced returns true if the type is namespaced
 func (r *resourceMeta) isNamespaced() bool {
-	if r.mapping.Scope.Name() == meta.RESTScopeNameRoot {
-		return false
-	}
-	return true
+	return r.mapping.Scope.Name() != meta.RESTScopeNameRoot
+
 }
 
 // resource returns the resource name of the type

@@ -21,25 +21,29 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/version"
+	"log"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 	"github.com/pkg/errors"
-	"io/ioutil"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
+	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
@@ -47,13 +51,11 @@ import (
 	metricsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/models/iam/am"
-	"kubesphere.io/kubesphere/pkg/models/iam/im"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
+	"kubesphere.io/kubesphere/pkg/models/iam/group"
+	fakedevops "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
-	"kubesphere.io/kubesphere/pkg/version"
-	"log"
 )
 
 var output string
@@ -111,15 +113,18 @@ func generateSwaggerJson() []byte {
 
 	informerFactory := informers.NewNullInformerFactory()
 
-	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fake.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), ""))
-	urlruntime.Must(devopsv1alpha3.AddToContainer(container, &fake.Devops{}, clientsets.Kubernetes(), clientsets.KubeSphere(), informerFactory.KubeSphereSharedInformerFactory(), informerFactory.KubernetesSharedInformerFactory()))
-	urlruntime.Must(iamv1alpha2.AddToContainer(container, im.NewOperator(clientsets.KubeSphere(), informerFactory, nil), am.NewReadOnlyOperator(informerFactory), authoptions.NewAuthenticateOptions()))
+	urlruntime.Must(oauth.AddToContainer(container, nil, nil, nil, nil, nil, nil))
+	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(container, informerFactory.KubernetesSharedInformerFactory(),
+		informerFactory.KubeSphereSharedInformerFactory(), "", "", ""))
+	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fakedevops.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), "", nil))
+	urlruntime.Must(devopsv1alpha3.AddToContainer(container, &fakedevops.Devops{}, clientsets.Kubernetes(), clientsets.KubeSphere(), informerFactory.KubeSphereSharedInformerFactory(), informerFactory.KubernetesSharedInformerFactory()))
+	urlruntime.Must(iamv1alpha2.AddToContainer(container, nil, nil, group.New(informerFactory, clientsets.KubeSphere(), clientsets.Kubernetes()), nil))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(container, clientsets.Kubernetes(), nil, informerFactory, nil))
-	urlruntime.Must(openpitrixv1.AddToContainer(container, informerFactory, nil))
+	urlruntime.Must(openpitrixv1.AddToContainer(container, informerFactory, openpitrix.NewMockClient(nil)))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(container, clientsets.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, clientsets.Kubernetes(), informerFactory, ""))
-	urlruntime.Must(resourcesv1alpha3.AddToContainer(container, informerFactory))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(container, informerFactory, nil, nil, nil, nil, nil))
+	urlruntime.Must(resourcesv1alpha3.AddToContainer(container, informerFactory, nil))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(container, informerFactory, nil, nil, nil, nil, nil, nil, nil))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container, clientsets.Kubernetes(), nil))
 	urlruntime.Must(metricsv1alpha2.AddToContainer(container))
 	urlruntime.Must(networkv1alpha2.AddToContainer(container, ""))
@@ -129,50 +134,118 @@ func generateSwaggerJson() []byte {
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 
 	swagger := restfulspec.BuildSwagger(config)
-
 	swagger.Info.Extensions = make(spec.Extensions)
 	swagger.Info.Extensions.Add("x-tagGroups", []struct {
 		Name string   `json:"name"`
 		Tags []string `json:"tags"`
 	}{
 		{
-			Name: "IAM",
-			Tags: []string{constants.IdentityManagementTag, constants.AccessManagementTag},
+			Name: "Authentication",
+			Tags: []string{constants.AuthenticationTag},
+		},
+		{
+			Name: "Identity Management",
+			Tags: []string{
+				constants.UserTag,
+			},
+		},
+		{
+			Name: "Access Management",
+			Tags: []string{
+				constants.ClusterMemberTag,
+				constants.WorkspaceMemberTag,
+				constants.DevOpsProjectMemberTag,
+				constants.NamespaceMemberTag,
+				constants.GlobalRoleTag,
+				constants.ClusterRoleTag,
+				constants.WorkspaceRoleTag,
+				constants.DevOpsProjectRoleTag,
+				constants.NamespaceRoleTag,
+			},
+		},
+		{
+			Name: "Multi-tenancy",
+			Tags: []string{
+				constants.WorkspaceTag,
+				constants.NamespaceTag,
+				constants.UserResourceTag,
+			},
+		},
+		{
+			Name: "Multi-cluster",
+			Tags: []string{
+				constants.MultiClusterTag,
+			},
 		},
 		{
 			Name: "Resources",
-			Tags: []string{constants.ClusterResourcesTag, constants.NamespaceResourcesTag, constants.UserResourcesTag},
+			Tags: []string{
+				constants.ClusterResourcesTag,
+				constants.NamespaceResourcesTag,
+			},
 		},
 		{
-			Name: "AppStore",
-			Tags: []string{constants.OpenpitrixTag},
-		},
-		{
-			Name: "Monitoring",
-			Tags: []string{constants.ComponentStatusTag},
-		},
-		{
-			Name: "Tenant",
-			Tags: []string{constants.TenantResourcesTag},
+			Name: "App Store",
+			Tags: []string{
+				constants.OpenpitrixAppInstanceTag,
+				constants.OpenpitrixAppTemplateTag,
+				constants.OpenpitrixCategoryTag,
+				constants.OpenpitrixAttachmentTag,
+				constants.OpenpitrixRepositoryTag,
+				constants.OpenpitrixManagementTag,
+			},
 		},
 		{
 			Name: "Other",
-			Tags: []string{constants.VerificationTag, constants.RegistryTag},
+			Tags: []string{
+				constants.RegistryTag,
+				constants.GitTag,
+				constants.ToolboxTag,
+				constants.TerminalTag,
+			},
 		},
 		{
 			Name: "DevOps",
-			Tags: []string{constants.DevOpsProjectTag, constants.DevOpsProjectCredentialTag,
-				constants.DevOpsPipelineTag, constants.DevOpsProjectMemberTag,
-				constants.DevOpsWebhookTag, constants.DevOpsJenkinsfileTag, constants.DevOpsScmTag},
+			Tags: []string{
+				constants.DevOpsProjectTag,
+				constants.DevOpsCredentialTag,
+				constants.DevOpsPipelineTag,
+				constants.DevOpsProjectMemberTag,
+				constants.DevOpsWebhookTag,
+				constants.DevOpsJenkinsfileTag,
+				constants.DevOpsScmTag,
+				constants.DevOpsJenkinsTag,
+			},
 		},
 		{
 			Name: "Monitoring",
-			Tags: []string{constants.ClusterMetricsTag, constants.NodeMetricsTag, constants.NamespaceMetricsTag, constants.WorkloadMetricsTag,
-				constants.PodMetricsTag, constants.ContainerMetricsTag, constants.WorkspaceMetricsTag, constants.ComponentMetricsTag},
+			Tags: []string{
+				constants.ClusterMetricsTag,
+				constants.NodeMetricsTag,
+				constants.NamespaceMetricsTag,
+				constants.WorkloadMetricsTag,
+				constants.PodMetricsTag,
+				constants.ContainerMetricsTag,
+				constants.WorkspaceMetricsTag,
+				constants.ComponentMetricsTag,
+				constants.ComponentStatusTag,
+			},
 		},
 		{
 			Name: "Logging",
 			Tags: []string{constants.LogQueryTag},
+		},
+		{
+			Name: "Events",
+			Tags: []string{constants.EventsQueryTag},
+		},
+		{
+			Name: "Auditing",
+			Tags: []string{constants.AuditingQueryTag},
+		},
+		{
+			Name: "Network",
+			Tags: []string{constants.NetworkTopologyTag},
 		},
 	})
 
@@ -191,16 +264,20 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		InfoProps: spec.InfoProps{
 			Title:       "KubeSphere",
 			Description: "KubeSphere OpenAPI",
+			Version:     version.Get().GitVersion,
 			Contact: &spec.ContactInfo{
-				Name:  "kubesphere",
-				Email: "kubesphere@yunify.com",
-				URL:   "https://kubesphere.io",
+				ContactInfoProps: spec.ContactInfoProps{
+					Name:  "KubeSphere",
+					URL:   "https://kubesphere.io/",
+					Email: "kubesphere@yunify.com",
+				},
 			},
 			License: &spec.License{
-				Name: "Apache",
-				URL:  "http://www.apache.org/licenses/",
+				LicenseProps: spec.LicenseProps{
+					Name: "Apache 2.0",
+					URL:  "https://www.apache.org/licenses/LICENSE-2.0.html",
+				},
 			},
-			Version: version.Get().GitVersion,
 		},
 	}
 

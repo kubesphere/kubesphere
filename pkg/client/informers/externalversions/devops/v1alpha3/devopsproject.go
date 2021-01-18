@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"context"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,13 +61,13 @@ func NewFilteredDevOpsProjectInformer(client versioned.Interface, resyncPeriod t
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.DevopsV1alpha3().DevOpsProjects().List(options)
+				return client.DevopsV1alpha3().DevOpsProjects().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.DevopsV1alpha3().DevOpsProjects().Watch(options)
+				return client.DevopsV1alpha3().DevOpsProjects().Watch(context.TODO(), options)
 			},
 		},
 		&devopsv1alpha3.DevOpsProject{},

@@ -21,26 +21,25 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/components"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"strings"
 )
 
 type Handler struct {
-	resourceGetterV1alpha3  *resource.ResourceGetter
+	resourceGetterV1alpha3  *resourcev1alpha3.ResourceGetter
 	resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter
 	componentsGetter        components.ComponentsGetter
 }
 
-func New(factory informers.InformerFactory) *Handler {
+func New(resourceGetterV1alpha3 *resourcev1alpha3.ResourceGetter, resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter, componentsGetter components.ComponentsGetter) *Handler {
 	return &Handler{
-		resourceGetterV1alpha3:  resource.NewResourceGetter(factory),
-		resourcesGetterV1alpha2: resourcev1alpha2.NewResourceGetter(factory),
-		componentsGetter:        components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()),
+		resourceGetterV1alpha3:  resourceGetterV1alpha3,
+		resourcesGetterV1alpha2: resourcesGetterV1alpha2,
+		componentsGetter:        componentsGetter,
 	}
 }
 
@@ -49,13 +48,14 @@ func (h *Handler) handleGetResources(request *restful.Request, response *restful
 	resourceType := request.PathParameter("resources")
 	name := request.PathParameter("name")
 
+	// use informers to retrieve resources
 	result, err := h.resourceGetterV1alpha3.Get(resourceType, namespace, name)
 	if err == nil {
 		response.WriteEntity(result)
 		return
 	}
 
-	if err != resource.ErrResourceNotSupported {
+	if err != resourcev1alpha3.ErrResourceNotSupported {
 		klog.Error(err, resourceType)
 		api.HandleInternalError(response, nil, err)
 		return
@@ -87,7 +87,7 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 		return
 	}
 
-	if err != resource.ErrResourceNotSupported {
+	if err != resourcev1alpha3.ErrResourceNotSupported {
 		klog.Error(err, resourceType)
 		api.HandleInternalError(response, nil, err)
 		return
@@ -101,7 +101,6 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 		api.HandleInternalError(response, nil, err)
 		return
 	}
-
 	response.WriteEntity(result)
 }
 

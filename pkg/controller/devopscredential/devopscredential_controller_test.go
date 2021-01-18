@@ -17,6 +17,7 @@ limitations under the License.
 package devopscredential
 
 import (
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	"reflect"
 	"testing"
 	"time"
@@ -91,15 +92,16 @@ func newNamespace(name string, projectName string) *v1.Namespace {
 	return ns
 }
 
-func newSecret(namespace, name string, data map[string][]byte, withFinalizers bool, autoSync bool) *v1.Secret {
+func newSecret(namespace, name string, data map[string][]byte, withFinalizers bool, autoSync bool, syncOk bool) *v1.Secret {
 	secret := &v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       devops.ResourceKindPipeline,
 			APIVersion: devops.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
+			Namespace:   namespace,
+			Name:        name,
+			Annotations: map[string]string{},
 		},
 		Data: data,
 		Type: devops.DevOpsCredentialPrefix + "test",
@@ -108,10 +110,10 @@ func newSecret(namespace, name string, data map[string][]byte, withFinalizers bo
 		secret.Finalizers = append(secret.Finalizers, devops.CredentialFinalizerName)
 	}
 	if autoSync {
-		if secret.Annotations == nil {
-			secret.Annotations = map[string]string{}
-		}
 		secret.Annotations[devops.CredentialAutoSyncAnnoKey] = "true"
+	}
+	if syncOk {
+		secret.Annotations[devops.CredentialSyncStatusAnnoKey] = modelsdevops.StatusSuccessful
 	}
 	return secret
 }
@@ -146,7 +148,6 @@ func (f *fixture) newController() (*Controller, kubeinformers.SharedInformerFact
 
 	c.secretSynced = alwaysReady
 	c.eventRecorder = &record.FakeRecorder{}
-
 	for _, f := range f.secretLister {
 		k8sI.Core().V1().Secrets().Informer().GetIndexer().Add(f)
 	}
@@ -182,15 +183,6 @@ func (f *fixture) runController(name string, startInformers bool, expectError bo
 	}
 
 	k8sActions := filterInformerActions(f.kubeclient.Actions())
-	for i, action := range k8sActions {
-		if len(f.kubeactions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.kubeactions), k8sActions[i:])
-			break
-		}
-
-		expectedAction := f.kubeactions[i]
-		checkAction(expectedAction, action, f.t)
-	}
 
 	if len(f.kubeactions) > len(k8sActions) {
 		f.t.Errorf("%d additional expected actions:%+v", len(f.kubeactions)-len(k8sActions), f.kubeactions[len(k8sActions):])
@@ -297,14 +289,15 @@ func TestDoNothing(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	secret := newSecret(nsName, secretName, nil, true, true)
+	secret := newSecret(nsName, secretName, nil, true, true, false)
+	expectSecret := newSecret(nsName, secretName, nil, true, true, true)
 
 	f.secretLister = append(f.secretLister, secret)
 	f.namespaceLister = append(f.namespaceLister, ns)
-	f.objects = append(f.objects, secret)
+	f.kubeobjects = append(f.kubeobjects, secret)
 	f.initDevOpsProject = nsName
 	f.initCredential = []*v1.Secret{secret}
-	f.expectCredential = []*v1.Secret{secret}
+	f.expectCredential = []*v1.Secret{expectSecret}
 
 	f.run(getKey(secret, t))
 }
@@ -316,9 +309,9 @@ func TestAddCredentialFinalizers(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	secret := newSecret(nsName, secretName, nil, false, true)
+	secret := newSecret(nsName, secretName, nil, false, true, false)
 
-	expectSecret := newSecret(nsName, secretName, nil, true, true)
+	expectSecret := newSecret(nsName, secretName, nil, true, true, true)
 
 	f.secretLister = append(f.secretLister, secret)
 	f.namespaceLister = append(f.namespaceLister, ns)
@@ -337,13 +330,14 @@ func TestCreateCredential(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	secret := newSecret(nsName, secretName, nil, true, true)
+	secret := newSecret(nsName, secretName, nil, true, true, false)
+	expectSecret := newSecret(nsName, secretName, nil, true, true, true)
 
 	f.secretLister = append(f.secretLister, secret)
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.kubeobjects = append(f.kubeobjects, secret)
 	f.initDevOpsProject = nsName
-	f.expectCredential = []*v1.Secret{secret}
+	f.expectCredential = []*v1.Secret{expectSecret}
 	f.run(getKey(secret, t))
 }
 
@@ -375,15 +369,16 @@ func TestUpdateCredential(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	initSecret := newSecret(nsName, secretName, nil, true, true)
-	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a": []byte("aa")}, true, true)
-	f.secretLister = append(f.secretLister, expectSecret)
+	initSecret := newSecret(nsName, secretName, nil, true, true, false)
+	modifiedSecret := newSecret(nsName, secretName, map[string][]byte{"a": []byte("aa")}, true, true, false)
+	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a": []byte("aa")}, true, true, true)
+	f.secretLister = append(f.secretLister, modifiedSecret)
 	f.namespaceLister = append(f.namespaceLister, ns)
-	f.kubeobjects = append(f.kubeobjects, expectSecret)
+	f.kubeobjects = append(f.kubeobjects, modifiedSecret)
 	f.initDevOpsProject = nsName
 	f.initCredential = []*v1.Secret{initSecret}
 	f.expectCredential = []*v1.Secret{expectSecret}
-	f.run(getKey(expectSecret, t))
+	f.run(getKey(modifiedSecret, t))
 }
 
 func TestNotUpdateCredential(t *testing.T) {
@@ -393,8 +388,8 @@ func TestNotUpdateCredential(t *testing.T) {
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	initSecret := newSecret(nsName, secretName, nil, true, false)
-	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a": []byte("aa")}, true, false)
+	initSecret := newSecret(nsName, secretName, nil, true, false, false)
+	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a": []byte("aa")}, true, false, true)
 	f.secretLister = append(f.secretLister, expectSecret)
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.kubeobjects = append(f.kubeobjects, expectSecret)

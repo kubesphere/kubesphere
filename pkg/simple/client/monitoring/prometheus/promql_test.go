@@ -136,6 +136,13 @@ func TestMakeExpr(t *testing.T) {
 			},
 		},
 		{
+			name: "pod_net_bytes_transmitted",
+			opts: monitoring.QueryOptions{
+				Level:                     monitoring.LevelPod,
+				NamespacedResourcesFilter: "logging/elasticsearch-0|ks/redis",
+			},
+		},
+		{
 			name: "container_cpu_usage",
 			opts: monitoring.QueryOptions{
 				Level:         monitoring.LevelContainer,

@@ -87,6 +87,18 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions":                            schema_pkg_apis_meta_v1_UpdateOptions(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.WatchEvent":                               schema_pkg_apis_meta_v1_WatchEvent(ref),
 		"k8s.io/apimachinery/pkg/util/intstr.IntOrString":                               schema_apimachinery_pkg_util_intstr_IntOrString(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.AllocationAttribute":        schema_pkg_apis_network_v1alpha1_AllocationAttribute(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.DNS":                        schema_pkg_apis_network_v1alpha1_DNS(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMBlock":                  schema_pkg_apis_network_v1alpha1_IPAMBlock(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMBlockList":              schema_pkg_apis_network_v1alpha1_IPAMBlockList(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMBlockSpec":              schema_pkg_apis_network_v1alpha1_IPAMBlockSpec(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMHandle":                 schema_pkg_apis_network_v1alpha1_IPAMHandle(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMHandleList":             schema_pkg_apis_network_v1alpha1_IPAMHandleList(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMHandleSpec":             schema_pkg_apis_network_v1alpha1_IPAMHandleSpec(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPool":                     schema_pkg_apis_network_v1alpha1_IPPool(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPoolList":                 schema_pkg_apis_network_v1alpha1_IPPoolList(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPoolSpec":                 schema_pkg_apis_network_v1alpha1_IPPoolSpec(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPoolStatus":               schema_pkg_apis_network_v1alpha1_IPPoolStatus(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.NamespaceNetworkPolicy":     schema_pkg_apis_network_v1alpha1_NamespaceNetworkPolicy(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.NamespaceNetworkPolicyList": schema_pkg_apis_network_v1alpha1_NamespaceNetworkPolicyList(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.NamespaceNetworkPolicySpec": schema_pkg_apis_network_v1alpha1_NamespaceNetworkPolicySpec(ref),
@@ -94,7 +106,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.NetworkPolicyEgressRule":    schema_pkg_apis_network_v1alpha1_NetworkPolicyEgressRule(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.NetworkPolicyIngressRule":   schema_pkg_apis_network_v1alpha1_NetworkPolicyIngressRule(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.NetworkPolicyPeer":          schema_pkg_apis_network_v1alpha1_NetworkPolicyPeer(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.ReservedAttr":               schema_pkg_apis_network_v1alpha1_ReservedAttr(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.Route":                      schema_pkg_apis_network_v1alpha1_Route(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.ServiceSelector":            schema_pkg_apis_network_v1alpha1_ServiceSelector(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.VLANConfig":                 schema_pkg_apis_network_v1alpha1_VLANConfig(ref),
+		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.WorkspaceStatus":            schema_pkg_apis_network_v1alpha1_WorkspaceStatus(ref),
 	}
 }
 
@@ -2515,6 +2531,611 @@ func schema_apimachinery_pkg_util_intstr_IntOrString(ref common.ReferenceCallbac
 	}
 }
 
+func schema_pkg_apis_network_v1alpha1_AllocationAttribute(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"handle_id": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"secondary": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_DNS(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DNS contains values interesting for DNS resolvers",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nameservers": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"domain": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"search": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"options": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPAMBlock(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Specification of the IPAMBlock.",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMBlockSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMBlockSpec"},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPAMBlockList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMBlock"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"metadata", "items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMBlock"},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPAMBlockSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "IPAMBlockSpec contains the specification for an IPAMBlock resource.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"id": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"cidr": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"allocations": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"integer"},
+										Format: "int32",
+									},
+								},
+							},
+						},
+					},
+					"unallocated": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"integer"},
+										Format: "int32",
+									},
+								},
+							},
+						},
+					},
+					"attributes": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.AllocationAttribute"),
+									},
+								},
+							},
+						},
+					},
+					"deleted": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"id", "cidr", "allocations", "unallocated", "attributes", "deleted"},
+			},
+		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.AllocationAttribute"},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPAMHandle(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Specification of the IPAMHandle.",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMHandleSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMHandleSpec"},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPAMHandleList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMHandle"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"metadata", "items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPAMHandle"},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPAMHandleSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "IPAMHandleSpec contains the specification for an IPAMHandle resource.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"handleID": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"block": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"integer"},
+										Format: "int32",
+									},
+								},
+							},
+						},
+					},
+					"deleted": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"handleID", "block", "deleted"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPPool(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPoolSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPoolStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPoolSpec", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPoolStatus"},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPPoolList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPool"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.IPPool"},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPPoolSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"cidr": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The pool CIDR.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"rangeStart": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The first ip, inclusive",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"rangeEnd": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The last ip, inclusive",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"disabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "When disabled is true, IPAM will not assign addresses from this pool.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"blockSize": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The block size to use for IP address assignments from this pool. Defaults to 26 for IPv4 and 112 for IPv6.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"vlanConfig": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.VLANConfig"),
+						},
+					},
+					"gateway": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"routes": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.Route"),
+									},
+								},
+							},
+						},
+					},
+					"dns": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.DNS"),
+						},
+					},
+				},
+				Required: []string{"type", "cidr"},
+			},
+		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.DNS", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.Route", "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.VLANConfig"},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_IPPoolStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"unallocated": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"allocations": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"capacity": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"reserved": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"synced": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+					"workspaces": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.WorkspaceStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"unallocated", "allocations", "capacity"},
+			},
+		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.WorkspaceStatus"},
+	}
+}
+
 func schema_pkg_apis_network_v1alpha1_NamespaceNetworkPolicy(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -2788,6 +3409,71 @@ func schema_pkg_apis_network_v1alpha1_NetworkPolicyPeer(ref common.ReferenceCall
 	}
 }
 
+func schema_pkg_apis_network_v1alpha1_ReservedAttr(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"StartOfBlock": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Number of addresses reserved from start of the block.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"EndOfBlock": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Number of addresses reserved from end of the block.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"Handle": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Handle for reserved addresses.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"Note": {
+						SchemaProps: spec.SchemaProps{
+							Description: "A description about the reserves.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"StartOfBlock", "EndOfBlock", "Handle", "Note"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_Route(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"dst": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"gateway": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_pkg_apis_network_v1alpha1_ServiceSelector(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -2808,6 +3494,50 @@ func schema_pkg_apis_network_v1alpha1_ServiceSelector(ref common.ReferenceCallba
 					},
 				},
 				Required: []string{"name", "namespace"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_VLANConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"vlanId": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"master": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"vlanId", "master"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_network_v1alpha1_WorkspaceStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"allocations": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+				},
+				Required: []string{"allocations"},
 			},
 		},
 	}

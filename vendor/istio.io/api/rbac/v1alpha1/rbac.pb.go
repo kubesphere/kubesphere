@@ -11,7 +11,7 @@
 // the following standard fields:
 //
 //   * services: a list of services.
-//   * methods: A list of HTTP methods. You can set the value to `\*` to include all HTTP methods.
+//   * methods: A list of HTTP methods. You can set the value to `["*"]` to include all HTTP methods.
 //              This field should not be set for TCP services. The policy will be ignored.
 //              For gRPC services, only `POST` is allowed; other methods will result in denying services.
 //   * paths: HTTP paths or gRPC methods. Note that gRPC methods should be
@@ -125,6 +125,7 @@ func (EnforcementMode) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_3462954d26c055c0, []int{0}
 }
 
+// $hide_from_docs
 type RbacConfig_Mode int32
 
 const (
@@ -163,7 +164,20 @@ func (RbacConfig_Mode) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_3462954d26c055c0, []int{5, 0}
 }
 
+// $hide_from_docs
 // ServiceRole specification contains a list of access rules (permissions).
+//
+// <!-- crd generation tags
+// +cue-gen:ServiceRole:groupName:rbac.istio.io
+// +cue-gen:ServiceRole:version:v1alpha1
+// +cue-gen:ServiceRole:storageVersion
+// +cue-gen:ServiceRole:annotations:helm.sh/resource-policy=keep
+// +cue-gen:ServiceRole:labels:app=mixer,chart=istio,heritage=Tiller,release=istio,package=istio.io.mixer,istio=rbac
+// +cue-gen:ServiceRole:subresource:status
+// +cue-gen:ServiceRole:scope:Namespaced
+// +cue-gen:ServiceRole:resource:categories=istio-io,rbac-istio-io
+// +cue-gen:ServiceRole:preserveUnknownFields:false
+// -->
 //
 // <!-- go code generation tags
 // +kubetype-gen
@@ -219,6 +233,7 @@ func (m *ServiceRole) GetRules() []*AccessRule {
 	return nil
 }
 
+// $hide_from_docs
 // AccessRule defines a permission to access a list of services.
 type AccessRule struct {
 	// A list of service names.
@@ -379,6 +394,7 @@ func (m *AccessRule) GetConstraints() []*AccessRule_Constraint {
 	return nil
 }
 
+// $hide_from_docs
 // Definition of a custom constraint. The supported keys are listed in the "constraint and properties" page.
 type AccessRule_Constraint struct {
 	// Key of the constraint.
@@ -440,7 +456,25 @@ func (m *AccessRule_Constraint) GetValues() []string {
 	return nil
 }
 
+// $hide_from_docs
 // ServiceRoleBinding assigns a ServiceRole to a list of subjects.
+//
+// <!-- crd generation tags
+// +cue-gen:ServiceRoleBinding:groupName:rbac.istio.io
+// +cue-gen:ServiceRoleBinding:version:v1alpha1
+// +cue-gen:ServiceRoleBinding:storageVersion
+// +cue-gen:ServiceRoleBinding:annotations:helm.sh/resource-policy=keep
+// +cue-gen:ServiceRoleBinding:labels:app=mixer,chart=istio,heritage=Tiller,release=istio,package=istio.io.mixer,istio=rbac
+// +cue-gen:ServiceRoleBinding:subresource:status
+// +cue-gen:ServiceRoleBinding:scope:Namespaced
+// +cue-gen:ServiceRoleBinding:resource:categories=istio-io,rbac-istio-io
+// +cue-gen:ServiceRoleBinding:printerColumn:name=Reference,type=string,JSONPath=.spec.roleRef.name,description="The name of the ServiceRole object being referenced"
+// +cue-gen:ServiceRoleBinding:printerColumn:name=Age,type=date,JSONPath=.metadata.creationTimestamp,description="CreationTimestamp is a timestamp
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations.
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +cue-gen:ServiceRoleBinding:preserveUnknownFields:false
+// -->
 //
 // <!-- go code generation tags
 // +kubetype-gen
@@ -567,6 +601,7 @@ func (m *ServiceRoleBinding) GetRole() string {
 	return ""
 }
 
+// $hide_from_docs
 // Subject defines an identity. The identity is either a user or identified by a set of `properties`.
 // The supported keys in `properties` are listed in "constraint and properties" page.
 type Subject struct {
@@ -723,6 +758,7 @@ func (m *Subject) GetProperties() map[string]string {
 	return nil
 }
 
+// $hide_from_docs
 // RoleRef refers to a role object.
 type RoleRef struct {
 	// The type of the role being referenced.
@@ -783,6 +819,7 @@ func (m *RoleRef) GetName() string {
 	return ""
 }
 
+// $hide_from_docs
 // RbacConfig implements the ClusterRbacConfig Custom Resource Definition for controlling Istio RBAC behavior.
 // The ClusterRbacConfig Custom Resource is a singleton where only one ClusterRbacConfig should be created
 // globally in the mesh and the namespace should be the same to other Istio components, which usually is `istio-system`.
@@ -801,6 +838,30 @@ func (m *RoleRef) GetName() string {
 //   inclusion:
 //     namespaces: [ "default" ]
 // ```
+//
+// <!-- crd generation tags
+// +cue-gen:RbacConfig:groupName:rbac.istio.io
+// +cue-gen:RbacConfig:version:v1alpha1
+// +cue-gen:RbacConfig:storageVersion
+// +cue-gen:RbacConfig:annotations:helm.sh/resource-policy=keep
+// +cue-gen:RbacConfig:labels:app=mixer,chart=istio,istio=rbac,heritage=Tiller,release=istio,package=istio.io.mixer
+// +cue-gen:RbacConfig:subresource:status
+// +cue-gen:RbacConfig:scope:Namespaced
+// +cue-gen:RbacConfig:resource:categories=istio-io,rbac-istio-io
+// +cue-gen:RbacConfig:preserveUnknownFields:false
+// -->
+//
+// <!-- crd generation tags
+// +cue-gen:ClusterRbacConfig:groupName:rbac.istio.io
+// +cue-gen:ClusterRbacConfig:version:v1alpha1
+// +cue-gen:ClusterRbacConfig:storageVersion
+// +cue-gen:ClusterRbacConfig:annotations:helm.sh/resource-policy=keep
+// +cue-gen:ClusterRbacConfig:labels:app=istio-pilot,chart=istio,istio=rbac,heritage=Tiller,release=istio
+// +cue-gen:ClusterRbacConfig:subresource:status
+// +cue-gen:ClusterRbacConfig:scope:Cluster
+// +cue-gen:ClusterRbacConfig:resource:categories=istio-io,rbac-istio-io
+// +cue-gen:ClusterRbacConfig:preserveUnknownFields:false
+// -->
 //
 // <!-- go code generation tags
 // +kubetype-gen
@@ -893,6 +954,7 @@ func (m *RbacConfig) GetEnforcementMode() EnforcementMode {
 	return EnforcementMode_ENFORCED
 }
 
+// $hide_from_docs
 // Target defines a list of services or namespaces.
 type RbacConfig_Target struct {
 	// A list of services.

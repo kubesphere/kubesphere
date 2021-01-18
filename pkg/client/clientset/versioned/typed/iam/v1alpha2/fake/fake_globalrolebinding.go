@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,7 +40,7 @@ var globalrolebindingsResource = schema.GroupVersionResource{Group: "iam.kubesph
 var globalrolebindingsKind = schema.GroupVersionKind{Group: "iam.kubesphere.io", Version: "v1alpha2", Kind: "GlobalRoleBinding"}
 
 // Get takes name of the globalRoleBinding, and returns the corresponding globalRoleBinding object, and an error if there is any.
-func (c *FakeGlobalRoleBindings) Get(name string, options v1.GetOptions) (result *v1alpha2.GlobalRoleBinding, err error) {
+func (c *FakeGlobalRoleBindings) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha2.GlobalRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(globalrolebindingsResource, name), &v1alpha2.GlobalRoleBinding{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeGlobalRoleBindings) Get(name string, options v1.GetOptions) (result
 }
 
 // List takes label and field selectors, and returns the list of GlobalRoleBindings that match those selectors.
-func (c *FakeGlobalRoleBindings) List(opts v1.ListOptions) (result *v1alpha2.GlobalRoleBindingList, err error) {
+func (c *FakeGlobalRoleBindings) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha2.GlobalRoleBindingList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(globalrolebindingsResource, globalrolebindingsKind, opts), &v1alpha2.GlobalRoleBindingList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeGlobalRoleBindings) List(opts v1.ListOptions) (result *v1alpha2.Glo
 }
 
 // Watch returns a watch.Interface that watches the requested globalRoleBindings.
-func (c *FakeGlobalRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeGlobalRoleBindings) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(globalrolebindingsResource, opts))
 }
 
 // Create takes the representation of a globalRoleBinding and creates it.  Returns the server's representation of the globalRoleBinding, and an error, if there is any.
-func (c *FakeGlobalRoleBindings) Create(globalRoleBinding *v1alpha2.GlobalRoleBinding) (result *v1alpha2.GlobalRoleBinding, err error) {
+func (c *FakeGlobalRoleBindings) Create(ctx context.Context, globalRoleBinding *v1alpha2.GlobalRoleBinding, opts v1.CreateOptions) (result *v1alpha2.GlobalRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(globalrolebindingsResource, globalRoleBinding), &v1alpha2.GlobalRoleBinding{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeGlobalRoleBindings) Create(globalRoleBinding *v1alpha2.GlobalRoleBi
 }
 
 // Update takes the representation of a globalRoleBinding and updates it. Returns the server's representation of the globalRoleBinding, and an error, if there is any.
-func (c *FakeGlobalRoleBindings) Update(globalRoleBinding *v1alpha2.GlobalRoleBinding) (result *v1alpha2.GlobalRoleBinding, err error) {
+func (c *FakeGlobalRoleBindings) Update(ctx context.Context, globalRoleBinding *v1alpha2.GlobalRoleBinding, opts v1.UpdateOptions) (result *v1alpha2.GlobalRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(globalrolebindingsResource, globalRoleBinding), &v1alpha2.GlobalRoleBinding{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeGlobalRoleBindings) Update(globalRoleBinding *v1alpha2.GlobalRoleBi
 }
 
 // Delete takes name of the globalRoleBinding and deletes it. Returns an error if one occurs.
-func (c *FakeGlobalRoleBindings) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeGlobalRoleBindings) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(globalrolebindingsResource, name), &v1alpha2.GlobalRoleBinding{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeGlobalRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(globalrolebindingsResource, listOptions)
+func (c *FakeGlobalRoleBindings) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(globalrolebindingsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha2.GlobalRoleBindingList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched globalRoleBinding.
-func (c *FakeGlobalRoleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha2.GlobalRoleBinding, err error) {
+func (c *FakeGlobalRoleBindings) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.GlobalRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(globalrolebindingsResource, name, pt, data, subresources...), &v1alpha2.GlobalRoleBinding{})
 	if obj == nil {

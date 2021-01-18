@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedresourcequotasResource = schema.GroupVersionResource{Group: "types.
 var federatedresourcequotasKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedResourceQuota"}
 
 // Get takes name of the federatedResourceQuota, and returns the corresponding federatedResourceQuota object, and an error if there is any.
-func (c *FakeFederatedResourceQuotas) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *FakeFederatedResourceQuotas) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedResourceQuota, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedresourcequotasResource, c.ns, name), &v1beta1.FederatedResourceQuota{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedResourceQuotas) Get(name string, options v1.GetOptions) (r
 }
 
 // List takes label and field selectors, and returns the list of FederatedResourceQuotas that match those selectors.
-func (c *FakeFederatedResourceQuotas) List(opts v1.ListOptions) (result *v1beta1.FederatedResourceQuotaList, err error) {
+func (c *FakeFederatedResourceQuotas) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedResourceQuotaList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedresourcequotasResource, federatedresourcequotasKind, c.ns, opts), &v1beta1.FederatedResourceQuotaList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedResourceQuotas) List(opts v1.ListOptions) (result *v1beta1
 }
 
 // Watch returns a watch.Interface that watches the requested federatedResourceQuotas.
-func (c *FakeFederatedResourceQuotas) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedResourceQuotas) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedresourcequotasResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedResourceQuota and creates it.  Returns the server's representation of the federatedResourceQuota, and an error, if there is any.
-func (c *FakeFederatedResourceQuotas) Create(federatedResourceQuota *v1beta1.FederatedResourceQuota) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *FakeFederatedResourceQuotas) Create(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.CreateOptions) (result *v1beta1.FederatedResourceQuota, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedresourcequotasResource, c.ns, federatedResourceQuota), &v1beta1.FederatedResourceQuota{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedResourceQuotas) Create(federatedResourceQuota *v1beta1.Fed
 }
 
 // Update takes the representation of a federatedResourceQuota and updates it. Returns the server's representation of the federatedResourceQuota, and an error, if there is any.
-func (c *FakeFederatedResourceQuotas) Update(federatedResourceQuota *v1beta1.FederatedResourceQuota) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *FakeFederatedResourceQuotas) Update(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.UpdateOptions) (result *v1beta1.FederatedResourceQuota, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedresourcequotasResource, c.ns, federatedResourceQuota), &v1beta1.FederatedResourceQuota{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedResourceQuotas) Update(federatedResourceQuota *v1beta1.Fed
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedResourceQuotas) UpdateStatus(federatedResourceQuota *v1beta1.FederatedResourceQuota) (*v1beta1.FederatedResourceQuota, error) {
+func (c *FakeFederatedResourceQuotas) UpdateStatus(ctx context.Context, federatedResourceQuota *v1beta1.FederatedResourceQuota, opts v1.UpdateOptions) (*v1beta1.FederatedResourceQuota, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedresourcequotasResource, "status", c.ns, federatedResourceQuota), &v1beta1.FederatedResourceQuota{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedResourceQuotas) UpdateStatus(federatedResourceQuota *v1bet
 }
 
 // Delete takes name of the federatedResourceQuota and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedResourceQuotas) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedResourceQuotas) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedresourcequotasResource, c.ns, name), &v1beta1.FederatedResourceQuota{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedResourceQuotas) Delete(name string, options *v1.DeleteOpti
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedResourceQuotas) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedresourcequotasResource, c.ns, listOptions)
+func (c *FakeFederatedResourceQuotas) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedresourcequotasResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedResourceQuotaList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedResourceQuota.
-func (c *FakeFederatedResourceQuotas) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedResourceQuota, err error) {
+func (c *FakeFederatedResourceQuotas) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedResourceQuota, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedresourcequotasResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedResourceQuota{})
 

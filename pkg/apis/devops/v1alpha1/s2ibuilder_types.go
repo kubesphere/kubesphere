@@ -37,9 +37,9 @@ const (
 const (
 	NotRunning RunState = "Not Running Yet"
 	Running    RunState = "Running"
-	Successful          = "Successful"
-	Failed              = "Failed"
-	Unknown             = "Unknown"
+	Successful RunState = "Successful"
+	Failed     RunState = "Failed"
+	Unknown    RunState = "Unknown"
 )
 const (
 	AutoScaleAnnotations             = "devops.kubesphere.io/autoscale"

@@ -19,6 +19,7 @@
 package expansion
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
@@ -434,7 +435,7 @@ func (c *VolumeExpansionController) scaleDown(workload interface{}, namespace st
 				Replicas: 0,
 			},
 		}
-		_, err := c.kubeclientset.AppsV1().Deployments(namespace).UpdateScale(deploy.GetName(), scale)
+		_, err := c.kubeclientset.AppsV1().Deployments(namespace).UpdateScale(context.Background(), deploy.GetName(), scale, metav1.UpdateOptions{})
 		return err
 	case *appsv1.StatefulSet:
 		sts := workload.(*appsv1.StatefulSet)
@@ -447,7 +448,7 @@ func (c *VolumeExpansionController) scaleDown(workload interface{}, namespace st
 				Replicas: 0,
 			},
 		}
-		_, err := c.kubeclientset.AppsV1().StatefulSets(namespace).UpdateScale(sts.GetName(), scale)
+		_, err := c.kubeclientset.AppsV1().StatefulSets(namespace).UpdateScale(context.Background(), sts.GetName(), scale, metav1.UpdateOptions{})
 		return err
 	default:
 		return fmt.Errorf("unsupported type %T", workload)
@@ -467,7 +468,7 @@ func (c *VolumeExpansionController) scaleUp(workload interface{}, namespace stri
 				Replicas: *deploy.Spec.Replicas,
 			},
 		}
-		_, err := c.kubeclientset.AppsV1().Deployments(namespace).UpdateScale(deploy.GetName(), scale)
+		_, err := c.kubeclientset.AppsV1().Deployments(namespace).UpdateScale(context.Background(), deploy.GetName(), scale, metav1.UpdateOptions{})
 		return err
 	case *appsv1.StatefulSet:
 		sts := workload.(*appsv1.StatefulSet)
@@ -480,7 +481,7 @@ func (c *VolumeExpansionController) scaleUp(workload interface{}, namespace stri
 				Replicas: *sts.Spec.Replicas,
 			},
 		}
-		_, err := c.kubeclientset.AppsV1().StatefulSets(namespace).UpdateScale(sts.GetName(), scale)
+		_, err := c.kubeclientset.AppsV1().StatefulSets(namespace).UpdateScale(context.Background(), sts.GetName(), scale, metav1.UpdateOptions{})
 		return err
 	default:
 		return fmt.Errorf("unsupported type %T", workload)

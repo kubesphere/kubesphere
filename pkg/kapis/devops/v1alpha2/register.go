@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
@@ -46,10 +47,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(container *restful.Container, ksInformers externalversions.SharedInformerFactory, devopsClient devops.Interface, sonarqubeClient sonarqube.SonarInterface, ksClient versioned.Interface, s3Client s3.Interface, endpoint string) error {
+func AddToContainer(container *restful.Container, ksInformers externalversions.SharedInformerFactory, devopsClient devops.Interface, sonarqubeClient sonarqube.SonarInterface, ksClient versioned.Interface, s3Client s3.Interface, endpoint string, amInterface am.AccessManagementInterface) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	err := AddPipelineToWebService(ws, devopsClient)
+	err := AddPipelineToWebService(ws, devopsClient, ksInformers, amInterface)
 	if err != nil {
 		return err
 	}
@@ -74,17 +75,17 @@ func AddToContainer(container *restful.Container, ksInformers externalversions.S
 	return nil
 }
 
-func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface) error {
+func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface, ksInformers externalversions.SharedInformerFactory, amInterface am.AccessManagementInterface) error {
 
 	projectPipelineEnable := devopsClient != nil
 
 	if projectPipelineEnable {
-		projectPipelineHandler := NewProjectPipelineHandler(devopsClient)
+		projectPipelineHandler := NewProjectPipelineHandler(devopsClient, ksInformers, amInterface)
 
 		webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}/usage").
 			To(projectPipelineHandler.GetProjectCredentialUsage).
 			Doc("Get the specified credential usage of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
+			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsCredentialTag}).
 			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 			Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
 			Returns(http.StatusOK, RespOK, devops.Credential{}))
@@ -687,6 +688,9 @@ func AddJenkinsToContainer(webservice *restful.WebService, devopsClient devops.I
 		return err
 	}
 	parse.Path = strings.Trim(parse.Path, "/")
+	// this API does not belong any kind of auth scope, it should be removed in the future version
+	// see also pkg/apiserver/request/requestinfo.go
+	// Deprecated: Please use /devops/{devops}/jenkins/{path:*} instead
 	webservice.Route(webservice.GET("/jenkins/{path:*}").
 		Param(webservice.PathParameter("path", "Path stands for any suffix path.")).
 		To(func(request *restful.Request, response *restful.Response) {
@@ -697,7 +701,25 @@ func AddJenkinsToContainer(webservice *restful.WebService, devopsClient devops.I
 			u.Path = strings.Replace(request.Request.URL.Path, fmt.Sprintf("/kapis/%s/%s/jenkins", GroupVersion.Group, GroupVersion.Version), "", 1)
 			httpProxy := proxy.NewUpgradeAwareHandler(u, http.DefaultTransport, false, false, &errorResponder{})
 			httpProxy.ServeHTTP(response, request.Request)
-		}).Returns(http.StatusOK, RespOK, nil))
+		}).
+		Returns(http.StatusOK, RespOK, nil).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsTag}))
+	webservice.Route(webservice.GET("/devops/{devops}/jenkins/{path:*}").
+		Param(webservice.PathParameter("path", "Path stands for any suffix path.")).
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		To(func(request *restful.Request, response *restful.Response) {
+			u := request.Request.URL
+			devops := request.PathParameter("devops")
+			u.Host = parse.Host
+			u.Scheme = parse.Scheme
+			jenkins.SetBasicBearTokenHeader(&request.Request.Header)
+			u.Path = strings.Replace(request.Request.URL.Path, fmt.Sprintf("/kapis/%s/%s/devops/%s/jenkins",
+				GroupVersion.Group, GroupVersion.Version, devops), "", 1)
+			httpProxy := proxy.NewUpgradeAwareHandler(u, http.DefaultTransport, false, false, &errorResponder{})
+			httpProxy.ServeHTTP(response, request.Request)
+		}).
+		Returns(http.StatusOK, RespOK, nil).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsTag}))
 	return nil
 }
 

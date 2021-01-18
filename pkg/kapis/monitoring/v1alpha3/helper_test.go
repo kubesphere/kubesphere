@@ -216,7 +216,7 @@ func TestParseRequestParams(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			client := fake.NewSimpleClientset(&tt.namespace)
-			fakeInformerFactory := informers.NewInformerFactories(client, nil, nil, nil, nil, nil)
+			fakeInformerFactory := informers.NewInformerFactories(client, nil, nil, nil, nil)
 			handler := newHandler(client, nil, fakeInformerFactory, nil)
 
 			result, err := handler.makeQueryOptions(tt.params, tt.lvl)

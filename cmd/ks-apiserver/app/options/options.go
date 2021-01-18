@@ -22,12 +22,16 @@ import (
 	"fmt"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/apis"
 	"kubesphere.io/kubesphere/pkg/apiserver"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
+	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -105,7 +109,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	apiServer.KubernetesClient = kubernetesClient
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(),
-		kubernetesClient.Istio(), kubernetesClient.Application(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions())
+		kubernetesClient.Istio(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions())
 	apiServer.InformerFactory = informerFactory
 
 	if s.MonitoringOptions == nil || len(s.MonitoringOptions.Endpoint) == 0 {
@@ -155,9 +159,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	var cacheClient cache.Interface
-	if s.RedisOptions == nil || len(s.RedisOptions.Host) == 0 {
-		return nil, fmt.Errorf("redis service address MUST not be empty, please check configmap/kubesphere-config in kubesphere-system namespace")
-	} else {
+	if s.RedisOptions != nil && len(s.RedisOptions.Host) != 0 {
 		if s.RedisOptions.Host == fakeInterface && s.DebugMode {
 			apiServer.CacheClient = cache.NewSimpleCache()
 		} else {
@@ -167,6 +169,10 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			}
 			apiServer.CacheClient = cacheClient
 		}
+	} else {
+		klog.Warning("ks-apiserver starts without redis provided, it will use in memory cache. " +
+			"This may cause inconsistencies when running ks-apiserver with multiple replicas.")
+		apiServer.CacheClient = cache.NewSimpleCache()
 	}
 
 	if s.EventsOptions.Host != "" {
@@ -203,6 +209,16 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			return nil, err
 		}
 		server.TLSConfig.Certificates = []tls.Certificate{certificate}
+	}
+
+	sch := scheme.Scheme
+	if err := apis.AddToScheme(sch); err != nil {
+		klog.Fatalf("unable add APIs to scheme: %v", err)
+	}
+
+	apiServer.RuntimeCache, err = runtimecache.New(apiServer.KubernetesClient.Config(), runtimecache.Options{Scheme: sch})
+	if err != nil {
+		klog.Fatalf("unable to create runtime cache: %v", err)
 	}
 
 	apiServer.Server = server

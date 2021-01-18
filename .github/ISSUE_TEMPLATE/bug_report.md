@@ -3,16 +3,16 @@ name: Bug report
 about: Create a report to help us improve
 ---
 
-## English only!
+<!--
+You don't need to remove this comment section, it's invisible on the issues page.
 
-**注意！GitHub Issue 仅支持英文，中文 Issue 请在 [论坛](https://kubesphere.com.cn/forum/) 提交。**
+## General remarks
 
-**General remarks**
-
-> Please delete this section including header before submitting
->
-> This form is to report bugs. For general usage questions refer to our Slack channel
->        [KubeSphere-users](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTdkNTc3OTdmNzdiODViZjViNTU5ZDY3M2I2MzY4MTI4OGZlOTJmMDg5ZTFiMDAwYzNlZDY5NjA0NzZlNDU5NmY)
+* Attention, please fill out this issues form using English only!
+* 注意！GitHub Issue 仅支持英文，中文 Issue 请在 [论坛](https://kubesphere.com.cn/forum/) 提交。
+* This form is to report bugs. For general usage questions you can join our Slack channel
+       [KubeSphere-users](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
+-->
 
 **Describe the Bug**
 A clear and concise description of what the bug is.

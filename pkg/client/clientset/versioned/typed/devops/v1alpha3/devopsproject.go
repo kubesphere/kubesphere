@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type DevOpsProjectsGetter interface {
 
 // DevOpsProjectInterface has methods to work with DevOpsProject resources.
 type DevOpsProjectInterface interface {
-	Create(*v1alpha3.DevOpsProject) (*v1alpha3.DevOpsProject, error)
-	Update(*v1alpha3.DevOpsProject) (*v1alpha3.DevOpsProject, error)
-	UpdateStatus(*v1alpha3.DevOpsProject) (*v1alpha3.DevOpsProject, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha3.DevOpsProject, error)
-	List(opts v1.ListOptions) (*v1alpha3.DevOpsProjectList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha3.DevOpsProject, err error)
+	Create(ctx context.Context, devOpsProject *v1alpha3.DevOpsProject, opts v1.CreateOptions) (*v1alpha3.DevOpsProject, error)
+	Update(ctx context.Context, devOpsProject *v1alpha3.DevOpsProject, opts v1.UpdateOptions) (*v1alpha3.DevOpsProject, error)
+	UpdateStatus(ctx context.Context, devOpsProject *v1alpha3.DevOpsProject, opts v1.UpdateOptions) (*v1alpha3.DevOpsProject, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha3.DevOpsProject, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha3.DevOpsProjectList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha3.DevOpsProject, err error)
 	DevOpsProjectExpansion
 }
 
@@ -62,19 +63,19 @@ func newDevOpsProjects(c *DevopsV1alpha3Client) *devOpsProjects {
 }
 
 // Get takes name of the devOpsProject, and returns the corresponding devOpsProject object, and an error if there is any.
-func (c *devOpsProjects) Get(name string, options v1.GetOptions) (result *v1alpha3.DevOpsProject, err error) {
+func (c *devOpsProjects) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha3.DevOpsProject, err error) {
 	result = &v1alpha3.DevOpsProject{}
 	err = c.client.Get().
 		Resource("devopsprojects").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of DevOpsProjects that match those selectors.
-func (c *devOpsProjects) List(opts v1.ListOptions) (result *v1alpha3.DevOpsProjectList, err error) {
+func (c *devOpsProjects) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha3.DevOpsProjectList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -84,13 +85,13 @@ func (c *devOpsProjects) List(opts v1.ListOptions) (result *v1alpha3.DevOpsProje
 		Resource("devopsprojects").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested devOpsProjects.
-func (c *devOpsProjects) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *devOpsProjects) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -100,81 +101,84 @@ func (c *devOpsProjects) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("devopsprojects").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a devOpsProject and creates it.  Returns the server's representation of the devOpsProject, and an error, if there is any.
-func (c *devOpsProjects) Create(devOpsProject *v1alpha3.DevOpsProject) (result *v1alpha3.DevOpsProject, err error) {
+func (c *devOpsProjects) Create(ctx context.Context, devOpsProject *v1alpha3.DevOpsProject, opts v1.CreateOptions) (result *v1alpha3.DevOpsProject, err error) {
 	result = &v1alpha3.DevOpsProject{}
 	err = c.client.Post().
 		Resource("devopsprojects").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(devOpsProject).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a devOpsProject and updates it. Returns the server's representation of the devOpsProject, and an error, if there is any.
-func (c *devOpsProjects) Update(devOpsProject *v1alpha3.DevOpsProject) (result *v1alpha3.DevOpsProject, err error) {
+func (c *devOpsProjects) Update(ctx context.Context, devOpsProject *v1alpha3.DevOpsProject, opts v1.UpdateOptions) (result *v1alpha3.DevOpsProject, err error) {
 	result = &v1alpha3.DevOpsProject{}
 	err = c.client.Put().
 		Resource("devopsprojects").
 		Name(devOpsProject.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(devOpsProject).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *devOpsProjects) UpdateStatus(devOpsProject *v1alpha3.DevOpsProject) (result *v1alpha3.DevOpsProject, err error) {
+func (c *devOpsProjects) UpdateStatus(ctx context.Context, devOpsProject *v1alpha3.DevOpsProject, opts v1.UpdateOptions) (result *v1alpha3.DevOpsProject, err error) {
 	result = &v1alpha3.DevOpsProject{}
 	err = c.client.Put().
 		Resource("devopsprojects").
 		Name(devOpsProject.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(devOpsProject).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the devOpsProject and deletes it. Returns an error if one occurs.
-func (c *devOpsProjects) Delete(name string, options *v1.DeleteOptions) error {
+func (c *devOpsProjects) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("devopsprojects").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *devOpsProjects) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *devOpsProjects) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("devopsprojects").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched devOpsProject.
-func (c *devOpsProjects) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha3.DevOpsProject, err error) {
+func (c *devOpsProjects) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha3.DevOpsProject, err error) {
 	result = &v1alpha3.DevOpsProject{}
 	err = c.client.Patch(pt).
 		Resource("devopsprojects").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

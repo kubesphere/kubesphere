@@ -20,10 +20,10 @@ import (
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"net/http"
 )
@@ -34,23 +34,29 @@ import (
 // Most authentication integrations place an authenticating proxy in front of this endpoint, or configure ks-apiserver
 // to validate credentials against a backing identity provider.
 // Requests to <ks-apiserver>/oauth/authorize can come from user-agents that cannot display interactive login pages, such as the CLI.
-func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tokenOperator im.TokenManagementInterface, authenticator im.PasswordAuthenticator, loginRecorder im.LoginRecorder, options *authoptions.AuthenticationOptions) error {
+func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
+	tokenOperator auth.TokenManagementInterface,
+	passwordAuthenticator auth.PasswordAuthenticator,
+	oauth2Authenticator auth.OAuth2Authenticator,
+	loginRecorder auth.LoginRecorder,
+	options *authoptions.AuthenticationOptions) error {
+
 	ws := &restful.WebService{}
 	ws.Path("/oauth").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	handler := newHandler(im, tokenOperator, authenticator, loginRecorder, options)
+	handler := newHandler(im, tokenOperator, passwordAuthenticator, oauth2Authenticator, loginRecorder, options)
 
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
 	ws.Route(ws.POST("/authenticate").
 		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be "+
 			"cached by the webhook token authenticator plugin in the kube-apiserver.").
-		Reads(auth.TokenReview{}).
+		Reads(TokenReview{}).
 		To(handler.TokenReview).
-		Returns(http.StatusOK, api.StatusOK, auth.TokenReview{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
+		Returns(http.StatusOK, api.StatusOK, TokenReview{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	// Only support implicit grant flow
 	// https://tools.ietf.org/html/rfc6749#section-4.2
@@ -64,15 +70,22 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 		Param(ws.QueryParameter("redirect_uri", "After completing its interaction with the resource owner, "+
 			"the authorization server directs the resource owner's user-agent back to the client.The redirection endpoint "+
 			"URI MUST be an absolute URI as defined by [RFC3986] Section 4.3.").Required(false)).
-		To(handler.Authorize))
+		To(handler.Authorize).
+		Returns(http.StatusFound, http.StatusText(http.StatusFound), "").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 	// Resource Owner Password Credentials Grant
 	// https://tools.ietf.org/html/rfc6749#section-4.3
 	ws.Route(ws.POST("/token").
 		Consumes("application/x-www-form-urlencoded").
-		Doc("The resource owner password credentials grant type is suitable in\n" +
-			"cases where the resource owner has a trust relationship with the\n" +
+		Doc("The resource owner password credentials grant type is suitable in\n"+
+			"cases where the resource owner has a trust relationship with the\n"+
 			"client, such as the device operating system or a highly privileged application.").
-		To(handler.Token))
+		Param(ws.FormParameter("grant_type", "Value MUST be set to \"password\".").Required(true)).
+		Param(ws.FormParameter("username", "The resource owner username.").Required(true)).
+		Param(ws.FormParameter("password", "The resource owner password.").Required(true)).
+		To(handler.Token).
+		Returns(http.StatusOK, http.StatusText(http.StatusOK), &oauth.Token{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	// Authorization callback URL, where the end of the URL contains the identity provider name.
 	// The provider name is also used to build the callback URL.
@@ -91,8 +104,9 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 			"otherwise, REQUIRED.  The scope of the access token as described by [RFC6479] Section 3.3.").Required(false)).
 		Param(ws.QueryParameter("state", "if the \"state\" parameter was present in the client authorization request."+
 			"The exact value received from the client.").Required(true)).
-		To(handler.oAuthCallBack).
-		Returns(http.StatusOK, api.StatusOK, oauth.Token{}))
+		To(handler.oauthCallBack).
+		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	c.Add(ws)
 
@@ -105,9 +119,9 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 		To(handler.Login).
 		Deprecate().
 		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
-		Reads(auth.LoginRequest{}).
+		Reads(LoginRequest{}).
 		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	c.Add(legacy)
 

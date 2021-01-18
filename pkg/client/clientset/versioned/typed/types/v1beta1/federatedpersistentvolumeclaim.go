@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type FederatedPersistentVolumeClaimsGetter interface {
 
 // FederatedPersistentVolumeClaimInterface has methods to work with FederatedPersistentVolumeClaim resources.
 type FederatedPersistentVolumeClaimInterface interface {
-	Create(*v1beta1.FederatedPersistentVolumeClaim) (*v1beta1.FederatedPersistentVolumeClaim, error)
-	Update(*v1beta1.FederatedPersistentVolumeClaim) (*v1beta1.FederatedPersistentVolumeClaim, error)
-	UpdateStatus(*v1beta1.FederatedPersistentVolumeClaim) (*v1beta1.FederatedPersistentVolumeClaim, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.FederatedPersistentVolumeClaim, error)
-	List(opts v1.ListOptions) (*v1beta1.FederatedPersistentVolumeClaimList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedPersistentVolumeClaim, err error)
+	Create(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.CreateOptions) (*v1beta1.FederatedPersistentVolumeClaim, error)
+	Update(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.UpdateOptions) (*v1beta1.FederatedPersistentVolumeClaim, error)
+	UpdateStatus(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.UpdateOptions) (*v1beta1.FederatedPersistentVolumeClaim, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.FederatedPersistentVolumeClaim, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.FederatedPersistentVolumeClaimList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedPersistentVolumeClaim, err error)
 	FederatedPersistentVolumeClaimExpansion
 }
 
@@ -64,20 +65,20 @@ func newFederatedPersistentVolumeClaims(c *TypesV1beta1Client, namespace string)
 }
 
 // Get takes name of the federatedPersistentVolumeClaim, and returns the corresponding federatedPersistentVolumeClaim object, and an error if there is any.
-func (c *federatedPersistentVolumeClaims) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *federatedPersistentVolumeClaims) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	result = &v1beta1.FederatedPersistentVolumeClaim{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("federatedpersistentvolumeclaims").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of FederatedPersistentVolumeClaims that match those selectors.
-func (c *federatedPersistentVolumeClaims) List(opts v1.ListOptions) (result *v1beta1.FederatedPersistentVolumeClaimList, err error) {
+func (c *federatedPersistentVolumeClaims) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedPersistentVolumeClaimList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *federatedPersistentVolumeClaims) List(opts v1.ListOptions) (result *v1b
 		Resource("federatedpersistentvolumeclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested federatedPersistentVolumeClaims.
-func (c *federatedPersistentVolumeClaims) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *federatedPersistentVolumeClaims) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *federatedPersistentVolumeClaims) Watch(opts v1.ListOptions) (watch.Inte
 		Resource("federatedpersistentvolumeclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a federatedPersistentVolumeClaim and creates it.  Returns the server's representation of the federatedPersistentVolumeClaim, and an error, if there is any.
-func (c *federatedPersistentVolumeClaims) Create(federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *federatedPersistentVolumeClaims) Create(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.CreateOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	result = &v1beta1.FederatedPersistentVolumeClaim{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("federatedpersistentvolumeclaims").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedPersistentVolumeClaim).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a federatedPersistentVolumeClaim and updates it. Returns the server's representation of the federatedPersistentVolumeClaim, and an error, if there is any.
-func (c *federatedPersistentVolumeClaims) Update(federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *federatedPersistentVolumeClaims) Update(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.UpdateOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	result = &v1beta1.FederatedPersistentVolumeClaim{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("federatedpersistentvolumeclaims").
 		Name(federatedPersistentVolumeClaim.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedPersistentVolumeClaim).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *federatedPersistentVolumeClaims) UpdateStatus(federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *federatedPersistentVolumeClaims) UpdateStatus(ctx context.Context, federatedPersistentVolumeClaim *v1beta1.FederatedPersistentVolumeClaim, opts v1.UpdateOptions) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	result = &v1beta1.FederatedPersistentVolumeClaim{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("federatedpersistentvolumeclaims").
 		Name(federatedPersistentVolumeClaim.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedPersistentVolumeClaim).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the federatedPersistentVolumeClaim and deletes it. Returns an error if one occurs.
-func (c *federatedPersistentVolumeClaims) Delete(name string, options *v1.DeleteOptions) error {
+func (c *federatedPersistentVolumeClaims) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("federatedpersistentvolumeclaims").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *federatedPersistentVolumeClaims) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *federatedPersistentVolumeClaims) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("federatedpersistentvolumeclaims").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched federatedPersistentVolumeClaim.
-func (c *federatedPersistentVolumeClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
+func (c *federatedPersistentVolumeClaims) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedPersistentVolumeClaim, err error) {
 	result = &v1beta1.FederatedPersistentVolumeClaim{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("federatedpersistentvolumeclaims").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

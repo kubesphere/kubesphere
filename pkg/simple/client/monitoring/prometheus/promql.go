@@ -15,8 +15,9 @@ package prometheus
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"strings"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
 const (
@@ -109,6 +110,7 @@ var promQLTemplates = map[string]string{
 	"node_load5":                  `node:load5:ratio{$1}`,
 	"node_load15":                 `node:load15:ratio{$1}`,
 	"node_pod_abnormal_ratio":     `node:pod_abnormal:ratio{$1}`,
+	"node_pleg_quantile":          `node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile{$1}`,
 
 	// workspace
 	"workspace_cpu_usage":                  `round(sum by (workspace) (namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", $1}), 0.001)`,
@@ -358,17 +360,59 @@ func makePodMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 		} else {
 			podSelector = fmt.Sprintf(`pod=~"%s", namespace="%s"`, o.ResourceFilter, o.NamespaceName)
 		}
-	}
+	} else {
+		var namespaces, pods []string
+		if o.NamespacedResourcesFilter != "" {
+			for _, np := range strings.Split(o.NamespacedResourcesFilter, "|") {
+				if nparr := strings.SplitN(np, "/", 2); len(nparr) > 1 {
+					namespaces = append(namespaces, nparr[0])
+					pods = append(pods, nparr[1])
+				} else {
+					pods = append(pods, np)
+				}
+			}
+		}
+		// For monitoring pods on the specific node
+		// GET /nodes/{node}/pods/{pod}
+		// GET /nodes/{node}/pods
+		if o.NodeName != "" {
+			if o.PodName != "" {
+				if nparr := strings.SplitN(o.PodName, "/", 2); len(nparr) > 1 {
+					podSelector = fmt.Sprintf(`namespace="%s",pod="%s", node="%s"`, nparr[0], nparr[1], o.NodeName)
+				} else {
+					podSelector = fmt.Sprintf(`pod="%s", node="%s"`, o.PodName, o.NodeName)
+				}
+			} else {
+				var ps []string
+				ps = append(ps, fmt.Sprintf(`node="%s"`, o.NodeName))
+				if o.ResourceFilter != "" {
+					ps = append(ps, fmt.Sprintf(`pod=~"%s"`, o.ResourceFilter))
+				}
 
-	// For monitoring pods on the specific node
-	// GET /nodes/{node}/pods/{pod}
-	if o.NodeName != "" {
-		if o.PodName != "" {
-			podSelector = fmt.Sprintf(`pod="%s", node="%s"`, o.PodName, o.NodeName)
+				if len(namespaces) > 0 {
+					ps = append(ps, fmt.Sprintf(`namespace=~"%s"`, strings.Join(namespaces, "|")))
+				}
+				if len(pods) > 0 {
+					ps = append(ps, fmt.Sprintf(`pod=~"%s"`, strings.Join(pods, "|")))
+				}
+				podSelector = strings.Join(ps, ",")
+			}
 		} else {
-			podSelector = fmt.Sprintf(`pod=~"%s", node="%s"`, o.ResourceFilter, o.NodeName)
+			// For monitoring pods in the whole cluster
+			// Get /pods
+			var ps []string
+			if len(namespaces) > 0 {
+				ps = append(ps, fmt.Sprintf(`namespace=~"%s"`, strings.Join(namespaces, "|")))
+			}
+			if len(pods) > 0 {
+				ps = append(ps, fmt.Sprintf(`pod=~"%s"`, strings.Join(pods, "|")))
+			}
+			if len(ps) > 0 {
+				podSelector = strings.Join(ps, ",")
+			}
 		}
 	}
+
 	return strings.NewReplacer("$1", workloadSelector, "$2", podSelector).Replace(tmpl)
 }
 

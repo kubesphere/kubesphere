@@ -26,9 +26,13 @@ import (
 const DevOpsProjectFinalizerName = "devopsproject.finalizers.kubesphere.io"
 
 const (
-	ResourceKindDevOpsProject     = "DevOpsProject"
-	ResourceSingularDevOpsProject = "devopsproject"
-	ResourcePluralDevOpsProject   = "devopsprojects"
+	ResourceKindDevOpsProject      = "DevOpsProject"
+	ResourceSingularDevOpsProject  = "devopsproject"
+	ResourcePluralDevOpsProject    = "devopsprojects"
+	DevOpsProjectPrefix            = "devopsproject.devops.kubesphere.io/"
+	DevOpeProjectSyncStatusAnnoKey = DevOpsProjectPrefix + "syncstatus"
+	DevOpeProjectSyncTimeAnnoKey   = DevOpsProjectPrefix + "synctime"
+	DevOpeProjectSyncMsgAnnoKey    = DevOpsProjectPrefix + "syncmsg"
 )
 
 // DevOpsProjectSpec defines the desired state of DevOpsProject

@@ -22,7 +22,6 @@ import (
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
-	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
@@ -31,9 +30,13 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
 	"kubesphere.io/kubesphere/pkg/controller/globalrole"
 	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/group"
+	"kubesphere.io/kubesphere/pkg/controller/groupbinding"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/loginrecord"
+	"kubesphere.io/kubesphere/pkg/controller/network/ippool"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
-	"kubesphere.io/kubesphere/pkg/controller/network/provider"
+	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
@@ -41,14 +44,12 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
-	"kubesphere.io/kubesphere/pkg/controller/workspacerole"
-	"kubesphere.io/kubesphere/pkg/controller/workspacerolebinding"
-	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
+	ippoolclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -62,6 +63,7 @@ func addControllers(
 	devopsClient devops.Interface,
 	s3Client s3.Interface,
 	ldapClient ldapclient.Interface,
+	options *k8s.KubernetesOptions,
 	authenticationOptions *authoptions.AuthenticationOptions,
 	openpitrixClient openpitrix.Client,
 	multiClusterEnabled bool,
@@ -73,7 +75,6 @@ func addControllers(
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
 	istioInformer := informerFactory.IstioSharedInformerFactory()
 	kubesphereInformer := informerFactory.KubeSphereSharedInformerFactory()
-	applicationInformer := informerFactory.ApplicationSharedInformerFactory()
 
 	var vsController, drController manager.Runnable
 	if serviceMeshEnabled {
@@ -93,15 +94,6 @@ func addControllers(
 			client.Istio(),
 			client.KubeSphere())
 	}
-
-	apController := application.NewApplicationController(kubernetesInformer.Core().V1().Services(),
-		kubernetesInformer.Apps().V1().Deployments(),
-		kubernetesInformer.Apps().V1().StatefulSets(),
-		kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
-		kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
-		applicationInformer.App().V1beta1().Applications(),
-		client.Kubernetes(),
-		client.Application())
 
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
 
@@ -157,10 +149,8 @@ func addControllers(
 		kubernetesInformer.Apps().V1().ReplicaSets(),
 		kubernetesInformer.Apps().V1().StatefulSets())
 
-	var fedUserCache, fedGlobalRoleBindingCache, fedGlobalRoleCache,
-		fedWorkspaceRoleCache, fedWorkspaceRoleBindingCache cache.Store
-	var fedUserCacheController, fedGlobalRoleBindingCacheController, fedGlobalRoleCacheController,
-		fedWorkspaceRoleCacheController, fedWorkspaceRoleBindingCacheController cache.Controller
+	var fedUserCache, fedGlobalRoleBindingCache, fedGlobalRoleCache cache.Store
+	var fedUserCacheController, fedGlobalRoleBindingCacheController, fedGlobalRoleCacheController cache.Controller
 
 	if multiClusterEnabled {
 		fedUserClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedUserResource)
@@ -178,43 +168,29 @@ func addControllers(
 			klog.Error(err)
 			return err
 		}
-		fedWorkspaceRoleClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedWorkspaceRoleResource)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-		fedWorkspaceRoleBindingClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedWorkspaceRoleBindingResource)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
 
 		fedUserCache, fedUserCacheController = util.NewResourceInformer(fedUserClient, "", &iamv1alpha2.FedUserResource, func(object runtime.Object) {})
 		fedGlobalRoleCache, fedGlobalRoleCacheController = util.NewResourceInformer(fedGlobalRoleClient, "", &iamv1alpha2.FedGlobalRoleResource, func(object runtime.Object) {})
 		fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController = util.NewResourceInformer(fedGlobalRoleBindingClient, "", &iamv1alpha2.FedGlobalRoleBindingResource, func(object runtime.Object) {})
-		fedWorkspaceRoleCache, fedWorkspaceRoleCacheController = util.NewResourceInformer(fedWorkspaceRoleClient, "", &iamv1alpha2.FedWorkspaceRoleResource, func(object runtime.Object) {})
-		fedWorkspaceRoleBindingCache, fedWorkspaceRoleBindingCacheController = util.NewResourceInformer(fedWorkspaceRoleBindingClient, "", &iamv1alpha2.FedWorkspaceRoleBindingResource, func(object runtime.Object) {})
 
 		go fedUserCacheController.Run(stopCh)
 		go fedGlobalRoleCacheController.Run(stopCh)
 		go fedGlobalRoleBindingCacheController.Run(stopCh)
-		go fedWorkspaceRoleCacheController.Run(stopCh)
-		go fedWorkspaceRoleBindingCacheController.Run(stopCh)
 	}
 
-	userController := user.NewUserController(client.Kubernetes(), client.KubeSphere(),
-		client.Config(),
+	userController := user.NewUserController(client.Kubernetes(), client.KubeSphere(), client.Config(),
 		kubesphereInformer.Iam().V1alpha2().Users(),
-		fedUserCache, fedUserCacheController,
 		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
+		fedUserCache, fedUserCacheController,
 		kubernetesInformer.Core().V1().ConfigMaps(),
 		ldapClient, devopsClient,
 		authenticationOptions, multiClusterEnabled)
 
-	loginRecordController := user.NewLoginRecordController(
+	loginRecordController := loginrecord.NewLoginRecordController(
 		client.Kubernetes(),
 		client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
+		kubesphereInformer.Iam().V1alpha2().Users(),
 		authenticationOptions.LoginHistoryRetentionPeriod)
 
 	csrController := certificatesigningrequest.NewController(client.Kubernetes(),
@@ -231,27 +207,19 @@ func addControllers(
 	globalRoleController := globalrole.NewController(client.Kubernetes(), client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().GlobalRoles(), fedGlobalRoleCache, fedGlobalRoleCacheController)
 
-	workspaceRoleController := workspacerole.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
-		fedWorkspaceRoleCache, fedWorkspaceRoleCacheController,
-		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), multiClusterEnabled)
-
 	globalRoleBindingController := globalrolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(),
 		fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController,
 		multiClusterEnabled)
 
-	workspaceRoleBindingController := workspacerolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().WorkspaceRoleBindings(),
-		fedWorkspaceRoleBindingCache, fedWorkspaceRoleBindingCacheController,
-		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), multiClusterEnabled)
+	groupBindingController := groupbinding.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().GroupBindings(),
+		kubesphereInformer.Types().V1beta1().FederatedGroupBindings(),
+		multiClusterEnabled)
 
-	workspaceTemplateController := workspacetemplate.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(),
-		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
-		kubesphereInformer.Iam().V1alpha2().RoleBases(),
-		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
-		kubesphereInformer.Types().V1beta1().FederatedWorkspaces(),
+	groupController := group.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().Groups(),
+		kubesphereInformer.Types().V1beta1().FederatedGroups(),
 		multiClusterEnabled)
 
 	var clusterController manager.Runnable
@@ -280,25 +248,34 @@ func addControllers(
 			kubernetesInformer.Core().V1().Namespaces(), nsnpProvider, networkOptions.NSNPOptions)
 	}
 
+	var ippoolController manager.Runnable
+	ippoolProvider := ippoolclient.NewProvider(kubernetesInformer.Core().V1().Pods(), client.KubeSphere(), client.Kubernetes(), networkOptions.IPPoolType, options)
+	if ippoolProvider != nil {
+		ippoolController = ippool.NewIPPoolController(kubesphereInformer.Network().V1alpha1().IPPools(),
+			kubesphereInformer.Network().V1alpha1().IPAMBlocks(),
+			client.Kubernetes(),
+			client.KubeSphere(),
+			ippoolProvider)
+	}
+
 	controllers := map[string]manager.Runnable{
-		"virtualservice-controller":       vsController,
-		"destinationrule-controller":      drController,
-		"application-controller":          apController,
-		"job-controller":                  jobController,
-		"s2ibinary-controller":            s2iBinaryController,
-		"s2irun-controller":               s2iRunController,
-		"storagecapability-controller":    storageCapabilityController,
-		"volumeexpansion-controller":      volumeExpansionController,
-		"user-controller":                 userController,
-		"loginrecord-controller":          loginRecordController,
-		"cluster-controller":              clusterController,
-		"nsnp-controller":                 nsnpController,
-		"csr-controller":                  csrController,
-		"clusterrolebinding-controller":   clusterRoleBindingController,
-		"globalrolebinding-controller":    globalRoleBindingController,
-		"workspacetemplate-controller":    workspaceTemplateController,
-		"workspacerole-controller":        workspaceRoleController,
-		"workspacerolebinding-controller": workspaceRoleBindingController,
+		"virtualservice-controller":     vsController,
+		"destinationrule-controller":    drController,
+		"job-controller":                jobController,
+		"s2ibinary-controller":          s2iBinaryController,
+		"s2irun-controller":             s2iRunController,
+		"storagecapability-controller":  storageCapabilityController,
+		"volumeexpansion-controller":    volumeExpansionController,
+		"user-controller":               userController,
+		"loginrecord-controller":        loginRecordController,
+		"cluster-controller":            clusterController,
+		"nsnp-controller":               nsnpController,
+		"csr-controller":                csrController,
+		"clusterrolebinding-controller": clusterRoleBindingController,
+		"globalrolebinding-controller":  globalRoleBindingController,
+		"ippool-controller":             ippoolController,
+		"groupbinding-controller":       groupBindingController,
+		"group-controller":              groupController,
 	}
 
 	if devopsClient != nil {

@@ -17,9 +17,11 @@ limitations under the License.
 package s2ibinary
 
 import (
+	"context"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
@@ -198,7 +200,7 @@ func (c *Controller) syncHandler(key string) error {
 	if s2ibin.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !sliceutil.HasString(s2ibin.ObjectMeta.Finalizers, devopsv1alpha1.S2iBinaryFinalizerName) {
 			s2ibin.ObjectMeta.Finalizers = append(s2ibin.ObjectMeta.Finalizers, devopsv1alpha1.S2iBinaryFinalizerName)
-			_, err := c.devopsClient.DevopsV1alpha1().S2iBinaries(namespace).Update(s2ibin)
+			_, err := c.devopsClient.DevopsV1alpha1().S2iBinaries(namespace).Update(context.Background(), s2ibin, metav1.UpdateOptions{})
 			if err != nil {
 				klog.Error(err, fmt.Sprintf("failed to update s2ibin %s ", key))
 				return err
@@ -214,7 +216,7 @@ func (c *Controller) syncHandler(key string) error {
 			s2ibin.ObjectMeta.Finalizers = sliceutil.RemoveString(s2ibin.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha1.S2iBinaryFinalizerName
 			})
-			_, err := c.devopsClient.DevopsV1alpha1().S2iBinaries(namespace).Update(s2ibin)
+			_, err := c.devopsClient.DevopsV1alpha1().S2iBinaries(namespace).Update(context.Background(), s2ibin, metav1.UpdateOptions{})
 			if err != nil {
 				klog.Error(err, fmt.Sprintf("failed to update s2ibin %s ", key))
 				return err

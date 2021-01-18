@@ -31,6 +31,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/constants"
+	netutils "kubesphere.io/kubesphere/pkg/utils/net"
 	"net/http"
 	"strings"
 
@@ -74,6 +75,12 @@ type RequestInfo struct {
 
 	// Scope of requested resource.
 	ResourceScope string
+
+	// Source IP
+	SourceIP string
+
+	// User agent
+	UserAgent string
 }
 
 type RequestInfoFactory struct {
@@ -119,6 +126,8 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		},
 		Workspace: api.WorkspaceNone,
 		Cluster:   api.ClusterNone,
+		SourceIP:  netutils.GetRequestIP(req),
+		UserAgent: req.UserAgent(),
 	}
 
 	defer func() {

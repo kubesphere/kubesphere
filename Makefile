@@ -34,22 +34,22 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver controller-manager
+all: test ks-apiserver ks-controller-manager
 
 # Build ks-apiserver binary
 ks-apiserver: fmt vet
 	hack/gobuild.sh cmd/ks-apiserver
 
-# Build controller-manager binary
-controller-manager: fmt vet
+# Build ks-controller-manager binary
+ks-controller-manager: fmt vet
 	hack/gobuild.sh cmd/controller-manager
 
 # Run go fmt against code 
-fmt: generate
+fmt:
 	gofmt -w ./pkg ./cmd ./tools ./api
 
 # Run go vet against code
-vet: generate
+vet:
 	go vet ./pkg/... ./cmd/...
 
 # Generate manifests e.g. CRD, RBAC etc.
@@ -59,11 +59,6 @@ manifests:
 deploy: manifests
 	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
-
-# generate will generate crds' deepcopy & go openapi structs
-# Futher more about go:genreate . https://blog.golang.org/generate
-generate:
-	go generate ./pkg/... ./cmd/...
 
 mockgen:
 	mockgen -package=openpitrix -source=pkg/simple/client/openpitrix/openpitrix.go -destination=pkg/simple/client/openpitrix/mock.go
@@ -83,6 +78,8 @@ openapi:
 	go run ./tools/cmd/doc-gen/main.go
 # Build the docker image
 docker-build: all
+	hack/docker_build.sh
+docker-build-no-test: ks-apiserver ks-controller-manager
 	hack/docker_build.sh
 
 # Run tests

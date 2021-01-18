@@ -11,7 +11,7 @@ need to adjust how you think about logging a bit.
 
 With structured logging, we associate a *constant* log message with some
 variable key-value pairs.  For instance, suppose we wanted to log that we
-were starting reconciliation on a pod.  In the Go standard libary logger,
+were starting reconciliation on a pod.  In the Go standard library logger,
 we might write:
 
 ```go

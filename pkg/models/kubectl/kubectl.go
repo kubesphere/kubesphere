@@ -17,6 +17,7 @@ limitations under the License.
 package kubectl
 
 import (
+	"context"
 	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
@@ -172,7 +173,7 @@ func (o *operator) CreateKubectlDeploy(username string, owner metav1.Object) err
 		return err
 	}
 
-	_, err = o.k8sClient.AppsV1().Deployments(namespace).Create(deployment)
+	_, err = o.k8sClient.AppsV1().Deployments(namespace).Create(context.Background(), deployment, metav1.CreateOptions{})
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil

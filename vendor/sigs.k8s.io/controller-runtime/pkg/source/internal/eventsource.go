@@ -35,7 +35,7 @@ var log = logf.RuntimeLog.WithName("source").WithName("EventHandler")
 
 var _ cache.ResourceEventHandler = EventHandler{}
 
-// EventHandler adapts a eventhandler.EventHandler interface to a cache.ResourceEventHandler interface
+// EventHandler adapts a handler.EventHandler interface to a cache.ResourceEventHandler interface
 type EventHandler struct {
 	EventHandler handler.EventHandler
 	Queue        workqueue.RateLimitingInterface

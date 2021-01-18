@@ -19,6 +19,7 @@ package config
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
@@ -166,6 +167,35 @@ func (conf *Config) ToMap() map[string]bool {
 			continue
 		}
 
+		if name == "network" {
+			ippoolName := "network.ippool"
+			nsnpName := "network"
+			networkTopologyName := "network.topology"
+			if conf.NetworkOptions == nil {
+				result[nsnpName] = false
+				result[ippoolName] = false
+			} else {
+				if conf.NetworkOptions.EnableNetworkPolicy {
+					result[nsnpName] = true
+				} else {
+					result[nsnpName] = false
+				}
+
+				if conf.NetworkOptions.IPPoolType == networkv1alpha1.IPPoolTypeNone {
+					result[ippoolName] = false
+				} else {
+					result[ippoolName] = true
+				}
+
+				if conf.NetworkOptions.WeaveScopeHost == "" {
+					result[networkTopologyName] = false
+				} else {
+					result[networkTopologyName] = true
+				}
+			}
+			continue
+		}
+
 		if c.Field(i).IsNil() {
 			result[name] = false
 		} else {
@@ -203,7 +233,7 @@ func (conf *Config) stripEmptyOptions() {
 		conf.OpenPitrixOptions = nil
 	}
 
-	if conf.NetworkOptions != nil && conf.NetworkOptions.EnableNetworkPolicy == false {
+	if conf.NetworkOptions != nil && conf.NetworkOptions.IsEmpty() {
 		conf.NetworkOptions = nil
 	}
 

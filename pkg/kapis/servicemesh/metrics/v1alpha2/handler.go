@@ -19,7 +19,6 @@ package v1alpha2
 import (
 	"fmt"
 	"github.com/emicklei/go-restful"
-	"github.com/kiali/kiali/handlers"
 	"io/ioutil"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -29,9 +28,27 @@ import (
 // default jaeger query api endpoint address
 var JaegerQueryUrl = "http://jaeger-query.istio-system.svc:16686"
 
+/*
+Use Kiali API directly if config existed in configmap.
+Such as:
+kubectl -n kubesphere-system get cm kubesphere-config -oyaml
+...
+kialiQueryHost: http://kiali.istio-system:20001
+...
+
+Otherwise, use the API provided by kiali code.
+
+Announce: The API provided by kiali code will deprecated in the future.
+*/
+
+var KialiQueryUrl string
+
 // Get app metrics
 func getAppMetrics(request *restful.Request, response *restful.Response) {
-	handlers.AppMetrics(request, response)
+	namespace := request.PathParameter("namespace")
+	app := request.PathParameter("app")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/apps/%s/metrics?%s", KialiQueryUrl, namespace, app, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get workload metrics
@@ -43,17 +60,23 @@ func getWorkloadMetrics(request *restful.Request, response *restful.Response) {
 		request.Request.URL.RawQuery = fmt.Sprintf("%s&namespaces=%s&workload=%s", request.Request.URL.RawQuery, namespace, workload)
 	}
 
-	handlers.WorkloadMetrics(request, response)
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/workloads/%s/metrics?%s", KialiQueryUrl, namespace, workload, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get service metrics
 func getServiceMetrics(request *restful.Request, response *restful.Response) {
-	handlers.ServiceMetrics(request, response)
+	namespace := request.PathParameter("namespace")
+	service := request.PathParameter("service")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/services/%s/metrics?%s", KialiQueryUrl, namespace, service, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get namespace metrics
 func getNamespaceMetrics(request *restful.Request, response *restful.Response) {
-	handlers.NamespaceMetrics(request, response)
+	namespace := request.PathParameter("namespace")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/metrics?%s", KialiQueryUrl, namespace, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get service graph for namespace
@@ -64,47 +87,55 @@ func getNamespaceGraph(request *restful.Request, response *restful.Response) {
 		request.Request.URL.RawQuery = fmt.Sprintf("%s&namespaces=%s", request.Request.URL.RawQuery, namespace)
 	}
 
-	handlers.GetNamespaceGraph(request, response)
-}
-
-// Get service graph for namespaces
-func getNamespacesGraph(request *restful.Request, response *restful.Response) {
-	handlers.GraphNamespaces(request, response)
+	url := fmt.Sprintf("%s/kiali/api/namespaces/graph?%s", KialiQueryUrl, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get namespace health
 func getNamespaceHealth(request *restful.Request, response *restful.Response) {
-	handlers.NamespaceHealth(request, response)
+	namespace := request.PathParameter("namespace")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/health?%s", KialiQueryUrl, namespace, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get workload health
 func getWorkloadHealth(request *restful.Request, response *restful.Response) {
-	handlers.WorkloadHealth(request, response)
+	namespace := request.PathParameter("namespace")
+	workload := request.PathParameter("workload")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/workloads/%s/health?%s", KialiQueryUrl, namespace, workload, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get app health
 func getAppHealth(request *restful.Request, response *restful.Response) {
-	handlers.AppHealth(request, response)
+	namespace := request.PathParameter("namespace")
+	app := request.PathParameter("app")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/apps/%s/health?%s", KialiQueryUrl, namespace, app, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 // Get service health
 func getServiceHealth(request *restful.Request, response *restful.Response) {
-	handlers.ServiceHealth(request, response)
+	namespace := request.PathParameter("namespace")
+	service := request.PathParameter("service")
+	url := fmt.Sprintf("%s/kiali/api/namespaces/%s/services/%s/health?%s", KialiQueryUrl, namespace, service, request.Request.URL.RawQuery)
+	getData(response, url)
 }
 
 func getServiceTracing(request *restful.Request, response *restful.Response) {
 	namespace := request.PathParameter("namespace")
 	service := request.PathParameter("service")
-
 	serviceName := fmt.Sprintf("%s.%s", service, namespace)
-
 	url := fmt.Sprintf("%s/api/traces?%s&service=%s", JaegerQueryUrl, request.Request.URL.RawQuery, serviceName)
+	getData(response, url)
+}
 
+func getData(response *restful.Response, url string) {
 	resp, err := http.Get(url)
-	klog.V(4).Infof("Proxy trace request to %s", url)
+	klog.V(4).Infof("Proxy request to %s", url)
 
 	if err != nil {
-		klog.Errorf("query jaeger failed with err %v", err)
+		klog.Errorf("query url %s failed with err %v", url, err)
 		api.HandleInternalError(response, nil, err)
 		return
 	}

@@ -26,10 +26,14 @@ import (
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	appcontroller "kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
-	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
+	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerole"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
@@ -37,9 +41,11 @@ import (
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
+	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
 	application "sigs.k8s.io/application/controllers"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -102,6 +108,7 @@ func NewControllerManagerCommand() *cobra.Command {
 }
 
 func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {
+
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
 	if err != nil {
 		klog.Errorf("Failed to create kubernetes clientset %v", err)
@@ -117,9 +124,8 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	var ldapClient ldapclient.Interface
-	if s.LdapOptions == nil || len(s.LdapOptions.Host) == 0 {
-		return fmt.Errorf("ldap service address MUST not be empty")
-	} else {
+	// when there is no ldapOption, we set ldapClient as nil, which means we don't need to sync user info into ldap.
+	if s.LdapOptions != nil && len(s.LdapOptions.Host) != 0 {
 		if s.LdapOptions.Host == ldapclient.FAKE_HOST { // for debug only
 			ldapClient = ldapclient.NewSimpleLdap()
 		} else {
@@ -128,6 +134,8 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 				return fmt.Errorf("failed to connect to ldap service, please check ldap status, error: %v", err)
 			}
 		}
+	} else {
+		klog.Warning("ks-controller-manager starts without ldap provided, it will not sync user into ldap")
 	}
 
 	var openpitrixClient openpitrix.Client
@@ -150,7 +158,6 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		kubernetesClient.Kubernetes(),
 		kubernetesClient.KubeSphere(),
 		kubernetesClient.Istio(),
-		kubernetesClient.Application(),
 		kubernetesClient.Snapshot(),
 		kubernetesClient.ApiExtensions())
 
@@ -173,7 +180,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	klog.V(0).Info("setting up manager")
-
+	ctrl.SetLogger(klogr.New())
 	// Use 8443 instead of 443 cause we need root permission to bind port 443
 	mgr, err := manager.New(kubernetesClient.Config(), mgrOptions)
 	if err != nil {
@@ -184,23 +191,43 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
-	err = workspace.Add(mgr)
-	if err != nil {
+	workspaceTemplateReconciler := &workspacetemplate.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
+	if err = workspaceTemplateReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatal("Unable to create workspace template controller")
+	}
+
+	workspaceReconciler := &workspace.Reconciler{}
+	if err = workspaceReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create workspace controller")
 	}
 
-	err = namespace.Add(mgr)
-	if err != nil {
+	workspaceRoleReconciler := &workspacerole.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
+	if err = workspaceRoleReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatal("Unable to create workspace role controller")
+	}
+
+	workspaceRoleBindingReconciler := &workspacerolebinding.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
+	if err = workspaceRoleBindingReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatal("Unable to create workspace role binding controller")
+	}
+
+	namespaceReconciler := &namespace.Reconciler{}
+	if err = namespaceReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create namespace controller")
 	}
 
-	err = (&application.ApplicationReconciler{
+	err = appcontroller.Add(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create ks application controller")
+	}
+
+	applicationReconciler := &application.ApplicationReconciler{
 		Scheme: mgr.GetScheme(),
 		Client: mgr.GetClient(),
 		Mapper: mgr.GetRESTMapper(),
 		Log:    klogr.New(),
-	}).SetupWithManager(mgr)
-	if err != nil {
+	}
+	if err = applicationReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create application controller")
 	}
 
@@ -212,6 +239,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		devopsClient,
 		s3Client,
 		ldapClient,
+		s.KubernetesOptions,
 		s.AuthenticationOptions,
 		openpitrixClient,
 		s.MultiClusterOptions.Enable,
@@ -231,7 +259,11 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 	klog.V(2).Info("registering webhooks to the webhook server")
 	hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
-	hookServer.Register("/validate-nsnp-kubesphere-io-v1alpha1-network", &webhook.Admission{Handler: &nsnetworkpolicy.NSNPValidator{Client: mgr.GetClient()}})
+	hookServer.Register("/validate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.ValidatingHandler{C: mgr.GetClient()}})
+	hookServer.Register("/mutate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.MutatingHandler{C: mgr.GetClient()}})
+
+	klog.V(2).Info("registering metrics to the webhook server")
+	hookServer.Register("/metrics", metrics.Handler())
 
 	klog.V(0).Info("Starting the controllers.")
 	if err = mgr.Start(stopCh); err != nil {

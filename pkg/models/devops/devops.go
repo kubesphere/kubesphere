@@ -18,6 +18,7 @@ package devops
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -41,6 +42,7 @@ import (
 	resourcesV1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
+	"sort"
 	"sync"
 )
 
@@ -59,7 +61,7 @@ type DevopsOperator interface {
 	GetPipelineObj(projectName string, pipelineName string) (*v1alpha3.Pipeline, error)
 	DeletePipelineObj(projectName string, pipelineName string) error
 	UpdatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error)
-	ListPipelineObj(projectName string, limit, offset int) (api.ListResult, error)
+	ListPipelineObj(projectName string, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error)
 
 	CreateCredentialObj(projectName string, s *v1.Secret) (*v1.Secret, error)
 	GetCredentialObj(projectName string, secretName string) (*v1.Secret, error)
@@ -173,7 +175,9 @@ func (d devopsOperator) CreateDevOpsProject(workspace string, project *v1alpha3.
 	}
 	project.Name = ""
 	project.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
-	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Create(project)
+	project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = StatusPending
+	project.Annotations[devopsv1alpha3.DevOpeProjectSyncTimeAnnoKey] = GetSyncNowTime()
+	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Create(context.Background(), project, metav1.CreateOptions{})
 }
 
 func (d devopsOperator) GetDevOpsProject(workspace string, projectName string) (*v1alpha3.DevOpsProject, error) {
@@ -181,7 +185,7 @@ func (d devopsOperator) GetDevOpsProject(workspace string, projectName string) (
 }
 
 func (d devopsOperator) DeleteDevOpsProject(workspace string, projectName string) error {
-	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Delete(projectName, metav1.NewDeleteOptions(0))
+	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Delete(context.Background(), projectName, *metav1.NewDeleteOptions(0))
 }
 
 func (d devopsOperator) UpdateDevOpsProject(workspace string, project *v1alpha3.DevOpsProject) (*v1alpha3.DevOpsProject, error) {
@@ -189,7 +193,9 @@ func (d devopsOperator) UpdateDevOpsProject(workspace string, project *v1alpha3.
 		project.Labels = make(map[string]string, 0)
 	}
 	project.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
-	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Update(project)
+	project.Annotations[devopsv1alpha3.DevOpeProjectSyncStatusAnnoKey] = StatusPending
+	project.Annotations[devopsv1alpha3.DevOpeProjectSyncTimeAnnoKey] = GetSyncNowTime()
+	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Update(context.Background(), project, metav1.UpdateOptions{})
 }
 
 func (d devopsOperator) ListDevOpsProject(workspace string, limit, offset int) (api.ListResult, error) {
@@ -219,7 +225,9 @@ func (d devopsOperator) CreatePipelineObj(projectName string, pipeline *v1alpha3
 	if err != nil {
 		return nil, err
 	}
-	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Create(pipeline)
+	projectObj.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = StatusPending
+	projectObj.Annotations[devopsv1alpha3.PipelineSyncTimeAnnoKey] = GetSyncNowTime()
+	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Create(context.Background(), pipeline, metav1.CreateOptions{})
 }
 
 func (d devopsOperator) GetPipelineObj(projectName string, pipelineName string) (*v1alpha3.Pipeline, error) {
@@ -235,7 +243,7 @@ func (d devopsOperator) DeletePipelineObj(projectName string, pipelineName strin
 	if err != nil {
 		return err
 	}
-	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Delete(pipelineName, metav1.NewDeleteOptions(0))
+	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Delete(context.Background(), pipelineName, *metav1.NewDeleteOptions(0))
 }
 
 func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error) {
@@ -243,10 +251,12 @@ func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3
 	if err != nil {
 		return nil, err
 	}
-	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Update(pipeline)
+	projectObj.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = StatusPending
+	projectObj.Annotations[devopsv1alpha3.PipelineSyncTimeAnnoKey] = GetSyncNowTime()
+	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Update(context.Background(), pipeline, metav1.UpdateOptions{})
 }
 
-func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (api.ListResult, error) {
+func (d devopsOperator) ListPipelineObj(projectName string, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
 	if err != nil {
 		return api.ListResult{}, err
@@ -255,6 +265,14 @@ func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (
 	if err != nil {
 		return api.ListResult{}, err
 	}
+
+	// sort the pipeline list according to the request
+	if sortFunc != nil {
+		sort.SliceStable(data, func(i, j int) bool {
+			return sortFunc(data, i, j)
+		})
+	}
+
 	items := make([]interface{}, 0)
 	var result []interface{}
 	for _, item := range data {
@@ -274,11 +292,13 @@ func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (
 //credentialobj in crd
 func (d devopsOperator) CreateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
-	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
 	if err != nil {
 		return nil, err
 	}
-	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Create(secret)
+	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
+	secret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = StatusPending
+	secret.Annotations[devopsv1alpha3.CredentialSyncTimeAnnoKey] = GetSyncNowTime()
+	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Create(context.Background(), secret, metav1.CreateOptions{})
 }
 
 func (d devopsOperator) GetCredentialObj(projectName string, secretName string) (*v1.Secret, error) {
@@ -294,16 +314,18 @@ func (d devopsOperator) DeleteCredentialObj(projectName string, secret string) e
 	if err != nil {
 		return err
 	}
-	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Delete(secret, metav1.NewDeleteOptions(0))
+	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Delete(context.Background(), secret, *metav1.NewDeleteOptions(0))
 }
 
 func (d devopsOperator) UpdateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
-	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
 	if err != nil {
 		return nil, err
 	}
-	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Update(secret)
+	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
+	secret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey] = StatusPending
+	secret.Annotations[devopsv1alpha3.CredentialSyncTimeAnnoKey] = GetSyncNowTime()
+	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Update(context.Background(), secret, metav1.UpdateOptions{})
 }
 
 func (d devopsOperator) ListCredentialObj(projectName string, query *query.Query) (api.ListResult, error) {
@@ -475,20 +497,16 @@ func (d devopsOperator) GetNodeSteps(projectName, pipelineName, runId, nodeId st
 }
 
 func (d devopsOperator) GetPipelineRunNodes(projectName, pipelineName, runId string, req *http.Request) ([]devops.PipelineRunNodes, error) {
-
 	res, err := d.devopsClient.GetPipelineRunNodes(projectName, pipelineName, runId, convertToHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	fmt.Println()
-
 	return res, err
 }
 
 func (d devopsOperator) SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
-
 	newBody, err := getInputReqBody(req.Body)
 	if err != nil {
 		klog.Error(err)

@@ -18,10 +18,10 @@ package app
 
 import (
 	"fmt"
-	kconfig "github.com/kiali/kiali/config"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
@@ -40,6 +40,8 @@ func NewAPIServerCommand() *cobra.Command {
 			GenericServerRunOptions: s.GenericServerRunOptions,
 			Config:                  conf,
 		}
+	} else {
+		klog.Fatal("Failed to load configuration from disk", err)
 	}
 
 	cmd := &cobra.Command{
@@ -90,24 +92,13 @@ func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 }
 
 func initializeServicemeshConfig(s *options.ServerRunOptions) {
-	// Initialize kiali config
-	config := kconfig.NewConfig()
-
 	// Config jaeger query endpoint address
 	if s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.JaegerQueryHost) != 0 {
 		tracing.JaegerQueryUrl = s.ServiceMeshOptions.JaegerQueryHost
 	}
 
-	// Exclude system namespaces
-	config.API.Namespaces.Exclude = []string{"istio-system", "kubesphere*", "kube*"}
-	config.InCluster = true
-
-	// Set default prometheus service url
-	config.ExternalServices.PrometheusServiceURL = s.ServiceMeshOptions.ServicemeshPrometheusHost
-	config.ExternalServices.PrometheusCustomMetricsURL = config.ExternalServices.PrometheusServiceURL
-
-	// Set istio pilot discovery service url
-	config.ExternalServices.Istio.UrlServiceVersion = s.ServiceMeshOptions.IstioPilotHost
-
-	kconfig.Set(config)
+	// Set the kiali query endpoint address
+	if s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.KialiQueryHost) != 0 {
+		tracing.KialiQueryUrl = s.ServiceMeshOptions.KialiQueryHost
+	}
 }

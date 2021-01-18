@@ -17,6 +17,7 @@ limitations under the License.
 package workloads
 
 import (
+	"context"
 	"fmt"
 	"k8s.io/api/batch/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
@@ -43,7 +44,7 @@ func NewJobRunner(client kubernetes.Interface) JobRunner {
 }
 
 func (r *jobRunner) JobReRun(namespace, jobName, resourceVersion string) error {
-	job, err := r.client.BatchV1().Jobs(namespace).Get(jobName, metav1.GetOptions{})
+	job, err := r.client.BatchV1().Jobs(namespace).Get(context.Background(), jobName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,7 @@ func (r *jobRunner) JobReRun(namespace, jobName, resourceVersion string) error {
 	}
 
 	for i := 0; i < retryTimes; i++ {
-		_, err = r.client.BatchV1().Jobs(namespace).Create(&newJob)
+		_, err = r.client.BatchV1().Jobs(namespace).Create(context.Background(), &newJob, metav1.CreateOptions{})
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -90,7 +91,6 @@ func (r *jobRunner) JobReRun(namespace, jobName, resourceVersion string) error {
 }
 
 func (r *jobRunner) deleteJob(namespace, job string) error {
-	deletePolicy := metav1.DeletePropagationBackground
-	err := r.client.BatchV1().Jobs(namespace).Delete(job, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
+	err := r.client.BatchV1().Jobs(namespace).Delete(context.Background(), job, metav1.DeleteOptions{})
 	return err
 }

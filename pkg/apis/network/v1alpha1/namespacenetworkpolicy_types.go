@@ -149,6 +149,6 @@ type NamespaceNetworkPolicyList struct {
 	Items           []NamespaceNetworkPolicy `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&NamespaceNetworkPolicy{}, &NamespaceNetworkPolicyList{})
-}
+const (
+	NSNPPrefix = "nsnp-"
+)

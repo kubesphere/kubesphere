@@ -17,6 +17,7 @@ limitations under the License.
 package globalrole
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
@@ -214,7 +215,7 @@ func (c *Controller) reconcile(key string) error {
 		return err
 	}
 
-	if err = c.multiClusterSync(globalRole); err != nil {
+	if err = c.multiClusterSync(context.Background(), globalRole); err != nil {
 		klog.Error(err)
 		return err
 	}
@@ -227,16 +228,16 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 	return c.Run(4, stopCh)
 }
 
-func (c *Controller) multiClusterSync(globalRole *iamv1alpha2.GlobalRole) error {
+func (c *Controller) multiClusterSync(ctx context.Context, globalRole *iamv1alpha2.GlobalRole) error {
 
-	if err := c.ensureNotControlledByKubefed(globalRole); err != nil {
+	if err := c.ensureNotControlledByKubefed(ctx, globalRole); err != nil {
 		klog.Error(err)
 		return err
 	}
 
 	obj, exist, err := c.fedGlobalRoleCache.GetByKey(globalRole.Name)
 	if !exist {
-		return c.createFederatedGlobalRole(globalRole)
+		return c.createFederatedGlobalRole(ctx, globalRole)
 	}
 	if err != nil {
 		klog.Error(err)
@@ -258,13 +259,13 @@ func (c *Controller) multiClusterSync(globalRole *iamv1alpha2.GlobalRole) error 
 		federatedGlobalRole.Spec.Template.Annotations = globalRole.Annotations
 		federatedGlobalRole.Spec.Template.Labels = globalRole.Labels
 
-		return c.updateFederatedGlobalRole(&federatedGlobalRole)
+		return c.updateFederatedGlobalRole(ctx, &federatedGlobalRole)
 	}
 
 	return nil
 }
 
-func (c *Controller) createFederatedGlobalRole(globalRole *iamv1alpha2.GlobalRole) error {
+func (c *Controller) createFederatedGlobalRole(ctx context.Context, globalRole *iamv1alpha2.GlobalRole) error {
 	federatedGlobalRole := &iamv1alpha2.FederatedRole{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       iamv1alpha2.FedGlobalRoleKind,
@@ -302,7 +303,7 @@ func (c *Controller) createFederatedGlobalRole(globalRole *iamv1alpha2.GlobalRol
 		AbsPath(fmt.Sprintf("/apis/%s/%s/%s", iamv1alpha2.FedGlobalRoleResource.Group,
 			iamv1alpha2.FedGlobalRoleResource.Version, iamv1alpha2.FedGlobalRoleResource.Name)).
 		Body(data).
-		Do().Error()
+		Do(ctx).Error()
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil
@@ -313,7 +314,7 @@ func (c *Controller) createFederatedGlobalRole(globalRole *iamv1alpha2.GlobalRol
 	return nil
 }
 
-func (c *Controller) updateFederatedGlobalRole(federatedGlobalRole *iamv1alpha2.FederatedRole) error {
+func (c *Controller) updateFederatedGlobalRole(ctx context.Context, federatedGlobalRole *iamv1alpha2.FederatedRole) error {
 
 	data, err := json.Marshal(federatedGlobalRole)
 	if err != nil {
@@ -327,7 +328,7 @@ func (c *Controller) updateFederatedGlobalRole(federatedGlobalRole *iamv1alpha2.
 			iamv1alpha2.FedGlobalRoleResource.Version, iamv1alpha2.FedGlobalRoleResource.Name,
 			federatedGlobalRole.Name)).
 		Body(data).
-		Do().Error()
+		Do(ctx).Error()
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -338,14 +339,14 @@ func (c *Controller) updateFederatedGlobalRole(federatedGlobalRole *iamv1alpha2.
 	return nil
 }
 
-func (c *Controller) ensureNotControlledByKubefed(globalRole *iamv1alpha2.GlobalRole) error {
+func (c *Controller) ensureNotControlledByKubefed(ctx context.Context, globalRole *iamv1alpha2.GlobalRole) error {
 	if globalRole.Labels[constants.KubefedManagedLabel] != "false" {
 		if globalRole.Labels == nil {
 			globalRole.Labels = make(map[string]string, 0)
 		}
 		globalRole = globalRole.DeepCopy()
 		globalRole.Labels[constants.KubefedManagedLabel] = "false"
-		_, err := c.ksClient.IamV1alpha2().GlobalRoles().Update(globalRole)
+		_, err := c.ksClient.IamV1alpha2().GlobalRoles().Update(ctx, globalRole, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Error(err)
 		}

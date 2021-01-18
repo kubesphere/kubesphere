@@ -58,6 +58,14 @@ type FederatedDeploymentListerExpansion interface{}
 // FederatedDeploymentNamespaceLister.
 type FederatedDeploymentNamespaceListerExpansion interface{}
 
+// FederatedGroupListerExpansion allows custom methods to be added to
+// FederatedGroupLister.
+type FederatedGroupListerExpansion interface{}
+
+// FederatedGroupBindingListerExpansion allows custom methods to be added to
+// FederatedGroupBindingLister.
+type FederatedGroupBindingListerExpansion interface{}
+
 // FederatedIngressListerExpansion allows custom methods to be added to
 // FederatedIngressLister.
 type FederatedIngressListerExpansion interface{}
@@ -129,15 +137,3 @@ type FederatedStatefulSetListerExpansion interface{}
 // FederatedStatefulSetNamespaceListerExpansion allows custom methods to be added to
 // FederatedStatefulSetNamespaceLister.
 type FederatedStatefulSetNamespaceListerExpansion interface{}
-
-// FederatedUserListerExpansion allows custom methods to be added to
-// FederatedUserLister.
-type FederatedUserListerExpansion interface{}
-
-// FederatedUserNamespaceListerExpansion allows custom methods to be added to
-// FederatedUserNamespaceLister.
-type FederatedUserNamespaceListerExpansion interface{}
-
-// FederatedWorkspaceListerExpansion allows custom methods to be added to
-// FederatedWorkspaceLister.
-type FederatedWorkspaceListerExpansion interface{}
