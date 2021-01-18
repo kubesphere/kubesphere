@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/appscode/jsonpatch"
 	"io"
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
@@ -28,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -246,14 +248,48 @@ func (d devopsOperator) DeletePipelineObj(projectName string, pipelineName strin
 	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Delete(context.Background(), pipelineName, *metav1.NewDeleteOptions(0))
 }
 
-func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error) {
-	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
-	if err != nil {
-		return nil, err
+func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (pipe *v1alpha3.Pipeline, err error) {
+	var projectObj *v1alpha3.DevOpsProject
+	if projectObj, err = d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName); err != nil {
+		return
 	}
 	projectObj.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = StatusPending
 	projectObj.Annotations[devopsv1alpha3.PipelineSyncTimeAnnoKey] = GetSyncNowTime()
-	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Update(context.Background(), pipeline, metav1.UpdateOptions{})
+
+	ctx := context.Background()
+	var oldPipe *v1alpha3.Pipeline
+	if oldPipe, err = d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Get(ctx, pipeline.Name,
+		metav1.GetOptions{}); err != nil {
+		return
+	}
+
+	newPipe := oldPipe.DeepCopy()
+	newPipe.Spec = pipeline.Spec
+	var oldJson []byte
+	if oldJson, err = json.Marshal(oldPipe); err != nil {
+		return
+	}
+
+	var newJson []byte
+	if newJson, err = json.Marshal(newPipe); err != nil {
+		return
+	}
+
+	var patchOperations []jsonpatch.Operation
+	if patchOperations, err = jsonpatch.CreatePatch(oldJson, newJson); err != nil {
+		return
+	}
+
+	var patch []byte
+	if patch, err = json.Marshal(patchOperations); err != nil {
+		return
+	}
+
+	// it might causes the below errors if we update pipeline as full mode, patching it is a better solution
+	// the object has been modified; please apply your changes to the latest version and try again
+	pipe, err = d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Patch(ctx, pipeline.Name,
+		types.JSONPatchType, patch, metav1.PatchOptions{})
+	return
 }
 
 func (d devopsOperator) ListPipelineObj(projectName string, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error) {

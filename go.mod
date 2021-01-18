@@ -9,6 +9,7 @@ go 1.13
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
 	github.com/PuerkitoBio/goquery v1.5.0
+	github.com/appscode/jsonpatch v1.0.1
 	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496
 	github.com/aws/aws-sdk-go v1.33.12
 	github.com/beevik/etree v1.1.0
