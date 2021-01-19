@@ -39,6 +39,7 @@ var (
 	ErrThanosRulerNotEnabled     = errors.New("The request operation to custom alerting rule could not be done because thanos ruler is not enabled")
 	ErrAlertingRuleNotFound      = errors.New("The alerting rule was not found")
 	ErrAlertingRuleAlreadyExists = errors.New("The alerting rule already exists")
+	ErrAlertingAPIV2NotEnabled   = errors.New("The alerting v2 API was not enabled")
 
 	ruleLabelNameMatcher = regexp.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`)
 )

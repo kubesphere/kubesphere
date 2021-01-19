@@ -41,9 +41,23 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 	promResourceClient promresourcesclient.Interface, ruleClient alerting.RuleClient,
 	option *alerting.Options) error {
 
-	handler := newHandler(informers, promResourceClient, ruleClient, option)
-
 	ws := runtime.NewWebService(GroupVersion)
+
+	if informers == nil || promResourceClient == nil || ruleClient == nil || option == nil {
+		h := func(req *restful.Request, resp *restful.Response) {
+			ksapi.HandleBadRequest(resp, nil, alertingv2alpha1.ErrAlertingAPIV2NotEnabled)
+			return
+		}
+		ws.Route(ws.GET("/{path:*}").To(h).Returns(http.StatusOK, ksapi.StatusOK, nil))
+		ws.Route(ws.PUT("/{path:*}").To(h).Returns(http.StatusOK, ksapi.StatusOK, nil))
+		ws.Route(ws.POST("/{path:*}").To(h).Returns(http.StatusOK, ksapi.StatusOK, nil))
+		ws.Route(ws.DELETE("/{path:*}").To(h).Returns(http.StatusOK, ksapi.StatusOK, nil))
+		ws.Route(ws.PATCH("/{path:*}").To(h).Returns(http.StatusOK, ksapi.StatusOK, nil))
+		container.Add(ws)
+		return nil
+	}
+
+	handler := newHandler(informers, promResourceClient, ruleClient, option)
 
 	ws.Route(ws.GET("/rules").
 		To(handler.handleListCustomAlertingRules).
