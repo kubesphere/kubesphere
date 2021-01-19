@@ -46,6 +46,13 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Interactive creation pipeline. [#1283](https://github.com/kubesphere/console/issues/1283)
 - [x] Add S2I webhook support. [#6](https://github.com/kubesphere/s2ioperator/issues/6)
 
+### microservice
+
+- [x] Support graph traffic direction. It will show outbound/inbound traffic direction in composed application traffic graph. [#3153](https://github.com/kubesphere/kubesphere/issues/3153)
+- [x] Support Kiali addon. Users can manage istio by kiali directly. [#3106](https://github.com/kubesphere/kubesphere/issues/3106)
+- [x] Support Nginx Ingress Gateway monitor. Add prometheus metrics for nginx ingress controller. [#1205](https://github.com/kubesphere/ks-installer/pull/1205)
+- [x] Support add router component. [#1426](https://github.com/kubesphere/console/issues/1426) 
+
 ### KubeEdge Integration [#3070](https://github.com/kubesphere/kubesphere/issues/3070)
 
 - [ ] KubeEdge cloud components setup.
@@ -103,8 +110,10 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 ## **Upgrade:**
 
-- [ ] Upgrade isito version from 1.4.8 => 1.6.5[#3326](https://github.com/kubesphere/kubesphere/issues/3236)
+- [x] Upgrade isito version from 1.4.8 => 1.6.10[#3326](https://github.com/kubesphere/kubesphere/issues/3236)
+- [x] Upgrade prometheus client_golang to v1.5.1, upgrade prometheus to v1.8.2 [3097](https://github.com/kubesphere/kubesphere/pull/3097)
 - [x] Upgrade Kubectl version for the Toolbox, and the Kubectl Verion will be matched with the Kubernetes Server version. [#3103](https://github.com/kubesphere/kubesphere/issues/3103)
+- [x] Upgrade dependencies of K8s version from v1.17 to V1.18. [#3274](https://github.com/kubesphere/kubesphere/issues/3274)
 
 ### DevOps:
 
@@ -136,6 +145,9 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Fix the security risk caused by pod viewer can connect to the container terminal. [#3041](https://github.com/kubesphere/kubesphere/issues/3041)
 - [ ] Fix some resources cannot be deleted in cascade. [#2912](https://github.com/kubesphere/kubesphere/issues/2912)
 - [x] Fix self-signed certificate for admission webhook relies on legacy Common Name field. [#2928](https://github.com/kubesphere/kubesphere/issues/2928)
+- [x] Fix application monitor view [#1394](https://github.com/kubesphere/console/issues/1394)
+- [x] Fix Grayscale Release when service app label is not the same with the servicename [#3128](https://github.com/kubesphere/kubesphere/issues/3128)
+- [x] Fix application status which is always updating [#3241](https://github.com/kubesphere/kubesphere/issues/3241)
 - [x] Fix workspaces on member cluster would be deleted when joining to host if there are workspaces with same name on the host. [#3169](https://github.com/kubesphere/kubesphere/issues/3169)
 - [x] Fix cluster unjoin federation plane when using proxy connection. [#3202](https://github.com/kubesphere/kubesphere/pull/3203)
 - [x] Fix multi-cluster-status-condition. [#3135](https://github.com/kubesphere/kubesphere/issues/3135)
