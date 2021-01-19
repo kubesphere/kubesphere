@@ -170,15 +170,24 @@ func (conf *Config) ToMap() map[string]bool {
 		if name == "network" {
 			ippoolName := "network.ippool"
 			nsnpName := "network"
+			porterName := "network.porter"
 			networkTopologyName := "network.topology"
 			if conf.NetworkOptions == nil {
 				result[nsnpName] = false
 				result[ippoolName] = false
+				result[networkTopologyName] = false
+				result[porterName] = false
 			} else {
 				if conf.NetworkOptions.EnableNetworkPolicy {
 					result[nsnpName] = true
 				} else {
 					result[nsnpName] = false
+				}
+
+				if conf.NetworkOptions.EnablePorter {
+					result[porterName] = true
+				} else {
+					result[porterName] = false
 				}
 
 				if conf.NetworkOptions.IPPoolType == networkv1alpha1.IPPoolTypeNone {

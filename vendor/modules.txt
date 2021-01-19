@@ -339,11 +339,15 @@ github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversi
 github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions/volumesnapshot
 github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions/volumesnapshot/v1beta1
 github.com/kubernetes-csi/external-snapshotter/client/v3/listers/volumesnapshot/v1beta1
+# github.com/kubesphere/porter v0.3.2-0.20210127083715-ae10e75759e2 => github.com/kubesphere/porter v0.3.2-0.20210127083715-ae10e75759e2
+github.com/kubesphere/porter/api/v1alpha2
+github.com/kubesphere/porter/pkg/constant
+github.com/kubesphere/porter/pkg/manager/client
 # github.com/kubesphere/sonargo v0.0.2 => github.com/kubesphere/sonargo v0.0.2
 github.com/kubesphere/sonargo/sonar
 # github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de => github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 github.com/liggitt/tabwriter
-# github.com/magiconair/properties v1.8.0 => github.com/magiconair/properties v1.8.0
+# github.com/magiconair/properties v1.8.1 => github.com/magiconair/properties v1.8.0
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.1 => github.com/mailru/easyjson v0.7.1
 github.com/mailru/easyjson/buffer
@@ -367,7 +371,7 @@ github.com/modern-go/reflect2
 github.com/munnerz/goautoneg
 # github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f => github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
 github.com/mxk/go-flowrate/flowrate
-# github.com/nxadm/tail v1.4.4 => github.com/nxadm/tail v1.4.4
+# github.com/nxadm/tail v1.4.6 => github.com/nxadm/tail v1.4.4
 github.com/nxadm/tail
 github.com/nxadm/tail/ratelimiter
 github.com/nxadm/tail/util
@@ -375,7 +379,7 @@ github.com/nxadm/tail/watch
 github.com/nxadm/tail/winfile
 # github.com/oklog/ulid v1.3.1 => github.com/oklog/ulid v1.3.1
 github.com/oklog/ulid
-# github.com/onsi/ginkgo v1.14.0 => github.com/onsi/ginkgo v1.14.0
+# github.com/onsi/ginkgo v1.14.2 => github.com/onsi/ginkgo v1.14.0
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/internal/codelocation
@@ -454,6 +458,8 @@ github.com/opencontainers/image-spec/specs-go/v1
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/ext
 github.com/opentracing/opentracing-go/log
+# github.com/osrg/gobgp v0.0.0-20210101133947-496b372f7b8d => github.com/osrg/gobgp v0.0.0-20210101133947-496b372f7b8d
+github.com/osrg/gobgp/api
 # github.com/patrickmn/go-cache v2.1.0+incompatible => github.com/patrickmn/go-cache v2.1.0+incompatible
 github.com/patrickmn/go-cache
 # github.com/pelletier/go-buffruneio v0.2.0 => github.com/pelletier/go-buffruneio v0.2.0
@@ -577,7 +583,7 @@ github.com/spf13/afero/mem
 github.com/spf13/cast
 # github.com/spf13/cobra v1.0.0 => github.com/spf13/cobra v0.0.5
 github.com/spf13/cobra
-# github.com/spf13/jwalterweatherman v1.0.0 => github.com/spf13/jwalterweatherman v1.0.0
+# github.com/spf13/jwalterweatherman v1.1.0 => github.com/spf13/jwalterweatherman v1.0.0
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5 => github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
@@ -700,7 +706,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208 => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1 => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
+# golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4 => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows

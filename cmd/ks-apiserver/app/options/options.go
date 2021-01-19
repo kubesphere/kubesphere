@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	porter "github.com/kubesphere/porter/api/v1alpha2"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis"
@@ -31,8 +32,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
-
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -43,6 +42,7 @@ import (
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
+	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"strings"
 )
 
@@ -224,6 +224,11 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	sch := scheme.Scheme
 	if err := apis.AddToScheme(sch); err != nil {
 		klog.Fatalf("unable add APIs to scheme: %v", err)
+	}
+	if s.NetworkOptions.EnablePorter {
+		if err := porter.AddToScheme(sch); err != nil {
+			klog.Fatalf("unable add Porter APIs to scheme: %v", err)
+		}
 	}
 
 	apiServer.RuntimeCache, err = runtimecache.New(apiServer.KubernetesClient.Config(), runtimecache.Options{Scheme: sch})
