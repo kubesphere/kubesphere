@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package elasticsearch
+package auditing
 
 import (
 	"github.com/spf13/pflag"
@@ -36,7 +36,7 @@ type Options struct {
 	Version            string        `json:"version" yaml:"version"`
 }
 
-func NewElasticSearchOptions() *Options {
+func NewAuditingOptions() *Options {
 	return &Options{
 		Host:        "",
 		IndexPrefix: "ks-logstash-auditing",
@@ -65,6 +65,7 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 		"The batch size of auditing events.")
 	fs.DurationVar(&s.EventBatchInterval, "auditing-event-batch-interval", c.EventBatchInterval,
 		"The batch interval of auditing events.")
+
 	fs.StringVar(&s.Host, "auditing-elasticsearch-host", c.Host, ""+
 		"Elasticsearch service host. KubeSphere is using elastic as auditing store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin event API instead, and"+

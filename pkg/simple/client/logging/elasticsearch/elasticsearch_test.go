@@ -21,47 +21,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/json-iterator/go"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/simple/client/es"
+	"kubesphere.io/kubesphere/pkg/simple/client/es/query"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
-	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v5"
-	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v6"
-	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v7"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
-
-func TestInitClient(t *testing.T) {
-	var tests = []struct {
-		fakeResp string
-		expected string
-	}{
-		{
-			fakeResp: "es6_detect_version_major_200.json",
-			expected: ElasticV6,
-		},
-		{
-			fakeResp: "es7_detect_version_major_200.json",
-			expected: ElasticV7,
-		},
-	}
-
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			es := mockElasticsearchService("/", test.fakeResp, http.StatusOK)
-			defer es.Close()
-
-			client := &Elasticsearch{host: es.URL}
-			err := client.loadClient()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if diff := cmp.Diff(client.version, test.expected); diff != "" {
-				t.Fatalf("%T differ (-got, +want): %s", test.expected, diff)
-			}
-		})
-	}
-}
 
 func TestGetCurrentStats(t *testing.T) {
 	var tests = []struct {
@@ -72,7 +39,7 @@ func TestGetCurrentStats(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			fakeVersion: ElasticV6,
+			fakeVersion: es.ElasticV6,
 			fakeResp:    "es6_get_current_stats_200.json",
 			fakeCode:    http.StatusOK,
 			expected: logging.Statistics{
@@ -81,13 +48,13 @@ func TestGetCurrentStats(t *testing.T) {
 			},
 		},
 		{
-			fakeVersion: ElasticV6,
+			fakeVersion: es.ElasticV6,
 			fakeResp:    "es6_get_current_stats_404.json",
 			fakeCode:    http.StatusNotFound,
 			expectedErr: "type: index_not_found_exception, reason: no such index",
 		},
 		{
-			fakeVersion: ElasticV7,
+			fakeVersion: es.ElasticV7,
 			fakeResp:    "es7_get_current_stats_200.json",
 			fakeCode:    http.StatusOK,
 			expected: logging.Statistics{
@@ -96,7 +63,7 @@ func TestGetCurrentStats(t *testing.T) {
 			},
 		},
 		{
-			fakeVersion: ElasticV7,
+			fakeVersion: es.ElasticV7,
 			fakeResp:    "es7_get_current_stats_404.json",
 			fakeCode:    http.StatusNotFound,
 			expectedErr: "type: index_not_found_exception, reason: no such index [ks-logstash-log-2020.05.2]",
@@ -108,9 +75,16 @@ func TestGetCurrentStats(t *testing.T) {
 			srv := mockElasticsearchService("/ks-logstash-log*/_search", test.fakeResp, test.fakeCode)
 			defer srv.Close()
 
-			es := newElasticsearchClient(srv, test.fakeVersion)
+			client, err := NewClient(&logging.Options{
+				Host:        srv.URL,
+				IndexPrefix: "ks-logstash-log",
+				Version:     test.fakeVersion,
+			})
+			if err != nil {
+				t.Fatalf("create client error, %s", err)
+			}
 
-			result, err := es.GetCurrentStats(logging.SearchFilter{})
+			result, err := client.GetCurrentStats(logging.SearchFilter{})
 			if test.expectedErr != "" {
 				if diff := cmp.Diff(fmt.Sprint(err), test.expectedErr); diff != "" {
 					t.Fatalf("%T differ (-got, +want): %s", test.expectedErr, diff)
@@ -132,7 +106,7 @@ func TestCountLogsByInterval(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			fakeVersion: ElasticV7,
+			fakeVersion: es.ElasticV7,
 			fakeResp:    "es7_count_logs_by_interval_200.json",
 			fakeCode:    http.StatusOK,
 			expected: logging.Histogram{
@@ -154,13 +128,13 @@ func TestCountLogsByInterval(t *testing.T) {
 			},
 		},
 		{
-			fakeVersion: ElasticV7,
+			fakeVersion: es.ElasticV7,
 			fakeResp:    "es7_count_logs_by_interval_400.json",
 			fakeCode:    http.StatusBadRequest,
 			expectedErr: "type: search_phase_execution_exception, reason: all shards failed",
 		},
 		{
-			fakeVersion: ElasticV7,
+			fakeVersion: es.ElasticV7,
 			fakeResp:    "es7_count_logs_by_interval_404.json",
 			fakeCode:    http.StatusNotFound,
 			expectedErr: "type: index_not_found_exception, reason: no such index [ks-logstash-log-20]",
@@ -172,9 +146,16 @@ func TestCountLogsByInterval(t *testing.T) {
 			srv := mockElasticsearchService("/ks-logstash-log*/_search", test.fakeResp, test.fakeCode)
 			defer srv.Close()
 
-			es := newElasticsearchClient(srv, test.fakeVersion)
+			client, err := NewClient(&logging.Options{
+				Host:        srv.URL,
+				IndexPrefix: "ks-logstash-log",
+				Version:     test.fakeVersion,
+			})
+			if err != nil {
+				t.Fatalf("create client error, %s", err)
+			}
 
-			result, err := es.CountLogsByInterval(logging.SearchFilter{}, "15m")
+			result, err := client.CountLogsByInterval(logging.SearchFilter{}, "15m")
 			if test.expectedErr != "" {
 				if diff := cmp.Diff(fmt.Sprint(err), test.expectedErr); diff != "" {
 					t.Fatalf("%T differ (-got, +want): %s", test.expectedErr, diff)
@@ -196,7 +177,7 @@ func TestSearchLogs(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			fakeVersion: ElasticV7,
+			fakeVersion: es.ElasticV7,
 			fakeResp:    "es7_search_logs_200.json",
 			fakeCode:    http.StatusOK,
 			expected:    "es7_search_logs_200_result.json",
@@ -214,9 +195,16 @@ func TestSearchLogs(t *testing.T) {
 			srv := mockElasticsearchService("/ks-logstash-log*/_search", test.fakeResp, test.fakeCode)
 			defer srv.Close()
 
-			es := newElasticsearchClient(srv, test.fakeVersion)
+			client, err := NewClient(&logging.Options{
+				Host:        srv.URL,
+				IndexPrefix: "ks-logstash-log",
+				Version:     test.fakeVersion,
+			})
+			if err != nil {
+				t.Fatalf("create client error, %s", err)
+			}
 
-			result, err := es.SearchLogs(logging.SearchFilter{}, 0, 10, "asc")
+			result, err := client.SearchLogs(logging.SearchFilter{}, 0, 10, "asc")
 			if test.expectedErr != "" {
 				if diff := cmp.Diff(fmt.Sprint(err), test.expectedErr); diff != "" {
 					t.Fatalf("%T differ (-got, +want): %s", test.expectedErr, diff)
@@ -229,27 +217,82 @@ func TestSearchLogs(t *testing.T) {
 	}
 }
 
+func TestParseToQueryPart(t *testing.T) {
+	var tests = []struct {
+		filter   logging.SearchFilter
+		expected string
+	}{
+		{
+			filter: logging.SearchFilter{
+				NamespaceFilter: map[string]*time.Time{
+					"default": func() *time.Time { t := time.Unix(1589981934, 0); return &t }(),
+				},
+			},
+			expected: "api_body_1.json",
+		},
+		{
+			filter: logging.SearchFilter{
+				WorkloadFilter: []string{"mysql"},
+				Starttime:      time.Unix(1589980934, 0),
+				Endtime:        time.Unix(1589981934, 0),
+			},
+			expected: "api_body_2.json",
+		},
+		{
+			filter: logging.SearchFilter{
+				PodFilter: []string{"mysql"},
+				PodSearch: []string{"mysql-a8w3s-10945j"},
+				LogSearch: []string{"info"},
+			},
+			expected: "api_body_3.json",
+		},
+		{
+			filter: logging.SearchFilter{
+				ContainerFilter: []string{"mysql-1"},
+				ContainerSearch: []string{"mysql-3"},
+			},
+			expected: "api_body_4.json",
+		},
+		{
+			filter: logging.SearchFilter{
+				Starttime: time.Unix(1590744676, 0),
+			},
+			expected: "api_body_7.json",
+		},
+		{
+			filter: logging.SearchFilter{
+				NamespaceFilter: map[string]*time.Time{
+					"default": nil,
+				},
+			},
+			expected: "api_body_8.json",
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+
+			expected, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", test.expected))
+			if err != nil {
+				t.Fatalf("read expected error, %s", err.Error())
+			}
+
+			result, _ := query.NewBuilder().WithQuery(parseToQueryPart(test.filter)).Bytes()
+			if diff := cmp.Diff(string(result), string(result)); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
+			}
+		})
+	}
+}
+
 func mockElasticsearchService(pattern, fakeResp string, fakeCode int) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc(pattern, func(res http.ResponseWriter, req *http.Request) {
 		b, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", fakeResp))
 		res.WriteHeader(fakeCode)
-		res.Write(b)
+		_, _ = res.Write(b)
 	})
 	return httptest.NewServer(mux)
-}
-
-func newElasticsearchClient(srv *httptest.Server, version string) *Elasticsearch {
-	es := &Elasticsearch{index: "ks-logstash-log"}
-	switch version {
-	case ElasticV5:
-		es.c, _ = v5.New(srv.URL, "ks-logstash-log")
-	case ElasticV6:
-		es.c, _ = v6.New(srv.URL, "ks-logstash-log")
-	case ElasticV7:
-		es.c, _ = v7.New(srv.URL, "ks-logstash-log")
-	}
-	return es
 }
 
 func JsonFromFile(expectedFile string, expectedJsonPtr interface{}) error {

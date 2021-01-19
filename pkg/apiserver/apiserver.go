@@ -134,7 +134,7 @@ type APIServer struct {
 	OpenpitrixClient openpitrix.Client
 
 	//
-	LoggingClient logging.Interface
+	LoggingClient logging.Client
 
 	//
 	DevopsClient devops.Interface
