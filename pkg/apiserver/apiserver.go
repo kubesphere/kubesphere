@@ -250,7 +250,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.KubernetesClient.KubeSphere(),
 		s.S3Client,
 		s.Config.DevopsOptions.Host,
-		amOperator))
+		rbacAuthorizer))
 	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container,
 		s.DevopsClient,
 		s.KubernetesClient.Kubernetes(),

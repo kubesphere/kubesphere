@@ -19,8 +19,8 @@ func TestGetSubmitters(t *testing.T) {
 func TestApprovable(t *testing.T) {
 	input := &Input{}
 
-	assert.Equal(t, input.Approvable(""), true, "should allow anyone to approve it if there's no submitter given")
-	assert.Equal(t, input.Approvable("fake"), true, "should allow anyone to approve it if there's no submitter given")
+	assert.Equal(t, input.Approvable(""), false, "should allow anyone to approve it if there's no submitter given")
+	assert.Equal(t, input.Approvable("fake"), false, "should allow anyone to approve it if there's no submitter given")
 
 	input.Submitter = "fake"
 	assert.Equal(t, input.Approvable(""), false, "should not approve by nobody if there's a particular submitter")

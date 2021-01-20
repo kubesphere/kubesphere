@@ -1122,14 +1122,10 @@ func (i *Input) GetSubmitters() (submitters []string) {
 func (i *Input) Approvable(identify string) (ok bool) {
 	submitters := i.GetSubmitters()
 
-	// it means anyone can approve this if there's no specific one
-	if len(submitters) == 0 {
-		ok = true
-	} else {
-		for _, submitter := range submitters {
-			if submitter == identify {
-				ok = true
-			}
+	for _, submitter := range submitters {
+		if submitter == identify {
+			ok = true
+			break
 		}
 	}
 	return
