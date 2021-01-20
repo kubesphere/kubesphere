@@ -37,7 +37,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/devops"
-	options "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
+	options "kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"net"
 	"net/http"

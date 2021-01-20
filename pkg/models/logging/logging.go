@@ -30,10 +30,10 @@ type LoggingOperator interface {
 }
 
 type loggingOperator struct {
-	c logging.Interface
+	c logging.Client
 }
 
-func NewLoggingOperator(client logging.Interface) LoggingOperator {
+func NewLoggingOperator(client logging.Client) LoggingOperator {
 	return &loggingOperator{client}
 }
 

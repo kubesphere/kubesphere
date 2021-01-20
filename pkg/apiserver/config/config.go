@@ -23,13 +23,13 @@ import (
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
-	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
@@ -89,12 +89,12 @@ type Config struct {
 	S3Options             *s3.Options                                `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
 	OpenPitrixOptions     *openpitrix.Options                        `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
 	MonitoringOptions     *prometheus.Options                        `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
-	LoggingOptions        *elasticsearch.Options                     `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
+	LoggingOptions        *logging.Options                           `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
 	AuthenticationOptions *authoptions.AuthenticationOptions         `json:"authentication,omitempty" yaml:"authentication,omitempty" mapstructure:"authentication"`
 	AuthorizationOptions  *authorizationoptions.AuthorizationOptions `json:"authorization,omitempty" yaml:"authorization,omitempty" mapstructure:"authorization"`
 	MultiClusterOptions   *multicluster.Options                      `json:"multicluster,omitempty" yaml:"multicluster,omitempty" mapstructure:"multicluster"`
-	EventsOptions         *eventsclient.Options                      `json:"events,omitempty" yaml:"events,omitempty" mapstructure:"events"`
-	AuditingOptions       *auditingclient.Options                    `json:"auditing,omitempty" yaml:"auditing,omitempty" mapstructure:"auditing"`
+	EventsOptions         *events.Options                            `json:"events,omitempty" yaml:"events,omitempty" mapstructure:"events"`
+	AuditingOptions       *auditing.Options                          `json:"auditing,omitempty" yaml:"auditing,omitempty" mapstructure:"auditing"`
 	AlertingOptions       *alerting.Options                          `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
 	NotificationOptions   *notification.Options                      `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
 }
@@ -114,12 +114,12 @@ func New() *Config {
 		MonitoringOptions:     prometheus.NewPrometheusOptions(),
 		AlertingOptions:       alerting.NewAlertingOptions(),
 		NotificationOptions:   notification.NewNotificationOptions(),
-		LoggingOptions:        elasticsearch.NewElasticSearchOptions(),
+		LoggingOptions:        logging.NewLoggingOptions(),
 		AuthenticationOptions: authoptions.NewAuthenticateOptions(),
 		AuthorizationOptions:  authorizationoptions.NewAuthorizationOptions(),
 		MultiClusterOptions:   multicluster.NewOptions(),
-		EventsOptions:         eventsclient.NewElasticSearchOptions(),
-		AuditingOptions:       auditingclient.NewElasticSearchOptions(),
+		EventsOptions:         events.NewEventsOptions(),
+		AuditingOptions:       auditing.NewAuditingOptions(),
 	}
 }
 
@@ -247,7 +247,8 @@ func (conf *Config) stripEmptyOptions() {
 		conf.S3Options = nil
 	}
 
-	if conf.AlertingOptions != nil && conf.AlertingOptions.Endpoint == "" {
+	if conf.AlertingOptions != nil && conf.AlertingOptions.Endpoint == "" &&
+		conf.AlertingOptions.PrometheusEndpoint == "" && conf.AlertingOptions.ThanosRulerEndpoint == "" {
 		conf.AlertingOptions = nil
 	}
 

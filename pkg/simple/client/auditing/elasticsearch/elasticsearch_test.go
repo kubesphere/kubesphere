@@ -22,7 +22,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -69,7 +68,7 @@ func TestStatisticsOnResources(t *testing.T) {
     ]
   },
   "aggregations": {
-    "resources_count": {
+    "cardinality_aggregation": {
       "value": 100
     }
   }
@@ -116,18 +115,18 @@ func TestStatisticsOnResources(t *testing.T) {
 			mes := MockElasticsearchService("/", test.fakeCode, test.fakeResp)
 			defer mes.Close()
 
-			es, err := NewClient(&Options{Host: mes.URL, IndexPrefix: "ks-logstash-events", Version: "6"})
+			c, err := NewClient(&auditing.Options{Host: mes.URL, IndexPrefix: "ks-logstash-events", Version: test.fakeVersion})
 
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			stats, err := es.StatisticsOnResources(&test.filter)
+			stats, err := c.StatisticsOnResources(&test.filter)
 
 			if test.expectedError {
 				if err == nil {
 					t.Fatalf("expected err like %s", test.fakeResp)
-				} else if !strings.Contains(err.Error(), strconv.Itoa(test.fakeCode)) {
+				} else if !strings.Contains(err.Error(), "index_not_found_exception") {
 					t.Fatalf("err does not contain expected code: %d", test.fakeCode)
 				}
 			} else {
@@ -144,187 +143,209 @@ func TestStatisticsOnResources(t *testing.T) {
 func TestParseToQueryPart(t *testing.T) {
 	q := `
 {
-	"bool": {
-		"filter": [
-			{
-				"bool": {
-					"should": [
-						{
-							"bool": {
-								"filter": [
-									{
-										"match_phrase": {
-											"ObjectRef.Namespace.keyword": "kubesphere-system"
-										}
-									},
-									{
-										"range": {
-											"RequestReceivedTimestamp": {
-												"gte": "2020-01-01T01:01:01.000000001Z"
-											}
-										}
-									}
-								]
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase": {
-								"ObjectRef.Name.keyword": "istio"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"wildcard": {
-								"ObjectRef.Name.keyword": "*istio*"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase": {
-								"Verb.keyword": "create"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase": {
-								"Level.keyword": "Metadata"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"wildcard": {
-								"SourceIPs.keyword": "*192.168*"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase": {
-								"User.Username.keyword": "system:serviceaccount:kubesphere-system:kubesphere"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"wildcard": {
-								"User.Username.keyword": "*system:serviceaccount*"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"wildcard": {
-								"User.Groups.keyword": "*system:serviceaccounts*"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase_prefix": {
-								"ObjectRef.Resource.keyword": "devops"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase_prefix": {
-								"ObjectRef.Subresource.keyword": "pipeline"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"term": {
-								"ResponseStatus.code": 404
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"bool": {
-					"should": [
-						{
-							"match_phrase": {
-								"ResponseStatus.status": "Failure"
-							}
-						}
-					],
-					"minimum_should_match": 1
-				}
-			},
-			{
-				"range": {
-					"RequestReceivedTimestamp": {
-						"gte": "2019-12-01T01:01:01.000000001Z",
-						"lte": "2020-01-01T01:01:01.000000001Z"
-					}
-				}
-			}
-		]
-	}
+    "query":{
+        "bool":{
+            "filter":[
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "bool":{
+                                    "filter":[
+                                        {
+                                            "match_phrase":{
+                                                "ObjectRef.Namespace":"kubesphere-system"
+                                            }
+                                        },
+                                        {
+                                            "range":{
+                                                "RequestReceivedTimestamp":{
+                                                    "gte":"2020-01-01T01:01:01.000000001Z"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "bool":{
+                                    "filter":[
+                                        {
+                                            "match_phrase":{
+                                                "Workspace":"system-workspace"
+                                            }
+                                        },
+                                        {
+                                            "range":{
+                                                "RequestReceivedTimestamp":{
+                                                    "gte":"2020-01-01T01:01:01.000000001Z"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase":{
+                                    "ObjectRef.Name.keyword":"devops"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "wildcard":{
+                                    "ObjectRef.Name.keyword":"*dev*"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase":{
+                                    "Verb":"create"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase":{
+                                    "Level":"Metadata"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "wildcard":{
+                                    "SourceIPs.keyword":"*192.168*"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase":{
+                                    "User.Username.keyword":"system:serviceaccount:kubesphere-system:kubesphere"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "wildcard":{
+                                    "User.Username.keyword":"*system*"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "wildcard":{
+                                    "User.Groups.keyword":"*system*"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase_prefix":{
+                                    "ObjectRef.Resource":"pods"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase_prefix":{
+                                    "ObjectRef.Subresource":"exec"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "terms":{
+                                    "ResponseStatus.code":[
+                                        404
+                                    ]
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "bool":{
+                        "should":[
+                            {
+                                "match_phrase":{
+                                    "ResponseStatus.status":"Failure"
+                                }
+                            }
+                        ],
+                        "minimum_should_match":1
+                    }
+                },
+                {
+                    "range":{
+                        "RequestReceivedTimestamp":{
+                            "gte":"2019-12-01T01:01:01.000000001Z",
+                            "lte":"2020-01-01T01:01:01.000000001Z"
+                        }
+                    }
+                }
+            ]
+        }
+    }
 }
 `
 	nsCreateTime := time.Date(2020, time.Month(1), 1, 1, 1, 1, 1, time.UTC)
@@ -335,20 +356,23 @@ func TestParseToQueryPart(t *testing.T) {
 		ObjectRefNamespaceMap: map[string]time.Time{
 			"kubesphere-system": nsCreateTime,
 		},
-		ObjectRefNames:        []string{"istio"},
-		ObjectRefNameFuzzy:    []string{"istio"},
+		WorkspaceMap: map[string]time.Time{
+			"system-workspace": nsCreateTime,
+		},
+		ObjectRefNames:        []string{"devops"},
+		ObjectRefNameFuzzy:    []string{"dev"},
 		Levels:                []string{"Metadata"},
 		Verbs:                 []string{"create"},
 		Users:                 []string{"system:serviceaccount:kubesphere-system:kubesphere"},
-		UserFuzzy:             []string{"system:serviceaccount"},
-		GroupFuzzy:            []string{"system:serviceaccounts"},
+		UserFuzzy:             []string{"system"},
+		GroupFuzzy:            []string{"system"},
 		SourceIpFuzzy:         []string{"192.168"},
-		ObjectRefResources:    []string{"devops"},
-		ObjectRefSubresources: []string{"pipeline"},
+		ObjectRefResources:    []string{"pods"},
+		ObjectRefSubresources: []string{"exec"},
 		ResponseCodes:         []int32{404},
 		ResponseStatus:        []string{"Failure"},
-		StartTime:             &startTime,
-		EndTime:               &endTime,
+		StartTime:             startTime,
+		EndTime:               endTime,
 	}
 
 	qp := parseToQueryPart(filter)

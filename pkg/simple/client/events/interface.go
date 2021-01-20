@@ -17,7 +17,6 @@ limitations under the License.
 package events
 
 import (
-	v1 "k8s.io/api/core/v1"
 	"time"
 )
 
@@ -36,13 +35,13 @@ type Filter struct {
 	ReasonFuzzy                []string
 	MessageFuzzy               []string
 	Type                       string
-	StartTime                  *time.Time
-	EndTime                    *time.Time
+	StartTime                  time.Time
+	EndTime                    time.Time
 }
 
 type Events struct {
-	Total   int64       `json:"total" description:"total number of matched results"`
-	Records []*v1.Event `json:"records" description:"actual array of results"`
+	Total   int64         `json:"total" description:"total number of matched results"`
+	Records []interface{} `json:"records" description:"actual array of results"`
 }
 
 type Histogram struct {

@@ -104,6 +104,8 @@ const (
 	LogQueryTag      = "Log Query"
 	EventsQueryTag   = "Events Query"
 	AuditingQueryTag = "Auditing Query"
+
+	AlertingTag = "Alerting"
 )
 
 var (

@@ -204,7 +204,7 @@
     ]
   },
   "aggregations": {
-    "container_count": {
+    "cardinality_aggregation": {
       "value": 93
     }
   }

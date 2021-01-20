@@ -45,15 +45,15 @@ type Filter struct {
 	ObjectRefSubresources   []string
 	ResponseCodes           []int32
 	ResponseStatus          []string
-	StartTime               *time.Time
-	EndTime                 *time.Time
+	StartTime               time.Time
+	EndTime                 time.Time
 }
 
 type Event map[string]interface{}
 
 type Events struct {
-	Total   int64    `json:"total" description:"total number of matched results"`
-	Records []*Event `json:"records" description:"actual array of results"`
+	Total   int64         `json:"total" description:"total number of matched results"`
+	Records []interface{} `json:"records" description:"actual array of results"`
 }
 
 type Histogram struct {

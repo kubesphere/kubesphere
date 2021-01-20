@@ -207,7 +207,7 @@
     ]
   },
   "aggregations": {
-    "log_count_over_time": {
+    "date_histogram_aggregation": {
       "buckets": [
         {
           "key_as_string": "2020-05-16T16:00:00.000Z",
