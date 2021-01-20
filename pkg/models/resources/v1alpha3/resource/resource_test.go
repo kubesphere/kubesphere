@@ -17,6 +17,8 @@ limitations under the License.
 package resource
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
@@ -28,7 +30,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"testing"
 )
 
 func TestResourceGetter(t *testing.T) {
@@ -108,7 +109,7 @@ func prepare() *ResourceGetter {
 	istioClient := fakeistio.NewSimpleClientset()
 	snapshotClient := fakesnapshot.NewSimpleClientset()
 	apiextensionsClient := fakeapiextensions.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient, nil, nil)
 
 	for _, namespace := range namespaces {
 		fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().

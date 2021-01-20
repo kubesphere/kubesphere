@@ -17,10 +17,11 @@ limitations under the License.
 package query
 
 import (
+	"strconv"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"strconv"
 )
 
 const (
@@ -31,6 +32,7 @@ const (
 	ParameterLimit         = "limit"
 	ParameterOrderBy       = "sortBy"
 	ParameterAscending     = "ascending"
+	FieldIPAddress         = "ipAddress"
 )
 
 // Query represents api search terms

@@ -18,6 +18,11 @@ package config
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/kubeovn"
+
 	"github.com/spf13/viper"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
@@ -38,8 +43,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"reflect"
-	"strings"
 )
 
 // Package config saves configuration for running KubeSphere components
@@ -84,6 +87,7 @@ type Config struct {
 	KubernetesOptions     *k8s.KubernetesOptions                     `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
 	ServiceMeshOptions    *servicemesh.Options                       `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
 	NetworkOptions        *network.Options                           `json:"network,omitempty" yaml:"network,omitempty" mapstructure:"network"`
+	KubeovnOptions        *kubeovn.Options                           `json:"kubeovn,omitempty" yaml:"kubeovn,omitempty" mapstructure:"kubeovn"`
 	LdapOptions           *ldap.Options                              `json:"-,omitempty" yaml:"ldap,omitempty" mapstructure:"ldap"`
 	RedisOptions          *cache.Options                             `json:"redis,omitempty" yaml:"redis,omitempty" mapstructure:"redis"`
 	S3Options             *s3.Options                                `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
@@ -107,6 +111,7 @@ func New() *Config {
 		KubernetesOptions:     k8s.NewKubernetesOptions(),
 		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
 		NetworkOptions:        network.NewNetworkOptions(),
+		KubeovnOptions:        kubeovn.NewOptions(),
 		LdapOptions:           ldap.NewOptions(),
 		RedisOptions:          cache.NewRedisOptions(),
 		S3Options:             s3.NewS3Options(),
@@ -235,6 +240,10 @@ func (conf *Config) stripEmptyOptions() {
 
 	if conf.NetworkOptions != nil && conf.NetworkOptions.IsEmpty() {
 		conf.NetworkOptions = nil
+	}
+
+	if conf.KubeovnOptions != nil && !conf.KubeovnOptions.Enabled {
+		conf.KubeovnOptions = nil
 	}
 
 	if conf.ServiceMeshOptions != nil && conf.ServiceMeshOptions.IstioPilotHost == "" &&

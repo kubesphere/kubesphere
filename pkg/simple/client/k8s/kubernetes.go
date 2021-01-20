@@ -19,6 +19,7 @@ package k8s
 import (
 	"strings"
 
+	kubeovnclient "github.com/alauda/kube-ovn/pkg/client/clientset/versioned"
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
@@ -34,6 +35,7 @@ type Client interface {
 	Kubernetes() kubernetes.Interface
 	KubeSphere() kubesphere.Interface
 	Istio() istioclient.Interface
+	Kubeovn() kubeovnclient.Interface
 	Snapshot() snapshotclient.Interface
 	ApiExtensions() apiextensionsclient.Interface
 	Discovery() discovery.DiscoveryInterface
@@ -60,6 +62,8 @@ type kubernetesClient struct {
 
 	prometheus promresourcesclient.Interface
 
+	kubeovn kubeovnclient.Interface
+
 	master string
 
 	config *rest.Config
@@ -83,6 +87,7 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) Client {
 		snapshot:        snapshotclient.NewForConfigOrDie(config),
 		apiextensions:   apiextensionsclient.NewForConfigOrDie(config),
 		prometheus:      promresourcesclient.NewForConfigOrDie(config),
+		kubeovn:         kubeovnclient.NewForConfigOrDie(config),
 		master:          config.Host,
 		config:          config,
 	}
@@ -146,6 +151,11 @@ func NewKubernetesClient(options *KubernetesOptions) (Client, error) {
 		return nil, err
 	}
 
+	k.kubeovn, err = kubeovnclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	k.master = options.Master
 	k.config = config
 
@@ -178,6 +188,10 @@ func (k *kubernetesClient) ApiExtensions() apiextensionsclient.Interface {
 
 func (k *kubernetesClient) Prometheus() promresourcesclient.Interface {
 	return k.prometheus
+}
+
+func (k *kubernetesClient) Kubeovn() kubeovnclient.Interface {
+	return k.kubeovn
 }
 
 // master address used to generate kubeconfig for downloading

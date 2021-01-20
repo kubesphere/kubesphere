@@ -17,6 +17,9 @@ limitations under the License.
 package tenant
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
@@ -35,8 +38,6 @@ import (
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
-	"reflect"
-	"testing"
 )
 
 func TestTenantOperator_ListWorkspaces(t *testing.T) {
@@ -491,7 +492,7 @@ func prepare() Interface {
 	ksClient := fakeks.NewSimpleClientset([]runtime.Object{testWorkspace, systemWorkspace}...)
 	k8sClient := fakek8s.NewSimpleClientset([]runtime.Object{testNamespace, kubesphereSystem}...)
 	istioClient := fakeistio.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, nil, nil, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, nil, nil, nil, nil)
 
 	for _, workspace := range workspaces {
 		fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha1().

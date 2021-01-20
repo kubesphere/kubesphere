@@ -20,6 +20,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,11 +34,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/version"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"testing"
 )
 
 const (
@@ -125,7 +126,7 @@ func TestGeranteAgentDeployment(t *testing.T) {
 	k8sclient := k8sfake.NewSimpleClientset(service)
 	ksclient := fake.NewSimpleClientset(cluster)
 
-	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil, nil)
+	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil, nil, nil)
 
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)
@@ -233,7 +234,7 @@ func TestValidateKubeConfig(t *testing.T) {
 	k8sclient := k8sfake.NewSimpleClientset(service)
 	ksclient := fake.NewSimpleClientset(cluster)
 
-	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil, nil)
+	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil, nil, nil)
 
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)

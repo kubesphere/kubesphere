@@ -18,6 +18,12 @@ package auditing
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"k8s.io/api/auditregistration/v1alpha1"
 	v1 "k8s.io/api/authentication/v1"
@@ -32,11 +38,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"testing"
-	"time"
 )
 
 var noResyncPeriodFunc = func() time.Duration { return 0 }
@@ -56,7 +57,7 @@ func TestGetAuditLevel(t *testing.T) {
 
 	ksClient := fake.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil, nil)
 
 	a := auditing{
 		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
@@ -85,7 +86,7 @@ func TestAuditing_Enabled(t *testing.T) {
 
 	ksClient := fake.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil, nil)
 
 	a := auditing{
 		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
@@ -115,7 +116,7 @@ func TestAuditing_K8sAuditingEnabled(t *testing.T) {
 
 	ksClient := fake.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil, nil)
 
 	a := auditing{
 		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
@@ -145,7 +146,7 @@ func TestAuditing_LogRequestObject(t *testing.T) {
 
 	ksClient := fake.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil, nil)
 
 	a := auditing{
 		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
@@ -236,7 +237,7 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 
 	ksClient := fake.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil, nil)
 
 	a := auditing{
 		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),

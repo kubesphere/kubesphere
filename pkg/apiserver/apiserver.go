@@ -20,6 +20,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
+	rt "runtime"
+	"strconv"
+	"time"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -86,11 +91,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
-	"net/http"
-	rt "runtime"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
-	"strconv"
-	"time"
 )
 
 const (
@@ -553,6 +554,28 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	// controller runtime cache for resources
 	go s.RuntimeCache.Start(stopCh)
 	s.RuntimeCache.WaitForCacheSync(stopCh)
+
+	if s.Config.KubeovnOptions.Enabled {
+		kubeovnInformerFactory := s.InformerFactory.KubeovnSharedInformerFactory()
+		kubeovnGVRs := []schema.GroupVersionResource{
+			{Group: "kubeovn.io", Version: "v1", Resource: "subnets"},
+			{Group: "kubeovn.io", Version: "v1", Resource: "ips"},
+		}
+
+		for _, gvr := range kubeovnGVRs {
+			if !isResourceExists(gvr) {
+				klog.Warningf("resource %s not exists in the cluster", gvr)
+			} else {
+				_, err = kubeovnInformerFactory.ForResource(gvr)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		kubeovnInformerFactory.Start(stopCh)
+		kubeovnInformerFactory.WaitForCacheSync(stopCh)
+	}
 
 	klog.V(0).Info("Finished caching objects")
 
