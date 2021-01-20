@@ -18,9 +18,13 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
@@ -31,6 +35,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubeovn"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
@@ -41,9 +46,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"os"
-	"testing"
-	"time"
 )
 
 func newTestConfig() (*Config, error) {
@@ -159,6 +161,9 @@ func newTestConfig() (*Config, error) {
 			Host:        "http://elasticsearch-logging-data.kubesphere-logging-system.svc:9200",
 			IndexPrefix: "ks-logstash-auditing",
 			Version:     "6",
+		},
+		KubeovnOptions: &kubeovn.Options{
+			Enabled: true,
 		},
 	}
 	return conf, nil

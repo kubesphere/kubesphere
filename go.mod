@@ -9,6 +9,7 @@ go 1.13
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
 	github.com/PuerkitoBio/goquery v1.5.0
+	github.com/alauda/kube-ovn v1.6.0
 	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496
 	github.com/aws/aws-sdk-go v1.33.12
 	github.com/beevik/etree v1.1.0
@@ -17,7 +18,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v1.4.2-0.20190822205725-ed20165a37b4
+	github.com/docker/docker v1.13.1
 	github.com/elastic/go-elasticsearch/v5 v5.6.1
 	github.com/elastic/go-elasticsearch/v6 v6.8.2
 	github.com/elastic/go-elasticsearch/v7 v7.3.0
@@ -28,7 +29,6 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr v0.1.0
-	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/spec v0.19.7
 	github.com/go-openapi/strfmt v0.19.5
@@ -38,17 +38,17 @@ require (
 	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/golang/mock v1.4.3
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.1
 	github.com/json-iterator/go v1.1.10
-	github.com/kelseyhightower/envconfig v1.4.0 // indirect
-	github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0
+	github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0-00010101000000-000000000000
+	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/mitchellh/mapstructure v1.2.2
-	github.com/onsi/ginkgo v1.14.0
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/gomega v1.10.2
 	github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -65,7 +65,7 @@ require (
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.6.3
 	github.com/stretchr/testify v1.6.1
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
@@ -81,9 +81,9 @@ require (
 	istio.io/api v0.0.0-20201113182140-d4b7e3fc2b44
 	istio.io/client-go v0.0.0-20201113183938-0734e976e785
 	istio.io/gogo-genproto v0.0.0-20201113182723-5b8563d8a012 // indirect
-	k8s.io/api v0.19.0
+	k8s.io/api v0.20.1-rc.1
 	k8s.io/apiextensions-apiserver v0.18.6
-	k8s.io/apimachinery v0.19.0
+	k8s.io/apimachinery v0.20.1-rc.1
 	k8s.io/apiserver v0.18.6
 	k8s.io/cli-runtime v0.18.6
 	k8s.io/client-go v12.0.0+incompatible
@@ -93,13 +93,14 @@ require (
 	k8s.io/klog/v2 v2.0.0
 	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
 	k8s.io/kubectl v0.18.6
-	k8s.io/kubernetes v1.14.0
+	k8s.io/kubernetes v1.14.6
 	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
-	sigs.k8s.io/controller-runtime v0.6.4
+	sigs.k8s.io/controller-runtime v0.7.0
 	sigs.k8s.io/controller-tools v0.4.0
 	sigs.k8s.io/kubefed v0.4.0
+	sigs.k8s.io/testing_frameworks v0.1.2
 )
 
 replace (

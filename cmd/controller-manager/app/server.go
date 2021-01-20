@@ -18,6 +18,8 @@ package app
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -43,7 +45,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
-	"os"
 	application "sigs.k8s.io/application/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -160,7 +161,8 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		kubernetesClient.Istio(),
 		kubernetesClient.Snapshot(),
 		kubernetesClient.ApiExtensions(),
-		kubernetesClient.Prometheus())
+		kubernetesClient.Prometheus(),
+		kubernetesClient.Kubeovn())
 
 	mgrOptions := manager.Options{
 		CertDir: s.WebhookCertDir,

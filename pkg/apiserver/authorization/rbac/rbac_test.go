@@ -20,9 +20,12 @@ package rbac
 
 import (
 	"errors"
-	"github.com/google/go-cmp/cmp"
 	"hash/fnv"
 	"io"
+	"sort"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
@@ -32,8 +35,6 @@ import (
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
-	"sort"
-	"testing"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -857,7 +858,7 @@ func newMockRBACAuthorizer(staticRoles *StaticRoles) (*RBACAuthorizer, error) {
 
 	ksClient := fakeks.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil, nil)
 
 	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
 	ksInformerFactory := fakeInformerFactory.KubeSphereSharedInformerFactory()

@@ -18,6 +18,10 @@ package resource
 
 import (
 	"errors"
+
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/kubeovn"
+
+	kubeovnv1 "github.com/alauda/kube-ovn/pkg/apis/kubeovn/v1"
 	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -131,6 +135,9 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedStatefulSet)] = federatedstatefulset.New(factory.KubeSphereSharedInformerFactory())
 	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedIngress)] = federatedingress.New(factory.KubeSphereSharedInformerFactory())
 
+	//kubeovn resources
+	getters[kubeovnv1.SchemeGroupVersion.WithResource("subnets")] = kubeovn.NewSubnets(factory.KubeovnSharedInformerFactory())
+	getters[kubeovnv1.SchemeGroupVersion.WithResource("ips")] = kubeovn.NewIps(factory.KubeovnSharedInformerFactory())
 	return &ResourceGetter{
 		getters: getters,
 	}

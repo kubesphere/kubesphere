@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	kubeovnclient "github.com/alauda/kube-ovn/pkg/client/clientset/versioned"
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
@@ -41,6 +42,8 @@ type FakeClient struct {
 
 	SnapshotClient snapshotclient.Interface
 
+	KubeovnClient kubeovnclient.Interface
+
 	ApiExtensionClient apiextensionsclient.Interface
 
 	prometheusClient promresourcesclient.Interface
@@ -53,7 +56,7 @@ type FakeClient struct {
 func NewFakeClientSets(k8sClient kubernetes.Interface, discoveryClient *discovery.DiscoveryClient,
 	kubeSphereClient kubesphere.Interface,
 	istioClient istioclient.Interface, snapshotClient snapshotclient.Interface,
-	apiextensionsclient apiextensionsclient.Interface, prometheusClient promresourcesclient.Interface,
+	apiextensionsclient apiextensionsclient.Interface, prometheusClient promresourcesclient.Interface, kubeovnClient kubeovnclient.Interface,
 	masterURL string, kubeConfig *rest.Config) Client {
 	return &FakeClient{
 		K8sClient:          k8sClient,
@@ -63,6 +66,7 @@ func NewFakeClientSets(k8sClient kubernetes.Interface, discoveryClient *discover
 		SnapshotClient:     snapshotClient,
 		ApiExtensionClient: apiextensionsclient,
 		prometheusClient:   prometheusClient,
+		KubeovnClient:      kubeovnClient,
 		MasterURL:          masterURL,
 		KubeConfig:         kubeConfig,
 	}
@@ -86,6 +90,10 @@ func (n *FakeClient) Snapshot() snapshotclient.Interface {
 
 func (n *FakeClient) ApiExtensions() apiextensionsclient.Interface {
 	return n.ApiExtensionClient
+}
+
+func (n *FakeClient) Kubeovn() kubeovnclient.Interface {
+	return n.KubeovnClient
 }
 
 func (n *FakeClient) Discovery() discovery.DiscoveryInterface {

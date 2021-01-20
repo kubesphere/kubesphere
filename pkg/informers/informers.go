@@ -17,10 +17,15 @@ limitations under the License.
 package informers
 
 import (
+	"time"
+
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
 	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	prominformers "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
+
+	kubeovnclient "github.com/alauda/kube-ovn/pkg/client/clientset/versioned"
+	kubeovninformers "github.com/alauda/kube-ovn/pkg/client/informers/externalversions"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -29,7 +34,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"time"
 )
 
 // default re-sync period for all informer factories
@@ -44,6 +48,7 @@ type InformerFactory interface {
 	SnapshotSharedInformerFactory() snapshotinformer.SharedInformerFactory
 	ApiExtensionSharedInformerFactory() apiextensionsinformers.SharedInformerFactory
 	PrometheusSharedInformerFactory() prominformers.SharedInformerFactory
+	KubeovnSharedInformerFactory() kubeovninformers.SharedInformerFactory
 
 	// Start shared informer factory one by one if they are not nil
 	Start(stopCh <-chan struct{})
@@ -56,11 +61,12 @@ type informerFactories struct {
 	snapshotInformerFactory      snapshotinformer.SharedInformerFactory
 	apiextensionsInformerFactory apiextensionsinformers.SharedInformerFactory
 	prometheusInformerFactory    prominformers.SharedInformerFactory
+	kubeovnInformerFactory       kubeovninformers.SharedInformerFactory
 }
 
 func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interface, istioClient istioclient.Interface,
 	snapshotClient snapshotclient.Interface, apiextensionsClient apiextensionsclient.Interface,
-	prometheusClient promresourcesclient.Interface) InformerFactory {
+	prometheusClient promresourcesclient.Interface, kubeovnClient kubeovnclient.Interface) InformerFactory {
 	factory := &informerFactories{}
 
 	if client != nil {
@@ -85,6 +91,10 @@ func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interf
 
 	if prometheusClient != nil {
 		factory.prometheusInformerFactory = prominformers.NewSharedInformerFactory(prometheusClient, defaultResync)
+	}
+
+	if kubeovnClient != nil {
+		factory.kubeovnInformerFactory = kubeovninformers.NewSharedInformerFactory(kubeovnClient, defaultResync)
 	}
 
 	return factory
@@ -114,6 +124,10 @@ func (f *informerFactories) PrometheusSharedInformerFactory() prominformers.Shar
 	return f.prometheusInformerFactory
 }
 
+func (f *informerFactories) KubeovnSharedInformerFactory() kubeovninformers.SharedInformerFactory {
+	return f.kubeovnInformerFactory
+}
+
 func (f *informerFactories) Start(stopCh <-chan struct{}) {
 	if f.informerFactory != nil {
 		f.informerFactory.Start(stopCh)
@@ -137,5 +151,9 @@ func (f *informerFactories) Start(stopCh <-chan struct{}) {
 
 	if f.prometheusInformerFactory != nil {
 		f.prometheusInformerFactory.Start(stopCh)
+	}
+
+	if f.kubeovnInformerFactory != nil {
+		f.kubeovnInformerFactory.Start(stopCh)
 	}
 }

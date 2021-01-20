@@ -20,6 +20,9 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"net/http"
+	"strings"
+
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis"
@@ -42,8 +45,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"net/http"
-	"strings"
 )
 
 type ServerRunOptions struct {
@@ -77,6 +78,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
 	s.NetworkOptions.AddFlags(fss.FlagSet("network"), s.NetworkOptions)
+	s.KubeovnOptions.AddFlags(fss.FlagSet("kubeovn"), s.KubeovnOptions)
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), s.MonitoringOptions)
 	s.LoggingOptions.AddFlags(fss.FlagSet("logging"), s.LoggingOptions)
@@ -111,7 +113,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	apiServer.KubernetesClient = kubernetesClient
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(),
-		kubernetesClient.Istio(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions(), kubernetesClient.Prometheus())
+		kubernetesClient.Istio(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions(), kubernetesClient.Prometheus(), kubernetesClient.Kubeovn())
 	apiServer.InformerFactory = informerFactory
 
 	if s.MonitoringOptions == nil || len(s.MonitoringOptions.Endpoint) == 0 {

@@ -19,6 +19,7 @@ package informers
 import (
 	"time"
 
+	kubeovninformers "github.com/alauda/kube-ovn/pkg/client/informers/externalversions"
 	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	prominformers "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions"
 	promfake "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/fake"
@@ -75,6 +76,10 @@ func (n nullInformerFactory) ApiExtensionSharedInformerFactory() apiextensionsin
 
 func (n *nullInformerFactory) PrometheusSharedInformerFactory() prominformers.SharedInformerFactory {
 	return n.fakePrometheusFactory
+}
+
+func (n nullInformerFactory) KubeovnSharedInformerFactory() kubeovninformers.SharedInformerFactory {
+	return nil
 }
 
 func (n nullInformerFactory) Start(stopCh <-chan struct{}) {

@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	kubeovnclient "github.com/alauda/kube-ovn/pkg/client/clientset/versioned"
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	istio "istio.io/client-go/pkg/clientset/versioned"
@@ -51,6 +52,10 @@ func (n nullClient) Snapshot() snapshotclient.Interface {
 }
 
 func (n nullClient) ApiExtensions() apiextensionsclient.Interface {
+	return nil
+}
+
+func (n nullClient) Kubeovn() kubeovnclient.Interface {
 	return nil
 }
 
