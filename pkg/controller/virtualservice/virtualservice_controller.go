@@ -19,11 +19,15 @@ package virtualservice
 import (
 	"context"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"reflect"
 	"strings"
 
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"
+	istiolisters "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,20 +36,15 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes/scheme"
-	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	log "k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
-
-	istioclient "istio.io/client-go/pkg/clientset/versioned"
-	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"
-	istiolisters "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	log "k8s.io/klog"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	servicemeshclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
@@ -256,9 +255,9 @@ func (v *VirtualServiceController) syncService(key string) error {
 		return err
 	}
 
-	if len(service.Labels) < len(util.ApplicationLabels) ||
-		!util.IsApplicationComponent(service.Labels) ||
-		!util.IsServicemeshEnabled(service.Annotations) ||
+	if len(service.Labels) < len(servicemesh.ApplicationLabels) ||
+		!servicemesh.IsApplicationComponent(service.Labels) ||
+		!servicemesh.IsServicemeshEnabled(service.Annotations) ||
 		len(service.Spec.Ports) == 0 {
 		// services don't have enough labels to create a virtualservice
 		// or they don't have necessary labels
@@ -266,7 +265,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 		return nil
 	}
 	// get real component name, i.e label app value
-	appName = util.GetComponentName(&service.ObjectMeta)
+	appName = servicemesh.GetComponentName(&service.ObjectMeta)
 
 	destinationRule, err := v.destinationRuleLister.DestinationRules(namespace).Get(name)
 	if err != nil {
@@ -287,7 +286,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	}
 
 	// fetch all strategies applied to service
-	strategies, err := v.strategyLister.Strategies(namespace).List(labels.SelectorFromSet(map[string]string{util.AppLabel: appName}))
+	strategies, err := v.strategyLister.Strategies(namespace).List(labels.SelectorFromSet(map[string]string{servicemesh.AppLabel: appName}))
 	if err != nil {
 		log.Error(err, "list strategies for service failed", "namespace", namespace, "name", appName)
 		return err
@@ -306,7 +305,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      appName,
 					Namespace: namespace,
-					Labels:    util.ExtractApplicationLabels(&service.ObjectMeta),
+					Labels:    servicemesh.ExtractApplicationLabels(&service.ObjectMeta),
 				},
 			}
 		} else {
@@ -457,7 +456,7 @@ func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
 func (v *VirtualServiceController) addStrategy(obj interface{}) {
 	strategy := obj.(*servicemeshv1alpha2.Strategy)
 
-	lbs := util.ExtractApplicationLabels(&strategy.ObjectMeta)
+	lbs := servicemesh.ExtractApplicationLabels(&strategy.ObjectMeta)
 	if len(lbs) == 0 {
 		err := fmt.Errorf("invalid strategy %s/%s labels %s, not have required labels", strategy.Namespace, strategy.Name, strategy.Labels)
 		log.Error(err, "")
@@ -582,6 +581,6 @@ func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicem
 
 	}
 
-	util.FillDestinationPort(vs, service)
+	servicemesh.FillDestinationPort(vs, service)
 	return vs
 }

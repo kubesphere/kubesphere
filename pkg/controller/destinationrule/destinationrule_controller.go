@@ -19,6 +19,7 @@ package destinationrule
 import (
 	"context"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"reflect"
 
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
@@ -36,8 +37,6 @@ import (
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	log "k8s.io/klog"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
-
 	"time"
 
 	istioclientset "istio.io/client-go/pkg/clientset/versioned"
@@ -243,9 +242,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 		return nil
 	}
 
-	if len(service.Labels) < len(util.ApplicationLabels) ||
-		!util.IsApplicationComponent(service.Labels) ||
-		!util.IsServicemeshEnabled(service.Annotations) ||
+	if len(service.Labels) < len(servicemesh.ApplicationLabels) ||
+		!servicemesh.IsApplicationComponent(service.Labels) ||
+		!servicemesh.IsServicemeshEnabled(service.Annotations) ||
 		len(service.Spec.Ports) == 0 {
 		// services don't have enough labels to create a destinationrule
 		// or they don't have necessary labels
@@ -254,7 +253,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 		return nil
 	}
 
-	appName := util.GetComponentName(&service.ObjectMeta)
+	appName := servicemesh.GetComponentName(&service.ObjectMeta)
 
 	// fetch all deployments that match with service selector
 	deployments, err := v.deploymentLister.Deployments(namespace).List(labels.Set(service.Spec.Selector).AsSelectorPreValidated())
@@ -266,14 +265,14 @@ func (v *DestinationRuleController) syncService(key string) error {
 	for _, deployment := range deployments {
 
 		// not a valid deployment we required
-		if !util.IsApplicationComponent(deployment.Labels) ||
-			!util.IsApplicationComponent(deployment.Spec.Selector.MatchLabels) ||
+		if !servicemesh.IsApplicationComponent(deployment.Labels) ||
+			!servicemesh.IsApplicationComponent(deployment.Spec.Selector.MatchLabels) ||
 			deployment.Status.ReadyReplicas == 0 ||
-			!util.IsServicemeshEnabled(deployment.Annotations) {
+			!servicemesh.IsServicemeshEnabled(deployment.Annotations) {
 			continue
 		}
 
-		version := util.GetComponentVersion(&deployment.ObjectMeta)
+		version := servicemesh.GetComponentVersion(&deployment.ObjectMeta)
 
 		if len(version) == 0 {
 			log.V(4).Infof("Deployment %s doesn't have a version label", types.NamespacedName{Namespace: deployment.Namespace, Name: deployment.Name}.String())
@@ -281,9 +280,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 		}
 
 		subset := &apinetworkingv1alpha3.Subset{
-			Name: util.NormalizeVersionName(version),
+			Name: servicemesh.NormalizeVersionName(version),
 			Labels: map[string]string{
-				util.VersionLabel: version,
+				servicemesh.VersionLabel: version,
 			},
 		}
 
@@ -309,7 +308,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 	}
 
 	// fetch all servicepolicies associated to this service
-	servicePolicies, err := v.servicePolicyLister.ServicePolicies(namespace).List(labels.SelectorFromSet(map[string]string{util.AppLabel: appName}))
+	servicePolicies, err := v.servicePolicyLister.ServicePolicies(namespace).List(labels.SelectorFromSet(map[string]string{servicemesh.AppLabel: appName}))
 	if err != nil {
 		log.Error(err, "could not list service policies is namespace with component name", "namespace", namespace, "name", appName)
 		return err
@@ -388,7 +387,7 @@ func (v *DestinationRuleController) addDeployment(obj interface{}) {
 	deploy := obj.(*appsv1.Deployment)
 
 	// not a application component
-	if !util.IsApplicationComponent(deploy.Labels) || !util.IsApplicationComponent(deploy.Spec.Selector.MatchLabels) {
+	if !servicemesh.IsApplicationComponent(deploy.Labels) || !servicemesh.IsApplicationComponent(deploy.Spec.Selector.MatchLabels) {
 		return
 	}
 
@@ -437,8 +436,8 @@ func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *a
 	for i := range allServices {
 		service := allServices[i]
 		if service.Spec.Selector == nil ||
-			!util.IsApplicationComponent(service.Labels) ||
-			!util.IsServicemeshEnabled(service.Annotations) {
+			!servicemesh.IsApplicationComponent(service.Labels) ||
+			!servicemesh.IsServicemeshEnabled(service.Annotations) {
 			// services with nil selectors match nothing, not everything.
 			continue
 		}
@@ -458,9 +457,9 @@ func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *a
 func (v *DestinationRuleController) addServicePolicy(obj interface{}) {
 	servicePolicy := obj.(*servicemeshv1alpha2.ServicePolicy)
 
-	appName := servicePolicy.Labels[util.AppLabel]
+	appName := servicePolicy.Labels[servicemesh.AppLabel]
 
-	services, err := v.serviceLister.Services(servicePolicy.Namespace).List(labels.SelectorFromSet(map[string]string{util.AppLabel: appName}))
+	services, err := v.serviceLister.Services(servicePolicy.Namespace).List(labels.SelectorFromSet(map[string]string{servicemesh.AppLabel: appName}))
 	if err != nil {
 		log.Error(err, "cannot list services", "namespace", servicePolicy.Namespace, "name", appName)
 		utilruntime.HandleError(fmt.Errorf("cannot list services in namespace %s, with component name %v", servicePolicy.Namespace, appName))

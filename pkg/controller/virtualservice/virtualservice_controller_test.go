@@ -34,7 +34,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"testing"
 )
@@ -89,7 +89,7 @@ func (l Labels) WithApplication(name string) Labels {
 
 func (l Labels) WithServiceMeshEnabled(enabled bool) Labels {
 	if enabled {
-		l[util.ServiceMeshEnabledAnnotation] = "true"
+		l[servicemesh.ServiceMeshEnabledAnnotation] = "true"
 	}
 
 	return l

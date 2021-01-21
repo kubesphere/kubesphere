@@ -34,7 +34,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"testing"
 )
@@ -118,9 +118,9 @@ func newDestinationRule(service *corev1.Service, deployments ...*appsv1.Deployme
 	dr.Spec.Subsets = []*apiv1alpha3.Subset{}
 	for _, deployment := range deployments {
 		subset := &apiv1alpha3.Subset{
-			Name: util.GetComponentVersion(&deployment.ObjectMeta),
+			Name: servicemesh.GetComponentVersion(&deployment.ObjectMeta),
 			Labels: map[string]string{
-				"version": util.GetComponentVersion(&deployment.ObjectMeta),
+				"version": servicemesh.GetComponentVersion(&deployment.ObjectMeta),
 			},
 		}
 		dr.Spec.Subsets = append(dr.Spec.Subsets, subset)
@@ -195,9 +195,9 @@ func newServicePolicy(name string, service *corev1.Service, deployments ...*apps
 	sp.Spec.Template.Spec.Subsets = []*apiv1alpha3.Subset{}
 	for _, deployment := range deployments {
 		subset := &apiv1alpha3.Subset{
-			Name: util.GetComponentVersion(&deployment.ObjectMeta),
+			Name: servicemesh.GetComponentVersion(&deployment.ObjectMeta),
 			Labels: map[string]string{
-				"version": util.GetComponentVersion(&deployment.ObjectMeta),
+				"version": servicemesh.GetComponentVersion(&deployment.ObjectMeta),
 			},
 		}
 		sp.Spec.Template.Spec.Subsets = append(sp.Spec.Template.Spec.Subsets, subset)
