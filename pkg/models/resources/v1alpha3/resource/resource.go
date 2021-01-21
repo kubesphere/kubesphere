@@ -18,6 +18,7 @@ package resource
 
 import (
 	"errors"
+
 	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,6 +67,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/role"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/rolebinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/service"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/serviceaccount"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/statefulset"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/volumesnapshot"
@@ -93,6 +95,7 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}] = configmap.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}] = pod.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "nodes"}] = node.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "serviceaccounts"}] = serviceaccount.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}] = ingress.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "networking.k8s.io", Version: "v1", Resource: "networkpolicies"}] = networkpolicy.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "batch", Version: "v1", Resource: "jobs"}] = job.New(factory.KubernetesSharedInformerFactory())

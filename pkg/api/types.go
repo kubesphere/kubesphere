@@ -88,6 +88,7 @@ var SupportedGroupVersionResources = map[ClientType][]schema.GroupVersionResourc
 		{Group: "", Version: "v1", Resource: "persistentvolumeclaims"},
 		{Group: "", Version: "v1", Resource: "secrets"},
 		{Group: "", Version: "v1", Resource: "configmaps"},
+		{Group: "", Version: "v1", Resource: "serviceaccounts"},
 
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "roles"},
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "rolebindings"},
