@@ -18,21 +18,25 @@ package github
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/oauth2"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"net/http"
 	"time"
 )
 
 const (
-	UserInfoURL = "https://api.github.com/user"
+	userInfoURL = "https://api.github.com/user"
+	authURL     = "https://github.com/login/oauth/authorize"
+	tokenURL    = "https://github.com/login/oauth/access_token"
 )
 
 func init() {
-	identityprovider.RegisterOAuthProvider(&githubProviderFactory{})
+	identityprovider.RegisterOAuthProvider(&ldapProviderFactory{})
 }
 
 type github struct {
@@ -52,15 +56,21 @@ type github struct {
 	// the OAuth flow, after the resource owner's URLs.
 	RedirectURL string `json:"redirectURL" yaml:"redirectURL"`
 
+	// Used to turn off TLS certificate checks
+	InsecureSkipVerify bool `json:"insecureSkipVerify" yaml:"insecureSkipVerify"`
+
 	// Scope specifies optional requested permissions.
 	Scopes []string `json:"scopes" yaml:"scopes"`
+
+	Config *oauth2.Config `json:"-" yaml:"-"`
 }
 
 // endpoint represents an OAuth 2.0 provider's authorization and token
 // endpoint URLs.
 type endpoint struct {
-	AuthURL  string `json:"authURL" yaml:"authURL"`
-	TokenURL string `json:"tokenURL" yaml:"tokenURL"`
+	AuthURL     string `json:"authURL" yaml:"authURL"`
+	TokenURL    string `json:"tokenURL" yaml:"tokenURL"`
+	UserInfoURL string `json:"userInfoURL" yaml:"userInfoURL"`
 }
 
 type githubIdentity struct {
@@ -102,17 +112,43 @@ type githubIdentity struct {
 	Collaborators     int       `json:"collaborators"`
 }
 
-type githubProviderFactory struct {
+type ldapProviderFactory struct {
 }
 
-func (g *githubProviderFactory) Type() string {
+func (g *ldapProviderFactory) Type() string {
 	return "GitHubIdentityProvider"
 }
 
-func (g *githubProviderFactory) Create(options *oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+func (g *ldapProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
 	var github github
 	if err := mapstructure.Decode(options, &github); err != nil {
 		return nil, err
+	}
+
+	if github.Endpoint.AuthURL == "" {
+		github.Endpoint.AuthURL = authURL
+	}
+	if github.Endpoint.TokenURL == "" {
+		github.Endpoint.TokenURL = tokenURL
+	}
+	if github.Endpoint.UserInfoURL == "" {
+		github.Endpoint.UserInfoURL = userInfoURL
+	}
+	// fixed options
+	options["endpoint"] = oauth.DynamicOptions{
+		"authURL":     github.Endpoint.AuthURL,
+		"tokenURL":    github.Endpoint.TokenURL,
+		"userInfoURL": github.Endpoint.UserInfoURL,
+	}
+	github.Config = &oauth2.Config{
+		ClientID:     github.ClientID,
+		ClientSecret: github.ClientSecret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  github.Endpoint.AuthURL,
+			TokenURL: github.Endpoint.TokenURL,
+		},
+		RedirectURL: github.RedirectURL,
+		Scopes:      github.Scopes,
 	}
 	return &github, nil
 }
@@ -129,29 +165,23 @@ func (g githubIdentity) GetEmail() string {
 	return g.Email
 }
 
-func (g githubIdentity) GetDisplayName() string {
-	return ""
-}
-
 func (g *github) IdentityExchange(code string) (identityprovider.Identity, error) {
-	config := oauth2.Config{
-		ClientID:     g.ClientID,
-		ClientSecret: g.ClientSecret,
-		Endpoint: oauth2.Endpoint{
-			AuthURL:   g.Endpoint.AuthURL,
-			TokenURL:  g.Endpoint.TokenURL,
-			AuthStyle: oauth2.AuthStyleAutoDetect,
-		},
-		RedirectURL: g.RedirectURL,
-		Scopes:      g.Scopes,
+	ctx := context.TODO()
+	if g.InsecureSkipVerify {
+		client := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+		}
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, client)
 	}
-
-	token, err := config.Exchange(context.Background(), code)
+	token, err := g.Config.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token)).Get(UserInfoURL)
+	resp, err := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token)).Get(g.Endpoint.UserInfoURL)
 	if err != nil {
 		return nil, err
 	}

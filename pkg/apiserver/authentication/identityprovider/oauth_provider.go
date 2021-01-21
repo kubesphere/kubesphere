@@ -16,13 +16,7 @@ limitations under the License.
 package identityprovider
 
 import (
-	"errors"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-)
-
-var (
-	builtinOAuthProviders    = make(map[string]OAuthProviderFactory)
-	identityProviderNotFound = errors.New("identity provider not found")
 )
 
 type OAuthProvider interface {
@@ -34,16 +28,5 @@ type OAuthProviderFactory interface {
 	// Type unique type of the provider
 	Type() string
 	// Apply the dynamic options from kubesphere-config
-	Create(options *oauth.DynamicOptions) (OAuthProvider, error)
-}
-
-func CreateOAuthProvider(providerType string, options *oauth.DynamicOptions) (OAuthProvider, error) {
-	if provider, ok := builtinOAuthProviders[providerType]; ok {
-		return provider.Create(options)
-	}
-	return nil, identityProviderNotFound
-}
-
-func RegisterOAuthProvider(factory OAuthProviderFactory) {
-	builtinOAuthProviders[factory.Type()] = factory
+	Create(options oauth.DynamicOptions) (OAuthProvider, error)
 }

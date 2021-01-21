@@ -171,7 +171,7 @@ func (h *handler) Authorize(req *restful.Request, resp *restful.Response) {
 	http.Redirect(resp, req.Request, redirectURL, http.StatusFound)
 }
 
-func (h *handler) oauthCallBack(req *restful.Request, resp *restful.Response) {
+func (h *handler) oauthCallback(req *restful.Request, resp *restful.Response) {
 	code := req.QueryParameter("code")
 	provider := req.PathParameter("callback")
 

@@ -40,7 +40,7 @@ mailAttribute: mail
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := new(ldapProviderFactory).Create(&dynamicOptions)
+	got, err := new(ldapProviderFactory).Create(dynamicOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,6 @@ mailAttribute: mail
 		GroupMemberAttribute: "",
 		LoginAttribute:       "uid",
 		MailAttribute:        "mail",
-		DisplayNameAttribute: "",
 	}
 	if diff := cmp.Diff(got, expected); diff != "" {
 		t.Errorf("%T differ (-got, +want): %s", expected, diff)
@@ -81,7 +80,7 @@ func TestLdapProvider_Authenticate(t *testing.T) {
 	if err = yaml.Unmarshal(options, &dynamicOptions); err != nil {
 		t.Fatal(err)
 	}
-	ldapProvider, err := new(ldapProviderFactory).Create(&dynamicOptions)
+	ldapProvider, err := new(ldapProviderFactory).Create(dynamicOptions)
 	if err != nil {
 		t.Fatal(err)
 	}

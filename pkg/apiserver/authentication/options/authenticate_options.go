@@ -19,9 +19,11 @@ package options
 import (
 	"fmt"
 	"github.com/spf13/pflag"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/aliyunidaas"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/github"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/ldap"
+	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/oidc"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"time"
 )
@@ -66,6 +68,9 @@ func (options *AuthenticationOptions) Validate() []error {
 	var errs []error
 	if len(options.JwtSecret) == 0 {
 		errs = append(errs, fmt.Errorf("jwt secret is empty"))
+	}
+	if err := identityprovider.SetupWithOptions(options.OAuthOptions.IdentityProviders); err != nil {
+		errs = append(errs, err)
 	}
 	return errs
 }

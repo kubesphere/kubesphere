@@ -87,6 +87,8 @@ github.com/container-storage-interface/spec/lib/go/csi
 github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/020
 github.com/containernetworking/cni/pkg/types/current
+# github.com/coreos/go-oidc v2.1.0+incompatible => github.com/coreos/go-oidc v2.1.0+incompatible
+github.com/coreos/go-oidc
 # github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf => github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/journal
@@ -152,9 +154,9 @@ github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
 # github.com/emicklei/go-restful v2.14.3+incompatible => github.com/emicklei/go-restful v2.14.3+incompatible
 github.com/emicklei/go-restful
-github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.4.1 => github.com/emicklei/go-restful-openapi v1.4.1
 github.com/emicklei/go-restful-openapi
+github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -462,6 +464,9 @@ github.com/pelletier/go-toml
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0 => github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
+# github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021 => github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021
+github.com/pquerna/cachecontrol
+github.com/pquerna/cachecontrol/cacheobject
 # github.com/projectcalico/kube-controllers v3.8.8+incompatible => github.com/projectcalico/kube-controllers v3.8.8+incompatible
 github.com/projectcalico/kube-controllers/pkg/cache
 github.com/projectcalico/kube-controllers/pkg/converter
@@ -485,7 +490,10 @@ github.com/projectcalico/libcalico-go/lib/selector/tokenizer
 github.com/projectcalico/libcalico-go/lib/set
 # github.com/prometheus-community/prom-label-proxy v0.2.0 => github.com/prometheus-community/prom-label-proxy v0.2.0
 github.com/prometheus-community/prom-label-proxy/injectproxy
-# github.com/prometheus-operator/prometheus-operator v0.42.2-0.20200928114327-fbd01683839a
+# github.com/prometheus-operator/prometheus-operator v0.42.2-0.20200928114327-fbd01683839a => github.com/prometheus-operator/prometheus-operator v0.42.2-0.20200928114327-fbd01683839a
+# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.42.1 => github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.42.1
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
 github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions
 github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/internalinterfaces
 github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring
@@ -496,9 +504,6 @@ github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/fake
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/scheme
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1
 github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1/fake
-# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.42.1
-github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring
-github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
 # github.com/prometheus/alertmanager v0.21.0 => github.com/prometheus/alertmanager v0.20.0
 github.com/prometheus/alertmanager/api/v2/client
 github.com/prometheus/alertmanager/api/v2/client/alert
@@ -639,7 +644,7 @@ go.uber.org/atomic
 go.uber.org/multierr
 # go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee => go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
 go.uber.org/tools/update-license
-# go.uber.org/zap v1.14.1 => go.uber.org/zap v1.13.0
+# go.uber.org/zap v1.13.0 => go.uber.org/zap v1.13.0
 go.uber.org/zap
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
@@ -664,6 +669,7 @@ golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
+golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/ssh
@@ -694,7 +700,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208 => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1 => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
+# golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1 => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -848,6 +854,10 @@ gopkg.in/asn1-ber.v1
 gopkg.in/inf.v0
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0 => gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
+# gopkg.in/square/go-jose.v2 v2.4.0 => gopkg.in/square/go-jose.v2 v2.4.0
+gopkg.in/square/go-jose.v2
+gopkg.in/square/go-jose.v2/cipher
+gopkg.in/square/go-jose.v2/json
 # gopkg.in/src-d/go-billy.v4 v4.3.0 => gopkg.in/src-d/go-billy.v4 v4.3.0
 gopkg.in/src-d/go-billy.v4
 gopkg.in/src-d/go-billy.v4/helper/chroot
@@ -1501,6 +1511,8 @@ k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/util/sets
 # k8s.io/kubectl v0.18.6 => k8s.io/kubectl v0.18.6
 k8s.io/kubectl/pkg/util/resource
+# k8s.io/kubernetes v1.14.0 => k8s.io/kubernetes v1.14.0
+k8s.io/kubernetes/pkg/util/hash
 # k8s.io/utils v0.0.0-20200603063816-c1c6865ac451 => k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 k8s.io/utils/buffer
 k8s.io/utils/integer
