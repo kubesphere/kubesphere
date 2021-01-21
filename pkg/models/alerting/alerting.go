@@ -48,7 +48,7 @@ type Operator interface {
 	// GetCustomAlertingRule gets the custom alerting rule with the given name.
 	GetCustomAlertingRule(ctx context.Context, namespace, ruleName string) (*v2alpha1.GettableAlertingRule, error)
 	// ListCustomRuleAlerts lists the alerts of the custom alerting rule with the given name.
-	ListCustomRuleAlerts(ctx context.Context, namespace, ruleName string) ([]*v2alpha1.Alert, error)
+	ListCustomRuleAlerts(ctx context.Context, namespace, ruleName string) (*v2alpha1.AlertList, error)
 	// CreateCustomAlertingRule creates a custom alerting rule.
 	CreateCustomAlertingRule(ctx context.Context, namespace string, rule *v2alpha1.PostableAlertingRule) error
 	// UpdateCustomAlertingRule updates the custom alerting rule with the given name.
@@ -65,7 +65,7 @@ type Operator interface {
 	// GetBuiltinAlertingRule gets the builtin(non-custom) alerting rule with the given id
 	GetBuiltinAlertingRule(ctx context.Context, ruleId string) (*v2alpha1.GettableAlertingRule, error)
 	// ListBuiltinRuleAlerts lists the alerts of the builtin(non-custom) alerting rule with the given id
-	ListBuiltinRuleAlerts(ctx context.Context, ruleId string) ([]*v2alpha1.Alert, error)
+	ListBuiltinRuleAlerts(ctx context.Context, ruleId string) (*v2alpha1.AlertList, error)
 }
 
 func NewOperator(informers informers.InformerFactory,
@@ -184,7 +184,7 @@ func (o *operator) GetCustomAlertingRule(ctx context.Context, namespace, ruleNam
 }
 
 func (o *operator) ListCustomRuleAlerts(ctx context.Context, namespace, ruleName string) (
-	[]*v2alpha1.Alert, error) {
+	*v2alpha1.AlertList, error) {
 
 	rule, err := o.GetCustomAlertingRule(ctx, namespace, ruleName)
 	if err != nil {
@@ -193,7 +193,10 @@ func (o *operator) ListCustomRuleAlerts(ctx context.Context, namespace, ruleName
 	if rule == nil {
 		return nil, v2alpha1.ErrAlertingRuleNotFound
 	}
-	return rule.Alerts, nil
+	return &v2alpha1.AlertList{
+		Total: len(rule.Alerts),
+		Items: rule.Alerts,
+	}, nil
 }
 
 func (o *operator) ListBuiltinAlertingRules(ctx context.Context,
@@ -223,7 +226,7 @@ func (o *operator) GetBuiltinAlertingRule(ctx context.Context, ruleId string) (
 	return o.getBuiltinAlertingRule(ctx, ruleId)
 }
 
-func (o *operator) ListBuiltinRuleAlerts(ctx context.Context, ruleId string) ([]*v2alpha1.Alert, error) {
+func (o *operator) ListBuiltinRuleAlerts(ctx context.Context, ruleId string) (*v2alpha1.AlertList, error) {
 	rule, err := o.getBuiltinAlertingRule(ctx, ruleId)
 	if err != nil {
 		return nil, err
@@ -231,7 +234,10 @@ func (o *operator) ListBuiltinRuleAlerts(ctx context.Context, ruleId string) ([]
 	if rule == nil {
 		return nil, v2alpha1.ErrAlertingRuleNotFound
 	}
-	return rule.Alerts, nil
+	return &v2alpha1.AlertList{
+		Total: len(rule.Alerts),
+		Items: rule.Alerts,
+	}, nil
 }
 
 func (o *operator) ListClusterAlertingRules(ctx context.Context, customFlag string,

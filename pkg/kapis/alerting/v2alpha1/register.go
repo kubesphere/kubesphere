@@ -78,7 +78,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 	ws.Route(ws.GET("/rules/{rule_name}/alerts").
 		To(handler.handleListCustomRuleAlerts).
 		Doc("list the alerts of the cluster-level custom alerting rule with the specified name").
-		Returns(http.StatusOK, ksapi.StatusOK, []alertingv2alpha1.Alert{}).
+		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.AlertList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
 	ws.Route(ws.POST("/rules").
@@ -134,7 +134,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 	ws.Route(ws.GET("/namespaces/{namespace}/rules/{rule_name}/alerts").
 		To(handler.handleListCustomRuleAlerts).
 		Doc("get the alerts of the custom alerting rule with the specified name in the specified namespace").
-		Returns(http.StatusOK, ksapi.StatusOK, []alertingv2alpha1.Alert{}).
+		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.AlertList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
 	ws.Route(ws.POST("/namespaces/{namespace}/rules").
@@ -190,7 +190,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 	ws.Route(ws.GET("/builtin/rules/{rule_id}/alerts").
 		To(handler.handleListBuiltinRuleAlerts).
 		Doc("list the alerts of the builtin(non-custom) alerting rule with the specified id").
-		Returns(http.StatusOK, ksapi.StatusOK, []alertingv2alpha1.Alert{}).
+		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.AlertList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
 	container.Add(ws)
