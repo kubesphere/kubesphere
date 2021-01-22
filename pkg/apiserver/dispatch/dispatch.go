@@ -18,6 +18,11 @@ package dispatch
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/httpstream"
@@ -28,14 +33,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
-	"net/http"
-	"net/url"
-	"strings"
-	"sync"
 )
 
 const proxyURLFormat = "/api/v1/namespaces/kubesphere-system/services/:ks-apiserver:/proxy%s"
@@ -182,6 +184,7 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 	}
 
 	httpProxy := proxy.NewUpgradeAwareHandler(&u, transport, false, false, c)
+	httpProxy.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(transport, transport)
 	httpProxy.ServeHTTP(w, req)
 }
 
