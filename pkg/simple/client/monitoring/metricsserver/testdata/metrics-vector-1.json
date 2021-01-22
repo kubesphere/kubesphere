@@ -1,0 +1,58 @@
+[
+    {
+        "metric_name": "node_cpu_usage",
+        "data": {
+            "resultType": "vector",
+            "result": [
+                {
+                    "metric": {
+                        "node": "edgenode-1",
+                        "role": "edge"
+                    },
+                    "value": [
+                        1611578096,
+                        "1"
+                    ]
+                },
+                {
+                    "metric": {
+                        "node": "edgenode-2",
+                        "role": "edge"
+                    },
+                    "value": [
+                        1611578096,
+                        "2"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "metric_name": "node_memory_usage_wo_cache",
+        "data": {
+            "resultType": "vector",
+            "result": [
+                {
+                    "metric": {
+                        "node": "edgenode-1",
+                        "role": "edge"
+                    },
+                    "value": [
+                        1611578096,
+                        "1048576"
+                    ]
+                },
+                {
+                    "metric": {
+                        "node": "edgenode-2",
+                        "role": "edge"
+                    },
+                    "value": [
+                        1611578096,
+                        "2097152"
+                    ]
+                }
+            ]
+        }
+    }
+]

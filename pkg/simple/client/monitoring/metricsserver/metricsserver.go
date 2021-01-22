@@ -18,6 +18,7 @@ package metricsserver
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"k8s.io/api/core/v1"
@@ -38,7 +39,7 @@ import (
 // metricsServer implements monitoring interface backend by metrics-server
 type metricsServer struct {
 	metricsAPIAvailable bool
-	metricsClient       *metricsclient.Clientset
+	metricsClient       metricsclient.Interface
 	k8s                 kubernetes.Interface
 }
 
@@ -119,38 +120,44 @@ func (m metricsServer) getNodeMetricsFromMetricsAPI() (*metricsapi.NodeMetricsLi
 	return metrics, nil
 }
 
-func NewMetricsServer(k kubernetes.Interface, options *k8s.KubernetesOptions) (monitoring.Interface, error) {
-	var metricsServer metricsServer
+func NewMetricsClient(k kubernetes.Interface, options *k8s.KubernetesOptions) monitoring.Interface {
 	config, err := clientcmd.BuildConfigFromFlags("", options.KubeConfig)
 	if err != nil {
 		klog.Error(err)
-		return metricsServer, err
+		return nil
 	}
-
-	metricsServer.k8s = k
 
 	discoveryClient := k.Discovery()
 	apiGroups, err := discoveryClient.ServerGroups()
 	if err != nil {
 		klog.Error(err)
-		return metricsServer, err
+		return nil
 	}
 
-	metricsServer.metricsAPIAvailable = metricsAPISupported(apiGroups)
+	metricsAPIAvailable := metricsAPISupported(apiGroups)
 
-	if !metricsServer.metricsAPIAvailable {
+	if !metricsAPIAvailable {
 		klog.Warningf("Metrics API not available.")
-		return metricsServer, err
+		return nil
 	}
 
 	metricsClient, err := metricsclient.NewForConfig(config)
 	if err != nil {
 		klog.Error(err)
-		return metricsServer, err
+		return nil
 	}
 
-	metricsServer.metricsClient = metricsClient
-	return metricsServer, nil
+	return NewMetricsServer(k, metricsAPIAvailable, metricsClient)
+}
+
+func NewMetricsServer(k kubernetes.Interface, a bool, m metricsclient.Interface) monitoring.Interface {
+	var metricsServer metricsServer
+
+	metricsServer.k8s = k
+	metricsServer.metricsAPIAvailable = a
+	metricsServer.metricsClient = m
+
+	return metricsServer
 }
 
 func (m metricsServer) GetMetric(expr string, ts time.Time) monitoring.Metric {
@@ -165,7 +172,27 @@ func (m metricsServer) GetMetricOverTime(expr string, start, end time.Time, step
 	return parsedResp
 }
 
-var edgeNodeMetrics = []string{"node_cpu_usage", "node_cpu_total", "node_cpu_utilisation", "node_memory_usage_wo_cache", "node_memory_total", "node_memory_utilisation"}
+const (
+	metricsNodeCPUUsage           = "node_cpu_usage"
+	metricsNodeCPUTotal           = "node_cpu_total"
+	metricsNodeCPUUltilisation    = "node_cpu_utilisation"
+	metricsNodeMemoryUsageWoCache = "node_memory_usage_wo_cache"
+	metricsNodeMemoryTotal        = "node_memory_total"
+	metricsNodeMemoryUltilisation = "node_memory_utilisation"
+)
+
+var edgeNodeMetrics = []string{metricsNodeCPUUsage, metricsNodeCPUTotal, metricsNodeCPUUltilisation, metricsNodeMemoryUsageWoCache, metricsNodeMemoryTotal, metricsNodeMemoryUltilisation}
+
+func (m metricsServer) parseErrorResp(metrics []string, err error) []monitoring.Metric {
+	var res []monitoring.Metric
+
+	for _, metric := range metrics {
+		parsedResp := monitoring.Metric{MetricName: metric}
+		parsedResp.Error = err.Error()
+	}
+
+	return res
+}
 
 func (m metricsServer) GetNamedMetrics(metrics []string, ts time.Time, o monitoring.QueryOption) []monitoring.Metric {
 	var res []monitoring.Metric
@@ -175,13 +202,13 @@ func (m metricsServer) GetNamedMetrics(metrics []string, ts time.Time, o monitor
 	if opts.Level == monitoring.LevelNode {
 		if !m.metricsAPIAvailable {
 			klog.Warningf("Metrics API not available.")
-			return res
+			return m.parseErrorResp(metrics, errors.New("Metrics API not available."))
 		}
 
 		edgeNodes, err := m.listEdgeNodes()
 		if err != nil {
 			klog.Errorf("List edge nodes error %v\n", err)
-			return res
+			return m.parseErrorResp(metrics, err)
 		}
 
 		edgeNodeNamesFiltered := m.filterEdgeNodeNames(edgeNodes, opts)
@@ -193,7 +220,12 @@ func (m metricsServer) GetNamedMetrics(metrics []string, ts time.Time, o monitor
 		metricsResult, err := m.getNodeMetricsFromMetricsAPI()
 		if err != nil {
 			klog.Errorf("Get edge node metrics error %v\n", err)
-			return res
+			return m.parseErrorResp(metrics, err)
+		}
+
+		metricsMap := make(map[string]bool)
+		for _, m := range metrics {
+			metricsMap[m] = true
 		}
 
 		status := make(map[string]v1.NodeStatus)
@@ -203,7 +235,10 @@ func (m metricsServer) GetNamedMetrics(metrics []string, ts time.Time, o monitor
 
 		nodeMetrics := make(map[string]*monitoring.MetricData)
 		for _, enm := range edgeNodeMetrics {
-			nodeMetrics[enm] = &monitoring.MetricData{MetricType: monitoring.MetricTypeVector}
+			_, ok := metricsMap[enm]
+			if ok {
+				nodeMetrics[enm] = &monitoring.MetricData{MetricType: monitoring.MetricTypeVector}
+			}
 		}
 
 		var usage v1.ResourceList
@@ -235,20 +270,44 @@ func (m metricsServer) GetNamedMetrics(metrics []string, ts time.Time, o monitor
 				}
 			}
 
-			metricValues["node_cpu_usage"].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Cpu().MilliValue()) / 1000}
-			metricValues["node_cpu_total"].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(cap.Cpu().MilliValue()) / 1000}
-			metricValues["node_cpu_utilisation"].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Cpu().MilliValue()) / float64(cap.Cpu().MilliValue())}
-			metricValues["node_memory_usage_wo_cache"].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Memory().Value())}
-			metricValues["node_memory_total"].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(cap.Memory().Value())}
-			metricValues["node_memory_utilisation"].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Memory().Value()) / float64(cap.Memory().Value())}
+			_, ok = metricsMap[metricsNodeCPUUsage]
+			if ok {
+				metricValues[metricsNodeCPUUsage].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Cpu().MilliValue()) / 1000}
+			}
+			_, ok = metricsMap[metricsNodeCPUTotal]
+			if ok {
+				metricValues[metricsNodeCPUTotal].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(cap.Cpu().MilliValue()) / 1000}
+			}
+			_, ok = metricsMap[metricsNodeCPUUltilisation]
+			if ok {
+				metricValues[metricsNodeCPUUltilisation].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Cpu().MilliValue()) / float64(cap.Cpu().MilliValue())}
+			}
+			_, ok = metricsMap[metricsNodeMemoryUsageWoCache]
+			if ok {
+				metricValues[metricsNodeMemoryUsageWoCache].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Memory().Value())}
+			}
+			_, ok = metricsMap[metricsNodeMemoryTotal]
+			if ok {
+				metricValues[metricsNodeMemoryTotal].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(cap.Memory().Value())}
+			}
+			_, ok = metricsMap[metricsNodeMemoryUltilisation]
+			if ok {
+				metricValues[metricsNodeMemoryUltilisation].Sample = &monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Memory().Value()) / float64(cap.Memory().Value())}
+			}
 
 			for _, enm := range edgeNodeMetrics {
-				nodeMetrics[enm].MetricValues = append(nodeMetrics[enm].MetricValues, *metricValues[enm])
+				_, ok = metricsMap[enm]
+				if ok {
+					nodeMetrics[enm].MetricValues = append(nodeMetrics[enm].MetricValues, *metricValues[enm])
+				}
 			}
 		}
 
 		for _, enm := range edgeNodeMetrics {
-			res = append(res, monitoring.Metric{MetricName: enm, MetricData: *nodeMetrics[enm]})
+			_, ok := metricsMap[enm]
+			if ok {
+				res = append(res, monitoring.Metric{MetricName: enm, MetricData: *nodeMetrics[enm]})
+			}
 		}
 	}
 
@@ -263,13 +322,13 @@ func (m metricsServer) GetNamedMetricsOverTime(metrics []string, start, end time
 	if opts.Level == monitoring.LevelNode {
 		if !m.metricsAPIAvailable {
 			klog.Warningf("Metrics API not available.")
-			return res
+			return m.parseErrorResp(metrics, errors.New("Metrics API not available."))
 		}
 
 		edgeNodes, err := m.listEdgeNodes()
 		if err != nil {
 			klog.Errorf("List edge nodes error %v\n", err)
-			return res
+			return m.parseErrorResp(metrics, err)
 		}
 
 		edgeNodeNamesFiltered := m.filterEdgeNodeNames(edgeNodes, opts)
@@ -281,7 +340,12 @@ func (m metricsServer) GetNamedMetricsOverTime(metrics []string, start, end time
 		metricsResult, err := m.getNodeMetricsFromMetricsAPI()
 		if err != nil {
 			klog.Errorf("Get edge node metrics error %v\n", err)
-			return res
+			return m.parseErrorResp(metrics, err)
+		}
+
+		metricsMap := make(map[string]bool)
+		for _, m := range metrics {
+			metricsMap[m] = true
 		}
 
 		status := make(map[string]v1.NodeStatus)
@@ -291,7 +355,10 @@ func (m metricsServer) GetNamedMetricsOverTime(metrics []string, start, end time
 
 		nodeMetrics := make(map[string]*monitoring.MetricData)
 		for _, enm := range edgeNodeMetrics {
-			nodeMetrics[enm] = &monitoring.MetricData{MetricType: monitoring.MetricTypeMatrix}
+			_, ok := metricsMap[enm]
+			if ok {
+				nodeMetrics[enm] = &monitoring.MetricData{MetricType: monitoring.MetricTypeMatrix}
+			}
 		}
 
 		var usage v1.ResourceList
@@ -323,20 +390,44 @@ func (m metricsServer) GetNamedMetricsOverTime(metrics []string, start, end time
 				}
 			}
 
-			metricValues["node_cpu_usage"].Series = append(metricValues["node_cpu_usage"].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Cpu().MilliValue()) / 1000})
-			metricValues["node_cpu_total"].Series = append(metricValues["node_cpu_total"].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(cap.Cpu().MilliValue()) / 1000})
-			metricValues["node_cpu_utilisation"].Series = append(metricValues["node_cpu_utilisation"].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Cpu().MilliValue()) / float64(cap.Cpu().MilliValue())})
-			metricValues["node_memory_usage_wo_cache"].Series = append(metricValues["node_memory_usage_wo_cache"].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Memory().Value())})
-			metricValues["node_memory_total"].Series = append(metricValues["node_memory_total"].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(cap.Memory().Value())})
-			metricValues["node_memory_utilisation"].Series = append(metricValues["node_memory_utilisation"].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Memory().Value()) / float64(cap.Memory().Value())})
+			_, ok = metricsMap[metricsNodeCPUUsage]
+			if ok {
+				metricValues[metricsNodeCPUUsage].Series = append(metricValues[metricsNodeCPUUsage].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Cpu().MilliValue()) / 1000})
+			}
+			_, ok = metricsMap[metricsNodeCPUTotal]
+			if ok {
+				metricValues[metricsNodeCPUTotal].Series = append(metricValues[metricsNodeCPUTotal].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(cap.Cpu().MilliValue()) / 1000})
+			}
+			_, ok = metricsMap[metricsNodeCPUUltilisation]
+			if ok {
+				metricValues[metricsNodeCPUUltilisation].Series = append(metricValues[metricsNodeCPUUltilisation].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Cpu().MilliValue()) / float64(cap.Cpu().MilliValue())})
+			}
+			_, ok = metricsMap[metricsNodeMemoryUsageWoCache]
+			if ok {
+				metricValues[metricsNodeMemoryUsageWoCache].Series = append(metricValues[metricsNodeMemoryUsageWoCache].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Memory().Value())})
+			}
+			_, ok = metricsMap[metricsNodeMemoryTotal]
+			if ok {
+				metricValues[metricsNodeMemoryTotal].Series = append(metricValues[metricsNodeMemoryTotal].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(cap.Memory().Value())})
+			}
+			_, ok = metricsMap[metricsNodeMemoryUltilisation]
+			if ok {
+				metricValues[metricsNodeMemoryUltilisation].Series = append(metricValues[metricsNodeMemoryUltilisation].Series, monitoring.Point{float64(m.Timestamp.Unix()), float64(usage.Memory().Value()) / float64(cap.Memory().Value())})
+			}
 
 			for _, enm := range edgeNodeMetrics {
-				nodeMetrics[enm].MetricValues = append(nodeMetrics[enm].MetricValues, *metricValues[enm])
+				_, ok = metricsMap[enm]
+				if ok {
+					nodeMetrics[enm].MetricValues = append(nodeMetrics[enm].MetricValues, *metricValues[enm])
+				}
 			}
 		}
 
 		for _, enm := range edgeNodeMetrics {
-			res = append(res, monitoring.Metric{MetricName: enm, MetricData: *nodeMetrics[enm]})
+			_, ok := metricsMap[enm]
+			if ok {
+				res = append(res, monitoring.Metric{MetricName: enm, MetricData: *nodeMetrics[enm]})
+			}
 		}
 	}
 

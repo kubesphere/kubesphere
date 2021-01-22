@@ -54,9 +54,9 @@ type monitoringOperator struct {
 	op            openpitrix.Interface
 }
 
-func NewMonitoringOperator(prometheusClient monitoring.Interface, metricsClient monitoring.Interface, k8s kubernetes.Interface, factory informers.InformerFactory, opClient opclient.Client) MonitoringOperator {
+func NewMonitoringOperator(monitoringClient monitoring.Interface, metricsClient monitoring.Interface, k8s kubernetes.Interface, factory informers.InformerFactory, opClient opclient.Client) MonitoringOperator {
 	return &monitoringOperator{
-		prometheus:    prometheusClient,
+		prometheus:    monitoringClient,
 		metricsserver: metricsClient,
 		k8s:           k8s,
 		ks:            factory.KubeSphereSharedInformerFactory(),
@@ -96,17 +96,20 @@ func (mo monitoringOperator) GetMetricOverTime(expr, namespace string, start, en
 
 func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, opt monitoring.QueryOption) Metrics {
 	ress := mo.prometheus.GetNamedMetrics(metrics, time, opt)
-	mr := mo.metricsserver.GetNamedMetrics(metrics, time, opt)
 
-	//Merge edge node metrics data
-	edgeMetrics := make(map[string]monitoring.MetricData)
-	for _, metric := range mr {
-		edgeMetrics[metric.MetricName] = metric.MetricData
-	}
+	if mo.metricsserver != nil {
+		mr := mo.metricsserver.GetNamedMetrics(metrics, time, opt)
 
-	for i, metric := range ress {
-		if val, ok := edgeMetrics[metric.MetricName]; ok {
-			ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+		//Merge edge node metrics data
+		edgeMetrics := make(map[string]monitoring.MetricData)
+		for _, metric := range mr {
+			edgeMetrics[metric.MetricName] = metric.MetricData
+		}
+
+		for i, metric := range ress {
+			if val, ok := edgeMetrics[metric.MetricName]; ok {
+				ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+			}
 		}
 	}
 
@@ -115,17 +118,20 @@ func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, o
 
 func (mo monitoringOperator) GetNamedMetricsOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) Metrics {
 	ress := mo.prometheus.GetNamedMetricsOverTime(metrics, start, end, step, opt)
-	mr := mo.metricsserver.GetNamedMetricsOverTime(metrics, start, end, step, opt)
 
-	//Merge edge node metrics data
-	edgeMetrics := make(map[string]monitoring.MetricData)
-	for _, metric := range mr {
-		edgeMetrics[metric.MetricName] = metric.MetricData
-	}
+	if mo.metricsserver != nil {
+		mr := mo.metricsserver.GetNamedMetricsOverTime(metrics, start, end, step, opt)
 
-	for i, metric := range ress {
-		if val, ok := edgeMetrics[metric.MetricName]; ok {
-			ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+		//Merge edge node metrics data
+		edgeMetrics := make(map[string]monitoring.MetricData)
+		for _, metric := range mr {
+			edgeMetrics[metric.MetricName] = metric.MetricData
+		}
+
+		for i, metric := range ress {
+			if val, ok := edgeMetrics[metric.MetricName]; ok {
+				ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+			}
 		}
 	}
 

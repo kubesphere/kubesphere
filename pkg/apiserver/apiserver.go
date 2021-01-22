@@ -130,7 +130,7 @@ type APIServer struct {
 	CacheClient cache.Interface
 
 	// monitoring client set
-	PrometheusClient monitoring.Interface
+	MonitoringClient monitoring.Interface
 
 	MetricsClient monitoring.Interface
 
@@ -214,7 +214,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory, s.RuntimeCache))
-	urlruntime.Must(monitoringv1alpha3.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.PrometheusClient, s.MetricsClient, s.InformerFactory, s.OpenpitrixClient))
+	urlruntime.Must(monitoringv1alpha3.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.MonitoringClient, s.MetricsClient, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory,

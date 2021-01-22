@@ -118,18 +118,14 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.MonitoringOptions == nil || len(s.MonitoringOptions.Endpoint) == 0 {
 		return nil, fmt.Errorf("moinitoring service address in configuration MUST not be empty, please check configmap/kubesphere-config in kubesphere-system namespace")
 	} else {
-		prometheusClient, err := prometheus.NewPrometheus(s.MonitoringOptions)
+		monitoringClient, err := prometheus.NewPrometheus(s.MonitoringOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to prometheus, please check prometheus status, error: %v", err)
 		}
-		apiServer.PrometheusClient = prometheusClient
+		apiServer.MonitoringClient = monitoringClient
 	}
 
-	metricsClient, err := metricsserver.NewMetricsServer(kubernetesClient.Kubernetes(), s.KubernetesOptions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to metrics-server, please check metrics-server status, error: %v", err)
-	}
-	apiServer.MetricsClient = metricsClient
+	apiServer.MetricsClient = metricsserver.NewMetricsClient(kubernetesClient.Kubernetes(), s.KubernetesOptions)
 
 	if s.LoggingOptions.Host != "" {
 		loggingClient, err := esclient.NewClient(s.LoggingOptions)
