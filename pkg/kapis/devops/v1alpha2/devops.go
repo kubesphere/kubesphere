@@ -94,31 +94,33 @@ func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restf
 	// get all pipelines which come from ks
 	pipelineList := &clientDevOps.PipelineList{
 		Total: objs.TotalItems,
-		Items: make([]clientDevOps.Pipeline, objs.TotalItems),
+		Items: make([]clientDevOps.Pipeline, len(objs.Items)),
 	}
-	pipelineMap := make(map[string]int, objs.TotalItems)
-	for i, item := range objs.Items {
-		if pipeline, ok := item.(v1alpha3.Pipeline); !ok {
-			continue
-		} else {
-			pip := clientDevOps.Pipeline{
-				Name: pipeline.Name,
+	if pipelineList.Total > 0 && len(objs.Items) > 0 {
+		pipelineMap := make(map[string]int, pipelineList.Total)
+		for i, item := range objs.Items {
+			if pipeline, ok := item.(v1alpha3.Pipeline); !ok {
+				continue
+			} else {
+				pip := clientDevOps.Pipeline{
+					Name: pipeline.Name,
+				}
+
+				pipelineMap[pipeline.Name] = i
+				pipelineList.Items[i] = pip
 			}
-
-			pipelineMap[pipeline.Name] = i
-			pipelineList.Items[i] = pip
 		}
-	}
 
-	// get all pipelines which come from Jenkins
-	// fill out the rest fields
-	res, err := h.devopsOperator.ListPipelines(req.Request)
-	if err != nil {
-		log.Error(err)
-	} else {
-		for _, item := range res.Items {
-			if index, ok := pipelineMap[item.Name]; ok {
-				pipelineList.Items[index] = item
+		// get all pipelines which come from Jenkins
+		// fill out the rest fields
+		res, err := h.devopsOperator.ListPipelines(req.Request)
+		if err != nil {
+			log.Error(err)
+		} else {
+			for _, item := range res.Items {
+				if index, ok := pipelineMap[item.Name]; ok {
+					pipelineList.Items[index] = item
+				}
 			}
 		}
 	}
