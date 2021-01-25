@@ -48,6 +48,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	ippoolclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -66,7 +67,7 @@ func addControllers(
 	options *k8s.KubernetesOptions,
 	authenticationOptions *authoptions.AuthenticationOptions,
 	openpitrixClient openpitrix.Client,
-	multiClusterEnabled bool,
+	multiClusterOptions *multicluster.Options,
 	networkOptions *network.Options,
 	serviceMeshEnabled bool,
 	kubectlImage string,
@@ -75,6 +76,8 @@ func addControllers(
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
 	istioInformer := informerFactory.IstioSharedInformerFactory()
 	kubesphereInformer := informerFactory.KubeSphereSharedInformerFactory()
+
+	multiClusterEnabled := multiClusterOptions.Enable
 
 	var vsController, drController manager.Runnable
 	if serviceMeshEnabled {
@@ -229,7 +232,8 @@ func addControllers(
 			client.Config(),
 			kubesphereInformer.Cluster().V1alpha1().Clusters(),
 			client.KubeSphere().ClusterV1alpha1().Clusters(),
-			openpitrixClient)
+			openpitrixClient,
+			multiClusterOptions.ClusterControllerResyncSecond)
 	}
 
 	var nsnpController manager.Runnable
