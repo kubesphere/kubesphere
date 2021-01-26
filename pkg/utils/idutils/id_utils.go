@@ -114,6 +114,9 @@ func IPv4() (net.IP, error) {
 		}
 
 		ip := ipnet.IP.To4()
+		if ip == nil {
+			continue
+		}
 		return ip, nil
 
 	}
