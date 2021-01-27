@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"sigs.k8s.io/application/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,8 +65,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		&corev1.Service{},
 		&v1.StatefulSet{},
 		&v1beta12.Ingress{},
-		&servicemeshv1alpha2.ServicePolicy{},
-		&servicemeshv1alpha2.Strategy{},
 	}
 
 	for _, s := range sources {
@@ -100,7 +97,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &ReconcileApplication{}
 
-// ReconcileApplication reconciles a Workspace object
+// ReconcileDeployment reconciles a Application object
 type ReconcileApplication struct {
 	client.Client
 	scheme   *runtime.Scheme
@@ -110,12 +107,15 @@ type ReconcileApplication struct {
 // +kubebuilder:rbac:groups=app.k8s.io,resources=applications,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileApplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Application instance
+	if len(request.Name) == 0 {
+		return reconcile.Result{}, nil
+	}
 	ctx := context.Background()
 	app := &v1beta1.Application{}
 	err := r.Get(ctx, request.NamespacedName, app)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			klog.Errorf("application %s not found in namespace %s", request.Name, request.Namespace)
+			klog.V(4).Infof("application %s not found", request.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -141,7 +141,7 @@ func (r *ReconcileApplication) Reconcile(request reconcile.Request) (reconcile.R
 
 func isApp(obs ...metav1.Object) bool {
 	for _, o := range obs {
-		if o.GetLabels() != nil && servicemesh.IsAppComponent(o.GetLabels()) {
+		if o.GetLabels() != nil && servicemesh.IsApplicationComponent(o.GetLabels(), servicemesh.AppLabels) {
 			return true
 		}
 	}

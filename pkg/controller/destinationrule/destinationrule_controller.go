@@ -18,319 +18,150 @@ package destinationrule
 
 import (
 	"context"
-	"fmt"
-	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
-	"reflect"
-
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
-	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	destinationrule "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes/scheme"
-	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	log "k8s.io/klog"
-	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
-	"time"
-
-	istioclientset "istio.io/client-go/pkg/clientset/versioned"
-	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"
-	istiolisters "istio.io/client-go/pkg/listers/networking/v1alpha3"
-	informersv1 "k8s.io/client-go/informers/apps/v1"
-	coreinformers "k8s.io/client-go/informers/core/v1"
-	clientset "k8s.io/client-go/kubernetes"
-	listersv1 "k8s.io/client-go/listers/apps/v1"
-	corelisters "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/workqueue"
-
-	servicemeshclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
-	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
+	"k8s.io/klog"
+	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
+	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const (
-	// maxRetries is the number of times a service will be retried before it is dropped out of the queue.
-	// With the current rate-limiter in use (5ms*2^(maxRetries-1)) the following numbers represent the
-	// sequence of delays between successive queuings of a service.
-	//
-	// 5ms, 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms, 1.3s, 2.6s, 5.1s, 10.2s, 20.4s, 41s, 82s
-	maxRetries = 15
-)
-
-type DestinationRuleController struct {
-	client clientset.Interface
-
-	destinationRuleClient istioclientset.Interface
-	servicemeshClient     servicemeshclient.Interface
-
-	eventBroadcaster record.EventBroadcaster
-	eventRecorder    record.EventRecorder
-
-	serviceLister corelisters.ServiceLister
-	serviceSynced cache.InformerSynced
-
-	deploymentLister listersv1.DeploymentLister
-	deploymentSynced cache.InformerSynced
-
-	servicePolicyLister servicemeshlisters.ServicePolicyLister
-	servicePolicySynced cache.InformerSynced
-
-	destinationRuleLister istiolisters.DestinationRuleLister
-	destinationRuleSynced cache.InformerSynced
-
-	queue workqueue.RateLimitingInterface
-
-	workerLoopPeriod time.Duration
+// Add creates a new destinationrule Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// and Start it when the Manager is Started.
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
 }
 
-func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInformer,
-	destinationRuleInformer istioinformers.DestinationRuleInformer,
-	serviceInformer coreinformers.ServiceInformer,
-	servicePolicyInformer servicemeshinformers.ServicePolicyInformer,
-	client clientset.Interface,
-	destinationRuleClient istioclientset.Interface,
-	servicemeshClient servicemeshclient.Interface) *DestinationRuleController {
-
-	broadcaster := record.NewBroadcaster()
-	broadcaster.StartLogging(func(format string, args ...interface{}) {
-		log.Info(fmt.Sprintf(format, args))
-	})
-	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
-	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "destinationrule-controller"})
-
-	v := &DestinationRuleController{
-		client:                client,
-		destinationRuleClient: destinationRuleClient,
-		servicemeshClient:     servicemeshClient,
-		queue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "destinationrule"),
-		workerLoopPeriod:      time.Second,
-	}
-
-	v.deploymentLister = deploymentInformer.Lister()
-	v.deploymentSynced = deploymentInformer.Informer().HasSynced
-
-	deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    v.addDeployment,
-		DeleteFunc: v.deleteDeployment,
-		UpdateFunc: func(old, cur interface{}) {
-			v.addDeployment(cur)
-		},
-	})
-
-	v.serviceLister = serviceInformer.Lister()
-	v.serviceSynced = serviceInformer.Informer().HasSynced
-
-	serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    v.enqueueService,
-		DeleteFunc: v.enqueueService,
-		UpdateFunc: func(old, cur interface{}) {
-			v.enqueueService(cur)
-		},
-	})
-
-	v.destinationRuleLister = destinationRuleInformer.Lister()
-	v.destinationRuleSynced = destinationRuleInformer.Informer().HasSynced
-
-	v.servicePolicyLister = servicePolicyInformer.Lister()
-	v.servicePolicySynced = servicePolicyInformer.Informer().HasSynced
-
-	servicePolicyInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: v.addServicePolicy,
-		UpdateFunc: func(old, cur interface{}) {
-			v.addServicePolicy(cur)
-		},
-		DeleteFunc: v.addServicePolicy,
-	})
-
-	v.eventBroadcaster = broadcaster
-	v.eventRecorder = recorder
-
-	return v
-
+// newReconciler returns a new reconcile.Reconciler
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	return &ReconcileDestinationRule{Client: mgr.GetClient(), scheme: mgr.GetScheme(),
+		recorder: mgr.GetEventRecorderFor("destinationrule-controller")}
 }
 
-func (v *DestinationRuleController) Start(stopCh <-chan struct{}) error {
-	return v.Run(5, stopCh)
-}
-
-func (v *DestinationRuleController) Run(workers int, stopCh <-chan struct{}) error {
-	defer utilruntime.HandleCrash()
-	defer v.queue.ShutDown()
-
-	log.Info("starting destinationrule controller")
-	defer log.Info("shutting down destinationrule controller")
-
-	if !cache.WaitForCacheSync(stopCh, v.serviceSynced, v.destinationRuleSynced, v.deploymentSynced, v.servicePolicySynced) {
-		return fmt.Errorf("failed to wait for caches to sync")
+// add adds a new Controller to mgr with r as the reconcile.Reconciler
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	// Create a new controller
+	c, err := controller.New("destinationrule-controller", mgr, controller.Options{Reconciler: r})
+	if err != nil {
+		return err
 	}
 
-	for i := 0; i < workers; i++ {
-		go wait.Until(v.worker, v.workerLoopPeriod, stopCh)
+	sources := []runtime.Object{
+		&appsv1.Deployment{},
+		&corev1.Service{},
+		&servicemeshv1alpha2.ServicePolicy{},
 	}
 
-	<-stopCh
+	for _, s := range sources {
+		// Watch for changes to destinationrule
+		err = c.Watch(
+			&source.Kind{Type: s},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(
+				func(h handler.MapObject) []reconcile.Request {
+					return []reconcile.Request{{NamespacedName: types.NamespacedName{
+						Name:      servicemesh.GetServicemeshName(h.Object, mgr),
+						Namespace: h.Meta.GetNamespace()}}}
+				})},
+			predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					return servicemesh.IsServicemesh(mgr.GetClient(), e.ObjectNew, e.ObjectOld)
+				},
+				CreateFunc: func(e event.CreateEvent) bool {
+					return servicemesh.IsServicemesh(mgr.GetClient(), e.Object)
+				},
+				DeleteFunc: func(e event.DeleteEvent) bool {
+					return servicemesh.IsServicemesh(mgr.GetClient(), e.Object)
+				},
+			})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func (v *DestinationRuleController) enqueueService(obj interface{}) {
-	key, err := cache.MetaNamespaceKeyFunc(obj)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %+v: %v", obj, err))
-		return
-	}
+var _ reconcile.Reconciler = &ReconcileDestinationRule{}
 
-	v.queue.Add(key)
+// ReconcileDeployment reconciles a DestinationRule object
+type ReconcileDestinationRule struct {
+	client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
-func (v *DestinationRuleController) worker() {
-	for v.processNextWorkItem() {
-
+// +kubebuilder:rbac:groups=networking.istio.io,resources=destinationrules,verbs=get;list;watch;create;update;patch;delete
+func (r *ReconcileDestinationRule) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	if len(request.Name) == 0 {
+		return reconcile.Result{}, nil
 	}
-}
-
-func (v *DestinationRuleController) processNextWorkItem() bool {
-	eKey, quit := v.queue.Get()
-	if quit {
-		return false
-	}
-
-	defer v.queue.Done(eKey)
-
-	err := v.syncService(eKey.(string))
-	v.handleErr(err, eKey)
-
-	return true
-}
-
-// main function of the reconcile for destinationrule
-// destinationrule's name is same with the service that created it
-func (v *DestinationRuleController) syncService(key string) error {
-	startTime := time.Now()
-	defer func() {
-		log.V(4).Infof("Finished syncing service destinationrule %s in %s.", key, time.Since(startTime))
-	}()
-
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		return err
+	// Fetch the Application instance
+	ctx := context.Background()
+	service := &corev1.Service{}
+	if err := r.Get(ctx, request.NamespacedName, service); err != nil {
+		klog.Errorf("get service %s failed, err %v", request.NamespacedName, err)
+		return reconcile.Result{}, nil
 	}
 
-	service, err := v.serviceLister.Services(namespace).Get(name)
-	if err != nil {
-		// delete the corresponding destinationrule if there is any, as the service has been deleted.
-		err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
-		if err != nil && !errors.IsNotFound(err) {
-			log.Errorf("delete destination rule failed %s/%s, error %v.", namespace, name, err)
-			return err
-		}
-
-		// delete orphan service policy if there is any
-		err = v.servicemeshClient.ServicemeshV1alpha2().ServicePolicies(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
-		if err != nil && !errors.IsNotFound(err) {
-			log.Errorf("delete orphan service policy %s/%s failed, %#v", namespace, name, err)
-			return err
-		}
-
-		return nil
+	// fetch all deployments that match with service labels
+	deployments := servicemesh.GetServicemeshDeploymentsFromService(service, r.Client)
+	if len(deployments) == 0 {
+		return reconcile.Result{}, nil
 	}
-
-	if len(service.Labels) < len(servicemesh.ApplicationLabels) ||
-		!servicemesh.IsApplicationComponent(service.Labels) ||
-		!servicemesh.IsServicemeshEnabled(service.Annotations) ||
-		len(service.Spec.Ports) == 0 {
-		// services don't have enough labels to create a destinationrule
-		// or they don't have necessary labels
-		// or they don't have servicemesh enabled
-		// or they don't have any ports defined
-		return nil
-	}
-
-	appName := servicemesh.GetComponentName(&service.ObjectMeta)
-
-	// fetch all deployments that match with service selector
-	deployments, err := v.deploymentLister.Deployments(namespace).List(labels.Set(service.Spec.Selector).AsSelectorPreValidated())
-	if err != nil {
-		return err
-	}
-
-	subsets := make([]*apinetworkingv1alpha3.Subset, 0)
-	for _, deployment := range deployments {
-
-		// not a valid deployment we required
-		if !servicemesh.IsApplicationComponent(deployment.Labels) ||
-			!servicemesh.IsApplicationComponent(deployment.Spec.Selector.MatchLabels) ||
-			deployment.Status.ReadyReplicas == 0 ||
-			!servicemesh.IsServicemeshEnabled(deployment.Annotations) {
-			continue
-		}
-
-		version := servicemesh.GetComponentVersion(&deployment.ObjectMeta)
-
-		if len(version) == 0 {
-			log.V(4).Infof("Deployment %s doesn't have a version label", types.NamespacedName{Namespace: deployment.Namespace, Name: deployment.Name}.String())
-			continue
-		}
-
-		subset := &apinetworkingv1alpha3.Subset{
-			Name: servicemesh.NormalizeVersionName(version),
-			Labels: map[string]string{
-				servicemesh.VersionLabel: version,
-			},
-		}
-
-		subsets = append(subsets, subset)
-	}
-
-	currentDestinationRule, err := v.destinationRuleLister.DestinationRules(namespace).Get(name)
+	currentDestinationRule := &destinationrule.DestinationRule{}
+	createDestinationRule := false
+	err := r.Get(ctx, request.NamespacedName, currentDestinationRule)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			currentDestinationRule = &clientgonetworkingv1alpha3.DestinationRule{
+			createDestinationRule = true
+			currentDestinationRule = &destinationrule.DestinationRule{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   service.Name,
-					Labels: service.Labels,
+					Name:        service.Name,
+					Namespace:   service.Namespace,
+					Labels:      service.Labels,
+					Annotations: service.Annotations,
 				},
 				Spec: apinetworkingv1alpha3.DestinationRule{
-					Host: name,
+					Host: request.Name,
 				},
 			}
 		} else {
-			log.Error(err, "Couldn't get destinationrule for service", "key", key)
-			return err
+			klog.Errorf("Couldn't get destinationrule for service %s, err %v", request.Name, err)
+			return reconcile.Result{}, err
 		}
 	}
 
 	// fetch all servicepolicies associated to this service
-	servicePolicies, err := v.servicePolicyLister.ServicePolicies(namespace).List(labels.SelectorFromSet(map[string]string{servicemesh.AppLabel: appName}))
-	if err != nil {
-		log.Error(err, "could not list service policies is namespace with component name", "namespace", namespace, "name", appName)
-		return err
-	}
+	servicePolicy := &servicemeshv1alpha2.ServicePolicy{}
+	_ = r.Get(ctx, types.NamespacedName{Namespace: request.Namespace, Name: request.Name}, servicePolicy)
+
+	subsets := servicemesh.GetDeploymentSubsets(deployments)
 
 	dr := currentDestinationRule.DeepCopy()
 	dr.Spec.TrafficPolicy = nil
 	dr.Spec.Subsets = subsets
-	//
-	if len(servicePolicies) > 0 {
-		if len(servicePolicies) > 1 {
-			err = fmt.Errorf("more than one service policy associated with service %s/%s is forbidden", namespace, name)
-			log.Error(err, "")
-			return err
+
+	if len(servicePolicy.Name) != 0 {
+		if servicePolicy.Spec.Template.Spec.TrafficPolicy != nil {
+			dr.Spec.TrafficPolicy = servicePolicy.Spec.Template.Spec.TrafficPolicy
 		}
 
-		sp := servicePolicies[0]
-		if sp.Spec.Template.Spec.TrafficPolicy != nil {
-			dr.Spec.TrafficPolicy = sp.Spec.Template.Spec.TrafficPolicy
-		}
-
-		for _, subset := range sp.Spec.Template.Spec.Subsets {
+		// not supported currently, can not add traffic for subsets from console
+		for _, subset := range servicePolicy.Spec.Template.Spec.Subsets {
 			for i := range dr.Spec.Subsets {
 				if subset.Name == dr.Spec.Subsets[i].Name && subset.TrafficPolicy != nil {
 					dr.Spec.Subsets[i].TrafficPolicy = subset.TrafficPolicy
@@ -339,12 +170,11 @@ func (v *DestinationRuleController) syncService(key string) error {
 		}
 	}
 
-	createDestinationRule := len(currentDestinationRule.ResourceVersion) == 0
-
-	if !createDestinationRule && reflect.DeepEqual(currentDestinationRule.Spec, dr.Spec) &&
+	if !createDestinationRule &&
+		reflect.DeepEqual(currentDestinationRule.Spec, dr.Spec) &&
 		reflect.DeepEqual(currentDestinationRule.Labels, service.Labels) {
-		log.V(5).Info("destinationrule are equal, skipping update", "key", types.NamespacedName{Namespace: service.Namespace, Name: service.Name}.String())
-		return nil
+		klog.V(5).Info("destinationrule are equal, skipping update", "key", types.NamespacedName{Namespace: service.Namespace, Name: service.Name}.String())
+		return reconcile.Result{}, nil
 	}
 
 	newDestinationRule := currentDestinationRule.DeepCopy()
@@ -355,146 +185,20 @@ func (v *DestinationRuleController) syncService(key string) error {
 	}
 
 	if createDestinationRule {
-		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Create(context.Background(), newDestinationRule, metav1.CreateOptions{})
+		err = r.Create(ctx, newDestinationRule)
 	} else {
-		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Update(context.Background(), newDestinationRule, metav1.UpdateOptions{})
+		err = r.Update(ctx, newDestinationRule)
 	}
-
 	if err != nil {
 		if createDestinationRule && errors.IsForbidden(err) {
 			// A request is forbidden primarily for two reasons:
 			// 1. namespace is terminating, endpoint creation is not allowed by default.
 			// 2. policy is misconfigured, in which case no service would function anywhere.
 			// Given the frequency of 1, we log at a lower level.
-			log.V(5).Info("Forbidden from creating endpoints", "error", err)
+			klog.V(5).Infof("Forbidden from creating endpoints, err: %v", err)
 		}
-
-		if createDestinationRule {
-			v.eventRecorder.Event(newDestinationRule, v1.EventTypeWarning, "FailedToCreateDestinationRule", fmt.Sprintf("Failed to create destinationrule for service %v/%v: %v", service.Namespace, service.Name, err))
-		} else {
-			v.eventRecorder.Event(newDestinationRule, v1.EventTypeWarning, "FailedToUpdateDestinationRule", fmt.Sprintf("Failed to update destinationrule for service %v/%v: %v", service.Namespace, service.Name, err))
-		}
-
-		return err
+		return reconcile.Result{}, err
 	}
-
-	return nil
-}
-
-// When a destinationrule is added, figure out which service it will be used
-// and enqueue it. obj must have *appsv1.Deployment type
-func (v *DestinationRuleController) addDeployment(obj interface{}) {
-	deploy := obj.(*appsv1.Deployment)
-
-	// not a application component
-	if !servicemesh.IsApplicationComponent(deploy.Labels) || !servicemesh.IsApplicationComponent(deploy.Spec.Selector.MatchLabels) {
-		return
-	}
-
-	services, err := v.getDeploymentServiceMemberShip(deploy)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to get deployment %s/%s's service memberships", deploy.Namespace, deploy.Name))
-		return
-	}
-
-	for key := range services {
-		v.queue.Add(key)
-	}
-
-	return
-}
-
-func (v *DestinationRuleController) deleteDeployment(obj interface{}) {
-	if _, ok := obj.(*appsv1.Deployment); ok {
-		v.addDeployment(obj)
-		return
-	}
-
-	tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %#v", obj))
-		return
-	}
-
-	deploy, ok := tombstone.Obj.(*appsv1.Deployment)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a deployment %#v", obj))
-		return
-	}
-
-	v.addDeployment(deploy)
-}
-
-func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *appsv1.Deployment) (sets.String, error) {
-	set := sets.String{}
-
-	allServices, err := v.serviceLister.Services(deployment.Namespace).List(labels.Everything())
-	if err != nil {
-		return set, err
-	}
-
-	for i := range allServices {
-		service := allServices[i]
-		if service.Spec.Selector == nil ||
-			!servicemesh.IsApplicationComponent(service.Labels) ||
-			!servicemesh.IsServicemeshEnabled(service.Annotations) {
-			// services with nil selectors match nothing, not everything.
-			continue
-		}
-		selector := labels.Set(service.Spec.Selector).AsSelectorPreValidated()
-		if selector.Matches(labels.Set(deployment.Spec.Selector.MatchLabels)) {
-			key, err := cache.MetaNamespaceKeyFunc(service)
-			if err != nil {
-				return nil, err
-			}
-			set.Insert(key)
-		}
-	}
-
-	return set, nil
-}
-
-func (v *DestinationRuleController) addServicePolicy(obj interface{}) {
-	servicePolicy := obj.(*servicemeshv1alpha2.ServicePolicy)
-
-	appName := servicePolicy.Labels[servicemesh.AppLabel]
-
-	services, err := v.serviceLister.Services(servicePolicy.Namespace).List(labels.SelectorFromSet(map[string]string{servicemesh.AppLabel: appName}))
-	if err != nil {
-		log.Error(err, "cannot list services", "namespace", servicePolicy.Namespace, "name", appName)
-		utilruntime.HandleError(fmt.Errorf("cannot list services in namespace %s, with component name %v", servicePolicy.Namespace, appName))
-		return
-	}
-
-	set := sets.String{}
-	for _, service := range services {
-		key, err := cache.MetaNamespaceKeyFunc(service)
-		if err != nil {
-			utilruntime.HandleError(err)
-			continue
-		}
-		set.Insert(key)
-	}
-
-	// avoid enqueue a key multiple times
-	for key := range set {
-		v.queue.Add(key)
-	}
-}
-
-func (v *DestinationRuleController) handleErr(err error, key interface{}) {
-	if err == nil {
-		v.queue.Forget(key)
-		return
-	}
-
-	if v.queue.NumRequeues(key) < maxRetries {
-		log.V(2).Info("Error syncing virtualservice for service, retrying.", "key", key, "error", err)
-		v.queue.AddRateLimited(key)
-		return
-	}
-
-	log.V(4).Info("Dropping service out of the queue", "key", key, "error", err)
-	v.queue.Forget(key)
-	utilruntime.HandleError(err)
+	klog.V(4).Infof("Successfully Reconciled destinationrule for service %s in namespace %s", request.Namespace, request.Name)
+	return reconcile.Result{}, nil
 }

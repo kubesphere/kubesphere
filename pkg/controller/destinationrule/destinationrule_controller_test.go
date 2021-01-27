@@ -19,43 +19,151 @@ package destinationrule
 import (
 	"context"
 	"fmt"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	apiv1alpha3 "istio.io/api/networking/v1alpha3"
-	"istio.io/client-go/pkg/apis/networking/v1alpha3"
-	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
-	istioinformers "istio.io/client-go/pkg/informers/externalversions"
-	appsv1 "k8s.io/api/apps/v1"
+	destinationrule "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	kubeinformers "k8s.io/client-go/informers"
-	kubefake "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
-	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
+	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
-	"testing"
+	"reflect"
+
+	"time"
 )
 
-var (
-	alwaysReady = func() bool { return true }
-	replicas    = int32(2)
-)
+var replicas = int32(2)
+var _ = Describe("Destinationrule", func() {
 
-func newDeployments(service *corev1.Service, version string) *appsv1.Deployment {
+	const timeout = time.Second * 30
+	const interval = time.Second * 1
+
+	ctx := context.TODO()
+	service := newService("productpage")
+	deployments := []*v1.Deployment{newDeployments(service, "v1"), newDeployments(service, "v2")}
+
+	BeforeEach(func() {
+
+		// Create service and deployment
+		Expect(k8sClient.Create(ctx, service)).Should(Succeed())
+		for i := range deployments {
+			deployment := deployments[i]
+			Expect(k8sClient.Create(ctx, deployment)).Should(Succeed())
+		}
+		dr := &destinationrule.DestinationRule{}
+		// Destinationrule should be created automatically by controller
+		Eventually(k8sClient.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: metav1.NamespaceDefault}, dr))
+	})
+
+	// Add Tests for OpenAPI validation (or additonal CRD features) specified in
+	// your API definition.
+	// Avoid adding tests for vanilla CRUD operations because they would
+	// test Kubernetes API server, which isn't the goal here.
+	Context("Desinationrule Controller", func() {
+		It("Should create successfully", func() {
+
+			// Create servicepolicy
+			By("Expecting to create servicepolicy successfully")
+			expectSp := newServicePolicy(service, deployments...)
+			Expect(k8sClient.Create(ctx, expectSp)).Should(Succeed())
+
+			expectedSubsets := expectSp.Spec.Template.Spec.Subsets
+			expectedTraffic := expectSp.Spec.Template.Spec.TrafficPolicy.LoadBalancer
+			Eventually(func() bool {
+				actualSp := &servicemeshv1alpha2.ServicePolicy{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: metav1.NamespaceDefault}, actualSp)
+				if len(actualSp.Name) == 0 {
+					return false
+				}
+				actualSubsets := actualSp.Spec.Template.Spec.Subsets
+				actualTraffic := actualSp.Spec.Template.Spec.TrafficPolicy.LoadBalancer
+				if actualSp.Name != service.Name {
+					klog.Errorf("serivcepolicy name not the same, actual: %s, expect: %s", actualSp.Name, service.Name)
+					return false
+				}
+
+				if !reflect.DeepEqual(actualSubsets, expectedSubsets) {
+					klog.Errorf("servicepolicy strategy not the same, actual: %s, expect: %s", actualSubsets, expectedSubsets)
+					return false
+				}
+
+				if !reflect.DeepEqual(actualTraffic, expectedTraffic) {
+					klog.Errorf("servicepolicy traffic not the same, actual: %s, expect: %s", actualTraffic, expectedTraffic)
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+
+			By("Expecting to reconcile destinationrule successfully")
+			Eventually(func() bool {
+				dr := &destinationrule.DestinationRule{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: metav1.NamespaceDefault}, dr)
+				drActual := dr.Spec.TrafficPolicy
+				if dr.Name != service.Name {
+					klog.Errorf("destinationrule name not match, actual: %s, expect: %s", dr.Name, service.Name)
+					return false
+				}
+				if reflect.DeepEqual(drActual, expectedTraffic) {
+					klog.Errorf("destination traffic not match, actual: %s, expect: %s", drActual, expectedTraffic)
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+})
+
+func newServicePolicy(service *corev1.Service, deployments ...*v1.Deployment) *servicemeshv1alpha2.ServicePolicy {
+	sp := &servicemeshv1alpha2.ServicePolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        service.Name,
+			Namespace:   metav1.NamespaceDefault,
+			Labels:      service.Labels,
+			Annotations: service.Annotations,
+		},
+		Spec: servicemeshv1alpha2.ServicePolicySpec{
+			Template: servicemeshv1alpha2.DestinationRuleSpecTemplate{
+				Spec: apiv1alpha3.DestinationRule{
+					Host: service.Name,
+				},
+			},
+		},
+	}
+
+	sp.Spec.Template.Spec.Subsets = []*apiv1alpha3.Subset{}
+	for _, deployment := range deployments {
+		subset := &apiv1alpha3.Subset{
+			Name: servicemesh.GetComponentVersion(&deployment.ObjectMeta),
+			Labels: map[string]string{
+				"version": servicemesh.GetComponentVersion(&deployment.ObjectMeta),
+			},
+		}
+		sp.Spec.Template.Spec.Subsets = append(sp.Spec.Template.Spec.Subsets, subset)
+	}
+
+	sp.Spec.Template.Spec.TrafficPolicy = &apiv1alpha3.TrafficPolicy{
+		LoadBalancer: &apiv1alpha3.LoadBalancerSettings{
+			LbPolicy: &apiv1alpha3.LoadBalancerSettings_Simple{Simple: apiv1alpha3.LoadBalancerSettings_SimpleLB(1)},
+		},
+	}
+	return sp
+}
+
+func newDeployments(service *corev1.Service, version string) *v1.Deployment {
 	lbs := service.Labels
 	lbs["version"] = version
 
-	deployment := &appsv1.Deployment{
+	deployment := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        fmt.Sprintf("%s-%s", service.Name, version),
 			Namespace:   metav1.NamespaceDefault,
 			Labels:      lbs,
-			Annotations: service.Annotations,
+			Annotations: map[string]string{servicemesh.ServiceMeshEnabledAnnotation: "true"},
 		},
-		Spec: appsv1.DeploymentSpec{
+		Spec: v1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: lbs,
@@ -92,7 +200,7 @@ func newDeployments(service *corev1.Service, version string) *appsv1.Deployment 
 				},
 			},
 		},
-		Status: appsv1.DeploymentStatus{
+		Status: v1.DeploymentStatus{
 			AvailableReplicas: replicas,
 			ReadyReplicas:     replicas,
 			Replicas:          replicas,
@@ -102,42 +210,15 @@ func newDeployments(service *corev1.Service, version string) *appsv1.Deployment 
 	return deployment
 }
 
-func newDestinationRule(service *corev1.Service, deployments ...*appsv1.Deployment) *v1alpha3.DestinationRule {
-	dr := &v1alpha3.DestinationRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        service.Name,
-			Namespace:   service.Namespace,
-			Labels:      service.Labels,
-			Annotations: make(map[string]string),
-		},
-		Spec: apiv1alpha3.DestinationRule{
-			Host: service.Name,
-		},
-	}
-
-	dr.Spec.Subsets = []*apiv1alpha3.Subset{}
-	for _, deployment := range deployments {
-		subset := &apiv1alpha3.Subset{
-			Name: servicemesh.GetComponentVersion(&deployment.ObjectMeta),
-			Labels: map[string]string{
-				"version": servicemesh.GetComponentVersion(&deployment.ObjectMeta),
-			},
-		}
-		dr.Spec.Subsets = append(dr.Spec.Subsets, subset)
-	}
-
-	return dr
-}
-
 func newService(name string) *corev1.Service {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
+			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				"app.kubernetes.io/name":    "bookinfo",
 				"app.kubernetes.io/version": "1",
-				"app":                       "foo",
+				"app":                       name,
 			},
 			Annotations: map[string]string{
 				"servicemesh.kubesphere.io/enabled": "true",
@@ -170,211 +251,5 @@ func newService(name string) *corev1.Service {
 		},
 		Status: corev1.ServiceStatus{},
 	}
-
 	return service
-
-}
-
-func newServicePolicy(name string, service *corev1.Service, deployments ...*appsv1.Deployment) *v1alpha2.ServicePolicy {
-	sp := &v1alpha2.ServicePolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        name,
-			Namespace:   metav1.NamespaceDefault,
-			Labels:      service.Labels,
-			Annotations: service.Annotations,
-		},
-		Spec: v1alpha2.ServicePolicySpec{
-			Template: v1alpha2.DestinationRuleSpecTemplate{
-				Spec: apiv1alpha3.DestinationRule{
-					Host: service.Name,
-				},
-			},
-		},
-	}
-
-	sp.Spec.Template.Spec.Subsets = []*apiv1alpha3.Subset{}
-	for _, deployment := range deployments {
-		subset := &apiv1alpha3.Subset{
-			Name: servicemesh.GetComponentVersion(&deployment.ObjectMeta),
-			Labels: map[string]string{
-				"version": servicemesh.GetComponentVersion(&deployment.ObjectMeta),
-			},
-		}
-		sp.Spec.Template.Spec.Subsets = append(sp.Spec.Template.Spec.Subsets, subset)
-	}
-
-	return sp
-}
-
-type fixture struct {
-	t testing.TB
-
-	kubeClient        *kubefake.Clientset
-	istioClient       *istiofake.Clientset
-	servicemeshClient *fake.Clientset
-
-	serviceLister    []*corev1.Service
-	deploymentLister []*appsv1.Deployment
-	drLister         []*v1alpha3.DestinationRule
-	spLister         []*v1alpha2.ServicePolicy
-
-	kubeObjects        []runtime.Object
-	istioObjects       []runtime.Object
-	servicemeshObjects []runtime.Object
-}
-
-func newFixture(t testing.TB) *fixture {
-	f := &fixture{}
-	f.t = t
-	f.kubeObjects = []runtime.Object{}
-	f.istioObjects = []runtime.Object{}
-	f.servicemeshObjects = []runtime.Object{}
-	return f
-}
-
-func (f *fixture) newController() (*DestinationRuleController, kubeinformers.SharedInformerFactory, istioinformers.SharedInformerFactory, informers.SharedInformerFactory, error) {
-	f.kubeClient = kubefake.NewSimpleClientset(f.kubeObjects...)
-	f.servicemeshClient = fake.NewSimpleClientset(f.servicemeshObjects...)
-	f.istioClient = istiofake.NewSimpleClientset(f.istioObjects...)
-	kubeInformers := kubeinformers.NewSharedInformerFactory(f.kubeClient, 0)
-	istioInformers := istioinformers.NewSharedInformerFactory(f.istioClient, 0)
-	servicemeshInformers := informers.NewSharedInformerFactory(f.servicemeshClient, 0)
-
-	c := NewDestinationRuleController(kubeInformers.Apps().V1().Deployments(),
-		istioInformers.Networking().V1alpha3().DestinationRules(),
-		kubeInformers.Core().V1().Services(),
-		servicemeshInformers.Servicemesh().V1alpha2().ServicePolicies(),
-		f.kubeClient,
-		f.istioClient,
-		f.servicemeshClient)
-	c.eventRecorder = &record.FakeRecorder{}
-	c.destinationRuleSynced = alwaysReady
-	c.deploymentSynced = alwaysReady
-	c.servicePolicySynced = alwaysReady
-	c.serviceSynced = alwaysReady
-
-	for _, s := range f.serviceLister {
-		kubeInformers.Core().V1().Services().Informer().GetIndexer().Add(s)
-	}
-
-	for _, d := range f.drLister {
-		istioInformers.Networking().V1alpha3().DestinationRules().Informer().GetIndexer().Add(d)
-	}
-
-	for _, d := range f.deploymentLister {
-		kubeInformers.Apps().V1().Deployments().Informer().GetIndexer().Add(d)
-	}
-
-	for _, s := range f.spLister {
-		servicemeshInformers.Servicemesh().V1alpha2().ServicePolicies().Informer().GetIndexer().Add(s)
-	}
-
-	return c, kubeInformers, istioInformers, servicemeshInformers, nil
-}
-
-func (f *fixture) run(service *corev1.Service, expected *v1alpha3.DestinationRule, startInformers bool, expectedError bool) {
-	c, kubeInformers, istioInformers, servicemeshInformers, err := f.newController()
-	if err != nil {
-		f.t.Fatal(err)
-	}
-
-	if startInformers {
-		stopCh := make(chan struct{})
-		defer close(stopCh)
-		kubeInformers.Start(stopCh)
-		istioInformers.Start(stopCh)
-		servicemeshInformers.Start(stopCh)
-	}
-
-	key, err := cache.MetaNamespaceKeyFunc(service)
-	if err != nil {
-		f.t.Fatal(err)
-	}
-
-	err = c.syncService(key)
-	if !expectedError && err != nil {
-		f.t.Fatalf("error syncing service: %v", err)
-	} else if expectedError && err == nil {
-		f.t.Fatal("expected error syncing service, got nil")
-	}
-
-	got, err := c.destinationRuleClient.NetworkingV1alpha3().DestinationRules(service.Namespace).Get(context.Background(), service.Name, metav1.GetOptions{})
-	if err != nil {
-		f.t.Fatal(err)
-	}
-
-	if unequals := reflectutils.Equal(got, expected); len(unequals) != 0 {
-		f.t.Errorf("expected %#v, got %#v, unequal fields:", expected, got)
-		for _, unequal := range unequals {
-			f.t.Error(unequal)
-		}
-	}
-
-}
-
-func runServicePolicy(t *testing.T, service *corev1.Service, sp *v1alpha2.ServicePolicy, expected *v1alpha3.DestinationRule, expectedError bool, deployments ...*appsv1.Deployment) {
-	f := newFixture(t)
-
-	f.kubeObjects = append(f.kubeObjects, service)
-	f.serviceLister = append(f.serviceLister, service)
-	for _, deployment := range deployments {
-		f.kubeObjects = append(f.kubeObjects, deployment)
-		f.deploymentLister = append(f.deploymentLister, deployment)
-	}
-	if sp != nil {
-		f.servicemeshObjects = append(f.servicemeshObjects, sp)
-		f.spLister = append(f.spLister, sp)
-	}
-
-	f.run(service, expected, true, expectedError)
-}
-
-func TestServicePolicy(t *testing.T) {
-	defaultService := newService("foo")
-	defaultDeploymentV1 := newDeployments(defaultService, "v1")
-	defaultDeploymentV2 := newDeployments(defaultService, "v2")
-	defaultServicePolicy := newServicePolicy("foo", defaultService, defaultDeploymentV1, defaultDeploymentV2)
-	defaultExpected := newDestinationRule(defaultService, defaultDeploymentV1, defaultDeploymentV2)
-
-	t.Run("should create default destination rule", func(t *testing.T) {
-		runServicePolicy(t, defaultService, nil, defaultExpected, false, defaultDeploymentV1, defaultDeploymentV2)
-	})
-
-	t.Run("should create destination rule only to v1", func(t *testing.T) {
-		deploymentV2 := defaultDeploymentV2.DeepCopy()
-		deploymentV2.Status.AvailableReplicas = 0
-		deploymentV2.Status.ReadyReplicas = 0
-
-		expected := defaultExpected.DeepCopy()
-		expected.Spec.Subsets = expected.Spec.Subsets[:1]
-		runServicePolicy(t, defaultService, nil, expected, false, defaultDeploymentV1, deploymentV2)
-	})
-
-	t.Run("should create destination rule match service policy", func(t *testing.T) {
-		sp := defaultServicePolicy.DeepCopy()
-		sp.Spec.Template.Spec.TrafficPolicy = &apiv1alpha3.TrafficPolicy{
-			LoadBalancer: &apiv1alpha3.LoadBalancerSettings{
-				LbPolicy: &apiv1alpha3.LoadBalancerSettings_Simple{
-					Simple: apiv1alpha3.LoadBalancerSettings_ROUND_ROBIN,
-				},
-			},
-			ConnectionPool: &apiv1alpha3.ConnectionPoolSettings{
-				Http: &apiv1alpha3.ConnectionPoolSettings_HTTPSettings{
-					Http1MaxPendingRequests:  10,
-					Http2MaxRequests:         20,
-					MaxRequestsPerConnection: 5,
-					MaxRetries:               4,
-				},
-			},
-			OutlierDetection: &apiv1alpha3.OutlierDetection{
-				ConsecutiveErrors:  5,
-				MaxEjectionPercent: 10,
-				MinHealthPercent:   20,
-			},
-		}
-
-		expected := defaultExpected.DeepCopy()
-		expected.Spec.TrafficPolicy = sp.Spec.Template.Spec.TrafficPolicy
-		runServicePolicy(t, defaultService, sp, expected, false, defaultDeploymentV1, defaultDeploymentV2)
-	})
 }

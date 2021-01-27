@@ -40,6 +40,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
+	"kubesphere.io/kubesphere/pkg/controller/servicemesh"
+	"kubesphere.io/kubesphere/pkg/controller/sidecar"
 	"kubesphere.io/kubesphere/pkg/controller/storage/capability"
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 	"kubesphere.io/kubesphere/pkg/controller/user"
@@ -74,28 +76,30 @@ func addControllers(
 	stopCh <-chan struct{}) error {
 
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
-	istioInformer := informerFactory.IstioSharedInformerFactory()
 	kubesphereInformer := informerFactory.KubeSphereSharedInformerFactory()
 
 	multiClusterEnabled := multiClusterOptions.Enable
 
-	var vsController, drController manager.Runnable
 	if serviceMeshEnabled {
-		vsController = virtualservice.NewVirtualServiceController(kubernetesInformer.Core().V1().Services(),
-			istioInformer.Networking().V1alpha3().VirtualServices(),
-			istioInformer.Networking().V1alpha3().DestinationRules(),
-			kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
-			client.Kubernetes(),
-			client.Istio(),
-			client.KubeSphere())
+		err := virtualservice.Add(mgr)
+		if err != nil {
+			klog.Fatal("Unable to create ks virtualservice controller")
+		}
 
-		drController = destinationrule.NewDestinationRuleController(kubernetesInformer.Apps().V1().Deployments(),
-			istioInformer.Networking().V1alpha3().DestinationRules(),
-			kubernetesInformer.Core().V1().Services(),
-			kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
-			client.Kubernetes(),
-			client.Istio(),
-			client.KubeSphere())
+		err = destinationrule.Add(mgr)
+		if err != nil {
+			klog.Fatal("Unable to create ks destinationrule controller")
+		}
+
+		sidecarReconciler := &sidecar.Reconciler{}
+		if err = sidecarReconciler.SetupWithManager(mgr); err != nil {
+			klog.Fatal("Unable to create sidecar controller")
+		}
+
+		servicemeshReconciler := &servicemesh.Reconciler{}
+		if err = servicemeshReconciler.SetupWithManager(mgr); err != nil {
+			klog.Fatal("Unable to create servicemesh controller")
+		}
 	}
 
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
@@ -263,8 +267,6 @@ func addControllers(
 	}
 
 	controllers := map[string]manager.Runnable{
-		"virtualservice-controller":     vsController,
-		"destinationrule-controller":    drController,
 		"job-controller":                jobController,
 		"s2ibinary-controller":          s2iBinaryController,
 		"s2irun-controller":             s2iRunController,

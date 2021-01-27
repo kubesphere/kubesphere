@@ -1,5 +1,5 @@
 /*
-Copyright 2020 KubeSphere Authors
+Copyright 2021 KubeSphere Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package application
+package servicemesh
 
 import (
 	"context"
@@ -24,28 +24,24 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
-	"sigs.k8s.io/application/api/v1beta1"
 	"time"
 )
 
 var replicas = int32(2)
-var _ = Describe("Application", func() {
+var _ = Describe("ServiceMesh Controller", func() {
 
 	const timeout = time.Second * 30
 	const interval = time.Second * 1
 
 	ctx := context.TODO()
-
 	service := newService("productpage")
-	app := newAppliation(service)
-	deployments := []*v1.Deployment{newDeployments(service, "v1")}
+	deployments := []*v1.Deployment{newDeployments(service, "v2"), newDeployments(service, "v3")}
 
 	BeforeEach(func() {
 
-		// Create application service and deployment
-		Expect(k8sClient.Create(ctx, app)).Should(Succeed())
+		// Create service and deployment
 		Expect(k8sClient.Create(ctx, service)).Should(Succeed())
 		for i := range deployments {
 			deployment := deployments[i]
@@ -57,40 +53,70 @@ var _ = Describe("Application", func() {
 	// your API definition.
 	// Avoid adding tests for vanilla CRUD operations because they would
 	// test Kubernetes API server, which isn't the goal here.
-	Context("Application Controller", func() {
-		It("Should create successfully", func() {
+	Context("ServiceMesh Controller", func() {
+		It("Should reconcile successfully", func() {
 
-			By("Reconcile Application successfully")
-			// application should have "kubesphere.io/last-updated" annotation
+			By("Expecting to label and annotate deployments successfully")
+
 			Eventually(func() bool {
-				app := &v1beta1.Application{}
-				_ = k8sClient.Get(ctx, types.NamespacedName{Name: service.Labels[servicemesh.ApplicationNameLabel], Namespace: metav1.NamespaceDefault}, app)
-				time, ok := app.Annotations["kubesphere.io/last-updated"]
-				return len(time) > 0 && ok
+				return CheckDeploymentReconciled(service)
+			}, timeout, interval).Should(BeTrue())
+
+			By("Change service label, reconcile deployment")
+
+			service.Labels[servicemesh.ApplicationNameLabel] = "app-test"
+			Expect(k8sClient.Update(ctx, service)).Should(Succeed())
+
+			// S should be created automatically by controller
+			Eventually(func() bool {
+				return CheckDeploymentReconciled(service)
 			}, timeout, interval).Should(BeTrue())
 		})
 	})
 })
 
+func CheckDeploymentReconciled(service *corev1.Service) bool {
+	deploys := servicemesh.GetDeploymentsFromService(service, k8sClient)
+	for i := range deploys {
+		deploy := deploys[i]
+		if len(deploy.Labels) < len(servicemesh.DeploymentLabels) {
+			klog.Error("deployment labels num is not satisfied")
+			return false
+		}
+		for _, i := range servicemesh.ApplicationLabels {
+			if deploy.Labels[i] != service.Labels[i] {
+				klog.Errorf("deployment label %s is not the same with service", deploy.Labels[i])
+				return false
+			}
+		}
+		if len(deploy.Labels[servicemesh.VersionLabel]) == 0 {
+			klog.Error("deploy has no version label")
+			return false
+		}
+		if deploy.Annotations[servicemesh.ServiceMeshEnabledAnnotation] != service.Annotations[servicemesh.ServiceMeshEnabledAnnotation] {
+			klog.Error("deployment annotation is not the same")
+			return false
+		}
+		klog.Info("test success")
+	}
+	return true
+}
+
 func newDeployments(service *corev1.Service, version string) *v1.Deployment {
-	lbs := service.Labels
-	lbs["version"] = version
 
 	deployment := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        fmt.Sprintf("%s-%s", service.Name, version),
-			Namespace:   metav1.NamespaceDefault,
-			Labels:      lbs,
-			Annotations: map[string]string{servicemesh.ServiceMeshEnabledAnnotation: "true"},
+			Name:      fmt.Sprintf("%s-%s", service.Name, version),
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: v1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: lbs,
+				MatchLabels: service.Spec.Selector,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      lbs,
+					Labels:      service.Spec.Selector,
 					Annotations: service.Annotations,
 				},
 				Spec: corev1.PodSpec{
@@ -172,29 +198,4 @@ func newService(name string) *corev1.Service {
 		Status: corev1.ServiceStatus{},
 	}
 	return svc
-}
-
-func newAppliation(service *corev1.Service) *v1beta1.Application {
-	app := &v1beta1.Application{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        service.Labels[servicemesh.ApplicationNameLabel],
-			Namespace:   metav1.NamespaceDefault,
-			Labels:      service.Labels,
-			Annotations: map[string]string{servicemesh.ServiceMeshEnabledAnnotation: "true"},
-		},
-		Spec: v1beta1.ApplicationSpec{
-			ComponentGroupKinds: []metav1.GroupKind{
-				{
-					Group: "",
-					Kind:  "Service",
-				},
-				{
-					Group: "apps",
-					Kind:  "Deployment",
-				},
-			},
-			AddOwnerRef: true,
-		},
-	}
-	return app
 }

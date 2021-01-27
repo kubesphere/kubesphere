@@ -1,0 +1,1616 @@
+   0.0 TEL | Telepresence 0.105 launched at Fri Jan 29 13:34:46 2021
+   0.0 TEL |   /usr/local/bin/telepresence --swap-deployment ks-controller-manager --namespace kubesphere-system
+   0.0 TEL | uname: uname_result(system='Darwin', node='zack', release='19.6.0', version='Darwin Kernel Version 19.6.0: Mon Aug 31 22:12:52 PDT 2020; root:xnu-6153.141.2~1/RELEASE_X86_64', machine='x86_64')
+   0.0 TEL | Platform: darwin
+   0.0 TEL | WSL: False
+   0.0 TEL | Python 3.9.0 (default, Oct 27 2020, 14:15:17)
+   0.0 TEL | [Clang 12.0.0 (clang-1200.0.32.21)]
+   0.0 TEL | BEGIN SPAN main.py:40(main)
+   0.0 TEL | BEGIN SPAN startup.py:83(set_kube_command)
+   0.0 TEL | Found kubectl -> /usr/local/bin/kubectl
+   0.0 TEL | [1] Capturing: kubectl config current-context
+   0.1 TEL | [1] captured in 0.05 secs.
+   0.1 TEL | [2] Capturing: kubectl --context kubernetes-admin@cluster.local version --short
+   0.3 TEL | [2] captured in 0.26 secs.
+   0.3 TEL | [3] Capturing: kubectl --context kubernetes-admin@cluster.local config view -o json
+   0.4 TEL | [3] captured in 0.06 secs.
+   0.4 TEL | [4] Capturing: kubectl --context kubernetes-admin@cluster.local get ns kubesphere-system
+   0.7 TEL | [4] captured in 0.24 secs.
+   0.7 TEL | [5] Capturing: kubectl --context kubernetes-admin@cluster.local api-versions
+   1.0 TEL | [5] captured in 0.34 secs.
+   1.0 TEL | Command: kubectl 1.19.4
+   1.0 TEL | Context: kubernetes-admin@cluster.local, namespace: kubesphere-system, version: 1.17.9
+   1.0 TEL | Warning: kubectl 1.19.4 may not work correctly with cluster version 1.17.9 due to the version discrepancy. See https://kubernetes.io/docs/setup/version-skew-policy/ for more information.
+   1.0 TEL | END SPAN startup.py:83(set_kube_command)    1.0s
+   1.0 TEL | Found ssh -> /usr/bin/ssh
+   1.0 TEL | [6] Capturing: ssh -V
+   1.0 TEL | [6] captured in 0.01 secs.
+   1.0 TEL | Found bash -> /bin/bash
+   1.0 TEL | Found sshuttle-telepresence -> /usr/local/Cellar/telepresence/0.105/libexec/sshuttle-telepresence
+   1.0 TEL | Found pfctl -> /sbin/pfctl
+   1.0 TEL | Found sudo -> /usr/bin/sudo
+   1.0 TEL | [7] Running: sudo -n echo -n
+   1.0 TEL | [7] ran in 0.02 secs.
+   1.0 >>> | Starting proxy with method 'vpn-tcp', which has the following limitations: All processes are affected, only one telepresence can run per machine, and you can't use other VPNs. You may need to add cloud hosts and headless services with --also-proxy. For a full list of method limitations see https://telepresence.io/reference/methods.html
+   1.0 TEL | Found sshfs -> /usr/local/bin/sshfs
+   1.0 TEL | Found umount -> /sbin/umount
+   1.0 >>> | Volumes are rooted at $TELEPRESENCE_ROOT. See https://telepresence.io/howto/volumes.html for details.
+   1.0 TEL | [8] Running: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system get pods telepresence-connectivity-check --ignore-not-found
+   1.3 TEL | [8] ran in 0.30 secs.
+   2.2 TEL | Scout info: {'latest_version': '0.109', 'application': 'telepresence', 'notices': []}
+   2.2 TEL | BEGIN SPAN deployment.py:283(supplant_deployment)
+   2.2 >>> | Starting network proxy to cluster by swapping out Deployment ks-controller-manager with a proxy
+   2.2 TEL | BEGIN SPAN remote.py:75(get_deployment_json)
+   2.2 TEL | [9] Capturing: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system get deployment -o json ks-controller-manager
+   2.6 TEL | [9] captured in 0.34 secs.
+   2.6 TEL | END SPAN remote.py:75(get_deployment_json)    0.3s
+   2.6 TEL | [10] Running: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system delete deployment ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1 --ignore-not-found
+   2.9 TEL | [10] ran in 0.30 secs.
+   2.9 TEL | [11] Running: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system apply -f -
+   3.5  11 | deployment.apps/ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1 created
+   3.5 TEL | [11] ran in 0.64 secs.
+   3.5 TEL | [12] Running: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system scale deployment ks-controller-manager --replicas=0
+   3.8  12 | deployment.apps/ks-controller-manager scaled
+   3.8 TEL | [12] ran in 0.31 secs.
+   3.8 TEL | END SPAN deployment.py:283(supplant_deployment)    1.6s
+   3.8 TEL | BEGIN SPAN remote.py:142(get_remote_info)
+   3.8 TEL | BEGIN SPAN remote.py:75(get_deployment_json)
+   3.8 TEL | [13] Capturing: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system get deployment -o json --selector=telepresence=f1607bf4d4ec4c659c10cbf194b42cf1
+   4.1 TEL | [13] captured in 0.30 secs.
+   4.1 TEL | END SPAN remote.py:75(get_deployment_json)    0.3s
+   4.1 TEL | Searching for Telepresence pod:
+   4.1 TEL |   with name ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-*
+   4.1 TEL |   with labels {'app': 'ks-controller-manager', 'telepresence': 'f1607bf4d4ec4c659c10cbf194b42cf1', 'tier': 'backend', 'version': 'v3.0.0'}
+   4.1 TEL | [14] Capturing: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system get pod -o json --selector=telepresence=f1607bf4d4ec4c659c10cbf194b42cf1
+   4.4 TEL | [14] captured in 0.25 secs.
+   4.4 TEL | Checking ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-69b4479zrjdl
+   4.4 TEL | Looks like we've found our pod!
+   4.4 TEL | BEGIN SPAN remote.py:104(wait_for_pod)
+   4.4 TEL | [15] Capturing: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system get pod ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-69b4479zrjdl -o json
+   4.6 TEL | [15] captured in 0.26 secs.
+   4.9 TEL | [16] Capturing: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system get pod ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-69b4479zrjdl -o json
+   5.1 TEL | [16] captured in 0.25 secs.
+   5.4 TEL | [17] Capturing: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system get pod ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-69b4479zrjdl -o json
+   5.6 TEL | [17] captured in 0.25 secs.
+   5.6 TEL | END SPAN remote.py:104(wait_for_pod)    1.3s
+   5.6 TEL | END SPAN remote.py:142(get_remote_info)    1.8s
+   5.6 TEL | BEGIN SPAN connect.py:37(connect)
+   5.6 TEL | [18] Launching kubectl logs: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system logs -f ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-69b4479zrjdl --container ks-controller-manager --tail=10
+   5.7 TEL | [19] Launching kubectl port-forward: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system port-forward ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-69b4479zrjdl 53496:8022
+   5.7 TEL | [20] Running: ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q -p 53496 telepresence@127.0.0.1 /bin/true
+   5.7 TEL | [20] exit 255 in 0.01 secs.
+   5.9 TEL | [21] Running: ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q -p 53496 telepresence@127.0.0.1 /bin/true
+   5.9 TEL | [21] exit 255 in 0.01 secs.
+   6.0  18 | 2021-01-29T13:34:52+0800 [-] Loading ./forwarder.py...
+   6.0  18 | 2021-01-29T13:34:52+0800 [-] /etc/resolv.conf changed, reparsing
+   6.0  18 | 2021-01-29T13:34:52+0800 [-] Resolver added ('169.254.25.10', 53) to server list
+   6.0  18 | 2021-01-29T13:34:52+0800 [-] SOCKSv5Factory starting on 9050
+   6.0  18 | 2021-01-29T13:34:52+0800 [socks.SOCKSv5Factory#info] Starting factory <socks.SOCKSv5Factory object at 0x7fa3f66c1eb8>
+   6.0  18 | 2021-01-29T13:34:52+0800 [-] DNSDatagramProtocol starting on 9053
+   6.0  18 | 2021-01-29T13:34:52+0800 [-] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8198>
+   6.0  18 | 2021-01-29T13:34:52+0800 [-] Loaded.
+   6.0  18 | 2021-01-29T13:34:52+0800 [twisted.scripts._twistd_unix.UnixAppLogger#info] twistd 20.3.0 (/usr/bin/python3.6 3.6.8) starting up.
+   6.0  18 | 2021-01-29T13:34:52+0800 [twisted.scripts._twistd_unix.UnixAppLogger#info] reactor class: twisted.internet.epollreactor.EPollReactor.
+   6.2 TEL | [22] Running: ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q -p 53496 telepresence@127.0.0.1 /bin/true
+   6.2  19 | Forwarding from 127.0.0.1:53496 -> 8022
+   6.2  19 | Forwarding from [::1]:53496 -> 8022
+   6.2 TEL | [22] exit 255 in 0.02 secs.
+   6.5 TEL | [23] Running: ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q -p 53496 telepresence@127.0.0.1 /bin/true
+   6.5  19 | Handling connection for 53496
+   7.0 TEL | [23] ran in 0.51 secs.
+   7.0 >>> | Forwarding remote port 8080 to local port 8080.
+   7.0 >>> | Forwarding remote port 8443 to local port 8443.
+   7.0 TEL | [24] Launching SSH port forward (exposed ports): ssh -N -oServerAliveInterval=1 -oServerAliveCountMax=10 -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q -p 53496 telepresence@127.0.0.1 -R '*:8080:127.0.0.1:8080' -R '*:8443:127.0.0.1:8443'
+   7.0 >>> | 
+   7.0 TEL | Launching Web server for proxy poll
+   7.0 TEL | [25] Launching SSH port forward (socks and proxy poll): ssh -N -oServerAliveInterval=1 -oServerAliveCountMax=10 -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q -p 53496 telepresence@127.0.0.1 -L127.0.0.1:53517:127.0.0.1:9050 -R9055:127.0.0.1:53518
+   7.0 TEL | END SPAN connect.py:37(connect)    1.3s
+   7.0 TEL | BEGIN SPAN remote_env.py:29(get_remote_env)
+   7.0 TEL | [26] Capturing: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system exec ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-69b4479zrjdl --container ks-controller-manager -- python3 podinfo.py
+   7.0  19 | Handling connection for 53496
+   7.0  19 | Handling connection for 53496
+   7.9 TEL | [26] captured in 0.90 secs.
+   7.9 TEL | END SPAN remote_env.py:29(get_remote_env)    0.9s
+   7.9 TEL | BEGIN SPAN mount.py:30(mount_remote_volumes)
+   7.9 TEL | [27] Running: sshfs -p 53496 -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null telepresence@127.0.0.1:/ /tmp/tel-t0i0u7n4/fs
+   7.9  19 | Handling connection for 53496
+   8.5 TEL | [27] ran in 0.63 secs.
+   8.5 TEL | END SPAN mount.py:30(mount_remote_volumes)    0.6s
+   8.5 TEL | BEGIN SPAN vpn.py:280(connect_sshuttle)
+   8.5 TEL | BEGIN SPAN vpn.py:77(get_proxy_cidrs)
+   8.5 TEL | END SPAN vpn.py:77(get_proxy_cidrs)    0.0s
+   8.5 TEL | [28] Launching sshuttle: sshuttle-telepresence -v --dns --method auto -e 'ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null' -r telepresence@127.0.0.1:53496 --to-ns 127.0.0.1:9053 10.233.0.0/18 10.233.64.0/24
+   8.5 TEL | BEGIN SPAN vpn.py:303(connect_sshuttle,sshuttle-wait)
+   8.5 TEL | Wait for vpn-tcp connection: hellotelepresence-0
+   8.5 TEL | [29] Capturing: python3 -c 'import socket; socket.gethostbyname("hellotelepresence-0")'
+   8.7 TEL | [29] exit 1 in 0.13 secs.
+   8.7 TEL | [30] Capturing: python3 -c 'import socket; socket.gethostbyname("hellotelepresence-0.a.sanity.check.telepresence.io")'
+   9.2  28 | Starting sshuttle proxy.
+   9.7 TEL | [30] timed out after 1.00 secs.
+   9.8 TEL | Wait for vpn-tcp connection: hellotelepresence-1
+   9.8 TEL | [31] Capturing: python3 -c 'import socket; socket.gethostbyname("hellotelepresence-1")'
+  10.5  28 | firewall manager: Starting firewall with Python version 3.9.0
+  10.5  28 | firewall manager: ready method name pf.
+  10.5  28 | IPv6 enabled: True
+  10.5  28 | UDP enabled: False
+  10.5  28 | DNS enabled: True
+  10.5  28 | TCP redirector listening on ('::1', 12300, 0, 0).
+  10.5  28 | TCP redirector listening on ('127.0.0.1', 12300).
+  10.5  28 | DNS listening on ('::1', 12300, 0, 0).
+  10.5  28 | DNS listening on ('127.0.0.1', 12300).
+  10.5  28 | Starting client with Python version 3.9.0
+  10.5  28 | c : connecting to server...
+  10.5  19 | Handling connection for 53496
+  10.7  28 | Warning: Permanently added '[127.0.0.1]:53496' (ECDSA) to the list of known hosts.
+  11.4  28 | Starting server with Python version 3.6.8
+  11.4  28 |  s: latency control setting = True
+  11.4  28 |  s: available routes:
+  11.4  28 |  s:   2/10.233.64.0/24
+  11.4  28 |  s:   2/10.233.64.0/18
+  11.4  28 | c : Connected.
+  11.4  28 | firewall manager: setting up.
+  11.4  28 | >> pfctl -s Interfaces -i lo -v
+  11.4  28 | >> pfctl -s all
+  11.4  28 | >> pfctl -a sshuttle6-12300 -f /dev/stdin
+  11.4  28 | >> pfctl -E
+  11.4  28 | >> pfctl -s Interfaces -i lo -v
+  11.4  28 | >> pfctl -s all
+  11.4  28 | >> pfctl -a sshuttle-12300 -f /dev/stdin
+  11.4  28 | >> pfctl -E
+  12.8  28 | c : DNS request from ('172.31.140.114', 49175) to None: 45 bytes
+  12.9  18 | 2021-01-29T13:34:59+0800 [stdout#info] Set DNS suffix we filter out to: [(b'openvpn',)]
+  12.9  18 | 2021-01-29T13:34:59+0800 [stdout#info] Result for b'hellotelepresence-1.openvpn' is ['127.0.0.1']
+  12.9 TEL | [31] captured in 3.12 secs.
+  12.9 TEL | Resolved hellotelepresence-1. 2 more...
+  12.9 TEL | [32] Capturing: python3 -c 'import socket; socket.gethostbyname("hellotelepresence-1.a.sanity.check.telepresence.io")'
+  12.9  28 | c : DNS request from ('172.31.140.114', 52422) to None: 68 bytes
+  13.0  18 | 2021-01-29T13:34:59+0800 [stdout#info] Sanity check: b'hellotelepresence-1.a.sanity.check.telepresence.io'
+  13.0 TEL | [32] exit 1 in 0.13 secs.
+  13.1 TEL | Wait for vpn-tcp connection: hellotelepresence-2
+  13.1 TEL | [33] Capturing: python3 -c 'import socket; socket.gethostbyname("hellotelepresence-2")'
+  13.2  28 | c : DNS request from ('172.31.140.114', 63120) to None: 45 bytes
+  13.2  18 | 2021-01-29T13:35:00+0800 [stdout#info] Result for b'hellotelepresence-2.openvpn' is ['127.0.0.1']
+  13.2 TEL | [33] captured in 0.13 secs.
+  13.2 TEL | Resolved hellotelepresence-2. 1 more...
+  13.2 TEL | [34] Capturing: python3 -c 'import socket; socket.gethostbyname("hellotelepresence-2.a.sanity.check.telepresence.io")'
+  13.3  28 | c : DNS request from ('172.31.140.114', 50846) to None: 68 bytes
+  13.3  18 | 2021-01-29T13:35:00+0800 [stdout#info] Sanity check: b'hellotelepresence-2.a.sanity.check.telepresence.io'
+  13.4 TEL | [34] exit 1 in 0.13 secs.
+  13.5 TEL | Wait for vpn-tcp connection: hellotelepresence-3
+  13.5 TEL | [35] Capturing: python3 -c 'import socket; socket.gethostbyname("hellotelepresence-3")'
+  13.5  28 | c : DNS request from ('172.31.140.114', 60196) to None: 45 bytes
+  13.6  18 | 2021-01-29T13:35:00+0800 [stdout#info] Result for b'hellotelepresence-3.openvpn' is ['127.0.0.1']
+  13.6 TEL | [35] captured in 0.13 secs.
+  13.6 TEL | Resolved hellotelepresence-3. 0 more...
+  13.6 TEL | END SPAN vpn.py:303(connect_sshuttle,sshuttle-wait)    5.1s
+  13.6 TEL | END SPAN vpn.py:280(connect_sshuttle)    5.1s
+  13.6 >>> | Connected. Flushing DNS cache.
+  13.6 TEL | [36] Running: sudo -n /usr/bin/pkill -HUP mDNSResponder
+  13.7  28 | c : DNS request from ('172.31.140.114', 63778) to None: 59 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 65223) to None: 59 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 64468) to None: 58 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 57673) to None: 56 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 50916) to None: 57 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 58092) to None: 57 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 51341) to None: 60 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 55788) to None: 61 bytes
+  13.7 TEL | [36] ran in 0.05 secs.
+  13.7  28 | c : DNS request from ('172.31.140.114', 61576) to None: 61 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 63529) to None: 40 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 62310) to None: 41 bytes
+  13.7  28 | c : DNS request from ('172.31.140.114', 52556) to None: 41 bytes
+  13.7  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.0.140.31.172.in-addr.arpa'
+  13.7  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 49502
+  13.7  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8908>
+  13.7  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'db._dns-sd._udp.0.140.31.172.in-addr.arpa'
+  13.7  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 10869
+  13.7  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8c88>
+  13.7  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 10869 Closed)
+  13.7  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8c88>
+  13.7  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 49502 Closed)
+  13.7  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8908>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'b._dns-sd._udp.0.140.31.172.in-addr.arpa'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 32882
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8e80>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'b._dns-sd._udp.6.1.255.10.in-addr.arpa'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 65035
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c87b8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'db._dns-sd._udp.6.1.255.10.in-addr.arpa'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 10330
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8c50>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.6.1.255.10.in-addr.arpa'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 57955
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7198>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'b._dns-sd._udp.94.196.168.192.in-addr.arpa'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 23095
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e73c8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'db._dns-sd._udp.94.196.168.192.in-addr.arpa'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 9989
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e75f8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.94.196.168.192.in-addr.arpa'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 10782
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7828>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] Updated query of type 12 from b'b._dns-sd._udp.openvpn' to b'b._dns-sd._udp'
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'b._dns-sd._udp'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 13856
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7b70>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] Updated query of type 12 from b'db._dns-sd._udp.openvpn' to b'db._dns-sd._udp'
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'db._dns-sd._udp'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 35658
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7ef0>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] Updated query of type 12 from b'lb._dns-sd._udp.openvpn' to b'lb._dns-sd._udp'
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] 12 query: b'lb._dns-sd._udp'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 25997
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66f32b0>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] Failed to lookup b'b._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=47846 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'b._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] ], falling back to b'b._dns-sd._udp.openvpn'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 17712
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7550>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] Failed to lookup b'db._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=49044 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'db._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] ], falling back to b'db._dns-sd._udp.openvpn'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 31405
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7ac8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 32882 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8e80>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 10330 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c8c50>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 65035 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66c87b8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 57955 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7198>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 23095 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e73c8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 9989 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e75f8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 10782 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7828>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 13856 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7b70>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 35658 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7ef0>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] Failed to lookup b'lb._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=15776 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'lb._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+  13.8  18 | 2021-01-29T13:35:00+0800 [stdout#info] ], falling back to b'lb._dns-sd._udp.openvpn'
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 17132
+  13.8  18 | 2021-01-29T13:35:00+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e75f8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 25997 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66f32b0>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 17712 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7550>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 31405 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e7ac8>
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] (UDP Port 17132 Closed)
+  13.8  18 | 2021-01-29T13:35:00+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66e75f8>
+  14.3 >>> | Setup complete. Launching your command.
+  14.3 TEL | Everything launched. Waiting to exit...
+  14.3 TEL | BEGIN SPAN runner.py:726(wait_for_exit)
+  30.7  28 | c : DNS request from ('172.31.140.114', 57038) to None: 27 bytes
+  30.7  18 | 2021-01-29T13:35:17+0800 [stdout#info] A query: b'slack.com'
+  30.7  18 | 2021-01-29T13:35:17+0800 [stdout#info] Result for b'slack.com' is ['13.228.49.204']
+  31.2 TEL | [37] Running: sudo -n echo -n
+  31.2 TEL | [37] ran in 0.03 secs.
+  35.8 TEL | (proxy checking local liveness)
+  35.9  18 | 2021-01-29T13:35:22+0800 [Poll#info] Checkpoint
+  61.3 TEL | [38] Running: sudo -n echo -n
+  61.3 TEL | [38] ran in 0.03 secs.
+  65.8 TEL | (proxy checking local liveness)
+  65.9  18 | 2021-01-29T13:35:52+0800 [Poll#info] Checkpoint
+  77.1  28 | c : DNS request from ('172.31.140.114', 63778) to None: 59 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 65223) to None: 59 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 64468) to None: 58 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 57673) to None: 56 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 50916) to None: 57 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 58092) to None: 57 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 51341) to None: 60 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 55788) to None: 61 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 61576) to None: 61 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 63529) to None: 40 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 62310) to None: 41 bytes
+  77.1  28 | c : DNS request from ('172.31.140.114', 52556) to None: 41 bytes
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.0.140.31.172.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 1618
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674278>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'db._dns-sd._udp.0.140.31.172.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 57415
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674748>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'b._dns-sd._udp.0.140.31.172.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 42498
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674940>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'b._dns-sd._udp.6.1.255.10.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 58474
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674b38>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'db._dns-sd._udp.6.1.255.10.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 24377
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674d30>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.6.1.255.10.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 54264
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674f60>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'b._dns-sd._udp.94.196.168.192.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 60396
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a1d0>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'db._dns-sd._udp.94.196.168.192.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 37109
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a400>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.94.196.168.192.in-addr.arpa'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 7515
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a630>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] Updated query of type 12 from b'b._dns-sd._udp.openvpn' to b'b._dns-sd._udp'
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'b._dns-sd._udp'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 3121
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a978>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] Updated query of type 12 from b'db._dns-sd._udp.openvpn' to b'db._dns-sd._udp'
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'db._dns-sd._udp'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 3174
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667acf8>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] Updated query of type 12 from b'lb._dns-sd._udp.openvpn' to b'lb._dns-sd._udp'
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] 12 query: b'lb._dns-sd._udp'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 15179
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667ae80>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] Failed to lookup b'b._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=32046 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'b._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+  77.2  18 | 2021-01-29T13:36:03+0800 [stdout#info] ], falling back to b'b._dns-sd._udp.openvpn'
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 10049
+  77.2  18 | 2021-01-29T13:36:03+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a358>
+  77.2  18 | 2021-01-29T13:36:04+0800 [stdout#info] Failed to lookup b'db._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=5779 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'db._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+  77.2  18 | 2021-01-29T13:36:04+0800 [stdout#info] ], falling back to b'db._dns-sd._udp.openvpn'
+  77.2  18 | 2021-01-29T13:36:04+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 40618
+  77.2  18 | 2021-01-29T13:36:04+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a8d0>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 1618 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674278>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 57415 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674748>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 42498 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674940>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 58474 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674b38>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 24377 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674d30>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 54264 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674f60>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 60396 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a1d0>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 37109 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a400>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 7515 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a630>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 3121 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a978>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 3174 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667acf8>
+  77.2  18 | 2021-01-29T13:36:04+0800 [stdout#info] Failed to lookup b'lb._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=34559 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'lb._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+  77.2  18 | 2021-01-29T13:36:04+0800 [stdout#info] ], falling back to b'lb._dns-sd._udp.openvpn'
+  77.2  18 | 2021-01-29T13:36:04+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 52171
+  77.2  18 | 2021-01-29T13:36:04+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a278>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 15179 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667ae80>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 10049 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a358>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 40618 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a8d0>
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] (UDP Port 52171 Closed)
+  77.2  18 | 2021-01-29T13:36:04+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a278>
+  91.5 TEL | [39] Running: sudo -n echo -n
+  91.5 TEL | [39] ran in 0.05 secs.
+  95.9 TEL | (proxy checking local liveness)
+  96.0  18 | 2021-01-29T13:36:22+0800 [Poll#info] Checkpoint
+  99.6  28 | c : DNS request from ('172.31.140.114', 62029) to None: 27 bytes
+  99.6  28 | c : DNS request from ('172.31.140.114', 51865) to None: 30 bytes
+  99.6  18 | 2021-01-29T13:36:26+0800 [stdout#info] A query: b'slack.com'
+  99.6  18 | 2021-01-29T13:36:26+0800 [stdout#info] Result for b'slack.com' is ['13.228.49.204']
+  99.7  18 | 2021-01-29T13:36:26+0800 [stdout#info] A query: b'drive.wps.cn'
+  99.7  18 | 2021-01-29T13:36:26+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+ 121.6 TEL | [40] Running: sudo -n echo -n
+ 121.7 TEL | [40] ran in 0.04 secs.
+ 125.8 TEL | (proxy checking local liveness)
+ 125.9  18 | 2021-01-29T13:36:52+0800 [Poll#info] Checkpoint
+ 131.5  28 | c : DNS request from ('172.31.140.114', 19651) to None: 44 bytes
+ 131.6  18 | 2021-01-29T13:36:58+0800 [stdout#info] A query: b'android.clients.google.com'
+ 131.6  18 | 2021-01-29T13:36:58+0800 [stdout#info] Result for b'android.clients.google.com' is ['172.217.160.110', '172.217.160.78', '172.217.27.142', '216.58.200.46']
+ 151.8 TEL | [41] Running: sudo -n echo -n
+ 151.8 TEL | [41] ran in 0.03 secs.
+ 155.9 TEL | (proxy checking local liveness)
+ 156.0  18 | 2021-01-29T13:37:22+0800 [Poll#info] Checkpoint
+ 162.9  28 | c : DNS request from ('172.31.140.114', 52148) to None: 41 bytes
+ 163.0  18 | 2021-01-29T13:37:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+ 163.0  18 | 2021-01-29T13:37:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['109.244.23.123', '61.232.10.129', '109.244.23.169', '211.159.235.100']
+ 171.2  28 | c : DNS request from ('172.31.140.114', 51980) to None: 41 bytes
+ 171.2  28 | c : DNS request from ('172.31.140.114', 52124) to None: 41 bytes
+ 171.2  18 | 2021-01-29T13:37:38+0800 [stdout#info] A query: b'fls.jetbrains-agent.com'
+ 171.2  18 | 2021-01-29T13:37:38+0800 [stdout#info] AAAA query, sending back A instead: b'fls.jetbrains-agent.com'
+ 171.2  18 | 2021-01-29T13:37:38+0800 [stdout#info] A query: b'fls.jetbrains-agent.com'
+ 171.2  18 | 2021-01-29T13:37:38+0800 [stdout#info] Result for b'fls.jetbrains-agent.com' is ['104.21.77.208', '172.67.211.133']
+ 171.2  18 | 2021-01-29T13:37:38+0800 [stdout#info] Result for b'fls.jetbrains-agent.com' is ['104.21.77.208', '172.67.211.133']
+ 175.3  28 | c : DNS request from ('172.31.140.114', 15735) to None: 40 bytes
+ 175.3  18 | 2021-01-29T13:37:42+0800 [stdout#info] A query: b'features.opera-api.com'
+ 175.4  18 | 2021-01-29T13:37:42+0800 [stdout#info] Result for b'features.opera-api.com' is ['107.167.110.216', '107.167.110.211', '107.167.110.224', '107.167.110.223']
+ 182.0 TEL | [42] Running: sudo -n echo -n
+ 182.0 TEL | [42] ran in 0.03 secs.
+ 185.9 TEL | (proxy checking local liveness)
+ 186.0  18 | 2021-01-29T13:37:52+0800 [Poll#info] Checkpoint
+ 207.6  28 | c : DNS request from ('172.31.140.114', 50209) to None: 28 bytes
+ 207.7  18 | 2021-01-29T13:38:14+0800 [stdout#info] A query: b'github.com'
+ 207.7  18 | 2021-01-29T13:38:14+0800 [stdout#info] Result for b'github.com' is ['52.74.223.119']
+ 212.1 TEL | [43] Running: sudo -n echo -n
+ 212.1 TEL | [43] ran in 0.03 secs.
+ 215.8 TEL | (proxy checking local liveness)
+ 215.9  18 | 2021-01-29T13:38:22+0800 [Poll#info] Checkpoint
+ 227.2  28 | c : DNS request from ('172.31.140.114', 50864) to None: 30 bytes
+ 227.3  18 | 2021-01-29T13:38:34+0800 [stdout#info] A query: b'drive.wps.cn'
+ 227.3  18 | 2021-01-29T13:38:34+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+ 236.9  28 | c : DNS request from ('172.31.140.114', 63778) to None: 59 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 65223) to None: 59 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 64468) to None: 58 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 57673) to None: 56 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 50916) to None: 57 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 58092) to None: 57 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 51341) to None: 60 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 55788) to None: 61 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 61576) to None: 61 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 63529) to None: 40 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 62310) to None: 41 bytes
+ 236.9  28 | c : DNS request from ('172.31.140.114', 52556) to None: 41 bytes
+ 236.9  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.0.140.31.172.in-addr.arpa'
+ 236.9  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 50033
+ 236.9  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674908>
+ 236.9  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'db._dns-sd._udp.0.140.31.172.in-addr.arpa'
+ 236.9  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 14613
+ 236.9  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a240>
+ 236.9  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'b._dns-sd._udp.0.140.31.172.in-addr.arpa'
+ 236.9  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 17675
+ 236.9  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a438>
+ 236.9  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'b._dns-sd._udp.6.1.255.10.in-addr.arpa'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 64776
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a630>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'db._dns-sd._udp.6.1.255.10.in-addr.arpa'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 47222
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a860>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.6.1.255.10.in-addr.arpa'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 62207
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668aa90>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'b._dns-sd._udp.94.196.168.192.in-addr.arpa'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 1354
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668acc0>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'db._dns-sd._udp.94.196.168.192.in-addr.arpa'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 24356
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668aef0>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.94.196.168.192.in-addr.arpa'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 27777
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668c160>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] Updated query of type 12 from b'b._dns-sd._udp.openvpn' to b'b._dns-sd._udp'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'b._dns-sd._udp'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 32731
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674f60>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] Updated query of type 12 from b'db._dns-sd._udp.openvpn' to b'db._dns-sd._udp'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'db._dns-sd._udp'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 13825
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667ac88>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] Updated query of type 12 from b'lb._dns-sd._udp.openvpn' to b'lb._dns-sd._udp'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] 12 query: b'lb._dns-sd._udp'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 45573
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a080>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] Failed to lookup b'b._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=14303 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'b._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] ], falling back to b'b._dns-sd._udp.openvpn'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 55537
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a940>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] Failed to lookup b'db._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=63005 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'db._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] ], falling back to b'db._dns-sd._udp.openvpn'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 24609
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668ae80>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 50033 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674908>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 64776 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a630>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 17675 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a438>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 14613 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a240>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 47222 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a860>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 24356 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668aef0>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 1354 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668acc0>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 27777 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668c160>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 62207 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668aa90>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 32731 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674f60>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 13825 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667ac88>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] Failed to lookup b'lb._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=49376 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'lb._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [stdout#info] ], falling back to b'lb._dns-sd._udp.openvpn'
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 65033
+ 237.0  18 | 2021-01-29T13:38:43+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66746a0>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 45573 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a080>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 55537 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a940>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 24609 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668ae80>
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] (UDP Port 65033 Closed)
+ 237.0  18 | 2021-01-29T13:38:43+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66746a0>
+ 242.3 TEL | [44] Running: sudo -n echo -n
+ 242.3 TEL | [44] ran in 0.02 secs.
+ 245.9 TEL | (proxy checking local liveness)
+ 246.0  18 | 2021-01-29T13:38:52+0800 [Poll#info] Checkpoint
+ 253.3  28 | c : DNS request from ('172.31.140.114', 62728) to None: 43 bytes
+ 253.4  18 | 2021-01-29T13:39:00+0800 [stdout#info] A query: b'vortex.data.microsoft.com'
+ 253.4  18 | 2021-01-29T13:39:00+0800 [stdout#info] Result for b'vortex.data.microsoft.com' is ['111.221.29.254']
+ 261.6  28 | c : DNS request from ('172.31.140.114', 56450) to None: 38 bytes
+ 261.7  18 | 2021-01-29T13:39:08+0800 [stdout#info] A query: b'time-macos.apple.com'
+ 261.7  18 | 2021-01-29T13:39:08+0800 [stdout#info] Result for b'time-macos.apple.com' is ['17.253.84.123', '17.253.68.253', '17.253.68.251', '17.253.84.251', '17.253.84.253']
+ 272.4 TEL | [45] Running: sudo -n echo -n
+ 272.4 TEL | [45] ran in 0.05 secs.
+ 275.8 TEL | (proxy checking local liveness)
+ 275.9  18 | 2021-01-29T13:39:22+0800 [Poll#info] Checkpoint
+ 302.6 TEL | [46] Running: sudo -n echo -n
+ 302.6 TEL | [46] ran in 0.03 secs.
+ 305.9 TEL | (proxy checking local liveness)
+ 306.0  18 | 2021-01-29T13:39:52+0800 [Poll#info] Checkpoint
+ 332.7 TEL | [47] Running: sudo -n echo -n
+ 332.8 TEL | [47] ran in 0.03 secs.
+ 335.8 TEL | (proxy checking local liveness)
+ 335.9  18 | 2021-01-29T13:40:22+0800 [Poll#info] Checkpoint
+ 347.9  28 | c : DNS request from ('172.31.140.114', 62577) to None: 30 bytes
+ 348.0  18 | 2021-01-29T13:40:34+0800 [stdout#info] A query: b'drive.wps.cn'
+ 348.0  18 | 2021-01-29T13:40:34+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+ 362.9 TEL | [48] Running: sudo -n echo -n
+ 362.9 TEL | [48] ran in 0.03 secs.
+ 365.8 TEL | (proxy checking local liveness)
+ 365.9  18 | 2021-01-29T13:40:52+0800 [Poll#info] Checkpoint
+ 393.0 TEL | [49] Running: sudo -n echo -n
+ 393.1 TEL | [49] ran in 0.03 secs.
+ 395.8 TEL | (proxy checking local liveness)
+ 395.9  18 | 2021-01-29T13:41:22+0800 [Poll#info] Checkpoint
+ 406.7  28 | c : DNS request from ('172.31.140.114', 50115) to None: 28 bytes
+ 406.7  18 | 2021-01-29T13:41:33+0800 [stdout#info] A query: b'github.com'
+ 406.8  18 | 2021-01-29T13:41:33+0800 [stdout#info] Result for b'github.com' is ['52.74.223.119']
+ 423.2 TEL | [50] Running: sudo -n echo -n
+ 423.2 TEL | [50] ran in 0.03 secs.
+ 425.8 TEL | (proxy checking local liveness)
+ 425.9  18 | 2021-01-29T13:41:52+0800 [Poll#info] Checkpoint
+ 453.4 TEL | [51] Running: sudo -n echo -n
+ 453.4 TEL | [51] ran in 0.03 secs.
+ 455.8 TEL | (proxy checking local liveness)
+ 455.9  18 | 2021-01-29T13:42:22+0800 [Poll#info] Checkpoint
+ 456.4  28 | c : DNS request from ('172.31.140.114', 56502) to None: 35 bytes
+ 456.5  18 | 2021-01-29T13:42:23+0800 [stdout#info] A query: b'qingcenter.wps.cn'
+ 456.5  18 | 2021-01-29T13:42:23+0800 [stdout#info] Result for b'qingcenter.wps.cn' is ['239.11.20.1']
+ 462.4  28 | c : DNS request from ('172.31.140.114', 54497) to None: 29 bytes
+ 462.5  18 | 2021-01-29T13:42:29+0800 [stdout#info] A query: b'pcfg.wps.cn'
+ 462.5  18 | 2021-01-29T13:42:29+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.16', '120.92.84.225']
+ 462.9  28 | c : DNS request from ('172.31.140.114', 65047) to None: 41 bytes
+ 463.0  18 | 2021-01-29T13:42:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+ 463.0  18 | 2021-01-29T13:42:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['119.28.109.132', '118.191.216.42', '118.191.216.57']
+ 464.4  28 | c : DNS request from ('172.31.140.114', 65137) to None: 30 bytes
+ 464.5  18 | 2021-01-29T13:42:31+0800 [stdout#info] A query: b'drive.wps.cn'
+ 464.5  18 | 2021-01-29T13:42:31+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+ 483.5 TEL | [52] Running: sudo -n echo -n
+ 483.5 TEL | [52] ran in 0.03 secs.
+ 485.8 TEL | (proxy checking local liveness)
+ 485.9  18 | 2021-01-29T13:42:52+0800 [Poll#info] Checkpoint
+ 513.7 TEL | [53] Running: sudo -n echo -n
+ 513.7 TEL | [53] ran in 0.03 secs.
+ 515.8 TEL | (proxy checking local liveness)
+ 515.9  18 | 2021-01-29T13:43:22+0800 [Poll#info] Checkpoint
+ 531.9  28 | c : DNS request from ('172.31.140.114', 52791) to None: 38 bytes
+ 532.0  18 | 2021-01-29T13:43:38+0800 [stdout#info] A query: b'speeddials.opera.com'
+ 532.0  18 | 2021-01-29T13:43:38+0800 [stdout#info] Result for b'speeddials.opera.com' is ['107.167.110.224', '107.167.110.211', '107.167.110.223', '107.167.110.216']
+ 533.0  28 | c : DNS request from ('172.31.140.114', 8196) to None: 32 bytes
+ 533.0  18 | 2021-01-29T13:43:39+0800 [stdout#info] A query: b'www.google.com'
+ 533.1  18 | 2021-01-29T13:43:39+0800 [stdout#info] Result for b'www.google.com' is ['108.177.125.105', '108.177.125.103', '108.177.125.104', '108.177.125.99', '108.177.125.147', '108.177.125.106']
+ 543.8 TEL | [54] Running: sudo -n echo -n
+ 543.8 TEL | [54] ran in 0.03 secs.
+ 545.8 TEL | (proxy checking local liveness)
+ 545.9  18 | 2021-01-29T13:43:52+0800 [Poll#info] Checkpoint
+ 574.0 TEL | [55] Running: sudo -n echo -n
+ 574.0 TEL | [55] ran in 0.03 secs.
+ 575.7  28 | c : DNS request from ('172.31.140.114', 33764) to None: 45 bytes
+ 575.7  18 | 2021-01-29T13:44:22+0800 [stdout#info] A query: b'safebrowsing.googleapis.com'
+ 575.7  18 | 2021-01-29T13:44:22+0800 [stdout#info] Result for b'safebrowsing.googleapis.com' is ['180.163.151.161']
+ 575.8 TEL | (proxy checking local liveness)
+ 575.9  18 | 2021-01-29T13:44:22+0800 [Poll#info] Checkpoint
+ 583.2  28 | c : DNS request from ('172.31.140.114', 57401) to None: 30 bytes
+ 583.3  18 | 2021-01-29T13:44:30+0800 [stdout#info] A query: b'drive.wps.cn'
+ 583.3  18 | 2021-01-29T13:44:30+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+ 604.1 TEL | [56] Running: sudo -n echo -n
+ 604.1 TEL | [56] ran in 0.03 secs.
+ 605.8 TEL | (proxy checking local liveness)
+ 605.9  18 | 2021-01-29T13:44:52+0800 [Poll#info] Checkpoint
+ 623.0  28 | c : DNS request from ('172.31.140.114', 56523) to None: 47 bytes
+ 623.0  18 | 2021-01-29T13:45:09+0800 [stdout#info] A query: b'clientservices.googleapis.com'
+ 623.0  18 | 2021-01-29T13:45:09+0800 [stdout#info] Result for b'clientservices.googleapis.com' is ['64.233.188.94']
+ 628.4  28 | c : DNS request from ('172.31.140.114', 63621) to None: 29 bytes
+ 628.5  18 | 2021-01-29T13:45:15+0800 [stdout#info] A query: b'pcfg.wps.cn'
+ 628.5  18 | 2021-01-29T13:45:15+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.225', '120.92.84.16']
+ 634.3 TEL | [57] Running: sudo -n echo -n
+ 634.3 TEL | [57] ran in 0.03 secs.
+ 635.9 TEL | (proxy checking local liveness)
+ 635.9  18 | 2021-01-29T13:45:22+0800 [Poll#info] Checkpoint
+ 637.0  28 | c : DNS request from ('172.31.140.114', 63778) to None: 59 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 65223) to None: 59 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 64468) to None: 58 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 57673) to None: 56 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 50916) to None: 57 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 58092) to None: 57 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 51341) to None: 60 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 55788) to None: 61 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 61576) to None: 61 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 63529) to None: 40 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 62310) to None: 41 bytes
+ 637.0  28 | c : DNS request from ('172.31.140.114', 52556) to None: 41 bytes
+ 637.1  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.0.140.31.172.in-addr.arpa'
+ 637.1  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 17877
+ 637.1  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668aeb8>
+ 637.1  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'db._dns-sd._udp.0.140.31.172.in-addr.arpa'
+ 637.1  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 8825
+ 637.1  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668ab38>
+ 637.1  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'b._dns-sd._udp.0.140.31.172.in-addr.arpa'
+ 637.1  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 20295
+ 637.1  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6719eb8>
+ 637.1  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'b._dns-sd._udp.6.1.255.10.in-addr.arpa'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 3379
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674b00>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'db._dns-sd._udp.6.1.255.10.in-addr.arpa'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 18482
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674fd0>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.6.1.255.10.in-addr.arpa'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 11327
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66746a0>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'b._dns-sd._udp.94.196.168.192.in-addr.arpa'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 55117
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668c860>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'db._dns-sd._udp.94.196.168.192.in-addr.arpa'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 21951
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668c4a8>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.94.196.168.192.in-addr.arpa'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 37111
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668cc88>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] Updated query of type 12 from b'b._dns-sd._udp.openvpn' to b'b._dns-sd._udp'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'b._dns-sd._udp'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 20823
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668cf98>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] Updated query of type 12 from b'db._dns-sd._udp.openvpn' to b'db._dns-sd._udp'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'db._dns-sd._udp'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 42291
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6694358>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] Updated query of type 12 from b'lb._dns-sd._udp.openvpn' to b'lb._dns-sd._udp'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] 12 query: b'lb._dns-sd._udp'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 20698
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a470>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] Failed to lookup b'b._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=34944 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'b._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] ], falling back to b'b._dns-sd._udp.openvpn'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 40525
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668ca58>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] Failed to lookup b'db._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=30908 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'db._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] ], falling back to b'db._dns-sd._udp.openvpn'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 21386
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668cda0>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 3379 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674b00>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 11327 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66746a0>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 8825 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668ab38>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 17877 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668aeb8>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 18482 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674fd0>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 20295 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6719eb8>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 37111 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668cc88>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 55117 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668c860>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 21951 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668c4a8>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 20823 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668cf98>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 42291 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6694358>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] Failed to lookup b'lb._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=4764 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'lb._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [stdout#info] ], falling back to b'lb._dns-sd._udp.openvpn'
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 57933
+ 637.2  18 | 2021-01-29T13:45:23+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674d30>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 20698 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a470>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 40525 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668ca58>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 21386 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668cda0>
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] (UDP Port 57933 Closed)
+ 637.2  18 | 2021-01-29T13:45:23+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674d30>
+ 642.8  28 | c : DNS request from ('172.31.140.114', 51325) to None: 29 bytes
+ 642.8  28 | c : DNS request from ('172.31.140.114', 52292) to None: 32 bytes
+ 642.9  18 | 2021-01-29T13:45:29+0800 [stdout#info] A query: b'plus.wps.cn'
+ 642.9  18 | 2021-01-29T13:45:29+0800 [stdout#info] A query: b'plussvr.wps.cn'
+ 642.9  18 | 2021-01-29T13:45:29+0800 [stdout#info] Result for b'plus.wps.cn' is ['110.43.67.232', '120.92.74.246']
+ 642.9  18 | 2021-01-29T13:45:29+0800 [stdout#info] Result for b'plussvr.wps.cn' is ['110.43.67.232']
+ 664.4 TEL | [58] Running: sudo -n echo -n
+ 664.4 TEL | [58] ran in 0.03 secs.
+ 665.8 TEL | (proxy checking local liveness)
+ 665.9  18 | 2021-01-29T13:45:52+0800 [Poll#info] Checkpoint
+ 694.6 TEL | [59] Running: sudo -n echo -n
+ 694.6 TEL | [59] ran in 0.03 secs.
+ 695.9 TEL | (proxy checking local liveness)
+ 695.9  18 | 2021-01-29T13:46:22+0800 [Poll#info] Checkpoint
+ 699.3  28 | c : DNS request from ('172.31.140.114', 3957) to None: 47 bytes
+ 699.3  18 | 2021-01-29T13:46:26+0800 [stdout#info] A query: b'clientservices.googleapis.com'
+ 699.3  18 | 2021-01-29T13:46:26+0800 [stdout#info] Result for b'clientservices.googleapis.com' is ['64.233.188.94']
+ 702.8  28 | c : DNS request from ('172.31.140.114', 61875) to None: 30 bytes
+ 702.8  18 | 2021-01-29T13:46:29+0800 [stdout#info] A query: b'drive.wps.cn'
+ 702.8  18 | 2021-01-29T13:46:29+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+ 724.7 TEL | [60] Running: sudo -n echo -n
+ 724.8 TEL | [60] ran in 0.03 secs.
+ 725.8 TEL | (proxy checking local liveness)
+ 725.9  18 | 2021-01-29T13:46:52+0800 [Poll#info] Checkpoint
+ 746.1  28 | c : DNS request from ('172.31.140.114', 64018) to None: 35 bytes
+ 746.2  18 | 2021-01-29T13:47:12+0800 [stdout#info] Updated query of type 28 from b'localhost.openvpn' to b'localhost'
+ 746.2  18 | 2021-01-29T13:47:12+0800 [stdout#info] AAAA query, sending back A instead: b'localhost'
+ 746.2  28 | c : DNS request from ('172.31.140.114', 53122) to None: 27 bytes
+ 746.2  18 | 2021-01-29T13:47:12+0800 [stdout#info] A query: b'localhost'
+ 746.2  18 | 2021-01-29T13:47:12+0800 [stdout#info] Result for b'localhost.openvpn' is ['127.0.0.1']
+ 746.2  18 | 2021-01-29T13:47:13+0800 [stdout#info] AAAA query, sending back A instead: b'localhost'
+ 746.2  18 | 2021-01-29T13:47:13+0800 [stdout#info] A query: b'localhost'
+ 746.2  18 | 2021-01-29T13:47:13+0800 [stdout#info] Result for b'localhost' is ['127.0.0.1']
+ 746.9  28 | c : DNS request from ('172.31.140.114', 60096) to None: 40 bytes
+ 746.9  18 | 2021-01-29T13:47:13+0800 [stdout#info] A query: b'api.apple-cloudkit.com'
+ 746.9  18 | 2021-01-29T13:47:13+0800 [stdout#info] Result for b'api.apple-cloudkit.com' is ['17.248.165.4', '17.248.165.111', '17.248.165.48', '17.248.165.9', '17.248.165.80', '17.248.165.140', '17.248.165.47', '17.248.165.7']
+ 754.1  28 | c : DNS request from ('172.31.140.114', 60083) to None: 47 bytes
+ 754.2  18 | 2021-01-29T13:47:20+0800 [stdout#info] A query: b'apidata.googleusercontent.com'
+ 754.2  18 | 2021-01-29T13:47:20+0800 [stdout#info] Result for b'apidata.googleusercontent.com' is ['172.217.27.129']
+ 754.9 TEL | [61] Running: sudo -n echo -n
+ 754.9 TEL | [61] ran in 0.03 secs.
+ 755.8 TEL | (proxy checking local liveness)
+ 755.9  18 | 2021-01-29T13:47:22+0800 [Poll#info] Checkpoint
+ 762.9  28 | c : DNS request from ('172.31.140.114', 65300) to None: 41 bytes
+ 763.0  18 | 2021-01-29T13:47:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+ 763.0  18 | 2021-01-29T13:47:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['118.191.216.42', '119.28.109.132', '118.191.216.57']
+ 773.0  28 | c : DNS request from ('172.31.140.114', 47149) to None: 38 bytes
+ 773.1  18 | 2021-01-29T13:47:39+0800 [stdout#info] A query: b'youhui.pinduoduo.com'
+ 773.1  18 | 2021-01-29T13:47:39+0800 [stdout#info] Result for b'youhui.pinduoduo.com' is ['118.89.209.39']
+ 785.0 TEL | [62] Running: sudo -n echo -n
+ 785.1 TEL | [62] ran in 0.03 secs.
+ 785.9 TEL | (proxy checking local liveness)
+ 786.0  18 | 2021-01-29T13:47:52+0800 [Poll#info] Checkpoint
+ 815.2 TEL | [63] Running: sudo -n echo -n
+ 815.2 TEL | [63] ran in 0.03 secs.
+ 815.8 TEL | (proxy checking local liveness)
+ 815.9  18 | 2021-01-29T13:48:22+0800 [Poll#info] Checkpoint
+ 823.8  28 | c : DNS request from ('172.31.140.114', 64266) to None: 30 bytes
+ 823.9  18 | 2021-01-29T13:48:30+0800 [stdout#info] A query: b'drive.wps.cn'
+ 823.9  18 | 2021-01-29T13:48:30+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+ 830.3  28 | c : DNS request from ('172.31.140.114', 52186) to None: 47 bytes
+ 830.3  18 | 2021-01-29T13:48:37+0800 [stdout#info] A query: b'apidata.googleusercontent.com'
+ 830.4  18 | 2021-01-29T13:48:37+0800 [stdout#info] Result for b'apidata.googleusercontent.com' is ['172.217.27.129']
+ 845.4 TEL | [64] Running: sudo -n echo -n
+ 845.4 TEL | [64] ran in 0.03 secs.
+ 845.8 TEL | (proxy checking local liveness)
+ 845.9  18 | 2021-01-29T13:48:52+0800 [Poll#info] Checkpoint
+ 875.5 TEL | [65] Running: sudo -n echo -n
+ 875.5 TEL | [65] ran in 0.03 secs.
+ 875.8 TEL | (proxy checking local liveness)
+ 875.9  18 | 2021-01-29T13:49:22+0800 [Poll#info] Checkpoint
+ 898.2  28 | c : DNS request from ('172.31.140.114', 59144) to None: 45 bytes
+ 898.3  18 | 2021-01-29T13:49:45+0800 [stdout#info] A query: b'safebrowsing.googleapis.com'
+ 898.3  18 | 2021-01-29T13:49:45+0800 [stdout#info] Result for b'safebrowsing.googleapis.com' is ['64.233.189.95']
+ 904.4  28 | c : DNS request from ('172.31.140.114', 60743) to None: 29 bytes
+ 904.5  18 | 2021-01-29T13:49:51+0800 [stdout#info] A query: b'pcfg.wps.cn'
+ 904.5  18 | 2021-01-29T13:49:51+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.16', '120.92.84.225']
+ 905.6 TEL | [66] Running: sudo -n echo -n
+ 905.7 TEL | [66] ran in 0.03 secs.
+ 905.8 TEL | (proxy checking local liveness)
+ 905.9  18 | 2021-01-29T13:49:52+0800 [Poll#info] Checkpoint
+ 906.5  28 | c : DNS request from ('172.31.140.114', 53836) to None: 47 bytes
+ 906.6  18 | 2021-01-29T13:49:53+0800 [stdout#info] A query: b'apidata.googleusercontent.com'
+ 906.6  18 | 2021-01-29T13:49:53+0800 [stdout#info] Result for b'apidata.googleusercontent.com' is ['172.217.27.129']
+ 935.8 TEL | [67] Running: sudo -n echo -n
+ 935.8 TEL | [67] ran in 0.03 secs.
+ 935.8 TEL | (proxy checking local liveness)
+ 935.9  18 | 2021-01-29T13:50:22+0800 [Poll#info] Checkpoint
+ 949.1  28 | c : DNS request from ('172.31.140.114', 50832) to None: 30 bytes
+ 949.2  18 | 2021-01-29T13:50:35+0800 [stdout#info] A query: b'drive.wps.cn'
+ 949.2  18 | 2021-01-29T13:50:35+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+ 965.8 TEL | (proxy checking local liveness)
+ 965.9  18 | 2021-01-29T13:50:52+0800 [Poll#info] Checkpoint
+ 965.9 TEL | [68] Running: sudo -n echo -n
+ 966.0 TEL | [68] ran in 0.03 secs.
+ 971.5  28 | c : DNS request from ('172.31.140.114', 13434) to None: 44 bytes
+ 971.6  18 | 2021-01-29T13:50:58+0800 [stdout#info] A query: b'android.clients.google.com'
+ 971.6  18 | 2021-01-29T13:50:58+0800 [stdout#info] Result for b'android.clients.google.com' is ['172.217.24.14', '216.58.200.46', '172.217.160.78', '216.58.200.238', '172.217.160.110']
+ 974.3  28 | c : DNS request from ('172.31.140.114', 55741) to None: 45 bytes
+ 974.4  18 | 2021-01-29T13:51:01+0800 [stdout#info] A query: b'safebrowsing.googleapis.com'
+ 974.4  18 | 2021-01-29T13:51:01+0800 [stdout#info] Result for b'safebrowsing.googleapis.com' is ['74.125.23.95']
+ 982.6  28 | c : DNS request from ('172.31.140.114', 64600) to None: 47 bytes
+ 982.7  18 | 2021-01-29T13:51:09+0800 [stdout#info] A query: b'apidata.googleusercontent.com'
+ 982.7  18 | 2021-01-29T13:51:09+0800 [stdout#info] Result for b'apidata.googleusercontent.com' is ['172.217.27.129']
+ 995.8 TEL | (proxy checking local liveness)
+ 995.9  18 | 2021-01-29T13:51:22+0800 [Poll#info] Checkpoint
+ 996.1 TEL | [69] Running: sudo -n echo -n
+ 996.1 TEL | [69] ran in 0.03 secs.
+ 998.3  28 | c : DNS request from ('172.31.140.114', 64562) to None: 35 bytes
+ 998.3  18 | 2021-01-29T13:51:25+0800 [stdout#info] Updated query of type 28 from b'localhost.openvpn' to b'localhost'
+ 998.3  28 | c : DNS request from ('172.31.140.114', 52227) to None: 27 bytes
+ 998.3  18 | 2021-01-29T13:51:25+0800 [stdout#info] AAAA query, sending back A instead: b'localhost'
+ 998.3  18 | 2021-01-29T13:51:25+0800 [stdout#info] A query: b'localhost'
+ 998.3  18 | 2021-01-29T13:51:25+0800 [stdout#info] Result for b'localhost.openvpn' is ['127.0.0.1']
+ 998.4  18 | 2021-01-29T13:51:25+0800 [stdout#info] AAAA query, sending back A instead: b'localhost'
+ 998.4  18 | 2021-01-29T13:51:25+0800 [stdout#info] A query: b'localhost'
+ 998.4  18 | 2021-01-29T13:51:25+0800 [stdout#info] Result for b'localhost' is ['127.0.0.1']
+ 998.9  28 | c : DNS request from ('172.31.140.114', 58988) to None: 40 bytes
+ 999.0  18 | 2021-01-29T13:51:25+0800 [stdout#info] A query: b'api.apple-cloudkit.com'
+ 999.0  18 | 2021-01-29T13:51:25+0800 [stdout#info] Result for b'api.apple-cloudkit.com' is ['17.248.165.50', '17.248.165.41', '17.248.165.36', '17.248.165.78', '17.248.165.112', '17.248.165.79', '17.248.165.42', '17.248.165.19']
+1025.3  28 | c : DNS request from ('172.31.140.114', 50419) to None: 36 bytes
+1025.4  18 | 2021-01-29T13:51:52+0800 [stdout#info] A query: b'www.googleapis.com'
+1025.4  18 | 2021-01-29T13:51:52+0800 [stdout#info] Result for b'www.googleapis.com' is ['74.125.204.95', '74.125.23.95', '74.125.203.95', '64.233.189.95', '108.177.125.95', '108.177.97.95']
+1025.8 TEL | (proxy checking local liveness)
+1025.9  18 | 2021-01-29T13:51:52+0800 [Poll#info] Checkpoint
+1026.3 TEL | [70] Running: sudo -n echo -n
+1026.3 TEL | [70] ran in 0.03 secs.
+1039.2  28 | c : DNS request from ('172.31.140.114', 54524) to None: 27 bytes
+1039.2  28 | c : DNS request from ('172.31.140.114', 50484) to None: 31 bytes
+1039.3  18 | 2021-01-29T13:52:06+0800 [stdout#info] A query: b'slack.com'
+1039.3  18 | 2021-01-29T13:52:06+0800 [stdout#info] A query: b'app.slack.com'
+1039.3  18 | 2021-01-29T13:52:06+0800 [stdout#info] Result for b'slack.com' is ['13.228.49.204']
+1039.3  18 | 2021-01-29T13:52:06+0800 [stdout#info] Result for b'app.slack.com' is ['13.228.49.204']
+1055.8 TEL | (proxy checking local liveness)
+1055.9  18 | 2021-01-29T13:52:22+0800 [Poll#info] Checkpoint
+1056.4 TEL | [71] Running: sudo -n echo -n
+1056.4 TEL | [71] ran in 0.03 secs.
+1060.0  28 | c : DNS request from ('172.31.140.114', 49287) to None: 30 bytes
+1060.0  18 | 2021-01-29T13:52:26+0800 [stdout#info] A query: b'drive.wps.cn'
+1060.1  18 | 2021-01-29T13:52:26+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+1062.9  28 | c : DNS request from ('172.31.140.114', 57849) to None: 41 bytes
+1063.1  18 | 2021-01-29T13:52:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+1063.1  18 | 2021-01-29T13:52:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['118.191.216.57', '118.191.216.42', '119.28.109.132']
+1085.8 TEL | (proxy checking local liveness)
+1085.9  18 | 2021-01-29T13:52:52+0800 [Poll#info] Checkpoint
+1086.6 TEL | [72] Running: sudo -n echo -n
+1086.6 TEL | [72] ran in 0.03 secs.
+1103.7  28 | c : DNS request from ('172.31.140.114', 50647) to None: 43 bytes
+1103.8  18 | 2021-01-29T13:53:10+0800 [stdout#info] A query: b'vortex.data.microsoft.com'
+1103.9  18 | 2021-01-29T13:53:10+0800 [stdout#info] Result for b'vortex.data.microsoft.com' is ['111.221.29.254']
+1115.8 TEL | (proxy checking local liveness)
+1115.9  18 | 2021-01-29T13:53:22+0800 [Poll#info] Checkpoint
+1116.7 TEL | [73] Running: sudo -n echo -n
+1116.8 TEL | [73] ran in 0.03 secs.
+1145.8 TEL | (proxy checking local liveness)
+1145.9  18 | 2021-01-29T13:53:52+0800 [Poll#info] Checkpoint
+1146.9 TEL | [74] Running: sudo -n echo -n
+1146.9 TEL | [74] ran in 0.03 secs.
+1174.6  28 | c : DNS request from ('172.31.140.114', 49691) to None: 35 bytes
+1174.6  18 | 2021-01-29T13:54:21+0800 [stdout#info] A query: b'edgeapi.slack.com'
+1174.7  18 | 2021-01-29T13:54:21+0800 [stdout#info] Result for b'edgeapi.slack.com' is ['52.196.70.74']
+1175.8 TEL | (proxy checking local liveness)
+1175.9  18 | 2021-01-29T13:54:22+0800 [Poll#info] Checkpoint
+1177.0 TEL | [75] Running: sudo -n echo -n
+1177.1 TEL | [75] ran in 0.03 secs.
+1181.2  28 | c : DNS request from ('172.31.140.114', 57021) to None: 30 bytes
+1181.3  18 | 2021-01-29T13:54:28+0800 [stdout#info] A query: b'drive.wps.cn'
+1181.3  18 | 2021-01-29T13:54:28+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+1183.0  28 | c : DNS request from ('172.31.140.114', 57510) to None: 45 bytes
+1183.1  18 | 2021-01-29T13:54:29+0800 [stdout#info] A query: b'safebrowsing.googleapis.com'
+1183.1  18 | 2021-01-29T13:54:29+0800 [stdout#info] Result for b'safebrowsing.googleapis.com' is ['74.125.23.95']
+1205.9 TEL | (proxy checking local liveness)
+1205.9  18 | 2021-01-29T13:54:52+0800 [Poll#info] Checkpoint
+1207.2 TEL | [76] Running: sudo -n echo -n
+1207.2 TEL | [76] ran in 0.03 secs.
+1235.8 TEL | (proxy checking local liveness)
+1235.9  18 | 2021-01-29T13:55:22+0800 [Poll#info] Checkpoint
+1237.3 TEL | [77] Running: sudo -n echo -n
+1237.4 TEL | [77] ran in 0.03 secs.
+1245.2  28 | c : DNS request from ('172.31.140.114', 61391) to None: 29 bytes
+1245.3  18 | 2021-01-29T13:55:32+0800 [stdout#info] A query: b'pcfg.wps.cn'
+1245.3  18 | 2021-01-29T13:55:32+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.16', '120.92.84.225']
+1250.8  28 | c : DNS request from ('172.31.140.114', 59324) to None: 35 bytes
+1250.8  18 | 2021-01-29T13:55:37+0800 [stdout#info] A query: b'edgeapi.slack.com'
+1250.8  18 | 2021-01-29T13:55:37+0800 [stdout#info] Result for b'edgeapi.slack.com' is ['18.138.211.2']
+1261.2  28 | c : DNS request from ('172.31.140.114', 54156) to None: 41 bytes
+1261.3  18 | 2021-01-29T13:55:48+0800 [stdout#info] A query: b'ch3301.storage.live.com'
+1261.7  18 | 2021-01-29T13:55:48+0800 [stdout#info] Result for b'ch3301.storage.live.com' is ['13.107.42.12']
+1262.2  28 | c : DNS request from ('172.31.140.114', 55151) to None: 63 bytes
+1262.3  18 | 2021-01-29T13:55:49+0800 [stdout#info] A query: b'onedriveclucprodbn20019.blob.core.windows.net'
+1262.3  18 | 2021-01-29T13:55:49+0800 [stdout#info] Result for b'onedriveclucprodbn20019.blob.core.windows.net' is ['40.79.48.16']
+1265.8 TEL | (proxy checking local liveness)
+1265.9  18 | 2021-01-29T13:55:52+0800 [Poll#info] Checkpoint
+1267.5 TEL | [78] Running: sudo -n echo -n
+1267.5 TEL | [78] ran in 0.04 secs.
+1282.1  28 | c : DNS request from ('172.31.140.114', 59900) to None: 38 bytes
+1282.1  18 | 2021-01-29T13:56:08+0800 [stdout#info] A query: b'time-macos.apple.com'
+1282.1  18 | 2021-01-29T13:56:08+0800 [stdout#info] Result for b'time-macos.apple.com' is ['17.253.84.251', '17.253.68.125', '17.253.84.123', '17.253.68.253', '17.253.84.253']
+1295.9 TEL | (proxy checking local liveness)
+1295.9  18 | 2021-01-29T13:56:22+0800 [Poll#info] Checkpoint
+1297.7 TEL | [79] Running: sudo -n echo -n
+1297.7 TEL | [79] ran in 0.03 secs.
+1303.2  28 | c : DNS request from ('172.31.140.114', 58589) to None: 30 bytes
+1303.2  18 | 2021-01-29T13:56:30+0800 [stdout#info] A query: b'drive.wps.cn'
+1303.2  18 | 2021-01-29T13:56:30+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+1309.8  28 | c : DNS request from ('172.31.140.114', 57773) to None: 29 bytes
+1309.9  18 | 2021-01-29T13:56:36+0800 [stdout#info] A query: b'wx.qlogo.cn'
+1309.9  18 | 2021-01-29T13:56:36+0800 [stdout#info] Result for b'wx.qlogo.cn' is ['203.205.234.156', '203.205.232.66']
+1310.7  28 | c : DNS request from ('172.31.140.114', 64607) to None: 28 bytes
+1310.7  18 | 2021-01-29T13:56:37+0800 [stdout#info] A query: b'github.com'
+1310.7  18 | 2021-01-29T13:56:37+0800 [stdout#info] Result for b'github.com' is ['13.250.177.223']
+1322.8  28 | c : DNS request from ('172.31.140.114', 56900) to None: 29 bytes
+1322.8  18 | 2021-01-29T13:56:49+0800 [stdout#info] A query: b'pcfg.wps.cn'
+1322.8  18 | 2021-01-29T13:56:49+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.225', '120.92.84.16']
+1325.8 TEL | (proxy checking local liveness)
+1325.9  18 | 2021-01-29T13:56:52+0800 [Poll#info] Checkpoint
+1327.8 TEL | [80] Running: sudo -n echo -n
+1327.9 TEL | [80] ran in 0.03 secs.
+1355.8 TEL | (proxy checking local liveness)
+1355.9  18 | 2021-01-29T13:57:22+0800 [Poll#info] Checkpoint
+1358.0 TEL | [81] Running: sudo -n echo -n
+1358.0 TEL | [81] ran in 0.03 secs.
+1362.9  28 | c : DNS request from ('172.31.140.114', 62749) to None: 41 bytes
+1363.0  18 | 2021-01-29T13:57:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+1363.0  18 | 2021-01-29T13:57:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['118.191.216.57', '118.191.216.42', '119.28.109.132']
+1385.8 TEL | (proxy checking local liveness)
+1385.9  18 | 2021-01-29T13:57:52+0800 [Poll#info] Checkpoint
+1388.1 TEL | [82] Running: sudo -n echo -n
+1388.2 TEL | [82] ran in 0.03 secs.
+1407.6  28 | c : DNS request from ('172.31.140.114', 63213) to None: 28 bytes
+1407.7  18 | 2021-01-29T13:58:14+0800 [stdout#info] A query: b'github.com'
+1407.7  18 | 2021-01-29T13:58:14+0800 [stdout#info] Result for b'github.com' is ['13.229.188.59']
+1413.4  28 | c : DNS request from ('172.31.140.114', 61180) to None: 29 bytes
+1413.5  18 | 2021-01-29T13:58:20+0800 [stdout#info] A query: b'pcfg.wps.cn'
+1413.5  18 | 2021-01-29T13:58:20+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.225', '120.92.84.16']
+1415.8 TEL | (proxy checking local liveness)
+1415.9  18 | 2021-01-29T13:58:22+0800 [Poll#info] Checkpoint
+1418.3 TEL | [83] Running: sudo -n echo -n
+1418.3 TEL | [83] ran in 0.03 secs.
+1423.2  28 | c : DNS request from ('172.31.140.114', 59418) to None: 30 bytes
+1423.2  18 | 2021-01-29T13:58:30+0800 [stdout#info] A query: b'drive.wps.cn'
+1423.2  18 | 2021-01-29T13:58:30+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+1445.8 TEL | (proxy checking local liveness)
+1445.9  18 | 2021-01-29T13:58:52+0800 [Poll#info] Checkpoint
+1448.4 TEL | [84] Running: sudo -n echo -n
+1448.5 TEL | [84] ran in 0.02 secs.
+1475.9 TEL | (proxy checking local liveness)
+1476.0  18 | 2021-01-29T13:59:22+0800 [Poll#info] Checkpoint
+1478.6 TEL | [85] Running: sudo -n echo -n
+1478.6 TEL | [85] ran in 0.03 secs.
+1505.8 TEL | (proxy checking local liveness)
+1505.9  18 | 2021-01-29T13:59:52+0800 [Poll#info] Checkpoint
+1508.7 TEL | [86] Running: sudo -n echo -n
+1508.8 TEL | [86] ran in 0.03 secs.
+1535.8 TEL | (proxy checking local liveness)
+1535.9  18 | 2021-01-29T14:00:22+0800 [Poll#info] Checkpoint
+1538.9 TEL | [87] Running: sudo -n echo -n
+1538.9 TEL | [87] ran in 0.03 secs.
+1541.5  28 | c : DNS request from ('172.31.140.114', 52876) to None: 35 bytes
+1541.6  18 | 2021-01-29T14:00:28+0800 [stdout#info] A query: b'edgeapi.slack.com'
+1541.6  18 | 2021-01-29T14:00:28+0800 [stdout#info] Result for b'edgeapi.slack.com' is ['52.196.70.74']
+1543.1  28 | c : DNS request from ('172.31.140.114', 50462) to None: 30 bytes
+1543.2  18 | 2021-01-29T14:00:29+0800 [stdout#info] A query: b'drive.wps.cn'
+1543.2  18 | 2021-01-29T14:00:29+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+1555.5  28 | c : DNS request from ('172.31.140.114', 58794) to None: 45 bytes
+1555.6  18 | 2021-01-29T14:00:42+0800 [stdout#info] A query: b'safebrowsing.googleapis.com'
+1555.6  18 | 2021-01-29T14:00:42+0800 [stdout#info] Result for b'safebrowsing.googleapis.com' is ['180.163.151.161']
+1565.8 TEL | (proxy checking local liveness)
+1565.9  18 | 2021-01-29T14:00:52+0800 [Poll#info] Checkpoint
+1569.1 TEL | [88] Running: sudo -n echo -n
+1569.1 TEL | [88] ran in 0.03 secs.
+1595.8 TEL | (proxy checking local liveness)
+1595.9  18 | 2021-01-29T14:01:22+0800 [Poll#info] Checkpoint
+1599.2 TEL | [89] Running: sudo -n echo -n
+1599.2 TEL | [89] ran in 0.03 secs.
+1608.3  28 | c : DNS request from ('172.31.140.114', 63388) to None: 32 bytes
+1608.4  18 | 2021-01-29T14:01:35+0800 [stdout#info] A query: b'slack-imgs.com'
+1608.4  18 | 2021-01-29T14:01:35+0800 [stdout#info] Result for b'slack-imgs.com' is ['13.226.115.43', '13.226.115.123', '13.226.115.126', '13.226.115.115']
+1611.9  28 | c : DNS request from ('172.31.140.114', 54522) to None: 38 bytes
+1612.0  18 | 2021-01-29T14:01:38+0800 [stdout#info] A query: b'kubesphere.slack.com'
+1612.0  18 | 2021-01-29T14:01:38+0800 [stdout#info] Result for b'kubesphere.slack.com' is ['13.228.49.204']
+1618.1  28 | c : DNS request from ('172.31.140.114', 60631) to None: 27 bytes
+1618.2  18 | 2021-01-29T14:01:44+0800 [stdout#info] A query: b'slack.com'
+1618.2  18 | 2021-01-29T14:01:44+0800 [stdout#info] Result for b'slack.com' is ['13.228.49.204']
+1625.8 TEL | (proxy checking local liveness)
+1625.9  18 | 2021-01-29T14:01:52+0800 [Poll#info] Checkpoint
+1629.4 TEL | [90] Running: sudo -n echo -n
+1629.4 TEL | [90] ran in 0.03 secs.
+1638.7  28 | c : DNS request from ('172.31.140.114', 63778) to None: 59 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 65223) to None: 59 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 64468) to None: 58 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 57673) to None: 56 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 50916) to None: 57 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 58092) to None: 57 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 51341) to None: 60 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 55788) to None: 61 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 61576) to None: 61 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 63529) to None: 40 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 62310) to None: 41 bytes
+1638.7  28 | c : DNS request from ('172.31.140.114', 52556) to None: 41 bytes
+1638.7  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.0.140.31.172.in-addr.arpa'
+1638.7  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 13863
+1638.7  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668ab00>
+1638.7  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'db._dns-sd._udp.0.140.31.172.in-addr.arpa'
+1638.7  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 35008
+1638.7  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668aa90>
+1638.7  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'b._dns-sd._udp.0.140.31.172.in-addr.arpa'
+1638.7  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 7600
+1638.7  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a6a0>
+1638.7  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'b._dns-sd._udp.6.1.255.10.in-addr.arpa'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 48406
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a630>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'db._dns-sd._udp.6.1.255.10.in-addr.arpa'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 27373
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a5c0>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.6.1.255.10.in-addr.arpa'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 57770
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674fd0>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'b._dns-sd._udp.94.196.168.192.in-addr.arpa'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 20732
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66949e8>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'db._dns-sd._udp.94.196.168.192.in-addr.arpa'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 55000
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66945c0>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'lb._dns-sd._udp.94.196.168.192.in-addr.arpa'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 11982
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6694828>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] Updated query of type 12 from b'b._dns-sd._udp.openvpn' to b'b._dns-sd._udp'
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'b._dns-sd._udp'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 8651
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a5f8>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] Updated query of type 12 from b'db._dns-sd._udp.openvpn' to b'db._dns-sd._udp'
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'db._dns-sd._udp'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 57785
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6719ac8>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] Updated query of type 12 from b'lb._dns-sd._udp.openvpn' to b'lb._dns-sd._udp'
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] 12 query: b'lb._dns-sd._udp'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 14007
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6691470>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] Failed to lookup b'b._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=38938 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'b._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] ], falling back to b'b._dns-sd._udp.openvpn'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 19184
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6694860>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] Failed to lookup b'db._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=35250 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'db._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] ], falling back to b'db._dns-sd._udp.openvpn'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 20385
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6694128>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 13863 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668ab00>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 7600 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a6a0>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 35008 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668aa90>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 20732 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66949e8>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 57770 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674fd0>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 48406 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a630>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 27373 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f668a5c0>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 11982 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6694828>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 55000 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f66945c0>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 8651 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f667a5f8>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 57785 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6719ac8>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] Failed to lookup b'lb._dns-sd._udp' due to [Failure instance: Traceback (failure with no frames): <class 'twisted.names.error.DNSNameError'>: <Message id=7349 rCode=3 maxSize=0 flags=answer,recDes,recAv queries=[Query(b'lb._dns-sd._udp', 12, 1)] authority=[<RR name= type=SOA class=IN ttl=30s auth=False>]>
+1638.8  18 | 2021-01-29T14:02:05+0800 [stdout#info] ], falling back to b'lb._dns-sd._udp.openvpn'
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] DNSDatagramProtocol starting on 10749
+1638.8  18 | 2021-01-29T14:02:05+0800 [DNSDatagramProtocol (UDP)] Starting protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674438>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 14007 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6691470>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 19184 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6694860>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 20385 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6694128>
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] (UDP Port 10749 Closed)
+1638.8  18 | 2021-01-29T14:02:05+0800 [-] Stopping protocol <twisted.names.dns.DNSDatagramProtocol object at 0x7fa3f6674438>
+1655.0  28 | c : DNS request from ('172.31.140.114', 54044) to None: 48 bytes
+1655.1  18 | 2021-01-29T14:02:21+0800 [stdout#info] A query: b'incoming.telemetry.mozilla.org'
+1655.1  18 | 2021-01-29T14:02:21+0800 [stdout#info] Result for b'incoming.telemetry.mozilla.org' is ['52.39.144.189', '44.231.216.202', '52.34.114.142', '34.211.246.164', '44.238.190.78', '44.230.27.229', '52.25.24.238', '35.164.173.183']
+1655.8 TEL | (proxy checking local liveness)
+1655.9  18 | 2021-01-29T14:02:22+0800 [Poll#info] Checkpoint
+1659.5 TEL | [91] Running: sudo -n echo -n
+1659.5 TEL | [91] ran in 0.03 secs.
+1662.9  28 | c : DNS request from ('172.31.140.114', 61488) to None: 41 bytes
+1663.0  18 | 2021-01-29T14:02:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+1663.0  18 | 2021-01-29T14:02:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['119.28.109.132', '118.191.216.57', '118.191.216.42']
+1664.9  28 | c : DNS request from ('172.31.140.114', 54435) to None: 30 bytes
+1665.0  18 | 2021-01-29T14:02:31+0800 [stdout#info] A query: b'drive.wps.cn'
+1665.0  18 | 2021-01-29T14:02:31+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+1685.9 TEL | (proxy checking local liveness)
+1686.0  18 | 2021-01-29T14:02:52+0800 [Poll#info] Checkpoint
+1689.7 TEL | [92] Running: sudo -n echo -n
+1689.7 TEL | [92] ran in 0.03 secs.
+1715.8 TEL | (proxy checking local liveness)
+1715.9  18 | 2021-01-29T14:03:22+0800 [Poll#info] Checkpoint
+1719.8 TEL | [93] Running: sudo -n echo -n
+1719.9 TEL | [93] ran in 0.03 secs.
+1722.8  28 | c : DNS request from ('172.31.140.114', 57743) to None: 27 bytes
+1722.8  18 | 2021-01-29T14:03:29+0800 [stdout#info] A query: b'slack.com'
+1722.9  18 | 2021-01-29T14:03:29+0800 [stdout#info] Result for b'slack.com' is ['13.228.49.204']
+1730.9  28 | c : DNS request from ('172.31.140.114', 62541) to None: 45 bytes
+1731.0  18 | 2021-01-29T14:03:37+0800 [stdout#info] A query: b'settings.data.microsoft.com'
+1731.0  18 | 2021-01-29T14:03:37+0800 [stdout#info] Result for b'settings.data.microsoft.com' is ['52.139.153.205']
+1746.0 TEL | (proxy checking local liveness)
+1746.1  18 | 2021-01-29T14:03:52+0800 [Poll#info] Checkpoint
+1750.0 TEL | [94] Running: sudo -n echo -n
+1750.0 TEL | [94] ran in 0.03 secs.
+1775.9 TEL | (proxy checking local liveness)
+1775.9  18 | 2021-01-29T14:04:22+0800 [Poll#info] Checkpoint
+1780.1 TEL | [95] Running: sudo -n echo -n
+1780.2 TEL | [95] ran in 0.03 secs.
+1782.5  28 | c : DNS request from ('172.31.140.114', 49830) to None: 30 bytes
+1782.5  18 | 2021-01-29T14:04:29+0800 [stdout#info] A query: b'drive.wps.cn'
+1782.5  18 | 2021-01-29T14:04:29+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+1805.9 TEL | (proxy checking local liveness)
+1805.9  18 | 2021-01-29T14:04:52+0800 [Poll#info] Checkpoint
+1810.3 TEL | [96] Running: sudo -n echo -n
+1810.3 TEL | [96] ran in 0.03 secs.
+1811.5  28 | c : DNS request from ('172.31.140.114', 27311) to None: 44 bytes
+1811.6  18 | 2021-01-29T14:04:58+0800 [stdout#info] A query: b'android.clients.google.com'
+1811.6  18 | 2021-01-29T14:04:58+0800 [stdout#info] Result for b'android.clients.google.com' is ['216.58.200.238', '172.217.160.78', '172.217.160.110', '172.217.27.142', '172.217.24.14']
+1835.8 TEL | (proxy checking local liveness)
+1835.9  18 | 2021-01-29T14:05:22+0800 [Poll#info] Checkpoint
+1840.4 TEL | [97] Running: sudo -n echo -n
+1840.5 TEL | [97] ran in 0.03 secs.
+1865.8 TEL | (proxy checking local liveness)
+1865.9  18 | 2021-01-29T14:05:52+0800 [Poll#info] Checkpoint
+1870.6 TEL | [98] Running: sudo -n echo -n
+1870.6 TEL | [98] ran in 0.03 secs.
+1895.9 TEL | (proxy checking local liveness)
+1895.9  18 | 2021-01-29T14:06:22+0800 [Poll#info] Checkpoint
+1900.7 TEL | [99] Running: sudo -n echo -n
+1900.8 TEL | [99] ran in 0.03 secs.
+1901.1  28 | c : DNS request from ('172.31.140.114', 55397) to None: 30 bytes
+1901.2  18 | 2021-01-29T14:06:27+0800 [stdout#info] A query: b'drive.wps.cn'
+1901.2  18 | 2021-01-29T14:06:27+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+1918.1  28 | c : DNS request from ('172.31.140.114', 55898) to None: 29 bytes
+1918.1  18 | 2021-01-29T14:06:44+0800 [stdout#info] A query: b'wx.qlogo.cn'
+1918.4  18 | 2021-01-29T14:06:45+0800 [stdout#info] Result for b'wx.qlogo.cn' is ['203.205.232.66', '203.205.234.156']
+1925.8 TEL | (proxy checking local liveness)
+1925.9  18 | 2021-01-29T14:06:52+0800 [Poll#info] Checkpoint
+1930.9 TEL | [100] Running: sudo -n echo -n
+1931.0 TEL | [100] ran in 0.03 secs.
+1941.5  28 | c : DNS request from ('172.31.140.114', 59213) to None: 38 bytes
+1941.5  18 | 2021-01-29T14:07:08+0800 [stdout#info] A query: b'api2.firefoxchina.cn'
+1941.5  18 | 2021-01-29T14:07:08+0800 [stdout#info] Result for b'api2.firefoxchina.cn' is ['163.171.198.89']
+1955.9 TEL | (proxy checking local liveness)
+1955.9  18 | 2021-01-29T14:07:22+0800 [Poll#info] Checkpoint
+1961.1 TEL | [101] Running: sudo -n echo -n
+1961.1 TEL | [101] ran in 0.03 secs.
+1962.9  28 | c : DNS request from ('172.31.140.114', 65283) to None: 41 bytes
+1963.0  18 | 2021-01-29T14:07:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+1963.0  18 | 2021-01-29T14:07:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['118.191.216.42', '118.191.216.57', '119.28.109.132']
+1971.2  28 | c : DNS request from ('172.31.140.114', 52562) to None: 41 bytes
+1971.2  28 | c : DNS request from ('172.31.140.114', 63615) to None: 41 bytes
+1971.2  18 | 2021-01-29T14:07:38+0800 [stdout#info] A query: b'fls.jetbrains-agent.com'
+1971.2  18 | 2021-01-29T14:07:38+0800 [stdout#info] AAAA query, sending back A instead: b'fls.jetbrains-agent.com'
+1971.2  18 | 2021-01-29T14:07:38+0800 [stdout#info] A query: b'fls.jetbrains-agent.com'
+1971.3  18 | 2021-01-29T14:07:38+0800 [stdout#info] Result for b'fls.jetbrains-agent.com' is ['104.21.77.208', '172.67.211.133']
+1971.3  18 | 2021-01-29T14:07:38+0800 [stdout#info] Result for b'fls.jetbrains-agent.com' is ['104.21.77.208', '172.67.211.133']
+1985.9 TEL | (proxy checking local liveness)
+1986.0  18 | 2021-01-29T14:07:52+0800 [Poll#info] Checkpoint
+1991.2 TEL | [102] Running: sudo -n echo -n
+1991.3 TEL | [102] ran in 0.03 secs.
+2015.8 TEL | (proxy checking local liveness)
+2015.9  18 | 2021-01-29T14:08:22+0800 [Poll#info] Checkpoint
+2021.4 TEL | [103] Running: sudo -n echo -n
+2021.4 TEL | [103] ran in 0.03 secs.
+2024.2  28 | c : DNS request from ('172.31.140.114', 64617) to None: 30 bytes
+2024.3  18 | 2021-01-29T14:08:31+0800 [stdout#info] A query: b'drive.wps.cn'
+2024.3  18 | 2021-01-29T14:08:31+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+2045.8 TEL | (proxy checking local liveness)
+2045.9  18 | 2021-01-29T14:08:52+0800 [Poll#info] Checkpoint
+2051.5 TEL | [104] Running: sudo -n echo -n
+2051.6 TEL | [104] ran in 0.03 secs.
+2064.2  28 | c : DNS request from ('172.31.140.114', 56490) to None: 43 bytes
+2064.3  18 | 2021-01-29T14:09:11+0800 [stdout#info] A query: b'vortex.data.microsoft.com'
+2064.3  18 | 2021-01-29T14:09:11+0800 [stdout#info] Result for b'vortex.data.microsoft.com' is ['111.221.29.254']
+2075.9 TEL | (proxy checking local liveness)
+2076.0  18 | 2021-01-29T14:09:22+0800 [Poll#info] Checkpoint
+2081.7 TEL | [105] Running: sudo -n echo -n
+2081.7 TEL | [105] ran in 0.03 secs.
+2105.8 TEL | (proxy checking local liveness)
+2105.9  18 | 2021-01-29T14:09:52+0800 [Poll#info] Checkpoint
+2111.8 TEL | [106] Running: sudo -n echo -n
+2111.9 TEL | [106] ran in 0.03 secs.
+2115.8  28 | c : DNS request from ('172.31.140.114', 55109) to None: 48 bytes
+2115.9  18 | 2021-01-29T14:10:02+0800 [stdout#info] A query: b'mobile.pipe.aria.microsoft.com'
+2115.9  18 | 2021-01-29T14:10:02+0800 [stdout#info] Result for b'mobile.pipe.aria.microsoft.com' is ['52.114.36.4']
+2131.2  28 | c : DNS request from ('172.31.140.114', 49691) to None: 47 bytes
+2131.2  18 | 2021-01-29T14:10:18+0800 [stdout#info] A query: b'apidata.googleusercontent.com'
+2131.3  18 | 2021-01-29T14:10:18+0800 [stdout#info] Result for b'apidata.googleusercontent.com' is ['172.217.27.129']
+2135.8 TEL | (proxy checking local liveness)
+2135.9  18 | 2021-01-29T14:10:22+0800 [Poll#info] Checkpoint
+2142.0 TEL | [107] Running: sudo -n echo -n
+2142.0 TEL | [107] ran in 0.03 secs.
+2149.4  28 | c : DNS request from ('172.31.140.114', 57938) to None: 30 bytes
+2149.5  18 | 2021-01-29T14:10:36+0800 [stdout#info] A query: b'drive.wps.cn'
+2149.5  18 | 2021-01-29T14:10:36+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+2165.8 TEL | (proxy checking local liveness)
+2165.9  18 | 2021-01-29T14:10:52+0800 [Poll#info] Checkpoint
+2172.1 TEL | [108] Running: sudo -n echo -n
+2172.2 TEL | [108] ran in 0.03 secs.
+2195.8 TEL | (proxy checking local liveness)
+2195.9  18 | 2021-01-29T14:11:22+0800 [Poll#info] Checkpoint
+2202.3 TEL | [109] Running: sudo -n echo -n
+2202.3 TEL | [109] ran in 0.03 secs.
+2207.3  28 | c : DNS request from ('172.31.140.114', 54273) to None: 47 bytes
+2207.4  18 | 2021-01-29T14:11:34+0800 [stdout#info] A query: b'apidata.googleusercontent.com'
+2207.4  18 | 2021-01-29T14:11:34+0800 [stdout#info] Result for b'apidata.googleusercontent.com' is ['74.125.203.132']
+2214.7  28 | c : DNS request from ('172.31.140.114', 60487) to None: 28 bytes
+2214.7  18 | 2021-01-29T14:11:41+0800 [stdout#info] A query: b'github.com'
+2214.7  18 | 2021-01-29T14:11:41+0800 [stdout#info] Result for b'github.com' is ['13.250.177.223']
+2225.9 TEL | (proxy checking local liveness)
+2225.9  18 | 2021-01-29T14:11:52+0800 [Poll#info] Checkpoint
+2232.5 TEL | [110] Running: sudo -n echo -n
+2232.5 TEL | [110] ran in 0.03 secs.
+2255.8 TEL | (proxy checking local liveness)
+2255.9  18 | 2021-01-29T14:12:22+0800 [Poll#info] Checkpoint
+2256.4  28 | c : DNS request from ('172.31.140.114', 52685) to None: 35 bytes
+2256.5  18 | 2021-01-29T14:12:23+0800 [stdout#info] A query: b'qingcenter.wps.cn'
+2256.5  18 | 2021-01-29T14:12:23+0800 [stdout#info] Result for b'qingcenter.wps.cn' is ['239.11.20.1']
+2259.7  28 | c : DNS request from ('172.31.140.114', 58890) to None: 28 bytes
+2259.7  18 | 2021-01-29T14:12:26+0800 [stdout#info] A query: b'g.live.com'
+2259.7  18 | 2021-01-29T14:12:26+0800 [stdout#info] Result for b'g.live.com' is ['40.81.30.101']
+2259.9  28 | c : DNS request from ('172.31.140.114', 57302) to None: 45 bytes
+2259.9  18 | 2021-01-29T14:12:26+0800 [stdout#info] A query: b'safebrowsing.googleapis.com'
+2259.9  18 | 2021-01-29T14:12:26+0800 [stdout#info] Result for b'safebrowsing.googleapis.com' is ['180.163.151.161']
+2260.4  28 | c : DNS request from ('172.31.140.114', 53941) to None: 44 bytes
+2260.4  18 | 2021-01-29T14:12:27+0800 [stdout#info] A query: b'wl.dlservice.microsoft.com'
+2261.4  28 | c : DNS request from ('172.31.140.114', 53941) to None: 44 bytes
+2261.4  18 | 2021-01-29T14:12:28+0800 [stdout#info] A query: b'wl.dlservice.microsoft.com'
+2262.6 TEL | [111] Running: sudo -n echo -n
+2262.6 TEL | [111] ran in 0.03 secs.
+2262.9  28 | c : DNS request from ('172.31.140.114', 58247) to None: 41 bytes
+2263.0  18 | 2021-01-29T14:12:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+2263.0  18 | 2021-01-29T14:12:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['118.191.216.57', '118.191.216.42', '119.28.109.132']
+2263.3  28 | c : DNS request from ('172.31.140.114', 51307) to None: 30 bytes
+2263.4  18 | 2021-01-29T14:12:30+0800 [stdout#info] A query: b'drive.wps.cn'
+2263.4  18 | 2021-01-29T14:12:30+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+2265.2  18 | 2021-01-29T14:12:31+0800 [stdout#info] Result for b'wl.dlservice.microsoft.com' is ['60.221.231.57', '60.221.231.14', '60.221.231.7', '60.221.231.8', '60.221.231.15', '42.49.13.29']
+2265.2  18 | 2021-01-29T14:12:31+0800 [stdout#info] Result for b'wl.dlservice.microsoft.com' is ['60.221.231.57', '60.221.231.14', '60.221.231.7', '60.221.231.8', '60.221.231.15', '42.49.13.29']
+2270.3  28 | c : DNS request from ('172.31.140.114', 62655) to None: 48 bytes
+2270.4  18 | 2021-01-29T14:12:37+0800 [stdout#info] A query: b'mobile.pipe.aria.microsoft.com'
+2270.4  18 | 2021-01-29T14:12:37+0800 [stdout#info] Result for b'mobile.pipe.aria.microsoft.com' is ['52.114.128.43']
+2284.0  28 | c : DNS request from ('172.31.140.114', 61218) to None: 47 bytes
+2284.0  18 | 2021-01-29T14:12:50+0800 [stdout#info] A query: b'apidata.googleusercontent.com'
+2284.1  18 | 2021-01-29T14:12:50+0800 [stdout#info] Result for b'apidata.googleusercontent.com' is ['74.125.203.132']
+2285.8 TEL | (proxy checking local liveness)
+2285.9  18 | 2021-01-29T14:12:52+0800 [Poll#info] Checkpoint
+2292.8 TEL | [112] Running: sudo -n echo -n
+2292.8 TEL | [112] ran in 0.03 secs.
+2315.9 TEL | (proxy checking local liveness)
+2316.0  18 | 2021-01-29T14:13:22+0800 [Poll#info] Checkpoint
+2322.9 TEL | [113] Running: sudo -n echo -n
+2322.9 TEL | [113] ran in 0.03 secs.
+2345.8 TEL | (proxy checking local liveness)
+2345.9  18 | 2021-01-29T14:13:52+0800 [Poll#info] Checkpoint
+2353.1 TEL | [114] Running: sudo -n echo -n
+2353.1 TEL | [114] ran in 0.04 secs.
+2360.1  28 | c : DNS request from ('172.31.140.114', 62983) to None: 47 bytes
+2360.2  18 | 2021-01-29T14:14:06+0800 [stdout#info] A query: b'apidata.googleusercontent.com'
+2360.2  18 | 2021-01-29T14:14:06+0800 [stdout#info] Result for b'apidata.googleusercontent.com' is ['74.125.203.132']
+2370.9  28 | c : DNS request from ('172.31.140.114', 9741) to None: 45 bytes
+2370.9  18 | 2021-01-29T14:14:17+0800 [stdout#info] A query: b'safebrowsing.googleapis.com'
+2370.9  18 | 2021-01-29T14:14:17+0800 [stdout#info] Result for b'safebrowsing.googleapis.com' is ['180.163.151.33']
+2373.4  28 | c : DNS request from ('172.31.140.114', 61721) to None: 29 bytes
+2373.5  18 | 2021-01-29T14:14:20+0800 [stdout#info] A query: b'pcfg.wps.cn'
+2373.5  18 | 2021-01-29T14:14:20+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.16', '120.92.84.225']
+2375.8 TEL | (proxy checking local liveness)
+2375.9  18 | 2021-01-29T14:14:22+0800 [Poll#info] Checkpoint
+2383.2 TEL | [115] Running: sudo -n echo -n
+2383.2 TEL | [115] ran in 0.03 secs.
+2385.5  28 | c : DNS request from ('172.31.140.114', 62573) to None: 30 bytes
+2385.6  18 | 2021-01-29T14:14:32+0800 [stdout#info] A query: b'drive.wps.cn'
+2385.7  18 | 2021-01-29T14:14:32+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+2405.9 TEL | (proxy checking local liveness)
+2406.0  18 | 2021-01-29T14:14:52+0800 [Poll#info] Checkpoint
+2413.4 TEL | [116] Running: sudo -n echo -n
+2413.4 TEL | [116] ran in 0.03 secs.
+2423.0  28 | c : DNS request from ('172.31.140.114', 16435) to None: 47 bytes
+2423.0  18 | 2021-01-29T14:15:09+0800 [stdout#info] A query: b'clientservices.googleapis.com'
+2423.0  18 | 2021-01-29T14:15:09+0800 [stdout#info] Result for b'clientservices.googleapis.com' is ['74.125.204.94']
+2435.8 TEL | (proxy checking local liveness)
+2435.9  18 | 2021-01-29T14:15:22+0800 [Poll#info] Checkpoint
+2443.5 TEL | [117] Running: sudo -n echo -n
+2443.6 TEL | [117] ran in 0.03 secs.
+2445.8  28 | c : DNS request from ('172.31.140.114', 64462) to None: 35 bytes
+2445.9  18 | 2021-01-29T14:15:32+0800 [stdout#info] Updated query of type 28 from b'localhost.openvpn' to b'localhost'
+2445.9  18 | 2021-01-29T14:15:32+0800 [stdout#info] AAAA query, sending back A instead: b'localhost'
+2445.9  18 | 2021-01-29T14:15:32+0800 [stdout#info] A query: b'localhost'
+2445.9  28 | c : DNS request from ('172.31.140.114', 51463) to None: 27 bytes
+2445.9  18 | 2021-01-29T14:15:32+0800 [stdout#info] Result for b'localhost.openvpn' is ['127.0.0.1']
+2445.9  18 | 2021-01-29T14:15:32+0800 [stdout#info] AAAA query, sending back A instead: b'localhost'
+2445.9  18 | 2021-01-29T14:15:32+0800 [stdout#info] A query: b'localhost'
+2446.0  18 | 2021-01-29T14:15:32+0800 [stdout#info] Result for b'localhost' is ['127.0.0.1']
+2446.5  28 | c : DNS request from ('172.31.140.114', 51192) to None: 40 bytes
+2446.5  18 | 2021-01-29T14:15:33+0800 [stdout#info] A query: b'api.apple-cloudkit.com'
+2446.6  18 | 2021-01-29T14:15:33+0800 [stdout#info] Result for b'api.apple-cloudkit.com' is ['17.248.165.36', '17.248.165.37', '17.248.165.12', '17.248.165.80', '17.248.165.132', '17.248.165.100', '17.248.165.17', '17.248.165.111']
+2459.6  28 | c : DNS request from ('172.31.140.114', 65091) to None: 35 bytes
+2459.6  18 | 2021-01-29T14:15:46+0800 [stdout#info] A query: b'dns.weixin.qq.com'
+2459.8  18 | 2021-01-29T14:15:46+0800 [stdout#info] Result for b'dns.weixin.qq.com' is ['49.51.20.85', '49.51.89.155']
+2463.0  28 | c : DNS request from ('172.31.140.114', 55104) to None: 29 bytes
+2463.1  18 | 2021-01-29T14:15:49+0800 [stdout#info] A query: b'pcfg.wps.cn'
+2463.1  18 | 2021-01-29T14:15:49+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.16', '120.92.84.225']
+2465.8 TEL | (proxy checking local liveness)
+2465.9  18 | 2021-01-29T14:15:52+0800 [Poll#info] Checkpoint
+2473.7 TEL | [118] Running: sudo -n echo -n
+2473.7 TEL | [118] ran in 0.03 secs.
+2486.6  28 | c : DNS request from ('172.31.140.114', 51037) to None: 45 bytes
+2486.7  18 | 2021-01-29T14:16:13+0800 [stdout#info] A query: b'safebrowsing.googleapis.com'
+2486.7  18 | 2021-01-29T14:16:13+0800 [stdout#info] Result for b'safebrowsing.googleapis.com' is ['180.163.151.33']
+2494.6  28 | c : DNS request from ('172.31.140.114', 53698) to None: 29 bytes
+2494.7  18 | 2021-01-29T14:16:21+0800 [stdout#info] A query: b'wx.qlogo.cn'
+2494.7  18 | 2021-01-29T14:16:21+0800 [stdout#info] Result for b'wx.qlogo.cn' is ['203.205.234.156', '203.205.232.66']
+2495.8 TEL | (proxy checking local liveness)
+2495.9  18 | 2021-01-29T14:16:22+0800 [Poll#info] Checkpoint
+2499.8  28 | c : DNS request from ('172.31.140.114', 12285) to None: 47 bytes
+2499.9  18 | 2021-01-29T14:16:26+0800 [stdout#info] A query: b'clientservices.googleapis.com'
+2499.9  18 | 2021-01-29T14:16:26+0800 [stdout#info] Result for b'clientservices.googleapis.com' is ['74.125.204.94']
+2503.8 TEL | [119] Running: sudo -n echo -n
+2503.9 TEL | [119] ran in 0.03 secs.
+2509.2  28 | c : DNS request from ('172.31.140.114', 59047) to None: 30 bytes
+2509.3  18 | 2021-01-29T14:16:36+0800 [stdout#info] A query: b'drive.wps.cn'
+2509.3  18 | 2021-01-29T14:16:36+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+2525.8 TEL | (proxy checking local liveness)
+2525.9  28 | c : DNS request from ('172.31.140.114', 50472) to None: 29 bytes
+2525.9  18 | 2021-01-29T14:16:52+0800 [Poll#info] Checkpoint
+2526.0  18 | 2021-01-29T14:16:52+0800 [stdout#info] A query: b'pcfg.wps.cn'
+2526.0  18 | 2021-01-29T14:16:52+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.225', '120.92.84.16']
+2531.6  28 | c : DNS request from ('172.31.140.114', 56472) to None: 36 bytes
+2531.7  18 | 2021-01-29T14:16:58+0800 [stdout#info] A query: b'updates.bjango.com'
+2531.7  18 | 2021-01-29T14:16:58+0800 [stdout#info] Result for b'updates.bjango.com' is ['108.61.220.241']
+2534.0 TEL | [120] Running: sudo -n echo -n
+2534.0 TEL | [120] ran in 0.03 secs.
+2555.9 TEL | (proxy checking local liveness)
+2555.9  18 | 2021-01-29T14:17:22+0800 [Poll#info] Checkpoint
+2563.0  28 | c : DNS request from ('172.31.140.114', 60097) to None: 41 bytes
+2563.1  18 | 2021-01-29T14:17:29+0800 [stdout#info] A query: b'config.pinyin.sogou.com'
+2563.1  18 | 2021-01-29T14:17:29+0800 [stdout#info] Result for b'config.pinyin.sogou.com' is ['118.191.216.42', '118.191.216.57', '119.28.109.132']
+2564.2 TEL | [121] Running: sudo -n echo -n
+2564.2 TEL | [121] ran in 0.03 secs.
+2582.7  28 | c : DNS request from ('172.31.140.114', 56073) to None: 48 bytes
+2582.8  18 | 2021-01-29T14:17:49+0800 [stdout#info] A query: b'incoming.telemetry.mozilla.org'
+2582.8  18 | 2021-01-29T14:17:49+0800 [stdout#info] Result for b'incoming.telemetry.mozilla.org' is ['35.244.247.133']
+2585.9 TEL | (proxy checking local liveness)
+2585.9  18 | 2021-01-29T14:17:52+0800 [Poll#info] Checkpoint
+2594.3 TEL | [122] Running: sudo -n echo -n
+2594.3 TEL | [122] ran in 0.04 secs.
+2615.9 TEL | (proxy checking local liveness)
+2616.0  18 | 2021-01-29T14:18:22+0800 [Poll#info] Checkpoint
+2617.1  28 | c : DNS request from ('172.31.140.114', 61466) to None: 28 bytes
+2617.2  18 | 2021-01-29T14:18:23+0800 [stdout#info] A query: b'github.com'
+2617.2  18 | 2021-01-29T14:18:23+0800 [stdout#info] Result for b'github.com' is ['13.250.177.223']
+2624.5 TEL | [123] Running: sudo -n echo -n
+2624.5 TEL | [123] ran in 0.03 secs.
+2624.6  28 | c : DNS request from ('172.31.140.114', 65240) to None: 30 bytes
+2624.7  18 | 2021-01-29T14:18:31+0800 [stdout#info] A query: b'drive.wps.cn'
+2624.7  18 | 2021-01-29T14:18:31+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+2645.8 TEL | (proxy checking local liveness)
+2645.9  18 | 2021-01-29T14:18:52+0800 [Poll#info] Checkpoint
+2649.4  28 | c : DNS request from ('172.31.140.114', 55098) to None: 38 bytes
+2649.5  18 | 2021-01-29T14:18:56+0800 [stdout#info] A query: b'time-macos.apple.com'
+2649.5  18 | 2021-01-29T14:18:56+0800 [stdout#info] Result for b'time-macos.apple.com' is ['17.253.68.125', '17.253.68.123', '17.253.68.251', '17.253.84.253', '17.253.84.123']
+2651.5  28 | c : DNS request from ('172.31.140.114', 33686) to None: 44 bytes
+2651.6  18 | 2021-01-29T14:18:58+0800 [stdout#info] A query: b'android.clients.google.com'
+2651.6  18 | 2021-01-29T14:18:58+0800 [stdout#info] Result for b'android.clients.google.com' is ['172.217.160.78', '172.217.160.110']
+2654.6 TEL | [124] Running: sudo -n echo -n
+2654.7 TEL | [124] ran in 0.03 secs.
+2675.9 TEL | (proxy checking local liveness)
+2675.9  18 | 2021-01-29T14:19:22+0800 [Poll#info] Checkpoint
+2684.8 TEL | [125] Running: sudo -n echo -n
+2684.8 TEL | [125] ran in 0.03 secs.
+2704.4  28 | c : DNS request from ('172.31.140.114', 64317) to None: 29 bytes
+2704.5  18 | 2021-01-29T14:19:51+0800 [stdout#info] A query: b'pcfg.wps.cn'
+2704.5  18 | 2021-01-29T14:19:51+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.16', '120.92.84.225']
+2705.8 TEL | (proxy checking local liveness)
+2705.9  18 | 2021-01-29T14:19:52+0800 [Poll#info] Checkpoint
+2714.9 TEL | [126] Running: sudo -n echo -n
+2715.0 TEL | [126] ran in 0.02 secs.
+2735.9 TEL | (proxy checking local liveness)
+2735.9  18 | 2021-01-29T14:20:22+0800 [Poll#info] Checkpoint
+2744.0  28 | c : DNS request from ('172.31.140.114', 63742) to None: 30 bytes
+2744.1  18 | 2021-01-29T14:20:30+0800 [stdout#info] A query: b'drive.wps.cn'
+2744.1  18 | 2021-01-29T14:20:30+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+2745.1 TEL | [127] Running: sudo -n echo -n
+2745.1 TEL | [127] ran in 0.03 secs.
+2765.9 TEL | (proxy checking local liveness)
+2765.9  18 | 2021-01-29T14:20:52+0800 [Poll#info] Checkpoint
+2775.2 TEL | [128] Running: sudo -n echo -n
+2775.3 TEL | [128] ran in 0.03 secs.
+2791.0 TEL | Main process (bash --norc)
+2791.0 TEL |  exited with code 0.
+2791.1 TEL | END SPAN runner.py:726(wait_for_exit) 2776.8s
+2791.1 >>> | Your process has exited.
+2791.1 TEL | EXITING successful session.
+2791.1 >>> | Exit cleanup in progress
+2791.1 TEL | (Cleanup) Terminate local process
+2791.1 TEL | Local process is already dead (ret=0)
+2791.1 TEL | (Cleanup) Kill BG process [28] sshuttle
+2791.1  28 | >> pfctl -a sshuttle6-12300 -F all
+2791.1 TEL | (Cleanup) Unmount remote filesystem
+2791.1 TEL | [129] Running: umount -f /tmp/tel-t0i0u7n4/fs
+2791.1  28 | >> pfctl -X 13796012472152281663
+2791.1  28 | >> pfctl -a sshuttle-12300 -F all
+2791.1  28 | >> pfctl -X 13796012471924354911
+2791.2 TEL | [28] sshuttle: exit -15
+2791.2 TEL | [129] ran in 0.07 secs.
+2791.2 TEL | (Cleanup) Kill BG process [25] SSH port forward (socks and proxy poll)
+2791.2 TEL | [25] SSH port forward (socks and proxy poll): exit 0
+2791.2 TEL | (Cleanup) Kill Web server for proxy poll
+2791.6 TEL | (Cleanup) Kill BG process [24] SSH port forward (exposed ports)
+2791.6 TEL | [24] SSH port forward (exposed ports): exit 0
+2791.6 TEL | (Cleanup) Kill BG process [19] kubectl port-forward
+2791.6 TEL | [19] kubectl port-forward: exit -15
+2791.6 TEL | (Cleanup) Kill BG process [18] kubectl logs
+2791.6 TEL | [18] kubectl logs: exit -15
+2791.6 TEL | Background process (kubectl logs) exited with return code -15. Command was:
+2791.6 TEL |   kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system logs -f ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1-69b4479zrjdl --container ks-controller-manager --tail=10
+2791.6 TEL | 
+2791.6 TEL | Recent output was:
+2791.6 TEL |   2021-01-29T14:18:58+0800 [stdout#info] A query: b'android.clients.google.com'
+2791.6 TEL |   2021-01-29T14:18:58+0800 [stdout#info] Result for b'android.clients.google.com' is ['172.217.160.78', '172.217.160.110']
+2791.6 TEL |   2021-01-29T14:19:22+0800 [Poll#info] Checkpoint
+2791.6 TEL |   2021-01-29T14:19:51+0800 [stdout#info] A query: b'pcfg.wps.cn'
+2791.6 TEL |   2021-01-29T14:19:51+0800 [stdout#info] Result for b'pcfg.wps.cn' is ['120.92.84.16', '120.92.84.225']
+2791.6 TEL |   2021-01-29T14:19:52+0800 [Poll#info] Checkpoint
+2791.6 TEL |   2021-01-29T14:20:22+0800 [Poll#info] Checkpoint
+2791.6 TEL |   2021-01-29T14:20:30+0800 [stdout#info] A query: b'drive.wps.cn'
+2791.6 TEL | (Cleanup) Re-scale original deployment
+2791.6 TEL |   2021-01-29T14:20:30+0800 [stdout#info] Result for b'drive.wps.cn' is ['110.43.67.231']
+2791.6 TEL | [130] Running: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system scale deployment ks-controller-manager --replicas=0
+2791.6 TEL |   2021-01-29T14:20:52+0800 [Poll#info] Checkpoint
+2791.9 130 | deployment.apps/ks-controller-manager scaled
+2791.9 TEL | [130] ran in 0.33 secs.
+2791.9 TEL | (Cleanup) Delete new deployment
+2791.9 >>> | Swapping Deployment ks-controller-manager back to its original state
+2791.9 TEL | [131] Running: kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system delete deployment ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1
+2792.2 131 | deployment.apps "ks-controller-man-f1607bf4d4ec4c659c10cbf194b42cf1" deleted
+2792.3 TEL | [131] ran in 0.32 secs.
+2792.3 TEL | (Cleanup) Show version notice
+2792.3 >>> | 
+2792.3 >>> | Telepresence 0.109 is available (you're running 0.105). https://www.telepresence.io/reference/changelog
+2792.3 TEL | (Cleanup) Kill sudo privileges holder
+2792.3 TEL | (Cleanup) Stop time tracking
+2792.3 TEL | END SPAN main.py:40(main) 2792.2s
+2792.3 TEL | SPAN SUMMARY:
+2792.3 TEL | 2792.2s main.py:40(main)
+2792.3 TEL |    1.0s   startup.py:83(set_kube_command)
+2792.3 TEL |    0.1s     1 kubectl config current-context
+2792.3 TEL |    0.3s     2 kubectl --context kubernetes-admin@cluster.local version --short
+2792.3 TEL |    0.1s     3 kubectl --context kubernetes-admin@cluster.local config view -o json
+2792.3 TEL |    0.2s     4 kubectl --context kubernetes-admin@cluster.local get ns kubesphere-system
+2792.3 TEL |    0.3s     5 kubectl --context kubernetes-admin@cluster.local api-versions
+2792.3 TEL |    0.0s   6 ssh -V
+2792.3 TEL |    0.0s   7 sudo -n echo -n
+2792.3 TEL |    0.3s   8 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system
+2792.3 TEL |    1.6s   deployment.py:283(supplant_deployment)
+2792.3 TEL |    0.3s     remote.py:75(get_deployment_json)
+2792.3 TEL |    0.3s       9 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-system
+2792.3 TEL |    0.3s     10 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    0.6s     11 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    0.3s     12 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    1.8s   remote.py:142(get_remote_info)
+2792.3 TEL |    0.3s     remote.py:75(get_deployment_json)
+2792.3 TEL |    0.3s       13 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    0.2s     14 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    1.3s     remote.py:104(wait_for_pod)
+2792.3 TEL |    0.3s       15 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    0.2s       16 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    0.3s       17 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    1.3s   connect.py:37(connect)
+2792.3 TEL |    0.0s     20 ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q
+2792.3 TEL |    0.0s     21 ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q
+2792.3 TEL |    0.0s     22 ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q
+2792.3 TEL |    0.5s     23 ssh -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -q
+2792.3 TEL |    0.9s   remote_env.py:29(get_remote_env)
+2792.3 TEL |    0.9s     26 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syste
+2792.3 TEL |    0.6s   mount.py:30(mount_remote_volumes)
+2792.3 TEL |    0.6s     27 sshfs -p 53496 -F /dev/null -oStrictHostKeyChecking=no -oUserKnownHostsFile=/
+2792.3 TEL |    5.1s   vpn.py:280(connect_sshuttle)
+2792.3 TEL |    0.0s     vpn.py:77(get_proxy_cidrs)
+2792.3 TEL |    5.1s     vpn.py:303(connect_sshuttle,sshuttle-wait)
+2792.3 TEL |    0.1s       29 python3 -c 'import socket; socket.gethostbyname("hellotelepresence-0")'
+2792.3 TEL |    1.0s       30 python3 -c 'import socket; socket.gethostbyname("hellotelepresence-0.a.sanity
+2792.3 TEL |    3.1s       31 python3 -c 'import socket; socket.gethostbyname("hellotelepresence-1")'
+2792.3 TEL |    0.1s       32 python3 -c 'import socket; socket.gethostbyname("hellotelepresence-1.a.sanity
+2792.3 TEL |    0.1s       33 python3 -c 'import socket; socket.gethostbyname("hellotelepresence-2")'
+2792.3 TEL |    0.1s       34 python3 -c 'import socket; socket.gethostbyname("hellotelepresence-2.a.sanity
+2792.3 TEL |    0.1s       35 python3 -c 'import socket; socket.gethostbyname("hellotelepresence-3")'
+2792.3 TEL |    0.0s   36 sudo -n /usr/bin/pkill -HUP mDNSResponder
+2792.3 TEL | 2776.8s   runner.py:726(wait_for_exit)
+2792.3 TEL |    0.0s     37 sudo -n echo -n
+2792.3 TEL |    0.0s     38 sudo -n echo -n
+2792.3 TEL |    0.0s     39 sudo -n echo -n
+2792.3 TEL |    0.0s     40 sudo -n echo -n
+2792.3 TEL |    0.0s     41 sudo -n echo -n
+2792.3 TEL |    0.0s     42 sudo -n echo -n
+2792.3 TEL |    0.0s     43 sudo -n echo -n
+2792.3 TEL |    0.0s     44 sudo -n echo -n
+2792.3 TEL |    0.0s     45 sudo -n echo -n
+2792.3 TEL |    0.0s     46 sudo -n echo -n
+2792.3 TEL |    0.0s     47 sudo -n echo -n
+2792.3 TEL |    0.0s     48 sudo -n echo -n
+2792.3 TEL |    0.0s     49 sudo -n echo -n
+2792.3 TEL |    0.0s     50 sudo -n echo -n
+2792.3 TEL |    0.0s     51 sudo -n echo -n
+2792.3 TEL |    0.0s     52 sudo -n echo -n
+2792.3 TEL |    0.0s     53 sudo -n echo -n
+2792.3 TEL |    0.0s     54 sudo -n echo -n
+2792.3 TEL |    0.0s     55 sudo -n echo -n
+2792.3 TEL |    0.0s     56 sudo -n echo -n
+2792.3 TEL |    0.0s     57 sudo -n echo -n
+2792.3 TEL |    0.0s     58 sudo -n echo -n
+2792.3 TEL |    0.0s     59 sudo -n echo -n
+2792.3 TEL |    0.0s     60 sudo -n echo -n
+2792.3 TEL |    0.0s     61 sudo -n echo -n
+2792.3 TEL |    0.0s     62 sudo -n echo -n
+2792.3 TEL |    0.0s     63 sudo -n echo -n
+2792.3 TEL |    0.0s     64 sudo -n echo -n
+2792.3 TEL |    0.0s     65 sudo -n echo -n
+2792.3 TEL |    0.0s     66 sudo -n echo -n
+2792.3 TEL |    0.0s     67 sudo -n echo -n
+2792.3 TEL |    0.0s     68 sudo -n echo -n
+2792.3 TEL |    0.0s     69 sudo -n echo -n
+2792.3 TEL |    0.0s     70 sudo -n echo -n
+2792.3 TEL |    0.0s     71 sudo -n echo -n
+2792.3 TEL |    0.0s     72 sudo -n echo -n
+2792.3 TEL |    0.0s     73 sudo -n echo -n
+2792.3 TEL |    0.0s     74 sudo -n echo -n
+2792.3 TEL |    0.0s     75 sudo -n echo -n
+2792.3 TEL |    0.0s     76 sudo -n echo -n
+2792.3 TEL |    0.0s     77 sudo -n echo -n
+2792.3 TEL |    0.0s     78 sudo -n echo -n
+2792.3 TEL |    0.0s     79 sudo -n echo -n
+2792.3 TEL |    0.0s     80 sudo -n echo -n
+2792.3 TEL |    0.0s     81 sudo -n echo -n
+2792.3 TEL |    0.0s     82 sudo -n echo -n
+2792.3 TEL |    0.0s     83 sudo -n echo -n
+2792.3 TEL |    0.0s     84 sudo -n echo -n
+2792.3 TEL |    0.0s     85 sudo -n echo -n
+2792.3 TEL |    0.0s     86 sudo -n echo -n
+2792.3 TEL |    0.0s     87 sudo -n echo -n
+2792.3 TEL |    0.0s     88 sudo -n echo -n
+2792.3 TEL |    0.0s     89 sudo -n echo -n
+2792.3 TEL |    0.0s     90 sudo -n echo -n
+2792.3 TEL |    0.0s     91 sudo -n echo -n
+2792.3 TEL |    0.0s     92 sudo -n echo -n
+2792.3 TEL |    0.0s     93 sudo -n echo -n
+2792.3 TEL |    0.0s     94 sudo -n echo -n
+2792.3 TEL |    0.0s     95 sudo -n echo -n
+2792.3 TEL |    0.0s     96 sudo -n echo -n
+2792.3 TEL |    0.0s     97 sudo -n echo -n
+2792.3 TEL |    0.0s     98 sudo -n echo -n
+2792.3 TEL |    0.0s     99 sudo -n echo -n
+2792.3 TEL |    0.0s     100 sudo -n echo -n
+2792.3 TEL |    0.0s     101 sudo -n echo -n
+2792.3 TEL |    0.0s     102 sudo -n echo -n
+2792.3 TEL |    0.0s     103 sudo -n echo -n
+2792.3 TEL |    0.0s     104 sudo -n echo -n
+2792.3 TEL |    0.0s     105 sudo -n echo -n
+2792.3 TEL |    0.0s     106 sudo -n echo -n
+2792.3 TEL |    0.0s     107 sudo -n echo -n
+2792.3 TEL |    0.0s     108 sudo -n echo -n
+2792.3 TEL |    0.0s     109 sudo -n echo -n
+2792.3 TEL |    0.0s     110 sudo -n echo -n
+2792.3 TEL |    0.0s     111 sudo -n echo -n
+2792.3 TEL |    0.0s     112 sudo -n echo -n
+2792.3 TEL |    0.0s     113 sudo -n echo -n
+2792.3 TEL |    0.0s     114 sudo -n echo -n
+2792.3 TEL |    0.0s     115 sudo -n echo -n
+2792.3 TEL |    0.0s     116 sudo -n echo -n
+2792.3 TEL |    0.0s     117 sudo -n echo -n
+2792.3 TEL |    0.0s     118 sudo -n echo -n
+2792.3 TEL |    0.0s     119 sudo -n echo -n
+2792.3 TEL |    0.0s     120 sudo -n echo -n
+2792.3 TEL |    0.0s     121 sudo -n echo -n
+2792.3 TEL |    0.0s     122 sudo -n echo -n
+2792.3 TEL |    0.0s     123 sudo -n echo -n
+2792.3 TEL |    0.0s     124 sudo -n echo -n
+2792.3 TEL |    0.0s     125 sudo -n echo -n
+2792.3 TEL |    0.0s     126 sudo -n echo -n
+2792.3 TEL |    0.0s     127 sudo -n echo -n
+2792.3 TEL |    0.0s     128 sudo -n echo -n
+2792.3 TEL |    0.1s   129 umount -f /tmp/tel-t0i0u7n4/fs
+2792.3 TEL |    0.3s   130 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syst
+2792.3 TEL |    0.3s   131 kubectl --context kubernetes-admin@cluster.local --namespace kubesphere-syst
+2792.3 TEL | (Cleanup) Remove temporary directory
+2792.3 TEL | (sudo privileges holder thread exiting)
+2792.5 TEL | (Cleanup) Save caches

@@ -34,7 +34,6 @@ import (
 	iam "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
 	network "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network"
-	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
 	storage "kubesphere.io/kubesphere/pkg/client/informers/externalversions/storage"
 	tenant "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant"
 	types "kubesphere.io/kubesphere/pkg/client/informers/externalversions/types"
@@ -185,7 +184,6 @@ type SharedInformerFactory interface {
 	Devops() devops.Interface
 	Iam() iam.Interface
 	Network() network.Interface
-	Servicemesh() servicemesh.Interface
 	Storage() storage.Interface
 	Tenant() tenant.Interface
 	Types() types.Interface
@@ -209,10 +207,6 @@ func (f *sharedInformerFactory) Iam() iam.Interface {
 
 func (f *sharedInformerFactory) Network() network.Interface {
 	return network.New(f, f.namespace, f.tweakListOptions)
-}
-
-func (f *sharedInformerFactory) Servicemesh() servicemesh.Interface {
-	return servicemesh.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Storage() storage.Interface {
