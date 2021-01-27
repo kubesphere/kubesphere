@@ -37,6 +37,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/network/ippool"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
+	"kubesphere.io/kubesphere/pkg/controller/notification"
 	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
@@ -284,6 +285,11 @@ func addControllers(
 
 	if multiClusterEnabled {
 		controllers["globalrole-controller"] = globalRoleController
+		notificationController, err := notification.NewController(client.Kubernetes(), mgr.GetClient(), mgr.GetCache())
+		if err != nil {
+			return err
+		}
+		controllers["notification-controller"] = notificationController
 	}
 
 	for name, ctrl := range controllers {

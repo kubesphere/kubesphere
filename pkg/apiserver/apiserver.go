@@ -37,6 +37,7 @@ import (
 	"k8s.io/klog"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	v2 "kubesphere.io/kubesphere/pkg/apis/notification/v2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
@@ -68,6 +69,7 @@ import (
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
 	notificationv1 "kubesphere.io/kubesphere/pkg/kapis/notification/v1"
+	notificationv2 "kubesphere.io/kubesphere/pkg/kapis/notification/v2"
 	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
@@ -270,6 +272,8 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.KubernetesClient.Prometheus(), s.AlertingClient, s.Config.AlertingOptions))
 	urlruntime.Must(version.AddToContainer(s.container, s.KubernetesClient.Discovery()))
 	urlruntime.Must(kubeedgev1alpha1.AddToContainer(s.container, s.Config.KubeEdgeOptions.Endpoint))
+	urlruntime.Must(notificationv2.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
+		s.KubernetesClient.KubeSphere()))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
@@ -310,6 +314,16 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			tenantv1alpha2.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			resourcev1alpha3.Resource(clusterv1alpha1.ResourcesPluralCluster),
+			v2.Resource(v2.ResourcesPluralDingTalkConfig),
+			v2.Resource(v2.ResourcesPluralDingTalkReceiver),
+			v2.Resource(v2.ResourcesPluralEmailReceiver),
+			v2.Resource(v2.ResourcesPluralEmailConfig),
+			v2.Resource(v2.ResourcesPluralSlackConfig),
+			v2.Resource(v2.ResourcesPluralSlackReceiver),
+			v2.Resource(v2.ResourcesPluralWebhookConfig),
+			v2.Resource(v2.ResourcesPluralWebhookReceiver),
+			v2.Resource(v2.ResourcesPluralWechatConfig),
+			v2.Resource(v2.ResourcesPluralWechatReceiver),
 		},
 	}
 
@@ -443,6 +457,16 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
 		{Group: "network.kubesphere.io", Version: "v1alpha1", Resource: "ippools"},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralDingTalkConfig},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralDingTalkReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralEmailConfig},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralEmailReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralSlackConfig},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralSlackReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralWebhookConfig},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralWebhookReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralWechatConfig},
+		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralWechatReceiver},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{

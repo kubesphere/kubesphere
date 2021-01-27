@@ -1,0 +1,167 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: emailconfigs.notification.kubesphere.io
+spec:
+  group: notification.kubesphere.io
+  names:
+    kind: EmailConfig
+    listKind: EmailConfigList
+    plural: emailconfigs
+    shortNames:
+    - ec
+    singular: emailconfig
+  scope: Cluster
+  versions:
+  - name: v2
+    schema:
+      openAPIV3Schema:
+        description: EmailConfig is the Schema for the emailconfigs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: EmailConfigSpec defines the desired state of EmailConfig
+            properties:
+              authIdentify:
+                description: The identity for PLAIN authentication.
+                type: string
+              authPassword:
+                description: The secret contains the SMTP password for LOGIN and PLAIN authentications.
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a valid secret key.
+                    type: string
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: The namespace of the secret, default to the pod's namespace.
+                    type: string
+                required:
+                - key
+                type: object
+              authSecret:
+                description: The secret contains the SMTP secret for CRAM-MD5 authentication.
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a valid secret key.
+                    type: string
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: The namespace of the secret, default to the pod's namespace.
+                    type: string
+                required:
+                - key
+                type: object
+              authUsername:
+                description: The username for CRAM-MD5, LOGIN and PLAIN authentications.
+                type: string
+              from:
+                description: The sender address.
+                type: string
+              hello:
+                description: The hostname to use when identifying to the SMTP server.
+                type: string
+              requireTLS:
+                description: The default SMTP TLS requirement.
+                type: boolean
+              smartHost:
+                description: The address of the SMTP server.
+                properties:
+                  host:
+                    type: string
+                  port:
+                    type: string
+                required:
+                - host
+                - port
+                type: object
+              tls:
+                description: TLSConfig configures the options for TLS connections.
+                properties:
+                  clientCertificate:
+                    description: The certificate of the client.
+                    properties:
+                      cert:
+                        description: The client cert file for the targets.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must be a valid secret key.
+                            type: string
+                          name:
+                            description: Name of the secret.
+                            type: string
+                          namespace:
+                            description: The namespace of the secret, default to the pod's namespace.
+                            type: string
+                        required:
+                        - key
+                        type: object
+                      key:
+                        description: The client key file for the targets.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must be a valid secret key.
+                            type: string
+                          name:
+                            description: Name of the secret.
+                            type: string
+                          namespace:
+                            description: The namespace of the secret, default to the pod's namespace.
+                            type: string
+                        required:
+                        - key
+                        type: object
+                    type: object
+                  insecureSkipVerify:
+                    description: Disable target certificate validation.
+                    type: boolean
+                  rootCA:
+                    description: RootCA defines the root certificate authorities that clients use when verifying server certificates.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be a valid secret key.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: The namespace of the secret, default to the pod's namespace.
+                        type: string
+                    required:
+                    - key
+                    type: object
+                  serverName:
+                    description: Used to verify the hostname for the targets.
+                    type: string
+                type: object
+            required:
+            - from
+            - smartHost
+            type: object
+          status:
+            description: EmailConfigStatus defines the observed state of EmailConfig
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
