@@ -19,6 +19,7 @@ package app
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
@@ -28,6 +29,7 @@ import (
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
+	"kubesphere.io/kubesphere/pkg/controller/quota"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -40,6 +42,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
 	application "sigs.k8s.io/application/controllers"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -173,7 +176,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	klog.V(0).Info("setting up manager")
-
+	ctrl.SetLogger(klogr.New())
 	// Use 8443 instead of 443 cause we need root permission to bind port 443
 	mgr, err := manager.New(kubernetesClient.Config(), mgrOptions)
 	if err != nil {
@@ -183,6 +186,9 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	if err = apis.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatalf("unable add APIs to scheme: %v", err)
 	}
+
+	// register common meta types into schemas.
+	metav1.AddToGroupVersion(mgr.GetScheme(), metav1.SchemeGroupVersion)
 
 	err = workspace.Add(mgr)
 	if err != nil {
@@ -202,6 +208,11 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}).SetupWithManager(mgr)
 	if err != nil {
 		klog.Fatal("Unable to create application controller")
+	}
+
+	resourceQuotaReconciler := quota.Reconciler{}
+	if err := resourceQuotaReconciler.SetupWithManager(mgr, quota.DefaultMaxConcurrentReconciles, quota.DefaultResyncPeriod, informerFactory.KubernetesSharedInformerFactory()); err != nil {
+		klog.Fatal("Unable to create resource quota controller")
 	}
 
 	// TODO(jeff): refactor config with CRD
@@ -232,6 +243,11 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	klog.V(2).Info("registering webhooks to the webhook server")
 	hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
 	hookServer.Register("/validate-nsnp-kubesphere-io-v1alpha1-network", &webhook.Admission{Handler: &nsnetworkpolicy.NSNPValidator{Client: mgr.GetClient()}})
+	resourceQuotaAdmission, err := quota.NewResourceQuotaAdmission(mgr.GetClient(), mgr.GetScheme())
+	if err != nil {
+		klog.Fatalf("unable to create resource quota admission: %v", err)
+	}
+	hookServer.Register("/validate-quota-kubesphere-io-v1alpha2-resourcequota", &webhook.Admission{Handler: resourceQuotaAdmission})
 
 	klog.V(0).Info("Starting the controllers.")
 	if err = mgr.Start(stopCh); err != nil {

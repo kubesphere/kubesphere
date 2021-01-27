@@ -26,6 +26,7 @@ import (
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/api/auditing/v1alpha1"
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
+	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
@@ -283,6 +284,38 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuditingQueryTag}).
 		Writes(auditingv1alpha1.APIResponse{}).
 		Returns(http.StatusOK, api.StatusOK, auditingv1alpha1.APIResponse{}))
+
+	ws.Route(ws.POST("/workspaces/{workspace}/resourcequotas").
+		To(handler.CreateWorkspaceResourceQuota).
+		Reads(quotav1alpha2.ResourceQuota{}).
+		Returns(http.StatusOK, api.StatusOK, quotav1alpha2.ResourceQuota{}).
+		Doc("Create resource quota.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
+	ws.Route(ws.DELETE("/workspaces/{workspace}/resourcequotas/{resourcequota}").
+		To(handler.DeleteWorkspaceResourceQuota).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("resourcequota", "resource quota name")).
+		Returns(http.StatusOK, api.StatusOK, errors.None).
+		Doc("Delete resource quota.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
+	ws.Route(ws.PUT("/workspaces/{workspace}/resourcequotas/{resourcequota}").
+		To(handler.UpdateWorkspaceResourceQuota).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("resourcequota", "resource quota name")).
+		Reads(quotav1alpha2.ResourceQuota{}).
+		Returns(http.StatusOK, api.StatusOK, quotav1alpha2.ResourceQuota{}).
+		Doc("Update resource quota.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
+	ws.Route(ws.GET("/workspaces/{workspace}/resourcequotas/{resourcequota}").
+		To(handler.DescribeWorkspaceResourceQuota).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("resourcequota", "resource quota name")).
+		Returns(http.StatusOK, api.StatusOK, quotav1alpha2.ResourceQuota{}).
+		Doc("Describe resource quota.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
 	c.Add(ws)
 	return nil
