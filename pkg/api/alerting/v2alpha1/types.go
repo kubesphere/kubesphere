@@ -18,7 +18,6 @@ package v2alpha1
 
 import (
 	"context"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -46,8 +45,6 @@ var (
 
 	templateTestData       = template.AlertTemplateData(map[string]string{}, map[string]string{}, 0)
 	templateTestTextPrefix = "{{$labels := .Labels}}{{$externalLabels := .ExternalLabels}}{{$value := .Value}}"
-
-	ruleLabelNameMatcher = regexp.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`)
 )
 
 type RuleLevel string
@@ -166,7 +163,7 @@ type AlertingRuleQueryParams struct {
 	LabelEqualFilters   map[string]string
 	LabelContainFilters map[string]string
 
-	Offset    int
+	PageNum   int
 	Limit     int
 	SortField string
 	SortType  string
@@ -275,7 +272,7 @@ func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
 func (q *AlertingRuleQueryParams) Sub(rules []*GettableAlertingRule) []*GettableAlertingRule {
 	start, stop := 0, 10
 	if q != nil {
-		start, stop = q.Offset, q.Offset+q.Limit
+		start, stop = (q.PageNum-1)*q.Limit, q.PageNum*q.Limit
 	}
 	total := len(rules)
 	if start < total {
@@ -292,8 +289,8 @@ type AlertQueryParams struct {
 	LabelEqualFilters   map[string]string
 	LabelContainFilters map[string]string
 
-	Offset int
-	Limit  int
+	PageNum int
+	Limit   int
 }
 
 func (q *AlertQueryParams) Filter(alerts []*Alert) []*Alert {
@@ -352,7 +349,7 @@ func (q *AlertQueryParams) Sort(alerts []*Alert) {
 func (q *AlertQueryParams) Sub(alerts []*Alert) []*Alert {
 	start, stop := 0, 10
 	if q != nil {
-		start, stop = q.Offset, q.Offset+q.Limit
+		start, stop = (q.PageNum-1)*q.Limit, q.PageNum*q.Limit
 	}
 	total := len(alerts)
 	if start < total {
@@ -373,7 +370,14 @@ func ParseAlertingRuleQueryParams(req *restful.Request) (*AlertingRuleQueryParam
 	q.NameContainFilter = req.QueryParameter("name")
 	q.State = req.QueryParameter("state")
 	q.Health = req.QueryParameter("health")
-	q.Offset, _ = strconv.Atoi(req.QueryParameter("offset"))
+	q.PageNum, err = strconv.Atoi(req.QueryParameter("page"))
+	if err != nil {
+		q.PageNum = 1
+		err = nil
+	}
+	if q.PageNum <= 0 {
+		q.PageNum = 1
+	}
 	q.Limit, err = strconv.Atoi(req.QueryParameter("limit"))
 	if err != nil {
 		q.Limit = 10
@@ -392,7 +396,14 @@ func ParseAlertQueryParams(req *restful.Request) (*AlertQueryParams, error) {
 	)
 
 	q.State = req.QueryParameter("state")
-	q.Offset, _ = strconv.Atoi(req.QueryParameter("offset"))
+	q.PageNum, err = strconv.Atoi(req.QueryParameter("page"))
+	if err != nil {
+		q.PageNum = 1
+		err = nil
+	}
+	if q.PageNum <= 0 {
+		q.PageNum = 1
+	}
 	q.Limit, err = strconv.Atoi(req.QueryParameter("limit"))
 	if err != nil {
 		q.Limit = 10

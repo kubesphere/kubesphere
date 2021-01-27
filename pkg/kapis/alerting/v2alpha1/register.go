@@ -68,7 +68,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Param(ws.QueryParameter("label_filters", "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
 		Param(ws.QueryParameter("sort_field", "sort field, one of `name`, `lastEvaluation`, `evaluationTime`")).
 		Param(ws.QueryParameter("sort_type", "sort type, one of `asc`, `desc`")).
-		Param(ws.QueryParameter("offset", "offset of the result set").DataType("integer").DefaultValue("0")).
+		Param(ws.QueryParameter("page", "page of the result set").DataType("integer").DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "limit size of the result set").DataType("integer").DefaultValue("10")).
 		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.GettableAlertingRuleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
@@ -78,7 +78,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Doc("list the alerts of the cluster-level custom alerting rules").
 		Param(ws.QueryParameter("state", "state, one of `firing`, `pending`, `inactive`")).
 		Param(ws.QueryParameter("label_filters", "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
-		Param(ws.QueryParameter("offset", "offset of the result set").DataType("integer").DefaultValue("0")).
+		Param(ws.QueryParameter("page", "page of the result set").DataType("integer").DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "limit size of the result set").DataType("integer").DefaultValue("10")).
 		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.AlertList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
@@ -124,7 +124,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Param(ws.QueryParameter("label_filters", "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
 		Param(ws.QueryParameter("sort_field", "sort field, one of `name`, `lastEvaluation`, `evaluationTime`")).
 		Param(ws.QueryParameter("sort_type", "sort type, one of `asc`, `desc`")).
-		Param(ws.QueryParameter("offset", "offset of the result set").DataType("integer").DefaultValue("0")).
+		Param(ws.QueryParameter("page", "page of the result set").DataType("integer").DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "limit size of the result set").DataType("integer").DefaultValue("10")).
 		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.GettableAlertingRuleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
@@ -134,7 +134,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Doc("list the alerts of the custom alerting rules in the specified namespace.").
 		Param(ws.QueryParameter("state", "state, one of `firing`, `pending`, `inactive`")).
 		Param(ws.QueryParameter("label_filters", "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
-		Param(ws.QueryParameter("offset", "offset of the result set").DataType("integer").DefaultValue("0")).
+		Param(ws.QueryParameter("page", "page of the result set").DataType("integer").DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "limit size of the result set").DataType("integer").DefaultValue("10")).
 		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.AlertList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
@@ -180,7 +180,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Param(ws.QueryParameter("label_filters", "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
 		Param(ws.QueryParameter("sort_field", "sort field, one of `name`, `lastEvaluation`, `evaluationTime`")).
 		Param(ws.QueryParameter("sort_type", "sort type, one of `asc`, `desc`")).
-		Param(ws.QueryParameter("offset", "offset of the result set").DataType("integer").DefaultValue("0")).
+		Param(ws.QueryParameter("page", "page of the result set").DataType("integer").DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "limit size of the result set").DataType("integer").DefaultValue("10")).
 		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.GettableAlertingRuleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
@@ -190,7 +190,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Doc("list the alerts of the builtin(non-custom) rules").
 		Param(ws.QueryParameter("state", "state, one of `firing`, `pending`, `inactive`")).
 		Param(ws.QueryParameter("label_filters", "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
-		Param(ws.QueryParameter("offset", "offset of the result set").DataType("integer").DefaultValue("0")).
+		Param(ws.QueryParameter("page", "page of the result set").DataType("integer").DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "limit size of the result set").DataType("integer").DefaultValue("10")).
 		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.AlertList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
