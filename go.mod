@@ -43,6 +43,7 @@ require (
 	github.com/google/go-cmp v0.5.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.1
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/json-iterator/go v1.1.10
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -733,7 +734,6 @@ replace (
 	gopkg.in/tchap/go-patricia.v2 => gopkg.in/tchap/go-patricia.v2 v2.2.6
 	gopkg.in/tomb.v1 => gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 	gopkg.in/warnings.v0 => gopkg.in/warnings.v0 v0.1.2
-	gopkg.in/yaml.v1 => gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 	gotest.tools => gotest.tools v2.2.0+incompatible
