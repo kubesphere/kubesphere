@@ -17,6 +17,7 @@ limitations under the License.
 package v2alpha1
 
 import (
+	"context"
 	"regexp"
 	"sort"
 	"strconv"
@@ -26,7 +27,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	prommodel "github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/pkg/timestamp"
 	"github.com/prometheus/prometheus/promql/parser"
+	"github.com/prometheus/prometheus/template"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
@@ -40,6 +43,9 @@ var (
 	ErrAlertingRuleNotFound      = errors.New("The alerting rule was not found")
 	ErrAlertingRuleAlreadyExists = errors.New("The alerting rule already exists")
 	ErrAlertingAPIV2NotEnabled   = errors.New("The alerting v2 API was not enabled")
+
+	templateTestData       = template.AlertTemplateData(map[string]string{}, map[string]string{}, 0)
+	templateTestTextPrefix = "{{$labels := .Labels}}{{$externalLabels := .ExternalLabels}}{{$value := .Value}}"
 
 	ruleLabelNameMatcher = regexp.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`)
 )
@@ -66,7 +72,10 @@ func (r *PostableAlertingRule) Validate() error {
 	if r.Name == "" {
 		errs = append(errs, errors.New("name can not be empty"))
 	}
-	if _, err := parser.ParseExpr(r.Query); err != nil {
+
+	if r.Query == "" {
+		errs = append(errs, errors.New("query can not be empty"))
+	} else if _, err := parser.ParseExpr(r.Query); err != nil {
 		errs = append(errs, errors.Wrapf(err, "query is invalid: %s", r.Query))
 	}
 	if r.Duration != "" {
@@ -75,11 +84,41 @@ func (r *PostableAlertingRule) Validate() error {
 		}
 	}
 
+	parseTest := func(text string) error {
+		tmpl := template.NewTemplateExpander(
+			context.TODO(),
+			templateTestTextPrefix+text,
+			"__alert_"+r.Name,
+			templateTestData,
+			prommodel.Time(timestamp.FromTime(time.Now())),
+			nil,
+			nil,
+		)
+		return tmpl.ParseTest()
+	}
+
 	if len(r.Labels) > 0 {
-		for name, _ := range r.Labels {
-			if !ruleLabelNameMatcher.MatchString(name) || strings.HasPrefix(name, "__") {
+		for name, v := range r.Labels {
+			if !prommodel.LabelName(name).IsValid() || strings.HasPrefix(name, "__") {
 				errs = append(errs, errors.Errorf(
 					"label name (%s) is not valid. The name must match [a-zA-Z_][a-zA-Z0-9_]* and has not the __ prefix (label names with this prefix are for internal use)", name))
+			}
+			if !prommodel.LabelValue(v).IsValid() {
+				errs = append(errs, errors.Errorf("invalid label value: %s", v))
+			}
+			if err := parseTest(v); err != nil {
+				errs = append(errs, errors.Errorf("invalid label value: %s", v))
+			}
+		}
+	}
+
+	if len(r.Annotations) > 0 {
+		for name, v := range r.Annotations {
+			if !prommodel.LabelName(name).IsValid() {
+				errs = append(errs, errors.Errorf("invalid annotation name: %s", v))
+			}
+			if err := parseTest(v); err != nil {
+				errs = append(errs, errors.Errorf("invalid annotation value: %s", v))
 			}
 		}
 	}
