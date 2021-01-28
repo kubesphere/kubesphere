@@ -17,8 +17,10 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,7 +35,6 @@ import (
 	registriesmodel "kubesphere.io/kubesphere/pkg/models/registries"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"net/http"
 )
 
 const (
@@ -145,6 +146,9 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 		Param(webservice.QueryParameter("secret", "secret name").
 			Required(false).
 			DataFormat("secret=%s")).
+		Param(webservice.QueryParameter("insecure", "whether verify cert if using https repo").
+			Required(false).
+			DataFormat("insecure=%s")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.RegistryTag}).
 		Doc("Retrieve the blob from the registry identified").
 		Writes(registriesmodel.ImageDetails{}).

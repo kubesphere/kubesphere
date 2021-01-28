@@ -18,17 +18,19 @@ package registries
 
 import (
 	"compress/gzip"
+	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/docker/docker/api/types"
 	"io"
 	"io/ioutil"
-	log "k8s.io/klog"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/docker/docker/api/types"
+	log "k8s.io/klog"
 )
 
 const (
@@ -63,10 +65,11 @@ type Registry struct {
 
 // Opt holds the options for a new registry.
 type RegistryOpt struct {
-	Domain  string
-	Timeout time.Duration
-	Headers map[string]string
-	UseSSL  bool
+	Domain   string
+	Timeout  time.Duration
+	Headers  map[string]string
+	UseSSL   bool
+	Insecure bool
 }
 
 type authToken struct {
@@ -80,7 +83,7 @@ type authService struct {
 	Scope   []string
 }
 
-func CreateRegistryClient(username, password, domain string, useSSL bool) (*Registry, error) {
+func CreateRegistryClient(username, password, domain string, useSSL bool, insecure bool) (*Registry, error) {
 	authDomain := domain
 	auth, err := GetAuthConfig(username, password, authDomain)
 	if err != nil {
@@ -90,8 +93,9 @@ func CreateRegistryClient(username, password, domain string, useSSL bool) (*Regi
 
 	// Create the registry client.
 	return New(auth, RegistryOpt{
-		Domain: domain,
-		UseSSL: useSSL,
+		Domain:   domain,
+		UseSSL:   useSSL,
+		Insecure: insecure,
 	})
 }
 
@@ -135,11 +139,16 @@ func newFromTransport(auth types.AuthConfig, opt RegistryOpt) (*Registry, error)
 	}
 
 	registryURL, _ := url.Parse(registryUrl)
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: opt.Insecure},
+	}
 	registry := &Registry{
 		URL:    registryURL.String(),
 		Domain: registryURL.Host,
 		Client: &http.Client{
-			Timeout: DefaultTimeout,
+			Timeout:   DefaultTimeout,
+			Transport: tr,
 		},
 		Username: auth.Username,
 		Password: auth.Password,

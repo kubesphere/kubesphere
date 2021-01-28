@@ -48,7 +48,7 @@ func (asm authServiceMock) equalTo(v *authService) bool {
 
 func TestToken(t *testing.T) {
 	testImage := Image{Domain: "docker.io", Path: "library/alpine", Tag: "latest"}
-	r, err := CreateRegistryClient("", "", "docker.io", true)
+	r, err := CreateRegistryClient("", "", "docker.io", true, false)
 	if err != nil {
 		t.Fatalf("Could not get registry client: %s", err)
 	}
