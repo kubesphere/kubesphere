@@ -170,11 +170,9 @@ func appendParametersToEtree(properties *etree.Element, parameters []devopsv1alp
 				case "choice":
 					choices := paramDefine.CreateElement("choices")
 					choices.CreateAttr("class", "java.util.Arrays$ArrayList")
-					a := choices.CreateElement("a")
-					a.CreateAttr("class", "string-array")
 					choiceValues := strings.Split(parameter.DefaultValue, "\n")
 					for _, choiceValue := range choiceValues {
-						a.CreateElement("string").SetText(choiceValue)
+						choices.CreateElement("string").SetText(choiceValue)
 					}
 				case "file":
 					break
@@ -232,7 +230,7 @@ func getParametersfromEtree(properties *etree.Element) []devopsv1alpha3.Paramete
 					Description: param.SelectElement("description").Text(),
 					Type:        ParameterTypeMap["hudson.model.ChoiceParameterDefinition"],
 				}
-				choices := param.SelectElement("choices").SelectElement("a").SelectElements("string")
+				choices := param.SelectElement("choices").SelectElements("string")
 				for _, choice := range choices {
 					choiceParameter.DefaultValue += fmt.Sprintf("%s\n", choice.Text())
 				}
