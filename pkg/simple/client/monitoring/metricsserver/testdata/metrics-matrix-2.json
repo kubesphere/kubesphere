@@ -1,0 +1,42 @@
+[
+    {
+        "metric_name": "node_cpu_usage",
+        "data": {
+            "resultType": "matrix",
+            "result": [
+                {
+                    "metric": {
+                        "node": "edgenode-2",
+                        "role": "edge"
+                    },
+                    "values": [
+                        [
+                            1611578096,
+                            "2"
+                        ]
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "metric_name": "node_cpu_utilisation",
+        "data": {
+            "resultType": "matrix",
+            "result": [
+                {
+                    "metric": {
+                        "node": "edgenode-2",
+                        "role": "edge"
+                    },
+                    "values": [
+                        [
+                            1611578096,
+                            "0.25"
+                        ]
+                    ]
+                }
+            ]
+        }
+    }
+]

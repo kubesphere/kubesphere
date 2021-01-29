@@ -47,18 +47,20 @@ type MonitoringOperator interface {
 }
 
 type monitoringOperator struct {
-	c   monitoring.Interface
-	k8s kubernetes.Interface
-	ks  ksinformers.SharedInformerFactory
-	op  openpitrix.Interface
+	prometheus    monitoring.Interface
+	metricsserver monitoring.Interface
+	k8s           kubernetes.Interface
+	ks            ksinformers.SharedInformerFactory
+	op            openpitrix.Interface
 }
 
-func NewMonitoringOperator(client monitoring.Interface, k8s kubernetes.Interface, factory informers.InformerFactory, opClient opclient.Client) MonitoringOperator {
+func NewMonitoringOperator(monitoringClient monitoring.Interface, metricsClient monitoring.Interface, k8s kubernetes.Interface, factory informers.InformerFactory, opClient opclient.Client) MonitoringOperator {
 	return &monitoringOperator{
-		c:   client,
-		k8s: k8s,
-		ks:  factory.KubeSphereSharedInformerFactory(),
-		op:  openpitrix.NewOpenpitrixOperator(factory.KubernetesSharedInformerFactory(), opClient),
+		prometheus:    monitoringClient,
+		metricsserver: metricsClient,
+		k8s:           k8s,
+		ks:            factory.KubeSphereSharedInformerFactory(),
+		op:            openpitrix.NewOpenpitrixOperator(factory.KubernetesSharedInformerFactory(), opClient),
 	}
 }
 
@@ -74,7 +76,7 @@ func (mo monitoringOperator) GetMetric(expr, namespace string, time time.Time) (
 			return monitoring.Metric{}, err
 		}
 	}
-	return mo.c.GetMetric(expr, time), nil
+	return mo.prometheus.GetMetric(expr, time), nil
 }
 
 func (mo monitoringOperator) GetMetricOverTime(expr, namespace string, start, end time.Time, step time.Duration) (monitoring.Metric, error) {
@@ -89,21 +91,55 @@ func (mo monitoringOperator) GetMetricOverTime(expr, namespace string, start, en
 			return monitoring.Metric{}, err
 		}
 	}
-	return mo.c.GetMetricOverTime(expr, start, end, step), nil
+	return mo.prometheus.GetMetricOverTime(expr, start, end, step), nil
 }
 
 func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, opt monitoring.QueryOption) Metrics {
-	ress := mo.c.GetNamedMetrics(metrics, time, opt)
+	ress := mo.prometheus.GetNamedMetrics(metrics, time, opt)
+
+	if mo.metricsserver != nil {
+		mr := mo.metricsserver.GetNamedMetrics(metrics, time, opt)
+
+		//Merge edge node metrics data
+		edgeMetrics := make(map[string]monitoring.MetricData)
+		for _, metric := range mr {
+			edgeMetrics[metric.MetricName] = metric.MetricData
+		}
+
+		for i, metric := range ress {
+			if val, ok := edgeMetrics[metric.MetricName]; ok {
+				ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+			}
+		}
+	}
+
 	return Metrics{Results: ress}
 }
 
 func (mo monitoringOperator) GetNamedMetricsOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) Metrics {
-	ress := mo.c.GetNamedMetricsOverTime(metrics, start, end, step, opt)
+	ress := mo.prometheus.GetNamedMetricsOverTime(metrics, start, end, step, opt)
+
+	if mo.metricsserver != nil {
+		mr := mo.metricsserver.GetNamedMetricsOverTime(metrics, start, end, step, opt)
+
+		//Merge edge node metrics data
+		edgeMetrics := make(map[string]monitoring.MetricData)
+		for _, metric := range mr {
+			edgeMetrics[metric.MetricName] = metric.MetricData
+		}
+
+		for i, metric := range ress {
+			if val, ok := edgeMetrics[metric.MetricName]; ok {
+				ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+			}
+		}
+	}
+
 	return Metrics{Results: ress}
 }
 
 func (mo monitoringOperator) GetMetadata(namespace string) Metadata {
-	data := mo.c.GetMetadata(namespace)
+	data := mo.prometheus.GetMetadata(namespace)
 	return Metadata{Data: data}
 }
 
@@ -121,7 +157,7 @@ func (mo monitoringOperator) GetMetricLabelSet(metric, namespace string, start, 
 			return MetricLabelSet{}
 		}
 	}
-	data := mo.c.GetMetricLabelSet(expr, start, end)
+	data := mo.prometheus.GetMetricLabelSet(expr, start, end)
 	return MetricLabelSet{Data: data}
 }
 

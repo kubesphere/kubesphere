@@ -39,10 +39,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha3"}
 
-func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface, factory informers.InformerFactory, opClient openpitrix.Client) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, factory informers.InformerFactory, opClient openpitrix.Client) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	h := newHandler(k8sClient, monitoringClient, factory, opClient)
+	h := newHandler(k8sClient, monitoringClient, metricsClient, factory, opClient)
 
 	ws.Route(ws.GET("/kubesphere").
 		To(h.handleKubeSphereMetricsQuery).
