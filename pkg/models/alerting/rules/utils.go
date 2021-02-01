@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/prometheus/prometheus/rules"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 )
 
 const (
@@ -25,6 +25,9 @@ const (
 	LabelKeyInternalRuleName     = "__rule_name__"
 	LabelKeyInternalRuleQuery    = "__rule_query__"
 	LabelKeyInternalRuleDuration = "__rule_duration__"
+
+	LabelKeyThanosRulerReplica = "thanos_ruler_replica"
+	LabelKeyPrometheusReplica  = "prometheus_replica"
 )
 
 func FormatExpr(expr string) (string, error) {
@@ -100,16 +103,21 @@ func GenEndpointRuleId(group string, epRule *alerting.AlertingRule,
 	}
 	duration := parseDurationSeconds(epRule.Duration)
 
-	var labelsMap map[string]string
-	if externalLabels == nil {
-		labelsMap = epRule.Labels
-	} else {
-		labelsMap = make(map[string]string)
-		extLabels := externalLabels()
-		for key, value := range epRule.Labels {
-			if v, ok := extLabels[key]; !(ok && value == v) {
-				labelsMap[key] = value
-			}
+	var extLabels map[string]string
+	if externalLabels != nil {
+		extLabels = externalLabels()
+	}
+	labelsMap := make(map[string]string)
+	for key, value := range epRule.Labels {
+		if key == LabelKeyPrometheusReplica || key == LabelKeyThanosRulerReplica {
+			continue
+		}
+		if extLabels == nil {
+			labelsMap[key] = value
+			continue
+		}
+		if v, ok := extLabels[key]; !(ok && value == v) {
+			labelsMap[key] = value
 		}
 	}
 
@@ -148,11 +156,11 @@ func GetAlertingRulesStatus(ruleNamespace string, ruleChunk *ResourceRuleChunk, 
 			continue
 		}
 
-		for _, epRule := range group.Rules {
+		for i, epRule := range group.Rules {
 			if eid, err := GenEndpointRuleId(group.Name, epRule, extLabels); err != nil {
 				return nil, errors.Wrap(err, ErrGenRuleId)
 			} else {
-				idEpRules[eid] = epRule
+				idEpRules[eid] = group.Rules[i]
 				nameIds[epRule.Name] = append(nameIds[epRule.Name], eid)
 			}
 		}
