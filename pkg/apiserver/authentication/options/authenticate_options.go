@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/pflag"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/cas"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/github"
+	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/oidc"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"time"
 )
