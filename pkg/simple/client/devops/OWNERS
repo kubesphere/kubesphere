@@ -1,12 +1,12 @@
 approvers:
-    - runzexia
-    - soulseen
     - shaowenchen
+    - linuxsuren
 
 reviewers:
     - runzexia
     - soulseen
     - shaowenchen
+    - linuxsuren
 
 labels:
     - area/devops
