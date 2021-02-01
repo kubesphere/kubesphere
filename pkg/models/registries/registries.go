@@ -21,6 +21,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/emicklei/go-restful"
@@ -28,7 +30,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
-	"strings"
 )
 
 const (
@@ -55,7 +56,7 @@ type DockerConfigEntry struct {
 
 type RegistryGetter interface {
 	VerifyRegistryCredential(credential api.RegistryCredential) error
-	GetEntry(namespace, secretName, imageName string) (ImageDetails, error)
+	GetEntry(namespace, secretName, imageName string, insecure bool) (ImageDetails, error)
 }
 
 type registryGetter struct {
@@ -96,8 +97,8 @@ func (c *registryGetter) VerifyRegistryCredential(credential api.RegistryCredent
 	}
 }
 
-func (c *registryGetter) GetEntry(namespace, secretName, imageName string) (ImageDetails, error) {
-	imageDetails, err := c.getEntryBySecret(namespace, secretName, imageName)
+func (c *registryGetter) GetEntry(namespace, secretName, imageName string, insecure bool) (ImageDetails, error) {
+	imageDetails, err := c.getEntryBySecret(namespace, secretName, imageName, insecure)
 	if imageDetails.Status == StatusFailed {
 		imageDetails.Message = err.Error()
 	}
@@ -105,7 +106,7 @@ func (c *registryGetter) GetEntry(namespace, secretName, imageName string) (Imag
 	return imageDetails, err
 }
 
-func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName string) (ImageDetails, error) {
+func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName string, insecure bool) (ImageDetails, error) {
 	failedImageDetails := ImageDetails{
 		Status:  StatusFailed,
 		Message: "",
@@ -152,7 +153,7 @@ func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName strin
 	useSSL := checkSSl(config.ServerAddress)
 
 	// Create the registry client.
-	r, err := CreateRegistryClient(config.Username, config.Password, image.Domain, useSSL)
+	r, err := CreateRegistryClient(config.Username, config.Password, image.Domain, useSSL, insecure)
 	if err != nil {
 		return failedImageDetails, err
 	}

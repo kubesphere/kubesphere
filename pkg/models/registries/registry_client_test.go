@@ -41,7 +41,7 @@ func TestCreateRegistryClient(t *testing.T) {
 	}
 
 	for _, testImage := range testImages {
-		reg, err := CreateRegistryClient(testImage.Username, testImage.Password, testImage.Domain, testImage.UseSSL)
+		reg, err := CreateRegistryClient(testImage.Username, testImage.Password, testImage.Domain, testImage.UseSSL, false)
 		if err != nil {
 			t.Fatalf("Get err %s", err)
 		}
@@ -57,7 +57,7 @@ func TestCreateRegistryClient(t *testing.T) {
 	}
 
 	testImage := Image{Domain: DockerHub, Path: "library/alpine", Tag: "latest"}
-	r, err := CreateRegistryClient("", "", DockerHub, true)
+	r, err := CreateRegistryClient("", "", DockerHub, true, false)
 	if err != nil {
 		t.Fatalf("Could not get client: %s", err)
 	}
