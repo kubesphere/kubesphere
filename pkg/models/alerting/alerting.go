@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	promresourcesv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -470,6 +471,8 @@ func (o *operator) CreateCustomAlertingRule(ctx context.Context, namespace strin
 		return v2alpha1.ErrAlertingRuleAlreadyExists
 	}
 
+	setRuleUpdateTime(rule, time.Now())
+
 	return ruler.AddAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector,
 		customRuleGroupDefault, parseToPrometheusRule(rule), ruleResourceLabels)
 }
@@ -520,6 +523,8 @@ func (o *operator) UpdateCustomAlertingRule(ctx context.Context, namespace, name
 	if resourceRule == nil {
 		return v2alpha1.ErrAlertingRuleNotFound
 	}
+
+	setRuleUpdateTime(rule, time.Now())
 
 	return ruler.UpdateAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector,
 		resourceRule.Group, parseToPrometheusRule(rule), ruleResourceLabels)
@@ -632,4 +637,14 @@ func pageAlerts(alertingRules []*v2alpha1.GettableAlertingRule,
 		Total: len(alerts),
 		Items: queryParams.Sub(alerts),
 	}
+}
+
+func setRuleUpdateTime(rule *v2alpha1.PostableAlertingRule, t time.Time) {
+	if rule.Annotations == nil {
+		rule.Annotations = make(map[string]string)
+	}
+	if t.IsZero() {
+		t = time.Now()
+	}
+	rule.Annotations[v2alpha1.AnnotationKeyRuleUpdateTime] = t.UTC().Format(time.RFC3339)
 }

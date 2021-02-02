@@ -35,6 +35,8 @@ import (
 const (
 	RuleLevelCluster   RuleLevel = "cluster"
 	RuleLevelNamespace RuleLevel = "namespace"
+
+	AnnotationKeyRuleUpdateTime = "rule_update_time"
 )
 
 var (
@@ -217,10 +219,22 @@ func AlertingRuleIdCompare(leftId, rightId string) bool {
 }
 
 func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
-	idCompare := func(left, right *GettableAlertingRule) bool {
+	baseCompare := func(left, right *GettableAlertingRule) bool {
+		var leftUpdateTime, rightUpdateTime string
+		if len(left.Annotations) > 0 {
+			leftUpdateTime = left.Annotations[AnnotationKeyRuleUpdateTime]
+		}
+		if len(right.Annotations) > 0 {
+			rightUpdateTime = right.Annotations[AnnotationKeyRuleUpdateTime]
+		}
+
+		if leftUpdateTime != rightUpdateTime {
+			return leftUpdateTime > rightUpdateTime
+		}
+
 		return AlertingRuleIdCompare(left.Id, right.Id)
 	}
-	var compare = idCompare
+	var compare = baseCompare
 	if q != nil {
 		reverse := q.SortType == "desc"
 		switch q.SortField {
@@ -232,7 +246,7 @@ func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
 					}
 					return c < 0
 				}
-				return idCompare(left, right)
+				return baseCompare(left, right)
 			}
 		case "lastEvaluation":
 			compare = func(left, right *GettableAlertingRule) bool {
@@ -250,7 +264,7 @@ func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
 						return left.LastEvaluation.Before(*right.LastEvaluation)
 					}
 				}
-				return idCompare(left, right)
+				return baseCompare(left, right)
 			}
 		case "evaluationTime":
 			compare = func(left, right *GettableAlertingRule) bool {
@@ -260,7 +274,7 @@ func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
 					}
 					return left.EvaluationDurationSeconds < right.EvaluationDurationSeconds
 				}
-				return idCompare(left, right)
+				return baseCompare(left, right)
 			}
 		}
 	}
