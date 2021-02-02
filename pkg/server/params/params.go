@@ -31,16 +31,42 @@ const (
 	ReverseParam    = "reverse"
 )
 
+const (
+	DefaultLimit = 10
+	DefaultPage  = 1
+)
+
+// ParsePaging parse the paging parameters from the request, then returns the limit and offset
+// supported format: ?limit=1&page=1
+// supported format: ?paging=limit=100,page=1
 func ParsePaging(req *restful.Request) (limit, offset int) {
 	paging := req.QueryParameter(PagingParam)
 	limit = 10
-	offset = 0
-	if groups := regexp.MustCompile(`^limit=(-?\d+),page=(\d+)$`).FindStringSubmatch(paging); len(groups) == 3 {
-		limit, _ = strconv.Atoi(groups[1])
-		page, _ := strconv.Atoi(groups[2])
-		offset = (page - 1) * limit
+	page := DefaultPage
+	if paging != "" {
+		if groups := regexp.MustCompile(`^limit=(-?\d+),page=(\d+)$`).FindStringSubmatch(paging); len(groups) == 3 {
+			limit = AtoiOrDefault(groups[1], DefaultLimit)
+			page = AtoiOrDefault(groups[2], DefaultPage)
+		}
+	} else {
+		// try to parse from format ?limit=10&page=1
+		limit = AtoiOrDefault(req.QueryParameter("limit"), DefaultLimit)
+		page = AtoiOrDefault(req.QueryParameter("page"), DefaultPage)
+	}
+	offset = (page - 1) * limit
+
+	// use the explict offset
+	if start := req.QueryParameter("start"); start != "" {
+		offset = AtoiOrDefault(start, offset)
 	}
 	return
+}
+
+func AtoiOrDefault(str string, defVal int) int {
+	if result, err := strconv.Atoi(str); err == nil {
+		return result
+	}
+	return defVal
 }
 
 var (

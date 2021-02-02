@@ -29,9 +29,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	clientDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -54,32 +55,39 @@ func (h *ProjectPipelineHandler) GetPipeline(req *restful.Request, resp *restful
 func (h *ProjectPipelineHandler) getPipelinesByRequest(req *restful.Request) (api.ListResult, error) {
 	// this is a very trick way, but don't have a better solution for now
 	var (
-		err       error
-		start     int
-		limit     int
-		namespace string
+		start      int
+		limit      int
+		namespace  string
+		nameFilter string
 	)
 
 	// parse query from the request
 	query := req.QueryParameter("q")
 	for _, val := range strings.Split(query, ";") {
 		if strings.HasPrefix(val, "pipeline:") {
-			namespace = strings.TrimLeft(val, "pipeline:")
-			namespace = strings.Split(namespace, "/")[0]
+			nsAndName := strings.TrimLeft(val, "pipeline:")
+			filterMeta := strings.Split(nsAndName, "/")
+			if len(filterMeta) >= 2 {
+				namespace = filterMeta[0]
+				nameFilter = filterMeta[1] // the format is '*keyword*'
+				nameFilter = strings.TrimSuffix(nameFilter, "*")
+				nameFilter = strings.TrimPrefix(nameFilter, "*")
+			} else if len(filterMeta) > 0 {
+				namespace = filterMeta[0]
+			}
 		}
 	}
 
+	pipelineFilter := func(pipeline *v1alpha3.Pipeline) bool {
+		return strings.Contains(pipeline.Name, nameFilter)
+	}
+	if nameFilter == "" {
+		pipelineFilter = nil
+	}
+
 	// make sure we have an appropriate value
-	if start, err = strconv.Atoi(req.QueryParameter("start")); err != nil {
-		start = 0
-	}
-	if limit, err = strconv.Atoi(req.QueryParameter("limit")); err != nil {
-		limit = 10
-	}
-
-	defer req.Request.Form.Set("limit", "10000") // assume the pipelines no more than 10k
-
-	return h.devopsOperator.ListPipelineObj(namespace, func(list []*v1alpha3.Pipeline, i int, j int) bool {
+	limit, start = params.ParsePaging(req)
+	return h.devopsOperator.ListPipelineObj(namespace, pipelineFilter, func(list []*v1alpha3.Pipeline, i int, j int) bool {
 		return strings.Compare(strings.ToUpper(list[i].Name), strings.ToUpper(list[j].Name)) < 0
 	}, limit, start)
 }
@@ -96,31 +104,32 @@ func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restf
 		Total: objs.TotalItems,
 		Items: make([]clientDevOps.Pipeline, len(objs.Items)),
 	}
-	if pipelineList.Total > 0 && len(objs.Items) > 0 {
-		pipelineMap := make(map[string]int, pipelineList.Total)
-		for i, item := range objs.Items {
-			if pipeline, ok := item.(v1alpha3.Pipeline); !ok {
-				continue
-			} else {
-				pip := clientDevOps.Pipeline{
-					Name: pipeline.Name,
-				}
-
-				pipelineMap[pipeline.Name] = i
-				pipelineList.Items[i] = pip
+	pipelineMap := make(map[string]int, pipelineList.Total)
+	for i, _ := range objs.Items {
+		if pipeline, ok := objs.Items[i].(v1alpha3.Pipeline); !ok {
+			continue
+		} else {
+			pipelineMap[pipeline.Name] = i
+			pipelineList.Items[i] = clientDevOps.Pipeline{
+				Name: pipeline.Name,
 			}
 		}
+	}
 
-		// get all pipelines which come from Jenkins
-		// fill out the rest fields
-		res, err := h.devopsOperator.ListPipelines(req.Request)
-		if err != nil {
-			log.Error(err)
-		} else {
-			for _, item := range res.Items {
-				if index, ok := pipelineMap[item.Name]; ok {
-					pipelineList.Items[index] = item
-				}
+	// get all pipelines which come from Jenkins
+	// fill out the rest fields
+	if query, err := jenkins.ParseJenkinsQuery(req.Request.URL.RawQuery); err == nil {
+		query.Set("limit", "10000")
+		query.Set("start", "0")
+		req.Request.URL.RawQuery = query.Encode()
+	}
+	res, err := h.devopsOperator.ListPipelines(req.Request)
+	if err != nil {
+		log.Error(err)
+	} else {
+		for i, _ := range res.Items {
+			if index, ok := pipelineMap[res.Items[i].Name]; ok {
+				pipelineList.Items[index] = res.Items[i]
 			}
 		}
 	}
