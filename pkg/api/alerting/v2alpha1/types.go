@@ -41,7 +41,7 @@ var (
 	ErrThanosRulerNotEnabled     = errors.New("The request operation to custom alerting rule could not be done because thanos ruler is not enabled")
 	ErrAlertingRuleNotFound      = errors.New("The alerting rule was not found")
 	ErrAlertingRuleAlreadyExists = errors.New("The alerting rule already exists")
-	ErrAlertingAPIV2NotEnabled   = errors.New("The alerting v2 API was not enabled")
+	ErrAlertingAPIV2NotEnabled   = errors.New("The alerting v2 API is not enabled")
 
 	templateTestData       = template.AlertTemplateData(map[string]string{}, map[string]string{}, 0)
 	templateTestTextPrefix = "{{$labels := .Labels}}{{$externalLabels := .ExternalLabels}}{{$value := .Value}}"

@@ -363,8 +363,8 @@ func (r *ThanosRuler) addAlertingRule(ctx context.Context, ruleNamespace *corev1
 				continue
 			}
 		}
-		if err := r.doRuleResourceOperation(prometheusRule, func(newerPr *promresourcesv1.PrometheusRule) error {
-			resource := ruleResource(*newerPr)
+		if err := r.doRuleResourceOperation(ctx, prometheusRule, func(pr *promresourcesv1.PrometheusRule) error {
+			resource := ruleResource(*pr)
 			if ok, err := resource.addAlertingRule(group, rule); err != nil {
 				return err
 			} else if ok {
@@ -421,8 +421,8 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 	)
 	for i, prometheusRule := range prometheusRules {
 		if success { // If the update has been successful, delete the possible same rule in other resources
-			if err := r.doRuleResourceOperation(prometheusRule, func(newerPr *promresourcesv1.PrometheusRule) error {
-				resource := ruleResource(*newerPr)
+			if err := r.doRuleResourceOperation(ctx, prometheusRule, func(pr *promresourcesv1.PrometheusRule) error {
+				resource := ruleResource(*pr)
 				if ok, err := resource.deleteAlertingRule(rule.Alert); err != nil {
 					return err
 				} else if ok {
@@ -437,8 +437,8 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 			continue
 		}
 
-		if err := r.doRuleResourceOperation(prometheusRule, func(newerPr *promresourcesv1.PrometheusRule) error {
-			resource := ruleResource(*newerPr)
+		if err := r.doRuleResourceOperation(ctx, prometheusRule, func(pr *promresourcesv1.PrometheusRule) error {
+			resource := ruleResource(*pr)
 			if ok, err := resource.updateAlertingRule(group, rule); err != nil {
 				return err
 			} else if ok {
@@ -474,8 +474,8 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 		}
 	}
 	for _, pr := range prsToDelRule {
-		if err := r.doRuleResourceOperation(pr, func(newerPr *promresourcesv1.PrometheusRule) error {
-			resource := ruleResource(*newerPr)
+		if err := r.doRuleResourceOperation(ctx, pr, func(pr *promresourcesv1.PrometheusRule) error {
+			resource := ruleResource(*pr)
 			if ok, err := resource.deleteAlertingRule(rule.Alert); err != nil {
 				return err
 			} else if ok {
@@ -499,8 +499,8 @@ func (r *ThanosRuler) DeleteAlertingRule(ctx context.Context, ruleNamespace *cor
 	}
 	var success bool
 	for _, prometheusRule := range prometheusRules {
-		if err := r.doRuleResourceOperation(prometheusRule, func(newerPr *promresourcesv1.PrometheusRule) error {
-			resource := ruleResource(*newerPr)
+		if err := r.doRuleResourceOperation(ctx, prometheusRule, func(pr *promresourcesv1.PrometheusRule) error {
+			resource := ruleResource(*pr)
 			if ok, err := resource.deleteAlertingRule(name); err != nil {
 				return err
 			} else if ok {
@@ -523,13 +523,13 @@ func (r *ThanosRuler) DeleteAlertingRule(ctx context.Context, ruleNamespace *cor
 	return nil
 }
 
-func (r *ThanosRuler) doRuleResourceOperation(pr *promresourcesv1.PrometheusRule,
-	operation func(newerPr *promresourcesv1.PrometheusRule) error) error {
+func (r *ThanosRuler) doRuleResourceOperation(ctx context.Context, pr *promresourcesv1.PrometheusRule,
+	operation func(pr *promresourcesv1.PrometheusRule) error) error {
 	key := pr.Namespace + "/" + pr.Name
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		r.locker.Lock(key)
 		defer r.locker.Unlock(key)
-		pr, err := r.informer.Lister().PrometheusRules(pr.Namespace).Get(pr.Name)
+		pr, err := r.client.MonitoringV1().PrometheusRules(pr.Namespace).Get(ctx, pr.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
