@@ -18,10 +18,14 @@ package monitoring
 
 import (
 	"context"
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -30,7 +34,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	opclient "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"time"
 )
 
 type MonitoringOperator interface {
@@ -307,7 +310,9 @@ func (mo monitoringOperator) GetWorkspaceStats(workspace string) Metrics {
 		})
 	}
 
-	memberList, err := mo.ks.Iam().V1alpha2().WorkspaceRoleBindings().Lister().List(selector)
+	r, _ := labels.NewRequirement(v1alpha2.UserReferenceLabel, selection.Exists, nil)
+	memberSelector := selector.DeepCopySelector().Add(*r)
+	memberList, err := mo.ks.Iam().V1alpha2().WorkspaceRoleBindings().Lister().List(memberSelector)
 	if err != nil {
 		res.Results = append(res.Results, monitoring.Metric{
 			MetricName: WorkspaceMemberCount,
