@@ -74,6 +74,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/grpc v1.30.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
+	gopkg.in/cas.v2 v2.2.0
 	gopkg.in/square/go-jose.v2 v2.4.0
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.11.0
@@ -683,6 +684,7 @@ replace (
 	gopkg.in/alecthomas/kingpin.v2 => gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/alexcesaro/quotedprintable.v3 => gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc
 	gopkg.in/asn1-ber.v1 => gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
+	gopkg.in/cas.v2 => gopkg.in/cas.v2 v2.2.0
 	gopkg.in/check.v1 => gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/cheggaaa/pb.v1 => gopkg.in/cheggaaa/pb.v1 v1.0.25
 	gopkg.in/errgo.v2 => gopkg.in/errgo.v2 v2.1.0
@@ -730,7 +732,6 @@ replace (
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.0.0
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
 	k8s.io/kubectl => k8s.io/kubectl v0.18.6
-	k8s.io/kubernetes => k8s.io/kubernetes v1.14.0
 	k8s.io/metrics => k8s.io/metrics v0.18.6
 	k8s.io/utils => k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	kubesphere.io/im => kubesphere.io/im v0.1.0
