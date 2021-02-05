@@ -251,9 +251,18 @@ func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3
 	if err != nil {
 		return nil, err
 	}
-	projectObj.Annotations[devopsv1alpha3.PipelineSyncStatusAnnoKey] = StatusPending
-	projectObj.Annotations[devopsv1alpha3.PipelineSyncTimeAnnoKey] = GetSyncNowTime()
-	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Update(context.Background(), pipeline, metav1.UpdateOptions{})
+
+	ctx := context.Background()
+	ns := projectObj.Status.AdminNamespace
+	name := pipeline.GetName()
+	// trying to avoid the error of `Operation cannot be fulfilled on` by getting the latest resourceVersion
+	if latestPipe, err := d.ksclient.DevopsV1alpha3().Pipelines(ns).Get(ctx, name, metav1.GetOptions{}); err == nil {
+		pipeline.ResourceVersion = latestPipe.ResourceVersion
+	} else {
+		return nil, fmt.Errorf("cannot found pipeline %s/%s, error: %v", ns, name, err)
+	}
+
+	return d.ksclient.DevopsV1alpha3().Pipelines(ns).Update(context.Background(), pipeline, metav1.UpdateOptions{})
 }
 
 func (d devopsOperator) ListPipelineObj(projectName string, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error) {
