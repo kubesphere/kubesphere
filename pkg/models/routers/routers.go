@@ -19,6 +19,9 @@ package routers
 import (
 	"fmt"
 	"io/ioutil"
+	"sort"
+	"strings"
+
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,8 +32,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
-	"sort"
-	"strings"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 // choose router node ip by labels, currently select master node
@@ -318,13 +320,13 @@ func (c *routerOperator) createOrUpdateRouterWorkload(namespace string, publishS
 			deployment.Spec.Template.Labels["project"] = namespace
 
 			// Add configmap
-			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--configmap=$(POD_NAMESPACE)/"+deployment.Name+configMapSuffix)
+			deployment.Spec.Template.Spec.Containers[0].Args = sliceutil.AppendArg(deployment.Spec.Template.Spec.Containers[0].Args, "--configmap=$(POD_NAMESPACE)/"+deployment.Name+configMapSuffix)
 
 			// Isolate namespace
-			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
+			deployment.Spec.Template.Spec.Containers[0].Args = sliceutil.AppendArg(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
 
 			// Choose self as master
-			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--election-id="+deployment.Name)
+			deployment.Spec.Template.Spec.Containers[0].Args = sliceutil.AppendArg(deployment.Spec.Template.Spec.Containers[0].Args, "--election-id="+deployment.Name)
 
 		}
 	} else {
@@ -340,7 +342,7 @@ func (c *routerOperator) createOrUpdateRouterWorkload(namespace string, publishS
 						strings.HasPrefix("--report-node-internal-ip-address", argument) {
 						continue
 					}
-					args = append(args, deployment.Spec.Template.Spec.Containers[i].Args[j])
+					args = sliceutil.AppendArg(args, deployment.Spec.Template.Spec.Containers[i].Args[j])
 				}
 				deployment.Spec.Template.Spec.Containers[i].Args = args
 			}
@@ -357,9 +359,9 @@ func (c *routerOperator) createOrUpdateRouterWorkload(namespace string, publishS
 	}
 
 	if publishService {
-		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--publish-service="+ingressControllerNamespace+"/"+ingressControllerPrefix+namespace)
+		deployment.Spec.Template.Spec.Containers[0].Args = sliceutil.AppendArg(deployment.Spec.Template.Spec.Containers[0].Args, "--publish-service="+ingressControllerNamespace+"/"+ingressControllerPrefix+namespace)
 	} else {
-		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--report-node-internal-ip-address")
+		deployment.Spec.Template.Spec.Containers[0].Args = sliceutil.AppendArg(deployment.Spec.Template.Spec.Containers[0].Args, "--report-node-internal-ip-address")
 	}
 
 	if createDeployment {

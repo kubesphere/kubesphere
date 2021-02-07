@@ -16,6 +16,10 @@ limitations under the License.
 
 package sliceutil
 
+import (
+	"strings"
+)
+
 func RemoveString(slice []string, remove func(item string) bool) []string {
 	for i := 0; i < len(slice); i++ {
 		if remove(slice[i]) {
@@ -33,4 +37,15 @@ func HasString(slice []string, str string) bool {
 		}
 	}
 	return false
+}
+
+func AppendArg(args []string, arg string) []string {
+	n := strings.TrimSpace(strings.Split(arg, "=")[0])
+	for _, v := range args {
+		if strings.TrimSpace(strings.Split(v, "=")[0]) == n {
+			return args
+		}
+	}
+
+	return append(args, arg)
 }
