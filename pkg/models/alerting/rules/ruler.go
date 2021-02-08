@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/docker/docker/pkg/locker"
 	"github.com/ghodss/yaml"
@@ -22,6 +24,9 @@ import (
 
 const (
 	customAlertingRuleResourcePrefix = "custom-alerting-rule-"
+
+	customRuleGroupDefaultPrefix = "alerting.custom.defaults."
+	customRuleGroupSize          = 20
 )
 
 var (
@@ -39,20 +44,19 @@ type Ruler interface {
 
 	ListRuleResources(ruleNamespace *corev1.Namespace, extraRuleResourceSelector labels.Selector) (
 		[]*promresourcesv1.PrometheusRule, error)
-
 	AddAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace, extraRuleResourceSelector labels.Selector,
-		group string, rule *promresourcesv1.Rule, ruleResourceLabels map[string]string) error
+		ruleResourceLabels map[string]string, ruleItem *ResourceRuleItem) error
 	UpdateAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace, extraRuleResourceSelector labels.Selector,
-		group string, rule *promresourcesv1.Rule, ruleResourceLabels map[string]string) error
+		ruleResourceLabels map[string]string, ruleItem *ResourceRuleItem) error
 	DeleteAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace, extraRuleResourceSelector labels.Selector,
-		group string, name string) error
+		ruleItem *ResourceRuleItem) error
 }
 
 type ruleResource promresourcesv1.PrometheusRule
 
-// deleteAlertingRule deletes the rules with the given name.
+// deleteAlertingRule deletes the rule.
 // If the rule is deleted, return true to indicate the resource should be updated.
-func (r *ruleResource) deleteAlertingRule(name string) (bool, error) {
+func (r *ruleResource) deleteAlertingRule(ruleItem *ResourceRuleItem) (bool, error) {
 	var (
 		nGroups []promresourcesv1.RuleGroup
 		ok      bool
@@ -61,7 +65,7 @@ func (r *ruleResource) deleteAlertingRule(name string) (bool, error) {
 	for _, g := range r.Spec.Groups {
 		var rules []promresourcesv1.Rule
 		for _, gr := range g.Rules {
-			if gr.Alert != "" && gr.Alert == name {
+			if gr.Alert != "" && gr.Alert == ruleItem.Rule.Alert {
 				ok = true
 				continue
 			}
@@ -85,7 +89,7 @@ func (r *ruleResource) deleteAlertingRule(name string) (bool, error) {
 
 // updateAlertingRule updates the rule with the given group.
 // If the rule is updated, return true to indicate the resource should be updated.
-func (r *ruleResource) updateAlertingRule(groupName string, rule *promresourcesv1.Rule) (bool, error) {
+func (r *ruleResource) updateAlertingRule(ruleItem *ResourceRuleItem) (bool, error) {
 	var (
 		ok       bool
 		pr       = (promresourcesv1.PrometheusRule)(*r)
@@ -96,7 +100,7 @@ func (r *ruleResource) updateAlertingRule(groupName string, rule *promresourcesv
 	for _, g := range npr.Spec.Groups {
 		var rules []promresourcesv1.Rule
 		for i, gr := range g.Rules {
-			if gr.Alert != "" && gr.Alert == rule.Alert {
+			if gr.Alert != "" && gr.Alert == ruleItem.Rule.Alert {
 				ok = true
 				continue
 			}
@@ -113,12 +117,12 @@ func (r *ruleResource) updateAlertingRule(groupName string, rule *promresourcesv
 	}
 
 	if ok {
-		if g, exist := groupMap[groupName]; exist {
-			g.Rules = append(g.Rules, *rule)
+		if g, exist := groupMap[ruleItem.Group]; exist {
+			g.Rules = append(g.Rules, *ruleItem.Rule)
 		} else {
-			groupMap[groupName] = &promresourcesv1.RuleGroup{
-				Name:  groupName,
-				Rules: []promresourcesv1.Rule{*rule},
+			groupMap[ruleItem.Group] = &promresourcesv1.RuleGroup{
+				Name:  ruleItem.Group,
+				Rules: []promresourcesv1.Rule{*ruleItem.Rule},
 			}
 		}
 
@@ -142,7 +146,7 @@ func (r *ruleResource) updateAlertingRule(groupName string, rule *promresourcesv
 	return false, nil
 }
 
-func (r *ruleResource) addAlertingRule(group string, rule *promresourcesv1.Rule) (bool, error) {
+func (r *ruleResource) addAlertingRule(ruleItem *ResourceRuleItem) (bool, error) {
 	var (
 		err error
 		pr  = (promresourcesv1.PrometheusRule)(*r)
@@ -150,17 +154,44 @@ func (r *ruleResource) addAlertingRule(group string, rule *promresourcesv1.Rule)
 		ok  bool
 	)
 
+	if strings.TrimSpace(ruleItem.Group) == "" {
+		var tg string
+		var suffix = -1
+		for i := 0; i < len(npr.Spec.Groups); i++ {
+			g := npr.Spec.Groups[i]
+			if strings.HasPrefix(g.Name, customRuleGroupDefaultPrefix) {
+				suf, err := strconv.Atoi(strings.TrimPrefix(g.Name, customRuleGroupDefaultPrefix))
+				if err != nil {
+					continue
+				}
+				if suf > suffix {
+					suffix = suf
+				}
+				if suffix >= 0 && len(g.Rules) < customRuleGroupSize {
+					tg = g.Name
+					break
+				}
+			}
+		}
+		if tg == "" {
+			ruleItem.Group = fmt.Sprintf("%s%d", customRuleGroupDefaultPrefix, suffix+1)
+		} else {
+			ruleItem.Group = tg
+		}
+
+	}
+
 	for i := 0; i < len(npr.Spec.Groups); i++ {
-		if npr.Spec.Groups[i].Name == group {
-			npr.Spec.Groups[i].Rules = append(npr.Spec.Groups[i].Rules, *rule)
+		if npr.Spec.Groups[i].Name == ruleItem.Group {
+			npr.Spec.Groups[i].Rules = append(npr.Spec.Groups[i].Rules, *ruleItem.Rule)
 			ok = true
 			break
 		}
 	}
 	if !ok { // add a group when there is no group with the specified group name
 		npr.Spec.Groups = append(npr.Spec.Groups, promresourcesv1.RuleGroup{
-			Name:  group,
-			Rules: []promresourcesv1.Rule{*rule},
+			Name:  ruleItem.Group,
+			Rules: []promresourcesv1.Rule{*ruleItem.Rule},
 		})
 	}
 
@@ -252,19 +283,17 @@ func (r *PrometheusRuler) ListRuleResources(ruleNamespace *corev1.Namespace, ext
 
 func (r *PrometheusRuler) AddAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace,
 	extraRuleResourceSelector labels.Selector,
-	group string, rule *promresourcesv1.Rule, ruleResourceLabels map[string]string) error {
+	ruleResourceLabels map[string]string, ruleItem *ResourceRuleItem) error {
 	return errors.New("not supported to add rules for prometheus")
 }
 
 func (r *PrometheusRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace,
-	extraRuleResourceSelector labels.Selector,
-	group string, rule *promresourcesv1.Rule, ruleResourceLabels map[string]string) error {
+	extraRuleResourceSelector labels.Selector, ruleResourceLabels map[string]string, ruleItem *ResourceRuleItem) error {
 	return errors.New("not supported to update rules for prometheus")
 }
 
 func (r *PrometheusRuler) DeleteAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace,
-	extraRuleResourceSelector labels.Selector,
-	group string, name string) error {
+	extraRuleResourceSelector labels.Selector, ruleItem *ResourceRuleItem) error {
 	return errors.New("not supported to update rules for prometheus")
 }
 
@@ -339,19 +368,19 @@ func (r *ThanosRuler) ListRuleResources(ruleNamespace *corev1.Namespace, extraRu
 
 func (r *ThanosRuler) AddAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace,
 	extraRuleResourceSelector labels.Selector,
-	group string, rule *promresourcesv1.Rule, ruleResourceLabels map[string]string) error {
+	ruleResourceLabels map[string]string, ruleItem *ResourceRuleItem) error {
 
 	prometheusRules, err := r.ListRuleResources(ruleNamespace, extraRuleResourceSelector)
 	if err != nil {
 		return err
 	}
 
-	return r.addAlertingRule(ctx, ruleNamespace, prometheusRules, nil, group, rule, ruleResourceLabels)
+	return r.addAlertingRule(ctx, ruleNamespace, prometheusRules, nil, ruleResourceLabels, ruleItem)
 }
 
 func (r *ThanosRuler) addAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace,
 	prometheusRules []*promresourcesv1.PrometheusRule, excludePrometheusRules map[string]*promresourcesv1.PrometheusRule,
-	group string, rule *promresourcesv1.Rule, ruleResourceLabels map[string]string) error {
+	ruleResourceLabels map[string]string, ruleItem *ResourceRuleItem) error {
 
 	sort.Slice(prometheusRules, func(i, j int) bool {
 		return len(fmt.Sprint(prometheusRules[i])) <= len(fmt.Sprint(prometheusRules[j]))
@@ -365,7 +394,7 @@ func (r *ThanosRuler) addAlertingRule(ctx context.Context, ruleNamespace *corev1
 		}
 		if err := r.doRuleResourceOperation(ctx, prometheusRule, func(pr *promresourcesv1.PrometheusRule) error {
 			resource := ruleResource(*pr)
-			if ok, err := resource.addAlertingRule(group, rule); err != nil {
+			if ok, err := resource.addAlertingRule(ruleItem); err != nil {
 				return err
 			} else if ok {
 				if err = resource.commit(ctx, r.client); err != nil {
@@ -384,6 +413,10 @@ func (r *ThanosRuler) addAlertingRule(ctx context.Context, ruleNamespace *corev1
 		return nil
 	}
 	// create a new rule resource and add rule into it when all existing rule resources are full.
+	group := ruleItem.Group
+	if group == "" {
+		group = fmt.Sprintf("%s%d", customRuleGroupDefaultPrefix, 0)
+	}
 	newPromRule := promresourcesv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:    ruleNamespace.Name,
@@ -393,7 +426,7 @@ func (r *ThanosRuler) addAlertingRule(ctx context.Context, ruleNamespace *corev1
 		Spec: promresourcesv1.PrometheusRuleSpec{
 			Groups: []promresourcesv1.RuleGroup{{
 				Name:  group,
-				Rules: []promresourcesv1.Rule{*rule},
+				Rules: []promresourcesv1.Rule{*ruleItem.Rule},
 			}},
 		},
 	}
@@ -406,8 +439,7 @@ func (r *ThanosRuler) addAlertingRule(ctx context.Context, ruleNamespace *corev1
 }
 
 func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace,
-	extraRuleResourceSelector labels.Selector,
-	group string, rule *promresourcesv1.Rule, ruleResourceLabels map[string]string) error {
+	extraRuleResourceSelector labels.Selector, ruleResourceLabels map[string]string, ruleItem *ResourceRuleItem) error {
 
 	prometheusRules, err := r.ListRuleResources(ruleNamespace, extraRuleResourceSelector)
 	if err != nil {
@@ -423,7 +455,7 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 		if success { // If the update has been successful, delete the possible same rule in other resources
 			if err := r.doRuleResourceOperation(ctx, prometheusRule, func(pr *promresourcesv1.PrometheusRule) error {
 				resource := ruleResource(*pr)
-				if ok, err := resource.deleteAlertingRule(rule.Alert); err != nil {
+				if ok, err := resource.deleteAlertingRule(ruleItem); err != nil {
 					return err
 				} else if ok {
 					if err = resource.commit(ctx, r.client); err != nil {
@@ -439,7 +471,7 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 
 		if err := r.doRuleResourceOperation(ctx, prometheusRule, func(pr *promresourcesv1.PrometheusRule) error {
 			resource := ruleResource(*pr)
-			if ok, err := resource.updateAlertingRule(group, rule); err != nil {
+			if ok, err := resource.updateAlertingRule(ruleItem); err != nil {
 				return err
 			} else if ok {
 				if err = resource.commit(ctx, r.client); err != nil {
@@ -468,7 +500,7 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 	}
 
 	if !success {
-		err := r.addAlertingRule(ctx, ruleNamespace, prometheusRules, prsToDelRule, group, rule, ruleResourceLabels)
+		err := r.addAlertingRule(ctx, ruleNamespace, prometheusRules, prsToDelRule, ruleResourceLabels, &ResourceRuleItem{Rule: ruleItem.Rule})
 		if err != nil {
 			return err
 		}
@@ -476,7 +508,7 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 	for _, pr := range prsToDelRule {
 		if err := r.doRuleResourceOperation(ctx, pr, func(pr *promresourcesv1.PrometheusRule) error {
 			resource := ruleResource(*pr)
-			if ok, err := resource.deleteAlertingRule(rule.Alert); err != nil {
+			if ok, err := resource.deleteAlertingRule(ruleItem); err != nil {
 				return err
 			} else if ok {
 				if err = resource.commit(ctx, r.client); err != nil {
@@ -492,7 +524,7 @@ func (r *ThanosRuler) UpdateAlertingRule(ctx context.Context, ruleNamespace *cor
 }
 
 func (r *ThanosRuler) DeleteAlertingRule(ctx context.Context, ruleNamespace *corev1.Namespace,
-	extraRuleResourceSelector labels.Selector, group string, name string) error {
+	extraRuleResourceSelector labels.Selector, ruleItem *ResourceRuleItem) error {
 	prometheusRules, err := r.ListRuleResources(ruleNamespace, extraRuleResourceSelector)
 	if err != nil {
 		return err
@@ -501,7 +533,7 @@ func (r *ThanosRuler) DeleteAlertingRule(ctx context.Context, ruleNamespace *cor
 	for _, prometheusRule := range prometheusRules {
 		if err := r.doRuleResourceOperation(ctx, prometheusRule, func(pr *promresourcesv1.PrometheusRule) error {
 			resource := ruleResource(*pr)
-			if ok, err := resource.deleteAlertingRule(name); err != nil {
+			if ok, err := resource.deleteAlertingRule(ruleItem); err != nil {
 				return err
 			} else if ok {
 				if err = resource.commit(ctx, r.client); err != nil {

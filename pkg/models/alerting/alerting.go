@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	rulerNamespace                  = constants.KubeSphereMonitoringNamespace
-	customRuleGroupDefault          = "alerting.custom.defaults"
+	rulerNamespace = constants.KubeSphereMonitoringNamespace
+
 	customRuleResourceLabelKeyLevel = "custom-alerting-rule-level"
 )
 
@@ -474,7 +474,7 @@ func (o *operator) CreateCustomAlertingRule(ctx context.Context, namespace strin
 	setRuleUpdateTime(rule, time.Now())
 
 	return ruler.AddAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector,
-		customRuleGroupDefault, parseToPrometheusRule(rule), ruleResourceLabels)
+		ruleResourceLabels, &rules.ResourceRuleItem{Rule: parseToPrometheusRule(rule)})
 }
 
 func (o *operator) UpdateCustomAlertingRule(ctx context.Context, namespace, name string,
@@ -526,8 +526,8 @@ func (o *operator) UpdateCustomAlertingRule(ctx context.Context, namespace, name
 
 	setRuleUpdateTime(rule, time.Now())
 
-	return ruler.UpdateAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector,
-		resourceRule.Group, parseToPrometheusRule(rule), ruleResourceLabels)
+	return ruler.UpdateAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector, ruleResourceLabels,
+		&rules.ResourceRuleItem{Group: resourceRule.Group, Rule: parseToPrometheusRule(rule)})
 }
 
 func (o *operator) DeleteCustomAlertingRule(ctx context.Context, namespace, name string) error {
@@ -563,7 +563,8 @@ func (o *operator) DeleteCustomAlertingRule(ctx context.Context, namespace, name
 		return v2alpha1.ErrAlertingRuleNotFound
 	}
 
-	return ruler.DeleteAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector, resourceRule.Group, name)
+	return ruler.DeleteAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector,
+		&rules.ResourceRuleItem{Group: resourceRule.Group, Rule: resourceRule.Rule})
 }
 
 // getPrometheusRuler gets the cluster-in prometheus
