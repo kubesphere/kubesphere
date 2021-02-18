@@ -17,7 +17,7 @@ limitations under the License.
 package v2alpha1
 
 import (
-	"regexp"
+	"context"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,21 +26,27 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	prommodel "github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/pkg/timestamp"
 	"github.com/prometheus/prometheus/promql/parser"
+	"github.com/prometheus/prometheus/template"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 const (
 	RuleLevelCluster   RuleLevel = "cluster"
 	RuleLevelNamespace RuleLevel = "namespace"
+
+	AnnotationKeyRuleUpdateTime = "rule_update_time"
 )
 
 var (
 	ErrThanosRulerNotEnabled     = errors.New("The request operation to custom alerting rule could not be done because thanos ruler is not enabled")
 	ErrAlertingRuleNotFound      = errors.New("The alerting rule was not found")
 	ErrAlertingRuleAlreadyExists = errors.New("The alerting rule already exists")
+	ErrAlertingAPIV2NotEnabled   = errors.New("The alerting v2 API is not enabled")
 
-	ruleLabelNameMatcher = regexp.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`)
+	templateTestData       = template.AlertTemplateData(map[string]string{}, map[string]string{}, 0)
+	templateTestTextPrefix = "{{$labels := .Labels}}{{$externalLabels := .ExternalLabels}}{{$value := .Value}}"
 )
 
 type RuleLevel string
@@ -65,7 +71,10 @@ func (r *PostableAlertingRule) Validate() error {
 	if r.Name == "" {
 		errs = append(errs, errors.New("name can not be empty"))
 	}
-	if _, err := parser.ParseExpr(r.Query); err != nil {
+
+	if r.Query == "" {
+		errs = append(errs, errors.New("query can not be empty"))
+	} else if _, err := parser.ParseExpr(r.Query); err != nil {
 		errs = append(errs, errors.Wrapf(err, "query is invalid: %s", r.Query))
 	}
 	if r.Duration != "" {
@@ -74,11 +83,41 @@ func (r *PostableAlertingRule) Validate() error {
 		}
 	}
 
+	parseTest := func(text string) error {
+		tmpl := template.NewTemplateExpander(
+			context.TODO(),
+			templateTestTextPrefix+text,
+			"__alert_"+r.Name,
+			templateTestData,
+			prommodel.Time(timestamp.FromTime(time.Now())),
+			nil,
+			nil,
+		)
+		return tmpl.ParseTest()
+	}
+
 	if len(r.Labels) > 0 {
-		for name, _ := range r.Labels {
-			if !ruleLabelNameMatcher.MatchString(name) || strings.HasPrefix(name, "__") {
+		for name, v := range r.Labels {
+			if !prommodel.LabelName(name).IsValid() || strings.HasPrefix(name, "__") {
 				errs = append(errs, errors.Errorf(
 					"label name (%s) is not valid. The name must match [a-zA-Z_][a-zA-Z0-9_]* and has not the __ prefix (label names with this prefix are for internal use)", name))
+			}
+			if !prommodel.LabelValue(v).IsValid() {
+				errs = append(errs, errors.Errorf("invalid label value: %s", v))
+			}
+			if err := parseTest(v); err != nil {
+				errs = append(errs, errors.Errorf("invalid label value: %s", v))
+			}
+		}
+	}
+
+	if len(r.Annotations) > 0 {
+		for name, v := range r.Annotations {
+			if !prommodel.LabelName(name).IsValid() {
+				errs = append(errs, errors.Errorf("invalid annotation name: %s", v))
+			}
+			if err := parseTest(v); err != nil {
+				errs = append(errs, errors.Errorf("invalid annotation value: %s", v))
 			}
 		}
 	}
@@ -126,7 +165,7 @@ type AlertingRuleQueryParams struct {
 	LabelEqualFilters   map[string]string
 	LabelContainFilters map[string]string
 
-	Offset    int
+	PageNum   int
 	Limit     int
 	SortField string
 	SortType  string
@@ -180,10 +219,22 @@ func AlertingRuleIdCompare(leftId, rightId string) bool {
 }
 
 func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
-	idCompare := func(left, right *GettableAlertingRule) bool {
+	baseCompare := func(left, right *GettableAlertingRule) bool {
+		var leftUpdateTime, rightUpdateTime string
+		if len(left.Annotations) > 0 {
+			leftUpdateTime = left.Annotations[AnnotationKeyRuleUpdateTime]
+		}
+		if len(right.Annotations) > 0 {
+			rightUpdateTime = right.Annotations[AnnotationKeyRuleUpdateTime]
+		}
+
+		if leftUpdateTime != rightUpdateTime {
+			return leftUpdateTime > rightUpdateTime
+		}
+
 		return AlertingRuleIdCompare(left.Id, right.Id)
 	}
-	var compare = idCompare
+	var compare = baseCompare
 	if q != nil {
 		reverse := q.SortType == "desc"
 		switch q.SortField {
@@ -195,7 +246,7 @@ func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
 					}
 					return c < 0
 				}
-				return idCompare(left, right)
+				return baseCompare(left, right)
 			}
 		case "lastEvaluation":
 			compare = func(left, right *GettableAlertingRule) bool {
@@ -213,7 +264,7 @@ func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
 						return left.LastEvaluation.Before(*right.LastEvaluation)
 					}
 				}
-				return idCompare(left, right)
+				return baseCompare(left, right)
 			}
 		case "evaluationTime":
 			compare = func(left, right *GettableAlertingRule) bool {
@@ -223,7 +274,7 @@ func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
 					}
 					return left.EvaluationDurationSeconds < right.EvaluationDurationSeconds
 				}
-				return idCompare(left, right)
+				return baseCompare(left, right)
 			}
 		}
 	}
@@ -235,7 +286,7 @@ func (q *AlertingRuleQueryParams) Sort(rules []*GettableAlertingRule) {
 func (q *AlertingRuleQueryParams) Sub(rules []*GettableAlertingRule) []*GettableAlertingRule {
 	start, stop := 0, 10
 	if q != nil {
-		start, stop = q.Offset, q.Offset+q.Limit
+		start, stop = (q.PageNum-1)*q.Limit, q.PageNum*q.Limit
 	}
 	total := len(rules)
 	if start < total {
@@ -252,8 +303,8 @@ type AlertQueryParams struct {
 	LabelEqualFilters   map[string]string
 	LabelContainFilters map[string]string
 
-	Offset int
-	Limit  int
+	PageNum int
+	Limit   int
 }
 
 func (q *AlertQueryParams) Filter(alerts []*Alert) []*Alert {
@@ -312,7 +363,7 @@ func (q *AlertQueryParams) Sort(alerts []*Alert) {
 func (q *AlertQueryParams) Sub(alerts []*Alert) []*Alert {
 	start, stop := 0, 10
 	if q != nil {
-		start, stop = q.Offset, q.Offset+q.Limit
+		start, stop = (q.PageNum-1)*q.Limit, q.PageNum*q.Limit
 	}
 	total := len(alerts)
 	if start < total {
@@ -333,7 +384,14 @@ func ParseAlertingRuleQueryParams(req *restful.Request) (*AlertingRuleQueryParam
 	q.NameContainFilter = req.QueryParameter("name")
 	q.State = req.QueryParameter("state")
 	q.Health = req.QueryParameter("health")
-	q.Offset, _ = strconv.Atoi(req.QueryParameter("offset"))
+	q.PageNum, err = strconv.Atoi(req.QueryParameter("page"))
+	if err != nil {
+		q.PageNum = 1
+		err = nil
+	}
+	if q.PageNum <= 0 {
+		q.PageNum = 1
+	}
 	q.Limit, err = strconv.Atoi(req.QueryParameter("limit"))
 	if err != nil {
 		q.Limit = 10
@@ -352,7 +410,14 @@ func ParseAlertQueryParams(req *restful.Request) (*AlertQueryParams, error) {
 	)
 
 	q.State = req.QueryParameter("state")
-	q.Offset, _ = strconv.Atoi(req.QueryParameter("offset"))
+	q.PageNum, err = strconv.Atoi(req.QueryParameter("page"))
+	if err != nil {
+		q.PageNum = 1
+		err = nil
+	}
+	if q.PageNum <= 0 {
+		q.PageNum = 1
+	}
 	q.Limit, err = strconv.Atoi(req.QueryParameter("limit"))
 	if err != nil {
 		q.Limit = 10
