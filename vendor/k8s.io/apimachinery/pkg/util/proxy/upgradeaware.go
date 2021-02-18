@@ -290,6 +290,7 @@ func (h *UpgradeAwareHandler) tryUpgrade(w http.ResponseWriter, req *http.Reques
 	backendHTTPResponse, headerBytes, err := getResponse(io.MultiReader(bytes.NewReader(rawResponse), backendConn))
 	if err != nil {
 		klog.V(6).Infof("Proxy connection error: %v", err)
+		klog.Info(backendHTTPResponse.Body, backendHTTPResponse)
 		h.Responder.Error(w, req, err)
 		return true
 	}
@@ -327,6 +328,7 @@ func (h *UpgradeAwareHandler) tryUpgrade(w http.ResponseWriter, req *http.Reques
 	if backendHTTPResponse.StatusCode != http.StatusSwitchingProtocols {
 		// If the backend did not upgrade the request, echo the response from the backend to the client and return, closing the connection.
 		klog.V(6).Infof("Proxy upgrade error, status code %d", backendHTTPResponse.StatusCode)
+		klog.Info(backendHTTPResponse.Body, 333, backendHTTPResponse)
 		// set read/write deadlines
 		deadline := time.Now().Add(10 * time.Second)
 		backendConn.SetReadDeadline(deadline)
