@@ -133,7 +133,7 @@ func (a AttributesRecord) GetVerb() string {
 }
 
 func (a AttributesRecord) IsReadOnly() bool {
-	return a.Verb == "get" || a.Verb == "list" || a.Verb == "watch"
+	return a.Verb == VerbGet || a.Verb == VerbList || a.Verb == VerbWatch
 }
 
 func (a AttributesRecord) GetCluster() string {
@@ -198,4 +198,15 @@ const (
 	// DecisionNoOpionion means that an authorizer has no opinion on whether
 	// to allow or deny an action.
 	DecisionNoOpinion
+)
+
+const (
+	// VerbList represents the verb of listing resources
+	VerbList = "list"
+	// VerbCreate represents the verb of creating a resource
+	VerbCreate = "create"
+	// VerbGet represents the verb of getting a resource or resources
+	VerbGet = "get"
+	// VerbWatch represents the verb of watching a resource
+	VerbWatch = "watch"
 )

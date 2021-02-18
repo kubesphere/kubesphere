@@ -23,9 +23,10 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/apiserver/pkg/authentication/user"
 	log "k8s.io/klog"
+	"k8s.io/klog/v2"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
@@ -279,11 +280,53 @@ func (h *ProjectPipelineHandler) GetPipelineRunNodes(req *restful.Request, resp 
 	resp.WriteAsJson(res)
 }
 
-func (h *ProjectPipelineHandler) approvableCheck(nodes []clientDevOps.NodesDetail, req *restful.Request) {
-	currentUserName, roleName := h.getCurrentUser(req)
+// there're two situation here:
+// 1. the particular submitters exist
+// the users who are the owner of this Pipeline or the submitter of this Pipeline, or has the auth to create a DevOps project
+// 2. no particular submitters
+// only the owner of this Pipeline can approve or reject it
+func (h *ProjectPipelineHandler) approvableCheck(nodes []clientDevOps.NodesDetail, pipe pipelineParam) {
+	var userInfo user.Info
+	var ok bool
+	var isAdmin bool
 	// check if current user belong to the admin group, grant it if it's true
-	isAdmin := roleName == iamv1alpha2.PlatformAdmin
+	if userInfo, ok = request.UserFrom(pipe.Context); ok {
+		createAuth := authorizer.AttributesRecord{
+			User:            userInfo,
+			Verb:            authorizer.VerbCreate,
+			Workspace:       pipe.Workspace,
+			Resource:        "devopsprojects",
+			ResourceRequest: true,
+			ResourceScope:   request.DevOpsScope,
+		}
 
+		if decision, _, err := h.authorizer.Authorize(createAuth); err == nil {
+			isAdmin = decision == authorizer.DecisionAllow
+		} else {
+			// this is an expected case, printing the debug info for troubleshooting
+			klog.V(8).Infof("authorize failed with '%v', error is '%v'",
+				createAuth, err)
+		}
+	} else {
+		klog.V(6).Infof("cannot get the current user when checking the approvable with pipeline '%s/%s'",
+			pipe.ProjectName, pipe.Name)
+		return
+	}
+
+	var createdByCurrentUser bool // indicate if the current user is the owner
+	if pipeline, err := h.devopsOperator.GetPipelineObj(pipe.ProjectName, pipe.Name); err == nil {
+		if creator, ok := pipeline.GetAnnotations()[constants.CreatorAnnotationKey]; ok {
+			createdByCurrentUser = userInfo.GetName() == creator
+		} else {
+			klog.V(6).Infof("annotation '%s' is necessary but it is missing from '%s/%s'",
+				constants.CreatorAnnotationKey, pipe.ProjectName, pipe.Name)
+		}
+	} else {
+		klog.V(6).Infof("cannot find pipeline '%s/%s', error is '%v'", pipe.ProjectName, pipe.Name, err)
+		return
+	}
+
+	// check every input steps if it's approvable
 	for i, node := range nodes {
 		if node.State != clientDevOps.StatePaused {
 			continue
@@ -294,7 +337,7 @@ func (h *ProjectPipelineHandler) approvableCheck(nodes []clientDevOps.NodesDetai
 				continue
 			}
 
-			nodes[i].Steps[j].Approvable = isAdmin || step.Input.Approvable(currentUserName)
+			nodes[i].Steps[j].Approvable = isAdmin || createdByCurrentUser || step.Input.Approvable(userInfo.GetName())
 		}
 	}
 }
@@ -310,33 +353,8 @@ func (h *ProjectPipelineHandler) createdBy(projectName string, pipelineName stri
 	return false
 }
 
-func (h *ProjectPipelineHandler) getCurrentUser(req *restful.Request) (username, roleName string) {
-	var userInfo user.Info
-	var ok bool
-	var err error
-
-	ctx := req.Request.Context()
-	if userInfo, ok = request.UserFrom(ctx); ok {
-		var role *iamv1alpha2.GlobalRole
-		username = userInfo.GetName()
-		if role, err = h.amInterface.GetGlobalRoleOfUser(username); err == nil {
-			roleName = role.Name
-		}
-	}
-	return
-}
-
 func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasPermit bool, err error) {
-	currentUserName, roleName := h.getCurrentUser(req)
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-	// check if current user belong to the admin group or he's the owner, grant it if it's true
-	if roleName == iamv1alpha2.PlatformAdmin || h.createdBy(projectName, pipelineName, currentUserName) {
-		hasPermit = true
-		return
-	}
-
-	// step 2, check if current user if was addressed
+	pipeParam := parsePipelineParam(req)
 	httpReq := &http.Request{
 		URL:      req.Request.URL,
 		Header:   req.Request.Header,
@@ -350,7 +368,9 @@ func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasP
 
 	// check if current user can approve this input
 	var res []clientDevOps.NodesDetail
-	if res, err = h.devopsOperator.GetNodesDetail(projectName, pipelineName, runId, httpReq); err == nil {
+	if res, err = h.devopsOperator.GetNodesDetail(pipeParam.ProjectName, pipeParam.Name, runId, httpReq); err == nil {
+		h.approvableCheck(res, parsePipelineParam(req))
+
 		for _, node := range res {
 			if node.ID != nodeId {
 				continue
@@ -361,7 +381,7 @@ func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasP
 					continue
 				}
 
-				hasPermit = step.Input.Approvable(currentUserName)
+				hasPermit = step.Approvable
 				break
 			}
 			break
@@ -412,7 +432,7 @@ func (h *ProjectPipelineHandler) GetNodesDetail(req *restful.Request, resp *rest
 		parseErr(err, resp)
 		return
 	}
-	h.approvableCheck(res, req)
+	h.approvableCheck(res, parsePipelineParam(req))
 
 	resp.WriteAsJson(res)
 }
@@ -620,8 +640,17 @@ func (h *ProjectPipelineHandler) GetBranchNodesDetail(req *restful.Request, resp
 		parseErr(err, resp)
 		return
 	}
-	h.approvableCheck(res, req)
+	h.approvableCheck(res, parsePipelineParam(req))
 	resp.WriteAsJson(res)
+}
+
+func parsePipelineParam(req *restful.Request) pipelineParam {
+	return pipelineParam{
+		Workspace:   req.PathParameter("workspace"),
+		ProjectName: req.PathParameter("devops"),
+		Name:        req.PathParameter("pipeline"),
+		Context:     req.Request.Context(),
+	}
 }
 
 func (h *ProjectPipelineHandler) GetPipelineBranch(req *restful.Request, resp *restful.Response) {
