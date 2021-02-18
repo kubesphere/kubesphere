@@ -18,22 +18,29 @@ package v1alpha1
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/printers"
+	k8s "k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
 	"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/version"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"testing"
 )
 
 const (
@@ -78,6 +85,93 @@ var service = &corev1.Service{
 		},
 	},
 }
+
+var hostMap = map[string]string{
+	"kubesphere.yaml": `
+monitoring:
+  endpoint: http://prometheus-operated.kubesphere-monitoring-system.svc:9090
+authentication:
+  jwtSecret: sQh3JOqNbmci6Gu94TeV10AY7ipltwjp
+  oauthOptions:
+    accessTokenMaxAge: 0s
+    accessTokenInactivityTimeout: 0s
+`,
+}
+
+var memberMap = map[string]string{
+	"kubesphere.yaml": `
+monitoring:
+  endpoint: http://prometheus-operated.kubesphere-monitoring-system.svc:9090
+authentication:
+  jwtSecret: sQh3JOqNbmci6Gu94TeV10AY7ipltwj
+  oauthOptions:
+    accessTokenMaxAge: 0s
+    accessTokenInactivityTimeout: 0s
+`,
+}
+
+var hostCm = &corev1.ConfigMap{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: KubesphereNamespace,
+		Name:      KubeSphereConfigName,
+	},
+	Data: hostMap,
+}
+
+var memberCm = &corev1.ConfigMap{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: KubesphereNamespace,
+		Name:      KubeSphereConfigName,
+	},
+	Data: memberMap,
+}
+
+var ksApiserverDeploy = `
+{
+    "apiVersion": "apps/v1",
+    "kind": "Deployment",
+    "metadata": {
+        "labels": {
+            "app": "ks-apiserver",
+            "tier": "backend",
+            "version": "v3.0.0"
+        },
+        "name": "ks-apiserver",
+        "namespace": "kubesphere-system"
+    },
+    "spec": {
+        "replicas": 1,
+        "selector": {
+            "matchLabels": {
+                "app": "ks-apiserver",
+                "tier": "backend",
+                "version": "v3.0.0"
+            }
+        },
+        "template": {
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "app": "ks-apiserver",
+                    "tier": "backend",
+                    "version": "v3.0.0"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "command": [
+                            "ks-apiserver",
+                            "--logtostderr=true"
+                        ],
+                        "image": "kubesphere/ks-apiserver:v3.0.0",
+                        "name": "ks-apiserver"
+                    }
+                ]
+            }
+        }
+    }
+}`
 
 var expected = `apiVersion: apps/v1
 kind: Deployment
@@ -157,8 +251,8 @@ func TestGeranteAgentDeployment(t *testing.T) {
 	for _, testCase := range testCases {
 
 		t.Run(testCase.description, func(t *testing.T) {
-			h := newHandler(informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Lister(),
-				informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister(),
+			h := newHandler(informersFactory.KubernetesSharedInformerFactory(),
+				informersFactory.KubeSphereSharedInformerFactory(),
 				proxyService,
 				"",
 				agentImage)
@@ -238,8 +332,8 @@ func TestValidateKubeConfig(t *testing.T) {
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)
 
-	h := newHandler(informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Lister(),
-		informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister(),
+	h := newHandler(informersFactory.KubernetesSharedInformerFactory(),
+		informersFactory.KubeSphereSharedInformerFactory(),
 		proxyService,
 		"",
 		agentImage)
@@ -302,4 +396,110 @@ func TestValidateKubeSphereEndpoint(t *testing.T) {
 		t.Errorf("%T +got, -expected %v", ver, diff)
 	}
 
+}
+
+func TestValidateMemberClusterConfiguration(t *testing.T) {
+	k8sclient := k8sfake.NewSimpleClientset(service)
+	ksclient := fake.NewSimpleClientset(cluster)
+
+	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil, nil)
+
+	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
+	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)
+	informersFactory.KubernetesSharedInformerFactory().Core().V1().ConfigMaps().Informer().GetIndexer().Add(hostCm)
+
+	h := newHandler(informersFactory.KubernetesSharedInformerFactory(),
+		informersFactory.KubeSphereSharedInformerFactory(),
+		proxyService,
+		"",
+		agentImage)
+
+	config, err := loadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// config.Host is schemaless, we need to add schema manually
+	u, err := url.Parse(fmt.Sprintf("http://%s", config.Host))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// we need to specify apiserver port to match above kubeconfig
+	env := &envtest.Environment{
+		Config: config,
+		ControlPlane: envtest.ControlPlane{
+			APIServer: &envtest.APIServer{
+				Args: envtest.DefaultKubeAPIServerFlags,
+				URL:  u,
+			},
+		},
+	}
+
+	cfg, err := env.Start()
+	if err != nil {
+		t.Log(cfg)
+		t.Fatal(err)
+	}
+
+	defer func() {
+		_ = env.Stop()
+	}()
+
+	addMemberClusterResource(hostCm, t)
+
+	err = h.validateMemberClusterConfiguration([]byte(base64EncodedKubeConfig))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	addMemberClusterResource(memberCm, t)
+	err = h.validateMemberClusterConfiguration([]byte(base64EncodedKubeConfig))
+	if err == nil {
+		t.Fatal()
+	}
+	t.Log(err)
+}
+
+func addMemberClusterResource(targetCm *corev1.ConfigMap, t *testing.T) {
+	con, err := clientcmd.NewClientConfigFromBytes([]byte(base64EncodedKubeConfig))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cli, err := con.ClientConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c, err := k8s.NewForConfig(cli)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubesphereNamespace}}, metav1.CreateOptions{})
+	if err != nil && !errors.IsAlreadyExists(err) {
+		t.Fatal(err)
+	}
+
+	_, err = c.CoreV1().ConfigMaps(KubesphereNamespace).Create(context.Background(), targetCm, metav1.CreateOptions{})
+	if err != nil && errors.IsAlreadyExists(err) {
+		_, err = c.CoreV1().ConfigMaps(KubesphereNamespace).Update(context.Background(), targetCm, metav1.UpdateOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+	} else if err != nil {
+		t.Fatal(err)
+	}
+
+	deploy := appsv1.Deployment{}
+	err = json.Unmarshal([]byte(ksApiserverDeploy), &deploy)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.AppsV1().Deployments(KubesphereNamespace).Create(context.Background(), &deploy, metav1.CreateOptions{})
+	if err != nil && !errors.IsAlreadyExists(err) {
+		t.Fatal(err)
+	}
 }

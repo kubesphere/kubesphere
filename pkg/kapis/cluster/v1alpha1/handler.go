@@ -18,62 +18,75 @@ package v1alpha1
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/emicklei/go-restful"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/emicklei/go-restful"
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/cli-runtime/pkg/printers"
+	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/version"
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
-
-	"k8s.io/cli-runtime/pkg/printers"
 )
 
 const (
-	defaultAgentImage = "kubesphere/tower:v1.0"
-	defaultTimeout    = 10 * time.Second
+	defaultAgentImage    = "kubesphere/tower:v1.0"
+	defaultTimeout       = 10 * time.Second
+	KubesphereNamespace  = "kubesphere-system"
+	KubeSphereConfigName = "kubesphere-config"
+	KubeSphereApiServer  = "ks-apiserver"
 )
 
 var errClusterConnectionIsNotProxy = fmt.Errorf("cluster is not using proxy connection")
 
 type handler struct {
-	serviceLister v1.ServiceLister
-	clusterLister clusterlister.ClusterLister
-	proxyService  string
-	proxyAddress  string
-	agentImage    string
-	yamlPrinter   *printers.YAMLPrinter
+	serviceLister   v1.ServiceLister
+	clusterLister   clusterlister.ClusterLister
+	configMapLister v1.ConfigMapLister
+
+	proxyService string
+	proxyAddress string
+	agentImage   string
+	yamlPrinter  *printers.YAMLPrinter
 }
 
-func newHandler(serviceLister v1.ServiceLister, clusterLister clusterlister.ClusterLister, proxyService, proxyAddress, agentImage string) *handler {
+func newHandler(k8sInformers k8sinformers.SharedInformerFactory, ksInformers externalversions.SharedInformerFactory, proxyService, proxyAddress, agentImage string) *handler {
 
 	if len(agentImage) == 0 {
 		agentImage = defaultAgentImage
 	}
 
 	return &handler{
-		serviceLister: serviceLister,
-		clusterLister: clusterLister,
-		proxyService:  proxyService,
-		proxyAddress:  proxyAddress,
-		agentImage:    agentImage,
-		yamlPrinter:   &printers.YAMLPrinter{},
+		serviceLister:   k8sInformers.Core().V1().Services().Lister(),
+		clusterLister:   ksInformers.Cluster().V1alpha1().Clusters().Lister(),
+		configMapLister: k8sInformers.Core().V1().ConfigMaps().Lister(),
+
+		proxyService: proxyService,
+		proxyAddress: proxyAddress,
+		agentImage:   agentImage,
+		yamlPrinter:  &printers.YAMLPrinter{},
 	}
 }
 
@@ -269,6 +282,11 @@ func (h *handler) validateCluster(request *restful.Request, response *restful.Re
 		return
 	}
 
+	err = h.validateMemberClusterConfiguration(cluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		api.HandleBadRequest(response, request, fmt.Errorf("failed to validate member cluster configuration, err: %v", err))
+	}
+
 	response.WriteHeader(http.StatusOK)
 }
 
@@ -348,7 +366,7 @@ func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version
 		}
 
 		client.Transport = transport
-		path = fmt.Sprintf("%s/api/v1/namespaces/kubesphere-system/services/:ks-apiserver:/proxy/kapis/version", config.Host)
+		path = fmt.Sprintf("%s/api/v1/namespaces/%s/services/:%s:/proxy/kapis/version", config.Host, KubesphereNamespace, KubeSphereApiServer)
 	}
 
 	response, err := client.Get(path)
@@ -362,14 +380,83 @@ func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBytes))
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid response: %s , please make sure ks-apiserver.kubesphere-system.svc of member cluster is up and running", responseBody)
+		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, KubesphereNamespace, responseBody)
 	}
 
 	ver := version.Info{}
 	err = json.NewDecoder(response.Body).Decode(&ver)
 	if err != nil {
-		return nil, fmt.Errorf("invalid response: %s , please make sure ks-apiserver.kubesphere-system.svc of member cluster is up and running", responseBody)
+		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, KubesphereNamespace, responseBody)
 	}
 
 	return &ver, nil
+}
+
+// validateMemberClusterConfiguration compares host and member cluster jwt, if they are not same, it changes member
+// cluster jwt to host's, then restart member cluster ks-apiserver.
+func (h *handler) validateMemberClusterConfiguration(memberKubeconfig []byte) error {
+	hConfig, err := h.getHostClusterConfig()
+	if err != nil {
+		return err
+	}
+
+	mConfig, err := h.getMemberClusterConfig(memberKubeconfig)
+	if err != nil {
+		return err
+	}
+
+	if hConfig.AuthenticationOptions.JwtSecret != mConfig.AuthenticationOptions.JwtSecret {
+		return fmt.Errorf("hostcluster Jwt is not equal to member cluster jwt, please edit the member cluster cluster config")
+	}
+
+	return nil
+}
+
+// getMemberClusterConfig returns KubeSphere running config by the given member cluster kubeconfig
+func (h *handler) getMemberClusterConfig(kubeconfig []byte) (*config.Config, error) {
+	config, err := loadKubeConfigFromBytes(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	config.Timeout = defaultTimeout
+
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	memberCm, err := clientSet.CoreV1().ConfigMaps(KubesphereNamespace).Get(context.Background(), KubeSphereConfigName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return getConfigFromCm(memberCm)
+}
+
+// getHostClusterConfig returns KubeSphere running config from host cluster ConfigMap
+func (h *handler) getHostClusterConfig() (*config.Config, error) {
+	hostCm, err := h.configMapLister.ConfigMaps(KubesphereNamespace).Get(KubeSphereConfigName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get host cluster %s/configmap/%s, err: %s", KubesphereNamespace, KubeSphereConfigName, err)
+	}
+
+	return getConfigFromCm(hostCm)
+}
+
+// getConfigFromCm returns KubeSphere ruuning config by the given ConfigMap.
+func getConfigFromCm(cm *corev1.ConfigMap) (*config.Config, error) {
+	Config := config.New()
+
+	value, ok := cm.Data["kubesphere.yaml"]
+	if !ok {
+		return nil, fmt.Errorf("failed to get %s/configmap/%s kubesphere.yaml value", KubesphereNamespace, KubeSphereConfigName)
+	}
+
+	err := yaml.Unmarshal([]byte(value), Config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal value from %s/configmap/%s. err: %s", KubesphereNamespace, KubeSphereConfigName, err)
+	}
+
+	return Config, nil
 }
