@@ -19,6 +19,7 @@ package devopscredential
 import (
 	"context"
 	"fmt"
+	"github.com/emicklei/go-restful"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,10 +37,12 @@ import (
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/controller/utils"
 	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"net/http"
 	"reflect"
 	"strings"
 	"time"
@@ -218,7 +221,7 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 	if !isDevOpsProjectAdminNamespace(namespace) {
-		err := fmt.Errorf("cound not create credential in normal namespaces %s", namespace.Name)
+		err := fmt.Errorf("cound not create or update credential '%s' in normal namespaces %s", name, namespace.Name)
 		klog.Warning(err)
 		return err
 	}
@@ -233,14 +236,26 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
-	//If the sync is successful, return handle
-	if state, ok := secret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
-		return nil
-	}
-
 	copySecret := secret.DeepCopy()
 	// DeletionTimestamp.IsZero() means copySecret has not been deleted.
-	if secret.ObjectMeta.DeletionTimestamp.IsZero() {
+	if copySecret.ObjectMeta.DeletionTimestamp.IsZero() {
+		// make sure Annotations is not nil
+		if copySecret.Annotations == nil {
+			copySecret.Annotations = map[string]string{}
+		}
+
+		//If the sync is successful, return handle
+		if state, ok := copySecret.Annotations[devopsv1alpha3.CredentialSyncStatusAnnoKey]; ok && state == modelsdevops.StatusSuccessful {
+			specHash := utils.ComputeHash(copySecret.Data)
+			oldHash, _ := copySecret.Annotations[devopsv1alpha3.DevOpsCredentialDataHash] // don't need to check if it's nil, only compare if they're different
+			if specHash == oldHash {
+				// it was synced successfully, and there's any change with the Pipeline spec, skip this round
+				return nil
+			} else {
+				copySecret.Annotations[devopsv1alpha3.DevOpsCredentialDataHash] = specHash
+			}
+		}
+
 		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
 		if !sliceutil.HasString(secret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
 			copySecret.ObjectMeta.Finalizers = append(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName)
@@ -268,13 +283,31 @@ func (c *Controller) syncHandler(key string) error {
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
+			delSuccess := false
 			if _, err := c.devopsClient.DeleteCredentialInProject(nsName, secret.Name); err != nil {
+				// the status code should be 404 if the credential does not exists
+				if srvErr, ok := err.(restful.ServiceError); ok {
+					delSuccess = srvErr.Code == http.StatusNotFound
+				} else if srvErr, ok := err.(*devopsClient.ErrorResponse); ok {
+					delSuccess = srvErr.Response.StatusCode == http.StatusNotFound
+				} else {
+					klog.Error(fmt.Sprintf("unexpected error type: %v, should be *restful.ServiceError", err))
+				}
+
 				klog.V(8).Info(err, fmt.Sprintf("failed to delete secret %s in devops", key))
-				return err
+			} else {
+				delSuccess = true
 			}
-			copySecret.ObjectMeta.Finalizers = sliceutil.RemoveString(copySecret.ObjectMeta.Finalizers, func(item string) bool {
-				return item == devopsv1alpha3.CredentialFinalizerName
-			})
+
+			if delSuccess {
+				copySecret.ObjectMeta.Finalizers = sliceutil.RemoveString(copySecret.ObjectMeta.Finalizers, func(item string) bool {
+					return item == devopsv1alpha3.CredentialFinalizerName
+				})
+			} else {
+				// make sure the corresponding Jenkins credentials can be clean
+				// You can remove the finalizer via kubectl manually in a very special case that Jenkins might be not able to available anymore
+				return fmt.Errorf("failed to remove devops credential finalizer due to bad communication with Jenkins")
+			}
 
 		}
 	}
