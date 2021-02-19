@@ -95,7 +95,6 @@ require (
 	k8s.io/klog/v2 v2.0.0
 	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
 	k8s.io/kubectl v0.18.6
-	k8s.io/kubernetes v1.14.0
 	k8s.io/metrics v0.18.6
 	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797
@@ -103,7 +102,6 @@ require (
 	sigs.k8s.io/controller-runtime v0.6.4
 	sigs.k8s.io/controller-tools v0.4.0
 	sigs.k8s.io/kubefed v0.4.0
-	sigs.k8s.io/testing_frameworks v0.1.2
 )
 
 replace (

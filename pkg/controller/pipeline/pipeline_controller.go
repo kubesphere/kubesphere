@@ -19,7 +19,9 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/emicklei/go-restful"
+	"hash"
 	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -36,7 +38,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	hashutil "k8s.io/kubernetes/pkg/util/hash"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devopsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha3"
@@ -320,8 +321,26 @@ func (c *Controller) syncHandler(key string) error {
 
 func computeHash(obj interface{}) string {
 	hasher := fnv.New32a()
-	hashutil.DeepHashObject(hasher, obj)
+	deepHashObject(hasher, obj)
 	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
+}
+
+// deepHashObject writes specified object to hash using the spew library
+// which follows pointers and prints actual values of the nested objects
+// ensuring the hash does not change when a pointer changes.
+// **Notice**
+// we don't want to import k8s.io/kubernetes as a module, but this is a very small function
+// so just copy it from k8s.io/kubernetes@v1.14.0/pkg/util/hash/hash.go
+// **Notice End**
+func deepHashObject(hasher hash.Hash, objectToWrite interface{}) {
+	hasher.Reset()
+	printer := spew.ConfigState{
+		Indent:         " ",
+		SortKeys:       true,
+		DisableMethods: true,
+		SpewKeys:       true,
+	}
+	printer.Fprintf(hasher, "%#v", objectToWrite)
 }
 
 func isDevOpsProjectAdminNamespace(namespace *v1.Namespace) bool {
