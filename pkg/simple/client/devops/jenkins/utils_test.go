@@ -40,7 +40,7 @@ func TestParseJenkinsQuery(t *testing.T) {
 	}
 
 	for index, item := range table {
-		result, err := parseJenkinsQuery(item.param)
+		result, err := ParseJenkinsQuery(item.param)
 		if item.err {
 			assert.NotNil(t, err, "index: [%d], unexpected error happen %v", index, err)
 		} else {
