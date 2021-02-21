@@ -172,9 +172,13 @@ func (h *handler) Authorize(req *restful.Request, resp *restful.Response) {
 }
 
 func (h *handler) oauthCallback(req *restful.Request, resp *restful.Response) {
-	code := req.QueryParameter("code")
 	provider := req.PathParameter("callback")
-
+	// OAuth2 callback, see also https://tools.ietf.org/html/rfc6749#section-4.1.2
+	code := req.QueryParameter("code")
+	// CAS callback, see also https://apereo.github.io/cas/6.3.x/protocol/CAS-Protocol-V2-Specification.html#25-servicevalidate-cas-20
+	if code == "" {
+		code = req.QueryParameter("ticket")
+	}
 	if code == "" {
 		err := apierrors.NewUnauthorized("Unauthorized: missing code")
 		api.HandleError(resp, req, err)
