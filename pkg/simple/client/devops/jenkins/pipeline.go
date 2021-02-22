@@ -132,7 +132,7 @@ func (p *Pipeline) ListPipelines() (*devops.PipelineList, error) {
 }
 
 func (p *Pipeline) searchPipelineCount() (int, error) {
-	query, _ := parseJenkinsQuery(p.HttpParameters.Url.RawQuery)
+	query, _ := ParseJenkinsQuery(p.HttpParameters.Url.RawQuery)
 	query.Set("start", "0")
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")
@@ -192,7 +192,7 @@ func (p *Pipeline) ListPipelineRuns() (*devops.PipelineRunList, error) {
 }
 
 func (p *Pipeline) searchPipelineRunsCount() (int, error) {
-	query, _ := parseJenkinsQuery(p.HttpParameters.Url.RawQuery)
+	query, _ := ParseJenkinsQuery(p.HttpParameters.Url.RawQuery)
 	query.Set("start", "0")
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")

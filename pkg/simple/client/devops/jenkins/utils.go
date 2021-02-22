@@ -72,9 +72,9 @@ func getRespBody(resp *http.Response) ([]byte, error) {
 
 }
 
-// parseJenkinsQuery Parse the special query of jenkins.
+// ParseJenkinsQuery Parse the special query of jenkins.
 // ParseQuery in the standard library makes the query not re-encode
-func parseJenkinsQuery(query string) (url.Values, error) {
+func ParseJenkinsQuery(query string) (url.Values, error) {
 	m := make(url.Values)
 	err := error(nil)
 	for query != "" {

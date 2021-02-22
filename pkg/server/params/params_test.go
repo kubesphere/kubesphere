@@ -17,6 +17,7 @@ limitations under the License.
 package params
 
 import (
+	"gotest.tools/assert"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -169,5 +170,106 @@ func Test_parseConditions(t *testing.T) {
 				t.Errorf("parseConditions() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestParsePaging(t *testing.T) {
+	type testData struct {
+		req    *restful.Request
+		limit  int
+		offset int
+	}
+
+	table := []testData{{
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "",
+		}}},
+		limit: 10, offset: 0,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "paging=limit=11,page=1",
+		}}},
+		limit: 11, offset: 0,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "paging=limit=10,page=2",
+		}}},
+		limit: 10, offset: 10,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "paging=limit=a,page=2",
+		}}},
+		limit: 10, offset: 0,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "paging=limit=10,page=a",
+		}}},
+		limit: 10, offset: 0,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "paging=limit=a,page=a",
+		}}},
+		limit: 10, offset: 0,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "limit=10&page=2",
+		}}},
+		limit: 10, offset: 10,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "page=2",
+		}}},
+		limit: 10, offset: 10,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "page=3",
+		}}},
+		limit: 10, offset: 20,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "start=10&limit10",
+		}}},
+		limit: 10, offset: 10,
+	}, {
+		req: &restful.Request{Request: &http.Request{URL: &url.URL{
+			RawQuery: "page=3&start=10&limit10",
+		}}},
+		limit: 10, offset: 10,
+	}}
+
+	for index, item := range table {
+		limit, offset := ParsePaging(item.req)
+		assert.Equal(t, item.limit, limit, "index: [%d], wrong limit", index)
+		assert.Equal(t, item.offset, offset, "index: [%d], wrong offset", index)
+	}
+}
+
+func TestAtoiOrDefault(t *testing.T) {
+	type testData struct {
+		msg      string
+		str      string
+		def      int
+		expected int
+	}
+	table := []testData{{
+		msg:      "non-numerical",
+		str:      "a",
+		def:      1,
+		expected: 1,
+	}, {
+		msg:      "non-numerical, empty string",
+		str:      "",
+		def:      1,
+		expected: 1,
+	}, {
+		msg:      "numerical",
+		str:      "2",
+		def:      1,
+		expected: 2,
+	}}
+
+	for index, item := range table {
+		result := AtoiOrDefault(item.str, item.def)
+		assert.Equal(t, item.expected, result, "test case[%d]: '%s' is wrong", index, item.msg)
 	}
 }

@@ -61,7 +61,7 @@ type DevopsOperator interface {
 	GetPipelineObj(projectName string, pipelineName string) (*v1alpha3.Pipeline, error)
 	DeletePipelineObj(projectName string, pipelineName string) error
 	UpdatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error)
-	ListPipelineObj(projectName string, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error)
+	ListPipelineObj(projectName string, filterFunc func(*v1alpha3.Pipeline) bool, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error)
 
 	CreateCredentialObj(projectName string, s *v1.Secret) (*v1.Secret, error)
 	GetCredentialObj(projectName string, secretName string) (*v1.Secret, error)
@@ -265,7 +265,8 @@ func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3
 	return d.ksclient.DevopsV1alpha3().Pipelines(ns).Update(context.Background(), pipeline, metav1.UpdateOptions{})
 }
 
-func (d devopsOperator) ListPipelineObj(projectName string, sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error) {
+func (d devopsOperator) ListPipelineObj(projectName string, filterFunc func(pipeline *v1alpha3.Pipeline) bool,
+	sortFunc func([]*v1alpha3.Pipeline, int, int) bool, limit, offset int) (api.ListResult, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
 	if err != nil {
 		return api.ListResult{}, err
@@ -275,26 +276,25 @@ func (d devopsOperator) ListPipelineObj(projectName string, sortFunc func([]*v1a
 		return api.ListResult{}, err
 	}
 
-	// sort the pipeline list according to the request
 	if sortFunc != nil {
+		//sort the pipeline list according to the request
 		sort.SliceStable(data, func(i, j int) bool {
 			return sortFunc(data, i, j)
 		})
 	}
 
-	items := make([]interface{}, 0)
 	var result []interface{}
-	for _, item := range data {
-		result = append(result, *item)
+	for i, _ := range data {
+		if filterFunc != nil && !filterFunc(data[i]) {
+			continue
+		}
+		result = append(result, *data[i])
 	}
 
 	if limit == -1 || limit+offset > len(result) {
 		limit = len(result) - offset
 	}
-	items = result[offset : offset+limit]
-	if items == nil {
-		items = []interface{}{}
-	}
+	items := result[offset : offset+limit]
 	return api.ListResult{TotalItems: len(result), Items: items}, nil
 }
 
