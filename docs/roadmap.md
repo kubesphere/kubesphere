@@ -55,7 +55,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 ### KubeEdge Integration [#3070](https://github.com/kubesphere/kubesphere/issues/3070)
 
-- [ ] KubeEdge cloud components setup.
+- [x] KubeEdge cloud components setup.
 - [ ] KubeEdge edge nodes setup.
 - [x] Edge nodes logging and metrics support.
 - [x] Automatic network configuration on edge node joining/leaving.
@@ -71,14 +71,14 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 - [x] Configure ServiceMonitor via UI. [#1031](https://github.com/kubesphere/console/pull/1301) 
 - [x] PromQL auto-completion and syntax highlighting. [#1307](https://github.com/kubesphere/console/pull/1307)
-- [ ] Support cluster-level custom monitoring. [#3193](https://github.com/kubesphere/kubesphere/pull/3193)
-- [ ] Import dashboards from Grafana templates.
+- [x] Support cluster-level custom monitoring. [#3193](https://github.com/kubesphere/kubesphere/pull/3193)
+- [x] Tools to convert Grafana dashboard to KubeSphere Dashboard [#9](https://github.com/kubesphere/monitoring-dashboard/pull/9)
 
 #### Custom Alerting [#3065](https://github.com/kubesphere/kubesphere/issues/3065)
 
-- [ ] Prometheus alert rule management. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
-- [ ] Alert rule tenant control: global/namespace level alert rules. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
-- [ ] List alerts for a specific alert rule. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
+- [x] Prometheus alert rule management. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
+- [x] Alert rule tenant control: global/namespace level alert rules. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
+- [x] List alerts for a specific alert rule. [#3181](https://github.com/kubesphere/kubesphere/pull/3181)
 
 #### Multi-tenant Notification support including Email/DingTalk/Slack/Wechat works/Webhook [#3066](https://github.com/kubesphere/kubesphere/issues/3066)
 
@@ -132,6 +132,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [ ] Support adding member clusters for an existing project(ns), wich can be helpful when there are new clusters joined. [#3246](https://github.com/kubesphere/kubesphere/issues/3246)
 ### Observability
 
+- [ ] Upgrade to Prometheus v2.25.0
 - [x] Upgrade Notification Manager to v0.7.0+ [Releases](https://github.com/kubesphere/notification-manager/releases)
 - [x] Upgrade FluentBit Operator to v0.3.0+ [Releases](https://github.com/kubesphere/fluentbit-operator/releases)
 - [ ] Upgrade FluentBit to v1.6.9+
