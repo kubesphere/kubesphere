@@ -74,10 +74,9 @@ func getRespBody(resp *http.Response) ([]byte, error) {
 
 // ParseJenkinsQuery Parse the special query of jenkins.
 // ParseQuery in the standard library makes the query not re-encode
-func ParseJenkinsQuery(query string) (url.Values, error) {
-	m := make(url.Values)
-	err := error(nil)
-	for query != "" {
+func ParseJenkinsQuery(query string) (result url.Values, err error) {
+	result = make(url.Values)
+	for query != "" && err == nil {
 		key := query
 		if i := strings.IndexAny(key, "&"); i >= 0 {
 			key, query = key[:i], key[i+1:]
@@ -91,23 +90,13 @@ func ParseJenkinsQuery(query string) (url.Values, error) {
 		if i := strings.Index(key, "="); i >= 0 {
 			key, value = key[:i], key[i+1:]
 		}
-		key, err1 := url.QueryUnescape(key)
-		if err1 != nil {
-			if err == nil {
-				err = err1
+		if key, err = url.QueryUnescape(key); err == nil {
+			if value, err = url.QueryUnescape(value); err == nil {
+				result[key] = append(result[key], value)
 			}
-			continue
 		}
-		value, err1 = url.QueryUnescape(value)
-		if err1 != nil {
-			if err == nil {
-				err = err1
-			}
-			continue
-		}
-		m[key] = append(m[key], value)
 	}
-	return m, err
+	return
 }
 
 type JenkinsBlueTime time.Time
