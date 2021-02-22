@@ -23,8 +23,9 @@ We use a special type of secret as a credential for DevOps.
 This file will not contain CRD, but the credential type constants and their fields.
 */
 const (
-	CredentialFinalizerName = "finalizers.kubesphere.io/credential"
-	DevOpsCredentialPrefix  = "credential.devops.kubesphere.io/"
+	CredentialFinalizerName  = "finalizers.kubesphere.io/credential"
+	DevOpsCredentialPrefix   = "credential.devops.kubesphere.io/"
+	DevOpsCredentialDataHash = DevOpsCredentialPrefix + "datahash"
 	// SecretTypeBasicAuth contains data needed for basic authentication.
 	//
 	// Required at least one of fields:
