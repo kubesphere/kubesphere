@@ -44,6 +44,10 @@ ks-apiserver: fmt vet
 ks-controller-manager: fmt vet
 	hack/gobuild.sh cmd/controller-manager
 
+# Build e2e binary
+e2e: fmt vet
+	hack/build_e2e.sh test/e2e
+
 # Run go fmt against code 
 fmt:
 	gofmt -w ./pkg ./cmd ./tools ./api
