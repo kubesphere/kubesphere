@@ -283,3 +283,45 @@ func (h *handler) handleListBuiltinRuleAlerts(req *restful.Request, resp *restfu
 
 	resp.WriteEntity(alerts)
 }
+
+func (h *handler) handleCreateOrUpdateCustomAlertingRules(req *restful.Request, resp *restful.Response) {
+	namespace := req.PathParameter("namespace")
+
+	var rules []*v2alpha1.PostableAlertingRule
+	if err := req.ReadEntity(&rules); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	bulkResp, err := h.operator.CreateOrUpdateCustomAlertingRules(req.Request.Context(), namespace, rules)
+	if err != nil {
+		klog.Error(err)
+		switch {
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
+			ksapi.HandleBadRequest(resp, nil, err)
+		default:
+			ksapi.HandleInternalError(resp, nil, err)
+		}
+		return
+	}
+	resp.WriteEntity(bulkResp)
+}
+
+func (h *handler) handleDeleteCustomAlertingRules(req *restful.Request, resp *restful.Response) {
+	namespace := req.PathParameter("namespace")
+	names := req.QueryParameters("name")
+
+	bulkResp, err := h.operator.DeleteCustomAlertingRules(req.Request.Context(), namespace, names)
+	if err != nil {
+		klog.Error(err)
+		switch {
+		case err == v2alpha1.ErrThanosRulerNotEnabled:
+			ksapi.HandleBadRequest(resp, nil, err)
+		default:
+			ksapi.HandleInternalError(resp, nil, err)
+		}
+		return
+	}
+	resp.WriteEntity(bulkResp)
+}

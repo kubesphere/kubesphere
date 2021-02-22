@@ -22,7 +22,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/version"
 	"log"
 
 	"github.com/emicklei/go-restful"
@@ -32,6 +31,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 	"github.com/pkg/errors"
+	promfake "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/fake"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -53,10 +53,12 @@ import (
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam/group"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	fakedevops "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+	"kubesphere.io/kubesphere/pkg/version"
 )
 
 var output string
@@ -129,7 +131,9 @@ func generateSwaggerJson() []byte {
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container, clientsets.Kubernetes(), nil))
 	urlruntime.Must(metricsv1alpha2.AddToContainer(container))
 	urlruntime.Must(networkv1alpha2.AddToContainer(container, ""))
-	urlruntime.Must(alertingv2alpha1.AddToContainer(container, informerFactory, nil, nil, nil))
+	alertingOptions := &alerting.Options{}
+	alertingClient, _ := alerting.NewRuleClient(alertingOptions)
+	urlruntime.Must(alertingv2alpha1.AddToContainer(container, informerFactory, promfake.NewSimpleClientset(), alertingClient, alertingOptions))
 
 	config := restfulspec.Config{
 		WebServices:                   container.RegisteredWebServices(),

@@ -107,6 +107,24 @@ func (c *RuleCache) getResourceRuleCaches(ruler Ruler, ruleNamespace *corev1.Nam
 func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
 	extraRuleResourceSelector labels.Selector, idOrName string) (*ResourceRuleItem, error) {
 
+	rules, err := c.GetRuleByIdOrName(ruler, ruleNamespace, extraRuleResourceSelector, idOrName)
+	if err != nil {
+		return nil, err
+	}
+	if l := len(rules); l == 0 {
+		return nil, nil
+	} else if l > 1 {
+		// guarantees the stability of the get operations.
+		sort.Slice(rules, func(i, j int) bool {
+			return v2alpha1.AlertingRuleIdCompare(rules[i].Id, rules[j].Id)
+		})
+	}
+	return rules[0], nil
+}
+
+func (c *RuleCache) GetRuleByIdOrName(ruler Ruler, ruleNamespace *corev1.Namespace,
+	extraRuleResourceSelector labels.Selector, idOrName string) ([]*ResourceRuleItem, error) {
+
 	caches, err := c.getResourceRuleCaches(ruler, ruleNamespace, extraRuleResourceSelector)
 	if err != nil {
 		return nil, err
@@ -121,9 +139,11 @@ func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
 		for rn, rc := range caches {
 			if rule, ok := rc.IdRules[idOrName]; ok {
 				rules = append(rules, &ResourceRuleItem{
-					Group:        rule.Group,
-					Id:           rule.Id,
-					Rule:         rule.Rule.DeepCopy(),
+					RuleWithGroup: RuleWithGroup{
+						Group: rule.Group,
+						Id:    rule.Id,
+						Rule:  *rule.Rule.DeepCopy(),
+					},
 					ResourceName: rn,
 				})
 			}
@@ -133,9 +153,11 @@ func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
 			if nrules, ok := rc.NameRules[idOrName]; ok {
 				for _, nrule := range nrules {
 					rules = append(rules, &ResourceRuleItem{
-						Group:        nrule.Group,
-						Id:           nrule.Id,
-						Rule:         nrule.Rule.DeepCopy(),
+						RuleWithGroup: RuleWithGroup{
+							Group: nrule.Group,
+							Id:    nrule.Id,
+							Rule:  *nrule.Rule.DeepCopy(),
+						},
 						ResourceName: rn,
 					})
 				}
@@ -145,15 +167,7 @@ func (c *RuleCache) GetRule(ruler Ruler, ruleNamespace *corev1.Namespace,
 		return nil, errors.New("unsupported ruler type")
 	}
 
-	if l := len(rules); l == 0 {
-		return nil, nil
-	} else if l > 1 {
-		// guarantees the stability of the get operations.
-		sort.Slice(rules, func(i, j int) bool {
-			return v2alpha1.AlertingRuleIdCompare(rules[i].Id, rules[j].Id)
-		})
-	}
-	return rules[0], nil
+	return rules, err
 }
 
 func (c *RuleCache) ListRules(ruler Ruler, ruleNamespace *corev1.Namespace,
@@ -178,9 +192,11 @@ func (c *RuleCache) ListRules(ruler Ruler, ruleNamespace *corev1.Namespace,
 			for _, rule := range rules {
 				rrs.GroupSet[rule.Group] = struct{}{}
 				rr := &ResourceRuleItem{
-					Group:        rule.Group,
-					Id:           rule.Id,
-					Rule:         rule.Rule.DeepCopy(),
+					RuleWithGroup: RuleWithGroup{
+						Group: rule.Group,
+						Id:    rule.Id,
+						Rule:  *rule.Rule.DeepCopy(),
+					},
 					ResourceName: rn,
 				}
 				rrs.IdRules[rr.Id] = rr

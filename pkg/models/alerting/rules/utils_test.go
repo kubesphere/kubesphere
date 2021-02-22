@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -9,6 +8,7 @@ import (
 	"github.com/prometheus/prometheus/rules"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 )
 
 func TestGetAlertingRulesStatus(t *testing.T) {
@@ -31,15 +31,17 @@ func TestGetAlertingRulesStatus(t *testing.T) {
 					NameRules: map[string][]*ResourceRuleItem{
 						"ca7f09e76954e67c": []*ResourceRuleItem{{
 							ResourceName: "custom-alerting-rule-jqbgn",
-							Group:        "alerting.custom.defaults",
-							Id:           "ca7f09e76954e67c",
-							Rule: &promresourcesv1.Rule{
-								Alert: "TestCPUUsageHigh",
-								Expr:  intstr.FromString(`namespace:workload_cpu_usage:sum{namespace="test"} > 1`),
-								For:   "1m",
-								Annotations: map[string]string{
-									"alias":       "The alias is here",
-									"description": "The description is here",
+							RuleWithGroup: RuleWithGroup{
+								Group: "alerting.custom.defaults",
+								Id:    "ca7f09e76954e67c",
+								Rule: promresourcesv1.Rule{
+									Alert: "TestCPUUsageHigh",
+									Expr:  intstr.FromString(`namespace:workload_cpu_usage:sum{namespace="test"} > 1`),
+									For:   "1m",
+									Annotations: map[string]string{
+										"alias":       "The alias is here",
+										"description": "The description is here",
+									},
 								},
 							},
 						}},
