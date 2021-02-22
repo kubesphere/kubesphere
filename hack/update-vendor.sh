@@ -122,6 +122,17 @@ function add_generated_comments() {
 
 
 # Phase 1: ensure go.mod files for staging modules and main module
+for repo in $(kube::util::list_staging_repos); do
+  pushd "staging/src/kubesphere.io/${repo}" >/dev/null 2>&1
+    if [[ ! -f go.mod ]]; then
+      kube::log::status "go.mod: initialize ${repo}"
+      rm -f Godeps/Godeps.json # remove before initializing, staging Godeps are not authoritative
+      go mod init "kubesphere.io/${repo}"
+      go mod edit -fmt
+    fi
+  popd >/dev/null 2>&1
+done
+
 if [[ ! -f go.mod ]]; then
   kube::log::status "go.mod: initialize kubesphere.io/kubesphere"
   go mod init "kubesphere.io/kubesphere"
@@ -134,6 +145,9 @@ kube::log::status "go.mod: update references"
 # Prune
 go mod edit -json | jq -r '.Require[]? | select(.Version == "v0.0.0")                 | "-droprequire \(.Path)"'     | xargs -L 100 go mod edit -fmt
 go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("./staging/")) | "-dropreplace \(.Old.Path)"' | xargs -L 100 go mod edit -fmt
+# Readd
+kube::util::list_staging_repos | xargs -n 1 -I {} echo "-require kubesphere.io/{}@v0.0.0"                  | xargs -L 100 go mod edit -fmt
+kube::util::list_staging_repos | xargs -n 1 -I {} echo "-replace kubesphere.io/{}=./staging/src/kubesphere.io/{}" | xargs -L 100 go mod edit -fmt
 
 # Phase 3: capture required (minimum) versions from all modules, and replaced (pinned) versions from the root module
 

@@ -540,7 +540,7 @@ EOF
 # $KUBE_ROOT must be set.
 function kube::util::list_staging_repos() {
   (
-    cd "${KUBE_ROOT}/staging/src/k8s.io" && \
+    cd "${KUBE_ROOT}/staging/src/kubesphere.io" && \
     find . -mindepth 1 -maxdepth 1 -type d | cut -c 3- | sort
   )
 }
