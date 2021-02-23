@@ -254,6 +254,10 @@ func (l *ldapInterfaceImpl) Create(user *iamv1alpha2.User) error {
 				Type: ldapAttributeUserPassword,
 				Vals: []string{user.Spec.EncryptedPassword},
 			},
+			{
+				Type: ldapAttributeMail,
+				Vals: []string{user.Spec.Email},
+			},
 		},
 	}
 
