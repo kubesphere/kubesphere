@@ -695,9 +695,16 @@ func NewProvider(podInformer informercorev1.PodInformer, ksclient kubesphereclie
 	})
 	p.block = blockI
 
-	if err := p.syncIPPools(); err != nil {
-		klog.Fatalf("failed to sync calico ippool to kubesphere ippool, err=%v", err)
-	}
+	go func() {
+		for {
+			if err := p.syncIPPools(); err != nil {
+				klog.Infof("failed to sync calico ippool to kubesphere ippool, err=%v", err)
+				time.Sleep(3 * time.Second)
+				continue
+			}
+			break
+		}
+	}()
 
 	return p
 }
