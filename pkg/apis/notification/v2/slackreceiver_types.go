@@ -36,6 +36,7 @@ type SlackReceiverStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=sr
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // SlackReceiver is the Schema for the slackreceivers API

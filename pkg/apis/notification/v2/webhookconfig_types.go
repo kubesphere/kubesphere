@@ -30,6 +30,7 @@ type WebhookConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=wc
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // WebhookConfig is the Schema for the webhookconfigs API

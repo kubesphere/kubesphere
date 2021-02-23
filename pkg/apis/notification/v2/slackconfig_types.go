@@ -32,6 +32,7 @@ type SlackConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=sc
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // SlackConfig is the Schema for the slackconfigs API

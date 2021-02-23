@@ -55,8 +55,8 @@ func AddToContainer(
 		To(h.ListSecret).
 		Doc("list the secrets").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.QueryParameter(query.ParameterName, "name used to do filtering").Required(false)).
-		Param(ws.QueryParameter(query.ParameterLabelSelector, "label selector used to do filtering").Required(false)).
+		Param(ws.QueryParameter(query.ParameterName, "name used for filtering").Required(false)).
+		Param(ws.QueryParameter(query.ParameterLabelSelector, "label selector used for filtering").Required(false)).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d").DefaultValue("page=1")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. ascending=false").Required(false).DefaultValue("ascending=false")).
@@ -93,11 +93,11 @@ func AddToContainer(
 	// apis for global notification config and receiver
 	ws.Route(ws.GET("/{resources}").
 		To(h.ListResource).
-		Doc("list the notification config or receiver").
+		Doc("list the notification configs or receivers").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resources", "notification config or receiver, known values are dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
-		Param(ws.QueryParameter(query.ParameterName, "name used to do filtering").Required(false)).
-		Param(ws.QueryParameter(query.ParameterLabelSelector, "label selector used to do filtering").Required(false)).
+		Param(ws.PathParameter("resources", "notification configs or receivers, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.QueryParameter(query.ParameterName, "name used for filtering").Required(false)).
+		Param(ws.QueryParameter(query.ParameterLabelSelector, "label selector used for filtering").Required(false)).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d").DefaultValue("page=1")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. ascending=false").Required(false).DefaultValue("ascending=false")).
@@ -108,7 +108,7 @@ func AddToContainer(
 		To(h.GetResource).
 		Doc("get the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resources", "notification config or receiver, known values are dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.PathParameter("resources", "notification configs or receivers, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
 		Param(ws.PathParameter("name", "the name of the resource")).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
@@ -116,14 +116,14 @@ func AddToContainer(
 		To(h.CreateResource).
 		Doc("create a notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resource", "notification config or receiver, known values are dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.PathParameter("resource", "notification configs or receivers, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	ws.Route(ws.PUT("/{resources}/{name}").
 		To(h.UpdateResource).
 		Doc("update the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resources", "notification config or receiver, known values are dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.PathParameter("resources", "notification configs or receivers, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
 		Param(ws.PathParameter("name", "the name of the resource")).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
@@ -131,18 +131,19 @@ func AddToContainer(
 		To(h.DeleteResource).
 		Doc("delete the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resources", "notification config or receiver, known values are dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.PathParameter("resources", "notification configs or receivers, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
 		Param(ws.PathParameter("name", "the name of the resource")).
 		Returns(http.StatusOK, api.StatusOK, errors.None))
 
 	// apis for tenant notification config and receiver
 	ws.Route(ws.GET("/users/{user}/{resources}").
 		To(h.ListResource).
-		Doc("list the notification config or receiver").
+		Doc("list the notification configs or receivers").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
 		Param(ws.PathParameter("user", "user name")).
-		Param(ws.QueryParameter(query.ParameterName, "name used to do filtering").Required(false)).
-		Param(ws.QueryParameter(query.ParameterLabelSelector, "label selector used to do filtering").Required(false)).
+		Param(ws.PathParameter("resources", "notification configs or receivers, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.QueryParameter(query.ParameterName, "name used for filtering").Required(false)).
+		Param(ws.QueryParameter(query.ParameterLabelSelector, "label selector used for filtering").Required(false)).
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d").DefaultValue("page=1")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. ascending=false").Required(false).DefaultValue("ascending=false")).
@@ -154,7 +155,7 @@ func AddToContainer(
 		Doc("get the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
 		Param(ws.PathParameter("user", "user name")).
-		Param(ws.PathParameter("resources", "notification config or receiver, known values are dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.PathParameter("resources", "notification configs or receivers, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
 		Param(ws.PathParameter("name", "the name of the resource")).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
@@ -170,7 +171,7 @@ func AddToContainer(
 		Doc("update the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
 		Param(ws.PathParameter("user", "user name")).
-		Param(ws.PathParameter("resources", "notification config or receiver, known values are dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.PathParameter("resources", "notification configs or receivers, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
 		Param(ws.PathParameter("name", "the name of the resource")).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
@@ -179,7 +180,7 @@ func AddToContainer(
 		Doc("delete the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
 		Param(ws.PathParameter("user", "user name")).
-		Param(ws.PathParameter("resources", "notification config or receiver, known values are dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
+		Param(ws.PathParameter("resources", "notification config or receiver, known values include dingtalkconfigs, dingtalkreceivers, emailconfigs. emailreceivers, slackconfigs, slackreceivers, webhookconfigs, webhookreceivers, wechatconfigs, wechatreceivers")).
 		Param(ws.PathParameter("name", "the name of the resource")).
 		Returns(http.StatusOK, api.StatusOK, errors.None))
 

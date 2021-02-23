@@ -40,6 +40,7 @@ type DingTalkConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=dc
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // DingTalkConfig is the Schema for the dingtalkconfigs API

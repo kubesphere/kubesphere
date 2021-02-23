@@ -222,7 +222,7 @@ func (c *Controller) reconcile(obj interface{}) error {
 
 	// Only reconcile the secret which created by notification manager.
 	if secret, ok := obj.(*corev1.Secret); ok {
-		if secret.Namespace != constants.KubeSphereNotificationNamespace || secret.Labels[constants.NotificationManagedLabel] != "true" {
+		if secret.Namespace != constants.NotificationSecretNamespace || secret.Labels[constants.NotificationManagedLabel] != "true" {
 			klog.V(8).Infof("No need to reconcile secret %s/%s", accessor.GetNamespace(), accessor.GetName())
 			return nil
 		}
@@ -919,12 +919,12 @@ func (c *Controller) syncFederatedSecret(obj *corev1.Secret) error {
 func (c *Controller) ensureNotificationNamespaceExist() error {
 
 	ns := corev1.Namespace{}
-	if err := c.Get(context.Background(), client.ObjectKey{Name: constants.KubeSphereNotificationNamespace}, &ns); err != nil {
+	if err := c.Get(context.Background(), client.ObjectKey{Name: constants.NotificationSecretNamespace}, &ns); err != nil {
 		return err
 	}
 
 	fedNs := v1beta1.FederatedNamespace{}
-	if err := c.Get(context.Background(), client.ObjectKey{Name: constants.KubeSphereNotificationNamespace, Namespace: constants.KubeSphereNotificationNamespace}, &fedNs); err != nil {
+	if err := c.Get(context.Background(), client.ObjectKey{Name: constants.NotificationSecretNamespace, Namespace: constants.NotificationSecretNamespace}, &fedNs); err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil
 		}
@@ -936,8 +936,8 @@ func (c *Controller) ensureNotificationNamespaceExist() error {
 					APIVersion: v1beta1.SchemeGroupVersion.String(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      constants.KubeSphereNotificationNamespace,
-					Namespace: constants.KubeSphereNotificationNamespace,
+					Name:      constants.NotificationSecretNamespace,
+					Namespace: constants.NotificationSecretNamespace,
 				},
 				Spec: v1beta1.FederatedNamespaceSpec{
 					Placement: v1beta1.GenericPlacementFields{

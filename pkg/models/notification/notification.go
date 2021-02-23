@@ -55,9 +55,8 @@ func NewOperator(
 	}
 }
 
-// List objects, if the user is nil, it will return the global object.
-// If the user it not nil, it will return tenant object which the tenant specified in the labels of object
-// equal to this user.
+// List objects. Only global objects will be returned if the user is nil.
+// If the user is not nil, only tenant objects whose tenant label matches the user will be returned.
 func (o *operator) List(user, resource string, q *query.Query) (*api.ListResult, error) {
 
 	// If user is nil, it will list all global object.
@@ -86,8 +85,8 @@ func (o *operator) Get(user, resource, name string) (runtime.Object, error) {
 	return obj, nil
 }
 
-// Create a object, if the user is nil, it only can create a global object.
-// If the user is not nil, it only can create a tenant object.
+// Create an object. A global object will be created if the user is nil.
+// A tenant object will be created if the user is not nil.
 func (o *operator) Create(user, resource string, obj runtime.Object) (runtime.Object, error) {
 
 	if err := authorizer(user, obj); err != nil {
@@ -120,9 +119,8 @@ func (o *operator) Create(user, resource string, obj runtime.Object) (runtime.Ob
 	}
 }
 
-// Delete a object, if the user is nil, it only can delete the global object.
-// If the user is not nil, it only can delete the tenant object which the tenant
-// specified in the labels of the object equal to this user.
+// Delete an object. A global object will be deleted if the user is nil.
+// If the user is not nil, a tenant object whose tenant label matches the user will be deleted.
 func (o *operator) Delete(user, resource, name string) error {
 
 	if obj, err := o.Get(user, resource, name); err != nil {
@@ -159,9 +157,8 @@ func (o *operator) Delete(user, resource, name string) error {
 	}
 }
 
-// Update a object, if the user is nil, it only can update the global object.
-// If the user is not nil, it only can delete the tenant object which the tenant
-// specified in the labels of the object equal to this user.
+// Update an object, only a global object will be updated if the user is nil.
+// If the user is not nil, a tenant object whose tenant label matches the user will be updated.
 func (o *operator) Update(user, resource string, obj runtime.Object) (runtime.Object, error) {
 
 	name, err := getName(obj)
@@ -206,11 +203,11 @@ func (o *operator) Update(user, resource string, obj runtime.Object) (runtime.Ob
 func (o *operator) ListSecret(q *query.Query) (*api.ListResult, error) {
 
 	appendManagedLabel(q)
-	return o.resourceGetter.List("secrets", constants.KubeSphereNotificationNamespace, q)
+	return o.resourceGetter.List("secrets", constants.NotificationSecretNamespace, q)
 }
 
 func (o *operator) GetSecret(name string) (interface{}, error) {
-	obj, err := o.resourceGetter.Get("secrets", constants.KubeSphereNotificationNamespace, name)
+	obj, err := o.resourceGetter.Get("secrets", constants.NotificationSecretNamespace, name)
 	if err != nil {
 		return nil, err
 	}
@@ -225,15 +222,15 @@ func (o *operator) GetSecret(name string) (interface{}, error) {
 
 func (o *operator) CreateOrUpdateSecret(obj *corev1.Secret) (*corev1.Secret, error) {
 
-	obj.Namespace = constants.KubeSphereNotificationNamespace
+	obj.Namespace = constants.NotificationSecretNamespace
 	if obj.Labels == nil {
 		obj.Labels = make(map[string]string)
 	}
 	obj.Labels[constants.NotificationManagedLabel] = "true"
 	if obj.ResourceVersion == "" {
-		return o.k8sClient.CoreV1().Secrets(constants.KubeSphereNotificationNamespace).Create(context.Background(), obj, v1.CreateOptions{})
+		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Create(context.Background(), obj, v1.CreateOptions{})
 	} else {
-		return o.k8sClient.CoreV1().Secrets(constants.KubeSphereNotificationNamespace).Update(context.Background(), obj, v1.UpdateOptions{})
+		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Update(context.Background(), obj, v1.UpdateOptions{})
 	}
 }
 
@@ -243,7 +240,7 @@ func (o *operator) DeleteSecret(name string) error {
 		return err
 	}
 
-	return o.k8sClient.CoreV1().Secrets(constants.KubeSphereNotificationNamespace).Delete(context.Background(), name, v1.DeleteOptions{})
+	return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Delete(context.Background(), name, v1.DeleteOptions{})
 }
 
 func (o *operator) GetObject(resource string) runtime.Object {

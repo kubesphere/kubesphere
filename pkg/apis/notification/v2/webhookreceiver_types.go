@@ -134,6 +134,7 @@ type WebhookReceiverStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=wr
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // WebhookReceiver is the Schema for the webhookreceivers API

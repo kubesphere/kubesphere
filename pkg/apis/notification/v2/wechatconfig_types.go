@@ -38,6 +38,7 @@ type WechatConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=wcc
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // WechatConfig is the Schema for the wechatconfigs API

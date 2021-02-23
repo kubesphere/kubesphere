@@ -186,6 +186,7 @@ type NotificationManagerStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=nm
+// +kubebuilder:subresource:status
 
 // NotificationManager is the Schema for the notificationmanagers API
 type NotificationManager struct {

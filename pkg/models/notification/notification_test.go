@@ -109,7 +109,7 @@ func TestOperator_CreateOrUpdateSecret(t *testing.T) {
 			result: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
-					Namespace: constants.KubeSphereNotificationNamespace,
+					Namespace: constants.NotificationSecretNamespace,
 					Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
 				},
 			},
@@ -168,7 +168,7 @@ var (
 	secret1 = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo1",
-			Namespace: constants.KubeSphereNotificationNamespace,
+			Namespace: constants.NotificationSecretNamespace,
 			Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
 		},
 	}
@@ -176,7 +176,7 @@ var (
 	secret2 = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo2",
-			Namespace: constants.KubeSphereNotificationNamespace,
+			Namespace: constants.NotificationSecretNamespace,
 			Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
 		},
 	}
@@ -184,7 +184,7 @@ var (
 	secret3 = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo3",
-			Namespace: constants.KubeSphereNotificationNamespace,
+			Namespace: constants.NotificationSecretNamespace,
 			Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
 		},
 	}

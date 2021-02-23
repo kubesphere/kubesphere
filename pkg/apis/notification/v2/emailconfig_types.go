@@ -52,6 +52,7 @@ type EmailConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=ec
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // EmailConfig is the Schema for the emailconfigs API

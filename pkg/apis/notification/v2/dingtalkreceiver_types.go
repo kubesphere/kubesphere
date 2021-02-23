@@ -55,6 +55,7 @@ type DingTalkReceiverStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=dr
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // DingTalkReceiver is the Schema for the dingtalkreceivers API

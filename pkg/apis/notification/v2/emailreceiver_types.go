@@ -36,6 +36,7 @@ type EmailReceiverStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=er
+// +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
 // EmailReceiver is the Schema for the emailreceivers API

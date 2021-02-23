@@ -126,9 +126,9 @@ const (
 	ApplicationVersion = "app.kubernetes.io/version"
 	AlertingTag        = "Alerting"
 
-	NotificationTag                 = "Notification"
-	KubeSphereNotificationNamespace = "kubesphere-notification-system"
-	NotificationManagedLabel        = "notification-manager/managed"
+	NotificationTag             = "Notification"
+	NotificationSecretNamespace = "kubesphere-monitoring-federated"
+	NotificationManagedLabel    = "notification-manager/managed"
 )
 
 var (

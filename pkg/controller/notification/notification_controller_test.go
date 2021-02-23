@@ -39,14 +39,14 @@ var (
 
 		namespace := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: constants.KubeSphereNotificationNamespace,
+				Name: constants.NotificationSecretNamespace,
 			},
 		}
 
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
-				Namespace: constants.KubeSphereNotificationNamespace,
+				Namespace: constants.NotificationSecretNamespace,
 				Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
 			},
 		}
@@ -101,12 +101,12 @@ var (
 				fedSecret := &v1beta1.FederatedSecret{}
 				By("Expecting to create federated secret successfully")
 				Eventually(func() bool {
-					err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.KubeSphereNotificationNamespace}, fedSecret)
+					err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.NotificationSecretNamespace}, fedSecret)
 					Expect(err).Should(Succeed())
 					return !fedSecret.CreationTimestamp.IsZero()
 				}, timeout, interval).Should(BeTrue())
 
-				err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.KubeSphereNotificationNamespace}, secret)
+				err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.NotificationSecretNamespace}, secret)
 				Expect(err).Should(Succeed())
 				secret.StringData = map[string]string{"foo": "bar"}
 				Expect(cl.Update(context.Background(), secret)).Should(Succeed())
@@ -114,7 +114,7 @@ var (
 
 				By("Expecting to update federated secret successfully")
 				Eventually(func() bool {
-					err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.KubeSphereNotificationNamespace}, fedSecret)
+					err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.NotificationSecretNamespace}, fedSecret)
 					Expect(err).Should(Succeed())
 					return string(fedSecret.Spec.Template.Data["foo"]) == "bar"
 				}, timeout, interval).Should(BeTrue())
@@ -130,9 +130,9 @@ var (
 		obj := &v2.DingTalkConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
-				Namespace: constants.KubeSphereNotificationNamespace,
+				Namespace: constants.NotificationSecretNamespace,
 				Labels: map[string]string{
-					"tyep": "default",
+					"type": "default",
 				},
 			},
 		}
