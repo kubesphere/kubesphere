@@ -339,12 +339,14 @@ func (c *IPPoolController) processIPPoolItem() bool {
 	if err == nil {
 		c.ippoolQueue.Forget(key)
 		return true
-	} else if delay != nil {
-		c.ippoolQueue.AddAfter(key, *delay)
 	}
 
+	if delay != nil {
+		c.ippoolQueue.AddAfter(key, *delay)
+	} else {
+		c.ippoolQueue.AddRateLimited(key)
+	}
 	utilruntime.HandleError(fmt.Errorf("error processing ippool %v (will retry): %v", key, err))
-	c.ippoolQueue.AddRateLimited(key)
 	return true
 }
 
