@@ -1,7 +1,7 @@
 // Copyright 2020 The Kubernetes Authors.
 // SPDX-License-Identifier: Apache-2.0
 
-package controllers
+package application
 
 import (
 	corev1 "k8s.io/api/core/v1"

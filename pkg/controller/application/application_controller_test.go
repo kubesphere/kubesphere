@@ -19,6 +19,10 @@ package application
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/apps/v1"
@@ -27,71 +31,131 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"sigs.k8s.io/application/api/v1beta1"
-	"time"
+)
+
+const (
+	applicationName = "bookinfo"
+	serviceName = "productpage"
+	timeout         = time.Second * 30
+	interval        = time.Second * 2
 )
 
 var replicas = int32(2)
-var _ = Describe("Application", func() {
 
-	const timeout = time.Second * 30
-	const interval = time.Second * 1
-
+var _ = Context("Inside of a new namespace", func() {
 	ctx := context.TODO()
+	ns := SetupTest(ctx)
 
-	service := newService("productpage")
-	app := newAppliation(service)
-	deployments := []*v1.Deployment{newDeployments(service, "v1")}
-
-	BeforeEach(func() {
-
-		// Create application service and deployment
-		Expect(k8sClient.Create(ctx, app)).Should(Succeed())
-		Expect(k8sClient.Create(ctx, service)).Should(Succeed())
-		for i := range deployments {
-			deployment := deployments[i]
-			Expect(k8sClient.Create(ctx, deployment)).Should(Succeed())
+	Describe("Application", func() {
+		applicationLabels := map[string]string{
+			"app.kubernetes.io/name": "bookinfo",
+			"app.kubernetes.io/version": "1",
 		}
-	})
 
-	// Add Tests for OpenAPI validation (or additonal CRD features) specified in
-	// your API definition.
-	// Avoid adding tests for vanilla CRUD operations because they would
-	// test Kubernetes API server, which isn't the goal here.
-	Context("Application Controller", func() {
-		It("Should create successfully", func() {
+		BeforeEach(func() {
+			By("create deployment,service,application objects")
+			service := newService(serviceName, ns.Name, applicationLabels)
+			deployments := []*v1.Deployment{newDeployments(serviceName, ns.Name, applicationLabels, "v1")}
+			app := newApplication(applicationName, ns.Name, applicationLabels)
 
-			By("Reconcile Application successfully")
-			// application should have "kubesphere.io/last-updated" annotation
-			Eventually(func() bool {
-				app := &v1beta1.Application{}
-				_ = k8sClient.Get(ctx, types.NamespacedName{Name: service.Labels[servicemesh.ApplicationNameLabel], Namespace: metav1.NamespaceDefault}, app)
-				time, ok := app.Annotations["kubesphere.io/last-updated"]
-				return len(time) > 0 && ok
-			}, timeout, interval).Should(BeTrue())
+			Expect(k8sClient.Create(ctx, service.DeepCopy())).Should(Succeed())
+			for i := range deployments {
+				deployment := deployments[i]
+				Expect(k8sClient.Create(ctx, deployment.DeepCopy())).Should(Succeed())
+			}
+			Expect(k8sClient.Create(ctx, app)).Should(Succeed())
+		})
+
+		Context("Application Controller", func() {
+			It("Should not reconcile application", func() {
+				By("update application labels")
+				application := &v1beta1.Application{}
+
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: applicationName, Namespace: ns.Name}, application)
+				Expect(err).Should(Succeed())
+
+				updateApplication := func(object interface{}) {
+					newApp := object.(*v1beta1.Application)
+					newApp.Labels["kubesphere.io/creator"] = ""
+				}
+
+				updated, err := updateWithRetries(k8sClient, ctx, application.Namespace, applicationName, updateApplication, 1 * time.Second, 5 * time.Second)
+				Expect(updated).Should(BeTrue())
+
+				Eventually(func() bool {
+
+					err = k8sClient.Get(ctx, types.NamespacedName{Name: applicationName, Namespace: ns.Name}, application)
+
+					// application status field should not be populated with selected deployments and services
+					return len(application.Status.ComponentList.Objects) == 0
+				}, timeout, interval).Should(BeTrue())
+
+			})
+
+			It("Should reconcile application successfully", func() {
+
+				By("check if application status been updated by controller")
+				application := &v1beta1.Application{}
+
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: applicationName, Namespace: ns.Name}, application)
+					Expect(err).Should(Succeed())
+
+					// application status field should be populated by controller
+					return len(application.Status.ComponentList.Objects) > 0
+				}, timeout, interval).Should(BeTrue())
+
+			})
 		})
 	})
 })
 
-func newDeployments(service *corev1.Service, version string) *v1.Deployment {
-	lbs := service.Labels
-	lbs["version"] = version
+type UpdateObjectFunc func(obj interface{})
+
+func updateWithRetries(client client.Client, ctx context.Context, namespace, name string, updateFunc UpdateObjectFunc, interval, timeout time.Duration)(bool, error) {
+	var updateErr error
+
+	pollErr := wait.PollImmediate(interval, timeout, func() (done bool, err error) {
+		app := &v1beta1.Application{}
+		if err = client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, app); err != nil {
+			return false, err
+		}
+
+		updateFunc(app)
+		if err = client.Update(ctx, app); err == nil {
+			return true, nil
+		}
+
+		updateErr = err
+		return false, nil
+	})
+
+	if pollErr == wait.ErrWaitTimeout {
+		pollErr = fmt.Errorf("couldn't apply the provided update to object %q: %v", name, updateErr)
+		return false, pollErr
+	}
+	return true, nil
+}
+
+func newDeployments(deploymentName, namespace string, labels map[string]string, version string) *v1.Deployment {
+	labels["app"] = deploymentName
+	labels["version"] = version
 
 	deployment := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        fmt.Sprintf("%s-%s", service.Name, version),
-			Namespace:   metav1.NamespaceDefault,
-			Labels:      lbs,
+			Name:      fmt.Sprintf("%s-%s", deploymentName, version),
+			Namespace: namespace,
+			Labels: labels,
 			Annotations: map[string]string{servicemesh.ServiceMeshEnabledAnnotation: "true"},
 		},
 		Spec: v1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: lbs,
+				MatchLabels: labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      lbs,
-					Annotations: service.Annotations,
+					Labels:      labels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -130,16 +194,14 @@ func newDeployments(service *corev1.Service, version string) *v1.Deployment {
 	return deployment
 }
 
-func newService(name string) *corev1.Service {
+func newService(serviceName, namesapce string, labels map[string]string) *corev1.Service {
+	labels["app"] = serviceName
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":    "bookinfo",
-				"app.kubernetes.io/version": "1",
-				"app":                       name,
-			},
+			Name:      serviceName,
+			Namespace: namesapce,
+			Labels: labels,
 			Annotations: map[string]string{
 				"servicemesh.kubesphere.io/enabled": "true",
 			},
@@ -162,11 +224,7 @@ func newService(name string) *corev1.Service {
 					Protocol: corev1.ProtocolTCP,
 				},
 			},
-			Selector: map[string]string{
-				"app.kubernetes.io/name":    "bookinfo",
-				"app.kubernetes.io/version": "1",
-				"app":                       "foo",
-			},
+			Selector: labels,
 			Type: corev1.ServiceTypeClusterIP,
 		},
 		Status: corev1.ServiceStatus{},
@@ -174,12 +232,12 @@ func newService(name string) *corev1.Service {
 	return svc
 }
 
-func newAppliation(service *corev1.Service) *v1beta1.Application {
+func newApplication(applicationName, namespace string, labels map[string]string) *v1beta1.Application {
 	app := &v1beta1.Application{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        service.Labels[servicemesh.ApplicationNameLabel],
-			Namespace:   metav1.NamespaceDefault,
-			Labels:      service.Labels,
+			Name:        applicationName,
+			Namespace:   namespace,
+			Labels:      labels,
 			Annotations: map[string]string{servicemesh.ServiceMeshEnabledAnnotation: "true"},
 		},
 		Spec: v1beta1.ApplicationSpec{
@@ -192,6 +250,9 @@ func newAppliation(service *corev1.Service) *v1beta1.Application {
 					Group: "apps",
 					Kind:  "Deployment",
 				},
+			},
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
 			},
 			AddOwnerRef: true,
 		},
