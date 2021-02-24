@@ -31,8 +31,9 @@ type PipelineList struct {
 
 // GetPipeline & SearchPipelines
 type Pipeline struct {
-	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability." `
-	Links struct {
+	Annotations map[string]string `json:"annotations,omitempty" description:"Add annotations from crd" `
+	Class       string            `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability." `
+	Links       struct {
 		Self struct {
 			Class string `json:"_class,omitempty"`
 			Href  string `json:"href,omitempty"`

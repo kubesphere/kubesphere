@@ -112,7 +112,8 @@ func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restf
 		} else {
 			pipelineMap[pipeline.Name] = i
 			pipelineList.Items[i] = clientDevOps.Pipeline{
-				Name: pipeline.Name,
+				Name:        pipeline.Name,
+				Annotations: pipeline.Annotations,
 			}
 		}
 	}
