@@ -222,7 +222,7 @@ func (c *Controller) reconcile(obj interface{}) error {
 
 	// Only reconcile the secret which created by notification manager.
 	if secret, ok := obj.(*corev1.Secret); ok {
-		if secret.Namespace != constants.NotificationSecretNamespace || secret.Labels[constants.NotificationManagedLabel] != "true" {
+		if secret.Namespace != constants.NotificationSecretNamespace {
 			klog.V(8).Infof("No need to reconcile secret %s/%s", accessor.GetNamespace(), accessor.GetName())
 			return nil
 		}

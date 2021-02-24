@@ -24,12 +24,7 @@ type Operator interface {
 	Get(user, resource, name string) (runtime.Object, error)
 	Create(user, resource string, obj runtime.Object) (runtime.Object, error)
 	Delete(user, resource, name string) error
-	Update(user, resource string, obj runtime.Object) (runtime.Object, error)
-
-	ListSecret(query *query.Query) (*api.ListResult, error)
-	GetSecret(name string) (interface{}, error)
-	CreateOrUpdateSecret(obj *corev1.Secret) (*corev1.Secret, error)
-	DeleteSecret(name string) error
+	Update(user, resource, name string, obj runtime.Object) (runtime.Object, error)
 
 	GetObject(resource string) runtime.Object
 	IsKnownResource(resource string) bool
@@ -59,21 +54,32 @@ func NewOperator(
 // If the user is not nil, only tenant objects whose tenant label matches the user will be returned.
 func (o *operator) List(user, resource string, q *query.Query) (*api.ListResult, error) {
 
-	// If user is nil, it will list all global object.
-	if user == "" {
-		appendGlobalLabel(resource, q)
-	} else {
-		// If the user is not nil, only return the object belong to this user.
-		appendTenantLabel(user, q)
+	if len(q.LabelSelector) > 0 {
+		q.LabelSelector = q.LabelSelector + ","
 	}
 
-	return o.resourceGetter.List(resource, "", q)
+	filter := ""
+	// If user is nil, it will list all global object.
+	if user == "" {
+		if isConfig(o.GetObject(resource)) {
+			filter = "type=default"
+		} else {
+			filter = "type=global"
+		}
+	} else {
+		// If the user is not nil, only return the object belong to this user.
+		filter = "type=tenant,user=" + user
+	}
+
+	q.LabelSelector = q.LabelSelector + filter
+
+	return o.resourceGetter.List(resource, constants.NotificationSecretNamespace, q)
 }
 
 // Get the specified object, if you want to get a global object, the user must be nil.
 // If you want to get a tenant object, the user must equal to the tenant specified in labels of the object.
 func (o *operator) Get(user, resource, name string) (runtime.Object, error) {
-	obj, err := o.resourceGetter.Get(resource, "", name)
+	obj, err := o.resourceGetter.Get(resource, constants.NotificationSecretNamespace, name)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +95,7 @@ func (o *operator) Get(user, resource, name string) (runtime.Object, error) {
 // A tenant object will be created if the user is not nil.
 func (o *operator) Create(user, resource string, obj runtime.Object) (runtime.Object, error) {
 
-	if err := authorizer(user, obj); err != nil {
+	if err := appendLabel(user, obj); err != nil {
 		return nil, err
 	}
 
@@ -114,6 +120,8 @@ func (o *operator) Create(user, resource string, obj runtime.Object) (runtime.Ob
 		return o.ksClient.NotificationV2().WechatConfigs().Create(context.Background(), obj.(*v2.WechatConfig), v1.CreateOptions{})
 	case v2.ResourcesPluralWechatReceiver:
 		return o.ksClient.NotificationV2().WechatReceivers().Create(context.Background(), obj.(*v2.WechatReceiver), v1.CreateOptions{})
+	case "secrets":
+		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Create(context.Background(), obj.(*corev1.Secret), v1.CreateOptions{})
 	default:
 		return nil, errors.NewInternalError(nil)
 	}
@@ -152,6 +160,8 @@ func (o *operator) Delete(user, resource, name string) error {
 		return o.ksClient.NotificationV2().WechatConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
 	case v2.ResourcesPluralWechatReceiver:
 		return o.ksClient.NotificationV2().WechatReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
+	case "secrets":
+		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Delete(context.Background(), name, v1.DeleteOptions{})
 	default:
 		return errors.NewInternalError(nil)
 	}
@@ -159,17 +169,16 @@ func (o *operator) Delete(user, resource, name string) error {
 
 // Update an object, only a global object will be updated if the user is nil.
 // If the user is not nil, a tenant object whose tenant label matches the user will be updated.
-func (o *operator) Update(user, resource string, obj runtime.Object) (runtime.Object, error) {
+func (o *operator) Update(user, resource, name string, obj runtime.Object) (runtime.Object, error) {
 
-	name, err := getName(obj)
-	if err != nil {
+	if err := appendLabel(user, obj); err != nil {
 		return nil, err
 	}
 
-	if _, err := o.Get(user, resource, name); err != nil {
+	if old, err := o.Get(user, resource, name); err != nil {
 		return nil, err
 	} else {
-		if err := authorizer(user, obj); err != nil {
+		if err := authorizer(user, old); err != nil {
 			return nil, err
 		}
 	}
@@ -195,52 +204,11 @@ func (o *operator) Update(user, resource string, obj runtime.Object) (runtime.Ob
 		return o.ksClient.NotificationV2().WechatConfigs().Update(context.Background(), obj.(*v2.WechatConfig), v1.UpdateOptions{})
 	case v2.ResourcesPluralWechatReceiver:
 		return o.ksClient.NotificationV2().WechatReceivers().Update(context.Background(), obj.(*v2.WechatReceiver), v1.UpdateOptions{})
+	case "secrets":
+		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Update(context.Background(), obj.(*corev1.Secret), v1.UpdateOptions{})
 	default:
 		return nil, errors.NewInternalError(nil)
 	}
-}
-
-func (o *operator) ListSecret(q *query.Query) (*api.ListResult, error) {
-
-	appendManagedLabel(q)
-	return o.resourceGetter.List("secrets", constants.NotificationSecretNamespace, q)
-}
-
-func (o *operator) GetSecret(name string) (interface{}, error) {
-	obj, err := o.resourceGetter.Get("secrets", constants.NotificationSecretNamespace, name)
-	if err != nil {
-		return nil, err
-	}
-
-	if !isManagedByNotification(obj.(*corev1.Secret)) {
-		return nil, errors.NewForbidden(v2.Resource(obj.GetObjectKind().GroupVersionKind().GroupKind().Kind), "",
-			fmt.Errorf("secret '%s' is not managed by notification", name))
-	}
-
-	return obj, nil
-}
-
-func (o *operator) CreateOrUpdateSecret(obj *corev1.Secret) (*corev1.Secret, error) {
-
-	obj.Namespace = constants.NotificationSecretNamespace
-	if obj.Labels == nil {
-		obj.Labels = make(map[string]string)
-	}
-	obj.Labels[constants.NotificationManagedLabel] = "true"
-	if obj.ResourceVersion == "" {
-		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Create(context.Background(), obj, v1.CreateOptions{})
-	} else {
-		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Update(context.Background(), obj, v1.UpdateOptions{})
-	}
-}
-
-func (o *operator) DeleteSecret(name string) error {
-
-	if _, err := o.GetSecret(name); err != nil {
-		return err
-	}
-
-	return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Delete(context.Background(), name, v1.DeleteOptions{})
 }
 
 func (o *operator) GetObject(resource string) runtime.Object {
@@ -266,6 +234,8 @@ func (o *operator) GetObject(resource string) runtime.Object {
 		return &v2.WechatConfig{}
 	case v2.ResourcesPluralWechatReceiver:
 		return &v2.WechatReceiver{}
+	case "secrets":
+		return &corev1.Secret{}
 	default:
 		return nil
 	}
@@ -333,48 +303,30 @@ func isGlobal(obj runtime.Object) bool {
 	}
 }
 
-func appendTenantLabel(user string, q *query.Query) {
-
-	if len(q.LabelSelector) > 0 {
-		q.LabelSelector = q.LabelSelector + ","
-	}
-	q.LabelSelector = q.LabelSelector + "type=tenant,user=" + user
-}
-
-func appendGlobalLabel(resource string, q *query.Query) {
-
-	if len(q.LabelSelector) > 0 {
-		q.LabelSelector = q.LabelSelector + ","
-	}
-
-	switch resource {
-	case v2.ResourcesPluralDingTalkConfig, v2.ResourcesPluralEmailConfig,
-		v2.ResourcesPluralSlackConfig, v2.ResourcesPluralWebhookConfig, v2.ResourcesPluralWechatConfig:
-		q.LabelSelector = q.LabelSelector + "type=default"
-	case v2.ResourcesPluralDingTalkReceiver, v2.ResourcesPluralEmailReceiver,
-		v2.ResourcesPluralSlackReceiver, v2.ResourcesPluralWebhookReceiver, v2.ResourcesPluralWechatReceiver:
-		q.LabelSelector = q.LabelSelector + "type=global"
-	}
-}
-
-func appendManagedLabel(q *query.Query) {
-
-	if len(q.LabelSelector) > 0 {
-		q.LabelSelector = q.LabelSelector + ","
-	}
-	q.LabelSelector = q.LabelSelector + constants.NotificationManagedLabel + "=" + "true"
-}
-
-func isManagedByNotification(secret *corev1.Secret) bool {
-	return secret.Labels[constants.NotificationManagedLabel] == "true"
-}
-
-func getName(obj runtime.Object) (string, error) {
+func appendLabel(user string, obj runtime.Object) error {
 
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
-		return "", err
+		klog.Errorln(err)
+		return err
 	}
 
-	return accessor.GetName(), nil
+	labels := accessor.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	if user == "" {
+		if isConfig(obj) {
+			labels["type"] = "default"
+		} else {
+			labels["type"] = "global"
+		}
+	} else {
+		labels["type"] = "tenant"
+		labels["user"] = user
+	}
+
+	accessor.SetLabels(labels)
+	return nil
 }

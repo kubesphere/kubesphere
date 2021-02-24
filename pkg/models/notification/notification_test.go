@@ -31,7 +31,7 @@ import (
 	"testing"
 )
 
-func TestOperator_ListSecret(t *testing.T) {
+func TestOperator_List(t *testing.T) {
 	o := prepare()
 	tests := []struct {
 		result      *api.ListResult
@@ -46,7 +46,7 @@ func TestOperator_ListSecret(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result, err := o.ListSecret(&query.Query{
+		result, err := o.List("", "secrets", &query.Query{
 			SortBy:    query.FieldName,
 			Ascending: true,
 		})
@@ -64,7 +64,7 @@ func TestOperator_ListSecret(t *testing.T) {
 	}
 }
 
-func TestOperator_GetSecret(t *testing.T) {
+func TestOperator_Get(t *testing.T) {
 	o := prepare()
 	tests := []struct {
 		result      *corev1.Secret
@@ -83,7 +83,7 @@ func TestOperator_GetSecret(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result, err := o.GetSecret(test.name)
+		result, err := o.Get("", "secrets", test.name)
 
 		if err != nil {
 			if !reflect.DeepEqual(err, test.expectError) {
@@ -98,7 +98,7 @@ func TestOperator_GetSecret(t *testing.T) {
 	}
 }
 
-func TestOperator_CreateOrUpdateSecret(t *testing.T) {
+func TestOperator_Create(t *testing.T) {
 	o := prepare()
 	tests := []struct {
 		result      *corev1.Secret
@@ -110,12 +110,17 @@ func TestOperator_CreateOrUpdateSecret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: constants.NotificationSecretNamespace,
-					Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
+					Labels: map[string]string{
+						"type": "global",
+					},
 				},
 			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
+					Labels: map[string]string{
+						"type": "global",
+					},
 				},
 			},
 			expectError: nil,
@@ -123,7 +128,7 @@ func TestOperator_CreateOrUpdateSecret(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result, err := o.CreateOrUpdateSecret(test.secret)
+		result, err := o.Create("", "secrets", test.secret)
 
 		if err != nil {
 			if !reflect.DeepEqual(err, test.expectError) {
@@ -138,7 +143,7 @@ func TestOperator_CreateOrUpdateSecret(t *testing.T) {
 	}
 }
 
-func TestOperator_DeleteSecret(t *testing.T) {
+func TestOperator_Delete(t *testing.T) {
 	o := prepare()
 	tests := []struct {
 		name        string
@@ -151,7 +156,7 @@ func TestOperator_DeleteSecret(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		err := o.DeleteSecret(test.name)
+		err := o.Delete("", "secrets", test.name)
 		if err != nil {
 			if test.expectError != nil && test.expectError.Error() == err.Error() {
 				continue
@@ -169,7 +174,9 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo1",
 			Namespace: constants.NotificationSecretNamespace,
-			Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
+			Labels: map[string]string{
+				"type": "global",
+			},
 		},
 	}
 
@@ -177,7 +184,9 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo2",
 			Namespace: constants.NotificationSecretNamespace,
-			Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
+			Labels: map[string]string{
+				"type": "global",
+			},
 		},
 	}
 
@@ -185,7 +194,9 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo3",
 			Namespace: constants.NotificationSecretNamespace,
-			Labels:    map[string]string{constants.NotificationManagedLabel: "true"},
+			Labels: map[string]string{
+				"type": "global",
+			},
 		},
 	}
 

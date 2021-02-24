@@ -18,7 +18,6 @@ package v2
 
 import (
 	"github.com/emicklei/go-restful"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
@@ -42,36 +41,6 @@ func newNotificationHandler(
 	return &handler{
 		operator: notification.NewOperator(informers, k8sClient, ksClient),
 	}
-}
-
-func (h *handler) ListSecret(req *restful.Request, resp *restful.Response) {
-	q := query.ParseQueryParameter(req)
-	objs, err := h.operator.ListSecret(q)
-	handleResponse(req, resp, objs, err)
-}
-
-func (h *handler) GetSecret(req *restful.Request, resp *restful.Response) {
-
-	obj, err := h.operator.GetSecret(req.PathParameter("secret"))
-	handleResponse(req, resp, obj, err)
-}
-
-func (h *handler) CreateOrUpdateSecret(req *restful.Request, resp *restful.Response) {
-
-	var obj corev1.Secret
-	err := req.ReadEntity(&obj)
-	if err != nil {
-		api.HandleBadRequest(resp, req, err)
-		return
-	}
-
-	created, err := h.operator.CreateOrUpdateSecret(&obj)
-	handleResponse(req, resp, created, err)
-}
-
-func (h *handler) DeleteSecret(req *restful.Request, resp *restful.Response) {
-	err := h.operator.DeleteSecret(req.PathParameter("secret"))
-	handleResponse(req, resp, servererr.None, err)
 }
 
 func (h *handler) ListResource(req *restful.Request, resp *restful.Response) {
@@ -128,6 +97,7 @@ func (h *handler) UpdateResource(req *restful.Request, resp *restful.Response) {
 
 	user := req.PathParameter("user")
 	resource := req.PathParameter("resources")
+	name := req.PathParameter("name")
 
 	if !h.operator.IsKnownResource(resource) {
 		api.HandleBadRequest(resp, req, servererr.New("unknown resource type %s", resource))
@@ -140,7 +110,7 @@ func (h *handler) UpdateResource(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	updated, err := h.operator.Update(user, resource, obj)
+	updated, err := h.operator.Update(user, resource, name, obj)
 	handleResponse(req, resp, updated, err)
 }
 
