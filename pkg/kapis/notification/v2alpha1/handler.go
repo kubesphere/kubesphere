@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v2
+package v2alpha1
 
 import (
 	"github.com/emicklei/go-restful"
@@ -125,7 +125,7 @@ func (h *handler) DeleteResource(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	handleResponse(req, resp, h.operator.Delete(user, resource, name), servererr.None)
+	handleResponse(req, resp, servererr.None, h.operator.Delete(user, resource, name))
 }
 
 func handleResponse(req *restful.Request, resp *restful.Response, obj interface{}, err error) {

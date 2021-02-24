@@ -16,7 +16,7 @@
 
 */
 
-package v2
+package v2alpha1
 
 import (
 	"github.com/emicklei/go-restful"
@@ -38,7 +38,7 @@ const (
 	KeyOpenAPITags = openapi.KeyOpenAPITags
 )
 
-var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v2"}
+var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v2alpha1"}
 
 func AddToContainer(
 	container *restful.Container,

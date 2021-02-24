@@ -69,7 +69,7 @@ import (
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
 	notificationv1 "kubesphere.io/kubesphere/pkg/kapis/notification/v1"
-	notificationv2 "kubesphere.io/kubesphere/pkg/kapis/notification/v2"
+	notificationv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/notification/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
@@ -272,7 +272,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.KubernetesClient.Prometheus(), s.AlertingClient, s.Config.AlertingOptions))
 	urlruntime.Must(version.AddToContainer(s.container, s.KubernetesClient.Discovery()))
 	urlruntime.Must(kubeedgev1alpha1.AddToContainer(s.container, s.Config.KubeEdgeOptions.Endpoint))
-	urlruntime.Must(notificationv2.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
+	urlruntime.Must(notificationv2alpha1.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
 		s.KubernetesClient.KubeSphere()))
 }
 
