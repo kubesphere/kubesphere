@@ -535,13 +535,43 @@ func (c Converter) k8sRuleToCalico(rPeers []networkingv1.NetworkPolicyPeer, rPor
 		ports = []*networkingv1.NetworkPolicyPort{nil}
 	}
 
-	// Combine destinations with sources to generate rules.
-	// TODO: This currently creates a lot of rules by making every combination of from / ports
-	// into a rule.  We can combine these so that we don't need as many rules!
+	protocolPorts := map[string][]numorstring.Port{}
+
 	for _, port := range ports {
 		protocol, calicoPorts, err := c.k8sPortToCalicoFields(port)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse k8s port: %s", err)
+		}
+
+		// These are either both present or both nil
+		if protocol == nil && calicoPorts == nil {
+			// If nil, no ports were specified, or an empty port struct was provided, which we translate to allowing all.
+			// We want to use a nil protocol and a nil list of ports, which will allow any destination (for ingress).
+			// Given we're gonna allow all, we may as well break here and keep only this rule
+			protocolPorts = map[string][]numorstring.Port{"": nil}
+			break
+		}
+
+		pStr := protocol.String()
+		protocolPorts[pStr] = append(protocolPorts[pStr], calicoPorts...)
+	}
+
+	protocols := make([]string, 0, len(protocolPorts))
+	for k := range protocolPorts {
+		protocols = append(protocols, k)
+	}
+	// Ensure deterministic output
+	sort.Strings(protocols)
+
+	// Combine destinations with sources to generate rules. We generate one rule per protocol,
+	// with each rule containing all the allowed ports.
+	for _, protocolStr := range protocols {
+		calicoPorts := protocolPorts[protocolStr]
+
+		var protocol *numorstring.Protocol
+		if protocolStr != "" {
+			p := numorstring.ProtocolFromString(protocolStr)
+			protocol = &p
 		}
 
 		for _, peer := range peers {

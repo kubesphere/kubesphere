@@ -471,7 +471,7 @@ github.com/pquerna/cachecontrol/cacheobject
 # github.com/projectcalico/kube-controllers v3.8.8+incompatible => github.com/projectcalico/kube-controllers v3.8.8+incompatible
 github.com/projectcalico/kube-controllers/pkg/cache
 github.com/projectcalico/kube-controllers/pkg/converter
-# github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce => github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
+# github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056 => github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056
 github.com/projectcalico/libcalico-go/lib/apis/v1
 github.com/projectcalico/libcalico-go/lib/apis/v1/unversioned
 github.com/projectcalico/libcalico-go/lib/apis/v3
