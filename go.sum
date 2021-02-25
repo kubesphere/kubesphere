@@ -596,8 +596,8 @@ github.com/projectcalico/go-yaml-wrapper v0.0.0-20161127220527-598e54215bee h1:y
 github.com/projectcalico/go-yaml-wrapper v0.0.0-20161127220527-598e54215bee/go.mod h1:UgC0aTQ2KMDxlX3lU/stndk7DMUBJqzN40yFiILHgxc=
 github.com/projectcalico/kube-controllers v3.8.8+incompatible h1:ZbCg0wJ+gd7i81CB6vOASiUN//oR4ZBl+wEdy0Vk1uI=
 github.com/projectcalico/kube-controllers v3.8.8+incompatible/go.mod h1:ZEafKeKN5wiNARRw1LZP8l10uEfp04C7redU848MMZw=
-github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce h1:O/R67iwUe8TvZwgKbDB2cvF2/8L8PR4zVOcBtYEHD5Y=
-github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce/go.mod h1:z4tuFqrAg/423AMSaDamY5LgqeOZ5ETui6iOxDwJ/ag=
+github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056 h1:qs29Hus4cY8XlsmMLUsSAHT0metSTyqu2Tnpuwy5dkM=
+github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056/go.mod h1:tUt8rirmysRy7TR1S80XDriwBK1z2igwwX79lnUrSf4=
 github.com/prometheus-community/prom-label-proxy v0.2.0 h1:2cNKhNjbTmmEDvBTW/6WUsE2x7bh76rBMZVBn4ey6To=
 github.com/prometheus-community/prom-label-proxy v0.2.0/go.mod h1:XdjyZg7LCbCC5FADHtpgNp6kQ0W9beXVGfmcvndMj5Y=
 github.com/prometheus-operator/prometheus-operator v0.42.2-0.20200928114327-fbd01683839a h1:21yBrtc90hdEhJaL815CHNV0GW0DEdgxDOiL5OYoSHo=
@@ -812,7 +812,6 @@ gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 h1:uRGJdciOHaEIrze2W8Q3AKkep
 gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7/go.mod h1:dt/ZhP58zS4L8KSrWDmTeBkI65Dw0HsyUHuEVlX15mw=
 gopkg.in/warnings.v0 v0.1.2 h1:wFXVbFY8DY5/xOe1ECiWdKCzZlxgshcYVNkBHstARME=
 gopkg.in/warnings.v0 v0.1.2/go.mod h1:jksf8JmL6Qr/oQM2OXTHunEvvTAsrWBLb6OOjuVWRNI=
-gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0/go.mod h1:WDnlLJ4WF5VGsH/HVa3CI79GS0ol3YnhVnKP89i0kNg=
 gopkg.in/yaml.v2 v2.3.0 h1:clyUAQHOM3G0M3f5vQj7LuJrETvjVot3Z5el9nffUtU=
 gopkg.in/yaml.v2 v2.3.0/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c h1:dUUwHk2QECo/6vqA44rthZ8ie2QXMNeKRTHCNY2nXvo=
