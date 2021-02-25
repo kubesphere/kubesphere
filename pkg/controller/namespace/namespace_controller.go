@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"reflect"
+
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,7 +39,6 @@ import (
 	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -129,16 +130,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	// initialize subresource if created by kubesphere
-	if workspace := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; workspace != "" {
+	// Bind to workspace if the namespace created by kubesphere
+	_, hasWorkspaceLabel := namespace.Labels[tenantv1alpha1.WorkspaceLabel]
+	if hasWorkspaceLabel {
 		if err := r.bindWorkspace(rootCtx, logger, namespace); err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := r.initRoles(rootCtx, logger, namespace); err != nil {
 			return ctrl.Result{}, err
 		}
 	} else {
 		if err := r.unbindWorkspace(rootCtx, logger, namespace); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	// Initialize roles for devops/project namespaces if created by kubesphere
+	_, hasDevOpsProjectLabel := namespace.Labels[constants.DevOpsProjectLabelKey]
+	if hasDevOpsProjectLabel || hasWorkspaceLabel {
+		if err := r.initRoles(rootCtx, logger, namespace); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
