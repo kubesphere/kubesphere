@@ -423,6 +423,10 @@ func (c IPAMClient) GetUtilization(args GetUtilizationArgs) ([]*PoolUtilization,
 		return nil, err
 	}
 
+	if len(allPools) <= 0 {
+		return nil, fmt.Errorf("not found pool")
+	}
+
 	// Identify the ones we want and create a PoolUtilization for each of those.
 	wantAllPools := len(args.Pools) == 0
 	wantedPools := set.FromArray(args.Pools)
