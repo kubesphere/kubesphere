@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"kubesphere.io/kubesphere/pkg/apis"
-	v2 "kubesphere.io/kubesphere/pkg/apis/notification/v2"
+	v2alpha1 "kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
 	"path/filepath"
 	"testing"
 
@@ -53,7 +53,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = v2.AddToScheme(scheme.Scheme)
+	err = v2alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = apis.AddToScheme(scheme.Scheme)

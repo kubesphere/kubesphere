@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
-	v2 "kubesphere.io/kubesphere/pkg/apis/notification/v2"
+	v2alpha1 "kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -100,26 +100,26 @@ func (o *operator) Create(user, resource string, obj runtime.Object) (runtime.Ob
 	}
 
 	switch resource {
-	case v2.ResourcesPluralDingTalkConfig:
-		return o.ksClient.NotificationV2().DingTalkConfigs().Create(context.Background(), obj.(*v2.DingTalkConfig), v1.CreateOptions{})
-	case v2.ResourcesPluralDingTalkReceiver:
-		return o.ksClient.NotificationV2().DingTalkReceivers().Create(context.Background(), obj.(*v2.DingTalkReceiver), v1.CreateOptions{})
-	case v2.ResourcesPluralEmailConfig:
-		return o.ksClient.NotificationV2().EmailConfigs().Create(context.Background(), obj.(*v2.EmailConfig), v1.CreateOptions{})
-	case v2.ResourcesPluralEmailReceiver:
-		return o.ksClient.NotificationV2().EmailReceivers().Create(context.Background(), obj.(*v2.EmailReceiver), v1.CreateOptions{})
-	case v2.ResourcesPluralSlackConfig:
-		return o.ksClient.NotificationV2().SlackConfigs().Create(context.Background(), obj.(*v2.SlackConfig), v1.CreateOptions{})
-	case v2.ResourcesPluralSlackReceiver:
-		return o.ksClient.NotificationV2().SlackReceivers().Create(context.Background(), obj.(*v2.SlackReceiver), v1.CreateOptions{})
-	case v2.ResourcesPluralWebhookConfig:
-		return o.ksClient.NotificationV2().WebhookConfigs().Create(context.Background(), obj.(*v2.WebhookConfig), v1.CreateOptions{})
-	case v2.ResourcesPluralWebhookReceiver:
-		return o.ksClient.NotificationV2().WebhookReceivers().Create(context.Background(), obj.(*v2.WebhookReceiver), v1.CreateOptions{})
-	case v2.ResourcesPluralWechatConfig:
-		return o.ksClient.NotificationV2().WechatConfigs().Create(context.Background(), obj.(*v2.WechatConfig), v1.CreateOptions{})
-	case v2.ResourcesPluralWechatReceiver:
-		return o.ksClient.NotificationV2().WechatReceivers().Create(context.Background(), obj.(*v2.WechatReceiver), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralDingTalkConfig:
+		return o.ksClient.NotificationV2alpha1().DingTalkConfigs().Create(context.Background(), obj.(*v2alpha1.DingTalkConfig), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralDingTalkReceiver:
+		return o.ksClient.NotificationV2alpha1().DingTalkReceivers().Create(context.Background(), obj.(*v2alpha1.DingTalkReceiver), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralEmailConfig:
+		return o.ksClient.NotificationV2alpha1().EmailConfigs().Create(context.Background(), obj.(*v2alpha1.EmailConfig), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralEmailReceiver:
+		return o.ksClient.NotificationV2alpha1().EmailReceivers().Create(context.Background(), obj.(*v2alpha1.EmailReceiver), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralSlackConfig:
+		return o.ksClient.NotificationV2alpha1().SlackConfigs().Create(context.Background(), obj.(*v2alpha1.SlackConfig), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralSlackReceiver:
+		return o.ksClient.NotificationV2alpha1().SlackReceivers().Create(context.Background(), obj.(*v2alpha1.SlackReceiver), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralWebhookConfig:
+		return o.ksClient.NotificationV2alpha1().WebhookConfigs().Create(context.Background(), obj.(*v2alpha1.WebhookConfig), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralWebhookReceiver:
+		return o.ksClient.NotificationV2alpha1().WebhookReceivers().Create(context.Background(), obj.(*v2alpha1.WebhookReceiver), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralWechatConfig:
+		return o.ksClient.NotificationV2alpha1().WechatConfigs().Create(context.Background(), obj.(*v2alpha1.WechatConfig), v1.CreateOptions{})
+	case v2alpha1.ResourcesPluralWechatReceiver:
+		return o.ksClient.NotificationV2alpha1().WechatReceivers().Create(context.Background(), obj.(*v2alpha1.WechatReceiver), v1.CreateOptions{})
 	case "secrets":
 		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Create(context.Background(), obj.(*corev1.Secret), v1.CreateOptions{})
 	default:
@@ -140,26 +140,26 @@ func (o *operator) Delete(user, resource, name string) error {
 	}
 
 	switch resource {
-	case v2.ResourcesPluralDingTalkConfig:
-		return o.ksClient.NotificationV2().DingTalkConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralDingTalkReceiver:
-		return o.ksClient.NotificationV2().DingTalkReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralEmailConfig:
-		return o.ksClient.NotificationV2().EmailConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralEmailReceiver:
-		return o.ksClient.NotificationV2().EmailReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralSlackConfig:
-		return o.ksClient.NotificationV2().SlackConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralSlackReceiver:
-		return o.ksClient.NotificationV2().SlackReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralWebhookConfig:
-		return o.ksClient.NotificationV2().WebhookConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralWebhookReceiver:
-		return o.ksClient.NotificationV2().WebhookReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralWechatConfig:
-		return o.ksClient.NotificationV2().WechatConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
-	case v2.ResourcesPluralWechatReceiver:
-		return o.ksClient.NotificationV2().WechatReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralDingTalkConfig:
+		return o.ksClient.NotificationV2alpha1().DingTalkConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralDingTalkReceiver:
+		return o.ksClient.NotificationV2alpha1().DingTalkReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralEmailConfig:
+		return o.ksClient.NotificationV2alpha1().EmailConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralEmailReceiver:
+		return o.ksClient.NotificationV2alpha1().EmailReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralSlackConfig:
+		return o.ksClient.NotificationV2alpha1().SlackConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralSlackReceiver:
+		return o.ksClient.NotificationV2alpha1().SlackReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralWebhookConfig:
+		return o.ksClient.NotificationV2alpha1().WebhookConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralWebhookReceiver:
+		return o.ksClient.NotificationV2alpha1().WebhookReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralWechatConfig:
+		return o.ksClient.NotificationV2alpha1().WechatConfigs().Delete(context.Background(), name, v1.DeleteOptions{})
+	case v2alpha1.ResourcesPluralWechatReceiver:
+		return o.ksClient.NotificationV2alpha1().WechatReceivers().Delete(context.Background(), name, v1.DeleteOptions{})
 	case "secrets":
 		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Delete(context.Background(), name, v1.DeleteOptions{})
 	default:
@@ -184,26 +184,26 @@ func (o *operator) Update(user, resource, name string, obj runtime.Object) (runt
 	}
 
 	switch resource {
-	case v2.ResourcesPluralDingTalkConfig:
-		return o.ksClient.NotificationV2().DingTalkConfigs().Update(context.Background(), obj.(*v2.DingTalkConfig), v1.UpdateOptions{})
-	case v2.ResourcesPluralDingTalkReceiver:
-		return o.ksClient.NotificationV2().DingTalkReceivers().Update(context.Background(), obj.(*v2.DingTalkReceiver), v1.UpdateOptions{})
-	case v2.ResourcesPluralEmailConfig:
-		return o.ksClient.NotificationV2().EmailConfigs().Update(context.Background(), obj.(*v2.EmailConfig), v1.UpdateOptions{})
-	case v2.ResourcesPluralEmailReceiver:
-		return o.ksClient.NotificationV2().EmailReceivers().Update(context.Background(), obj.(*v2.EmailReceiver), v1.UpdateOptions{})
-	case v2.ResourcesPluralSlackConfig:
-		return o.ksClient.NotificationV2().SlackConfigs().Update(context.Background(), obj.(*v2.SlackConfig), v1.UpdateOptions{})
-	case v2.ResourcesPluralSlackReceiver:
-		return o.ksClient.NotificationV2().SlackReceivers().Update(context.Background(), obj.(*v2.SlackReceiver), v1.UpdateOptions{})
-	case v2.ResourcesPluralWebhookConfig:
-		return o.ksClient.NotificationV2().WebhookConfigs().Update(context.Background(), obj.(*v2.WebhookConfig), v1.UpdateOptions{})
-	case v2.ResourcesPluralWebhookReceiver:
-		return o.ksClient.NotificationV2().WebhookReceivers().Update(context.Background(), obj.(*v2.WebhookReceiver), v1.UpdateOptions{})
-	case v2.ResourcesPluralWechatConfig:
-		return o.ksClient.NotificationV2().WechatConfigs().Update(context.Background(), obj.(*v2.WechatConfig), v1.UpdateOptions{})
-	case v2.ResourcesPluralWechatReceiver:
-		return o.ksClient.NotificationV2().WechatReceivers().Update(context.Background(), obj.(*v2.WechatReceiver), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralDingTalkConfig:
+		return o.ksClient.NotificationV2alpha1().DingTalkConfigs().Update(context.Background(), obj.(*v2alpha1.DingTalkConfig), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralDingTalkReceiver:
+		return o.ksClient.NotificationV2alpha1().DingTalkReceivers().Update(context.Background(), obj.(*v2alpha1.DingTalkReceiver), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralEmailConfig:
+		return o.ksClient.NotificationV2alpha1().EmailConfigs().Update(context.Background(), obj.(*v2alpha1.EmailConfig), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralEmailReceiver:
+		return o.ksClient.NotificationV2alpha1().EmailReceivers().Update(context.Background(), obj.(*v2alpha1.EmailReceiver), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralSlackConfig:
+		return o.ksClient.NotificationV2alpha1().SlackConfigs().Update(context.Background(), obj.(*v2alpha1.SlackConfig), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralSlackReceiver:
+		return o.ksClient.NotificationV2alpha1().SlackReceivers().Update(context.Background(), obj.(*v2alpha1.SlackReceiver), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralWebhookConfig:
+		return o.ksClient.NotificationV2alpha1().WebhookConfigs().Update(context.Background(), obj.(*v2alpha1.WebhookConfig), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralWebhookReceiver:
+		return o.ksClient.NotificationV2alpha1().WebhookReceivers().Update(context.Background(), obj.(*v2alpha1.WebhookReceiver), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralWechatConfig:
+		return o.ksClient.NotificationV2alpha1().WechatConfigs().Update(context.Background(), obj.(*v2alpha1.WechatConfig), v1.UpdateOptions{})
+	case v2alpha1.ResourcesPluralWechatReceiver:
+		return o.ksClient.NotificationV2alpha1().WechatReceivers().Update(context.Background(), obj.(*v2alpha1.WechatReceiver), v1.UpdateOptions{})
 	case "secrets":
 		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Update(context.Background(), obj.(*corev1.Secret), v1.UpdateOptions{})
 	default:
@@ -214,26 +214,26 @@ func (o *operator) Update(user, resource, name string, obj runtime.Object) (runt
 func (o *operator) GetObject(resource string) runtime.Object {
 
 	switch resource {
-	case v2.ResourcesPluralDingTalkConfig:
-		return &v2.DingTalkConfig{}
-	case v2.ResourcesPluralDingTalkReceiver:
-		return &v2.DingTalkReceiver{}
-	case v2.ResourcesPluralEmailConfig:
-		return &v2.EmailConfig{}
-	case v2.ResourcesPluralEmailReceiver:
-		return &v2.EmailReceiver{}
-	case v2.ResourcesPluralSlackConfig:
-		return &v2.SlackConfig{}
-	case v2.ResourcesPluralSlackReceiver:
-		return &v2.SlackReceiver{}
-	case v2.ResourcesPluralWebhookConfig:
-		return &v2.WebhookConfig{}
-	case v2.ResourcesPluralWebhookReceiver:
-		return &v2.WebhookReceiver{}
-	case v2.ResourcesPluralWechatConfig:
-		return &v2.WechatConfig{}
-	case v2.ResourcesPluralWechatReceiver:
-		return &v2.WechatReceiver{}
+	case v2alpha1.ResourcesPluralDingTalkConfig:
+		return &v2alpha1.DingTalkConfig{}
+	case v2alpha1.ResourcesPluralDingTalkReceiver:
+		return &v2alpha1.DingTalkReceiver{}
+	case v2alpha1.ResourcesPluralEmailConfig:
+		return &v2alpha1.EmailConfig{}
+	case v2alpha1.ResourcesPluralEmailReceiver:
+		return &v2alpha1.EmailReceiver{}
+	case v2alpha1.ResourcesPluralSlackConfig:
+		return &v2alpha1.SlackConfig{}
+	case v2alpha1.ResourcesPluralSlackReceiver:
+		return &v2alpha1.SlackReceiver{}
+	case v2alpha1.ResourcesPluralWebhookConfig:
+		return &v2alpha1.WebhookConfig{}
+	case v2alpha1.ResourcesPluralWebhookReceiver:
+		return &v2alpha1.WebhookReceiver{}
+	case v2alpha1.ResourcesPluralWechatConfig:
+		return &v2alpha1.WechatConfig{}
+	case v2alpha1.ResourcesPluralWechatReceiver:
+		return &v2alpha1.WechatReceiver{}
 	case "secrets":
 		return &corev1.Secret{}
 	default:
@@ -254,13 +254,13 @@ func (o *operator) IsKnownResource(resource string) bool {
 func authorizer(user string, obj runtime.Object) error {
 	// If the user is not nil, it must equal to the tenant specified in labels of the object.
 	if user != "" && !isOwner(user, obj) {
-		return errors.NewForbidden(v2.Resource(obj.GetObjectKind().GroupVersionKind().GroupKind().Kind), "",
+		return errors.NewForbidden(v2alpha1.Resource(obj.GetObjectKind().GroupVersionKind().GroupKind().Kind), "",
 			fmt.Errorf("user '%s' is not the owner of object", user))
 	}
 
 	// If the user is nil, the object must be a global object.
 	if user == "" && !isGlobal(obj) {
-		return errors.NewForbidden(v2.Resource(obj.GetObjectKind().GroupVersionKind().GroupKind().Kind), "",
+		return errors.NewForbidden(v2alpha1.Resource(obj.GetObjectKind().GroupVersionKind().GroupKind().Kind), "",
 			fmt.Errorf("object is not a global object"))
 	}
 
@@ -281,7 +281,7 @@ func isOwner(user string, obj interface{}) bool {
 
 func isConfig(obj runtime.Object) bool {
 	switch obj.(type) {
-	case *v2.DingTalkConfig, *v2.EmailConfig, *v2.SlackConfig, *v2.WebhookConfig, *v2.WechatConfig:
+	case *v2alpha1.DingTalkConfig, *v2alpha1.EmailConfig, *v2alpha1.SlackConfig, *v2alpha1.WebhookConfig, *v2alpha1.WechatConfig:
 		return true
 	default:
 		return false

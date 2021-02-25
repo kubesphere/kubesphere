@@ -18,7 +18,7 @@ spec:
     singular: wechatreceiver
   scope: Cluster
   versions:
-  - name: v2
+  - name: v2alpha1
     schema:
       openAPIV3Schema:
         description: WechatReceiver is the Schema for the wechatreceivers API

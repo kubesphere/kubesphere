@@ -18,7 +18,7 @@ spec:
     singular: webhookconfig
   scope: Cluster
   versions:
-  - name: v2
+  - name: v2alpha1
     schema:
       openAPIV3Schema:
         description: WebhookConfig is the Schema for the webhookconfigs API

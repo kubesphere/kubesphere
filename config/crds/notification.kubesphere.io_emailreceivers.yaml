@@ -18,7 +18,7 @@ spec:
     singular: emailreceiver
   scope: Cluster
   versions:
-  - name: v2
+  - name: v2alpha1
     schema:
       openAPIV3Schema:
         description: EmailReceiver is the Schema for the emailreceivers API

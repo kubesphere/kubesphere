@@ -33,7 +33,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2"
+	"kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"reflect"
@@ -95,16 +95,16 @@ func (c *Controller) setEventHandlers() error {
 	if c.reconciledObjs != nil && len(c.reconciledObjs) > 0 {
 		c.reconciledObjs = c.reconciledObjs[:0]
 	}
-	c.reconciledObjs = append(c.reconciledObjs, &v2.DingTalkConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.DingTalkReceiver{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.EmailConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.EmailReceiver{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.SlackConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.SlackReceiver{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.WebhookConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.WebhookReceiver{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.WechatConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2.WechatReceiver{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.DingTalkConfig{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.DingTalkReceiver{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.EmailConfig{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.EmailReceiver{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.SlackConfig{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.SlackReceiver{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.WebhookConfig{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.WebhookReceiver{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.WechatConfig{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.WechatReceiver{})
 	c.reconciledObjs = append(c.reconciledObjs, &corev1.Secret{})
 
 	if c.informerSynced != nil && len(c.informerSynced) > 0 {
@@ -269,26 +269,26 @@ func (c *Controller) multiClusterSync(ctx context.Context, obj runtime.Object) e
 	}
 
 	switch obj.(type) {
-	case *v2.DingTalkConfig:
-		return c.syncFederatedDingTalkConfig(obj.(*v2.DingTalkConfig))
-	case *v2.DingTalkReceiver:
-		return c.syncFederatedDingTalkReceiver(obj.(*v2.DingTalkReceiver))
-	case *v2.EmailConfig:
-		return c.syncFederatedEmailConfig(obj.(*v2.EmailConfig))
-	case *v2.EmailReceiver:
-		return c.syncFederatedEmailReceiver(obj.(*v2.EmailReceiver))
-	case *v2.SlackConfig:
-		return c.syncFederatedSlackConfig(obj.(*v2.SlackConfig))
-	case *v2.SlackReceiver:
-		return c.syncFederatedSlackReceiver(obj.(*v2.SlackReceiver))
-	case *v2.WebhookConfig:
-		return c.syncFederatedWebhookConfig(obj.(*v2.WebhookConfig))
-	case *v2.WebhookReceiver:
-		return c.syncFederatedWebhookReceiver(obj.(*v2.WebhookReceiver))
-	case *v2.WechatConfig:
-		return c.syncFederatedWechatConfig(obj.(*v2.WechatConfig))
-	case *v2.WechatReceiver:
-		return c.syncFederatedWechatReceiver(obj.(*v2.WechatReceiver))
+	case *v2alpha1.DingTalkConfig:
+		return c.syncFederatedDingTalkConfig(obj.(*v2alpha1.DingTalkConfig))
+	case *v2alpha1.DingTalkReceiver:
+		return c.syncFederatedDingTalkReceiver(obj.(*v2alpha1.DingTalkReceiver))
+	case *v2alpha1.EmailConfig:
+		return c.syncFederatedEmailConfig(obj.(*v2alpha1.EmailConfig))
+	case *v2alpha1.EmailReceiver:
+		return c.syncFederatedEmailReceiver(obj.(*v2alpha1.EmailReceiver))
+	case *v2alpha1.SlackConfig:
+		return c.syncFederatedSlackConfig(obj.(*v2alpha1.SlackConfig))
+	case *v2alpha1.SlackReceiver:
+		return c.syncFederatedSlackReceiver(obj.(*v2alpha1.SlackReceiver))
+	case *v2alpha1.WebhookConfig:
+		return c.syncFederatedWebhookConfig(obj.(*v2alpha1.WebhookConfig))
+	case *v2alpha1.WebhookReceiver:
+		return c.syncFederatedWebhookReceiver(obj.(*v2alpha1.WebhookReceiver))
+	case *v2alpha1.WechatConfig:
+		return c.syncFederatedWechatConfig(obj.(*v2alpha1.WechatConfig))
+	case *v2alpha1.WechatReceiver:
+		return c.syncFederatedWechatReceiver(obj.(*v2alpha1.WechatReceiver))
 	case *corev1.Secret:
 		return c.syncFederatedSecret(obj.(*corev1.Secret))
 	default:
@@ -297,7 +297,7 @@ func (c *Controller) multiClusterSync(ctx context.Context, obj runtime.Object) e
 	}
 }
 
-func (c *Controller) syncFederatedDingTalkConfig(obj *v2.DingTalkConfig) error {
+func (c *Controller) syncFederatedDingTalkConfig(obj *v2alpha1.DingTalkConfig) error {
 
 	fedObj := &v1beta1.FederatedDingTalkConfig{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -353,7 +353,7 @@ func (c *Controller) syncFederatedDingTalkConfig(obj *v2.DingTalkConfig) error {
 	return nil
 }
 
-func (c *Controller) syncFederatedDingTalkReceiver(obj *v2.DingTalkReceiver) error {
+func (c *Controller) syncFederatedDingTalkReceiver(obj *v2alpha1.DingTalkReceiver) error {
 
 	fedObj := &v1beta1.FederatedDingTalkReceiver{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -409,7 +409,7 @@ func (c *Controller) syncFederatedDingTalkReceiver(obj *v2.DingTalkReceiver) err
 	return nil
 }
 
-func (c *Controller) syncFederatedEmailConfig(obj *v2.EmailConfig) error {
+func (c *Controller) syncFederatedEmailConfig(obj *v2alpha1.EmailConfig) error {
 
 	fedObj := &v1beta1.FederatedEmailConfig{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -465,7 +465,7 @@ func (c *Controller) syncFederatedEmailConfig(obj *v2.EmailConfig) error {
 	return nil
 }
 
-func (c *Controller) syncFederatedEmailReceiver(obj *v2.EmailReceiver) error {
+func (c *Controller) syncFederatedEmailReceiver(obj *v2alpha1.EmailReceiver) error {
 
 	fedObj := &v1beta1.FederatedEmailReceiver{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -521,7 +521,7 @@ func (c *Controller) syncFederatedEmailReceiver(obj *v2.EmailReceiver) error {
 	return nil
 }
 
-func (c *Controller) syncFederatedSlackConfig(obj *v2.SlackConfig) error {
+func (c *Controller) syncFederatedSlackConfig(obj *v2alpha1.SlackConfig) error {
 
 	fedObj := &v1beta1.FederatedSlackConfig{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -577,7 +577,7 @@ func (c *Controller) syncFederatedSlackConfig(obj *v2.SlackConfig) error {
 	return nil
 }
 
-func (c *Controller) syncFederatedSlackReceiver(obj *v2.SlackReceiver) error {
+func (c *Controller) syncFederatedSlackReceiver(obj *v2alpha1.SlackReceiver) error {
 
 	fedObj := &v1beta1.FederatedSlackReceiver{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -633,7 +633,7 @@ func (c *Controller) syncFederatedSlackReceiver(obj *v2.SlackReceiver) error {
 	return nil
 }
 
-func (c *Controller) syncFederatedWebhookConfig(obj *v2.WebhookConfig) error {
+func (c *Controller) syncFederatedWebhookConfig(obj *v2alpha1.WebhookConfig) error {
 
 	fedObj := &v1beta1.FederatedWebhookConfig{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -689,7 +689,7 @@ func (c *Controller) syncFederatedWebhookConfig(obj *v2.WebhookConfig) error {
 	return nil
 }
 
-func (c *Controller) syncFederatedWebhookReceiver(obj *v2.WebhookReceiver) error {
+func (c *Controller) syncFederatedWebhookReceiver(obj *v2alpha1.WebhookReceiver) error {
 
 	fedObj := &v1beta1.FederatedWebhookReceiver{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -745,7 +745,7 @@ func (c *Controller) syncFederatedWebhookReceiver(obj *v2.WebhookReceiver) error
 	return nil
 }
 
-func (c *Controller) syncFederatedWechatConfig(obj *v2.WechatConfig) error {
+func (c *Controller) syncFederatedWechatConfig(obj *v2alpha1.WechatConfig) error {
 
 	fedObj := &v1beta1.FederatedWechatConfig{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
@@ -801,7 +801,7 @@ func (c *Controller) syncFederatedWechatConfig(obj *v2.WechatConfig) error {
 	return nil
 }
 
-func (c *Controller) syncFederatedWechatReceiver(obj *v2.WechatReceiver) error {
+func (c *Controller) syncFederatedWechatReceiver(obj *v2alpha1.WechatReceiver) error {
 
 	fedObj := &v1beta1.FederatedWechatReceiver{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)

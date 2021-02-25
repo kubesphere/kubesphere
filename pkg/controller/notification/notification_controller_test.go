@@ -23,7 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v2 "kubesphere.io/kubesphere/pkg/apis/notification/v2"
+	v2alpha1 "kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -126,7 +126,7 @@ var (
 		const timeout = time.Second * 30
 		const interval = time.Second * 1
 
-		obj := &v2.DingTalkConfig{
+		obj := &v2alpha1.DingTalkConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: constants.NotificationSecretNamespace,

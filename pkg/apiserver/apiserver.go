@@ -37,7 +37,7 @@ import (
 	"k8s.io/klog"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	v2 "kubesphere.io/kubesphere/pkg/apis/notification/v2"
+	notificationcrd "kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
@@ -314,16 +314,16 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			tenantv1alpha2.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			resourcev1alpha3.Resource(clusterv1alpha1.ResourcesPluralCluster),
-			v2.Resource(v2.ResourcesPluralDingTalkConfig),
-			v2.Resource(v2.ResourcesPluralDingTalkReceiver),
-			v2.Resource(v2.ResourcesPluralEmailReceiver),
-			v2.Resource(v2.ResourcesPluralEmailConfig),
-			v2.Resource(v2.ResourcesPluralSlackConfig),
-			v2.Resource(v2.ResourcesPluralSlackReceiver),
-			v2.Resource(v2.ResourcesPluralWebhookConfig),
-			v2.Resource(v2.ResourcesPluralWebhookReceiver),
-			v2.Resource(v2.ResourcesPluralWechatConfig),
-			v2.Resource(v2.ResourcesPluralWechatReceiver),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralDingTalkConfig),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralDingTalkReceiver),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralEmailReceiver),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralEmailConfig),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralSlackConfig),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralSlackReceiver),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralWebhookConfig),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralWebhookReceiver),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralWechatConfig),
+			notificationcrd.Resource(notificationcrd.ResourcesPluralWechatReceiver),
 		},
 	}
 
@@ -457,16 +457,16 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
 		{Group: "network.kubesphere.io", Version: "v1alpha1", Resource: "ippools"},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralDingTalkConfig},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralDingTalkReceiver},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralEmailConfig},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralEmailReceiver},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralSlackConfig},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralSlackReceiver},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralWebhookConfig},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralWebhookReceiver},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralWechatConfig},
-		{Group: "notification.kubesphere.io", Version: "v2", Resource: v2.ResourcesPluralWechatReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralDingTalkConfig},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralDingTalkReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralEmailConfig},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralEmailReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralSlackConfig},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralSlackReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralWebhookConfig},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralWebhookReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralWechatConfig},
+		{Group: "notification.kubesphere.io", Version: "v2alpha1", Resource: notificationcrd.ResourcesPluralWechatReceiver},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{

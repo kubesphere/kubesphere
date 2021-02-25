@@ -18,7 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2"
+	"kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
 )
 
 const (
@@ -50,7 +50,7 @@ type FederatedDingTalkConfigSpec struct {
 type DingTalkConfigTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              v2.DingTalkConfigSpec `json:"spec,omitempty"`
+	Spec              v2alpha1.DingTalkConfigSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	"kubesphere.io/kubesphere/pkg/api"
-	v2 "kubesphere.io/kubesphere/pkg/apis/notification/v2"
+	"kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
@@ -47,43 +47,43 @@ func TestListObjects(t *testing.T) {
 	}{
 		{
 			"test name filter",
-			v2.ResourcesPluralDingTalkConfig,
+			v2alpha1.ResourcesPluralDingTalkConfig,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralDingTalkReceiver,
+			v2alpha1.ResourcesPluralDingTalkReceiver,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralEmailConfig,
+			v2alpha1.ResourcesPluralEmailConfig,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralEmailReceiver,
+			v2alpha1.ResourcesPluralEmailReceiver,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralSlackConfig,
+			v2alpha1.ResourcesPluralSlackConfig,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralSlackReceiver,
+			v2alpha1.ResourcesPluralSlackReceiver,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralWebhookConfig,
+			v2alpha1.ResourcesPluralWebhookConfig,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralWebhookReceiver,
+			v2alpha1.ResourcesPluralWebhookReceiver,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralWechatConfig,
+			v2alpha1.ResourcesPluralWechatConfig,
 		},
 		{
 			"test name filter",
-			v2.ResourcesPluralWechatReceiver,
+			v2alpha1.ResourcesPluralWechatReceiver,
 		},
 	}
 
@@ -128,48 +128,48 @@ func prepare(key string) (v1alpha3.Interface, []interface{}, error) {
 	var indexer cache.Indexer
 	var getter func(informer ksinformers.SharedInformerFactory) v1alpha3.Interface
 	switch key {
-	case v2.ResourcesPluralDingTalkConfig:
-		indexer = informer.Notification().V2().DingTalkConfigs().Informer().GetIndexer()
+	case v2alpha1.ResourcesPluralDingTalkConfig:
+		indexer = informer.Notification().V2alpha1().DingTalkConfigs().Informer().GetIndexer()
 		getter = NewDingTalkConfigGetter
-		obj = &v2.DingTalkConfig{}
-	case v2.ResourcesPluralDingTalkReceiver:
-		indexer = informer.Notification().V2().DingTalkReceivers().Informer().GetIndexer()
+		obj = &v2alpha1.DingTalkConfig{}
+	case v2alpha1.ResourcesPluralDingTalkReceiver:
+		indexer = informer.Notification().V2alpha1().DingTalkReceivers().Informer().GetIndexer()
 		getter = NewDingTalkReceiverGetter
-		obj = &v2.DingTalkReceiver{}
-	case v2.ResourcesPluralEmailConfig:
-		indexer = informer.Notification().V2().EmailConfigs().Informer().GetIndexer()
+		obj = &v2alpha1.DingTalkReceiver{}
+	case v2alpha1.ResourcesPluralEmailConfig:
+		indexer = informer.Notification().V2alpha1().EmailConfigs().Informer().GetIndexer()
 		getter = NewEmailConfigGetter
-		obj = &v2.EmailConfig{}
-	case v2.ResourcesPluralEmailReceiver:
-		indexer = informer.Notification().V2().EmailReceivers().Informer().GetIndexer()
+		obj = &v2alpha1.EmailConfig{}
+	case v2alpha1.ResourcesPluralEmailReceiver:
+		indexer = informer.Notification().V2alpha1().EmailReceivers().Informer().GetIndexer()
 		getter = NewEmailReceiverGetter
-		obj = &v2.EmailReceiver{}
-	case v2.ResourcesPluralSlackConfig:
-		indexer = informer.Notification().V2().SlackConfigs().Informer().GetIndexer()
+		obj = &v2alpha1.EmailReceiver{}
+	case v2alpha1.ResourcesPluralSlackConfig:
+		indexer = informer.Notification().V2alpha1().SlackConfigs().Informer().GetIndexer()
 		getter = NewSlackConfigGetter
-		obj = &v2.SlackConfig{}
-	case v2.ResourcesPluralSlackReceiver:
-		indexer = informer.Notification().V2().SlackReceivers().Informer().GetIndexer()
+		obj = &v2alpha1.SlackConfig{}
+	case v2alpha1.ResourcesPluralSlackReceiver:
+		indexer = informer.Notification().V2alpha1().SlackReceivers().Informer().GetIndexer()
 		getter = NewSlackReceiverGetter
-		obj = &v2.SlackReceiver{}
-	case v2.ResourcesPluralWebhookConfig:
-		indexer = informer.Notification().V2().WebhookConfigs().Informer().GetIndexer()
+		obj = &v2alpha1.SlackReceiver{}
+	case v2alpha1.ResourcesPluralWebhookConfig:
+		indexer = informer.Notification().V2alpha1().WebhookConfigs().Informer().GetIndexer()
 		getter = NewWebhookConfigGetter
-		obj = &v2.WebhookConfig{}
-	case v2.ResourcesPluralWebhookReceiver:
-		indexer = informer.Notification().V2().WebhookReceivers().Informer().GetIndexer()
+		obj = &v2alpha1.WebhookConfig{}
+	case v2alpha1.ResourcesPluralWebhookReceiver:
+		indexer = informer.Notification().V2alpha1().WebhookReceivers().Informer().GetIndexer()
 		getter = NewWebhookReceiverGetter
-		obj = &v2.WebhookReceiver{}
-	case v2.ResourcesPluralWechatConfig:
-		indexer = informer.Notification().V2().WechatConfigs().Informer().GetIndexer()
+		obj = &v2alpha1.WebhookReceiver{}
+	case v2alpha1.ResourcesPluralWechatConfig:
+		indexer = informer.Notification().V2alpha1().WechatConfigs().Informer().GetIndexer()
 		getter = NewWechatConfigGetter
-		obj = &v2.WechatConfig{}
-	case v2.ResourcesPluralWechatReceiver:
-		indexer = informer.Notification().V2().WechatReceivers().Informer().GetIndexer()
+		obj = &v2alpha1.WechatConfig{}
+	case v2alpha1.ResourcesPluralWechatReceiver:
+		indexer = informer.Notification().V2alpha1().WechatReceivers().Informer().GetIndexer()
 		getter = NewWechatReceiverGetter
-		obj = &v2.WechatReceiver{}
+		obj = &v2alpha1.WechatReceiver{}
 	default:
-		return nil, nil, errors.New("unkonwed type %s", key)
+		return nil, nil, errors.New("unowned type %s", key)
 	}
 
 	num := rand.Intn(LengthMax)

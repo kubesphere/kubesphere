@@ -34,11 +34,11 @@ func NewDingTalkConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha
 }
 
 func (g *dingtalkConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().DingTalkConfigs().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().DingTalkConfigs().Lister().Get(name)
 }
 
 func (g *dingtalkConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().DingTalkConfigs().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().DingTalkConfigs().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +59,11 @@ func NewDingTalkReceiverGetter(informer ksinformers.SharedInformerFactory) v1alp
 }
 
 func (g *dingtalkReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().DingTalkReceivers().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().DingTalkReceivers().Lister().Get(name)
 }
 
 func (g *dingtalkReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().DingTalkReceivers().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().DingTalkReceivers().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +84,11 @@ func NewEmailConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.I
 }
 
 func (g *emailConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().EmailConfigs().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().EmailConfigs().Lister().Get(name)
 }
 
 func (g *emailConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().EmailConfigs().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().EmailConfigs().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -109,11 +109,11 @@ func NewEmailReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha3
 }
 
 func (g *emailReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().EmailReceivers().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().EmailReceivers().Lister().Get(name)
 }
 
 func (g *emailReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().EmailReceivers().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().EmailReceivers().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -134,11 +134,11 @@ func NewSlackConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.I
 }
 
 func (g *slackConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().SlackConfigs().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().SlackConfigs().Lister().Get(name)
 }
 
 func (g *slackConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().SlackConfigs().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().SlackConfigs().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -159,11 +159,11 @@ func NewSlackReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha3
 }
 
 func (g *slackReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().SlackReceivers().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().SlackReceivers().Lister().Get(name)
 }
 
 func (g *slackReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().SlackReceivers().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().SlackReceivers().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -184,11 +184,11 @@ func NewWebhookConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3
 }
 
 func (g *webhookConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().WebhookConfigs().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().WebhookConfigs().Lister().Get(name)
 }
 
 func (g *webhookConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().WebhookConfigs().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().WebhookConfigs().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -209,11 +209,11 @@ func NewWebhookReceiverGetter(informer ksinformers.SharedInformerFactory) v1alph
 }
 
 func (g *webhookReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().WebhookReceivers().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().WebhookReceivers().Lister().Get(name)
 }
 
 func (g *webhookReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().WebhookReceivers().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().WebhookReceivers().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -234,11 +234,11 @@ func NewWechatConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.
 }
 
 func (g *wechatConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().WechatConfigs().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().WechatConfigs().Lister().Get(name)
 }
 
 func (g *wechatConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().WechatConfigs().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().WechatConfigs().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -259,11 +259,11 @@ func NewWechatReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha
 }
 
 func (g *wechatReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2().WechatReceivers().Lister().Get(name)
+	return g.ksInformer.Notification().V2alpha1().WechatReceivers().Lister().Get(name)
 }
 
 func (g *wechatReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2().WechatReceivers().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2alpha1().WechatReceivers().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}

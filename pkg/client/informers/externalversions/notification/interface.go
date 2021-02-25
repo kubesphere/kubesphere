@@ -20,13 +20,13 @@ package notification
 
 import (
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
-	v2 "kubesphere.io/kubesphere/pkg/client/informers/externalversions/notification/v2"
+	v2alpha1 "kubesphere.io/kubesphere/pkg/client/informers/externalversions/notification/v2alpha1"
 )
 
 // Interface provides access to each of this group's versions.
 type Interface interface {
-	// V2 provides access to shared informers for resources in V2.
-	V2() v2.Interface
+	// V2alpha1 provides access to shared informers for resources in V2alpha1.
+	V2alpha1() v2alpha1.Interface
 }
 
 type group struct {
@@ -40,7 +40,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &group{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// V2 returns a new v2.Interface.
-func (g *group) V2() v2.Interface {
-	return v2.New(g.factory, g.namespace, g.tweakListOptions)
+// V2alpha1 returns a new v2alpha1.Interface.
+func (g *group) V2alpha1() v2alpha1.Interface {
+	return v2alpha1.New(g.factory, g.namespace, g.tweakListOptions)
 }
