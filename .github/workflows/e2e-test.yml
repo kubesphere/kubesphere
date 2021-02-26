@@ -1,0 +1,37 @@
+name: e2e
+
+on:
+  schedule:
+    # run e2e test every 4 hours
+    - cron: 0 */4 * * *
+  workflow_dispatch:
+jobs:
+  build:
+    name: Test
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+    steps:
+
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Downloading go dependencies
+        run: go mod vendor
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.0.0-rc.1
+        with:
+          config: .github/workflows/kind/kind.yaml
+
+      - name: Deploy KubeSphere to Kind
+        run: KIND_CLUSTER_NAME=chart-testing hack/deploy-kubesphere.sh
+
+      - name: Run e2e testing
+        run: go test ./test/e2e
