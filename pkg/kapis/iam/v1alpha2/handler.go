@@ -544,7 +544,6 @@ func (h *iamHandler) UpdateUser(request *restful.Request, response *restful.Resp
 	var user iamv1alpha2.User
 
 	err := request.ReadEntity(&user)
-
 	if err != nil {
 		api.HandleBadRequest(response, request, err)
 		return
@@ -566,7 +565,6 @@ func (h *iamHandler) UpdateUser(request *restful.Request, response *restful.Resp
 	}
 
 	operator, ok := apirequest.UserFrom(request.Request.Context())
-
 	if globalRole != "" && ok {
 		err = h.updateGlobalRoleBinding(operator, updated, globalRole)
 		if err != nil {
