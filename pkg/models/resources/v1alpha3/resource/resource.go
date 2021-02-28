@@ -64,6 +64,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/node"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/persistentvolumeclaim"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/pod"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/porter"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/role"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/rolebinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/service"
@@ -105,6 +106,9 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	getters[devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject)] = devops.New(factory.KubeSphereSharedInformerFactory())
 	getters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha1.ResourcePluralWorkspace)] = workspace.New(factory.KubeSphereSharedInformerFactory())
 	getters[networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralIPPool)] = ippool.New(factory.KubeSphereSharedInformerFactory(), factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "network.kubesphere.io", Version: "v1alpha2", Resource: "eips"}] = porter.NewEipGetter(cache)
+	getters[schema.GroupVersionResource{Group: "network.kubesphere.io", Version: "v1alpha2", Resource: "bgppeers"}] = porter.NewBgpPeerGetter(cache)
+	getters[schema.GroupVersionResource{Group: "network.kubesphere.io", Version: "v1alpha2", Resource: "bgpconfs"}] = porter.NewBgpConfGetter(cache)
 	getters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha2.ResourcePluralWorkspaceTemplate)] = workspacetemplate.New(factory.KubeSphereSharedInformerFactory())
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralGlobalRole)] = globalrole.New(factory.KubeSphereSharedInformerFactory())
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralWorkspaceRole)] = workspacerole.New(factory.KubeSphereSharedInformerFactory())

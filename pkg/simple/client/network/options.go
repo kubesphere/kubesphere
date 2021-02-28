@@ -31,6 +31,7 @@ type Options struct {
 	NSNPOptions         NSNPOptions `json:"nsnpOptions,omitempty" yaml:"nsnpOptions,omitempty"`
 	WeaveScopeHost      string      `json:"weaveScopeHost,omitempty" yaml:"weaveScopeHost,omitempty"`
 	IPPoolType          string      `json:"ippoolType,omitempty" yaml:"ippoolType,omitempty"`
+	EnablePorter        bool        `json:"enablePorter,omitempty" yaml:"enablePorter"`
 }
 
 // NewNetworkOptions returns a `zero` instance
@@ -48,7 +49,8 @@ func NewNetworkOptions() *Options {
 func (s *Options) IsEmpty() bool {
 	return s.EnableNetworkPolicy == false &&
 		s.WeaveScopeHost == "" &&
-		s.IPPoolType == networkv1alpha1.IPPoolTypeNone
+		s.IPPoolType == networkv1alpha1.IPPoolTypeNone &&
+		s.EnablePorter == false
 }
 
 func (s *Options) Validate() []error {
