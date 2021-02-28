@@ -105,6 +105,14 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 - [ ] Support for viewing resource consumption at the cluster, workspace, and application template levels [#3062](https://github.com/kubesphere/kubesphere/issues/3062)
 
+### MultiCluster:
+
+- [x] Validate member cluster configuration if the member cluster config(e.g. jwtSecret) is not same as host cluster, which can reduce the complexity of joining clusters. [#3232](https://github.com/kubesphere/kubesphere/issues/3232)
+- [x] Support configuring cluster controller resync period, some users need to update the cluster component more quickly. [#3213](https://github.com/kubesphere/kubesphere/issues/3213)
+- [x] Lightweight member cluster installation, support running kubepshere without redis and ldap and so on. [#3056](https://github.com/kubesphere/kubesphere/issues/3056)
+- [x] Refactor cluster controller(it should updates the cluster.staus field instead of the tower server when using proxy connection).  [#3234](https://github.com/kubesphere/kubesphere/issues/3234)
+- [ ] Support the tower server and agent running highly available(server with leader election option and running more than one agent). [#31](https://github.com/kubesphere/tower/issues/31)
+
 ## **Upgrade:**
 
 - [x] Upgrade isito version from 1.4.8 => 1.6.10[#3326](https://github.com/kubesphere/kubesphere/issues/3236)
@@ -119,14 +127,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Using human-readable error message for pipeline cron text , [#2919](https://github.com/kubesphere/kubesphere/issues/2919)
 - [ ] Using human-readable error message for S2I, [#140](https://github.com/kubesphere/s2ioperator/issues/140)
 
-### MultiCluster:
-
-- [x] Validate member cluster configuration if the member cluster config(e.g. jwtSecret) is not same as host cluster, which can reduce the complexity of joining clusters. [#3232](https://github.com/kubesphere/kubesphere/issues/3232)
-- [ ] Support configuring cluster controller resync period, some users need to update the cluster component more quickly. [#3213](https://github.com/kubesphere/kubesphere/issues/3213)
-- [x] Lightweight member cluster installation, support running kubepshere without redis and ldap and so on. [#3056](https://github.com/kubesphere/kubesphere/issues/3056)
-- [ ] The cluster controller updates the cluster.staus field instead of the tower server when using proxy connection.  [#3234](https://github.com/kubesphere/kubesphere/issues/3234)
-- [ ] Support the tower server and agent running highly available(server with leader election option and running more than one agent). [#31](https://github.com/kubesphere/tower/issues/31)
-- [ ] Support adding member clusters for an existing project(ns), wich can be helpful when there are new clusters joined. [#3246](https://github.com/kubesphere/kubesphere/issues/3246)
+- [ ] https://github.com/kubesphere/tower/issues/31)
 ### Observability
 
 - [ ] Upgrade to Prometheus v2.25.0
