@@ -111,9 +111,9 @@ func SetupTest(ctx context.Context) *corev1.Namespace {
 		selector, _ := labels.Parse("app.kubernetes.io/name,!kubesphere.io/creator")
 
 		reconciler := &ApplicationReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-			Mapper: mgr.GetRESTMapper(),
+			Client:              mgr.GetClient(),
+			Scheme:              mgr.GetScheme(),
+			Mapper:              mgr.GetRESTMapper(),
 			ApplicationSelector: selector,
 		}
 		err = reconciler.SetupWithManager(mgr)
