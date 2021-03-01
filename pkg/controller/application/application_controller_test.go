@@ -35,7 +35,7 @@ import (
 
 const (
 	applicationName = "bookinfo"
-	serviceName = "productpage"
+	serviceName     = "productpage"
 	timeout         = time.Second * 30
 	interval        = time.Second * 2
 )
@@ -48,7 +48,7 @@ var _ = Context("Inside of a new namespace", func() {
 
 	Describe("Application", func() {
 		applicationLabels := map[string]string{
-			"app.kubernetes.io/name": "bookinfo",
+			"app.kubernetes.io/name":    "bookinfo",
 			"app.kubernetes.io/version": "1",
 		}
 
@@ -79,7 +79,7 @@ var _ = Context("Inside of a new namespace", func() {
 					newApp.Labels["kubesphere.io/creator"] = ""
 				}
 
-				updated, err := updateWithRetries(k8sClient, ctx, application.Namespace, applicationName, updateApplication, 1 * time.Second, 5 * time.Second)
+				updated, err := updateWithRetries(k8sClient, ctx, application.Namespace, applicationName, updateApplication, 1*time.Second, 5*time.Second)
 				Expect(updated).Should(BeTrue())
 
 				Eventually(func() bool {
@@ -112,7 +112,7 @@ var _ = Context("Inside of a new namespace", func() {
 
 type UpdateObjectFunc func(obj interface{})
 
-func updateWithRetries(client client.Client, ctx context.Context, namespace, name string, updateFunc UpdateObjectFunc, interval, timeout time.Duration)(bool, error) {
+func updateWithRetries(client client.Client, ctx context.Context, namespace, name string, updateFunc UpdateObjectFunc, interval, timeout time.Duration) (bool, error) {
 	var updateErr error
 
 	pollErr := wait.PollImmediate(interval, timeout, func() (done bool, err error) {
@@ -143,9 +143,9 @@ func newDeployments(deploymentName, namespace string, labels map[string]string, 
 
 	deployment := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", deploymentName, version),
-			Namespace: namespace,
-			Labels: labels,
+			Name:        fmt.Sprintf("%s-%s", deploymentName, version),
+			Namespace:   namespace,
+			Labels:      labels,
 			Annotations: map[string]string{servicemesh.ServiceMeshEnabledAnnotation: "true"},
 		},
 		Spec: v1.DeploymentSpec{
@@ -155,7 +155,7 @@ func newDeployments(deploymentName, namespace string, labels map[string]string, 
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -201,7 +201,7 @@ func newService(serviceName, namesapce string, labels map[string]string) *corev1
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
 			Namespace: namesapce,
-			Labels: labels,
+			Labels:    labels,
 			Annotations: map[string]string{
 				"servicemesh.kubesphere.io/enabled": "true",
 			},
@@ -225,7 +225,7 @@ func newService(serviceName, namesapce string, labels map[string]string) *corev1
 				},
 			},
 			Selector: labels,
-			Type: corev1.ServiceTypeClusterIP,
+			Type:     corev1.ServiceTypeClusterIP,
 		},
 		Status: corev1.ServiceStatus{},
 	}
