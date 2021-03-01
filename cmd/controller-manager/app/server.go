@@ -18,6 +18,8 @@ package app
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/controller/application"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -28,7 +30,6 @@ import (
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
-	appcontroller "kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/serviceaccount"
@@ -46,7 +47,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
-	application "sigs.k8s.io/application/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -219,16 +219,12 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Fatal("Unable to create namespace controller")
 	}
 
-	err = appcontroller.Add(mgr)
-	if err != nil {
-		klog.Fatal("Unable to create ks application controller")
-	}
-
+	selector, _ := labels.Parse(s.ApplicationSelector)
 	applicationReconciler := &application.ApplicationReconciler{
-		Scheme: mgr.GetScheme(),
-		Client: mgr.GetClient(),
-		Mapper: mgr.GetRESTMapper(),
-		Log:    klogr.New(),
+		Scheme:              mgr.GetScheme(),
+		Client:              mgr.GetClient(),
+		Mapper:              mgr.GetRESTMapper(),
+		ApplicationSelector: selector,
 	}
 	if err = applicationReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create application controller")
