@@ -75,7 +75,7 @@ func (r *PostableAlertingRule) Validate() error {
 		errs = append(errs, errors.New("name can not be empty"))
 	} else {
 		if !ruleNameMatcher.MatchString(r.Name) {
-			errs = append(errs, errors.New("name is invalid which not matches ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"))
+			errs = append(errs, errors.New("rule name must match regular expression ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"))
 		}
 	}
 
@@ -471,11 +471,12 @@ type ErrorType string
 type Result string
 
 type BulkResponse struct {
-	Errors bool                `json:"errors" description:"If true, one or more of the operations in the bulk request did not complete successfully"`
+	Errors bool                `json:"errors" description:"If true, one or more operations in the bulk request don't complete successfully"`
 	Items  []*BulkItemResponse `json:"items" description:"It contains the result of each operation in the bulk request"`
 }
 
-func (br *BulkResponse) Derive() *BulkResponse {
+// Neaten neatens the internal items and sets the errors
+func (br *BulkResponse) Neaten() *BulkResponse {
 	var (
 		items   []*BulkItemResponse
 		itemMap = make(map[string]*BulkItemResponse)

@@ -620,7 +620,7 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 		}
 	}
 
-	// check the rules
+	// check all the rules
 	var (
 		br       = &v2alpha1.BulkResponse{}
 		nameSet  = make(map[string]struct{})
@@ -665,10 +665,13 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 		}
 	}
 	if len(nameSet) == len(invalids) {
-		return br.Derive(), nil
+		return br.Neaten(), nil
 	}
 
-	// Confirm whether the rules are added or updated
+	// Confirm whether the rules should be added or updated. For each rule that is committed,
+	// it will be added if the rule does not exist, or updated otherwise.
+	// If there are rules with the same name in the existing rules to update, the first will be
+	// updated but the others will be deleted
 	var (
 		addRules []*rules.RuleWithGroup
 		updRules []*rules.ResourceRuleItem
@@ -699,7 +702,7 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 		}
 	}
 
-	// do the actions
+	// add rules
 	if len(addRules) > 0 {
 		resps, err := ruler.AddAlertingRules(ctx, ruleNamespace, extraRuleResourceSelector, ruleResourceLabels, addRules...)
 		if err == nil {
@@ -710,6 +713,7 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 			}
 		}
 	}
+	// update existing rules
 	if len(updRules) > 0 {
 		resps, err := ruler.UpdateAlertingRules(ctx, ruleNamespace, extraRuleResourceSelector, ruleResourceLabels, updRules...)
 		if err == nil {
@@ -720,6 +724,7 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 			}
 		}
 	}
+	// delete possible duplicate rules
 	if len(delRules) > 0 {
 		_, err := ruler.DeleteAlertingRules(ctx, ruleNamespace, delRules...)
 		if err != nil {
@@ -728,7 +733,7 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 			}
 		}
 	}
-	return br.Derive(), nil
+	return br.Neaten(), nil
 }
 
 func (o *operator) DeleteCustomAlertingRules(ctx context.Context, namespace string,
@@ -792,7 +797,7 @@ func (o *operator) DeleteCustomAlertingRules(ctx context.Context, namespace stri
 	}
 	br.Items = append(br.Items, respItems...)
 
-	return br.Derive(), nil
+	return br.Neaten(), nil
 }
 
 // getPrometheusRuler gets the cluster-in prometheus

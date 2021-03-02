@@ -109,7 +109,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.BulkResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
-	ws.Route(ws.POST("/bulk_rules").
+	ws.Route(ws.POST("/bulkrules").
 		To(handler.handleCreateOrUpdateCustomAlertingRules).
 		Doc("create or update cluster-level custom alerting rules in bulk").
 		Reads([]alertingv2alpha1.PostableAlertingRule{}).
@@ -179,7 +179,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Returns(http.StatusOK, ksapi.StatusOK, "").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
-	ws.Route(ws.POST("/namespaces/{namespace}/bulk_rules").
+	ws.Route(ws.POST("/namespaces/{namespace}/bulkrules").
 		To(handler.handleCreateOrUpdateCustomAlertingRules).
 		Doc("create or update custom alerting rules in bulk in the specified namespace").
 		Reads([]alertingv2alpha1.PostableAlertingRule{}).
