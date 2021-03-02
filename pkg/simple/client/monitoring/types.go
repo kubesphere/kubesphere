@@ -20,7 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/json-iterator/go"
+	"github.com/jszwec/csvutil"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -36,14 +38,46 @@ type Metadata struct {
 }
 
 type Metric struct {
-	MetricName string `json:"metric_name,omitempty" description:"metric name, eg. scheduler_up_sum"`
+	MetricName string `json:"metric_name,omitempty" description:"metric name, eg. scheduler_up_sum" csv:"metric_name"`
 	MetricData `json:"data,omitempty" description:"actual metric result"`
-	Error      string `json:"error,omitempty"`
+	Error      string `json:"error,omitempty" csv:"-"`
+}
+
+type MetricValues []MetricValue
+
+func (m MetricValues) MarshalCSV() ([]byte, error) {
+
+	var ret []string
+	for _, v := range m {
+		tmp, err := v.MarshalCSV()
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, string(tmp))
+	}
+
+	return []byte(strings.Join(ret, "||")), nil
 }
 
 type MetricData struct {
-	MetricType   string        `json:"resultType,omitempty" description:"result type, one of matrix, vector"`
-	MetricValues []MetricValue `json:"result,omitempty" description:"metric data including labels, time series and values"`
+	MetricType   string `json:"resultType,omitempty" description:"result type, one of matrix, vector" csv:"metric_type"`
+	MetricValues `json:"result,omitempty" description:"metric data including labels, time series and values" csv:"metric_values"`
+}
+
+func (m MetricData) MarshalCSV() ([]byte, error) {
+	var ret []byte
+
+	for _, v := range m.MetricValues {
+		tmp, err := csvutil.Marshal(&v)
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, tmp...)
+	}
+
+	return ret, nil
 }
 
 // The first element is the timestamp, the second is the metric value.
@@ -60,11 +94,48 @@ type MetricValue struct {
 	ExportSample   *ExportPoint  `json:"exported_value,omitempty" description:"exported time series, values of vector type"`
 	ExportedSeries []ExportPoint `json:"exported_values,omitempty" description:"exported time series, values of matrix type"`
 
-	MinValue float64 `json:"min_value" description:"minimum value from monitor points"`
-	MaxValue float64 `json:"max_value" description:"maximum value from monitor points"`
-	AvgValue float64 `json:"avg_value" description:"average value from monitor points"`
-	SumValue float64 `json:"sum_value" description:"sum value from monitor points"`
-	Fee      float64 `json:"fee" description:"resource fee"`
+	MinValue     float64 `json:"min_value" description:"minimum value from monitor points"`
+	MaxValue     float64 `json:"max_value" description:"maximum value from monitor points"`
+	AvgValue     float64 `json:"avg_value" description:"average value from monitor points"`
+	SumValue     float64 `json:"sum_value" description:"sum value from monitor points"`
+	Fee          float64 `json:"fee" description:"resource fee"`
+	ResourceUnit string  `json:"resource_unit"`
+	CurrencyUnit string  `json:"currency_unit"`
+}
+
+func (mv MetricValue) MarshalCSV() ([]byte, error) {
+	// metric value format:
+	// 	target,stats value(include fees),exported_value,exported_values
+	// for example:
+	// 	{workspace:demo-ws},,2021-02-23 01:00:00 AM 0|2021-02-23 02:00:00 AM 0|...
+	var metricValueCSVTemplate = "{%s},unit:%s|min:%.3f|max:%.3f|avg:%.3f|sum:%.3f|fee:%.2f %s,%s,%s"
+
+	var targetList []string
+	for k, v := range mv.Metadata {
+		targetList = append(targetList, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	exportedSampleStr := ""
+	if mv.ExportSample != nil {
+		exportedSampleStr = mv.ExportSample.Format()
+	}
+
+	exportedSeriesStrList := []string{}
+	for _, v := range mv.ExportedSeries {
+		exportedSeriesStrList = append(exportedSeriesStrList, v.Format())
+	}
+
+	return []byte(fmt.Sprintf(metricValueCSVTemplate,
+		strings.Join(targetList, "|"),
+		mv.ResourceUnit,
+		mv.MinValue,
+		mv.MaxValue,
+		mv.AvgValue,
+		mv.SumValue,
+		mv.Fee,
+		mv.CurrencyUnit,
+		exportedSampleStr,
+		exportedSeriesStrList)), nil
 }
 
 func (mv *MetricValue) TransferToExportedMetricValue() {
@@ -152,16 +223,6 @@ func (p ExportPoint) Value() float64 {
 	return p[1]
 }
 
-// MarshalJSON implements json.Marshaler. It will be called when writing JSON to HTTP response
-// Inspired by prometheus/client_golang
-func (p ExportPoint) MarshalJSON() ([]byte, error) {
-	t, err := jsoniter.Marshal(p.Timestamp())
-	if err != nil {
-		return nil, err
-	}
-	v, err := jsoniter.Marshal(strconv.FormatFloat(p.Value(), 'f', -1, 64))
-	if err != nil {
-		return nil, err
-	}
-	return []byte(fmt.Sprintf("[%s,%s]", t, v)), nil
+func (p ExportPoint) Format() string {
+	return p.Timestamp() + " " + strconv.FormatFloat(p.Value(), 'f', -1, 64)
 }

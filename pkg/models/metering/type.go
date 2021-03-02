@@ -9,6 +9,16 @@ type PriceInfo struct {
 	PvcPerGigabytesPerHour                    float64 `json:"pvc_per_gigabytes_per_hour,omitempty" description:"pvc price"`
 }
 
+// currently init method fill illegal value to hint that metering config file was not mounted yet
+func (p *PriceInfo) Init() {
+	p.Currency = ""
+	p.CpuPerCorePerHour = -1
+	p.MemPerGigabytesPerHour = -1
+	p.IngressNetworkTrafficPerGiagabytesPerHour = -1
+	p.EgressNetworkTrafficPerGiagabytesPerHour = -1
+	p.PvcPerGigabytesPerHour = -1
+}
+
 type PodStatistic struct {
 	CPUUsage            float64 `json:"cpu_usage" description:"cpu_usage"`
 	MemoryUsageWoCache  float64 `json:"memory_usage_wo_cache" description:"memory_usage_wo_cache"`

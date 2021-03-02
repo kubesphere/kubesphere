@@ -19,8 +19,8 @@ package v1alpha3
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/jszwec/csvutil"
 	"io"
 	"strconv"
 	"strings"
@@ -388,7 +388,7 @@ func ExportMetrics(resp *restful.Response, metrics model.Metrics) {
 		}
 	}
 
-	resBytes, err := json.MarshalIndent(metrics, "", " ")
+	resBytes, err := csvutil.Marshal(metrics.Results)
 	if err != nil {
 		api.HandleBadRequest(resp, nil, err)
 		return

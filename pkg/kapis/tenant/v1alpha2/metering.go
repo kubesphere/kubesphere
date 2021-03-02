@@ -64,16 +64,17 @@ func (h *tenantHandler) QueryMeteringsHierarchy(req *restful.Request, resp *rest
 func (h *tenantHandler) HandlePriceInfoQuery(req *restful.Request, resp *restful.Response) {
 
 	var priceInfoResponse metering.PriceInfo
+	priceInfoResponse.Init()
 
 	meterConfig, err := monitoring.LoadYaml()
 	if err != nil {
-		klog.Error(err)
+		klog.Warning(err)
 		resp.WriteAsJson(priceInfoResponse)
 		return
 	}
 
 	priceInfo := meterConfig.GetPriceInfo()
-	priceInfoResponse.Currency = "CNY"
+	priceInfoResponse.Currency = priceInfo.CurrencyUnit
 	priceInfoResponse.CpuPerCorePerHour = priceInfo.CpuPerCorePerHour
 	priceInfoResponse.MemPerGigabytesPerHour = priceInfo.MemPerGigabytesPerHour
 	priceInfoResponse.IngressNetworkTrafficPerGiagabytesPerHour = priceInfo.IngressNetworkTrafficPerGiagabytesPerHour

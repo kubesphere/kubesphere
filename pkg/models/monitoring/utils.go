@@ -19,6 +19,14 @@ const (
 	meteringConfig = "/etc/kubesphere/metering/ks-metering.yaml"
 )
 
+var meterResourceUnitMap = map[int]string{
+	METER_RESOURCE_TYPE_CPU:         "cores",
+	METER_RESOURCE_TYPE_MEM:         "bytes",
+	METER_RESOURCE_TYPE_NET_INGRESS: "bytes",
+	METER_RESOURCE_TYPE_NET_EGRESS:  "bytes",
+	METER_RESOURCE_TYPE_PVC:         "bytes",
+}
+
 var MeterResourceMap = map[string]int{
 	"meter_cluster_cpu_usage":                 METER_RESOURCE_TYPE_CPU,
 	"meter_cluster_memory_usage":              METER_RESOURCE_TYPE_MEM,
@@ -67,6 +75,7 @@ type PriceInfo struct {
 	IngressNetworkTrafficPerGiagabytesPerHour float64 `json:"ingressNetworkTrafficPerGiagabytesPerHour" yaml:"ingressNetworkTrafficPerGiagabytesPerHour"`
 	EgressNetworkTrafficPerGigabytesPerHour   float64 `json:"egressNetworkTrafficPerGigabytesPerHour" yaml:"egressNetworkTrafficPerGigabytesPerHour"`
 	PvcPerGigabytesPerHour                    float64 `json:"pvcPerGigabytesPerHour" yaml:"pvcPerGigabytesPerHour"`
+	CurrencyUnit                              string  `json:"currencyUnit" yaml:"currencyUnit"`
 }
 
 type Billing struct {
@@ -143,6 +152,25 @@ func getAvgPointValue(points []monitoring.Point) float64 {
 	return getSumPointValue(points) / float64(len(points))
 }
 
+func getCurrencyUnit() string {
+	meterConfig, err := LoadYaml()
+	if err != nil {
+		klog.Error(err)
+		return ""
+	}
+
+	return meterConfig.GetPriceInfo().CurrencyUnit
+}
+
+func getResourceUnit(meterName string) string {
+	if resourceType, ok := MeterResourceMap[meterName]; !ok {
+		klog.Errorf("invlaid meter %v", meterName)
+		return ""
+	} else {
+		return meterResourceUnitMap[resourceType]
+	}
+}
+
 func getFeeWithMeterName(meterName string, sum float64) float64 {
 
 	meterConfig, err := LoadYaml()
@@ -216,6 +244,8 @@ func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float6
 			metricData.MetricValues[index].SumValue = sum
 			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
 		}
+		metricData.MetricValues[index].CurrencyUnit = getCurrencyUnit()
+		metricData.MetricValues[index].ResourceUnit = getResourceUnit(metricName)
 
 	}
 	return metricData
