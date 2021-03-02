@@ -184,5 +184,12 @@ go mod vendor >>"${LOG_FILE}" 2>&1
 awk '{if($1=="#") print $2 " " $0; else print}' < vendor/modules.txt | sort -k1,1 -s | sed 's/.*#/#/' > "${TMP_DIR}/modules.txt.tmp"
 mv "${TMP_DIR}/modules.txt.tmp" vendor/modules.txt
 
+# create a symlink in vendor directory pointing to the staging components.
+# This lets other packages and tools use the local staging components as if they were vendored.
+for repo in $(kube::util::list_staging_repos); do
+  rm -fr "${KUBE_ROOT}/vendor/kubesphere.io/${repo}"
+  ln -s "../../staging/src/kubesphere.io/${repo}" "${KUBE_ROOT}/vendor/kubesphere.io/${repo}"
+done
+
 #kube::log::status "vendor: updating LICENSES file"
 #hack/update-vendor-licenses.sh >>"${LOG_FILE}" 2>&1
