@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubeedge"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
@@ -97,6 +98,7 @@ type Config struct {
 	AuditingOptions       *auditing.Options                          `json:"auditing,omitempty" yaml:"auditing,omitempty" mapstructure:"auditing"`
 	AlertingOptions       *alerting.Options                          `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
 	NotificationOptions   *notification.Options                      `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
+	KubeEdgeOptions       *kubeedge.Options                          `json:"kubeedge,omitempty" yaml:"kubeedge,omitempty" mapstructure:"kubeedge"`
 }
 
 // newConfig creates a default non-empty Config
@@ -120,6 +122,7 @@ func New() *Config {
 		MultiClusterOptions:   multicluster.NewOptions(),
 		EventsOptions:         events.NewEventsOptions(),
 		AuditingOptions:       auditing.NewAuditingOptions(),
+		KubeEdgeOptions:       kubeedge.NewKubeEdgeOptions(),
 	}
 }
 
@@ -270,5 +273,9 @@ func (conf *Config) stripEmptyOptions() {
 
 	if conf.AuditingOptions != nil && conf.AuditingOptions.Host == "" {
 		conf.AuditingOptions = nil
+	}
+
+	if conf.KubeEdgeOptions != nil && conf.KubeEdgeOptions.Endpoint == "" {
+		conf.KubeEdgeOptions = nil
 	}
 }
