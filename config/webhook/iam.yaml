@@ -8,9 +8,9 @@ webhooks:
     clientConfig:
       caBundle: <caBundle>
       service:
-        name: webhook-service
+        name: ks-controller-manager
         namespace: kubesphere-system
-        path: /validate-email-iam-kubesphere-io-v1alpha2-user
+        path: /validate-email-iam-kubesphere-io-v1alpha2
     failurePolicy: Fail
     name: vemail.iam.kubesphere.io
     rules:
@@ -23,18 +23,3 @@ webhooks:
           - UPDATE
         resources:
           - users
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: webhook-service
-  namespace: kubesphere-system
-spec:
-  ports:
-    - port: 443
-      targetPort: 443
-  selector:
-    app: ks-controller-manager
-    tier: backend

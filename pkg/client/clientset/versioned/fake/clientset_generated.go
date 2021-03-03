@@ -37,6 +37,8 @@ import (
 	fakeiamv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/iam/v1alpha2/fake"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	fakenetworkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1/fake"
+	quotav1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/quota/v1alpha2"
+	fakequotav1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/quota/v1alpha2/fake"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
 	fakeservicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2/fake"
 	storagev1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/storage/v1alpha1"
@@ -124,6 +126,11 @@ func (c *Clientset) IamV1alpha2() iamv1alpha2.IamV1alpha2Interface {
 // NetworkV1alpha1 retrieves the NetworkV1alpha1Client
 func (c *Clientset) NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface {
 	return &fakenetworkv1alpha1.FakeNetworkV1alpha1{Fake: &c.Fake}
+}
+
+// QuotaV1alpha2 retrieves the QuotaV1alpha2Client
+func (c *Clientset) QuotaV1alpha2() quotav1alpha2.QuotaV1alpha2Interface {
+	return &fakequotav1alpha2.FakeQuotaV1alpha2{Fake: &c.Fake}
 }
 
 // ServicemeshV1alpha2 retrieves the ServicemeshV1alpha2Client

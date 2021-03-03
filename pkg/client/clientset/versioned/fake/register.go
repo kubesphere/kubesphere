@@ -30,6 +30,7 @@ import (
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
+	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	storagev1alpha1 "kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
@@ -47,6 +48,7 @@ var localSchemeBuilder = runtime.SchemeBuilder{
 	devopsv1alpha3.AddToScheme,
 	iamv1alpha2.AddToScheme,
 	networkv1alpha1.AddToScheme,
+	quotav1alpha2.AddToScheme,
 	servicemeshv1alpha2.AddToScheme,
 	storagev1alpha1.AddToScheme,
 	tenantv1alpha1.AddToScheme,

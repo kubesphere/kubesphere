@@ -18,6 +18,7 @@ package app
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"os"
@@ -32,6 +33,7 @@ import (
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
+	"kubesphere.io/kubesphere/pkg/controller/quota"
 	"kubesphere.io/kubesphere/pkg/controller/serviceaccount"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
@@ -194,29 +196,32 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
+	// register common meta types into schemas.
+	metav1.AddToGroupVersion(mgr.GetScheme(), metav1.SchemeGroupVersion)
+
 	workspaceTemplateReconciler := &workspacetemplate.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
 	if err = workspaceTemplateReconciler.SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create workspace template controller")
+		klog.Fatalf("Unable to create workspace template controller: %v", err)
 	}
 
 	workspaceReconciler := &workspace.Reconciler{}
 	if err = workspaceReconciler.SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create workspace controller")
+		klog.Fatalf("Unable to create workspace controller: %v", err)
 	}
 
 	workspaceRoleReconciler := &workspacerole.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
 	if err = workspaceRoleReconciler.SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create workspace role controller")
+		klog.Fatalf("Unable to create workspace role controller: %v", err)
 	}
 
 	workspaceRoleBindingReconciler := &workspacerolebinding.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
 	if err = workspaceRoleBindingReconciler.SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create workspace role binding controller")
+		klog.Fatalf("Unable to create workspace role binding controller: %v", err)
 	}
 
 	namespaceReconciler := &namespace.Reconciler{}
 	if err = namespaceReconciler.SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create namespace controller")
+		klog.Fatalf("Unable to create namespace controller: %v", err)
 	}
 
 	selector, _ := labels.Parse(s.ApplicationSelector)
@@ -227,13 +232,17 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		ApplicationSelector: selector,
 	}
 	if err = applicationReconciler.SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create application controller")
+		klog.Fatalf("Unable to create application controller: %v", err)
 	}
 
 	saReconciler := &serviceaccount.Reconciler{}
-
 	if err = saReconciler.SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create ServiceAccount controller")
+		klog.Fatalf("Unable to create ServiceAccount controller: %v", err)
+	}
+
+	resourceQuotaReconciler := quota.Reconciler{}
+	if err := resourceQuotaReconciler.SetupWithManager(mgr, quota.DefaultMaxConcurrentReconciles, quota.DefaultResyncPeriod, informerFactory.KubernetesSharedInformerFactory()); err != nil {
+		klog.Fatalf("Unable to create ResourceQuota controller: %v", err)
 	}
 
 	// TODO(jeff): refactor config with CRD
@@ -263,9 +272,15 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	hookServer := mgr.GetWebhookServer()
 
 	klog.V(2).Info("registering webhooks to the webhook server")
-	hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
+	hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
 	hookServer.Register("/validate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.ValidatingHandler{C: mgr.GetClient()}})
 	hookServer.Register("/mutate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.MutatingHandler{C: mgr.GetClient()}})
+
+	resourceQuotaAdmission, err := quota.NewResourceQuotaAdmission(mgr.GetClient(), mgr.GetScheme())
+	if err != nil {
+		klog.Fatalf("unable to create resource quota admission: %v", err)
+	}
+	hookServer.Register("/validate-quota-kubesphere-io-v1alpha2", &webhook.Admission{Handler: resourceQuotaAdmission})
 
 	klog.V(2).Info("registering metrics to the webhook server")
 	hookServer.Register("/metrics", metrics.Handler())
