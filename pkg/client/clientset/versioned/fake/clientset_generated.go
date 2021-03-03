@@ -39,15 +39,10 @@ import (
 	fakeiamv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/iam/v1alpha2/fake"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	fakenetworkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1/fake"
-<<<<<<< HEAD
-	notificationv2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/notification/v2"
-	fakenotificationv2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/notification/v2/fake"
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/quota/v1alpha2"
-	fakequotav1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/quota/v1alpha2/fake"
-=======
 	notificationv2alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/notification/v2alpha1"
 	fakenotificationv2alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/notification/v2alpha1/fake"
->>>>>>> change notification crd version to v2alpha1
+	quotav1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/quota/v1alpha2"
+	fakequotav1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/quota/v1alpha2/fake"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
 	fakeservicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2/fake"
 	storagev1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/storage/v1alpha1"

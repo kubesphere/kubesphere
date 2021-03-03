@@ -30,12 +30,8 @@ import (
 	v1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
-<<<<<<< HEAD
-	v2 "kubesphere.io/kubesphere/pkg/apis/notification/v2"
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
-=======
 	v2alpha1 "kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
->>>>>>> change notification crd version to v2alpha1
+	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	storagev1alpha1 "kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
