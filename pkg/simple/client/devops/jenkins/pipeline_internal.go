@@ -170,9 +170,12 @@ func appendParametersToEtree(properties *etree.Element, parameters []devopsv1alp
 				case "choice":
 					choices := paramDefine.CreateElement("choices")
 					choices.CreateAttr("class", "java.util.Arrays$ArrayList")
+					// see also https://github.com/kubesphere/kubesphere/issues/3430
+					a := choices.CreateElement("a")
+					a.CreateAttr("class", "string-array")
 					choiceValues := strings.Split(parameter.DefaultValue, "\n")
 					for _, choiceValue := range choiceValues {
-						choices.CreateElement("string").SetText(choiceValue)
+						a.CreateElement("string").SetText(choiceValue)
 					}
 				case "file":
 					break
@@ -230,7 +233,16 @@ func getParametersfromEtree(properties *etree.Element) []devopsv1alpha3.Paramete
 					Description: param.SelectElement("description").Text(),
 					Type:        ParameterTypeMap["hudson.model.ChoiceParameterDefinition"],
 				}
-				choices := param.SelectElement("choices").SelectElements("string")
+				choicesEle := param.SelectElement("choices")
+				var choices []*etree.Element
+				// the child element is a in the simple pipeline, the child is string list in the multi-branch pipeline
+				// see also https://github.com/kubesphere/kubesphere/issues/3430
+				choiceAnchor := choicesEle.SelectElement("a")
+				if choiceAnchor == nil {
+					choices = choicesEle.SelectElements("string")
+				} else {
+					choices = choiceAnchor.SelectElements("string")
+				}
 				for _, choice := range choices {
 					choiceParameter.DefaultValue += fmt.Sprintf("%s\n", choice.Text())
 				}
