@@ -37,7 +37,7 @@ import (
 func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 	tokenOperator auth.TokenManagementInterface,
 	passwordAuthenticator auth.PasswordAuthenticator,
-	oauth2Authenticator auth.OAuth2Authenticator,
+	oauth2Authenticator auth.OAuthAuthenticator,
 	loginRecorder auth.LoginRecorder,
 	options *authoptions.AuthenticationOptions) error {
 

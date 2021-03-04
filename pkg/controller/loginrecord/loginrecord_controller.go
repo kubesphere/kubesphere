@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -35,6 +36,7 @@ import (
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/utils/controller"
+	"sort"
 	"time"
 )
 
@@ -55,6 +57,7 @@ type loginRecordController struct {
 	userLister                  iamv1alpha2listers.UserLister
 	userSynced                  cache.InformerSynced
 	loginHistoryRetentionPeriod time.Duration
+	loginHistoryMaximumEntries  int
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
@@ -64,7 +67,8 @@ func NewLoginRecordController(k8sClient kubernetes.Interface,
 	ksClient kubesphere.Interface,
 	loginRecordInformer iamv1alpha2informers.LoginRecordInformer,
 	userInformer iamv1alpha2informers.UserInformer,
-	loginHistoryRetentionPeriod time.Duration) *loginRecordController {
+	loginHistoryRetentionPeriod time.Duration,
+	loginHistoryMaximumEntries int) *loginRecordController {
 
 	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
@@ -82,6 +86,7 @@ func NewLoginRecordController(k8sClient kubernetes.Interface,
 		loginRecordLister:           loginRecordInformer.Lister(),
 		userLister:                  userInformer.Lister(),
 		loginHistoryRetentionPeriod: loginHistoryRetentionPeriod,
+		loginHistoryMaximumEntries:  loginHistoryMaximumEntries,
 		recorder:                    recorder,
 	}
 	ctl.Handler = ctl.reconcile
@@ -117,7 +122,20 @@ func (c *loginRecordController) reconcile(key string) error {
 		return nil
 	}
 
-	if err = c.updateUserLastLoginTime(loginRecord); err != nil {
+	user, err := c.userForLoginRecord(loginRecord)
+	if err != nil {
+		// delete orphan object
+		if errors.IsNotFound(err) {
+			return c.ksClient.IamV1alpha2().LoginRecords().Delete(context.TODO(), loginRecord.Name, metav1.DeleteOptions{})
+		}
+		return err
+	}
+
+	if err = c.updateUserLastLoginTime(user, loginRecord); err != nil {
+		return err
+	}
+
+	if err = c.shrinkEntriesFor(user); err != nil {
 		return err
 	}
 
@@ -136,28 +154,44 @@ func (c *loginRecordController) reconcile(key string) error {
 }
 
 // updateUserLastLoginTime accepts a login object and set user lastLoginTime field
-func (c *loginRecordController) updateUserLastLoginTime(loginRecord *iamv1alpha2.LoginRecord) error {
-	username, ok := loginRecord.Labels[iamv1alpha2.UserReferenceLabel]
-	if !ok || len(username) == 0 {
-		klog.V(4).Info("login doesn't belong to any user")
-		return nil
-	}
-	user, err := c.userLister.Get(username)
-	if err != nil {
-		// ignore not found error
-		if errors.IsNotFound(err) {
-			klog.V(4).Infof("user %s doesn't exist any more, login record will be deleted later", username)
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
+func (c *loginRecordController) updateUserLastLoginTime(user *iamv1alpha2.User, loginRecord *iamv1alpha2.LoginRecord) error {
 	// update lastLoginTime
 	if user.DeletionTimestamp.IsZero() &&
 		(user.Status.LastLoginTime == nil || user.Status.LastLoginTime.Before(&loginRecord.CreationTimestamp)) {
 		user.Status.LastLoginTime = &loginRecord.CreationTimestamp
-		user, err = c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), user, metav1.UpdateOptions{})
+		_, err := c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), user, metav1.UpdateOptions{})
 		return err
 	}
 	return nil
+}
+
+// shrinkEntriesFor will delete old entries out of limit
+func (c *loginRecordController) shrinkEntriesFor(user *iamv1alpha2.User) error {
+	loginRecords, err := c.loginRecordLister.List(labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: user.Name}))
+	if err != nil {
+		return err
+	}
+	if len(loginRecords) <= c.loginHistoryMaximumEntries {
+		return nil
+	}
+	sort.Slice(loginRecords, func(i, j int) bool {
+		return loginRecords[j].CreationTimestamp.After(loginRecords[i].CreationTimestamp.Time)
+	})
+	oldEntries := loginRecords[:len(loginRecords)-c.loginHistoryMaximumEntries]
+	for _, r := range oldEntries {
+		err = c.ksClient.IamV1alpha2().LoginRecords().Delete(context.TODO(), r.Name, metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *loginRecordController) userForLoginRecord(loginRecord *iamv1alpha2.LoginRecord) (*iamv1alpha2.User, error) {
+	username, ok := loginRecord.Labels[iamv1alpha2.UserReferenceLabel]
+	if !ok || len(username) == 0 {
+		klog.V(4).Info("login doesn't belong to any user")
+		return nil, errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularUser), username)
+	}
+	return c.userLister.Get(username)
 }

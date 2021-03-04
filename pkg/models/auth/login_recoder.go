@@ -19,11 +19,12 @@ package auth
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	"strings"
+	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 )
 
 type LoginRecorder interface {
@@ -31,25 +32,34 @@ type LoginRecorder interface {
 }
 
 type loginRecorder struct {
-	ksClient kubesphere.Interface
+	ksClient   kubesphere.Interface
+	userGetter *userGetter
 }
 
-func NewLoginRecorder(ksClient kubesphere.Interface) LoginRecorder {
+func NewLoginRecorder(ksClient kubesphere.Interface, userLister iamv1alpha2listers.UserLister) LoginRecorder {
 	return &loginRecorder{
-		ksClient: ksClient,
+		ksClient:   ksClient,
+		userGetter: &userGetter{userLister: userLister},
 	}
 }
 
-func (l *loginRecorder) RecordLogin(username string, loginType iamv1alpha2.LoginType, provider string, sourceIP string, userAgent string, authErr error) error {
-	// This is a temporary solution in case of user login with email,
-	// '@' is not allowed in Kubernetes object name.
-	username = strings.Replace(username, "@", "-", -1)
-
+// RecordLogin Create v1alpha2.LoginRecord for existing accounts
+func (l *loginRecorder) RecordLogin(username string, loginType iamv1alpha2.LoginType, provider, sourceIP, userAgent string, authErr error) error {
+	// only for existing accounts, solve the problem of huge entries
+	user, err := l.userGetter.findUser(username)
+	if err != nil {
+		// ignore not found error
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		klog.Error(err)
+		return err
+	}
 	loginEntry := &iamv1alpha2.LoginRecord{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-", username),
+			GenerateName: fmt.Sprintf("%s-", user.Name),
 			Labels: map[string]string{
-				iamv1alpha2.UserReferenceLabel: username,
+				iamv1alpha2.UserReferenceLabel: user.Name,
 			},
 		},
 		Spec: iamv1alpha2.LoginRecordSpec{
@@ -67,7 +77,7 @@ func (l *loginRecorder) RecordLogin(username string, loginType iamv1alpha2.Login
 		loginEntry.Spec.Reason = authErr.Error()
 	}
 
-	_, err := l.ksClient.IamV1alpha2().LoginRecords().Create(context.Background(), loginEntry, metav1.CreateOptions{})
+	_, err = l.ksClient.IamV1alpha2().LoginRecords().Create(context.Background(), loginEntry, metav1.CreateOptions{})
 	if err != nil {
 		klog.Error(err)
 		return err

@@ -17,257 +17,167 @@ limitations under the License.
 package loginrecord
 
 import (
+	"context"
 	"fmt"
-	"reflect"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/klogr"
+	"kubesphere.io/kubesphere/pkg/apis"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	"os"
+	"path/filepath"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"testing"
 	"time"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/diff"
-	kubeinformers "k8s.io/client-go/informers"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	core "k8s.io/client-go/testing"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	alwaysReady        = func() bool { return true }
-	noResyncPeriodFunc = func() time.Duration { return 0 }
-)
+var testEnv *envtest.Environment
+var k8sManager ctrl.Manager
 
-type fixture struct {
-	t *testing.T
-
-	ksclient  *fake.Clientset
-	k8sclient *k8sfake.Clientset
-	// Objects to put in the store.
-	user        *iamv1alpha2.User
-	loginRecord *iamv1alpha2.LoginRecord
-	// Actions expected to happen on the client.
-	kubeactions []core.Action
-	actions     []core.Action
-	// Objects from here preloaded into NewSimpleFake.
-	kubeobjects []runtime.Object
-	objects     []runtime.Object
+func TestLoginRecordController(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecsWithDefaultAndCustomReporters(t,
+		"LoginRecord Controller Test Suite",
+		[]Reporter{printer.NewlineReporter{}})
 }
 
-func newFixture(t *testing.T) *fixture {
-	f := &fixture{}
-	f.t = t
-	f.objects = []runtime.Object{}
-	f.kubeobjects = []runtime.Object{}
-	return f
-}
+var _ = BeforeSuite(func(done Done) {
+	logf.SetLogger(klogr.New())
 
-func newUser(name string) *iamv1alpha2.User {
-	return &iamv1alpha2.User{
-		TypeMeta: metav1.TypeMeta{APIVersion: iamv1alpha2.SchemeGroupVersion.String()},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: iamv1alpha2.UserSpec{
-			Email:       fmt.Sprintf("%s@kubesphere.io", name),
-			Lang:        "zh-CN",
-			Description: "fake user",
-		},
-	}
-}
-
-func newLoginRecord(username string) *iamv1alpha2.LoginRecord {
-	return &iamv1alpha2.LoginRecord{
-		TypeMeta: metav1.TypeMeta{APIVersion: iamv1alpha2.SchemeGroupVersion.String()},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              username,
-			CreationTimestamp: metav1.Now(),
-			Labels:            map[string]string{iamv1alpha2.UserReferenceLabel: username},
-		},
-		Spec: iamv1alpha2.LoginRecordSpec{
-			Type:    iamv1alpha2.Token,
-			Success: true,
-			Reason:  "",
-		},
-	}
-}
-
-func (f *fixture) newController() (*loginRecordController, ksinformers.SharedInformerFactory, kubeinformers.SharedInformerFactory) {
-	f.ksclient = fake.NewSimpleClientset(f.objects...)
-	f.k8sclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
-
-	ksInformers := ksinformers.NewSharedInformerFactory(f.ksclient, noResyncPeriodFunc())
-	k8sInformers := kubeinformers.NewSharedInformerFactory(f.k8sclient, noResyncPeriodFunc())
-	if err := ksInformers.Iam().V1alpha2().Users().Informer().GetIndexer().Add(f.user); err != nil {
-		f.t.Errorf("add user:%s", err)
-	}
-	if err := ksInformers.Iam().V1alpha2().LoginRecords().Informer().GetIndexer().Add(f.loginRecord); err != nil {
-		f.t.Errorf("add login record:%s", err)
-	}
-
-	c := NewLoginRecordController(f.k8sclient, f.ksclient,
-		ksInformers.Iam().V1alpha2().LoginRecords(),
-		ksInformers.Iam().V1alpha2().Users(),
-		time.Minute*5)
-	c.userSynced = alwaysReady
-	c.loginRecordSynced = alwaysReady
-	c.recorder = &record.FakeRecorder{}
-
-	return c, ksInformers, k8sInformers
-}
-
-func (f *fixture) run(userName string) {
-	f.runController(userName, true, false)
-}
-
-func (f *fixture) runExpectError(userName string) {
-	f.runController(userName, true, true)
-}
-
-func (f *fixture) runController(user string, startInformers bool, expectError bool) {
-	c, i, k8sI := f.newController()
-	if startInformers {
-		stopCh := make(chan struct{})
-		defer close(stopCh)
-		i.Start(stopCh)
-		k8sI.Start(stopCh)
-	}
-
-	err := c.reconcile(user)
-	if !expectError && err != nil {
-		f.t.Errorf("error syncing user: %v", err)
-	} else if expectError && err == nil {
-		f.t.Error("expected error syncing user, got nil")
-	}
-
-	actions := filterInformerActions(f.ksclient.Actions())
-	for j, action := range actions {
-		if len(f.actions) < j+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[j:])
-			break
+	By("bootstrapping test environment")
+	t := true
+	if os.Getenv("TEST_USE_EXISTING_CLUSTER") == "true" {
+		testEnv = &envtest.Environment{
+			UseExistingCluster: &t,
 		}
-
-		expectedAction := f.actions[j]
-		checkAction(expectedAction, action, f.t)
-	}
-
-	if len(f.actions) > len(actions) {
-		f.t.Errorf("%d additional expected actions:%+v", len(f.actions)-len(actions), f.actions[len(actions):])
-	}
-
-	k8sActions := filterInformerActions(f.k8sclient.Actions())
-	for k, action := range k8sActions {
-		if len(f.kubeactions) < k+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.kubeactions), k8sActions[k:])
-			break
+	} else {
+		testEnv = &envtest.Environment{
+			CRDDirectoryPaths:        []string{filepath.Join("..", "..", "..", "config", "crds")},
+			AttachControlPlaneOutput: false,
 		}
-
-		expectedAction := f.kubeactions[k]
-		checkAction(expectedAction, action, f.t)
 	}
 
-	if len(f.kubeactions) > len(k8sActions) {
-		f.t.Errorf("%d additional expected actions:%+v", len(f.kubeactions)-len(k8sActions), f.kubeactions[len(k8sActions):])
-	}
-}
+	cfg, err := testEnv.Start()
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cfg).ToNot(BeNil())
 
-// checkAction verifies that expected and actual actions are equal and both have
-// same attached resources
-func checkAction(expected, actual core.Action, t *testing.T) {
-	if !(expected.Matches(actual.GetVerb(), actual.GetResource().Resource) && actual.GetSubresource() == expected.GetSubresource()) {
-		t.Errorf("Expected\n\t%#v\ngot\n\t%#v", expected, actual)
-		//return
-		// TODO : failed sometimes, need to be verified by hongming
-	}
+	err = apis.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
-	if reflect.TypeOf(actual) != reflect.TypeOf(expected) {
-		t.Errorf("Action has wrong type. Expected: %t. Got: %t", expected, actual)
-		return
-	}
+	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
+		Scheme:             scheme.Scheme,
+		MetricsBindAddress: "0",
+	})
+	Expect(err).ToNot(HaveOccurred())
 
-	switch a := actual.(type) {
-	case core.CreateActionImpl:
-		e, _ := expected.(core.CreateActionImpl)
-		expObject := e.GetObject()
-		object := a.GetObject()
-		if !reflect.DeepEqual(expObject, object) {
-			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
-				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
+	k8sClient, err := kubernetes.NewForConfig(cfg)
+	Expect(err).NotTo(HaveOccurred())
+
+	ksClient, err := kubesphere.NewForConfig(cfg)
+	Expect(err).NotTo(HaveOccurred())
+
+	ksInformers := externalversions.NewSharedInformerFactory(ksClient, time.Second*30)
+	Expect(err).NotTo(HaveOccurred())
+
+	loginRecordInformer := ksInformers.Iam().V1alpha2().LoginRecords()
+	userInformer := ksInformers.Iam().V1alpha2().Users()
+
+	loginRecordController := NewLoginRecordController(k8sClient, ksClient, loginRecordInformer, userInformer, time.Hour, 1)
+	err = k8sManager.Add(loginRecordController)
+	Expect(err).NotTo(HaveOccurred())
+
+	go func() {
+		stopChan := ctrl.SetupSignalHandler()
+		ksInformers.Start(stopChan)
+		err = k8sManager.Start(stopChan)
+		Expect(err).ToNot(HaveOccurred())
+	}()
+
+	close(done)
+}, 60)
+
+var _ = Describe("LoginRecord", func() {
+	const timeout = time.Second * 30
+	const interval = time.Second * 1
+
+	BeforeEach(func() {
+		admin := &iamv1alpha2.User{
+			ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 		}
-	case core.UpdateActionImpl:
-		e, _ := expected.(core.UpdateActionImpl)
-		expObject := e.GetObject()
-		object := a.GetObject()
-		expUser := expObject.(*iamv1alpha2.User)
-		user := object.(*iamv1alpha2.User)
-		expUser.Status.LastTransitionTime = nil
-		user.Status.LastTransitionTime = nil
-		if !reflect.DeepEqual(expUser, user) {
-			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
-				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
-		}
-	case core.PatchActionImpl:
-		e, _ := expected.(core.PatchActionImpl)
-		expPatch := e.GetPatch()
-		patch := a.GetPatch()
-		if !reflect.DeepEqual(expPatch, patch) {
-			t.Errorf("Action %s %s has wrong patch\nDiff:\n %s",
-				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expPatch, patch))
-		}
-	default:
-		t.Errorf("Uncaptured Action %s %s, you should explicitly add a case to capture it",
-			actual.GetVerb(), actual.GetResource().Resource)
-	}
-}
+		Expect(k8sManager.GetClient().Create(context.Background(), admin, &client.CreateOptions{})).Should(Succeed())
+	})
 
-// filterInformerActions filters list and watch actions for testing resources.
-// Since list and watch don't change resource state we can filter it to lower
-// nose level in our tests.
-func filterInformerActions(actions []core.Action) []core.Action {
-	var ret []core.Action
-	for _, action := range actions {
-		if len(action.GetNamespace()) == 0 &&
-			(action.Matches("list", "users") ||
-				action.Matches("watch", "users") ||
-				action.Matches("get", "users")) {
-			continue
-		}
-		ret = append(ret, action)
-	}
+	// Add Tests for OpenAPI validation (or additonal CRD features) specified in
+	// your API definition.
+	// Avoid adding tests for vanilla CRUD operations because they would
+	// test Kubernetes API server, which isn't the goal here.
+	Context("LoginRecord Controller", func() {
+		It("Should create successfully", func() {
+			ctx := context.Background()
+			username := "admin"
+			loginRecord := &iamv1alpha2.LoginRecord{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("%s-1", username),
+					Labels: map[string]string{
+						iamv1alpha2.UserReferenceLabel: username,
+					},
+				},
+				Spec: iamv1alpha2.LoginRecordSpec{
+					Type:      iamv1alpha2.Token,
+					Provider:  "",
+					Success:   true,
+					Reason:    iamv1alpha2.AuthenticatedSuccessfully,
+					SourceIP:  "",
+					UserAgent: "",
+				},
+			}
 
-	return ret
-}
+			By("Expecting to create login record successfully")
+			Expect(k8sManager.GetClient().Create(ctx, loginRecord, &client.CreateOptions{})).Should(Succeed())
 
-func (f *fixture) expectUpdateUserStatusAction(user *iamv1alpha2.User) {
-	expect := user.DeepCopy()
-	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
-	action.Subresource = "status"
-	expect.Status.LastLoginTime = &f.loginRecord.CreationTimestamp
-	f.actions = append(f.actions, action)
-}
+			expected := &iamv1alpha2.LoginRecord{}
+			Eventually(func() bool {
+				err := k8sManager.GetClient().Get(ctx, types.NamespacedName{Name: loginRecord.Name}, expected)
+				fmt.Print(err)
+				return !expected.CreationTimestamp.IsZero()
+			}, timeout, interval).Should(BeTrue())
 
-func getKey(user *iamv1alpha2.User, t *testing.T) string {
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(user)
-	if err != nil {
-		t.Errorf("Unexpected error getting key for user %v: %v", user.Name, err)
-		return ""
-	}
-	return key
-}
+			loginRecord.Name = fmt.Sprintf("%s-2", username)
+			loginRecord.ResourceVersion = ""
+			By("Expecting to create login record successfully")
+			Expect(k8sManager.GetClient().Create(ctx, loginRecord, &client.CreateOptions{})).Should(Succeed())
 
-func TestDoNothing(t *testing.T) {
-	f := newFixture(t)
-	user := newUser("test")
-	loginRecord := newLoginRecord("test")
+			Eventually(func() bool {
+				k8sManager.GetClient().Get(ctx, types.NamespacedName{Name: loginRecord.Name}, expected)
+				return !expected.CreationTimestamp.IsZero()
+			}, timeout, interval).Should(BeTrue())
 
-	f.user = user
-	f.loginRecord = loginRecord
-	f.objects = append(f.objects, user, loginRecord)
+			By("Expecting to limit login record successfully")
+			Eventually(func() bool {
+				loginRecordList := &iamv1alpha2.LoginRecordList{}
+				selector := labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: username})
+				k8sManager.GetClient().List(ctx, loginRecordList, &client.ListOptions{LabelSelector: selector})
+				return len(loginRecordList.Items) == 1
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+})
 
-	f.expectUpdateUserStatusAction(user)
-	f.run(getKey(user, t))
-}
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	gexec.KillAndWait(5 * time.Second)
+	err := testEnv.Stop()
+	Expect(err).ToNot(HaveOccurred())
+})

@@ -72,14 +72,14 @@ type handler struct {
 	options               *authoptions.AuthenticationOptions
 	tokenOperator         auth.TokenManagementInterface
 	passwordAuthenticator auth.PasswordAuthenticator
-	oauth2Authenticator   auth.OAuth2Authenticator
+	oauth2Authenticator   auth.OAuthAuthenticator
 	loginRecorder         auth.LoginRecorder
 }
 
 func newHandler(im im.IdentityManagementInterface,
 	tokenOperator auth.TokenManagementInterface,
 	passwordAuthenticator auth.PasswordAuthenticator,
-	oauth2Authenticator auth.OAuth2Authenticator,
+	oauth2Authenticator auth.OAuthAuthenticator,
 	loginRecorder auth.LoginRecorder,
 	options *authoptions.AuthenticationOptions) *handler {
 	return &handler{im: im,
