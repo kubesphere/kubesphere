@@ -297,7 +297,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Writes(auditingv1alpha1.APIResponse{}).
 		Returns(http.StatusOK, api.StatusOK, auditingv1alpha1.APIResponse{}))
 
-	ws.Route(ws.GET("/meterings").
+	ws.Route(ws.GET("/metering").
 		To(handler.QueryMeterings).
 		Doc("Get meterings against the cluster.").
 		Param(ws.QueryParameter("level", "Metering level.").DataType("string").Required(true)).
@@ -326,7 +326,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Writes(monitoring.Metrics{}).
 		Returns(http.StatusOK, api.StatusOK, monitoring.Metrics{}))
 
-	ws.Route(ws.GET("/namespaces/{namespace}/metering_hierarchy").
+	ws.Route(ws.GET("/namespaces/{namespace}/metering/hierarchy").
 		To(handler.QueryMeteringsHierarchy).
 		Param(ws.PathParameter("namespace", "Namespace name.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both workspace CPU usage and memory usage: `meter_pod_cpu_usage|meter_pod_memory_usage_wo_cache`.").DataType("string").Required(false)).
@@ -335,9 +335,9 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Writes(metering.ResourceStatistic{}).
 		Returns(http.StatusOK, api.StatusOK, metering.ResourceStatistic{}))
 
-	ws.Route(ws.GET("/metering/price_info").
+	ws.Route(ws.GET("/metering/price").
 		To(handler.HandlePriceInfoQuery).
-		Doc("Get resoure price info.").
+		Doc("Get resoure price.").
 		Writes(metering.PriceInfo{}).
 		Returns(http.StatusOK, api.StatusOK, metering.PriceInfo{}))
 
