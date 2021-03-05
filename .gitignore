@@ -19,6 +19,7 @@ bin/
 
 # Vscode files
 .vscode/
+__debug_bin
 
 # OSX trash
 .DS_Store

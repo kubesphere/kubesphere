@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-const DefaultResyncPeriod = time.Duration(120) * time.Second
+const DefaultResyncPeriod = 120 * time.Second
 
 type Options struct {
 	// Enable
@@ -79,5 +79,5 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, s *Options) {
 		"This field is used when generating deployment yaml for agent.")
 
 	fs.DurationVar(&o.ClusterControllerResyncSecond, "cluster-controller-resync-second", s.ClusterControllerResyncSecond,
-		"Cluster controller resync second to sync cluster resource.")
+		"Cluster controller resync second to sync cluster resource. e.g. 2m 5m 10m ... default set to 2m")
 }

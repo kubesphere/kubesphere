@@ -7,9 +7,9 @@ webhooks:
   - clientConfig:
       caBundle: <caBundle>
       service:
-        name: kubesphere-controller-manager-service
+        name: ks-controller-manager
         namespace: kubesphere-system
-        path: /validate-nsnp-kubesphere-io-v1alpha1-network
+        path: /validate-network-kubesphere-io-v1alpha1
     failurePolicy: Fail
     name: validate.nsnp.kubesphere.io
     rules:

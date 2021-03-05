@@ -20,6 +20,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/apiserver/pkg/authentication/user"
 	log "k8s.io/klog"
@@ -33,8 +36,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/params"
 	clientDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	"net/http"
-	"strings"
 )
 
 const jenkinsHeaderPre = "X-"
@@ -112,7 +113,8 @@ func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restf
 		} else {
 			pipelineMap[pipeline.Name] = i
 			pipelineList.Items[i] = clientDevOps.Pipeline{
-				Name: pipeline.Name,
+				Name:        pipeline.Name,
+				Annotations: pipeline.Annotations,
 			}
 		}
 	}
@@ -130,7 +132,10 @@ func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restf
 	} else {
 		for i, _ := range res.Items {
 			if index, ok := pipelineMap[res.Items[i].Name]; ok {
+				// keep annotations field of pipelineList
+				annotations := pipelineList.Items[index].Annotations
 				pipelineList.Items[index] = res.Items[i]
+				pipelineList.Items[index].Annotations = annotations
 			}
 		}
 	}

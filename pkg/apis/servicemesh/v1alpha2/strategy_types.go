@@ -31,17 +31,17 @@ const (
 	ResourcePluralStrategy   = "strategies"
 )
 
-type StrategyType string
+type strategyType string
 
 const (
 	// Canary strategy type
-	CanaryType StrategyType = "Canary"
+	CanaryType strategyType = "Canary"
 
 	// BlueGreen strategy type
-	BlueGreenType StrategyType = "BlueGreen"
+	BlueGreenType strategyType = "BlueGreen"
 
 	// Mirror strategy type
-	Mirror StrategyType = "Mirror"
+	Mirror strategyType = "Mirror"
 )
 
 type StrategyPolicy string
@@ -60,7 +60,7 @@ const (
 // StrategySpec defines the desired state of Strategy
 type StrategySpec struct {
 	// Strategy type
-	Type StrategyType `json:"type,omitempty"`
+	Type strategyType `json:"type,omitempty"`
 
 	// Principal version, the one as reference version
 	// label version value

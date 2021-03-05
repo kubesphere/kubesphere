@@ -17,12 +17,15 @@ limitations under the License.
 package application
 
 import (
-	"github.com/onsi/gomega/gexec"
+	"context"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/klogr"
 	"kubesphere.io/kubesphere/pkg/apis"
-	"os"
+	"math/rand"
 	"path/filepath"
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,8 +43,8 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
+var cfg *rest.Config
 var k8sClient client.Client
-var k8sManager ctrl.Manager
 var testEnv *envtest.Environment
 
 func TestApplicationController(t *testing.T) {
@@ -55,44 +58,23 @@ var _ = BeforeSuite(func(done Done) {
 	logf.SetLogger(klogr.New())
 
 	By("bootstrapping test environment")
-	t := true
-	if os.Getenv("TEST_USE_EXISTING_CLUSTER") == "true" {
-		testEnv = &envtest.Environment{
-			UseExistingCluster: &t,
-		}
-	} else {
-		testEnv = &envtest.Environment{
-			CRDDirectoryPaths:        []string{filepath.Join("..", "..", "..", "config", "crds")},
-			AttachControlPlaneOutput: false,
-		}
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths:        []string{filepath.Join("..", "..", "..", "config", "crds")},
+		AttachControlPlaneOutput: false,
 	}
 
-	sch := scheme.Scheme
-	err := appv1beta1.AddToScheme(sch)
-	Expect(err).NotTo(HaveOccurred())
-	err = apis.AddToScheme(sch)
-	Expect(err).NotTo(HaveOccurred())
-
-	cfg, err := testEnv.Start()
+	var err error
+	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             sch,
-		MetricsBindAddress: "0",
-	})
+	err = appv1beta1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = apis.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
-
-	err = Add(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-
-	go func() {
-		err = k8sManager.Start(ctrl.SetupSignalHandler())
-		klog.Error(err)
-		Expect(err).ToNot(HaveOccurred())
-	}()
-
-	k8sClient = k8sManager.GetClient()
 	Expect(k8sClient).ToNot(BeNil())
 
 	close(done)
@@ -100,7 +82,69 @@ var _ = BeforeSuite(func(done Done) {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-	gexec.KillAndWait(5 * time.Second)
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+// SetupTest will setup a testing environment.
+// This includes:
+//  * creating a Namespace to be used during the test
+//  * starting application controller
+//  * stopping application controller after the test ends
+// Call this function at the start of each of your tests.
+func SetupTest(ctx context.Context) *corev1.Namespace {
+	var stopCh chan struct{}
+	ns := &corev1.Namespace{}
+
+	BeforeEach(func() {
+		stopCh = make(chan struct{})
+		*ns = corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: "testns-" + randStringRunes(5)},
+		}
+
+		err := k8sClient.Create(ctx, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a test namespace")
+
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
+		Expect(err).NotTo(HaveOccurred(), "failed to create a manager")
+
+		selector, _ := labels.Parse("app.kubernetes.io/name,!kubesphere.io/creator")
+
+		reconciler := &ApplicationReconciler{
+			Client:              mgr.GetClient(),
+			Scheme:              mgr.GetScheme(),
+			Mapper:              mgr.GetRESTMapper(),
+			ApplicationSelector: selector,
+		}
+		err = reconciler.SetupWithManager(mgr)
+		Expect(err).NotTo(HaveOccurred(), "failed to setup application reconciler")
+
+		go func() {
+			err = mgr.Start(stopCh)
+			Expect(err).NotTo(HaveOccurred(), "failed to start manager")
+		}()
+	})
+
+	AfterEach(func() {
+		close(stopCh)
+
+		err := k8sClient.Delete(ctx, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
+	})
+
+	return ns
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz1234567890")
+
+func randStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}

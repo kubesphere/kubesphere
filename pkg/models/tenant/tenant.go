@@ -39,6 +39,7 @@ import (
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	meteringv1alpha1 "kubesphere.io/kubesphere/pkg/api/metering/v1alpha1"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
+	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
@@ -87,6 +88,10 @@ type Interface interface {
 	ListClusters(info user.Info) (*api.ListResult, error)
 	Metering(user user.Info, queryParam *meteringv1alpha1.Query) (monitoring.Metrics, error)
 	MeteringHierarchy(user user.Info, queryParam *meteringv1alpha1.Query) (metering.ResourceStatistic, error)
+	CreateWorkspaceResourceQuota(workspace string, resourceQuota *quotav1alpha2.ResourceQuota) (*quotav1alpha2.ResourceQuota, error)
+	DeleteWorkspaceResourceQuota(workspace string, resourceQuotaName string) error
+	UpdateWorkspaceResourceQuota(workspace string, resourceQuota *quotav1alpha2.ResourceQuota) (*quotav1alpha2.ResourceQuota, error)
+	DescribeWorkspaceResourceQuota(workspace string, resourceQuotaName string) (*quotav1alpha2.ResourceQuota, error)
 }
 
 type tenantOperator struct {

@@ -31,8 +31,9 @@ type PipelineList struct {
 
 // GetPipeline & SearchPipelines
 type Pipeline struct {
-	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability." `
-	Links struct {
+	Annotations map[string]string `json:"annotations,omitempty" description:"Add annotations from crd" `
+	Class       string            `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability." `
+	Links       struct {
 		Self struct {
 			Class string `json:"_class,omitempty"`
 			Href  string `json:"href,omitempty"`
@@ -503,9 +504,9 @@ type PipelineBranchItem struct {
 	Parameters   []struct {
 		Class                 string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		DefaultParameterValue struct {
-			Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-			Name  string `json:"name,omitempty" description:"name"`
-			Value string `json:"value,omitempty" description:"value"`
+			Class string      `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+			Name  string      `json:"name,omitempty" description:"name"`
+			Value interface{} `json:"value,omitempty" description:"value"`
 		} `json:"defaultParameterValue,omitempty"`
 		Description string `json:"description,omitempty" description:"description"`
 		Name        string `json:"name,omitempty" description:"name"`
@@ -535,8 +536,8 @@ type PipelineBranchItem struct {
 // RunPipeline
 type RunPayload struct {
 	Parameters []struct {
-		Name  string `json:"name,omitempty" description:"name"`
-		Value string `json:"value,omitempty" description:"value"`
+		Name  string      `json:"name,omitempty" description:"name"`
+		Value interface{} `json:"value,omitempty" description:"value"`
 	} `json:"parameters,omitempty"`
 }
 
@@ -1035,8 +1036,8 @@ type ResJson struct {
 						Arguments []struct {
 							Key   string `json:"key,omitempty" description:"key"`
 							Value struct {
-								IsLiteral bool   `json:"isLiteral,omitempty" description:"is literal or not"`
-								Value     string `json:"value,omitempty" description:"value"`
+								IsLiteral bool        `json:"isLiteral,omitempty" description:"is literal or not"`
+								Value     interface{} `json:"value,omitempty" description:"value"`
 							} `json:"value,omitempty"`
 						} `json:"arguments,omitempty"`
 					} `json:"parameters,omitempty"`

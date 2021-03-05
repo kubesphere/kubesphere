@@ -64,12 +64,9 @@ func (im *imOperator) UpdateUser(new *iamv1alpha2.User) (*iamv1alpha2.User, erro
 		klog.Error(err)
 		return nil, err
 	}
-	if old.Annotations == nil {
-		old.Annotations = make(map[string]string, 0)
-	}
 	// keep encrypted password
 	new.Spec.EncryptedPassword = old.Spec.EncryptedPassword
-	updated, err := im.ksClient.IamV1alpha2().Users().Update(context.Background(), old, metav1.UpdateOptions{})
+	updated, err := im.ksClient.IamV1alpha2().Users().Update(context.Background(), new, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Error(err)
 		return nil, err

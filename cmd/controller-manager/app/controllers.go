@@ -253,13 +253,9 @@ func addControllers(
 	}
 
 	var ippoolController manager.Runnable
-	ippoolProvider := ippoolclient.NewProvider(kubernetesInformer.Core().V1().Pods(), client.KubeSphere(), client.Kubernetes(), networkOptions.IPPoolType, options)
+	ippoolProvider := ippoolclient.NewProvider(kubernetesInformer, client.KubeSphere(), client.Kubernetes(), networkOptions.IPPoolType, options)
 	if ippoolProvider != nil {
-		ippoolController = ippool.NewIPPoolController(kubesphereInformer.Network().V1alpha1().IPPools(),
-			kubesphereInformer.Network().V1alpha1().IPAMBlocks(),
-			client.Kubernetes(),
-			client.KubeSphere(),
-			ippoolProvider)
+		ippoolController = ippool.NewIPPoolController(kubesphereInformer, kubernetesInformer, client.Kubernetes(), client.KubeSphere(), ippoolProvider)
 	}
 
 	controllers := map[string]manager.Runnable{
