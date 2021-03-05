@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/emicklei/go-restful"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -37,11 +38,14 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
+	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
+	opclient "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
 type tenantHandler struct {
@@ -50,10 +54,12 @@ type tenantHandler struct {
 
 func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface,
 	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
-	am am.AccessManagementInterface, authorizer authorizer.Authorizer) *tenantHandler {
+	am am.AccessManagementInterface, authorizer authorizer.Authorizer,
+	monitoringclient monitoringclient.Interface, opClient opclient.Client,
+	resourceGetter *resourcev1alpha3.ResourceGetter) *tenantHandler {
 
 	return &tenantHandler{
-		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer),
+		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, opClient, resourceGetter),
 	}
 }
 

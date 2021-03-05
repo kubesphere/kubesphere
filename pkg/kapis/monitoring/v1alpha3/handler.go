@@ -20,14 +20,17 @@ package v1alpha3
 
 import (
 	"errors"
+	"regexp"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/informers"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
+	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"regexp"
 )
 
 type handler struct {
@@ -35,8 +38,8 @@ type handler struct {
 	mo model.MonitoringOperator
 }
 
-func newHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, o openpitrix.Client) *handler {
-	return &handler{k, model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, o)}
+func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, o openpitrix.Client, resourceGetter *resourcev1alpha3.ResourceGetter) *handler {
+	return &handler{k, model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, o, resourceGetter)}
 }
 
 func (h handler) handleKubeSphereMetricsQuery(req *restful.Request, resp *restful.Response) {
@@ -186,6 +189,10 @@ func (h handler) handleNamedMetricsQuery(resp *restful.Response, q queryOptions)
 
 	var metrics []string
 	for _, metric := range q.namedMetrics {
+		if strings.HasPrefix(metric, model.MetricMeterPrefix) {
+			// skip meter metric
+			continue
+		}
 		ok, _ := regexp.MatchString(q.metricFilter, metric)
 		if ok {
 			metrics = append(metrics, metric)

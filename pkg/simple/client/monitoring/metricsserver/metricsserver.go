@@ -445,3 +445,11 @@ func (m metricsServer) GetMetricLabelSet(expr string, start, end time.Time) []ma
 
 	return res
 }
+
+// meter
+func (m metricsServer) GetNamedMeters(meters []string, time time.Time, opts []monitoring.QueryOption) []monitoring.Metric {
+	return nil
+}
+func (m metricsServer) GetNamedMetersOverTime(metrics []string, start, end time.Time, step time.Duration, opts []monitoring.QueryOption) []monitoring.Metric {
+	return nil
+}

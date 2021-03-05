@@ -26,6 +26,8 @@ const (
 	WorkspaceDevopsCount    = "workspace_devops_project_count"
 	WorkspaceMemberCount    = "workspace_member_count"
 	WorkspaceRoleCount      = "workspace_role_count"
+
+	MetricMeterPrefix = "meter_"
 )
 
 var ClusterMetrics = []string{
@@ -78,6 +80,13 @@ var ClusterMetrics = []string{
 	"cluster_load15",
 	"cluster_pod_abnormal_ratio",
 	"cluster_node_offline_ratio",
+
+	// meter
+	"meter_cluster_cpu_usage",
+	"meter_cluster_memory_usage",
+	"meter_cluster_net_bytes_transmitted",
+	"meter_cluster_net_bytes_received",
+	"meter_cluster_pvc_bytes_total",
 }
 
 var NodeMetrics = []string{
@@ -113,6 +122,13 @@ var NodeMetrics = []string{
 	"node_load15",
 	"node_pod_abnormal_ratio",
 	"node_pleg_quantile",
+
+	// meter
+	"meter_node_cpu_usage",
+	"meter_node_memory_usage_wo_cache",
+	"meter_node_net_bytes_transmitted",
+	"meter_node_net_bytes_received",
+	"meter_node_pvc_bytes_total",
 }
 
 var WorkspaceMetrics = []string{
@@ -138,6 +154,13 @@ var WorkspaceMetrics = []string{
 	"workspace_service_count",
 	"workspace_secret_count",
 	"workspace_pod_abnormal_ratio",
+
+	// meter
+	"meter_workspace_cpu_usage",
+	"meter_workspace_memory_usage",
+	"meter_workspace_net_bytes_transmitted",
+	"meter_workspace_net_bytes_received",
+	"meter_workspace_pvc_bytes_total",
 }
 
 var NamespaceMetrics = []string{
@@ -168,6 +191,23 @@ var NamespaceMetrics = []string{
 	"namespace_configmap_count",
 	"namespace_ingresses_extensions_count",
 	"namespace_s2ibuilder_count",
+
+	// meter
+	"meter_namespace_cpu_usage",
+	"meter_namespace_memory_usage_wo_cache",
+	"meter_namespace_net_bytes_transmitted",
+	"meter_namespace_net_bytes_received",
+	"meter_namespace_pvc_bytes_total",
+}
+
+var ApplicationMetrics = []string{
+
+	// meter
+	"meter_application_cpu_usage",
+	"meter_application_memory_usage_wo_cache",
+	"meter_application_net_bytes_transmitted",
+	"meter_application_net_bytes_received",
+	"meter_application_pvc_bytes_total",
 }
 
 var WorkloadMetrics = []string{
@@ -185,6 +225,21 @@ var WorkloadMetrics = []string{
 	"workload_deployment_unavailable_replicas_ratio",
 	"workload_daemonset_unavailable_replicas_ratio",
 	"workload_statefulset_unavailable_replicas_ratio",
+
+	// meter
+	"meter_workload_cpu_usage",
+	"meter_workload_memory_usage_wo_cache",
+	"meter_workload_net_bytes_transmitted",
+	"meter_workload_net_bytes_received",
+	"meter_workload_pvc_bytes_total",
+}
+
+var ServiceMetrics = []string{
+	// meter
+	"meter_service_cpu_usage",
+	"meter_service_memory_usage_wo_cache",
+	"meter_service_net_bytes_transmitted",
+	"meter_service_net_bytes_received",
 }
 
 var PodMetrics = []string{
@@ -193,6 +248,13 @@ var PodMetrics = []string{
 	"pod_memory_usage_wo_cache",
 	"pod_net_bytes_transmitted",
 	"pod_net_bytes_received",
+
+	// meter
+	"meter_pod_cpu_usage",
+	"meter_pod_memory_usage_wo_cache",
+	"meter_pod_net_bytes_transmitted",
+	"meter_pod_net_bytes_received",
+	"meter_pod_pvc_bytes_total",
 }
 
 var ContainerMetrics = []string{
