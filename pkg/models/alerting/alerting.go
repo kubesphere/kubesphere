@@ -665,7 +665,7 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 		}
 	}
 	if len(nameSet) == len(invalids) {
-		return br.Neaten(), nil
+		return br.MakeBulkResponse(), nil
 	}
 
 	// Confirm whether the rules should be added or updated. For each rule that is committed,
@@ -733,7 +733,7 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 			}
 		}
 	}
-	return br.Neaten(), nil
+	return br.MakeBulkResponse(), nil
 }
 
 func (o *operator) DeleteCustomAlertingRules(ctx context.Context, namespace string,
@@ -797,7 +797,7 @@ func (o *operator) DeleteCustomAlertingRules(ctx context.Context, namespace stri
 	}
 	br.Items = append(br.Items, respItems...)
 
-	return br.Neaten(), nil
+	return br.MakeBulkResponse(), nil
 }
 
 // getPrometheusRuler gets the cluster-in prometheus

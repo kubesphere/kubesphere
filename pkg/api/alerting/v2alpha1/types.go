@@ -475,8 +475,8 @@ type BulkResponse struct {
 	Items  []*BulkItemResponse `json:"items" description:"It contains the result of each operation in the bulk request"`
 }
 
-// Neaten neatens the internal items and sets the errors
-func (br *BulkResponse) Neaten() *BulkResponse {
+// MakeBulkResponse tidies the internal items and sets the errors
+func (br *BulkResponse) MakeBulkResponse() *BulkResponse {
 	var (
 		items   []*BulkItemResponse
 		itemMap = make(map[string]*BulkItemResponse)

@@ -157,15 +157,15 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 
 		cursor int // indicates which rule to start adding for the rules with no groups
 
-		rulesNoGroup   []promresourcesv1.Rule                    // rules that do not specify group names
-		rulesWithGroup = make(map[string][]promresourcesv1.Rule) // rules that have specific group names
+		unGroupedRules []promresourcesv1.Rule                    // rules that do not specify group names
+		groupedRules   = make(map[string][]promresourcesv1.Rule) // rules that have specific group names
 	)
 
 	for i, rule := range rules {
 		if len(strings.TrimSpace(rule.Group)) == 0 {
-			rulesNoGroup = append(rulesNoGroup, rules[i].Rule)
+			unGroupedRules = append(unGroupedRules, rules[i].Rule)
 		} else {
-			rulesWithGroup[rule.Group] = append(rulesWithGroup[rule.Group], rules[i].Rule)
+			groupedRules[rule.Group] = append(groupedRules[rule.Group], rules[i].Rule)
 		}
 	}
 
@@ -177,25 +177,25 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 	// For the rules that do not specify group names, add them to the automatically generated groups until the limit is reached.
 	for i, g := range spec.Groups {
 		var (
-			gName         = g.Name
-			doneNoGroup   = cursor >= len(rulesNoGroup) // whether all rules without groups have been added
-			doneWithGroup = len(rulesWithGroup) == 0    // whether all rules with groups have been added
+			gName                 = g.Name
+			unGroupedRulesDrained = cursor >= len(unGroupedRules) // whether all rules without groups have been added
+			groupedRulesDrained   = len(groupedRules) == 0        // whether all rules with groups have been added
 		)
 
-		if doneNoGroup && doneWithGroup {
+		if unGroupedRulesDrained && groupedRulesDrained {
 			break
 		}
 
-		if !doneWithGroup {
-			if _, ok := rulesWithGroup[gName]; ok {
-				spec.Groups[i].Rules = append(spec.Groups[i].Rules, rulesWithGroup[gName]...)
-				delete(rulesWithGroup, gName)
+		if !groupedRulesDrained {
+			if _, ok := groupedRules[gName]; ok {
+				spec.Groups[i].Rules = append(spec.Groups[i].Rules, groupedRules[gName]...)
+				delete(groupedRules, gName)
 				commit = true
 			}
 		}
 
 		g = spec.Groups[i]
-		if !doneNoGroup && strings.HasPrefix(gName, customRuleGroupDefaultPrefix) {
+		if !unGroupedRulesDrained && strings.HasPrefix(gName, customRuleGroupDefaultPrefix) {
 			suf, err := strconv.Atoi(strings.TrimPrefix(gName, customRuleGroupDefaultPrefix))
 			if err != nil {
 				continue
@@ -207,10 +207,10 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 			if size := len(g.Rules); size < customRuleGroupSize {
 				num := customRuleGroupSize - size
 				var stop int
-				if stop = cursor + num; stop > len(rulesNoGroup) {
-					stop = len(rulesNoGroup)
+				if stop = cursor + num; stop > len(unGroupedRules) {
+					stop = len(unGroupedRules)
 				}
-				spec.Groups[i].Rules = append(spec.Groups[i].Rules, rulesNoGroup[cursor:stop]...)
+				spec.Groups[i].Rules = append(spec.Groups[i].Rules, unGroupedRules[cursor:stop]...)
 				cursor = stop
 				commit = true
 			}
@@ -218,8 +218,8 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 	}
 
 	// If no groups are available, new groups will be created to place the remaining rules.
-	for gName := range rulesWithGroup {
-		rules := rulesWithGroup[gName]
+	for gName := range groupedRules {
+		rules := groupedRules[gName]
 		if len(rules) == 0 {
 			continue
 		}
@@ -229,10 +229,10 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 	for groupMax++; cursor < len(rules); groupMax++ {
 		g := promresourcesv1.RuleGroup{Name: fmt.Sprintf("%s%d", customRuleGroupDefaultPrefix, groupMax)}
 		var stop int
-		if stop = cursor + customRuleGroupSize; stop > len(rulesNoGroup) {
-			stop = len(rulesNoGroup)
+		if stop = cursor + customRuleGroupSize; stop > len(unGroupedRules) {
+			stop = len(unGroupedRules)
 		}
-		g.Rules = append(g.Rules, rulesNoGroup[cursor:stop]...)
+		g.Rules = append(g.Rules, unGroupedRules[cursor:stop]...)
 		spec.Groups = append(spec.Groups, g)
 		cursor = stop
 		commit = true
@@ -504,7 +504,7 @@ func (r *ThanosRuler) addAlertingRules(ctx context.Context, ruleNamespace *corev
 			rs   []*RuleWithGroup
 		)
 		// If adding the rules to the new resource exceeds the limit,
-		// reduce the amount to 1/2, 1/3... of rest rules until it can accommodate.
+		// reduce the amount to 1/2, 1/3... of rest rules until the new resource can accommodate.
 		for i := 1; ; i++ {
 			stop = cursor + num/i
 			rs = rules[cursor:stop]
@@ -546,11 +546,11 @@ func (r *ThanosRuler) UpdateAlertingRules(ctx context.Context, ruleNamespace *co
 		itemsMap  = make(map[string][]*ResourceRuleItem)
 		respItems = make([]*v2alpha1.BulkItemResponse, 0, len(ruleItems))
 		// rules updated successfully. The key is the rule name.
-		successes = make(map[string]struct{})
-		// rules to be moved to other resources. The key is the resource name in which the rules were.
-		moveMap = make(map[string][]*ResourceRuleItem)
+		rulesUpdated = make(map[string]struct{})
+		// rules to be moved to other resources. The key is the resource name in which the rules reside.
+		rulesToMove = make(map[string][]*ResourceRuleItem)
 		// duplicate rules to be deleted
-		delMap = make(map[string][]*ResourceRuleItem)
+		rulesToDelete = make(map[string][]*ResourceRuleItem)
 	)
 
 	for i, item := range ruleItems {
@@ -569,8 +569,8 @@ func (r *ThanosRuler) UpdateAlertingRules(ctx context.Context, ruleNamespace *co
 
 		for i := range items {
 			item := items[i]
-			if _, ok := successes[item.Alert]; ok {
-				delMap[name] = append(delMap[name], item)
+			if _, ok := rulesUpdated[item.Alert]; ok {
+				rulesToDelete[name] = append(rulesToDelete[name], item)
 				continue
 			}
 			nrules = append(nrules, &item.RuleWithGroup)
@@ -595,11 +595,11 @@ func (r *ThanosRuler) UpdateAlertingRules(ctx context.Context, ruleNamespace *co
 		switch {
 		case err == nil:
 			for _, item := range items {
-				successes[item.Alert] = struct{}{}
+				rulesUpdated[item.Alert] = struct{}{}
 				respItems = append(respItems, v2alpha1.NewBulkItemSuccessResponse(item.Alert, v2alpha1.ResultUpdated))
 			}
 		case err == errOutOfConfigMapSize: // Cannot update the rules in the original resource
-			moveMap[name] = append(moveMap[name], nitems...)
+			rulesToMove[name] = append(rulesToMove[name], nitems...)
 		case resourceNotFound(err):
 			for _, item := range items {
 				respItems = append(respItems, &v2alpha1.BulkItemResponse{
@@ -616,9 +616,9 @@ func (r *ThanosRuler) UpdateAlertingRules(ctx context.Context, ruleNamespace *co
 	}
 
 	// The move here is not really move, because the move also requires an update.
-	// So the actual operations are firstly add the new rules in other resources
-	// and then delete the old rules in old resources.
-	for name, items := range moveMap {
+	// What really happens is that the new rules will be added in other resources first,
+	// and then the old rules will be deleted from the original resources.
+	for name, items := range rulesToMove {
 		var (
 			nrules = make([]*RuleWithGroup, 0, len(items))
 			nitems = make(map[string]*ResourceRuleItem, len(items))
@@ -646,7 +646,7 @@ func (r *ThanosRuler) UpdateAlertingRules(ctx context.Context, ruleNamespace *co
 			switch resp.Status {
 			case v2alpha1.StatusSuccess:
 				if item, ok := nitems[resp.RuleName]; ok {
-					delMap[name] = append(delMap[name], item)
+					rulesToDelete[name] = append(rulesToDelete[name], item)
 				}
 			default:
 				respItems = append(respItems, resp)
@@ -654,7 +654,7 @@ func (r *ThanosRuler) UpdateAlertingRules(ctx context.Context, ruleNamespace *co
 		}
 	}
 
-	for _, items := range delMap {
+	for _, items := range rulesToDelete {
 		dRespItems, err := r.DeleteAlertingRules(ctx, ruleNamespace, items...)
 		if err != nil {
 			for _, item := range items {
