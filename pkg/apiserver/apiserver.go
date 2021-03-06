@@ -242,10 +242,11 @@ func (s *APIServer) installKubeSphereAPIs() {
 			s.KubernetesClient.KubeSphere(),
 			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
 			s.Config.AuthenticationOptions),
-		auth.NewOAuth2Authenticator(s.KubernetesClient.KubeSphere(),
-			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
+		auth.NewOAuthAuthenticator(s.KubernetesClient.KubeSphere(),
+			s.InformerFactory.KubeSphereSharedInformerFactory(),
 			s.Config.AuthenticationOptions),
-		auth.NewLoginRecorder(s.KubernetesClient.KubeSphere()),
+		auth.NewLoginRecorder(s.KubernetesClient.KubeSphere(),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister()),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
@@ -342,7 +343,8 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
 	}
 
-	loginRecorder := auth.NewLoginRecorder(s.KubernetesClient.KubeSphere())
+	loginRecorder := auth.NewLoginRecorder(s.KubernetesClient.KubeSphere(),
+		s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister())
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
 		basictoken.New(basic.NewBasicAuthenticator(auth.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(),

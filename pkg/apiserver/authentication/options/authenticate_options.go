@@ -17,7 +17,7 @@ limitations under the License.
 package options
 
 import (
-	"fmt"
+	"errors"
 	"github.com/spf13/pflag"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/aliyunidaas"
@@ -42,6 +42,9 @@ type AuthenticationOptions struct {
 	MaximumClockSkew time.Duration `json:"maximumClockSkew" yaml:"maximumClockSkew"`
 	// retention login history, records beyond this amount will be deleted
 	LoginHistoryRetentionPeriod time.Duration `json:"loginHistoryRetentionPeriod" yaml:"loginHistoryRetentionPeriod"`
+	// retention login history, records beyond this amount will be deleted
+	// LoginHistoryMaximumEntries restricts for all kubesphere accounts and must be greater than AuthenticateRateLimiterMaxTries
+	LoginHistoryMaximumEntries int `json:"loginHistoryMaximumEntries" yaml:"loginHistoryMaximumEntries"`
 	// allow multiple users login from different location at the same time
 	MultipleLogin bool `json:"multipleLogin" yaml:"multipleLogin"`
 	// secret to sign jwt token
@@ -58,6 +61,7 @@ func NewAuthenticateOptions() *AuthenticationOptions {
 		AuthenticateRateLimiterDuration: time.Minute * 30,
 		MaximumClockSkew:                10 * time.Second,
 		LoginHistoryRetentionPeriod:     time.Hour * 24 * 7,
+		LoginHistoryMaximumEntries:      100,
 		OAuthOptions:                    oauth.NewOptions(),
 		MultipleLogin:                   false,
 		JwtSecret:                       "",
@@ -68,7 +72,10 @@ func NewAuthenticateOptions() *AuthenticationOptions {
 func (options *AuthenticationOptions) Validate() []error {
 	var errs []error
 	if len(options.JwtSecret) == 0 {
-		errs = append(errs, fmt.Errorf("jwt secret is empty"))
+		errs = append(errs, errors.New("JWT secret MUST not be empty"))
+	}
+	if options.AuthenticateRateLimiterMaxTries > options.LoginHistoryMaximumEntries {
+		errs = append(errs, errors.New("authenticateRateLimiterMaxTries MUST not be greater than loginHistoryMaximumEntries"))
 	}
 	if err := identityprovider.SetupWithOptions(options.OAuthOptions.IdentityProviders); err != nil {
 		errs = append(errs, err)
@@ -82,6 +89,7 @@ func (options *AuthenticationOptions) AddFlags(fs *pflag.FlagSet, s *Authenticat
 	fs.BoolVar(&options.MultipleLogin, "multiple-login", s.MultipleLogin, "Allow multiple login with the same account, disable means only one user can login at the same time.")
 	fs.StringVar(&options.JwtSecret, "jwt-secret", s.JwtSecret, "Secret to sign jwt token, must not be empty.")
 	fs.DurationVar(&options.LoginHistoryRetentionPeriod, "login-history-retention-period", s.LoginHistoryRetentionPeriod, "login-history-retention-period defines how long login history should be kept.")
+	fs.IntVar(&options.LoginHistoryMaximumEntries, "login-history-maximum-entries", s.LoginHistoryMaximumEntries, "login-history-maximum-entries defines how many entries of login history should be kept.")
 	fs.DurationVar(&options.OAuthOptions.AccessTokenMaxAge, "access-token-max-age", s.OAuthOptions.AccessTokenMaxAge, "access-token-max-age control the lifetime of access tokens, 0 means no expiration.")
 	fs.StringVar(&s.KubectlImage, "kubectl-image", s.KubectlImage, "Setup the image used by kubectl terminal pod")
 	fs.DurationVar(&options.MaximumClockSkew, "maximum-clock-skew", s.MaximumClockSkew, "The maximum time difference between the system clocks of the ks-apiserver that issued a JWT and the ks-apiserver that verified the JWT.")

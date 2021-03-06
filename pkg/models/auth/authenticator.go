@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
+	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"net/mail"
 
@@ -46,7 +47,7 @@ type PasswordAuthenticator interface {
 	Authenticate(username, password string) (authuser.Info, string, error)
 }
 
-type OAuth2Authenticator interface {
+type OAuthAuthenticator interface {
 	Authenticate(provider, code string) (authuser.Info, string, error)
 }
 
@@ -77,12 +78,12 @@ func NewPasswordAuthenticator(ksClient kubesphere.Interface,
 	return passwordAuthenticator
 }
 
-func NewOAuth2Authenticator(ksClient kubesphere.Interface,
-	userLister iamv1alpha2listers.UserLister,
-	options *authoptions.AuthenticationOptions) OAuth2Authenticator {
+func NewOAuthAuthenticator(ksClient kubesphere.Interface,
+	ksInformer informers.SharedInformerFactory,
+	options *authoptions.AuthenticationOptions) OAuthAuthenticator {
 	oauth2Authenticator := &oauth2Authenticator{
 		ksClient:    ksClient,
-		userGetter:  &userGetter{userLister: userLister},
+		userGetter:  &userGetter{userLister: ksInformer.Iam().V1alpha2().Users().Lister()},
 		authOptions: options,
 	}
 	return oauth2Authenticator

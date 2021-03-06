@@ -43,7 +43,7 @@ var k8sClient client.Client
 var k8sManager ctrl.Manager
 var testEnv *envtest.Environment
 
-func TestMain(t *testing.T) {
+func TestServiceAccountController(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"ServiceAccount Controller Test Suite",

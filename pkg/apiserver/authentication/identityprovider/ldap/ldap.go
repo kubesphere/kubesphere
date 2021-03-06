@@ -126,7 +126,10 @@ func (l ldapProvider) Authenticate(username string, password string) (identitypr
 		return nil, err
 	}
 
-	filter := fmt.Sprintf("(&(%s=%s)%s)", l.LoginAttribute, username, l.UserSearchFilter)
+	filter := fmt.Sprintf("(%s=%s)", l.LoginAttribute, ldap.EscapeFilter(username))
+	if l.UserSearchFilter != "" {
+		filter = fmt.Sprintf("(&%s%s)", filter, l.UserSearchFilter)
+	}
 	result, err := conn.Search(&ldap.SearchRequest{
 		BaseDN:       l.UserSearchBase,
 		Scope:        ldap.ScopeWholeSubtree,
