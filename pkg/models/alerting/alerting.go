@@ -22,14 +22,9 @@ import (
 )
 
 const (
-	rulerNamespace                  = constants.KubeSphereMonitoringNamespace
-	customRuleGroupDefault          = "alerting.custom.defaults"
-	customRuleResourceLabelKeyLevel = "custom-alerting-rule-level"
-)
+	rulerNamespace = constants.KubeSphereMonitoringNamespace
 
-var (
-	maxSecretSize        = corev1.MaxSecretSize
-	maxConfigMapDataSize = int(float64(maxSecretSize) * 0.45)
+	customRuleResourceLabelKeyLevel = "custom-alerting-rule-level"
 )
 
 // Operator contains all operations to alerting rules. The operations may involve manipulations of prometheusrule
@@ -56,6 +51,11 @@ type Operator interface {
 	UpdateCustomAlertingRule(ctx context.Context, namespace, ruleName string, rule *v2alpha1.PostableAlertingRule) error
 	// DeleteCustomAlertingRule deletes the custom alerting rule with the given name.
 	DeleteCustomAlertingRule(ctx context.Context, namespace, ruleName string) error
+
+	// CreateOrUpdateCustomAlertingRules creates or updates custom alerting rules in bulk.
+	CreateOrUpdateCustomAlertingRules(ctx context.Context, namespace string, rs []*v2alpha1.PostableAlertingRule) (*v2alpha1.BulkResponse, error)
+	// DeleteCustomAlertingRules deletes a batch of custom alerting rules.
+	DeleteCustomAlertingRules(ctx context.Context, namespace string, ruleNames []string) (*v2alpha1.BulkResponse, error)
 
 	// ListBuiltinAlertingRules lists the builtin(non-custom) alerting rules
 	ListBuiltinAlertingRules(ctx context.Context,
@@ -241,40 +241,6 @@ func (o *operator) ListBuiltinRuleAlerts(ctx context.Context, ruleId string) (*v
 	}, nil
 }
 
-func (o *operator) ListClusterAlertingRules(ctx context.Context, customFlag string,
-	queryParams *v2alpha1.AlertingRuleQueryParams) (*v2alpha1.GettableAlertingRuleList, error) {
-
-	namespace := rulerNamespace
-	ruleNamespace, err := o.namespaceInformer.Lister().Get(namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	alertingRules, err := o.listCustomAlertingRules(ctx, ruleNamespace, v2alpha1.RuleLevelCluster)
-	if err != nil {
-		return nil, err
-	}
-
-	return pageAlertingRules(alertingRules, queryParams), nil
-}
-
-func (o *operator) ListClusterRulesAlerts(ctx context.Context,
-	queryParams *v2alpha1.AlertQueryParams) (*v2alpha1.AlertList, error) {
-
-	namespace := rulerNamespace
-	ruleNamespace, err := o.namespaceInformer.Lister().Get(namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	alertingRules, err := o.listCustomAlertingRules(ctx, ruleNamespace, v2alpha1.RuleLevelCluster)
-	if err != nil {
-		return nil, err
-	}
-
-	return pageAlerts(alertingRules, queryParams), nil
-}
-
 func (o *operator) listCustomAlertingRules(ctx context.Context, ruleNamespace *corev1.Namespace,
 	level v2alpha1.RuleLevel) ([]*v2alpha1.GettableAlertingRule, error) {
 
@@ -290,6 +256,10 @@ func (o *operator) listCustomAlertingRules(ctx context.Context, ruleNamespace *c
 		labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)}))
 	if err != nil {
 		return nil, err
+	}
+
+	if len(resourceRulesMap) == 0 {
+		return nil, nil
 	}
 
 	ruleGroups, err := o.ruleClient.ThanosRules(ctx)
@@ -473,8 +443,20 @@ func (o *operator) CreateCustomAlertingRule(ctx context.Context, namespace strin
 
 	setRuleUpdateTime(rule, time.Now())
 
-	return ruler.AddAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector,
-		customRuleGroupDefault, parseToPrometheusRule(rule), ruleResourceLabels)
+	respItems, err := ruler.AddAlertingRules(ctx, ruleNamespace, extraRuleResourceSelector,
+		ruleResourceLabels, &rules.RuleWithGroup{Rule: *parseToPrometheusRule(rule)})
+	if err != nil {
+		return err
+	}
+	for _, item := range respItems {
+		if item.Status == v2alpha1.StatusError {
+			if item.ErrorType == v2alpha1.ErrNotFound {
+				return v2alpha1.ErrAlertingRuleNotFound
+			}
+			return item.Error
+		}
+	}
+	return nil
 }
 
 func (o *operator) UpdateCustomAlertingRule(ctx context.Context, namespace, name string,
@@ -526,8 +508,21 @@ func (o *operator) UpdateCustomAlertingRule(ctx context.Context, namespace, name
 
 	setRuleUpdateTime(rule, time.Now())
 
-	return ruler.UpdateAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector,
-		resourceRule.Group, parseToPrometheusRule(rule), ruleResourceLabels)
+	respItems, err := ruler.UpdateAlertingRules(ctx, ruleNamespace, extraRuleResourceSelector, ruleResourceLabels,
+		&rules.ResourceRuleItem{ResourceName: resourceRule.ResourceName,
+			RuleWithGroup: rules.RuleWithGroup{Group: resourceRule.Group, Rule: *parseToPrometheusRule(rule)}})
+	if err != nil {
+		return err
+	}
+	for _, item := range respItems {
+		if item.Status == v2alpha1.StatusError {
+			if item.ErrorType == v2alpha1.ErrNotFound {
+				return v2alpha1.ErrAlertingRuleNotFound
+			}
+			return item.Error
+		}
+	}
+	return nil
 }
 
 func (o *operator) DeleteCustomAlertingRule(ctx context.Context, namespace, name string) error {
@@ -555,15 +550,254 @@ func (o *operator) DeleteCustomAlertingRule(ctx context.Context, namespace, name
 	}
 
 	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)})
-	resourceRule, err := o.resourceRuleCache.GetRule(ruler, ruleNamespace, extraRuleResourceSelector, name)
+	resourceRules, err := o.resourceRuleCache.GetRuleByIdOrName(ruler, ruleNamespace, extraRuleResourceSelector, name)
 	if err != nil {
 		return err
 	}
-	if resourceRule == nil {
+	if len(resourceRules) == 0 {
 		return v2alpha1.ErrAlertingRuleNotFound
 	}
 
-	return ruler.DeleteAlertingRule(ctx, ruleNamespace, extraRuleResourceSelector, resourceRule.Group, name)
+	respItems, err := ruler.DeleteAlertingRules(ctx, ruleNamespace, resourceRules...)
+	if err != nil {
+		return err
+	}
+	for _, item := range respItems {
+		if item.Status == v2alpha1.StatusError {
+			if item.ErrorType == v2alpha1.ErrNotFound {
+				return v2alpha1.ErrAlertingRuleNotFound
+			}
+			return item.Error
+		}
+	}
+	return nil
+}
+
+func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namespace string,
+	rs []*v2alpha1.PostableAlertingRule) (*v2alpha1.BulkResponse, error) {
+
+	if l := len(rs); l == 0 {
+		return &v2alpha1.BulkResponse{}, nil
+	}
+
+	ruler, err := o.getThanosRuler()
+	if err != nil {
+		return nil, err
+	}
+	if ruler == nil {
+		return nil, v2alpha1.ErrThanosRulerNotEnabled
+	}
+
+	var (
+		level              v2alpha1.RuleLevel
+		ruleResourceLabels = make(map[string]string)
+	)
+	for k, v := range o.thanosRuleResourceLabels {
+		ruleResourceLabels[k] = v
+	}
+	if namespace == "" {
+		namespace = rulerNamespace
+		level = v2alpha1.RuleLevelCluster
+	} else {
+		level = v2alpha1.RuleLevelNamespace
+	}
+	ruleResourceLabels[customRuleResourceLabelKeyLevel] = string(level)
+	ruleNamespace, err := o.namespaceInformer.Lister().Get(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)})
+
+	resourceRulesMap, err := o.resourceRuleCache.ListRules(ruler, ruleNamespace, extraRuleResourceSelector)
+	if err != nil {
+		return nil, err
+	}
+	exists := make(map[string][]*rules.ResourceRuleItem)
+	for _, c := range resourceRulesMap {
+		for n, items := range c.NameRules {
+			exists[n] = append(exists[n], items...)
+		}
+	}
+
+	// check all the rules
+	var (
+		br       = &v2alpha1.BulkResponse{}
+		nameSet  = make(map[string]struct{})
+		invalids = make(map[string]struct{})
+	)
+	for i := range rs {
+		var (
+			r    = rs[i]
+			name = r.Name
+		)
+
+		if _, ok := nameSet[name]; ok {
+			br.Items = append(br.Items, &v2alpha1.BulkItemResponse{
+				RuleName:  name,
+				Status:    v2alpha1.StatusError,
+				ErrorType: v2alpha1.ErrDuplicateName,
+				Error:     errors.Errorf("There is more than one rule named %s in the bulk request", name),
+			})
+			invalids[name] = struct{}{}
+			continue
+		} else {
+			nameSet[name] = struct{}{}
+		}
+		if err := r.Validate(); err != nil {
+			br.Items = append(br.Items, &v2alpha1.BulkItemResponse{
+				RuleName:  name,
+				Status:    v2alpha1.StatusError,
+				ErrorType: v2alpha1.ErrBadData,
+				Error:     err,
+			})
+			invalids[name] = struct{}{}
+			continue
+		}
+		if level == v2alpha1.RuleLevelNamespace {
+			expr, err := rules.InjectExprNamespaceLabel(r.Query, namespace)
+			if err != nil {
+				br.Items = append(br.Items, v2alpha1.NewBulkItemErrorServerResponse(name, err))
+				invalids[name] = struct{}{}
+				continue
+			}
+			r.Query = expr
+		}
+	}
+	if len(nameSet) == len(invalids) {
+		return br.MakeBulkResponse(), nil
+	}
+
+	// Confirm whether the rules should be added or updated. For each rule that is committed,
+	// it will be added if the rule does not exist, or updated otherwise.
+	// If there are rules with the same name in the existing rules to update, the first will be
+	// updated but the others will be deleted
+	var (
+		addRules []*rules.RuleWithGroup
+		updRules []*rules.ResourceRuleItem
+		delRules []*rules.ResourceRuleItem // duplicate rules that need to deleted in other resources
+
+		updateTime = time.Now()
+	)
+	for i := range rs {
+		r := rs[i]
+		if _, ok := invalids[r.Name]; ok {
+			continue
+		}
+		setRuleUpdateTime(r, updateTime)
+		if items, ok := exists[r.Name]; ok && len(items) > 0 {
+			item := items[0]
+			updRules = append(updRules, &rules.ResourceRuleItem{
+				ResourceName:  item.ResourceName,
+				RuleWithGroup: rules.RuleWithGroup{Group: item.Group, Rule: *parseToPrometheusRule(r)}})
+			if len(items) > 1 {
+				for j := 1; j < len(items); j++ {
+					if items[j].ResourceName != item.ResourceName {
+						delRules = append(delRules, items[j])
+					}
+				}
+			}
+		} else {
+			addRules = append(addRules, &rules.RuleWithGroup{Rule: *parseToPrometheusRule(r)})
+		}
+	}
+
+	// add rules
+	if len(addRules) > 0 {
+		resps, err := ruler.AddAlertingRules(ctx, ruleNamespace, extraRuleResourceSelector, ruleResourceLabels, addRules...)
+		if err == nil {
+			br.Items = append(br.Items, resps...)
+		} else {
+			for _, rule := range addRules {
+				br.Items = append(br.Items, v2alpha1.NewBulkItemErrorServerResponse(rule.Alert, err))
+			}
+		}
+	}
+	// update existing rules
+	if len(updRules) > 0 {
+		resps, err := ruler.UpdateAlertingRules(ctx, ruleNamespace, extraRuleResourceSelector, ruleResourceLabels, updRules...)
+		if err == nil {
+			br.Items = append(br.Items, resps...)
+		} else {
+			for _, rule := range updRules {
+				br.Items = append(br.Items, v2alpha1.NewBulkItemErrorServerResponse(rule.Alert, err))
+			}
+		}
+	}
+	// delete possible duplicate rules
+	if len(delRules) > 0 {
+		_, err := ruler.DeleteAlertingRules(ctx, ruleNamespace, delRules...)
+		if err != nil {
+			for _, rule := range delRules {
+				br.Items = append(br.Items, v2alpha1.NewBulkItemErrorServerResponse(rule.Alert, err))
+			}
+		}
+	}
+	return br.MakeBulkResponse(), nil
+}
+
+func (o *operator) DeleteCustomAlertingRules(ctx context.Context, namespace string,
+	names []string) (*v2alpha1.BulkResponse, error) {
+
+	if l := len(names); l == 0 {
+		return &v2alpha1.BulkResponse{}, nil
+	}
+
+	ruler, err := o.getThanosRuler()
+	if err != nil {
+		return nil, err
+	}
+	if ruler == nil {
+		return nil, v2alpha1.ErrThanosRulerNotEnabled
+	}
+
+	var (
+		level v2alpha1.RuleLevel
+	)
+	if namespace == "" {
+		namespace = rulerNamespace
+		level = v2alpha1.RuleLevelCluster
+	} else {
+		level = v2alpha1.RuleLevelNamespace
+	}
+	ruleNamespace, err := o.namespaceInformer.Lister().Get(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)})
+	resourceRulesMap, err := o.resourceRuleCache.ListRules(ruler, ruleNamespace, extraRuleResourceSelector)
+	if err != nil {
+		return nil, err
+	}
+	exists := make(map[string][]*rules.ResourceRuleItem)
+	for _, c := range resourceRulesMap {
+		for n, items := range c.NameRules {
+			exists[n] = append(exists[n], items...)
+		}
+	}
+
+	br := &v2alpha1.BulkResponse{}
+	var ruleItems []*rules.ResourceRuleItem
+	for _, n := range names {
+		if items, ok := exists[n]; ok {
+			ruleItems = append(ruleItems, items...)
+		} else {
+			br.Items = append(br.Items, &v2alpha1.BulkItemResponse{
+				RuleName:  n,
+				Status:    v2alpha1.StatusError,
+				ErrorType: v2alpha1.ErrNotFound,
+			})
+		}
+	}
+
+	respItems, err := ruler.DeleteAlertingRules(ctx, ruleNamespace, ruleItems...)
+	if err != nil {
+		return nil, err
+	}
+	br.Items = append(br.Items, respItems...)
+
+	return br.MakeBulkResponse(), nil
 }
 
 // getPrometheusRuler gets the cluster-in prometheus
@@ -603,6 +837,9 @@ func (o *operator) getThanosRuler() (rules.Ruler, error) {
 }
 
 func parseToPrometheusRule(rule *v2alpha1.PostableAlertingRule) *promresourcesv1.Rule {
+	if _, ok := rule.Labels[rules.LabelKeyAlertType]; !ok {
+		rule.Labels[rules.LabelKeyAlertType] = rules.LabelValueAlertType
+	}
 	return &promresourcesv1.Rule{
 		Alert:       rule.Name,
 		Expr:        intstr.FromString(rule.Query),

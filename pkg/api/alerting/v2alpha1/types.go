@@ -18,6 +18,7 @@ package v2alpha1
 
 import (
 	"context"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -47,6 +48,8 @@ var (
 
 	templateTestData       = template.AlertTemplateData(map[string]string{}, map[string]string{}, 0)
 	templateTestTextPrefix = "{{$labels := .Labels}}{{$externalLabels := .ExternalLabels}}{{$value := .Value}}"
+
+	ruleNameMatcher = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 )
 
 type RuleLevel string
@@ -70,6 +73,10 @@ func (r *PostableAlertingRule) Validate() error {
 
 	if r.Name == "" {
 		errs = append(errs, errors.New("name can not be empty"))
+	} else {
+		if !ruleNameMatcher.MatchString(r.Name) {
+			errs = append(errs, errors.New("rule name must match regular expression ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"))
+		}
 	}
 
 	if r.Query == "" {
@@ -441,4 +448,81 @@ func parseLabelFilters(req *restful.Request) (map[string]string, map[string]stri
 		}
 	}
 	return labelEqualFilters, labelContainFilters
+}
+
+const (
+	ErrBadData       ErrorType = "bad_data"
+	ErrDuplicateName ErrorType = "duplicate_name"
+	ErrNotFound      ErrorType = "not_found"
+	ErrServer        ErrorType = "server_error"
+
+	StatusSuccess Status = "success"
+	StatusError   Status = "error"
+
+	ResultCreated Result = "created"
+	ResultUpdated Result = "updated"
+	ResultDeleted Result = "deleted"
+)
+
+type Status string
+
+type ErrorType string
+
+type Result string
+
+type BulkResponse struct {
+	Errors bool                `json:"errors" description:"If true, one or more operations in the bulk request don't complete successfully"`
+	Items  []*BulkItemResponse `json:"items" description:"It contains the result of each operation in the bulk request"`
+}
+
+// MakeBulkResponse tidies the internal items and sets the errors
+func (br *BulkResponse) MakeBulkResponse() *BulkResponse {
+	var (
+		items   []*BulkItemResponse
+		itemMap = make(map[string]*BulkItemResponse)
+	)
+	for i, item := range br.Items {
+		if item.Status == StatusError {
+			br.Errors = true
+		}
+		pitem, ok := itemMap[item.RuleName]
+		if !ok || (pitem.Status == StatusSuccess || item.Status == StatusError) {
+			itemMap[item.RuleName] = br.Items[i]
+		}
+	}
+	for k := range itemMap {
+		item := itemMap[k]
+		if item.Error != nil {
+			item.ErrorStr = item.Error.Error()
+		}
+		items = append(items, itemMap[k])
+	}
+	br.Items = items
+	return br
+}
+
+type BulkItemResponse struct {
+	RuleName  string    `json:"ruleName,omitempty"`
+	Status    Status    `json:"status,omitempty" description:"It may be success or error"`
+	Result    Result    `json:"result,omitempty" description:"It may be created, updated or deleted, and only for successful operations"`
+	ErrorType ErrorType `json:"errorType,omitempty" description:"It may be bad_data, duplicate_name, not_found or server_error, and only for failed operations"`
+	Error     error     `json:"-"`
+	ErrorStr  string    `json:"error,omitempty" description:"It is only returned for failed operations"`
+}
+
+func NewBulkItemSuccessResponse(ruleName string, result Result) *BulkItemResponse {
+	return &BulkItemResponse{
+		RuleName: ruleName,
+		Status:   StatusSuccess,
+		Result:   result,
+	}
+}
+
+func NewBulkItemErrorServerResponse(ruleName string, err error) *BulkItemResponse {
+	return &BulkItemResponse{
+		RuleName:  ruleName,
+		Status:    StatusError,
+		ErrorType: ErrServer,
+		Error:     err,
+	}
 }

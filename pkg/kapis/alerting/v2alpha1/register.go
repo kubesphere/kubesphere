@@ -102,6 +102,20 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Returns(http.StatusOK, ksapi.StatusOK, nil).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
+	ws.Route(ws.DELETE("/rules").
+		To(handler.handleDeleteCustomAlertingRules).
+		Doc("delete multiple cluster-level custom alerting rules").
+		Param(ws.QueryParameter("name", "rule name").CollectionFormat(restful.CollectionFormatMulti).AllowMultiple(true)).
+		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.BulkResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
+
+	ws.Route(ws.POST("/bulkrules").
+		To(handler.handleCreateOrUpdateCustomAlertingRules).
+		Doc("create or update cluster-level custom alerting rules in bulk").
+		Reads([]alertingv2alpha1.PostableAlertingRule{}).
+		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.BulkResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
+
 	ws.Route(ws.PUT("/rules/{rule_name}").
 		To(handler.handleUpdateCustomAlertingRule).
 		Doc("update the cluster-level custom alerting rule with the specified name").
@@ -151,11 +165,25 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.AlertList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
+	ws.Route(ws.DELETE("/namespaces/{namespace}/rules").
+		To(handler.handleDeleteCustomAlertingRules).
+		Doc("delete multiple custom alerting rules in the specified namespace").
+		Param(ws.QueryParameter("name", "rule name").CollectionFormat(restful.CollectionFormatMulti).AllowMultiple(true)).
+		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.BulkResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
+
 	ws.Route(ws.POST("/namespaces/{namespace}/rules").
 		To(handler.handleCreateCustomAlertingRule).
 		Doc("create a custom alerting rule in the specified namespace").
 		Reads(alertingv2alpha1.PostableAlertingRule{}).
 		Returns(http.StatusOK, ksapi.StatusOK, "").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
+
+	ws.Route(ws.POST("/namespaces/{namespace}/bulkrules").
+		To(handler.handleCreateOrUpdateCustomAlertingRules).
+		Doc("create or update custom alerting rules in bulk in the specified namespace").
+		Reads([]alertingv2alpha1.PostableAlertingRule{}).
+		Returns(http.StatusOK, ksapi.StatusOK, alertingv2alpha1.BulkResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
 	ws.Route(ws.PUT("/namespaces/{namespace}/rules/{rule_name}").

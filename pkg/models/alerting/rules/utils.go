@@ -28,6 +28,9 @@ const (
 
 	LabelKeyThanosRulerReplica = "thanos_ruler_replica"
 	LabelKeyPrometheusReplica  = "prometheus_replica"
+
+	LabelKeyAlertType   = "alerttype"
+	LabelValueAlertType = "metric"
 )
 
 func FormatExpr(expr string) (string, error) {
@@ -208,7 +211,7 @@ func GetAlertingRulesStatus(ruleNamespace string, ruleChunk *ResourceRuleChunk, 
 func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroups []*alerting.RuleGroup,
 	extLabels func() map[string]string) (*v2alpha1.GettableAlertingRule, error) {
 
-	if rule == nil || rule.Rule == nil {
+	if rule == nil || rule.Alert == "" {
 		return nil, nil
 	}
 
@@ -257,7 +260,7 @@ func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroup
 func getAlertingRuleStatus(resRule *ResourceRuleItem, epRule *alerting.AlertingRule,
 	custom bool, level v2alpha1.RuleLevel) *v2alpha1.GettableAlertingRule {
 
-	if resRule == nil || resRule.Rule == nil {
+	if resRule == nil || resRule.Alert == "" {
 		return nil
 	}
 
