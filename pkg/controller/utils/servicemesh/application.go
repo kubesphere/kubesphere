@@ -118,6 +118,7 @@ func FillDestinationPort(vs *v1alpha3.VirtualService, service *corev1.Service) {
 				vs.Spec.Http[i].Route[j].Destination.Port = &apiv1alpha3.PortSelector{
 					Number: uint32(service.Spec.Ports[0].Port),
 				}
+				vs.Spec.Http[i].Match[j].Port = uint32(service.Spec.Ports[0].Port)
 			}
 		}
 
@@ -135,7 +136,18 @@ func FillDestinationPort(vs *v1alpha3.VirtualService, service *corev1.Service) {
 				vs.Spec.Tcp[i].Route[j].Destination.Port = &apiv1alpha3.PortSelector{
 					Number: uint32(service.Spec.Ports[0].Port),
 				}
+				vs.Spec.Tcp[i].Match[j].Port = uint32(service.Spec.Ports[0].Port)
 			}
 		}
 	}
+}
+
+func SupportHttpProtocol(protocol string) bool {
+	httpPro := []string{"http", "http2", "grpc"}
+	for _, i := range httpPro {
+		if strings.ToLower(protocol) == i || strings.HasPrefix(strings.ToLower(protocol), i+"-") {
+			return true
+		}
+	}
+	return false
 }
