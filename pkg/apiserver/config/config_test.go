@@ -31,6 +31,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubeedge"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
@@ -159,6 +160,9 @@ func newTestConfig() (*Config, error) {
 			Host:        "http://elasticsearch-logging-data.kubesphere-logging-system.svc:9200",
 			IndexPrefix: "ks-logstash-auditing",
 			Version:     "6",
+		},
+		KubeEdgeOptions: &kubeedge.Options{
+			Endpoint: "http://edge-watcher.kubeedge.svc/api/",
 		},
 	}
 	return conf, nil
