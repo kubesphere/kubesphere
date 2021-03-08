@@ -81,9 +81,9 @@ KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In 
 
 ### Installing on Existing Kubernetes Cluster
 
-- [Installing KubeSphere on Amazone EKS](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-eks/)
+- [Installing KubeSphere on Amazon EKS](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-eks/)
 - [Installing KubeSphere on Azure AKS](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-aks/)
-- [Installing KubeSphere on Google GKE](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-aks/)
+- [Installing KubeSphere on Google GKE](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-gke/)
 - [Installing KubeSphere on DigitalOcean Kubernetes](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-do/)
 - [Installing KubeSphere on Oracle OKE](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-oke/)
 - [Installing KubeSphere on Tencent TKE](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-ks-on-tencent-tke/)
