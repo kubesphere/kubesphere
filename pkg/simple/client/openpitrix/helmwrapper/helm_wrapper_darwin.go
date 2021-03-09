@@ -17,6 +17,5 @@ limitations under the License.
 package helmwrapper
 
 const (
-	workspaceBase = "/tmp/helm-operator"
-	helmPath      = "/usr/local/bin/helm"
+	helmPath = "/usr/local/bin/helm"
 )

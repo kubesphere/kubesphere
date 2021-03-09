@@ -18,12 +18,15 @@ package helmwrapper
 
 import (
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"os"
 	"testing"
 )
 
 func TestHelmInstall(t *testing.T) {
-	wr := NewHelmWrapper("", "dummy", "dummy", SetMock(true))
+	wr := NewHelmWrapper("", "dummy", "dummy",
+		SetAnnotations(map[string]string{constants.CreatorAnnotationKey: "1234"}),
+		SetMock(true))
 
 	res, err := wr.Install("dummy-chart", "", "dummy-value")
 	if err != nil {

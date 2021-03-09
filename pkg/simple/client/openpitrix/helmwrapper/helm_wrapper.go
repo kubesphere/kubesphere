@@ -20,20 +20,34 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"k8s.io/klog"
 	kpath "k8s.io/utils/path"
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
+	"sigs.k8s.io/kustomize/pkg/types"
 	"strings"
 	"time"
+)
+
+const (
+	workspaceBase = "/tmp/helm-operator"
 )
 
 var (
 	UninstallNotFoundFormat = "Error: uninstall: Release not loaded: %s: release: not found"
 	StatusNotFoundFormat    = "Error: release: not found"
+
+	kustomizationFile  = "kustomization.yaml"
+	postRenderExecFile = "helm-post-render.sh"
+	// kustomize cannot read stdio now, so we save helm stdout to file, then kustomize reads that file and build the resources
+	kustomizeBuild = `#!/bin/sh
+# save helm stdout to file, then kustomize read this file
+cat > ./.local-helm-output.yaml
+kustomize build
+`
 )
 
 type HelmRes struct {
@@ -131,9 +145,9 @@ func (c *helmWrapper) Status() (status *releaseStatus, err error) {
 
 func (c *helmWrapper) Workspace() string {
 	if c.workspaceSuffix == "" {
-		return path.Join(c.base, fmt.Sprintf("%s_%s", c.Namespace, c.ReleaseName))
+		return filepath.Join(c.base, fmt.Sprintf("%s_%s", c.Namespace, c.ReleaseName))
 	} else {
-		return path.Join(c.base, fmt.Sprintf("%s_%s_%s", c.Namespace, c.ReleaseName, c.workspaceSuffix))
+		return filepath.Join(c.base, fmt.Sprintf("%s_%s_%s", c.Namespace, c.ReleaseName, c.workspaceSuffix))
 	}
 }
 
@@ -144,6 +158,11 @@ type helmWrapper struct {
 	// helm release name
 	ReleaseName string
 	ChartName   string
+
+	// add labels to helm chart
+	labels map[string]string
+	// add annotations to helm chart
+	annotations map[string]string
 
 	// helm cmd path
 	cmdPath string
@@ -158,11 +177,16 @@ func (c *helmWrapper) kubeConfigPath() string {
 	if len(c.Kubeconfig) == 0 {
 		return ""
 	}
-	return path.Join(c.Workspace(), "kube.config")
+	return filepath.Join(c.Workspace(), "kube.config")
+}
+
+// The dir where chart saved
+func (c *helmWrapper) chartDir() string {
+	return filepath.Join(c.Workspace(), "chart")
 }
 
 func (c *helmWrapper) chartPath() string {
-	return filepath.Join(c.Workspace(), fmt.Sprintf("%s.tgz", c.ChartName))
+	return filepath.Join(c.chartDir(), fmt.Sprintf("%s.tgz", c.ChartName))
 }
 
 func (c *helmWrapper) cleanup() {
@@ -182,6 +206,13 @@ type Option func(*helmWrapper)
 func SetDryRun(dryRun bool) Option {
 	return func(wrapper *helmWrapper) {
 		wrapper.dryRun = dryRun
+	}
+}
+
+// extra annotations added to all resources in chart
+func SetAnnotations(annotations map[string]string) Option {
+	return func(wrapper *helmWrapper) {
+		wrapper.annotations = annotations
 	}
 }
 
@@ -208,6 +239,43 @@ func NewHelmWrapper(kubeconfig, ns, rls string, options ...Option) *helmWrapper 
 	return c
 }
 
+func (c *helmWrapper) setupPostRenderEnvironment() error {
+	if len(c.labels) == 0 && len(c.annotations) == 0 {
+		return nil
+	}
+
+	// build the executable file
+	postRender, err := os.OpenFile(filepath.Join(c.Workspace(), postRenderExecFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+	_, err = postRender.WriteString(kustomizeBuild)
+	if err != nil {
+		return err
+	}
+	postRender.Close()
+
+	// create kustomization.yaml
+	kustomization, err := os.OpenFile(filepath.Join(c.Workspace(), kustomizationFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+
+	kustomizationConfig := types.Kustomization{
+		Resources:         []string{"./.local-helm-output.yaml"},
+		CommonAnnotations: c.annotations, // add extra annotations to output
+		CommonLabels:      c.labels,      // add extra labels to output
+	}
+
+	err = yaml.NewEncoder(kustomization).Encode(kustomizationConfig)
+	if err != nil {
+		return err
+	}
+	kustomization.Close()
+
+	return nil
+}
+
 // ensureWorkspace check whether workspace exists or not.
 // If not exists, create workspace dir.
 func (c *helmWrapper) ensureWorkspace() error {
@@ -220,6 +288,12 @@ func (c *helmWrapper) ensureWorkspace() error {
 			klog.Errorf("mkdir %s failed, error: %s", c.Workspace(), err)
 			return err
 		}
+	}
+
+	err := os.MkdirAll(c.chartDir(), os.ModeDir|os.ModePerm)
+	if err != nil {
+		klog.Errorf("mkdir %s failed, error: %s", c.chartDir(), err)
+		return err
 	}
 
 	if len(c.Kubeconfig) > 0 {
@@ -243,7 +317,7 @@ func (c *helmWrapper) createChart(chartName, chartData, values string) error {
 	c.ChartName = chartName
 
 	// write chart
-	f, err := os.Create(path.Join(c.chartPath()))
+	f, err := os.Create(c.chartPath())
 
 	if err != nil {
 		return err
@@ -257,7 +331,7 @@ func (c *helmWrapper) createChart(chartName, chartData, values string) error {
 	f.Close()
 
 	// write values
-	f, err = os.Create(path.Join(c.Workspace(), "values.yaml"))
+	f, err = os.Create(filepath.Join(c.Workspace(), "values.yaml"))
 	if err != nil {
 		return err
 	}
@@ -271,6 +345,7 @@ func (c *helmWrapper) createChart(chartName, chartData, values string) error {
 	return nil
 }
 
+// helm uninstall
 func (c *helmWrapper) Uninstall() (res HelmRes, err error) {
 	start := time.Now()
 	defer func() {
@@ -332,6 +407,7 @@ func (c *helmWrapper) Uninstall() (res HelmRes, err error) {
 	return
 }
 
+// helm upgrade
 func (c *helmWrapper) Upgrade(chartName, chartData, values string) (res HelmRes, err error) {
 	// TODO: check release status first
 	if true {
@@ -342,6 +418,7 @@ func (c *helmWrapper) Upgrade(chartName, chartData, values string) (res HelmRes,
 	}
 }
 
+// helm install
 func (c *helmWrapper) Install(chartName, chartData, values string) (res HelmRes, err error) {
 	return c.install(chartName, chartData, values, false)
 }
@@ -358,6 +435,11 @@ func (c *helmWrapper) install(chartName, chartData, values string, upgrade bool)
 		return
 	}
 	defer c.cleanup()
+
+	err = c.setupPostRenderEnvironment()
+	if err != nil {
+		return
+	}
 
 	if err = c.createChart(chartName, chartData, values); err != nil {
 		return
@@ -393,7 +475,7 @@ func (c *helmWrapper) install(chartName, chartData, values string, upgrade bool)
 	cmd.Args = append(cmd.Args, c.ReleaseName, c.chartPath(), "--namespace", c.Namespace)
 
 	if len(values) > 0 {
-		cmd.Args = append(cmd.Args, "--values", path.Join(c.Workspace(), "values.yaml"))
+		cmd.Args = append(cmd.Args, "--values", filepath.Join(c.Workspace(), "values.yaml"))
 	}
 
 	if c.dryRun {
@@ -402,6 +484,11 @@ func (c *helmWrapper) install(chartName, chartData, values string, upgrade bool)
 
 	if c.kubeConfigPath() != "" {
 		cmd.Args = append(cmd.Args, "--kubeconfig", c.kubeConfigPath())
+	}
+
+	// Post render, add annotations or labels to resources
+	if len(c.labels) > 0 || len(c.annotations) > 0 {
+		cmd.Args = append(cmd.Args, "--post-renderer", filepath.Join(c.Workspace(), postRenderExecFile))
 	}
 
 	if klog.V(8) {
