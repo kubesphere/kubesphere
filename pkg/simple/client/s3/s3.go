@@ -49,6 +49,24 @@ func (s *Client) Upload(key, fileName string, body io.Reader) error {
 	return err
 }
 
+func (s *Client) Read(key string) ([]byte, error) {
+
+	downloader := s3manager.NewDownloader(s.s3Session)
+
+	writer := aws.NewWriteAtBuffer([]byte{})
+	_, err := downloader.Download(writer,
+		&s3.GetObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(key),
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return writer.Bytes(), nil
+}
+
 func (s *Client) GetDownloadURL(key string, fileName string) (string, error) {
 	req, _ := s.s3Client.GetObjectRequest(&s3.GetObjectInput{
 		Bucket:                     aws.String(s.bucket),

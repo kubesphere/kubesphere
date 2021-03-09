@@ -199,6 +199,14 @@ func (conf *Config) ToMap() map[string]bool {
 			continue
 		}
 
+		if name == "openpitrix" {
+			if conf.OpenPitrixOptions.IsEmpty() {
+				result["openpitrix.appstore"] = false
+			} else {
+				result["openpitrix.appstore"] = true
+			}
+		}
+
 		if c.Field(i).IsNil() {
 			result[name] = false
 		} else {

@@ -17,113 +17,58 @@ limitations under the License.
 package openpitrix
 
 import (
-	"fmt"
 	"github.com/spf13/pflag"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
 type Options struct {
-	RuntimeManagerEndpoint    string `json:"runtimeManagerEndpoint,omitempty" yaml:"runtimeManagerEndpoint,omitempty"`
-	ClusterManagerEndpoint    string `json:"clusterManagerEndpoint,omitempty" yaml:"clusterManagerEndpoint,omitempty"`
-	RepoManagerEndpoint       string `json:"repoManagerEndpoint,omitempty" yaml:"repoManagerEndpoint,omitempty"`
-	AppManagerEndpoint        string `json:"appManagerEndpoint,omitempty" yaml:"appManagerEndpoint,omitempty"`
-	CategoryManagerEndpoint   string `json:"categoryManagerEndpoint,omitempty" yaml:"categoryManagerEndpoint,omitempty"`
-	AttachmentManagerEndpoint string `json:"attachmentManagerEndpoint,omitempty" yaml:"attachmentManagerEndpoint,omitempty"`
-	RepoIndexerEndpoint       string `json:"repoIndexerEndpoint,omitempty" yaml:"repoIndexerEndpoint,omitempty"`
+	S3Options *s3.Options `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
 }
 
 func NewOptions() *Options {
-	return &Options{}
+	return &Options{
+		S3Options: &s3.Options{},
+	}
 }
 
+// Validate check options values
+func (s *Options) Validate() []error {
+	var errors []error
+
+	return errors
+}
+
+func (s *Options) IsEmpty() bool {
+	return s.S3Options == nil || s.S3Options.Endpoint == ""
+}
+
+// ApplyTo overrides options if it's valid, which endpoint is not empty
 func (s *Options) ApplyTo(options *Options) {
-	if options == nil {
-		options = s
-		return
-	}
-	if s.RuntimeManagerEndpoint != "" {
+	if s.S3Options != nil {
 		reflectutils.Override(options, s)
 	}
 }
 
-func (s *Options) IsEmpty() bool {
-	return s.RuntimeManagerEndpoint == "" &&
-		s.ClusterManagerEndpoint == "" &&
-		s.RepoManagerEndpoint == "" &&
-		s.AppManagerEndpoint == "" &&
-		s.CategoryManagerEndpoint == "" &&
-		s.AttachmentManagerEndpoint == "" &&
-		s.RepoIndexerEndpoint == ""
-}
-
-func (s *Options) Validate() []error {
-	var errs []error
-
-	if s.RuntimeManagerEndpoint != "" {
-		_, _, err := parseToHostPort(s.RuntimeManagerEndpoint)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid host port:%s", s.RuntimeManagerEndpoint))
-		}
-	}
-	if s.ClusterManagerEndpoint != "" {
-		_, _, err := parseToHostPort(s.ClusterManagerEndpoint)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid host port:%s", s.ClusterManagerEndpoint))
-		}
-	}
-	if s.RepoManagerEndpoint != "" {
-		_, _, err := parseToHostPort(s.RepoManagerEndpoint)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid host port:%s", s.RepoManagerEndpoint))
-		}
-	}
-	if s.RepoIndexerEndpoint != "" {
-		_, _, err := parseToHostPort(s.RepoIndexerEndpoint)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid host port:%s", s.RepoIndexerEndpoint))
-		}
-	}
-	if s.AppManagerEndpoint != "" {
-		_, _, err := parseToHostPort(s.AppManagerEndpoint)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid host port:%s", s.AppManagerEndpoint))
-		}
-	}
-	if s.CategoryManagerEndpoint != "" {
-		_, _, err := parseToHostPort(s.CategoryManagerEndpoint)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid host port:%s", s.CategoryManagerEndpoint))
-		}
-	}
-	if s.AttachmentManagerEndpoint != "" {
-		_, _, err := parseToHostPort(s.CategoryManagerEndpoint)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid host port:%s", s.CategoryManagerEndpoint))
-		}
-	}
-
-	return errs
-}
-
+// AddFlags add options flags to command line flags,
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
-	fs.StringVar(&s.RuntimeManagerEndpoint, "openpitrix-runtime-manager-endpoint", c.RuntimeManagerEndpoint, ""+
-		"OpenPitrix runtime manager endpoint")
+	// if s3-endpoint if left empty, following options will be ignored
+	fs.StringVar(&s.S3Options.Endpoint, "openpitrix-s3-endpoint", c.S3Options.Endpoint, ""+
+		"Endpoint to access to s3 object storage service for openpitrix, if left blank, the following options "+
+		"will be ignored.")
 
-	fs.StringVar(&s.AppManagerEndpoint, "openpitrix-app-manager-endpoint", c.AppManagerEndpoint, ""+
-		"OpenPitrix app manager endpoint")
+	fs.StringVar(&s.S3Options.Region, "openpitrix-s3-region", c.S3Options.Region, ""+
+		"Region of s3 that openpitrix will access to, like us-east-1.")
 
-	fs.StringVar(&s.ClusterManagerEndpoint, "openpitrix-cluster-manager-endpoint", c.ClusterManagerEndpoint, ""+
-		"OpenPitrix cluster manager endpoint")
+	fs.StringVar(&s.S3Options.AccessKeyID, "openpitrix-s3-access-key-id", c.S3Options.AccessKeyID, "access key of openpitrix s3")
 
-	fs.StringVar(&s.CategoryManagerEndpoint, "openpitrix-category-manager-endpoint", c.CategoryManagerEndpoint, ""+
-		"OpenPitrix category manager endpoint")
+	fs.StringVar(&s.S3Options.SecretAccessKey, "openpitrix-s3-secret-access-key", c.S3Options.SecretAccessKey, "secret access key of openpitrix s3")
 
-	fs.StringVar(&s.RepoManagerEndpoint, "openpitrix-repo-manager-endpoint", c.RepoManagerEndpoint, ""+
-		"OpenPitrix repo manager endpoint")
+	fs.StringVar(&s.S3Options.SessionToken, "openpitrix-s3-session-token", c.S3Options.SessionToken, "session token of openpitrix s3")
 
-	fs.StringVar(&s.RepoIndexerEndpoint, "openpitrix-repo-indexer-endpoint", c.RepoIndexerEndpoint, ""+
-		"OpenPitrix repo indexer endpoint")
+	fs.StringVar(&s.S3Options.Bucket, "openpitrix-s3-bucket", c.S3Options.Bucket, "bucket name of openpitrix s3")
 
-	fs.StringVar(&s.AttachmentManagerEndpoint, "openpitrix-attachment-manager-endpoint", c.AttachmentManagerEndpoint, ""+
-		"OpenPitrix attachment manager endpoint")
+	fs.BoolVar(&s.S3Options.DisableSSL, "openpitrix-s3-disable-SSL", c.S3Options.DisableSSL, "disable ssl")
+
+	fs.BoolVar(&s.S3Options.ForcePathStyle, "openpitrix-s3-force-path-style", c.S3Options.ForcePathStyle, "force path style")
 }

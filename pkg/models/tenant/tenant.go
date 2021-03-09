@@ -61,7 +61,6 @@ import (
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events"
 	loggingclient "kubesphere.io/kubesphere/pkg/simple/client/logging"
 	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	opclient "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
@@ -106,7 +105,7 @@ type tenantOperator struct {
 	mo             monitoring.MonitoringOperator
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, opClient opclient.Client, resourceGetter *resourcev1alpha3.ResourceGetter) Interface {
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) Interface {
 	return &tenantOperator{
 		am:             am,
 		authorizer:     authorizer,
@@ -116,7 +115,7 @@ func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ks
 		events:         events.NewEventsOperator(evtsClient),
 		lo:             logging.NewLoggingOperator(loggingClient),
 		auditing:       auditing.NewEventsOperator(auditingclient),
-		mo:             monitoring.NewMonitoringOperator(monitoringclient, nil, k8sclient, informers, opClient, resourceGetter),
+		mo:             monitoring.NewMonitoringOperator(monitoringclient, nil, k8sclient, informers, resourceGetter),
 	}
 }
 

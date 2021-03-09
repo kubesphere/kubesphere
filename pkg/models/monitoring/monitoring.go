@@ -39,7 +39,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	opclient "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"sigs.k8s.io/application/api/v1beta1"
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 )
@@ -72,13 +71,12 @@ type monitoringOperator struct {
 	resourceGetter *resourcev1alpha3.ResourceGetter
 }
 
-func NewMonitoringOperator(monitoringClient monitoring.Interface, metricsClient monitoring.Interface, k8s kubernetes.Interface, factory informers.InformerFactory, opClient opclient.Client, resourceGetter *resourcev1alpha3.ResourceGetter) MonitoringOperator {
+func NewMonitoringOperator(monitoringClient monitoring.Interface, metricsClient monitoring.Interface, k8s kubernetes.Interface, factory informers.InformerFactory, resourceGetter *resourcev1alpha3.ResourceGetter) MonitoringOperator {
 	return &monitoringOperator{
 		prometheus:     monitoringClient,
 		metricsserver:  metricsClient,
 		k8s:            k8s,
 		ks:             factory.KubeSphereSharedInformerFactory(),
-		op:             openpitrix.NewOpenpitrixOperator(factory.KubernetesSharedInformerFactory(), opClient),
 		resourceGetter: resourceGetter,
 	}
 }

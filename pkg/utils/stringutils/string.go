@@ -95,3 +95,10 @@ func Split(str string, sep string) []string {
 func StripAnsi(str string) string {
 	return re.ReplaceAllString(str, "")
 }
+
+func ShortenString(str string, n int) string {
+	if len(str) <= n {
+		return str
+	}
+	return str[:n]
+}

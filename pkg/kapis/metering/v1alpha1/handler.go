@@ -25,7 +25,6 @@ import (
 	monitorhle "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
 type meterHandler interface {
@@ -40,6 +39,6 @@ type meterHandler interface {
 	HandlePVCMetersQuery(req *restful.Request, resp *restful.Response)
 }
 
-func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, o openpitrix.Client, resourceGetter *resourcev1alpha3.ResourceGetter) meterHandler {
-	return monitorhle.NewHandler(k, m, nil, f, o, resourceGetter)
+func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, resourceGetter *resourcev1alpha3.ResourceGetter) meterHandler {
+	return monitorhle.NewHandler(k, m, nil, f, resourceGetter)
 }

@@ -25,16 +25,19 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,7 +46,8 @@ import (
 )
 
 const (
-	controllerName = "workspacetemplate-controller"
+	controllerName             = "workspacetemplate-controller"
+	workspaceTemplateFinalizer = "finalizers.workspacetemplate.kubesphere.io"
 )
 
 // Reconciler reconciles a WorkspaceRoleBinding object
@@ -86,6 +90,37 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	workspaceTemplate := &tenantv1alpha2.WorkspaceTemplate{}
 	if err := r.Get(rootCtx, req.NamespacedName, workspaceTemplate); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if workspaceTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so if it does not have our finalizer,
+		// then lets add the finalizer and update the object.
+		if !sliceutil.HasString(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer) {
+			workspaceTemplate.ObjectMeta.Finalizers = append(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer)
+			if err := r.Update(rootCtx, workspaceTemplate); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		// The object is being deleted
+		if sliceutil.HasString(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer) {
+			if err := r.deleteOpenPitrixResourcesInWorkspace(rootCtx, workspaceTemplate.Name); err != nil {
+				logger.Error(err, "delete resource in workspace template failed")
+				return ctrl.Result{}, err
+			}
+
+			// remove our finalizer from the list and update it.
+			workspaceTemplate.ObjectMeta.Finalizers = sliceutil.RemoveString(workspaceTemplate.ObjectMeta.Finalizers, func(item string) bool {
+				return item == workspaceTemplateFinalizer
+			})
+			logger.V(4).Info("update workspace template")
+			if err := r.Update(rootCtx, workspaceTemplate); err != nil {
+				logger.Error(err, "update workspace template failed")
+				return ctrl.Result{}, err
+			}
+		}
+		// Our finalizer has finished, so the reconciler can do nothing.
+		return ctrl.Result{}, nil
 	}
 
 	if r.MultiClusterEnabled {
@@ -300,6 +335,81 @@ func (r *Reconciler) initManagerRoleBinding(ctx context.Context, logger logr.Log
 	}
 
 	return nil
+}
+func (r *Reconciler) deleteOpenPitrixResourcesInWorkspace(ctx context.Context, ws string) error {
+	if len(ws) == 0 {
+		return nil
+	}
+
+	var err error
+	// helm release, apps and appVersion only exist in host cluster. Delete these resource in workspace template controller
+	if err = r.deleteHelmReleases(ctx, ws); err != nil {
+		return err
+	}
+
+	if err = r.deleteHelmApps(ctx, ws); err != nil {
+		return err
+	}
+
+	if err = r.deleteHelmRepos(ctx, ws); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Reconciler) deleteHelmApps(ctx context.Context, ws string) error {
+	if len(ws) == 0 {
+		return nil
+	}
+
+	apps := v1alpha1.HelmApplicationList{}
+	err := r.List(ctx, &apps, &client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{
+		constants.WorkspaceLabelKey: ws}),
+	})
+	if err != nil {
+		return err
+	}
+	for i := range apps.Items {
+		state := apps.Items[i].Status.State
+		// active and suspended applications belong to app store, they should not be removed here.
+		if !(state == v1alpha1.StateActive || state == v1alpha1.StateSuspended) {
+			err = r.Delete(ctx, &apps.Items[i])
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// Delete all helm releases in the workspace ws
+func (r *Reconciler) deleteHelmReleases(ctx context.Context, ws string) error {
+	if len(ws) == 0 {
+		return nil
+	}
+	rls := &v1alpha1.HelmRelease{}
+	err := r.DeleteAllOf(ctx, rls, &client.DeleteAllOfOptions{
+		ListOptions: client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{
+			constants.WorkspaceLabelKey: ws,
+		}),
+		}})
+	return err
+}
+
+func (r *Reconciler) deleteHelmRepos(ctx context.Context, ws string) error {
+	if len(ws) == 0 {
+		return nil
+	}
+	rls := &v1alpha1.HelmRepo{}
+	err := r.DeleteAllOf(ctx, rls, &client.DeleteAllOfOptions{
+		ListOptions: client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{
+			constants.WorkspaceLabelKey: ws,
+		}),
+		}})
+
+	return err
 }
 
 func workspaceRoleBindingChanger(workspaceRoleBinding *iamv1alpha2.WorkspaceRoleBinding, workspace, username, workspaceRoleName string) controllerutil.MutateFn {

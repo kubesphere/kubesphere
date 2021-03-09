@@ -1,0 +1,145 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: helmreleases.application.kubesphere.io
+spec:
+  group: application.kubesphere.io
+  names:
+    kind: HelmRelease
+    listKind: HelmReleaseList
+    plural: helmreleases
+    shortNames:
+    - hrls
+    singular: helmrelease
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.name
+      name: Release Name
+      type: string
+    - jsonPath: .metadata.labels.kubesphere\.io/workspace
+      name: Workspace
+      type: string
+    - jsonPath: .metadata.labels.kubesphere\.io/cluster
+      name: Cluster
+      type: string
+    - jsonPath: .metadata.labels.kubesphere\.io/namespace
+      name: Namespace
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HelmRelease is the Schema for the helmreleases API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HelmReleaseSpec defines the desired state of HelmRelease
+            properties:
+              appId:
+                description: id of the helmapplication
+                type: string
+              appVerId:
+                description: application version id
+                type: string
+              chartAppVer:
+                description: appVersion from Chart.yaml
+                type: string
+              chartName:
+                description: The name of the chart which will be installed.
+                type: string
+              chartVersion:
+                description: Specify the exact chart version to install. If this is not specified, the latest version is installed
+                type: string
+              description:
+                description: Message got from frontend
+                type: string
+              name:
+                description: Name of the release
+                type: string
+              repoId:
+                description: id of  the repo
+                type: string
+              values:
+                description: helm release values.yaml
+                format: byte
+                type: string
+              version:
+                description: expected release version, when this version is not equal status.version, the release need upgrade this filed should be modified when any filed of the spec modified.
+                type: integer
+            required:
+            - chartName
+            - chartVersion
+            - name
+            - version
+            type: object
+          status:
+            description: HelmReleaseStatus defines the observed state of HelmRelease
+            properties:
+              deployStatus:
+                description: deploy status list of history, which will store at most 10 state
+                items:
+                  properties:
+                    deployTime:
+                      description: deploy time
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about why the release is in this state.
+                      type: string
+                    state:
+                      description: deploy state
+                      type: string
+                  required:
+                  - deployTime
+                  - state
+                  type: object
+                type: array
+              lastDeployed:
+                description: last successful deploy time
+                format: date-time
+                type: string
+              lastUpdate:
+                description: last update time
+                format: date-time
+                type: string
+              message:
+                description: A human readable message indicating details about why the release is in this state.
+                type: string
+              state:
+                description: current state
+                type: string
+              version:
+                description: current release version
+                type: integer
+            required:
+            - state
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

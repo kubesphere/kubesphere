@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
+	applicationv1alpha1 "kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/version"
@@ -34,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/kube-openapi/pkg/common"
+	applicationinstall "kubesphere.io/kubesphere/pkg/apis/application/crdinstall"
 	devopsinstall "kubesphere.io/kubesphere/pkg/apis/devops/crdinstall"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	networkinstall "kubesphere.io/kubesphere/pkg/apis/network/crdinstall"
@@ -61,6 +63,7 @@ func main() {
 	tenantinstall.Install(Scheme)
 	networkinstall.Install(Scheme)
 	devopsinstall.Install(Scheme)
+	applicationinstall.Install(Scheme)
 
 	urlruntime.Must(clusterv1alpha1.AddToScheme(Scheme))
 	urlruntime.Must(Scheme.SetVersionPriority(clusterv1alpha1.SchemeGroupVersion))
@@ -115,6 +118,26 @@ func main() {
 	mapper.AddSpecific(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindCluster),
 		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster),
 		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesSingularCluster), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(applicationv1alpha1.SchemeGroupVersion.WithKind(applicationv1alpha1.ResourceKindHelmApplication),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourcePluralHelmApplication),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourceSingularHelmApplication), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(applicationv1alpha1.SchemeGroupVersion.WithKind(applicationv1alpha1.ResourceKindHelmApplicationVersion),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourcePluralHelmApplicationVersion),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourceSingularHelmApplicationVersion), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(applicationv1alpha1.SchemeGroupVersion.WithKind(applicationv1alpha1.ResourceKindHelmRelease),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourcePluralHelmRelease),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourceSingularHelmRelease), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(applicationv1alpha1.SchemeGroupVersion.WithKind(applicationv1alpha1.ResourceKindHelmRepo),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourcePluralHelmRepo),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourceSingularHelmRepo), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(applicationv1alpha1.SchemeGroupVersion.WithKind(applicationv1alpha1.ResourceKindHelmCategory),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourcePluralHelmCategory),
+		applicationv1alpha1.SchemeGroupVersion.WithResource(applicationv1alpha1.ResourceSingularHelmCategory), meta.RESTScopeRoot)
 
 	spec, err := lib.RenderOpenAPISpec(lib.Config{
 		Scheme: Scheme,

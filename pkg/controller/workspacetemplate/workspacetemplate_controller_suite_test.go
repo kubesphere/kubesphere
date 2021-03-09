@@ -18,9 +18,11 @@ package workspacetemplate
 
 import (
 	"github.com/onsi/gomega/gexec"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/klogr"
 	"kubesphere.io/kubesphere/pkg/apis"
+	helmappscheme "kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	"os"
 	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -77,6 +79,8 @@ var _ = BeforeSuite(func(done Done) {
 		MetricsBindAddress: "0",
 	})
 	Expect(err).ToNot(HaveOccurred())
+
+	utilruntime.Must(helmappscheme.AddToScheme(k8sManager.GetScheme()))
 
 	err = (&Reconciler{}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

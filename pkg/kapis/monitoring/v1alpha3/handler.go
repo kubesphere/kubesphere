@@ -30,7 +30,6 @@ import (
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
 type handler struct {
@@ -38,8 +37,8 @@ type handler struct {
 	mo model.MonitoringOperator
 }
 
-func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, o openpitrix.Client, resourceGetter *resourcev1alpha3.ResourceGetter) *handler {
-	return &handler{k, model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, o, resourceGetter)}
+func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, resourceGetter *resourcev1alpha3.ResourceGetter) *handler {
+	return &handler{k, model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter)}
 }
 
 func (h handler) handleKubeSphereMetricsQuery(req *restful.Request, resp *restful.Response) {

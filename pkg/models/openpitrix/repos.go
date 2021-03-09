@@ -14,118 +14,185 @@ limitations under the License.
 package openpitrix
 
 import (
+	"context"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/go-openapi/strfmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	typed_v1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	listers_v1alpha1 "kubesphere.io/kubesphere/pkg/client/listers/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"openpitrix.io/openpitrix/pkg/pb"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
+	"kubesphere.io/kubesphere/pkg/utils/reposcache"
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sort"
 	"strings"
 )
 
+const DescriptionLen = 512
+
 type RepoInterface interface {
-	CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error)
+	CreateRepo(repo *v1alpha1.HelmRepo) (*CreateRepoResponse, error)
 	DeleteRepo(id string) error
+	ValidateRepo(u string, request *v1alpha1.HelmRepoCredential) (*ValidateRepoResponse, error)
 	ModifyRepo(id string, request *ModifyRepoRequest) error
 	DescribeRepo(id string) (*Repo, error)
 	ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
-	ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error)
 	DoRepoAction(repoId string, request *RepoActionRequest) error
-	ListEvents(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error)
 }
 
 type repoOperator struct {
-	opClient openpitrix.Client
+	cachedRepos reposcache.ReposCache
+	informers   externalversions.SharedInformerFactory
+	repoClient  typed_v1alpha1.ApplicationV1alpha1Interface
+	repoLister  listers_v1alpha1.HelmRepoLister
+	rlsLister   listers_v1alpha1.HelmReleaseLister
 }
 
-func newRepoOperator(opClient openpitrix.Client) RepoInterface {
+func newRepoOperator(cachedRepos reposcache.ReposCache, informers externalversions.SharedInformerFactory, ksClient versioned.Interface) RepoInterface {
 	return &repoOperator{
-		opClient: opClient,
+		cachedRepos: cachedRepos,
+		informers:   informers,
+		repoClient:  ksClient.ApplicationV1alpha1(),
+		repoLister:  informers.Application().V1alpha1().HelmRepos().Lister(),
+		rlsLister:   informers.Application().V1alpha1().HelmReleases().Lister(),
 	}
 }
 
-func (c *repoOperator) CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error) {
-	createRepoRequest := &pb.CreateRepoRequest{
-		Name:             &wrappers.StringValue{Value: request.Name},
-		Description:      &wrappers.StringValue{Value: request.Description},
-		Type:             &wrappers.StringValue{Value: request.Type},
-		Url:              &wrappers.StringValue{Value: request.URL},
-		Credential:       &wrappers.StringValue{Value: request.Credential},
-		Visibility:       &wrappers.StringValue{Value: request.Visibility},
-		CategoryId:       &wrappers.StringValue{Value: request.CategoryId},
-		AppDefaultStatus: &wrappers.StringValue{Value: request.AppDefaultStatus},
-	}
-
-	if request.Providers != nil {
-		createRepoRequest.Providers = request.Providers
-	}
-	if request.Workspace != nil {
-		createRepoRequest.Labels = &wrappers.StringValue{Value: fmt.Sprintf("workspace=%s", *request.Workspace)}
-	}
-
-	resp, err := c.opClient.CreateRepo(openpitrix.SystemContext(), createRepoRequest)
+// TODO implement DoRepoAction
+func (c *repoOperator) DoRepoAction(repoId string, request *RepoActionRequest) error {
+	repo, err := c.repoLister.Get(repoId)
 	if err != nil {
-		klog.Error(err)
-		return nil, err
+		return err
 	}
-	return &CreateRepoResponse{
-		RepoID: resp.GetRepoId().GetValue(),
-	}, nil
-}
+	if request.Workspace != repo.GetWorkspace() {
+		return nil
+	}
 
-func (c *repoOperator) DeleteRepo(id string) error {
-	_, err := c.opClient.DeleteRepos(openpitrix.SystemContext(), &pb.DeleteReposRequest{
-		RepoId: []string{id},
-	})
+	patch := client.MergeFrom(repo)
+	copyRepo := repo.DeepCopy()
+	copyRepo.Spec.Version += 1
+	data, err := patch.Data(copyRepo)
 	if err != nil {
-		klog.Error(err)
+		klog.Errorf("create patch [%s] failed, error: %s", repoId, err)
+		return err
+	}
+	repo, err = c.repoClient.HelmRepos().Patch(context.TODO(), repoId, types.MergePatchType, data, metav1.PatchOptions{})
+	if err != nil {
+		klog.Errorf("patch repo [%s] failed, error: %s", repoId, err)
 		return err
 	}
 	return nil
 }
 
-func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
-	modifyRepoRequest := &pb.ModifyRepoRequest{
-		RepoId: &wrappers.StringValue{Value: id},
+func (c *repoOperator) ValidateRepo(u string, cred *v1alpha1.HelmRepoCredential) (*ValidateRepoResponse, error) {
+	_, err := helmrepoindex.LoadRepoIndex(context.TODO(), u, cred)
+
+	if err != nil {
+		return nil, err
+	}
+	return &ValidateRepoResponse{Ok: true}, nil
+}
+
+func (c *repoOperator) CreateRepo(repo *v1alpha1.HelmRepo) (*CreateRepoResponse, error) {
+	name := repo.GetTrueName()
+
+	items, err := c.repoLister.List(labels.SelectorFromSet(map[string]string{constants.WorkspaceLabelKey: repo.GetWorkspace()}))
+	if err != nil && !apierrors.IsNotFound(err) {
+		klog.Errorf("list helm repo failed: %s", err)
+		return nil, err
 	}
 
-	if request.Name != nil {
-		modifyRepoRequest.Name = &wrappers.StringValue{Value: *request.Name}
+	for _, exists := range items {
+		if exists.GetTrueName() == name {
+			klog.Error(repoItemExists, "name: ", name)
+			return nil, repoItemExists
+		}
 	}
+
+	repo.Spec.Description = stringutils.ShortenString(repo.Spec.Description, DescriptionLen)
+	_, err = c.repoClient.HelmRepos().Create(context.TODO(), repo, metav1.CreateOptions{})
+	if err != nil {
+		klog.Errorf("create helm repo failed, repod_id: %s, error: %s", repo.GetHelmRepoId(), err)
+		return nil, err
+	} else {
+		klog.V(4).Infof("create helm repo success, repo_id: %s", repo.GetHelmRepoId())
+	}
+
+	return &CreateRepoResponse{repo.GetHelmRepoId()}, nil
+}
+
+func (c *repoOperator) DeleteRepo(id string) error {
+	ls := map[string]string{
+		constants.ChartRepoIdLabelKey: id,
+	}
+	releases, err := c.rlsLister.List(labels.SelectorFromSet(ls))
+
+	if err != nil && apierrors.IsNotFound(err) {
+		return err
+	} else if len(releases) > 0 {
+		return fmt.Errorf("repo %s has releases not deleted", id)
+	}
+
+	err = c.repoClient.HelmRepos().Delete(context.TODO(), id, metav1.DeleteOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		klog.Error(err)
+		return err
+	}
+	klog.V(4).Infof("repo %s deleted", id)
+	return nil
+}
+
+func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
+	repo, err := c.repoClient.HelmRepos().Get(context.TODO(), id, metav1.GetOptions{})
+
+	if err != nil {
+		klog.Error("get repo failed", err)
+		return err
+	}
+
+	repoCopy := repo.DeepCopy()
 	if request.Description != nil {
-		modifyRepoRequest.Description = &wrappers.StringValue{Value: *request.Description}
-	}
-	if request.Type != nil {
-		modifyRepoRequest.Type = &wrappers.StringValue{Value: *request.Type}
+		repoCopy.Spec.Description = stringutils.ShortenString(*request.Description, DescriptionLen)
 	}
 	if request.URL != nil {
-		modifyRepoRequest.Url = &wrappers.StringValue{Value: *request.URL}
-	}
-	if request.Credential != nil {
-		modifyRepoRequest.Credential = &wrappers.StringValue{Value: *request.Credential}
-	}
-	if request.Visibility != nil {
-		modifyRepoRequest.Visibility = &wrappers.StringValue{Value: *request.Visibility}
+		repoCopy.Spec.Url = *request.URL
 	}
 
-	if request.CategoryID != nil {
-		modifyRepoRequest.CategoryId = &wrappers.StringValue{Value: *request.CategoryID}
-	}
-	if request.AppDefaultStatus != nil {
-		modifyRepoRequest.AppDefaultStatus = &wrappers.StringValue{Value: *request.AppDefaultStatus}
-	}
-	if request.Providers != nil {
-		modifyRepoRequest.Providers = request.Providers
+	// TODO modify credential
+	if request.Name != nil {
+		repoCopy.Labels[constants.NameLabelKey] = *request.Name
 	}
 	if request.Workspace != nil {
-		modifyRepoRequest.Labels = &wrappers.StringValue{Value: fmt.Sprintf("workspace=%s", *request.Workspace)}
+		repoCopy.Labels[constants.WorkspaceLabelKey] = *request.Workspace
 	}
 
-	_, err := c.opClient.ModifyRepo(openpitrix.SystemContext(), modifyRepoRequest)
+	patch := client.MergeFrom(repo)
+	repoCopy.Spec.Version += 1
+	data, err := patch.Data(repoCopy)
+	if err != nil {
+		klog.Error("create patch failed", err)
+		return err
+	}
+
+	// data == "{}", need not to patch
+	if len(data) == 2 {
+		return nil
+	}
+
+	repo, err = c.repoClient.HelmRepos().Patch(context.TODO(), id, patch.Type(), data, metav1.PatchOptions{})
+
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -134,164 +201,98 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 }
 
 func (c *repoOperator) DescribeRepo(id string) (*Repo, error) {
-	resp, err := c.opClient.DescribeRepos(openpitrix.SystemContext(), &pb.DescribeReposRequest{
-		RepoId: []string{id},
-		Limit:  1,
-	})
+	repo, err := c.repoClient.HelmRepos().Get(context.TODO(), id, metav1.GetOptions{})
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	var repo *Repo
+	var desRepo Repo
 
-	if len(resp.RepoSet) > 0 {
-		repo = convertRepo(resp.RepoSet[0])
-		return repo, nil
-	} else {
-		err := status.New(codes.NotFound, "resource not found").Err()
-		klog.Error(err)
-		return nil, err
-	}
+	desRepo.URL = repo.Spec.Url
+	desRepo.Description = repo.Spec.Description
+	desRepo.Name = repo.GetTrueName()
+	desRepo.RepoId = repo.Name
+	dt, _ := strfmt.ParseDateTime(repo.CreationTimestamp.String())
+	desRepo.CreateTime = &dt
+
+	return &desRepo, nil
 }
 
 func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	req := &pb.DescribeReposRequest{}
 
-	if keyword := conditions.Match[Keyword]; keyword != "" {
-		req.SearchWord = &wrappers.StringValue{Value: keyword}
-	}
-	if status := conditions.Match[Status]; status != "" {
-		req.Status = strings.Split(status, "|")
-	}
-	if typeStr := conditions.Match[Type]; typeStr != "" {
-		req.Type = strings.Split(typeStr, "|")
-	}
-	if visibility := conditions.Match[Visibility]; visibility != "" {
-		req.Visibility = strings.Split(visibility, "|")
-	}
-	if status := conditions.Match[Status]; status != "" {
-		req.Status = strings.Split(status, "|")
-	}
-	if workspace := conditions.Match[WorkspaceLabel]; workspace != "" {
-		req.Label = &wrappers.StringValue{Value: fmt.Sprintf("workspace=%s", workspace)}
-	}
-	if orderBy != "" {
-		req.SortKey = &wrappers.StringValue{Value: orderBy}
-	}
-	req.Reverse = &wrappers.BoolValue{Value: reverse}
-	req.Limit = uint32(limit)
-	req.Offset = uint32(offset)
-	resp, err := c.opClient.DescribeRepos(openpitrix.SystemContext(), req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
+	ls := labels.NewSelector()
+	r, _ := labels.NewRequirement(constants.WorkspaceLabelKey, selection.Equals, []string{conditions.Match[WorkspaceLabel]})
+	ls = ls.Add([]labels.Requirement{*r}...)
 
-	items := make([]interface{}, 0)
-
-	for _, item := range resp.RepoSet {
-		items = append(items, convertRepo(item))
-	}
-
-	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
-}
-
-func (c *repoOperator) ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error) {
-	resp, err := c.opClient.ValidateRepo(openpitrix.SystemContext(), &pb.ValidateRepoRequest{
-		Type:       &wrappers.StringValue{Value: request.Type},
-		Credential: &wrappers.StringValue{Value: request.Credential},
-		Url:        &wrappers.StringValue{Value: request.Url},
-	})
+	repos, err := c.repoLister.List(ls)
 
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
+	if conditions.Match[Keyword] != "" {
+		repos = helmRepoFilter(conditions.Match[Keyword], repos)
+	}
 
-	return &ValidateRepoResponse{
-		ErrorCode: int64(resp.ErrorCode),
-		Ok:        resp.Ok.Value,
-	}, nil
+	if reverse {
+		sort.Sort(sort.Reverse(HelmRepoList(repos)))
+	} else {
+		sort.Sort(HelmRepoList(repos))
+	}
+
+	items := make([]interface{}, 0, limit)
+	for i, j := offset, 0; i < len(repos) && j < limit; {
+		items = append(items, convertRepo(repos[i]))
+		i++
+		j++
+	}
+	return &models.PageableResponse{Items: items, TotalCount: len(repos)}, nil
 }
 
-func (c *repoOperator) DoRepoAction(repoId string, request *RepoActionRequest) error {
-	var err error
-	switch request.Action {
-	case ActionIndex:
-		indexRepoRequest := &pb.IndexRepoRequest{
-			RepoId: &wrappers.StringValue{Value: repoId},
+func helmRepoFilter(namePrefix string, list []*v1alpha1.HelmRepo) (res []*v1alpha1.HelmRepo) {
+	for _, repo := range list {
+		name := repo.GetTrueName()
+		if strings.HasPrefix(name, namePrefix) {
+			res = append(res, repo)
 		}
-		_, err := c.opClient.IndexRepo(openpitrix.SystemContext(), indexRepoRequest)
+	}
+	return
+}
 
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
+type HelmRepoList []*v1alpha1.HelmRepo
 
-		return nil
-	default:
-		err = status.New(codes.InvalidArgument, "action not support").Err()
-		klog.Error(err)
-		return err
+func (l HelmRepoList) Len() int      { return len(l) }
+func (l HelmRepoList) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+func (l HelmRepoList) Less(i, j int) bool {
+	t1 := l[i].CreationTimestamp.UnixNano()
+	t2 := l[j].CreationTimestamp.UnixNano()
+	if t1 < t2 {
+		return true
+	} else if t1 > t2 {
+		return false
+	} else {
+		n1 := l[i].GetTrueName()
+		n2 := l[j].GetTrueName()
+		return n1 < n2
 	}
 }
 
 func (c *repoOperator) ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error) {
-	describeRepoEventsRequest := &pb.DescribeRepoEventsRequest{
-		RepoId: []string{repoId},
-	}
-	if eventId := conditions.Match["repo_event_id"]; eventId != "" {
-		describeRepoEventsRequest.RepoEventId = strings.Split(eventId, "|")
-	}
-	if status := conditions.Match["status"]; status != "" {
-		describeRepoEventsRequest.Status = strings.Split(status, "|")
-	}
-	describeRepoEventsRequest.Limit = uint32(limit)
-	describeRepoEventsRequest.Offset = uint32(offset)
 
-	resp, err := c.opClient.DescribeRepoEvents(openpitrix.SystemContext(), describeRepoEventsRequest)
+	repo, err := c.repoClient.HelmRepos().Get(context.TODO(), repoId, metav1.GetOptions{})
 
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	items := make([]interface{}, 0)
-
-	for _, item := range resp.RepoEventSet {
-		items = append(items, convertRepoEvent(item))
+	items := make([]interface{}, 0, limit)
+	for i, j := offset, 0; i < len(repo.Status.SyncState) && j < limit; {
+		items = append(items, convertRepoEvent(&repo.ObjectMeta, &repo.Status.SyncState[j]))
+		i++
+		j++
 	}
 
-	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
-}
-
-func (c *repoOperator) ListEvents(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	describeRepoEventsRequest := &pb.DescribeRepoEventsRequest{}
-	if repoId := conditions.Match["repo_id"]; repoId != "" {
-		describeRepoEventsRequest.RepoId = strings.Split(repoId, "|")
-	}
-	if eventId := conditions.Match["repo_event_id"]; eventId != "" {
-		describeRepoEventsRequest.RepoEventId = strings.Split(eventId, "|")
-	}
-	if status := conditions.Match["status"]; status != "" {
-		describeRepoEventsRequest.Status = strings.Split(status, "|")
-	}
-	describeRepoEventsRequest.Limit = uint32(limit)
-	describeRepoEventsRequest.Offset = uint32(offset)
-
-	resp, err := c.opClient.DescribeRepoEvents(openpitrix.SystemContext(), describeRepoEventsRequest)
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	items := make([]interface{}, 0)
-
-	for _, item := range resp.RepoEventSet {
-		items = append(items, convertRepoEvent(item))
-	}
-
-	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: len(repo.Status.SyncState)}, nil
 }

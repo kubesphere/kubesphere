@@ -1,0 +1,205 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: helmapplicationversions.application.kubesphere.io
+spec:
+  group: application.kubesphere.io
+  names:
+    kind: HelmApplicationVersion
+    listKind: HelmApplicationVersionList
+    plural: helmapplicationversions
+    shortNames:
+    - happver
+    singular: helmapplicationversion
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.name
+      name: application name
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HelmApplicationVersion is the Schema for the helmapplicationversions API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HelmApplicationVersionSpec defines the desired state of HelmApplicationVersion
+            properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                description: Annotations are additional mappings uninterpreted by Helm, made available for inspection by other applications.
+                type: object
+              apiVersion:
+                description: The API Version of this chart.
+                type: string
+              appVersion:
+                description: The version of the application enclosed inside of this chart.
+                type: string
+              condition:
+                description: The condition to check to enable chart
+                type: string
+              created:
+                description: chart create time
+                format: date-time
+                type: string
+              data:
+                description: raw data of chart, it will !!!NOT!!! be save to etcd
+                format: byte
+                type: string
+              dataKey:
+                description: dataKey in the storage
+                type: string
+              dependencies:
+                description: Dependencies are a list of dependencies for a chart.
+                items:
+                  description: Dependency describes a chart upon which another chart depends. Dependencies can be used to express developer intent, or to capture the state of a chart.
+                  properties:
+                    alias:
+                      description: Alias usable alias to be used for the chart
+                      type: string
+                    condition:
+                      description: A yaml path that resolves to a boolean, used for enabling/disabling charts (e.g. subchart1.enabled )
+                      type: string
+                    enabled:
+                      description: Enabled bool determines if chart should be loaded
+                      type: boolean
+                    name:
+                      description: Name is the name of the dependency. This must mach the name in the dependency's Chart.yaml.
+                      type: string
+                    repository:
+                      description: The URL to the repository. Appending `index.yaml` to this string should result in a URL that can be used to fetch the repository index.
+                      type: string
+                    tags:
+                      description: Tags can be used to group charts for enabling/disabling together
+                      items:
+                        type: string
+                      type: array
+                    version:
+                      description: Version is the version (range) of this chart. A lock file will always produce a single version, while a dependency may contain a semantic version range.
+                      type: string
+                  required:
+                  - name
+                  - repository
+                  type: object
+                type: array
+              deprecated:
+                description: Whether or not this chart is deprecated
+                type: boolean
+              description:
+                description: A one-sentence description of the chart
+                type: string
+              digest:
+                description: chart digest
+                type: string
+              home:
+                description: The URL to a relevant project page, git repo, or contact person
+                type: string
+              icon:
+                description: The URL to an icon file.
+                type: string
+              keywords:
+                description: A list of string keywords
+                items:
+                  type: string
+                type: array
+              kubeVersion:
+                description: KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
+                type: string
+              maintainers:
+                description: A list of name and URL/email address combinations for the maintainer(s)
+                items:
+                  description: Maintainer describes a Chart maintainer.
+                  properties:
+                    email:
+                      description: Email is an optional email address to contact the named maintainer
+                      type: string
+                    name:
+                      description: Name is a user name or organization name
+                      type: string
+                    url:
+                      description: URL is an optional URL to an address for the named maintainer
+                      type: string
+                  type: object
+                type: array
+              name:
+                description: The name of the chart
+                type: string
+              sources:
+                description: Source is the URL to the source code of this chart
+                items:
+                  type: string
+                type: array
+              tags:
+                description: The tags to check to enable chart
+                type: string
+              type:
+                description: 'Specifies the chart type: application or library'
+                type: string
+              urls:
+                description: chart url
+                items:
+                  type: string
+                type: array
+              version:
+                description: A SemVer 2 conformant version string of the chart
+                type: string
+            type: object
+          status:
+            description: HelmApplicationVersionStatus defines the observed state of HelmApplicationVersion
+            properties:
+              audit:
+                items:
+                  properties:
+                    message:
+                      description: audit message
+                      type: string
+                    operator:
+                      description: audit operator
+                      type: string
+                    operatorType:
+                      type: string
+                    state:
+                      description: 'audit state: submitted, passed, draft, active, rejected, suspended'
+                      type: string
+                    time:
+                      description: audit time
+                      format: date-time
+                      type: string
+                  required:
+                  - time
+                  type: object
+                type: array
+              state:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

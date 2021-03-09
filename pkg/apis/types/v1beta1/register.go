@@ -81,5 +81,6 @@ func init() {
 		&FederatedWorkspaceRole{},
 		&FederatedWorkspaceRoleList{},
 		&FederatedWorkspaceRoleBinding{},
-		&FederatedWorkspaceRoleBindingList{})
+		&FederatedWorkspaceRoleBindingList{},
+	)
 }
