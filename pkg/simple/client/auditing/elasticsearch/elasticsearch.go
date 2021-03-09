@@ -114,14 +114,14 @@ func parseToQueryPart(f *auditing.Filter) *query.Query {
 	bi := query.NewBool().WithMinimumShouldMatch(mini)
 	for k, v := range f.ObjectRefNamespaceMap {
 		bi.AppendShould(query.NewBool().
-			AppendFilter(query.NewMatchPhrase("ObjectRef.Namespace", k)).
+			AppendFilter(query.NewMatchPhrase("ObjectRef.Namespace.keyword", k)).
 			AppendFilter(query.NewRange("RequestReceivedTimestamp").
 				WithGTE(v)))
 	}
 
 	for k, v := range f.WorkspaceMap {
 		bi.AppendShould(query.NewBool().
-			AppendFilter(query.NewMatchPhrase("Workspace", k)).
+			AppendFilter(query.NewMatchPhrase("Workspace.keyword", k)).
 			AppendFilter(query.NewRange("RequestReceivedTimestamp").
 				WithGTE(v)))
 	}
@@ -159,10 +159,10 @@ func parseToQueryPart(f *auditing.Filter) *query.Query {
 	b.AppendFilter(bi)
 
 	b.AppendFilter(query.NewBool().
-		AppendMultiShould(query.NewMultiMatchPhrase("Verb", f.Verbs)).
+		AppendMultiShould(query.NewMultiMatchPhrase("Verb.keyword", f.Verbs)).
 		WithMinimumShouldMatch(mini))
 	b.AppendFilter(query.NewBool().
-		AppendMultiShould(query.NewMultiMatchPhrase("Level", f.Levels)).
+		AppendMultiShould(query.NewMultiMatchPhrase("Level.keyword", f.Levels)).
 		WithMinimumShouldMatch(mini))
 
 	bi = query.NewBool().WithMinimumShouldMatch(mini)
@@ -197,7 +197,7 @@ func parseToQueryPart(f *auditing.Filter) *query.Query {
 		AppendShould(query.NewTerms("ResponseStatus.code", f.ResponseCodes)).
 		WithMinimumShouldMatch(mini))
 	b.AppendFilter(query.NewBool().
-		AppendMultiShould(query.NewMultiMatchPhrase("ResponseStatus.status", f.ResponseStatus)).
+		AppendMultiShould(query.NewMultiMatchPhrase("ResponseStatus.status.keyword", f.ResponseStatus)).
 		WithMinimumShouldMatch(mini))
 
 	r := query.NewRange("RequestReceivedTimestamp")

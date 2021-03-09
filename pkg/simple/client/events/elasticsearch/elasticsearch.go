@@ -74,9 +74,6 @@ func (c *client) CountOverTime(filter *events.Filter, interval string) (*events.
 	if err != nil {
 		return nil, err
 	}
-	if resp == nil || resp.Aggregations.DateHistogramAggregation == nil {
-		return &events.Histogram{}, nil
-	}
 
 	histo := events.Histogram{Total: c.c.GetTotalHitCount(resp.Total)}
 	for _, bucket := range resp.Buckets {
@@ -97,9 +94,6 @@ func (c *client) StatisticsOnResources(filter *events.Filter) (*events.Statistic
 	resp, err := c.c.Search(b, filter.StartTime, filter.EndTime, false)
 	if err != nil {
 		return nil, err
-	}
-	if resp == nil || resp.Aggregations.CardinalityAggregation == nil {
-		return &events.Statistics{}, nil
 	}
 
 	return &events.Statistics{
