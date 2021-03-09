@@ -82,21 +82,21 @@ KubeSphere 3.0.0 已于 2020 年 8 月 31 日正式 GA！点击 [Release Notes F
 - [在阿里云 ACK 安装 KubeSphere](https://kubesphere.com.cn/forum/d/1745-kubesphere-v3-0-0-dev-on-ack)
 - [在腾讯云 TKE 安装 KubeSphere](https://kubesphere.com.cn/docs/installing-on-kubernetes/hosted-kubernetes/install-ks-on-tencent-tke/)
 - [在华为云 CCE 安装 KubeSphere](https://kubesphere.com.cn/docs/installing-on-kubernetes/hosted-kubernetes/install-ks-on-huawei-cce/)
-- [在 AWS EKS 安装 KubeSphere](https://kubesphere.com.cn/en/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-eks/)
-- [在 Google GKE 安装 KubeSphere](https://kubesphere.com.cn/en/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-aks/)
-- [在 Azure AKS 安装 KubeSphere](https://kubesphere.com.cn/en/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-aks/)
-- [在 DigitalOcean 安装 KubeSphere](https://kubesphere.com.cn/en/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-do/)
-- [在 Oracle OKE 安装 KubeSphere](https://kubesphere.com.cn/en/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-oke/)
+- [在 AWS EKS 安装 KubeSphere](https://kubesphere.com.cn/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-eks/)
+- [在 Google GKE 安装 KubeSphere](https://kubesphere.com.cn/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-gke/)
+- [在 Azure AKS 安装 KubeSphere](https://kubesphere.com.cn/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-aks/)
+- [在 DigitalOcean 安装 KubeSphere](https://kubesphere.com.cn/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-do/)
+- [在 Oracle OKE 安装 KubeSphere](https://kubesphere.com.cn/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-oke/)
 
 ### 基于 Linux 安装 KubeSphere
 
-- [多节点安装介绍（以三节点为例）](https://kubesphere.com.cn/en/docs/installing-on-linux/introduction/multioverview/)
-- [在 VMware vSphere 安装高可用集群](https://kubesphere.com.cn/en/docs/installing-on-linux/on-premises/install-kubesphere-on-vmware-vsphere/)
-- [在青云QingCloud 安装高可用集群](https://kubesphere.com.cn/en/docs/installing-on-linux/public-cloud/kubesphere-on-qingcloud-instance/)
+- [多节点安装介绍（以三节点为例）](https://kubesphere.com.cn/docs/installing-on-linux/introduction/multioverview/)
+- [在 VMware vSphere 安装高可用集群](https://kubesphere.com.cn/docs/installing-on-linux/on-premises/install-kubesphere-on-vmware-vsphere/)
+- [在青云QingCloud 安装高可用集群](https://kubesphere.com.cn/docs/installing-on-linux/public-cloud/kubesphere-on-qingcloud-instance/)
 - [在阿里云 ECS 部署高可用集群](https://kubesphere.com.cn/docs/installing-on-linux/public-cloud/install-kubesphere-on-ali-ecs/)
-- [在华为云 VM 部署高可用集群](https://kubesphere.com.cn/docs/installing-on-linux/public-cloud/install-ks-on-huaweicloud-ecs/)
-- [在 Azure VM 安装高可用集群](https://kubesphere.com.cn/en/docs/installing-on-linux/public-cloud/install-ks-on-azure-vms/)
 
+- [在华为云 VM 部署高可用集群](https://kubesphere.com.cn/docs/installing-on-linux/public-cloud/install-kubesphere-on-huaweicloud-ecs/)
+- [在 Azure VM 安装高可用集群](https://kubesphere.com.cn/docs/installing-on-linux/public-cloud/install-kubesphere-on-azure-vms/)
 
 ## 技术社区
 
