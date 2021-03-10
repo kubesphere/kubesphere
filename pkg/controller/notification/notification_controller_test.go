@@ -23,7 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v2alpha1 "kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
+	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -126,7 +126,7 @@ var (
 		const timeout = time.Second * 30
 		const interval = time.Second * 1
 
-		obj := &v2alpha1.DingTalkConfig{
+		obj := &v2beta1.Config{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: constants.NotificationSecretNamespace,
@@ -175,7 +175,7 @@ var (
 				Expect(cl.Create(context.Background(), obj)).Should(Succeed())
 				time.Sleep(time.Second)
 
-				fedObj := &v1beta1.FederatedDingTalkConfig{}
+				fedObj := &v1beta1.FederatedNotificationConfig{}
 				By("Expecting to create federated object successfully")
 				Eventually(func() bool {
 					err := ksCache.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)

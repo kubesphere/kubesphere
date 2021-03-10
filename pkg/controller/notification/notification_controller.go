@@ -33,7 +33,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
+	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"reflect"
@@ -95,16 +95,8 @@ func (c *Controller) setEventHandlers() error {
 	if c.reconciledObjs != nil && len(c.reconciledObjs) > 0 {
 		c.reconciledObjs = c.reconciledObjs[:0]
 	}
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.DingTalkConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.DingTalkReceiver{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.EmailConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.EmailReceiver{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.SlackConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.SlackReceiver{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.WebhookConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.WebhookReceiver{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.WechatConfig{})
-	c.reconciledObjs = append(c.reconciledObjs, &v2alpha1.WechatReceiver{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2beta1.Config{})
+	c.reconciledObjs = append(c.reconciledObjs, &v2beta1.Receiver{})
 	c.reconciledObjs = append(c.reconciledObjs, &corev1.Secret{})
 
 	if c.informerSynced != nil && len(c.informerSynced) > 0 {
@@ -269,26 +261,10 @@ func (c *Controller) multiClusterSync(ctx context.Context, obj runtime.Object) e
 	}
 
 	switch obj.(type) {
-	case *v2alpha1.DingTalkConfig:
-		return c.syncFederatedDingTalkConfig(obj.(*v2alpha1.DingTalkConfig))
-	case *v2alpha1.DingTalkReceiver:
-		return c.syncFederatedDingTalkReceiver(obj.(*v2alpha1.DingTalkReceiver))
-	case *v2alpha1.EmailConfig:
-		return c.syncFederatedEmailConfig(obj.(*v2alpha1.EmailConfig))
-	case *v2alpha1.EmailReceiver:
-		return c.syncFederatedEmailReceiver(obj.(*v2alpha1.EmailReceiver))
-	case *v2alpha1.SlackConfig:
-		return c.syncFederatedSlackConfig(obj.(*v2alpha1.SlackConfig))
-	case *v2alpha1.SlackReceiver:
-		return c.syncFederatedSlackReceiver(obj.(*v2alpha1.SlackReceiver))
-	case *v2alpha1.WebhookConfig:
-		return c.syncFederatedWebhookConfig(obj.(*v2alpha1.WebhookConfig))
-	case *v2alpha1.WebhookReceiver:
-		return c.syncFederatedWebhookReceiver(obj.(*v2alpha1.WebhookReceiver))
-	case *v2alpha1.WechatConfig:
-		return c.syncFederatedWechatConfig(obj.(*v2alpha1.WechatConfig))
-	case *v2alpha1.WechatReceiver:
-		return c.syncFederatedWechatReceiver(obj.(*v2alpha1.WechatReceiver))
+	case *v2beta1.Config:
+		return c.syncFederatedConfig(obj.(*v2beta1.Config))
+	case *v2beta1.Receiver:
+		return c.syncFederatedReceiver(obj.(*v2beta1.Receiver))
 	case *corev1.Secret:
 		return c.syncFederatedSecret(obj.(*corev1.Secret))
 	default:
@@ -297,22 +273,22 @@ func (c *Controller) multiClusterSync(ctx context.Context, obj runtime.Object) e
 	}
 }
 
-func (c *Controller) syncFederatedDingTalkConfig(obj *v2alpha1.DingTalkConfig) error {
+func (c *Controller) syncFederatedConfig(obj *v2beta1.Config) error {
 
-	fedObj := &v1beta1.FederatedDingTalkConfig{}
+	fedObj := &v1beta1.FederatedNotificationConfig{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedDingTalkConfig{
+			fedObj = &v1beta1.FederatedNotificationConfig{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedDingTalkConfigKind,
+					Kind:       v1beta1.FederatedNotificationConfigKind,
 					APIVersion: v1beta1.SchemeGroupVersion.String(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: obj.Name,
 				},
-				Spec: v1beta1.FederatedDingTalkConfigSpec{
-					Template: v1beta1.DingTalkConfigTemplate{
+				Spec: v1beta1.FederatedNotificationConfigSpec{
+					Template: v1beta1.NotificationConfigTemplate{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: obj.Labels,
 						},
@@ -353,470 +329,22 @@ func (c *Controller) syncFederatedDingTalkConfig(obj *v2alpha1.DingTalkConfig) e
 	return nil
 }
 
-func (c *Controller) syncFederatedDingTalkReceiver(obj *v2alpha1.DingTalkReceiver) error {
+func (c *Controller) syncFederatedReceiver(obj *v2beta1.Receiver) error {
 
-	fedObj := &v1beta1.FederatedDingTalkReceiver{}
+	fedObj := &v1beta1.FederatedNotificationReceiver{}
 	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedDingTalkReceiver{
+			fedObj = &v1beta1.FederatedNotificationReceiver{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedDingTalkReceiverKind,
+					Kind:       v1beta1.FederatedNotificationReceiverKind,
 					APIVersion: v1beta1.SchemeGroupVersion.String(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: obj.Name,
 				},
-				Spec: v1beta1.FederatedDingTalkReceiverSpec{
-					Template: v1beta1.DingTalkReceiverTemplate{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: obj.Labels,
-						},
-						Spec: obj.Spec,
-					},
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
-			if err != nil {
-				return err
-			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-				return err
-			}
-
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(fedObj.Spec.Template.Labels, obj.Labels) || !reflect.DeepEqual(fedObj.Spec.Template.Spec, obj.Spec) {
-
-		fedObj.Spec.Template.Spec = obj.Spec
-		fedObj.Spec.Template.Labels = obj.Labels
-
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) syncFederatedEmailConfig(obj *v2alpha1.EmailConfig) error {
-
-	fedObj := &v1beta1.FederatedEmailConfig{}
-	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedEmailConfig{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedEmailConfigKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: obj.Name,
-				},
-				Spec: v1beta1.FederatedEmailConfigSpec{
-					Template: v1beta1.EmailConfigTemplate{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: obj.Labels,
-						},
-						Spec: obj.Spec,
-					},
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
-			if err != nil {
-				return err
-			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-				return err
-			}
-
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(fedObj.Spec.Template.Labels, obj.Labels) || !reflect.DeepEqual(fedObj.Spec.Template.Spec, obj.Spec) {
-
-		fedObj.Spec.Template.Spec = obj.Spec
-		fedObj.Spec.Template.Labels = obj.Labels
-
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) syncFederatedEmailReceiver(obj *v2alpha1.EmailReceiver) error {
-
-	fedObj := &v1beta1.FederatedEmailReceiver{}
-	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedEmailReceiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedEmailReceiverKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: obj.Name,
-				},
-				Spec: v1beta1.FederatedEmailReceiverSpec{
-					Template: v1beta1.EmailReceiverTemplate{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: obj.Labels,
-						},
-						Spec: obj.Spec,
-					},
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
-			if err != nil {
-				return err
-			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-				return err
-			}
-
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(fedObj.Spec.Template.Labels, obj.Labels) || !reflect.DeepEqual(fedObj.Spec.Template.Spec, obj.Spec) {
-
-		fedObj.Spec.Template.Spec = obj.Spec
-		fedObj.Spec.Template.Labels = obj.Labels
-
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) syncFederatedSlackConfig(obj *v2alpha1.SlackConfig) error {
-
-	fedObj := &v1beta1.FederatedSlackConfig{}
-	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedSlackConfig{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedSlackConfigKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: obj.Name,
-				},
-				Spec: v1beta1.FederatedSlackConfigSpec{
-					Template: v1beta1.SlackConfigTemplate{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: obj.Labels,
-						},
-						Spec: obj.Spec,
-					},
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
-			if err != nil {
-				return err
-			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-				return err
-			}
-
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(fedObj.Spec.Template.Labels, obj.Labels) || !reflect.DeepEqual(fedObj.Spec.Template.Spec, obj.Spec) {
-
-		fedObj.Spec.Template.Spec = obj.Spec
-		fedObj.Spec.Template.Labels = obj.Labels
-
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) syncFederatedSlackReceiver(obj *v2alpha1.SlackReceiver) error {
-
-	fedObj := &v1beta1.FederatedSlackReceiver{}
-	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedSlackReceiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedSlackReceiverKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: obj.Name,
-				},
-				Spec: v1beta1.FederatedSlackReceiverSpec{
-					Template: v1beta1.SlackReceiverTemplate{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: obj.Labels,
-						},
-						Spec: obj.Spec,
-					},
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
-			if err != nil {
-				return err
-			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-				return err
-			}
-
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(fedObj.Spec.Template.Labels, obj.Labels) || !reflect.DeepEqual(fedObj.Spec.Template.Spec, obj.Spec) {
-
-		fedObj.Spec.Template.Spec = obj.Spec
-		fedObj.Spec.Template.Labels = obj.Labels
-
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) syncFederatedWebhookConfig(obj *v2alpha1.WebhookConfig) error {
-
-	fedObj := &v1beta1.FederatedWebhookConfig{}
-	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedWebhookConfig{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedWebhookConfigKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: obj.Name,
-				},
-				Spec: v1beta1.FederatedWebhookConfigSpec{
-					Template: v1beta1.WebhookConfigTemplate{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: obj.Labels,
-						},
-						Spec: obj.Spec,
-					},
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
-			if err != nil {
-				return err
-			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-				return err
-			}
-
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(fedObj.Spec.Template.Labels, obj.Labels) || !reflect.DeepEqual(fedObj.Spec.Template.Spec, obj.Spec) {
-
-		fedObj.Spec.Template.Spec = obj.Spec
-		fedObj.Spec.Template.Labels = obj.Labels
-
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) syncFederatedWebhookReceiver(obj *v2alpha1.WebhookReceiver) error {
-
-	fedObj := &v1beta1.FederatedWebhookReceiver{}
-	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedWebhookReceiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedWebhookReceiverKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: obj.Name,
-				},
-				Spec: v1beta1.FederatedWebhookReceiverSpec{
-					Template: v1beta1.WebhookReceiverTemplate{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: obj.Labels,
-						},
-						Spec: obj.Spec,
-					},
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
-			if err != nil {
-				return err
-			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-				return err
-			}
-
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(fedObj.Spec.Template.Labels, obj.Labels) || !reflect.DeepEqual(fedObj.Spec.Template.Spec, obj.Spec) {
-
-		fedObj.Spec.Template.Spec = obj.Spec
-		fedObj.Spec.Template.Labels = obj.Labels
-
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) syncFederatedWechatConfig(obj *v2alpha1.WechatConfig) error {
-
-	fedObj := &v1beta1.FederatedWechatConfig{}
-	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedWechatConfig{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedWechatConfigKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: obj.Name,
-				},
-				Spec: v1beta1.FederatedWechatConfigSpec{
-					Template: v1beta1.WechatConfigTemplate{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: obj.Labels,
-						},
-						Spec: obj.Spec,
-					},
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
-			if err != nil {
-				return err
-			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-				return err
-			}
-
-			return nil
-		}
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(fedObj.Spec.Template.Labels, obj.Labels) || !reflect.DeepEqual(fedObj.Spec.Template.Spec, obj.Spec) {
-
-		fedObj.Spec.Template.Spec = obj.Spec
-		fedObj.Spec.Template.Labels = obj.Labels
-
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) syncFederatedWechatReceiver(obj *v2alpha1.WechatReceiver) error {
-
-	fedObj := &v1beta1.FederatedWechatReceiver{}
-	err := c.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			fedObj = &v1beta1.FederatedWechatReceiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedWechatReceiverKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: obj.Name,
-				},
-				Spec: v1beta1.FederatedWechatReceiverSpec{
-					Template: v1beta1.WechatReceiverTemplate{
+				Spec: v1beta1.FederatedNotificationReceiverSpec{
+					Template: v1beta1.NotificationReceiverTemplate{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: obj.Labels,
 						},

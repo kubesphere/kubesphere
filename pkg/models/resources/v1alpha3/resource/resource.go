@@ -26,7 +26,7 @@ import (
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
-	notificationv2alpha1 "kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
+	notificationv2beta1 "kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
@@ -126,16 +126,8 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	getters[schema.GroupVersionResource{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"}] = cluster.New(factory.KubeSphereSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "apiextensions.k8s.io", Version: "v1", Resource: "customresourcedefinitions"}] = customresourcedefinition.New(factory.ApiExtensionSharedInformerFactory())
 
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralDingTalkConfig)] = notification.NewDingTalkConfigGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralDingTalkReceiver)] = notification.NewDingTalkReceiverGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralEmailConfig)] = notification.NewEmailConfigGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralEmailReceiver)] = notification.NewEmailReceiverGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralSlackConfig)] = notification.NewSlackConfigGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralSlackReceiver)] = notification.NewSlackReceiverGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralWebhookConfig)] = notification.NewWebhookConfigGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralWebhookReceiver)] = notification.NewWebhookReceiverGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralWechatConfig)] = notification.NewWechatConfigGetter(factory.KubeSphereSharedInformerFactory())
-	getters[notificationv2alpha1.SchemeGroupVersion.WithResource(notificationv2alpha1.ResourcesPluralWechatReceiver)] = notification.NewWechatReceiverGetter(factory.KubeSphereSharedInformerFactory())
+	getters[notificationv2beta1.SchemeGroupVersion.WithResource(notificationv2beta1.ResourcesPluralConfig)] = notification.NewNotificationConfigGetter(factory.KubeSphereSharedInformerFactory())
+	getters[notificationv2beta1.SchemeGroupVersion.WithResource(notificationv2beta1.ResourcesPluralReceiver)] = notification.NewNotificationReceiverGetter(factory.KubeSphereSharedInformerFactory())
 
 	// federated resources
 	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedNamespace)] = federatednamespace.New(factory.KubeSphereSharedInformerFactory())

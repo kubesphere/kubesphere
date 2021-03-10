@@ -46,7 +46,7 @@ func TestOperator_List(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result, err := o.List("", "secrets", &query.Query{
+		result, err := o.List("", "secrets", "", &query.Query{
 			SortBy:    query.FieldName,
 			Ascending: true,
 		})
@@ -83,7 +83,7 @@ func TestOperator_Get(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result, err := o.Get("", "secrets", test.name)
+		result, err := o.Get("", "secrets", test.name, "")
 
 		if err != nil {
 			if !reflect.DeepEqual(err, test.expectError) {

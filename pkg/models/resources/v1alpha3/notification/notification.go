@@ -23,22 +23,23 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"strings"
 )
 
-type dingtalkConfigGetter struct {
+type configGetter struct {
 	ksInformer ksinformers.SharedInformerFactory
 }
 
-func NewDingTalkConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &dingtalkConfigGetter{ksInformer: informer}
+func NewNotificationConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
+	return &configGetter{ksInformer: informer}
 }
 
-func (g *dingtalkConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().DingTalkConfigs().Lister().Get(name)
+func (g *configGetter) Get(_, name string) (runtime.Object, error) {
+	return g.ksInformer.Notification().V2beta1().Configs().Lister().Get(name)
 }
 
-func (g *dingtalkConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().DingTalkConfigs().Lister().List(query.Selector())
+func (g *configGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
+	objs, err := g.ksInformer.Notification().V2beta1().Configs().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -50,220 +51,20 @@ func (g *dingtalkConfigGetter) List(_ string, query *query.Query) (*api.ListResu
 	return v1alpha3.DefaultList(result, query, compare, filter), nil
 }
 
-type dingtalkReceiverGetter struct {
+type receiverGetter struct {
 	ksInformer ksinformers.SharedInformerFactory
 }
 
-func NewDingTalkReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &dingtalkReceiverGetter{ksInformer: informer}
+func NewNotificationReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
+	return &receiverGetter{ksInformer: informer}
 }
 
-func (g *dingtalkReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().DingTalkReceivers().Lister().Get(name)
+func (g *receiverGetter) Get(_, name string) (runtime.Object, error) {
+	return g.ksInformer.Notification().V2beta1().Receivers().Lister().Get(name)
 }
 
-func (g *dingtalkReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().DingTalkReceivers().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, obj := range objs {
-		result = append(result, obj)
-	}
-	return v1alpha3.DefaultList(result, query, compare, filter), nil
-}
-
-type emailConfigGetter struct {
-	ksInformer ksinformers.SharedInformerFactory
-}
-
-func NewEmailConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &emailConfigGetter{ksInformer: informer}
-}
-
-func (g *emailConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().EmailConfigs().Lister().Get(name)
-}
-
-func (g *emailConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().EmailConfigs().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, obj := range objs {
-		result = append(result, obj)
-	}
-	return v1alpha3.DefaultList(result, query, compare, filter), nil
-}
-
-type emailReceiverGetter struct {
-	ksInformer ksinformers.SharedInformerFactory
-}
-
-func NewEmailReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &emailReceiverGetter{ksInformer: informer}
-}
-
-func (g *emailReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().EmailReceivers().Lister().Get(name)
-}
-
-func (g *emailReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().EmailReceivers().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, obj := range objs {
-		result = append(result, obj)
-	}
-	return v1alpha3.DefaultList(result, query, compare, filter), nil
-}
-
-type slackConfigGetter struct {
-	ksInformer ksinformers.SharedInformerFactory
-}
-
-func NewSlackConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &slackConfigGetter{ksInformer: informer}
-}
-
-func (g *slackConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().SlackConfigs().Lister().Get(name)
-}
-
-func (g *slackConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().SlackConfigs().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, obj := range objs {
-		result = append(result, obj)
-	}
-	return v1alpha3.DefaultList(result, query, compare, filter), nil
-}
-
-type slackReceiverGetter struct {
-	ksInformer ksinformers.SharedInformerFactory
-}
-
-func NewSlackReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &slackReceiverGetter{ksInformer: informer}
-}
-
-func (g *slackReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().SlackReceivers().Lister().Get(name)
-}
-
-func (g *slackReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().SlackReceivers().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, obj := range objs {
-		result = append(result, obj)
-	}
-	return v1alpha3.DefaultList(result, query, compare, filter), nil
-}
-
-type webhookConfigGetter struct {
-	ksInformer ksinformers.SharedInformerFactory
-}
-
-func NewWebhookConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &webhookConfigGetter{ksInformer: informer}
-}
-
-func (g *webhookConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().WebhookConfigs().Lister().Get(name)
-}
-
-func (g *webhookConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().WebhookConfigs().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, obj := range objs {
-		result = append(result, obj)
-	}
-	return v1alpha3.DefaultList(result, query, compare, filter), nil
-}
-
-type webhookReceiverGetter struct {
-	ksInformer ksinformers.SharedInformerFactory
-}
-
-func NewWebhookReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &webhookReceiverGetter{ksInformer: informer}
-}
-
-func (g *webhookReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().WebhookReceivers().Lister().Get(name)
-}
-
-func (g *webhookReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().WebhookReceivers().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, obj := range objs {
-		result = append(result, obj)
-	}
-	return v1alpha3.DefaultList(result, query, compare, filter), nil
-}
-
-type wechatConfigGetter struct {
-	ksInformer ksinformers.SharedInformerFactory
-}
-
-func NewWechatConfigGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &wechatConfigGetter{ksInformer: informer}
-}
-
-func (g *wechatConfigGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().WechatConfigs().Lister().Get(name)
-}
-
-func (g *wechatConfigGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().WechatConfigs().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, obj := range objs {
-		result = append(result, obj)
-	}
-	return v1alpha3.DefaultList(result, query, compare, filter), nil
-}
-
-type wechatReceiverGetter struct {
-	ksInformer ksinformers.SharedInformerFactory
-}
-
-func NewWechatReceiverGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &wechatReceiverGetter{ksInformer: informer}
-}
-
-func (g *wechatReceiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2alpha1().WechatReceivers().Lister().Get(name)
-}
-
-func (g *wechatReceiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2alpha1().WechatReceivers().Lister().List(query.Selector())
+func (g *receiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
+	objs, err := g.ksInformer.Notification().V2beta1().Receivers().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -298,5 +99,17 @@ func filter(object runtime.Object, filter query.Filter) bool {
 		return false
 	}
 
-	return v1alpha3.DefaultObjectMetaFilter(meta.AsPartialObjectMetadata(accessor).ObjectMeta, filter)
+	switch filter.Field {
+	case query.FieldNames:
+		for _, name := range strings.Split(string(filter.Value), ",") {
+			if accessor.GetName() == name {
+				return true
+			}
+		}
+		return false
+	case query.FieldName:
+		return strings.Contains(accessor.GetName(), string(filter.Value))
+	default:
+		return true
+	}
 }

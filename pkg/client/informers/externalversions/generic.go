@@ -30,7 +30,7 @@ import (
 	v1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
-	v2alpha1 "kubesphere.io/kubesphere/pkg/apis/notification/v2alpha1"
+	v2beta1 "kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	storagev1alpha1 "kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
@@ -133,27 +133,11 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	case networkv1alpha1.SchemeGroupVersion.WithResource("namespacenetworkpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().NamespaceNetworkPolicies().Informer()}, nil
 
-		// Group=notification.kubesphere.io, Version=v2alpha1
-	case v2alpha1.SchemeGroupVersion.WithResource("dingtalkconfigs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().DingTalkConfigs().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("dingtalkreceivers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().DingTalkReceivers().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("emailconfigs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().EmailConfigs().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("emailreceivers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().EmailReceivers().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("slackconfigs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().SlackConfigs().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("slackreceivers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().SlackReceivers().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("webhookconfigs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().WebhookConfigs().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("webhookreceivers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().WebhookReceivers().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("wechatconfigs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().WechatConfigs().Informer()}, nil
-	case v2alpha1.SchemeGroupVersion.WithResource("wechatreceivers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2alpha1().WechatReceivers().Informer()}, nil
+		// Group=notification.kubesphere.io, Version=v2beta1
+	case v2beta1.SchemeGroupVersion.WithResource("configs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta1().Configs().Informer()}, nil
+	case v2beta1.SchemeGroupVersion.WithResource("receivers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta1().Receivers().Informer()}, nil
 
 		// Group=quota.kubesphere.io, Version=v1alpha2
 	case quotav1alpha2.SchemeGroupVersion.WithResource("resourcequotas"):
