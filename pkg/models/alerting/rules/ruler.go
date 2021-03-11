@@ -102,35 +102,99 @@ func (r *ruleResource) deleteAlertingRules(rules ...*RuleWithGroup) (bool, error
 // If there are rules to be updated, return true to indicate the resource should be updated.
 func (r *ruleResource) updateAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 	var (
-		commit  bool
-		spec    = r.Spec.DeepCopy()
-		ruleMap = make(map[string]*RuleWithGroup)
+		commit     bool
+		spec       = r.Spec.DeepCopy()
+		ruleMap    = make(map[string]*RuleWithGroup)
+		ruleGroups = make(map[string]map[string]struct{}) // mapping of name to group
 	)
 
 	if spec == nil {
 		return false, nil
 	}
+	spec.Groups = nil
 
 	for i, rule := range rules {
 		if rule != nil {
 			ruleMap[rule.Alert] = rules[i]
+			ruleGroups[rule.Alert] = make(map[string]struct{})
 		}
 	}
 
+	// Firstly delete the old rules
+	for _, g := range r.Spec.Groups {
+		var rules []promresourcesv1.Rule
+		for _, r := range g.Rules {
+			if r.Alert != "" {
+				if _, ok := ruleMap[r.Alert]; ok {
+					ruleGroups[r.Alert][g.Name] = struct{}{}
+					commit = true
+					continue
+				}
+			}
+			rules = append(rules, r)
+		}
+		if len(rules) > 0 {
+			spec.Groups = append(spec.Groups, promresourcesv1.RuleGroup{
+				Name:                    g.Name,
+				Interval:                g.Interval,
+				PartialResponseStrategy: g.PartialResponseStrategy,
+				Rules:                   rules,
+			})
+		}
+	}
+
+	addRules := func(g *promresourcesv1.RuleGroup) bool {
+		var add bool
+		var num = customRuleGroupSize - len(g.Rules)
+		if num > 0 {
+			for name, rule := range ruleMap {
+				if num <= 0 {
+					break
+				}
+				if gNames, ok := ruleGroups[name]; ok {
+					// Add a rule to a different group than the group where it resided, to clear its alerts, etc.
+					// Because Prometheus may migrate information such as alerts from the old rule into the new rule
+					// when updating a rule within a group.
+					if _, ok := gNames[g.Name]; !ok {
+						g.Rules = append(g.Rules, rule.Rule)
+						num--
+						delete(ruleMap, name)
+						add = true
+					}
+				}
+			}
+		}
+		return add
+	}
+
+	// Then add the new rules
+	var groupMax = -1
 	for i, g := range spec.Groups {
-		for j, r := range g.Rules {
-			if r.Alert == "" {
+		if len(ruleMap) == 0 {
+			break
+		}
+
+		if strings.HasPrefix(g.Name, customRuleGroupDefaultPrefix) {
+			suf, err := strconv.Atoi(strings.TrimPrefix(g.Name, customRuleGroupDefaultPrefix))
+			if err != nil {
 				continue
 			}
-			if b, ok := ruleMap[r.Alert]; ok {
-				if b == nil {
-					spec.Groups[i].Rules = append(g.Rules[:j], g.Rules[j+1:]...)
-				} else {
-					spec.Groups[i].Rules[j] = b.Rule
-					ruleMap[r.Alert] = nil // clear to mark it updated
-				}
-				commit = true
+			if suf > groupMax {
+				groupMax = suf
 			}
+		}
+
+		if addRules(&spec.Groups[i]) {
+			commit = true
+		}
+	}
+
+	for groupMax++; len(ruleMap) > 0; groupMax++ {
+		g := promresourcesv1.RuleGroup{Name: fmt.Sprintf("%s%d", customRuleGroupDefaultPrefix, groupMax)}
+
+		if addRules(&g) {
+			spec.Groups = append(spec.Groups, g)
+			commit = true
 		}
 	}
 
