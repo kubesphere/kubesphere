@@ -154,7 +154,7 @@ func TestParseToQueryPart(t *testing.T) {
                                     "filter":[
                                         {
                                             "match_phrase":{
-                                                "ObjectRef.Namespace":"kubesphere-system"
+                                                "ObjectRef.Namespace.keyword":"kubesphere-system"
                                             }
                                         },
                                         {
@@ -172,7 +172,7 @@ func TestParseToQueryPart(t *testing.T) {
                                     "filter":[
                                         {
                                             "match_phrase":{
-                                                "Workspace":"system-workspace"
+                                                "Workspace.keyword":"system-workspace"
                                             }
                                         },
                                         {
@@ -218,7 +218,7 @@ func TestParseToQueryPart(t *testing.T) {
                         "should":[
                             {
                                 "match_phrase":{
-                                    "Verb":"create"
+                                    "Verb.keyword":"create"
                                 }
                             }
                         ],
@@ -230,7 +230,7 @@ func TestParseToQueryPart(t *testing.T) {
                         "should":[
                             {
                                 "match_phrase":{
-                                    "Level":"Metadata"
+                                    "Level.keyword":"Metadata"
                                 }
                             }
                         ],
@@ -328,7 +328,7 @@ func TestParseToQueryPart(t *testing.T) {
                         "should":[
                             {
                                 "match_phrase":{
-                                    "ResponseStatus.status":"Failure"
+                                    "ResponseStatus.status.keyword":"Failure"
                                 }
                             }
                         ],
