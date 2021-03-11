@@ -200,11 +200,14 @@ func (conf *Config) ToMap() map[string]bool {
 		}
 
 		if name == "openpitrix" {
-			if conf.OpenPitrixOptions.IsEmpty() {
+			// openpitrix is always true
+			result[name] = true
+			if conf.OpenPitrixOptions == nil {
 				result["openpitrix.appstore"] = false
 			} else {
-				result["openpitrix.appstore"] = true
+				result["openpitrix.appstore"] = conf.OpenPitrixOptions.AppStoreConfIsEmpty()
 			}
+			continue
 		}
 
 		if c.Field(i).IsNil() {
@@ -238,10 +241,6 @@ func (conf *Config) stripEmptyOptions() {
 
 	if conf.LdapOptions != nil && conf.LdapOptions.Host == "" {
 		conf.LdapOptions = nil
-	}
-
-	if conf.OpenPitrixOptions != nil && conf.OpenPitrixOptions.IsEmpty() {
-		conf.OpenPitrixOptions = nil
 	}
 
 	if conf.NetworkOptions != nil && conf.NetworkOptions.IsEmpty() {
