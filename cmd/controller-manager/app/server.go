@@ -228,7 +228,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Fatal("Unable to create helm category controller")
 	}
 
-	if !s.OpenPitrixOptions.IsEmpty() {
+	if !s.OpenPitrixOptions.AppStoreConfIsEmpty() {
 		storageClient, err := s3.NewS3Client(s.OpenPitrixOptions.S3Options)
 		if err != nil {
 			klog.Fatalf("failed to connect to s3, please check openpitrix s3 service status, error: %v", err)

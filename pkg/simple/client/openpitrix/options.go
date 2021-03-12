@@ -39,7 +39,7 @@ func (s *Options) Validate() []error {
 	return errors
 }
 
-func (s *Options) IsEmpty() bool {
+func (s *Options) AppStoreConfIsEmpty() bool {
 	return s.S3Options == nil || s.S3Options.Endpoint == ""
 }
 
