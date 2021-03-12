@@ -63,10 +63,13 @@ func (h *Handler) handleGetResources(request *restful.Request, response *restful
 
 	// fallback to v1alpha2
 	resultV1alpha2, err := h.resourcesGetterV1alpha2.GetResource(namespace, resourceType, name)
-
 	if err != nil {
+		if err == resourcev1alpha2.ErrResourceNotSupported {
+			api.HandleNotFound(response, request, err)
+			return
+		}
 		klog.Error(err)
-		api.HandleInternalError(response, nil, err)
+		api.HandleError(response, request, err)
 		return
 	}
 
@@ -81,7 +84,6 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 	namespace := request.PathParameter("namespace")
 
 	result, err := h.resourceGetterV1alpha3.List(resourceType, namespace, query)
-
 	if err == nil {
 		response.WriteEntity(result)
 		return
@@ -89,16 +91,19 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 
 	if err != resourcev1alpha3.ErrResourceNotSupported {
 		klog.Error(err, resourceType)
-		api.HandleInternalError(response, nil, err)
+		api.HandleInternalError(response, request, err)
 		return
 	}
 
 	// fallback to v1alpha2
 	result, err = h.fallback(resourceType, namespace, query)
-
 	if err != nil {
+		if err == resourcev1alpha2.ErrResourceNotSupported {
+			api.HandleNotFound(response, request, err)
+			return
+		}
 		klog.Error(err)
-		api.HandleInternalError(response, nil, err)
+		api.HandleError(response, request, err)
 		return
 	}
 	response.WriteEntity(result)
@@ -152,7 +157,6 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 	}
 
 	result, err := h.resourcesGetterV1alpha2.ListResources(namespace, resourceType, conditions, orderBy, reverse, limit, offset)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -167,19 +171,16 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 func (h *Handler) handleGetComponentStatus(request *restful.Request, response *restful.Response) {
 	component := request.PathParameter("component")
 	result, err := h.componentsGetter.GetComponentStatus(component)
-
 	if err != nil {
 		klog.Error(err)
 		api.HandleInternalError(response, nil, err)
 		return
 	}
-
 	response.WriteEntity(result)
 }
 
 func (h *Handler) handleGetSystemHealthStatus(request *restful.Request, response *restful.Response) {
 	result, err := h.componentsGetter.GetSystemHealthStatus()
-
 	if err != nil {
 		klog.Error(err)
 		api.HandleInternalError(response, nil, err)
@@ -191,9 +192,7 @@ func (h *Handler) handleGetSystemHealthStatus(request *restful.Request, response
 
 // get all componentsHandler
 func (h *Handler) handleGetComponents(request *restful.Request, response *restful.Response) {
-
 	result, err := h.componentsGetter.GetAllComponentsStatus()
-
 	if err != nil {
 		klog.Error(err)
 		api.HandleInternalError(response, nil, err)
