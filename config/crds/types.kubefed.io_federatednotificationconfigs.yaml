@@ -1,0 +1,393 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: federatednotificationconfigs.types.kubefed.io
+spec:
+  group: types.kubefed.io
+  names:
+    kind: FederatedNotificationConfig
+    listKind: FederatedNotificationConfigList
+    plural: federatednotificationconfigs
+    singular: federatednotificationconfig
+  scope: Cluster
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              overrides:
+                items:
+                  properties:
+                    clusterName:
+                      type: string
+                    clusterOverrides:
+                      items:
+                        properties:
+                          op:
+                            type: string
+                          path:
+                            type: string
+                          value:
+                            type: object
+                        required:
+                        - path
+                        type: object
+                      type: array
+                  required:
+                  - clusterName
+                  type: object
+                type: array
+              placement:
+                properties:
+                  clusterSelector:
+                    description: A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                        items:
+                          description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector applies to.
+                              type: string
+                            operator:
+                              description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                  clusters:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                type: object
+              template:
+                properties:
+                  metadata:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  spec:
+                    description: ConfigSpec defines the desired state of Config
+                    properties:
+                      dingtalk:
+                        properties:
+                          conversation:
+                            description: Only needed when send alerts to the conversation.
+                            properties:
+                              appkey:
+                                description: The key of the application with which to send messages.
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.  Must be a valid secret key.
+                                    type: string
+                                  name:
+                                    description: Name of the secret.
+                                    type: string
+                                  namespace:
+                                    description: The namespace of the secret, default to the pod's namespace.
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                              appsecret:
+                                description: The key in the secret to be used. Must be a valid secret key.
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.  Must be a valid secret key.
+                                    type: string
+                                  name:
+                                    description: Name of the secret.
+                                    type: string
+                                  namespace:
+                                    description: The namespace of the secret, default to the pod's namespace.
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        type: object
+                      email:
+                        properties:
+                          authIdentify:
+                            description: The identity for PLAIN authentication.
+                            type: string
+                          authPassword:
+                            description: The secret contains the SMTP password for LOGIN and PLAIN authentications.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must be a valid secret key.
+                                type: string
+                              name:
+                                description: Name of the secret.
+                                type: string
+                              namespace:
+                                description: The namespace of the secret, default to the pod's namespace.
+                                type: string
+                            required:
+                            - key
+                            type: object
+                          authSecret:
+                            description: The secret contains the SMTP secret for CRAM-MD5 authentication.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must be a valid secret key.
+                                type: string
+                              name:
+                                description: Name of the secret.
+                                type: string
+                              namespace:
+                                description: The namespace of the secret, default to the pod's namespace.
+                                type: string
+                            required:
+                            - key
+                            type: object
+                          authUsername:
+                            description: The username for CRAM-MD5, LOGIN and PLAIN authentications.
+                            type: string
+                          from:
+                            description: The sender address.
+                            type: string
+                          hello:
+                            description: The hostname to use when identifying to the SMTP server.
+                            type: string
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          requireTLS:
+                            description: The default SMTP TLS requirement.
+                            type: boolean
+                          smartHost:
+                            description: The address of the SMTP server.
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                type: integer
+                            required:
+                            - host
+                            - port
+                            type: object
+                          tls:
+                            description: TLSConfig configures the options for TLS connections.
+                            properties:
+                              clientCertificate:
+                                description: The certificate of the client.
+                                properties:
+                                  cert:
+                                    description: The client cert file for the targets.
+                                    properties:
+                                      key:
+                                        description: The key of the secret to select from.  Must be a valid secret key.
+                                        type: string
+                                      name:
+                                        description: Name of the secret.
+                                        type: string
+                                      namespace:
+                                        description: The namespace of the secret, default to the pod's namespace.
+                                        type: string
+                                    required:
+                                    - key
+                                    type: object
+                                  key:
+                                    description: The client key file for the targets.
+                                    properties:
+                                      key:
+                                        description: The key of the secret to select from.  Must be a valid secret key.
+                                        type: string
+                                      name:
+                                        description: Name of the secret.
+                                        type: string
+                                      namespace:
+                                        description: The namespace of the secret, default to the pod's namespace.
+                                        type: string
+                                    required:
+                                    - key
+                                    type: object
+                                type: object
+                              insecureSkipVerify:
+                                description: Disable target certificate validation.
+                                type: boolean
+                              rootCA:
+                                description: RootCA defines the root certificate authorities that clients use when verifying server certificates.
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.  Must be a valid secret key.
+                                    type: string
+                                  name:
+                                    description: Name of the secret.
+                                    type: string
+                                  namespace:
+                                    description: The namespace of the secret, default to the pod's namespace.
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                              serverName:
+                                description: Used to verify the hostname for the targets.
+                                type: string
+                            type: object
+                        required:
+                        - from
+                        - smartHost
+                        type: object
+                      slack:
+                        properties:
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          slackTokenSecret:
+                            description: The token of user or bot.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must be a valid secret key.
+                                type: string
+                              name:
+                                description: Name of the secret.
+                                type: string
+                              namespace:
+                                description: The namespace of the secret, default to the pod's namespace.
+                                type: string
+                            required:
+                            - key
+                            type: object
+                        type: object
+                      webhook:
+                        properties:
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        type: object
+                      wechat:
+                        properties:
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          wechatApiAgentId:
+                            description: The id of the application which sending message.
+                            type: string
+                          wechatApiCorpId:
+                            description: The corp id for authentication.
+                            type: string
+                          wechatApiSecret:
+                            description: The API key to use when talking to the WeChat API.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.  Must be a valid secret key.
+                                type: string
+                              name:
+                                description: Name of the secret.
+                                type: string
+                              namespace:
+                                description: The namespace of the secret, default to the pod's namespace.
+                                type: string
+                            required:
+                            - key
+                            type: object
+                          wechatApiUrl:
+                            description: The WeChat API URL.
+                            type: string
+                        required:
+                        - wechatApiAgentId
+                        - wechatApiCorpId
+                        - wechatApiSecret
+                        type: object
+                    type: object
+                type: object
+            required:
+            - placement
+            - template
+            type: object
+          status:
+            properties:
+              clusters:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transit from one status to another.
+                      type: string
+                    lastUpdateTime:
+                      description: Last time reconciliation resulted in an error or the last time a change was propagated to member clusters.
+                      type: string
+                    reason:
+                      description: (brief) reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of cluster condition
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

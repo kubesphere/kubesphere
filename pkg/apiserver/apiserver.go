@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	"net/http"
 	rt "runtime"
 	"time"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/klog"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	notificationv2beta1 "kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
@@ -68,6 +70,7 @@ import (
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
 	notificationv1 "kubesphere.io/kubesphere/pkg/kapis/notification/v1"
+	notificationkapisv2beta1 "kubesphere.io/kubesphere/pkg/kapis/notification/v2beta1"
 	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
@@ -270,6 +273,8 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.KubernetesClient.Prometheus(), s.AlertingClient, s.Config.AlertingOptions))
 	urlruntime.Must(version.AddToContainer(s.container, s.KubernetesClient.Discovery()))
 	urlruntime.Must(kubeedgev1alpha1.AddToContainer(s.container, s.Config.KubeEdgeOptions.Endpoint))
+	urlruntime.Must(notificationkapisv2beta1.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
+		s.KubernetesClient.KubeSphere()))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
@@ -310,6 +315,8 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			tenantv1alpha2.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			resourcev1alpha3.Resource(clusterv1alpha1.ResourcesPluralCluster),
+			notificationv2beta1.Resource(v2beta1.ResourcesPluralConfig),
+			notificationv2beta1.Resource(v2beta1.ResourcesPluralReceiver),
 		},
 	}
 
@@ -443,6 +450,8 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
 		{Group: "network.kubesphere.io", Version: "v1alpha1", Resource: "ippools"},
+		{Group: "notification.kubesphere.io", Version: "v2beta1", Resource: v2beta1.ResourcesPluralConfig},
+		{Group: "notification.kubesphere.io", Version: "v2beta1", Resource: v2beta1.ResourcesPluralReceiver},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{
