@@ -36,11 +36,13 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/application"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/cluster"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/clusterdashboard"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/clusterrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/clusterrolebinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/configmap"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/customresourcedefinition"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/daemonset"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/dashboard"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/deployment"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/devops"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedapplication"
@@ -130,6 +132,7 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	clusterResourceGetters[clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster)] = cluster.New(factory.KubeSphereSharedInformerFactory())
 	clusterResourceGetters[notificationv2beta1.SchemeGroupVersion.WithResource(notificationv2beta1.ResourcesPluralConfig)] = notification.NewNotificationConfigGetter(factory.KubeSphereSharedInformerFactory())
 	clusterResourceGetters[notificationv2beta1.SchemeGroupVersion.WithResource(notificationv2beta1.ResourcesPluralReceiver)] = notification.NewNotificationReceiverGetter(factory.KubeSphereSharedInformerFactory())
+	clusterResourceGetters[schema.GroupVersionResource{Group: "monitoring.kubesphere.io", Version: "v1alpha1", Resource: "clusterdashboards"}] = clusterdashboard.New(cache)
 
 	// federated resources
 	namespacedResourceGetters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedNamespace)] = federatednamespace.New(factory.KubeSphereSharedInformerFactory())
@@ -141,6 +144,7 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	namespacedResourceGetters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedPersistentVolumeClaim)] = federatedpersistentvolumeclaim.New(factory.KubeSphereSharedInformerFactory())
 	namespacedResourceGetters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedStatefulSet)] = federatedstatefulset.New(factory.KubeSphereSharedInformerFactory())
 	namespacedResourceGetters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedIngress)] = federatedingress.New(factory.KubeSphereSharedInformerFactory())
+	namespacedResourceGetters[schema.GroupVersionResource{Group: "monitoring.kubesphere.io", Version: "v1alpha1", Resource: "dashboards"}] = dashboard.New(cache)
 
 	return &ResourceGetter{
 		namespacedResourceGetters: namespacedResourceGetters,

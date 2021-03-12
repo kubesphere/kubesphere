@@ -1,0 +1,184 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: clusterdashboards.monitoring.kubesphere.io
+spec:
+  group: monitoring.kubesphere.io
+  names:
+    kind: ClusterDashboard
+    listKind: ClusterDashboardList
+    plural: clusterdashboards
+    singular: clusterdashboard
+  scope: Cluster
+  validation:
+    openAPIV3Schema:
+      description: ClusterDashboard is the Schema for the culsterdashboards API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: DashboardSpec defines the desired state of Dashboard
+          properties:
+            datasource:
+              description: Dashboard datasource
+              type: string
+            description:
+              description: Dashboard description
+              type: string
+            panels:
+              description: Collection of panels. Panel is one of [Row](row.md), [Singlestat](#singlestat.md)
+                or [Graph](graph.md)
+              items:
+                description: Supported panel type
+                properties:
+                  bars:
+                    description: Display as a bar chart
+                    type: boolean
+                  colors:
+                    description: Set series color
+                    items:
+                      type: string
+                    type: array
+                  decimals:
+                    description: Limit the decimal numbers
+                    format: int64
+                    type: integer
+                  description:
+                    description: Panel description
+                    type: string
+                  format:
+                    description: Display unit
+                    type: string
+                  id:
+                    description: Panel ID
+                    format: int64
+                    type: integer
+                  lines:
+                    description: Display as a line chart
+                    type: boolean
+                  stack:
+                    description: Display as a stacked chart
+                    type: boolean
+                  targets:
+                    allOf:
+                    - items:
+                        description: Query editor options
+                        properties:
+                          expr:
+                            description: Input for fetching metrics.
+                            type: string
+                          legendFormat:
+                            description: Legend format for outputs. You can make a
+                              dynamic legend with templating variables.
+                            type: string
+                          refId:
+                            description: Reference ID
+                            format: int64
+                            type: integer
+                          step:
+                            description: Set series time interval
+                            type: string
+                        type: object
+                    - items:
+                        description: Query editor options
+                        properties:
+                          expr:
+                            description: Input for fetching metrics.
+                            type: string
+                          legendFormat:
+                            description: Legend format for outputs. You can make a
+                              dynamic legend with templating variables.
+                            type: string
+                          refId:
+                            description: Reference ID
+                            format: int64
+                            type: integer
+                          step:
+                            description: Set series time interval
+                            type: string
+                        type: object
+                    description: A collection of queries
+                    type: array
+                  title:
+                    description: Name of the row panel
+                    type: string
+                  type:
+                    description: Must be `row`
+                    type: string
+                  yaxes:
+                    description: Y-axis options
+                    items:
+                      properties:
+                        decimals:
+                          description: Limit the decimal numbers
+                          format: int64
+                          type: integer
+                        format:
+                          description: Display unit
+                          type: string
+                      type: object
+                    type: array
+                required:
+                - type
+                type: object
+              type: array
+            templating:
+              description: Templating variables
+              items:
+                description: Templating defines a variable, which can be used as a
+                  placeholder in query
+                properties:
+                  name:
+                    description: Variable name
+                    type: string
+                  query:
+                    description: Set variable values to be the return result of the
+                      query
+                    type: string
+                type: object
+              type: array
+            time:
+              description: Time range for display
+              properties:
+                from:
+                  description: Start time in the format of `^now([+-][0-9]+[smhdwMy])?$`,
+                    eg. `now-1M`. It denotes the end time is set to the last month
+                    since now.
+                  type: string
+                to:
+                  description: End time in the format of `^now([+-][0-9]+[smhdwMy])?$`,
+                    eg. `now-1M`. It denotes the start time is set to the last month
+                    since now.
+                  type: string
+              type: object
+            title:
+              description: Dashboard title
+              type: string
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
