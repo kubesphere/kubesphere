@@ -17,7 +17,7 @@ limitations under the License.
 package resource
 
 import (
-	"fmt"
+	"errors"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -46,6 +46,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
+
+var ErrResourceNotSupported = errors.New("resource is not supported")
 
 type ResourceGetter struct {
 	resourcesGetters map[string]v1alpha2.Interface
@@ -89,20 +91,23 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 }
 
 var (
-	//injector         = v1alpha2.extraAnnotationInjector{}
 	clusterResources = []string{v1alpha2.Nodes, v1alpha2.Workspaces, v1alpha2.Namespaces, v1alpha2.ClusterRoles, v1alpha2.StorageClasses, v1alpha2.S2iBuilderTemplates}
 )
 
 func (r *ResourceGetter) GetResource(namespace, resource, name string) (interface{}, error) {
+	// none namespace resource
+	if namespace != "" && sliceutil.HasString(clusterResources, resource) {
+		return nil, ErrResourceNotSupported
+	}
 	if searcher, ok := r.resourcesGetters[resource]; ok {
 		resource, err := searcher.Get(namespace, name)
 		if err != nil {
-			klog.Errorf("resource %s.%s.%s not found: %s", namespace, resource, name, err)
+			klog.Error(err)
 			return nil, err
 		}
 		return resource, nil
 	}
-	return nil, fmt.Errorf("resource %s.%s.%s not found", namespace, resource, name)
+	return nil, ErrResourceNotSupported
 }
 
 func (r *ResourceGetter) ListResources(namespace, resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
@@ -112,21 +117,17 @@ func (r *ResourceGetter) ListResources(namespace, resource string, conditions *p
 
 	// none namespace resource
 	if namespace != "" && sliceutil.HasString(clusterResources, resource) {
-		err = fmt.Errorf("resource %s is not supported", resource)
-		klog.Errorln(err)
-		return nil, err
+		return nil, ErrResourceNotSupported
 	}
 
 	if searcher, ok := r.resourcesGetters[resource]; ok {
 		result, err = searcher.Search(namespace, conditions, orderBy, reverse)
 	} else {
-		err = fmt.Errorf("resource %s is not supported", resource)
-		klog.Errorln(err)
-		return nil, err
+		return nil, ErrResourceNotSupported
 	}
 
 	if err != nil {
-		klog.Errorln(err)
+		klog.Error(err)
 		return nil, err
 	}
 
