@@ -63,7 +63,7 @@ func LoadRepoIndex(ctx context.Context, u string, cred *v1alpha1.HelmRepoCredent
 // This will fail if API Version is not set (ErrNoAPIVersion) or if the unmarshal fails.
 func loadIndex(data []byte) (*helmrepo.IndexFile, error) {
 	i := &helmrepo.IndexFile{}
-	if err := yaml.UnmarshalStrict(data, i); err != nil {
+	if err := yaml.Unmarshal(data, i); err != nil {
 		return i, err
 	}
 	i.SortEntries()
@@ -72,6 +72,8 @@ func loadIndex(data []byte) (*helmrepo.IndexFile, error) {
 	}
 	return i, nil
 }
+
+var empty = struct{}{}
 
 // merge new index with index from crd
 func MergeRepoIndex(index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *SavedIndex {
@@ -92,7 +94,7 @@ func MergeRepoIndex(index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *Sa
 	saved.Generated = index.Generated
 	saved.PublicKeys = index.PublicKeys
 
-	allNames := make(map[string]bool, len(index.Entries))
+	allAppNames := make(map[string]struct{}, len(index.Entries))
 	for name, versions := range index.Entries {
 		// add new applications
 		if application, exists := saved.Applications[name]; !exists {
@@ -112,6 +114,7 @@ func MergeRepoIndex(index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *Sa
 				}
 				charts = append(charts, chart)
 			}
+
 			application.Charts = charts
 			saved.Applications[name] = application
 		} else {
@@ -121,6 +124,7 @@ func MergeRepoIndex(index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *Sa
 				savedChartVersion[ver.Version] = struct{}{}
 			}
 			charts := application.Charts
+			var newVersion = make(map[string]struct{}, len(versions))
 			for _, ver := range versions {
 				// add new chart version
 				if _, exists := savedChartVersion[ver.Version]; !exists {
@@ -131,15 +135,34 @@ func MergeRepoIndex(index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *Sa
 					}
 					charts = append(charts, chart)
 				}
-				application.Charts = charts
-				saved.Applications[name] = application
+				newVersion[ver.Version] = empty
 			}
+
+			// delete not exists chart version
+			for last, curr := 0, 0; curr < len(charts); {
+				chart := charts[curr]
+				version := chart.Version
+				if _, exists := newVersion[version]; !exists {
+					// version not exists, check next one
+					curr++
+				} else {
+					// If last and curr point to the same place, there is nothing to do, just move to next.
+					if last != curr {
+						charts[last] = charts[curr]
+					}
+					last++
+					curr++
+				}
+			}
+			application.Charts = charts[:len(newVersion)]
+			saved.Applications[name] = application
 		}
-		allNames[name] = true
+
+		allAppNames[name] = empty
 	}
 
 	for name := range saved.Applications {
-		if _, exists := allNames[name]; !exists {
+		if _, exists := allAppNames[name]; !exists {
 			delete(saved.Applications, name)
 		}
 	}

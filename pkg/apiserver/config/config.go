@@ -205,7 +205,7 @@ func (conf *Config) ToMap() map[string]bool {
 			if conf.OpenPitrixOptions == nil {
 				result["openpitrix.appstore"] = false
 			} else {
-				result["openpitrix.appstore"] = conf.OpenPitrixOptions.AppStoreConfIsEmpty()
+				result["openpitrix.appstore"] = !conf.OpenPitrixOptions.AppStoreConfIsEmpty()
 			}
 			continue
 		}

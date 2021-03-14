@@ -22,7 +22,7 @@ spec:
     - jsonPath: .spec.name
       name: name
       type: string
-    - jsonPath: .metadata.labels.kubesphere\\.io/workspace
+    - jsonPath: .metadata.labels.kubesphere\.io/workspace
       name: Workspace
       type: string
     - jsonPath: .spec.url

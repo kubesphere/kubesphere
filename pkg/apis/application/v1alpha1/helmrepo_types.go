@@ -92,7 +92,7 @@ type HelmRepoStatus struct {
 // +kubebuilder:resource:scope=Cluster,path=helmrepos,shortName=hrepo
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="name",type=string,JSONPath=`.spec.name`
-// +kubebuilder:printcolumn:name="Workspace",type=string,JSONPath=`.metadata.labels.kubesphere\\.io/workspace`
+// +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
 // +kubebuilder:printcolumn:name="url",type=string,JSONPath=`.spec.url`
 // +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"

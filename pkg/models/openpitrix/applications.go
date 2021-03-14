@@ -291,6 +291,7 @@ func buildLabelSelector(conditions *params.Conditions) map[string]string {
 }
 
 func (c *applicationOperator) ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+
 	apps, err := c.listApps(conditions)
 	if err != nil {
 		klog.Error(err)
@@ -306,7 +307,7 @@ func (c *applicationOperator) ListApps(conditions *params.Conditions, orderBy st
 
 	items := make([]interface{}, 0, limit)
 
-	for i, j := offset, 0; i < len(apps) && j < limit; {
+	for i, j := offset, 0; i < len(apps) && j < limit; i, j = i+1, j+1 {
 		versions, err := c.getAppVersionsByAppId(apps[i].GetHelmApplicationId())
 		if err != nil && !apierrors.IsNotFound(err) {
 			return nil, err
@@ -315,8 +316,6 @@ func (c *applicationOperator) ListApps(conditions *params.Conditions, orderBy st
 		ctg, _ := c.ctgLister.Get(apps[i].GetHelmCategoryId())
 
 		items = append(items, convertApp(apps[i], versions, ctg, 0))
-		i++
-		j++
 	}
 	return &models.PageableResponse{Items: items, TotalCount: len(apps)}, nil
 }
@@ -612,6 +611,9 @@ func (c *applicationOperator) listApps(conditions *params.Conditions) (ret []*v1
 			return ret, nil
 		}
 	} else {
+		if c.backingStoreClient == nil {
+			return []*v1alpha1.HelmApplication{}, nil
+		}
 		ret, err = c.appLister.List(labels.SelectorFromSet(buildLabelSelector(conditions)))
 	}
 

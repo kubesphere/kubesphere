@@ -39,25 +39,28 @@ func newAttachmentOperator(storeClient s3.Interface) AttachmentInterface {
 }
 
 func (c *attachmentOperator) DescribeAttachment(id string) (*Attachment, error) {
+	if c.backingStoreClient == nil {
+		return nil, invalidS3Config
+	}
 	data, err := c.backingStoreClient.Read(id)
 
 	if err != nil {
 		klog.Errorf("read attachment %s failed, error: %s", id, err)
 		return nil, downloadFileFailed
 	}
-	att := &Attachment{AttachmentID: id}
 
-	if err != nil {
-		return nil, err
-	} else {
-		att.AttachmentContent = map[string]strfmt.Base64{
+	att := &Attachment{AttachmentID: id,
+		AttachmentContent: map[string]strfmt.Base64{
 			"raw": data,
-		}
+		},
 	}
 
 	return att, nil
 }
 func (c *attachmentOperator) CreateAttachment(data []byte) (*Attachment, error) {
+	if c.backingStoreClient == nil {
+		return nil, invalidS3Config
+	}
 	id := idutils.GetUuid36(v1alpha1.HelmAttachmentPrefix)
 
 	err := c.backingStoreClient.Upload(id, id, bytes.NewBuffer(data))
@@ -72,6 +75,9 @@ func (c *attachmentOperator) CreateAttachment(data []byte) (*Attachment, error) 
 }
 
 func (c *attachmentOperator) DeleteAttachments(ids []string) error {
+	if c.backingStoreClient == nil {
+		return invalidS3Config
+	}
 	for _, id := range ids {
 		err := c.backingStoreClient.Delete(id)
 		if err != nil {
