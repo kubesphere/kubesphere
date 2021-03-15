@@ -19,6 +19,8 @@ package framework
 import (
 	"flag"
 	"os"
+
+	"kubesphere.io/kubesphere/test/e2e/constant"
 )
 
 type TestContextType struct {
@@ -41,7 +43,22 @@ func registerFlags(t *TestContextType) {
 
 var TestContext *TestContextType = &TestContextType{}
 
+func setDefaultValue(t *TestContextType) {
+
+	if t.Host == "" {
+		t.Host = constant.LocalAPIServer
+	}
+	if t.Username == "" {
+		t.Username = constant.DefaultAdminUser
+	}
+
+	if t.Password == "" {
+		t.Password = constant.DefaultPassword
+	}
+}
+
 func ParseFlags() {
 	registerFlags(TestContext)
 	flag.Parse()
+	setDefaultValue(TestContext)
 }

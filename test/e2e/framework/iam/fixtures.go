@@ -41,7 +41,7 @@ func NewUser(name, globelRole string) *iamv1alpha2.User {
 			},
 		},
 		Spec: iamv1alpha2.UserSpec{
-			Email:             fmt.Sprint("%v@kubesphere.io", name),
+			Email:             fmt.Sprintf("%s@kubesphere.io", name),
 			EncryptedPassword: "P@88w0rd",
 		},
 	}
