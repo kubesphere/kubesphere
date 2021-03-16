@@ -1578,7 +1578,7 @@ k8s.io/utils/trace
 # kubesphere.io/client-go v0.0.0 => ./staging/src/kubesphere.io/client-go
 kubesphere.io/client-go/client
 kubesphere.io/client-go/client/generic
-# kubesphere.io/monitoring-dashboard v0.1.1
+# kubesphere.io/monitoring-dashboard v0.1.2
 kubesphere.io/monitoring-dashboard/api/v1alpha1
 kubesphere.io/monitoring-dashboard/api/v1alpha1/panels
 # sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.7 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.7

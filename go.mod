@@ -104,7 +104,7 @@ require (
 	k8s.io/metrics v0.18.6
 	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	kubesphere.io/client-go v0.0.0
-	kubesphere.io/monitoring-dashboard v0.1.1
+	kubesphere.io/monitoring-dashboard v0.1.2
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 	sigs.k8s.io/controller-runtime v0.6.4
 	sigs.k8s.io/controller-tools v0.4.0

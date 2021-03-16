@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/json"
 	"kubesphere.io/monitoring-dashboard/api/v1alpha1/panels"
 )
 
@@ -49,12 +50,60 @@ type Time struct {
 
 // Supported panel type
 type Panel struct {
+	// It can only be one of the following three types
+
 	// The panel row
-	Row panels.Row `json:",inline"`
+	Row *panels.Row `json:",inline"`
 	// The panel graph
-	Graph panels.Graph `json:",inline"`
+	Graph *panels.Graph `json:",inline"`
 	// The panel singlestat
-	SingleStat panels.SingleStat `json:",inline"`
+	SingleStat *panels.SingleStat `json:",inline"`
+}
+
+type PanelType string
+
+const (
+	PanelRow        PanelType = "row"
+	PanelGraph      PanelType = "graph"
+	PanelSingleStat PanelType = "singlestat"
+)
+
+func (p *Panel) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	var t struct{ Type PanelType }
+	err := json.Unmarshal(data, &t)
+	if err != nil {
+		return err
+	}
+
+	switch t.Type {
+	case PanelRow:
+		p.Row = &panels.Row{}
+		return json.Unmarshal(data, p.Row)
+	case PanelGraph:
+		p.Graph = &panels.Graph{}
+		return json.Unmarshal(data, p.Graph)
+	case PanelSingleStat:
+		p.SingleStat = &panels.SingleStat{}
+		return json.Unmarshal(data, p.SingleStat)
+	}
+
+	return json.Unmarshal(data, p)
+}
+
+func (p *Panel) MarshalJSON() (data []byte, err error) {
+	switch {
+	case p.Row != nil:
+		return json.Marshal(p.Row)
+	case p.Graph != nil:
+		return json.Marshal(p.Graph)
+	case p.SingleStat != nil:
+		return json.Marshal(p.SingleStat)
+	}
+	return json.Marshal(p)
 }
 
 // Templating defines a variable, which can be used as a placeholder in query
