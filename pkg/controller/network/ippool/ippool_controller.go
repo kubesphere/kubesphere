@@ -402,7 +402,9 @@ func (c *IPPoolController) processNS(name string) error {
 		}
 
 		for _, pool := range pools {
-			poolsName = append(poolsName, pool.Name)
+			if pool.Status.Synced {
+				poolsName = append(poolsName, pool.Name)
+			}
 		}
 	}
 
@@ -533,6 +535,19 @@ func NewIPPoolController(
 				}
 			}
 			c.enqueueIPPools(new)
+		},
+		DeleteFunc: func(new interface{}) {
+			_, defaultNew := new.(*networkv1alpha1.IPPool).Labels[networkv1alpha1.IPPoolDefaultLabel]
+			if defaultNew {
+				nss, err := c.nsInformer.Lister().List(labels.Everything())
+				if err != nil {
+					return
+				}
+
+				for _, ns := range nss {
+					c.enqueueNamespace(nil, ns)
+				}
+			}
 		},
 	})
 
