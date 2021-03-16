@@ -128,7 +128,7 @@ const (
 
 	NotificationTag             = "Notification"
 	NotificationSecretNamespace = "kubesphere-monitoring-federated"
-	NotificationManagedLabel    = "notification/managed"
+	NotificationManagedLabel    = "notification.kubesphere.io/managed"
 )
 
 var (

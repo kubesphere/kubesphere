@@ -47,6 +47,9 @@ var (
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: constants.NotificationSecretNamespace,
+				Labels: map[string]string{
+					constants.NotificationManagedLabel: "true",
+				},
 			},
 		}
 
