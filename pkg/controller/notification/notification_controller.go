@@ -214,13 +214,10 @@ func (c *Controller) reconcile(obj interface{}) error {
 
 	// Only reconcile the secret which created by notification manager.
 	if secret, ok := obj.(*corev1.Secret); ok {
-		if secret.Namespace != constants.NotificationSecretNamespace {
+		if secret.Namespace != constants.NotificationSecretNamespace ||
+			secret.Labels == nil || secret.Labels[constants.NotificationManagedLabel] != "true" {
 			klog.V(8).Infof("No need to reconcile secret %s/%s", accessor.GetNamespace(), accessor.GetName())
 			return nil
-		}
-
-		if err := c.ensureNotificationNamespaceExist(); err != nil {
-			return err
 		}
 	}
 
@@ -442,50 +439,6 @@ func (c *Controller) syncFederatedSecret(obj *corev1.Secret) error {
 	}
 
 	return nil
-}
-
-func (c *Controller) ensureNotificationNamespaceExist() error {
-
-	ns := corev1.Namespace{}
-	if err := c.Get(context.Background(), client.ObjectKey{Name: constants.NotificationSecretNamespace}, &ns); err != nil {
-		return err
-	}
-
-	fedNs := v1beta1.FederatedNamespace{}
-	if err := c.Get(context.Background(), client.ObjectKey{Name: constants.NotificationSecretNamespace, Namespace: constants.NotificationSecretNamespace}, &fedNs); err != nil {
-		if errors.IsAlreadyExists(err) {
-			return nil
-		}
-
-		if errors.IsNotFound(err) {
-			fedNs = v1beta1.FederatedNamespace{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       v1beta1.FederatedNamespaceKind,
-					APIVersion: v1beta1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      constants.NotificationSecretNamespace,
-					Namespace: constants.NotificationSecretNamespace,
-				},
-				Spec: v1beta1.FederatedNamespaceSpec{
-					Placement: v1beta1.GenericPlacementFields{
-						ClusterSelector: &metav1.LabelSelector{},
-					},
-				},
-			}
-
-			if err := controllerutil.SetControllerReference(&ns, &fedNs, scheme.Scheme); err != nil {
-				return err
-			}
-
-			return c.Create(context.Background(), &fedNs)
-		}
-
-		return err
-	}
-
-	return nil
-
 }
 
 func (c *Controller) ensureNotControlledByKubefed(ctx context.Context, obj runtime.Object) error {

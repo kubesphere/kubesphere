@@ -20,6 +20,10 @@ import (
 	"reflect"
 )
 
+const (
+	Secret = "secrets"
+)
+
 type Operator interface {
 	List(user, resource, subresource string, query *query.Query) (*api.ListResult, error)
 	Get(user, resource, name, subresource string) (runtime.Object, error)
@@ -74,12 +78,17 @@ func (o *operator) List(user, resource, subresource string, q *query.Query) (*ap
 
 	q.LabelSelector = q.LabelSelector + filter
 
-	res, err := o.resourceGetter.List(resource, constants.NotificationSecretNamespace, q)
+	ns := ""
+	if resource == Secret {
+		ns = constants.NotificationSecretNamespace
+	}
+
+	res, err := o.resourceGetter.List(resource, ns, q)
 	if err != nil {
 		return nil, err
 	}
 
-	if subresource == "" || resource == "secrets" {
+	if subresource == "" || resource == Secret {
 		return res, nil
 	}
 
@@ -98,7 +107,13 @@ func (o *operator) List(user, resource, subresource string, q *query.Query) (*ap
 // Get the specified object, if you want to get a global object, the user must be nil.
 // If you want to get a tenant object, the user must equal to the tenant specified in labels of the object.
 func (o *operator) Get(user, resource, name, subresource string) (runtime.Object, error) {
-	obj, err := o.resourceGetter.Get(resource, constants.NotificationSecretNamespace, name)
+
+	ns := ""
+	if resource == Secret {
+		ns = constants.NotificationSecretNamespace
+	}
+
+	obj, err := o.resourceGetter.Get(resource, ns, name)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +122,7 @@ func (o *operator) Get(user, resource, name, subresource string) (runtime.Object
 		return nil, err
 	}
 
-	if subresource == "" || resource == "secrets" {
+	if subresource == "" || resource == Secret {
 		return obj, nil
 	}
 
@@ -198,7 +213,7 @@ func (o *operator) GetObject(resource string) runtime.Object {
 		return &v2beta1.Config{}
 	case v2beta1.ResourcesPluralReceiver:
 		return &v2beta1.Receiver{}
-	case "secrets":
+	case Secret:
 		return &corev1.Secret{}
 	default:
 		return nil
@@ -290,15 +305,20 @@ func appendLabel(user string, obj runtime.Object) error {
 		labels = make(map[string]string)
 	}
 
-	if user == "" {
-		if isConfig(obj) {
-			labels["type"] = "default"
+	switch obj.(type) {
+	case *corev1.Secret:
+		labels[constants.NotificationManagedLabel] = "true"
+	default:
+		if user == "" {
+			if isConfig(obj) {
+				labels["type"] = "default"
+			} else {
+				labels["type"] = "global"
+			}
 		} else {
-			labels["type"] = "global"
+			labels["type"] = "tenant"
+			labels["user"] = user
 		}
-	} else {
-		labels["type"] = "tenant"
-		labels["user"] = user
 	}
 
 	accessor.SetLabels(labels)
