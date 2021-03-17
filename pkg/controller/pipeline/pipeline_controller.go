@@ -104,9 +104,9 @@ func NewController(client clientset.Interface,
 	devopsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: v.enqueuePipeline,
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			old := oldObj.(*devopsv1alpha3.Pipeline)
-			new := newObj.(*devopsv1alpha3.Pipeline)
-			if old.ResourceVersion == new.ResourceVersion {
+			oldPipeline := oldObj.(*devopsv1alpha3.Pipeline)
+			newPipeline := newObj.(*devopsv1alpha3.Pipeline)
+			if oldPipeline.ResourceVersion == newPipeline.ResourceVersion {
 				return
 			}
 			v.enqueuePipeline(newObj)

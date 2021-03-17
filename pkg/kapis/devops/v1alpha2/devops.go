@@ -379,10 +379,18 @@ func (h *ProjectPipelineHandler) hasSubmitPermission(req *restful.Request) (hasP
 	runId := req.PathParameter("run")
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
+	branchName := req.PathParameter("branch")
 
 	// check if current user can approve this input
 	var res []clientDevOps.NodesDetail
-	if res, err = h.devopsOperator.GetNodesDetail(pipeParam.ProjectName, pipeParam.Name, runId, httpReq); err == nil {
+
+	if branchName == "" {
+		res, err = h.devopsOperator.GetNodesDetail(pipeParam.ProjectName, pipeParam.Name, runId, httpReq)
+	} else {
+		res, err = h.devopsOperator.GetBranchNodesDetail(pipeParam.ProjectName, pipeParam.Name, branchName, runId, httpReq)
+	}
+
+	if err == nil {
 		h.approvableCheck(res, parsePipelineParam(req))
 
 		for _, node := range res {
