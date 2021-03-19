@@ -122,13 +122,12 @@ func (p *Pipeline) ListPipelines() (*devops.PipelineList, error) {
 		return nil, err
 	}
 
-	pipelienList := devops.PipelineList{Total: count}
-	err = json.Unmarshal(res, &pipelienList.Items)
+	pipelienList, err := devops.UnmarshalPipeline(count, res)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	return &pipelienList, err
+	return pipelienList, err
 }
 
 func (p *Pipeline) searchPipelineCount() (int, error) {
