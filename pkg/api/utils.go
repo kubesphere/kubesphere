@@ -46,6 +46,8 @@ func HandleForbidden(response *restful.Response, req *restful.Request, err error
 }
 
 func HandleUnauthorized(response *restful.Response, req *restful.Request, err error) {
+	// https://tools.ietf.org/html/rfc6750#section-3
+	response.Header().Add("WWW-Authenticate", "Bearer realm=\"kubesphere\"")
 	handle(http.StatusUnauthorized, response, req, err)
 }
 

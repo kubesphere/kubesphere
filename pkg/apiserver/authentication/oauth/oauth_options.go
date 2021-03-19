@@ -153,6 +153,10 @@ type Token struct {
 	// the requests.
 	AccessToken string `json:"access_token"`
 
+	// The ID Token is a security token that contains Claims about the Authentication of
+	// an End-User by an Authorization Server when using a Client, and potentially other requested Claims.
+	IDToken string `json:"id_token,omitempty"`
+
 	// TokenType is the type of token.
 	// The Type method returns either this or "Bearer", the default.
 	TokenType string `json:"token_type,omitempty"`
@@ -252,10 +256,10 @@ func (c Client) anyRedirectAbleURI() []string {
 	return uris
 }
 
-func (c Client) ResolveRedirectURL(expectURL string) (string, error) {
+func (c Client) ValidateRedirectURI(expectURL string) (*url.URL, error) {
 	// RedirectURIs is empty
 	if len(c.RedirectURIs) == 0 {
-		return "", ErrorRedirectURLNotAllowed
+		return nil, ErrorRedirectURLNotAllowed
 	}
 	allowAllRedirectURI := sliceutil.HasString(c.RedirectURIs, AllowAllRedirectURI)
 	redirectAbleURIs := c.anyRedirectAbleURI()
@@ -263,16 +267,16 @@ func (c Client) ResolveRedirectURL(expectURL string) (string, error) {
 	if expectURL == "" {
 		// Need to specify at least one RedirectURI
 		if len(redirectAbleURIs) > 0 {
-			return redirectAbleURIs[0], nil
+			return url.Parse(redirectAbleURIs[0])
 		} else {
-			return "", ErrorRedirectURLNotAllowed
+			return nil, ErrorRedirectURLNotAllowed
 		}
 	}
 	if allowAllRedirectURI || sliceutil.HasString(redirectAbleURIs, expectURL) {
-		return expectURL, nil
+		return url.Parse(expectURL)
 	}
 
-	return "", ErrorRedirectURLNotAllowed
+	return nil, ErrorRedirectURLNotAllowed
 }
 
 func NewOptions() *Options {

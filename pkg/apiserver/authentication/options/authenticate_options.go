@@ -47,6 +47,9 @@ type AuthenticationOptions struct {
 	LoginHistoryMaximumEntries int `json:"loginHistoryMaximumEntries" yaml:"loginHistoryMaximumEntries"`
 	// allow multiple users login from different location at the same time
 	MultipleLogin bool `json:"multipleLogin" yaml:"multipleLogin"`
+	// The iss value is a case sensitive URL using the https scheme that contains scheme, host, and optionally,
+	// port number and path components and no query or fragment components.
+	IssuerName string `json:"-" yaml:"issuer"`
 	// secret to sign jwt token
 	JwtSecret string `json:"-" yaml:"jwtSecret"`
 	// OAuthOptions defines options needed for integrated oauth plugins
@@ -64,6 +67,7 @@ func NewAuthenticateOptions() *AuthenticationOptions {
 		LoginHistoryMaximumEntries:      100,
 		OAuthOptions:                    oauth.NewOptions(),
 		MultipleLogin:                   false,
+		IssuerName:                      "",
 		JwtSecret:                       "",
 		KubectlImage:                    "kubesphere/kubectl:v1.0.0",
 	}
