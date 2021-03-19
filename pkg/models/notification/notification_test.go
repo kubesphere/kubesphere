@@ -111,7 +111,7 @@ func TestOperator_Create(t *testing.T) {
 					Name:      "test",
 					Namespace: constants.NotificationSecretNamespace,
 					Labels: map[string]string{
-						"type": "global",
+						constants.NotificationManagedLabel: "true",
 					},
 				},
 			},
@@ -119,7 +119,7 @@ func TestOperator_Create(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 					Labels: map[string]string{
-						"type": "global",
+						constants.NotificationManagedLabel: "true",
 					},
 				},
 			},
