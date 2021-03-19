@@ -2,6 +2,7 @@ package metricsserver
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -71,8 +72,126 @@ var node2 = &v1.Node{
 	},
 }
 
+var pod1 = &v1.Pod{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "pod1",
+		Namespace: "kubeedge",
+	},
+}
+
+var pod2 = &v1.Pod{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "pod2",
+		Namespace: "kubeedge",
+	},
+}
+
+const (
+	layout = "2006-01-02T15:04:05.000Z"
+	str    = "2021-03-25T12:34:56.789Z"
+)
+
+var (
+	metricsTime, _ = time.Parse(layout, str)
+	nodeMetric1    = metricsV1beta1.NodeMetrics{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "edgenode-1",
+			Labels: map[string]string{
+				"node-role.kubernetes.io/edge": "",
+			},
+		},
+		Timestamp: metav1.Time{Time: metricsTime},
+		Window:    metav1.Duration{Duration: time.Minute},
+		Usage: v1.ResourceList{
+			v1.ResourceCPU: *resource.NewMilliQuantity(
+				int64(1000),
+				resource.DecimalSI),
+			v1.ResourceMemory: *resource.NewQuantity(
+				int64(1024*1024),
+				resource.BinarySI),
+		},
+	}
+	nodeMetric2 = metricsV1beta1.NodeMetrics{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "edgenode-2",
+			Labels: map[string]string{
+				"node-role.kubernetes.io/edge": "",
+			},
+		},
+		Timestamp: metav1.Time{Time: metricsTime},
+		Window:    metav1.Duration{Duration: time.Minute},
+		Usage: v1.ResourceList{
+			v1.ResourceCPU: *resource.NewMilliQuantity(
+				int64(2000),
+				resource.DecimalSI),
+			v1.ResourceMemory: *resource.NewQuantity(
+				int64(2*1024*1024),
+				resource.BinarySI),
+		},
+	}
+	podMetric1 = metricsV1beta1.PodMetrics{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "DaemonSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod1",
+			Namespace: "kubeedge",
+		},
+		Timestamp: metav1.Time{Time: metricsTime},
+		Window:    metav1.Duration{Duration: time.Minute},
+		Containers: []metricsV1beta1.ContainerMetrics{
+			metricsV1beta1.ContainerMetrics{
+				Name: "containers-1",
+				Usage: v1.ResourceList{
+					v1.ResourceCPU: *resource.NewMilliQuantity(
+						1,
+						resource.DecimalSI),
+					v1.ResourceMemory: *resource.NewQuantity(
+						int64(1024*1024),
+						resource.DecimalSI),
+				},
+			},
+		},
+	}
+	podMetric2 = metricsV1beta1.PodMetrics{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "DaemonSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod2",
+			Namespace: "kubeedge",
+		},
+		Timestamp: metav1.Time{Time: metricsTime},
+		Window:    metav1.Duration{Duration: time.Minute},
+		Containers: []metricsV1beta1.ContainerMetrics{
+			metricsV1beta1.ContainerMetrics{
+				Name: "containers-1",
+				Usage: v1.ResourceList{
+					v1.ResourceCPU: *resource.NewMilliQuantity(
+						1,
+						resource.DecimalSI),
+					v1.ResourceMemory: *resource.NewQuantity(
+						int64(1024*1024),
+						resource.DecimalSI),
+				},
+			},
+			metricsV1beta1.ContainerMetrics{
+				Name: "containers-2",
+				Usage: v1.ResourceList{
+					v1.ResourceCPU: *resource.NewMilliQuantity(
+						1,
+						resource.DecimalSI),
+					v1.ResourceMemory: *resource.NewQuantity(
+						int64(1024*1024),
+						resource.DecimalSI),
+				},
+			},
+		},
+	}
+)
+
 func TestGetNamedMetrics(t *testing.T) {
-	tests := []struct {
+	nodeMetricsTests := []struct {
 		metrics  []string
 		filter   string
 		expected string
@@ -93,62 +212,63 @@ func TestGetNamedMetrics(t *testing.T) {
 			expected: "metrics-vector-3.json",
 		},
 	}
+	podMetricsTests := []struct {
+		metrics       []string
+		filter        string
+		expected      string
+		podName       string
+		namespaceName string
+	}{
+		{
+			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:        "pod1$",
+			expected:      "metrics-vector-4.json",
+			podName:       "",
+			namespaceName: "",
+		},
+		{
+			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:        "default/pod2$",
+			expected:      "metrics-vector-5.json",
+			podName:       "",
+			namespaceName: "",
+		},
+		{
+			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:        "",
+			expected:      "metrics-vector-6.json",
+			podName:       "pod1",
+			namespaceName: "kubeedge",
+		},
+	}
 
-	fakeK8sClient := fakek8s.NewSimpleClientset(node1, node2)
+	fakeK8sClient := fakek8s.NewSimpleClientset(node1, node2, pod1, pod2)
 	informer := informers.NewSharedInformerFactory(fakeK8sClient, 0)
 	informer.Core().V1().Nodes().Informer().GetIndexer().Add(node1)
 	informer.Core().V1().Nodes().Informer().GetIndexer().Add(node2)
+	informer.Core().V1().Pods().Informer().GetIndexer().Add(pod1)
+	informer.Core().V1().Pods().Informer().GetIndexer().Add(pod2)
 
 	fakeMetricsclient := &fakemetricsclient.Clientset{}
-	layout := "2006-01-02T15:04:05.000Z"
-	str := "2021-01-25T12:34:56.789Z"
-	metricsTime, _ := time.Parse(layout, str)
 
 	fakeMetricsclient.AddReactor("list", "nodes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		metrics := &metricsV1beta1.NodeMetricsList{}
-		nodeMetric1 := metricsV1beta1.NodeMetrics{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "edgenode-1",
-				Labels: map[string]string{
-					"node-role.kubernetes.io/edge": "",
-				},
-			},
-			Timestamp: metav1.Time{Time: metricsTime},
-			Window:    metav1.Duration{Duration: time.Minute},
-			Usage: v1.ResourceList{
-				v1.ResourceCPU: *resource.NewMilliQuantity(
-					int64(1000),
-					resource.DecimalSI),
-				v1.ResourceMemory: *resource.NewQuantity(
-					int64(1024*1024),
-					resource.BinarySI),
-			},
-		}
-		nodeMetric2 := metricsV1beta1.NodeMetrics{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "edgenode-2",
-				Labels: map[string]string{
-					"node-role.kubernetes.io/edge": "",
-				},
-			},
-			Timestamp: metav1.Time{Time: metricsTime},
-			Window:    metav1.Duration{Duration: time.Minute},
-			Usage: v1.ResourceList{
-				v1.ResourceCPU: *resource.NewMilliQuantity(
-					int64(2000),
-					resource.DecimalSI),
-				v1.ResourceMemory: *resource.NewQuantity(
-					int64(2*1024*1024),
-					resource.BinarySI),
-			},
-		}
+
 		metrics.Items = append(metrics.Items, nodeMetric1)
 		metrics.Items = append(metrics.Items, nodeMetric2)
 
 		return true, metrics, nil
 	})
 
-	for i, tt := range tests {
+	fakeMetricsclient.AddReactor("list", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		metrics := &metricsV1beta1.PodMetricsList{}
+		metrics.Items = append(metrics.Items, podMetric1)
+		metrics.Items = append(metrics.Items, podMetric2)
+		return true, metrics, nil
+	})
+
+	// test for node edge
+	for i, tt := range nodeMetricsTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			expected := make([]monitoring.Metric, 0)
 			err := jsonFromFile(tt.expected, &expected)
@@ -163,10 +283,36 @@ func TestGetNamedMetrics(t *testing.T) {
 			}
 		})
 	}
+
+	//test for pods on the node edges
+	for i, tt := range podMetricsTests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			expected := make([]monitoring.Metric, 0)
+			err := jsonFromFile(tt.expected, &expected)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tt.podName == "pod1" || strings.Contains(tt.filter, "pod1") {
+				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+					return true, &podMetric1, nil
+				})
+			} else {
+				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+					return true, &podMetric2, nil
+				})
+			}
+
+			client := NewMetricsServer(fakeK8sClient, true, fakeMetricsclient)
+			result := client.GetNamedMetrics(tt.metrics, time.Now(), monitoring.PodOption{ResourceFilter: tt.filter, PodName: tt.podName, NamespaceName: tt.namespaceName})
+			if diff := cmp.Diff(result, expected); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
+			}
+		})
+	}
 }
 
 func TestGetNamedMetricsOverTime(t *testing.T) {
-	tests := []struct {
+	nodeMetricsTests := []struct {
 		metrics  []string
 		filter   string
 		expected string
@@ -188,61 +334,62 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 		},
 	}
 
-	fakeK8sClient := fakek8s.NewSimpleClientset(node1, node2)
+	podMetricsTests := []struct {
+		metrics       []string
+		filter        string
+		expected      string
+		podName       string
+		namespaceName string
+	}{
+		{
+			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:        "pod1$",
+			expected:      "metrics-matrix-4.json",
+			podName:       "",
+			namespaceName: "",
+		},
+		{
+			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:        "default/pod2$",
+			expected:      "metrics-matrix-5.json",
+			podName:       "",
+			namespaceName: "",
+		},
+		{
+			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:        "",
+			expected:      "metrics-matrix-6.json",
+			podName:       "pod1",
+			namespaceName: "kubeedge",
+		},
+	}
+
+	fakeK8sClient := fakek8s.NewSimpleClientset(node1, node2, pod1, pod2)
 	informer := informers.NewSharedInformerFactory(fakeK8sClient, 0)
 	informer.Core().V1().Nodes().Informer().GetIndexer().Add(node1)
 	informer.Core().V1().Nodes().Informer().GetIndexer().Add(node2)
+	informer.Core().V1().Nodes().Informer().GetIndexer().Add(pod1)
+	informer.Core().V1().Nodes().Informer().GetIndexer().Add(pod2)
 
 	fakeMetricsclient := &fakemetricsclient.Clientset{}
-	layout := "2006-01-02T15:04:05.000Z"
-	str := "2021-01-25T12:34:56.789Z"
-	metricsTime, _ := time.Parse(layout, str)
 
 	fakeMetricsclient.AddReactor("list", "nodes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		metrics := &metricsV1beta1.NodeMetricsList{}
-		nodeMetric1 := metricsV1beta1.NodeMetrics{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "edgenode-1",
-				Labels: map[string]string{
-					"node-role.kubernetes.io/edge": "",
-				},
-			},
-			Timestamp: metav1.Time{Time: metricsTime},
-			Window:    metav1.Duration{Duration: time.Minute},
-			Usage: v1.ResourceList{
-				v1.ResourceCPU: *resource.NewMilliQuantity(
-					int64(1000),
-					resource.DecimalSI),
-				v1.ResourceMemory: *resource.NewQuantity(
-					int64(1024*1024),
-					resource.BinarySI),
-			},
-		}
-		nodeMetric2 := metricsV1beta1.NodeMetrics{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "edgenode-2",
-				Labels: map[string]string{
-					"node-role.kubernetes.io/edge": "",
-				},
-			},
-			Timestamp: metav1.Time{Time: metricsTime},
-			Window:    metav1.Duration{Duration: time.Minute},
-			Usage: v1.ResourceList{
-				v1.ResourceCPU: *resource.NewMilliQuantity(
-					int64(2000),
-					resource.DecimalSI),
-				v1.ResourceMemory: *resource.NewQuantity(
-					int64(2*1024*1024),
-					resource.BinarySI),
-			},
-		}
 		metrics.Items = append(metrics.Items, nodeMetric1)
 		metrics.Items = append(metrics.Items, nodeMetric2)
 
 		return true, metrics, nil
 	})
 
-	for i, tt := range tests {
+	fakeMetricsclient.AddReactor("list", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		metrics := &metricsV1beta1.PodMetricsList{}
+		metrics.Items = append(metrics.Items, podMetric1)
+		metrics.Items = append(metrics.Items, podMetric2)
+		return true, metrics, nil
+	})
+
+	for i, tt := range nodeMetricsTests {
+		fakeMetricsclient.Fake.ClearActions()
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			expected := make([]monitoring.Metric, 0)
 			err := jsonFromFile(tt.expected, &expected)
@@ -252,6 +399,32 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 
 			client := NewMetricsServer(fakeK8sClient, true, fakeMetricsclient)
 			result := client.GetNamedMetricsOverTime(tt.metrics, time.Now().Add(-time.Minute*3), time.Now(), time.Minute, monitoring.NodeOption{ResourceFilter: tt.filter})
+			if diff := cmp.Diff(result, expected); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
+			}
+		})
+	}
+
+	for i, tt := range podMetricsTests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			expected := make([]monitoring.Metric, 0)
+			err := jsonFromFile(tt.expected, &expected)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tt.podName == "pod1" || strings.Contains(tt.filter, "pod1") {
+				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+					return true, &podMetric1, nil
+				})
+			} else {
+				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+					return true, &podMetric2, nil
+				})
+			}
+
+			client := NewMetricsServer(fakeK8sClient, true, fakeMetricsclient)
+			result := client.GetNamedMetricsOverTime(tt.metrics, time.Now().Add(-time.Minute*3), time.Now(), time.Minute, monitoring.PodOption{ResourceFilter: tt.filter, PodName: tt.podName, NamespaceName: tt.namespaceName})
 			if diff := cmp.Diff(result, expected); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
 			}
