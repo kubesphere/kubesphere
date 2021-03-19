@@ -82,6 +82,9 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
+	userInfo := parsedUrl.User
+	// trim credential from url
+	parsedUrl.User = nil
 
 	repo := v1alpha1.HelmRepo{
 		ObjectMeta: metav1.ObjectMeta{
@@ -95,16 +98,16 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 		},
 		Spec: v1alpha1.HelmRepoSpec{
 			Name:        createRepoRequest.Name,
-			Url:         createRepoRequest.URL,
+			Url:         parsedUrl.String(),
 			SyncPeriod:  0,
 			Description: stringutils.ShortenString(createRepoRequest.Description, 512),
 		},
 	}
 
 	if strings.HasPrefix(createRepoRequest.URL, "https://") || strings.HasPrefix(createRepoRequest.URL, "http://") {
-		if parsedUrl.User != nil {
-			repo.Spec.Credential.Username = parsedUrl.User.Username()
-			repo.Spec.Credential.Password, _ = parsedUrl.User.Password()
+		if userInfo != nil {
+			repo.Spec.Credential.Username = userInfo.Username()
+			repo.Spec.Credential.Password, _ = userInfo.Password()
 		}
 	} else if strings.HasPrefix(createRepoRequest.URL, "s3://") {
 		cfg := v1alpha1.S3Config{}

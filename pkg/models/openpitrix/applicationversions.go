@@ -38,7 +38,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"math"
 	"reflect"
@@ -218,11 +217,7 @@ func (c *applicationOperator) ListAppVersions(conditions *params.Conditions, ord
 		return nil, err
 	}
 
-	var status []string
-	if len(conditions.Match[Status]) > 0 {
-		status = strings.Split(conditions.Match[Status], "|")
-	}
-	versions = filterAppVersionByState(versions, status)
+	versions = filterAppVersions(versions, conditions)
 	if reverse {
 		sort.Sort(sort.Reverse(AppVersions(versions)))
 	} else {
@@ -231,20 +226,13 @@ func (c *applicationOperator) ListAppVersions(conditions *params.Conditions, ord
 
 	items := make([]interface{}, 0, int(math.Min(float64(limit), float64(len(versions)))))
 
-	for i, j := offset, 0; i < len(versions) && j < limit; {
+	for i, j := offset, 0; i < len(versions) && j < limit; i, j = i+1, j+1 {
 		items = append(items, convertAppVersion(versions[i]))
-		i++
-		j++
 	}
 	return &models.PageableResponse{Items: items, TotalCount: len(versions)}, nil
 }
 
 func (c *applicationOperator) ListAppVersionReviews(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-
-	var allStatus []string
-	if status := conditions.Match[Status]; status != "" {
-		allStatus = strings.Split(status, "|")
-	}
 
 	appVersions, err := c.versionLister.List(labels.Everything())
 	if err != nil {
@@ -252,26 +240,18 @@ func (c *applicationOperator) ListAppVersionReviews(conditions *params.Condition
 		return nil, err
 	}
 
-	filtered := make([]*v1alpha1.HelmApplicationVersion, 0, len(appVersions)/2)
-	for _, version := range appVersions {
-		if sliceutil.HasString(allStatus, version.Status.State) {
-			filtered = append(filtered, version)
-		}
-	}
-
+	filtered := filterAppReviews(appVersions, conditions)
 	if reverse {
-		sort.Sort(sort.Reverse(AppVersions(filtered)))
+		sort.Sort(sort.Reverse(AppVersionReviews(filtered)))
 	} else {
-		sort.Sort(AppVersions(filtered))
+		sort.Sort(AppVersionReviews(filtered))
 	}
 
 	items := make([]interface{}, 0, len(filtered))
 
-	for i, j := offset, 0; i < len(filtered) && j < limit; {
+	for i, j := offset, 0; i < len(filtered) && j < limit; i, j = i+1, j+1 {
 		review := convertAppVersionReview(filtered[i])
 		items = append(items, review)
-		i++
-		j++
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: len(filtered)}, nil
@@ -309,10 +289,8 @@ func (c *applicationOperator) ListAppVersionAudits(conditions *params.Conditions
 
 	items := make([]interface{}, 0, limit)
 
-	for i, j := offset, 0; i < len(allAudits) && j < limit; {
+	for i, j := offset, 0; i < len(allAudits) && j < limit; i, j = i+1, j+1 {
 		items = append(items, allAudits[i])
-		i++
-		j++
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: len(allAudits)}, nil

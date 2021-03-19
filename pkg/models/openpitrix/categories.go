@@ -182,10 +182,8 @@ func (c *categoryOperator) ListCategories(conditions *params.Conditions, orderBy
 	sort.Sort(HelmCategoryList(ctgs))
 
 	items := make([]interface{}, 0, limit)
-	for i, j := offset, 0; i < len(ctgs) && j < limit; {
+	for i, j := offset, 0; i < len(ctgs) && j < limit; i, j = i+1, j+1 {
 		items = append(items, convertCategory(ctgs[i]))
-		i++
-		j++
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: len(ctgs)}, nil

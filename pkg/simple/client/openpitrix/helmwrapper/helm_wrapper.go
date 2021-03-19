@@ -21,8 +21,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v3"
+	helmrelease "helm.sh/helm/v3/pkg/release"
 	"k8s.io/klog"
 	kpath "k8s.io/utils/path"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
 	"os"
 	"os/exec"
@@ -39,6 +41,7 @@ const (
 var (
 	UninstallNotFoundFormat = "Error: uninstall: Release not loaded: %s: release: not found"
 	StatusNotFoundFormat    = "Error: release: not found"
+	releaseExists           = "release exists"
 
 	kustomizationFile  = "kustomization.yaml"
 	postRenderExecFile = "helm-post-render.sh"
@@ -54,37 +57,6 @@ type HelmRes struct {
 	Message string
 }
 
-type releaseStatus struct {
-	Name string `json:"name,omitempty"`
-	Info *Info  `json:"info,omitempty"`
-}
-
-// copy from helm
-// Info describes release information.
-type Info struct {
-	// FirstDeployed is when the release was first deployed.
-	FirstDeployed time.Time `json:"first_deployed,omitempty"`
-	// LastDeployed is when the release was last deployed.
-	LastDeployed time.Time `json:"last_deployed,omitempty"`
-	// Deleted tracks when this object was deleted.
-	Deleted time.Time `json:"deleted"`
-	// Description is human-friendly "log entry" about this release.
-	Description string `json:"description,omitempty"`
-	// Status is the current state of the release
-	Status string `json:"status,omitempty"`
-	// Contains the rendered templates/NOTES.txt if available
-	Notes string `json:"notes,omitempty"`
-}
-
-type helmRlsStatus struct {
-	Name       string `json:"name"`
-	Namespace  string `json:"namespace"`
-	Revision   int    `json:"revision"`
-	Status     string `json:"status"`
-	Chart      string `json:"chart"`
-	AppVersion string `json:"app_version"`
-}
-
 var _ HelmWrapper = &helmWrapper{}
 
 type HelmWrapper interface {
@@ -96,7 +68,7 @@ type HelmWrapper interface {
 	Manifest() (string, error)
 }
 
-func (c *helmWrapper) Status() (status *releaseStatus, err error) {
+func (c *helmWrapper) Status() (status *helmrelease.Release, err error) {
 	if err = c.ensureWorkspace(); err != nil {
 		return nil, err
 	}
@@ -127,6 +99,11 @@ func (c *helmWrapper) Status() (status *releaseStatus, err error) {
 	err = cmd.Run()
 
 	if err != nil {
+		helmErr := strings.TrimSpace(stderr.String())
+		if helmErr == StatusNotFoundFormat {
+			klog.V(2).Infof("namespace: %s, name: %s, run command failed, stderr: %s, error: %v", c.Namespace, c.ReleaseName, stderr, err)
+			return nil, errors.New(helmErr)
+		}
 		klog.Errorf("namespace: %s, name: %s, run command failed, stderr: %s, error: %v", c.Namespace, c.ReleaseName, stderr, err)
 		return
 	} else {
@@ -134,7 +111,7 @@ func (c *helmWrapper) Status() (status *releaseStatus, err error) {
 		klog.V(8).Infof("namespace: %s, name: %s, run command success, stdout: %s", c.Namespace, c.ReleaseName, stdout)
 	}
 
-	status = &releaseStatus{}
+	status = &helmrelease.Release{}
 	err = json.Unmarshal(stdout.Bytes(), status)
 	if err != nil {
 		klog.Errorf("namespace: %s, name: %s, json unmarshal failed, error: %s", c.Namespace, c.ReleaseName, err)
@@ -420,7 +397,20 @@ func (c *helmWrapper) Upgrade(chartName, chartData, values string) (res HelmRes,
 
 // helm install
 func (c *helmWrapper) Install(chartName, chartData, values string) (res HelmRes, err error) {
-	return c.install(chartName, chartData, values, false)
+	sts, err := c.Status()
+	if err == nil {
+		// helm release has been installed
+		if sts.Info != nil && sts.Info.Status == "deployed" {
+			return HelmRes{}, nil
+		}
+		return HelmRes{}, errors.New(releaseExists)
+	} else {
+		if err.Error() == StatusNotFoundFormat {
+			// continue to install
+			return c.install(chartName, chartData, values, false)
+		}
+		return HelmRes{}, err
+	}
 }
 
 func (c *helmWrapper) install(chartName, chartData, values string, upgrade bool) (res HelmRes, err error) {

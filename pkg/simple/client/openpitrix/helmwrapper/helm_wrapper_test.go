@@ -28,7 +28,7 @@ func TestHelmInstall(t *testing.T) {
 		SetAnnotations(map[string]string{constants.CreatorAnnotationKey: "1234"}),
 		SetMock(true))
 
-	res, err := wr.Install("dummy-chart", "", "dummy-value")
+	res, err := wr.install("dummy-chart", "", "dummy-value", false)
 	if err != nil {
 		t.Fail()
 	}

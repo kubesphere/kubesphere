@@ -15,6 +15,7 @@ package openpitrix
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/go-openapi/strfmt"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +35,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
 	"kubesphere.io/kubesphere/pkg/utils/reposcache"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
+	"net/url"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sort"
 	"strings"
@@ -166,16 +168,54 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 	if request.Description != nil {
 		repoCopy.Spec.Description = stringutils.ShortenString(*request.Description, DescriptionLen)
 	}
-	if request.URL != nil {
-		repoCopy.Spec.Url = *request.URL
+
+	if request.Name != nil && len(*request.Name) > 0 && *request.Name != repoCopy.Name {
+		items, err := c.repoLister.List(labels.SelectorFromSet(map[string]string{constants.WorkspaceLabelKey: repo.GetWorkspace()}))
+		if err != nil && !apierrors.IsNotFound(err) {
+			klog.Errorf("list helm repo failed: %s", err)
+			return err
+		}
+
+		for _, exists := range items {
+			if exists.GetTrueName() == *request.Name {
+				klog.Error(repoItemExists, "name: ", *request.Name)
+				return repoItemExists
+			}
+		}
+
+		repoCopy.Spec.Name = *request.Name
 	}
 
-	// TODO modify credential
-	if request.Name != nil {
-		repoCopy.Labels[constants.NameLabelKey] = *request.Name
-	}
-	if request.Workspace != nil {
-		repoCopy.Labels[constants.WorkspaceLabelKey] = *request.Workspace
+	// modify credential
+	if request.URL != nil && len(*request.URL) > 0 {
+		parsedUrl, err := url.Parse(*request.URL)
+		if err != nil {
+			return err
+		}
+		userInfo := parsedUrl.User
+		// trim the credential from url
+		parsedUrl.User = nil
+		cred := &v1alpha1.HelmRepoCredential{}
+		if strings.HasPrefix(*request.URL, "https://") || strings.HasPrefix(*request.URL, "http://") {
+			if userInfo != nil {
+				cred.Password, _ = userInfo.Password()
+				cred.Username = userInfo.Username()
+			} else {
+				// trim the old credential
+				cred.Password, _ = userInfo.Password()
+				cred.Username = userInfo.Username()
+			}
+		} else if strings.HasPrefix(*request.URL, "s3://") {
+			cfg := v1alpha1.S3Config{}
+			err := json.Unmarshal([]byte(*request.Credential), &cfg)
+			if err != nil {
+				return err
+			}
+			cred.S3Config = cfg
+		}
+
+		repoCopy.Spec.Credential = *cred
+		repoCopy.Spec.Url = parsedUrl.String()
 	}
 
 	patch := client.MergeFrom(repo)
@@ -242,10 +282,8 @@ func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, 
 	}
 
 	items := make([]interface{}, 0, limit)
-	for i, j := offset, 0; i < len(repos) && j < limit; {
+	for i, j := offset, 0; i < len(repos) && j < limit; i, j = i+1, j+1 {
 		items = append(items, convertRepo(repos[i]))
-		i++
-		j++
 	}
 	return &models.PageableResponse{Items: items, TotalCount: len(repos)}, nil
 }
@@ -253,7 +291,7 @@ func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, 
 func helmRepoFilter(namePrefix string, list []*v1alpha1.HelmRepo) (res []*v1alpha1.HelmRepo) {
 	for _, repo := range list {
 		name := repo.GetTrueName()
-		if strings.HasPrefix(name, namePrefix) {
+		if strings.Contains(name, namePrefix) {
 			res = append(res, repo)
 		}
 	}
@@ -288,10 +326,8 @@ func (c *repoOperator) ListRepoEvents(repoId string, conditions *params.Conditio
 	}
 
 	items := make([]interface{}, 0, limit)
-	for i, j := offset, 0; i < len(repo.Status.SyncState) && j < limit; {
+	for i, j := offset, 0; i < len(repo.Status.SyncState) && j < limit; i, j = i+1, j+1 {
 		items = append(items, convertRepoEvent(&repo.ObjectMeta, &repo.Status.SyncState[j]))
-		i++
-		j++
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: len(repo.Status.SyncState)}, nil

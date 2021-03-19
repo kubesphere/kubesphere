@@ -228,8 +228,9 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Fatal("Unable to create helm category controller")
 	}
 
+	var opS3Client s3.Interface
 	if !s.OpenPitrixOptions.AppStoreConfIsEmpty() {
-		storageClient, err := s3.NewS3Client(s.OpenPitrixOptions.S3Options)
+		opS3Client, err = s3.NewS3Client(s.OpenPitrixOptions.S3Options)
 		if err != nil {
 			klog.Fatalf("failed to connect to s3, please check openpitrix s3 service status, error: %v", err)
 		}
@@ -242,15 +243,17 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		if err != nil {
 			klog.Fatalf("Unable to create helm application version controller, error: %s ", err)
 		}
+	}
 
-		err = (&helmrelease.ReconcileHelmRelease{
-			StorageClient: storageClient,
-			KsFactory:     informerFactory.KubeSphereSharedInformerFactory(),
-		}).SetupWithManager(mgr)
+	err = (&helmrelease.ReconcileHelmRelease{
+		// nil interface is valid value.
+		StorageClient:      opS3Client,
+		KsFactory:          informerFactory.KubeSphereSharedInformerFactory(),
+		MultiClusterEnable: s.MultiClusterOptions.Enable,
+	}).SetupWithManager(mgr)
 
-		if err != nil {
-			klog.Fatalf("Unable to create helm release controller, error: %s", err)
-		}
+	if err != nil {
+		klog.Fatalf("Unable to create helm release controller, error: %s", err)
 	}
 
 	selector, _ := labels.Parse(s.ApplicationSelector)
