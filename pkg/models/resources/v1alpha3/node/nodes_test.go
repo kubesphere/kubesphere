@@ -143,6 +143,8 @@ func TestNodesGetterGet(t *testing.T) {
 	}
 	nodeGot := got.(*corev1.Node)
 
+	// ignore last-annotated-at annotation
+	delete(nodeGot.Annotations, nodeAnnotatedAt)
 	if diff := cmp.Diff(nodeGot.Annotations, expectedAnnotations); len(diff) != 0 {
 		t.Errorf("%T, diff(-got, +expected), %v", expectedAnnotations, nodeGot.Annotations)
 	}
