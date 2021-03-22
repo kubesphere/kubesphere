@@ -1,6 +1,7 @@
 package devops
 
 import (
+	"fmt"
 	"gotest.tools/assert"
 	"testing"
 )
@@ -31,4 +32,39 @@ func TestApprovable(t *testing.T) {
 	assert.Equal(t, input.Approvable("fake"), true, "should be approvable")
 	assert.Equal(t, input.Approvable("good"), true, "should be approvable")
 	assert.Equal(t, input.Approvable("bad"), true, "should be approvable")
+}
+
+func TestPipelineJsonMarshall(t *testing.T) {
+	const name = "fakeName"
+	var err error
+	var pipelineText string
+	var pipelienList *PipelineList
+
+	pipelineText = fmt.Sprintf(`[{"displayName":"%s", "weatherScore": 11}]`, name)
+	pipelienList, err = UnmarshalPipeline(1, []byte(pipelineText))
+	assert.NilError(t, err, "pipeline json marshal should be success")
+	assert.Equal(t, pipelienList.Total, 1)
+	assert.Equal(t, len(pipelienList.Items), 1)
+	assert.Equal(t, pipelienList.Items[0].DisplayName, name)
+	assert.Equal(t, pipelienList.Items[0].WeatherScore, 11)
+
+	// test against the default value of weatherScore, it should be 100
+	pipelineText = fmt.Sprintf(`[{"displayName":"%s"}]`, name)
+	pipelienList, err = UnmarshalPipeline(1, []byte(pipelineText))
+	assert.NilError(t, err, "pipeline json marshal should be success")
+	assert.Equal(t, pipelienList.Total, 1)
+	assert.Equal(t, len(pipelienList.Items), 1)
+	assert.Equal(t, pipelienList.Items[0].DisplayName, name)
+	assert.Equal(t, pipelienList.Items[0].WeatherScore, 100)
+
+	// test against multiple items
+	pipelineText = fmt.Sprintf(`[{"displayName":"%s"}, {"displayName":"%s-1"}]`, name, name)
+	pipelienList, err = UnmarshalPipeline(2, []byte(pipelineText))
+	assert.NilError(t, err, "pipeline json marshal should be success")
+	assert.Equal(t, pipelienList.Total, 2)
+	assert.Equal(t, len(pipelienList.Items), 2)
+	assert.Equal(t, pipelienList.Items[0].DisplayName, name)
+	assert.Equal(t, pipelienList.Items[0].WeatherScore, 100)
+	assert.Equal(t, pipelienList.Items[1].DisplayName, fmt.Sprintf("%s-1", name))
+	assert.Equal(t, pipelienList.Items[1].WeatherScore, 100)
 }

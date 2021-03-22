@@ -17,6 +17,7 @@ limitations under the License.
 package devops
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -95,6 +96,17 @@ type Pipeline struct {
 	} `json:"scmSource,omitempty"`
 	TotalNumberOfBranches     int `json:"totalNumberOfBranches,omitempty" description:"total number of branches"`
 	TotalNumberOfPullRequests int `json:"totalNumberOfPullRequests,omitempty" description:"total number of pull requests"`
+}
+
+// UnmarshalPipeline unmarshal data into the Pipeline list
+func UnmarshalPipeline(total int, data []byte) (pipelineList *PipelineList, err error) {
+	pipelineList = &PipelineList{Total: total}
+	pipelineList.Items = make([]Pipeline, total)
+	for i, _ := range pipelineList.Items {
+		pipelineList.Items[i].WeatherScore = 100
+	}
+	err = json.Unmarshal(data, &pipelineList.Items)
+	return
 }
 
 // GetPipeBranchRun & SearchPipelineRuns
