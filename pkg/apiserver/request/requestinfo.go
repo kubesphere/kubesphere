@@ -181,7 +181,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	requestInfo.APIVersion = currentParts[0]
 	currentParts = currentParts[1:]
 
-	if specialVerbs.Has(currentParts[0]) {
+	if len(currentParts) > 0 && specialVerbs.Has(currentParts[0]) {
 		if len(currentParts) < 2 {
 			return &requestInfo, fmt.Errorf("unable to determine kind and namespace from url: %v", req.URL)
 		}
