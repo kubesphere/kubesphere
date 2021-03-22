@@ -171,27 +171,33 @@ func (p *Pipeline) GetPipelineRun() (*devops.PipelineRun, error) {
 }
 
 func (p *Pipeline) ListPipelineRuns() (*devops.PipelineRunList, error) {
-	// please don't remove below code lines until blueocen fixed
-	//res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
-	//if err != nil {
-	//	klog.Error(err)
-	//	return nil, err
-	//}
-	//
-	//var pipelineRunList devops.PipelineRunList
-	//err = json.Unmarshal(res, &pipelineRunList.Items)
-	//if err != nil {
-	//	klog.Error(err)
-	//	return nil, err
-	//}
-	//total, err := p.searchPipelineRunsCount()
-	//if err != nil {
-	//	klog.Error(err)
-	//	return nil, err
-	//}
-	//pipelineRunList.Total = total
-	//return &pipelineRunList, err
+	// prefer to use listPipelineRunsByRemotePaging once the corresponding issues from BlueOcean fixed
 	return p.listPipelineRunsByLocalPaging()
+}
+
+// listPipelineRunsByRemotePaging get the pipeline runs with pagination by remote (Jenkins BlueOcean plugin)
+// get the pagination information from the server side is better than the local side, but the API has some issues
+// see also https://github.com/kubesphere/kubesphere/issues/3507
+func (p *Pipeline) listPipelineRunsByRemotePaging() (*devops.PipelineRunList, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	var pipelineRunList devops.PipelineRunList
+	err = json.Unmarshal(res, &pipelineRunList.Items)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	total, err := p.searchPipelineRunsCount()
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	pipelineRunList.Total = total
+	return &pipelineRunList, err
 }
 
 // listPipelineRunsByLocalPaging should be a temporary solution
