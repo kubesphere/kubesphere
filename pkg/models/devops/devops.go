@@ -846,6 +846,11 @@ func (d devopsOperator) CreateSCMServers(scmId string, req *http.Request) (*devo
 		return nil, err
 	}
 
+	servers = append(servers, devops.SCMServer{
+		ID:     "https://bitbucket.org",
+		Name:   "https://bitbucket.org",
+		ApiURL: "https://bitbucket.org",
+	})
 	for _, server := range servers {
 		if server.ApiURL == createReq.ApiURL {
 			return &server, nil
