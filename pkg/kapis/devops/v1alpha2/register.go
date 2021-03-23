@@ -542,7 +542,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 		webservice.Route(webservice.POST("/scms/{scm}/servers").
 			To(projectPipelineHandler.CreateSCMServers).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
-			Doc("Create scm server in the jenkins.").
+			Doc("Create scm server if it does not exist in the Jenkins.").
 			Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
 			Reads(devops.CreateScmServerReq{}).
 			Returns(http.StatusOK, RespOK, devops.SCMServer{}).
