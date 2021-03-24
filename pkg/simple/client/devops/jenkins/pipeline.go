@@ -25,6 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -169,6 +170,14 @@ func (p *Pipeline) GetPipelineRun() (*devops.PipelineRun, error) {
 }
 
 func (p *Pipeline) ListPipelineRuns() (*devops.PipelineRunList, error) {
+	// prefer to use listPipelineRunsByRemotePaging once the corresponding issues from BlueOcean fixed
+	return p.listPipelineRunsByLocalPaging()
+}
+
+// listPipelineRunsByRemotePaging get the pipeline runs with pagination by remote (Jenkins BlueOcean plugin)
+// get the pagination information from the server side is better than the local side, but the API has some issues
+// see also https://github.com/kubesphere/kubesphere/issues/3507
+func (p *Pipeline) listPipelineRunsByRemotePaging() (*devops.PipelineRunList, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -190,13 +199,65 @@ func (p *Pipeline) ListPipelineRuns() (*devops.PipelineRunList, error) {
 	return &pipelineRunList, err
 }
 
-func (p *Pipeline) searchPipelineRunsCount() (int, error) {
+// listPipelineRunsByLocalPaging should be a temporary solution
+// see also https://github.com/kubesphere/kubesphere/issues/3507
+func (p *Pipeline) listPipelineRunsByLocalPaging() (runList *devops.PipelineRunList, err error) {
+	desiredStart, desiredLimit := p.parsePaging()
+
+	var pageUrl *url.URL // get all Pipeline runs
+	if pageUrl, err = p.resetPaging(0, 10000); err != nil {
+		return
+	}
+	res, err := p.Jenkins.SendPureRequest(pageUrl.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	runList = &devops.PipelineRunList{
+		Items: make([]devops.PipelineRun, 0),
+	}
+	if err = json.Unmarshal(res, &runList.Items); err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	// set the total count number
+	runList.Total = len(runList.Items)
+
+	// keep the desired data/
+	if desiredStart+1 >= runList.Total {
+		// beyond the boundary, return an empty
+		return
+	}
+
+	endIndex := runList.Total
+	if desiredStart+desiredLimit < endIndex {
+		endIndex = desiredStart + desiredLimit
+	}
+	runList.Items = runList.Items[desiredStart:endIndex]
+	return
+}
+
+// resetPaging reset the paging setting from request, support start, limit
+func (p *Pipeline) resetPaging(start, limit int) (path *url.URL, err error) {
 	query, _ := ParseJenkinsQuery(p.HttpParameters.Url.RawQuery)
-	query.Set("start", "0")
-	query.Set("limit", "1000")
-	query.Set("depth", "-1")
+	query.Set("start", strconv.Itoa(start))
+	query.Set("limit", strconv.Itoa(limit))
 	p.HttpParameters.Url.RawQuery = query.Encode()
-	u, err := url.Parse(p.Path)
+	path, err = url.Parse(p.Path)
+	return
+}
+
+func (p *Pipeline) parsePaging() (start, limit int) {
+	query, _ := ParseJenkinsQuery(p.HttpParameters.Url.RawQuery)
+	start, _ = strconv.Atoi(query.Get("start"))
+	limit, _ = strconv.Atoi(query.Get("limit"))
+	return
+}
+
+func (p *Pipeline) searchPipelineRunsCount() (int, error) {
+	u, err := p.resetPaging(0, 1000)
 	if err != nil {
 		return 0, err
 	}
