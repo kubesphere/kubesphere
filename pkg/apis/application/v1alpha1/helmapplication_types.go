@@ -126,3 +126,7 @@ func (in *HelmApplication) State() string {
 	}
 	return in.Status.State
 }
+
+func (in *HelmApplication) GetCreator() string {
+	return getValue(in.Annotations, constants.CreatorAnnotationKey)
+}
