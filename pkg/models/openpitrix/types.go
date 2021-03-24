@@ -738,6 +738,9 @@ type CreateClusterRequest struct {
 	// release name
 	Name string `json:"name"`
 
+	// release install description
+	Description string `json:"description"`
+
 	// advanced param
 	AdvancedParam []string `json:"advanced_param"`
 
