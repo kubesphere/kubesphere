@@ -114,28 +114,6 @@ func (c *applicationOperator) DeleteAppVersion(id string) error {
 		return actionNotPermitted
 	}
 
-	// check release
-	rls, err := c.rlsLister.List(labels.SelectorFromSet(map[string]string{constants.ChartApplicationVersionIdLabelKey: id}))
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
-	}
-	if len(rls) > 0 {
-		klog.V(4).Infof("There are releases use data from app version %s", id)
-		infoMap := make(map[string]string)
-		allString := &bytes.Buffer{}
-		for _, r := range rls {
-			info := fmt.Sprintf("%s/%s", r.GetWorkspace(), r.GetRlsNamespace())
-			if _, exists := infoMap[info]; !exists {
-				infoMap[info] = ""
-				allString.WriteString(info)
-				if len(infoMap) > 1 {
-					allString.WriteString(",")
-				}
-			}
-		}
-		return fmt.Errorf("release exists: %s", allString.String())
-	}
-
 	// Delete data in storage
 	err = c.backingStoreClient.Delete(dataKeyInStorage(appVersion.GetWorkspace(), id))
 	if err != nil {

@@ -324,24 +324,15 @@ func (c *applicationOperator) DeleteApp(id string) error {
 	app, err := c.appLister.Get(id)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			klog.V(4).Infof("app %s has been deleted", id)
 			return nil
 		} else {
-			klog.Error(err)
-			return nil
+			klog.Errorf("get app %s failed, error: %s", id, err)
+			return err
 		}
 	}
 
 	ls := map[string]string{
 		constants.ChartApplicationIdLabelKey: app.GetHelmApplicationId(),
-	}
-	releases, err := c.rlsLister.List(labels.SelectorFromSet(ls))
-
-	if err != nil && !apierrors.IsNotFound(err) {
-		klog.Error(err)
-		return err
-	} else if len(releases) > 0 {
-		return fmt.Errorf("app %s has releases not deleted", id)
 	}
 
 	list, err := c.versionLister.List(labels.SelectorFromSet(ls))

@@ -267,6 +267,11 @@ func (c *releaseOperator) ListApplications(workspace, clusterName, namespace str
 		ls[constants.ChartApplicationVersionIdLabelKey] = versionId
 	}
 
+	repoId := conditions.Match[RepoId]
+	if repoId != "" {
+		ls[constants.ChartRepoIdLabelKey] = repoId
+	}
+
 	if workspace != "" {
 		ls[constants.WorkspaceLabelKey] = workspace
 	}

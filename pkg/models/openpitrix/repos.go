@@ -16,7 +16,6 @@ package openpitrix
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/go-openapi/strfmt"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,7 +125,7 @@ func (c *repoOperator) CreateRepo(repo *v1alpha1.HelmRepo) (*CreateRepoResponse,
 	repo.Spec.Description = stringutils.ShortenString(repo.Spec.Description, DescriptionLen)
 	_, err = c.repoClient.HelmRepos().Create(context.TODO(), repo, metav1.CreateOptions{})
 	if err != nil {
-		klog.Errorf("create helm repo failed, repod_id: %s, error: %s", repo.GetHelmRepoId(), err)
+		klog.Errorf("create helm repo failed, repo_id: %s, error: %s", repo.GetHelmRepoId(), err)
 		return nil, err
 	} else {
 		klog.V(4).Infof("create helm repo success, repo_id: %s", repo.GetHelmRepoId())
@@ -136,20 +135,10 @@ func (c *repoOperator) CreateRepo(repo *v1alpha1.HelmRepo) (*CreateRepoResponse,
 }
 
 func (c *repoOperator) DeleteRepo(id string) error {
-	ls := map[string]string{
-		constants.ChartRepoIdLabelKey: id,
-	}
-	releases, err := c.rlsLister.List(labels.SelectorFromSet(ls))
-
-	if err != nil && apierrors.IsNotFound(err) {
-		return err
-	} else if len(releases) > 0 {
-		return fmt.Errorf("repo %s has releases not deleted", id)
-	}
-
+	var err error
 	err = c.repoClient.HelmRepos().Delete(context.TODO(), id, metav1.DeleteOptions{})
-	if err != nil && apierrors.IsNotFound(err) {
-		klog.Error(err)
+	if err != nil && !apierrors.IsNotFound(err) {
+		klog.Errorf("delete repo %s failed, error: %s", id, err)
 		return err
 	}
 	klog.V(4).Infof("repo %s deleted", id)
