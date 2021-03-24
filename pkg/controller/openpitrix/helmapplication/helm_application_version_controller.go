@@ -210,41 +210,42 @@ func (r *ReconcileHelmApplicationVersion) updateStatus(appVersion *v1alpha1.Helm
 	return nil
 }
 
+// getLatestVersionName get the latest version of versions.
+// if inAppStore is false, get the latest version name of all of the versions
+// if inAppStore is true, get the latest version name of the ACTIVE versions.
 func getLatestVersionName(versions v1alpha1.HelmApplicationVersionList, inAppStore bool) string {
-	l := versions.Items
-	if len(l) == 0 {
+	if len(versions.Items) == 0 {
 		return ""
 	}
 
-	verInd := 0
-	if inAppStore {
-		// only check active app version
-		for ; verInd < len(l); verInd++ {
-			if l[verInd].Status.State == v1alpha1.StateActive {
-				break
+	var latestVersionName string
+	var latestSemver *semver.Version
+
+	for _, version := range versions.Items {
+		// If the appVersion is being deleted, ignore it.
+		// If inAppStore is true, we just need ACTIVE appVersion.
+		if version.DeletionTimestamp != nil || (inAppStore && version.Status.State != v1alpha1.StateActive) {
+			continue
+		}
+
+		currSemver, err := semver.NewVersion(version.GetSemver())
+		if err == nil {
+			if latestSemver == nil {
+				// the first valid semver
+				latestSemver = currSemver
+				latestVersionName = version.GetVersionName()
+			} else if latestSemver.LessThan(currSemver) {
+				// find a newer valid semver
+				latestSemver = currSemver
+				latestVersionName = version.GetVersionName()
 			}
+		} else {
+			// If the semver is invalid, just ignore it.
+			klog.V(2).Infof("parse version failed, id: %s, err: %s", version.Name, err)
 		}
 	}
 
-	if verInd == len(l) {
-		return ""
-	}
-
-	latestSemver, _ := semver.NewVersion(l[verInd].GetSemver())
-
-	for i := verInd + 1; i < len(l); i++ {
-		curr, _ := semver.NewVersion(l[i].GetSemver())
-		if inAppStore {
-			if l[i].Status.State != v1alpha1.StateActive {
-				continue
-			}
-		}
-		if latestSemver.LessThan(curr) {
-			verInd = i
-		}
-	}
-
-	return l[verInd].GetVersionName()
+	return latestVersionName
 }
 
 func mergeApplicationVersionState(versions v1alpha1.HelmApplicationVersionList) string {
@@ -257,7 +258,7 @@ func mergeApplicationVersionState(versions v1alpha1.HelmApplicationVersionList) 
 		}
 	}
 
-	// If there is on active appVersion, the helm application is active
+	// If there is one or more active appVersion, the helm application is active
 	if states[v1alpha1.StateActive] > 0 {
 		return v1alpha1.StateActive
 	}
@@ -267,6 +268,7 @@ func mergeApplicationVersionState(versions v1alpha1.HelmApplicationVersionList) 
 		return v1alpha1.StateDraft
 	}
 
+	// No active appVersion or draft appVersion, then the app state is suspended
 	if states[v1alpha1.StateSuspended] > 0 {
 		return v1alpha1.StateSuspended
 	}
