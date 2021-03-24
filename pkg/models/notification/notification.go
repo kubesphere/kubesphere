@@ -138,7 +138,7 @@ func (o *operator) Get(user, resource, name, subresource string) (runtime.Object
 // A tenant object will be created if the user is not nil.
 func (o *operator) Create(user, resource string, obj runtime.Object) (runtime.Object, error) {
 
-	if err := appendLabel(user, obj); err != nil {
+	if err := appendLabel(user, resource, obj); err != nil {
 		return nil, err
 	}
 
@@ -182,7 +182,7 @@ func (o *operator) Delete(user, resource, name string) error {
 // If the user is not nil, a tenant object whose tenant label matches the user will be updated.
 func (o *operator) Update(user, resource, name string, obj runtime.Object) (runtime.Object, error) {
 
-	if err := appendLabel(user, obj); err != nil {
+	if err := appendLabel(user, resource, obj); err != nil {
 		return nil, err
 	}
 
@@ -292,7 +292,7 @@ func isGlobal(obj runtime.Object) bool {
 	}
 }
 
-func appendLabel(user string, obj runtime.Object) error {
+func appendLabel(user, resource string, obj runtime.Object) error {
 
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
@@ -305,20 +305,19 @@ func appendLabel(user string, obj runtime.Object) error {
 		labels = make(map[string]string)
 	}
 
-	switch obj.(type) {
-	case *corev1.Secret:
+	if resource == Secret {
 		labels[constants.NotificationManagedLabel] = "true"
-	default:
-		if user == "" {
-			if isConfig(obj) {
-				labels["type"] = "default"
-			} else {
-				labels["type"] = "global"
-			}
+	}
+
+	if user == "" {
+		if isConfig(obj) {
+			labels["type"] = "default"
 		} else {
-			labels["type"] = "tenant"
-			labels["user"] = user
+			labels["type"] = "global"
 		}
+	} else {
+		labels["type"] = "tenant"
+		labels["user"] = user
 	}
 
 	accessor.SetLabels(labels)
