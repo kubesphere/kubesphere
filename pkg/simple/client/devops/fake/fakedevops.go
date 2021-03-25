@@ -297,7 +297,7 @@ func (d *Devops) CheckCron(projectName string, httpParameters *devops.HttpParame
 func (d *Devops) ToJenkinsfile(httpParameters *devops.HttpParameters) (*devops.ResJenkinsfile, error) {
 	return nil, nil
 }
-func (d *Devops) ToJson(httpParameters *devops.HttpParameters) (*devops.ResJson, error) {
+func (d *Devops) ToJson(httpParameters *devops.HttpParameters) (map[string]interface{}, error) {
 	return nil, nil
 }
 

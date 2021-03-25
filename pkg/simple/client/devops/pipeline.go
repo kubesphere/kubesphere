@@ -1025,40 +1025,6 @@ type ReqJenkinsfile struct {
 	Jenkinsfile string `json:"jenkinsfile,omitempty" description:"jenkinsfile"`
 }
 
-type ResJson struct {
-	Status string `json:"status,omitempty" description:"status e.g. ok"`
-	Data   struct {
-		Result string `json:"result,omitempty" description:"result e.g. success"`
-		JSON   struct {
-			Pipeline struct {
-				Stages []interface{} `json:"stages,omitempty" description:"stages"`
-				Agent  struct {
-					Type      string `json:"type,omitempty" description:"type"`
-					Arguments []struct {
-						Key   string `json:"key,omitempty" description:"key"`
-						Value struct {
-							IsLiteral bool   `json:"isLiteral,omitempty" description:"is literal or not"`
-							Value     string `json:"value,omitempty" description:"value"`
-						} `json:"value,omitempty"`
-					} `json:"arguments,omitempty"`
-				} `json:"agent,omitempty"`
-				Parameters struct {
-					Parameters []struct {
-						Name      string `json:"name,omitempty" description:"name"`
-						Arguments []struct {
-							Key   string `json:"key,omitempty" description:"key"`
-							Value struct {
-								IsLiteral bool        `json:"isLiteral,omitempty" description:"is literal or not"`
-								Value     interface{} `json:"value,omitempty" description:"value"`
-							} `json:"value,omitempty"`
-						} `json:"arguments,omitempty"`
-					} `json:"parameters,omitempty"`
-				} `json:"parameters,omitempty"`
-			} `json:"pipeline,omitempty"`
-		} `json:"json,omitempty"`
-	} `json:"data,omitempty"`
-}
-
 type NodesDetail struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
@@ -1202,5 +1168,5 @@ type PipelineOperator interface {
 	CheckScriptCompile(projectName, pipelineName string, httpParameters *HttpParameters) (*CheckScript, error)
 	CheckCron(projectName string, httpParameters *HttpParameters) (*CheckCronRes, error)
 	ToJenkinsfile(httpParameters *HttpParameters) (*ResJenkinsfile, error)
-	ToJson(httpParameters *HttpParameters) (*ResJson, error)
+	ToJson(httpParameters *HttpParameters) (map[string]interface{}, error)
 }
