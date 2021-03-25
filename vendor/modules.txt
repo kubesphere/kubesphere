@@ -228,6 +228,8 @@ github.com/go-redis/redis/internal/hashtag
 github.com/go-redis/redis/internal/pool
 github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
+# github.com/go-resty/resty/v2 v2.5.0
+github.com/go-resty/resty/v2
 # github.com/go-sql-driver/mysql v1.5.0 => github.com/go-sql-driver/mysql v1.5.0
 github.com/go-sql-driver/mysql
 # github.com/go-stack/stack v1.8.0 => github.com/go-stack/stack v1.8.0
@@ -684,7 +686,7 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/lint v0.0.0-20200302205851-738671d3881b => golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20200707034311-ab3426394381 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20201224014010-6772e930b67b => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -697,6 +699,7 @@ golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
+golang.org/x/net/publicsuffix
 golang.org/x/net/trace
 golang.org/x/net/websocket
 # golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
@@ -932,7 +935,9 @@ helm.sh/helm/v3/pkg/helmpath
 helm.sh/helm/v3/pkg/helmpath/xdg
 helm.sh/helm/v3/pkg/plugin
 helm.sh/helm/v3/pkg/provenance
+helm.sh/helm/v3/pkg/release
 helm.sh/helm/v3/pkg/repo
+helm.sh/helm/v3/pkg/time
 # honnef.co/go/tools v0.0.1-2020.1.3 => honnef.co/go/tools v0.0.1-2020.1.3
 honnef.co/go/tools/arg
 honnef.co/go/tools/cmd/staticcheck
@@ -1533,7 +1538,7 @@ k8s.io/klog/klogr
 # k8s.io/klog/v2 v2.0.0 => k8s.io/klog/v2 v2.0.0
 k8s.io/klog/v2
 # k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6 => k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
-k8s.io/kube-openapi/cmd/openapi-gen/
+k8s.io/kube-openapi/cmd/openapi-gen
 k8s.io/kube-openapi/cmd/openapi-gen/args
 k8s.io/kube-openapi/pkg/builder
 k8s.io/kube-openapi/pkg/common
@@ -1578,6 +1583,8 @@ k8s.io/utils/trace
 # kubesphere.io/client-go v0.0.0 => ./staging/src/kubesphere.io/client-go
 kubesphere.io/client-go/client
 kubesphere.io/client-go/client/generic
+kubesphere.io/client-go/restclient
+kubesphere.io/client-go/restclient/versioned/iam/v1alpha2
 # kubesphere.io/monitoring-dashboard v0.1.2
 kubesphere.io/monitoring-dashboard/api/v1alpha1
 kubesphere.io/monitoring-dashboard/api/v1alpha1/panels
