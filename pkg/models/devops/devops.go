@@ -43,6 +43,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -826,6 +827,7 @@ func (d devopsOperator) GetOrgRepo(scmId, organizationId string, req *http.Reque
 	return res, err
 }
 
+// CreateSCMServers creates a Bitbucket server config item in Jenkins configuration if there's no same API address exist
 func (d devopsOperator) CreateSCMServers(scmId string, req *http.Request) (*devops.SCMServer, error) {
 
 	requestBody, err := ioutil.ReadAll(req.Body)
@@ -846,8 +848,9 @@ func (d devopsOperator) CreateSCMServers(scmId string, req *http.Request) (*devo
 		return nil, err
 	}
 
+	createReq.ApiURL = strings.TrimSuffix(createReq.ApiURL, "/")
 	for _, server := range servers {
-		if server.ApiURL == createReq.ApiURL {
+		if strings.TrimSuffix(server.ApiURL, "/") == createReq.ApiURL {
 			return &server, nil
 		}
 	}
