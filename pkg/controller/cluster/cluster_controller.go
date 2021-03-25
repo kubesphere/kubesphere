@@ -350,6 +350,11 @@ func (c *clusterController) probeClusters() error {
 	}
 
 	for _, cluster := range clusters {
+		// if the cluster is not federated, we skip it and consider it not ready.
+		if !isConditionTrue(cluster, clusterv1alpha1.ClusterFederated) {
+			continue
+		}
+
 		if len(cluster.Spec.Connection.KubeConfig) == 0 {
 			continue
 		}
@@ -483,11 +488,12 @@ func (c *clusterController) syncCluster(key string) error {
 	// currently we didn't set cluster.Spec.Enable when creating cluster at client side, so only check
 	// if we enable cluster.Spec.JoinFederation now
 	if cluster.Spec.JoinFederation == false {
+		klog.V(5).Infof("Skipping to join cluster %s cause it is not expected to join", cluster.Name)
 		return nil
 	}
 
-	// cluster not ready, nothing to do
-	if !isConditionTrue(cluster, clusterv1alpha1.ClusterReady) {
+	if len(cluster.Spec.Connection.KubeConfig) == 0 {
+		klog.V(5).Infof("Skipping to join cluster %s cause the kubeconfig is empty", cluster.Name)
 		return nil
 	}
 
@@ -515,6 +521,22 @@ func (c *clusterController) syncCluster(key string) error {
 		_, err = c.joinFederation(clusterDt.config, cluster.Name, cluster.Labels)
 		if err != nil {
 			klog.Errorf("Failed to join federation for cluster %s, error %v", cluster.Name, err)
+
+			federationNotReadyCondition := clusterv1alpha1.ClusterCondition{
+				Type:               clusterv1alpha1.ClusterFederated,
+				Status:             v1.ConditionFalse,
+				LastUpdateTime:     metav1.Now(),
+				LastTransitionTime: metav1.Now(),
+				Reason:             err.Error(),
+				Message:            "Cluster can not join federation control plane",
+			}
+			c.updateClusterCondition(cluster, federationNotReadyCondition)
+
+			_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
+			if err != nil {
+				klog.Errorf("Failed to update cluster status, %#v", err)
+			}
+
 			return err
 		}
 
@@ -560,13 +582,23 @@ func (c *clusterController) syncCluster(key string) error {
 		cluster.Status.Configz = configz
 	}
 
-	// label cluster host cluster if configz["multicluster"]==true, this is
+	// label cluster host cluster if configz["multicluster"]==true
 	if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
 		if cluster.Labels == nil {
 			cluster.Labels = make(map[string]string)
 		}
 		cluster.Labels[clusterv1alpha1.HostCluster] = ""
 	}
+
+	readyConditon := clusterv1alpha1.ClusterCondition{
+		Type:               clusterv1alpha1.ClusterReady,
+		Status:             v1.ConditionTrue,
+		LastUpdateTime:     metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             string(clusterv1alpha1.ClusterReady),
+		Message:            "Cluster is available now",
+	}
+	c.updateClusterCondition(cluster, readyConditon)
 
 	if !reflect.DeepEqual(oldCluster, cluster) {
 		_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
