@@ -19,6 +19,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
@@ -54,7 +55,6 @@ func NewTokenOperator(cache cache.Interface, options *authoptions.Authentication
 func (t tokenOperator) Verify(tokenStr string) (user.Info, error) {
 	authenticated, tokenType, err := t.issuer.Verify(tokenStr)
 	if err != nil {
-		klog.Error(err)
 		return nil, err
 	}
 	if t.options.OAuthOptions.AccessTokenMaxAge == 0 ||
@@ -62,7 +62,6 @@ func (t tokenOperator) Verify(tokenStr string) (user.Info, error) {
 		return authenticated, nil
 	}
 	if err := t.tokenCacheValidate(authenticated.GetName(), tokenStr); err != nil {
-		klog.Error(err)
 		return nil, err
 	}
 	return authenticated, nil
@@ -131,7 +130,9 @@ func (t tokenOperator) tokenCacheValidate(username, token string) error {
 	if exist, err := t.cache.Exists(key); err != nil {
 		return err
 	} else if !exist {
-		return fmt.Errorf("token not found in cache")
+		err = errors.New("token not found in cache")
+		klog.V(4).Info(fmt.Errorf("%s: %s", err, token))
+		return err
 	}
 	return nil
 }

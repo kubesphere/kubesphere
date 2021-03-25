@@ -49,7 +49,7 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (user.Info, TokenType, error
 	// verify token signature and expiration time
 	_, err := jwt.ParseWithClaims(tokenString, clm, s.keyFunc)
 	if err != nil {
-		klog.Error(err)
+		klog.V(4).Info(err)
 		return nil, "", err
 	}
 	return &user.DefaultInfo{Name: clm.Username, Groups: clm.Groups, Extra: clm.Extra}, clm.TokenType, nil
@@ -77,9 +77,8 @@ func (s *jwtTokenIssuer) IssueTo(user user.Info, tokenType TokenType, expiresIn 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, clm)
 
 	tokenString, err := token.SignedString(s.secret)
-
 	if err != nil {
-		klog.Error(err)
+		klog.V(4).Info(err)
 		return "", err
 	}
 

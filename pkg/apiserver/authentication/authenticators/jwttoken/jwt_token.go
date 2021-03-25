@@ -47,7 +47,7 @@ func NewTokenAuthenticator(tokenOperator auth.TokenManagementInterface, userList
 func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
 	providedUser, err := t.tokenOperator.Verify(token)
 	if err != nil {
-		klog.Error(err)
+		klog.Warning(err)
 		return nil, false, err
 	}
 

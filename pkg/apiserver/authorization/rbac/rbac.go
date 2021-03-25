@@ -137,7 +137,7 @@ func (r *RBACAuthorizer) Authorize(requestAttributes authorizer.Attributes) (aut
 			scope = "global-wide"
 		}
 
-		klog.Infof("RBAC: no rules authorize user %q with groups %q to %s %s", requestAttributes.GetUser().GetName(), requestAttributes.GetUser().GetGroups(), operation, scope)
+		klog.V(4).Infof("RBAC: no rules authorize user %q with groups %q to %s %s", requestAttributes.GetUser().GetName(), requestAttributes.GetUser().GetGroups(), operation, scope)
 	}
 
 	reason := ""
