@@ -17,34 +17,22 @@ limitations under the License.
 package loginrecord
 
 import (
-	"context"
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
+	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog/klogr"
+	clienttesting "k8s.io/client-go/testing"
 	"kubesphere.io/kubesphere/pkg/apis"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"os"
-	"path/filepath"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"math/rand"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"testing"
 	"time"
 )
-
-var testEnv *envtest.Environment
-var k8sManager ctrl.Manager
 
 func TestLoginRecordController(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -53,70 +41,54 @@ func TestLoginRecordController(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(klogr.New())
-
-	By("bootstrapping test environment")
-	t := true
-	if os.Getenv("TEST_USE_EXISTING_CLUSTER") == "true" {
-		testEnv = &envtest.Environment{
-			UseExistingCluster: &t,
-		}
-	} else {
-		testEnv = &envtest.Environment{
-			CRDDirectoryPaths:        []string{filepath.Join("..", "..", "..", "config", "crds")},
-			AttachControlPlaneOutput: false,
-		}
+func newLoginRecord(username string) *iamv1alpha2.LoginRecord {
+	return &iamv1alpha2.LoginRecord{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%d", username, rand.Intn(1000000)),
+			Labels: map[string]string{
+				iamv1alpha2.UserReferenceLabel: username,
+			},
+			CreationTimestamp: metav1.Now(),
+		},
+		Spec: iamv1alpha2.LoginRecordSpec{
+			Type:      iamv1alpha2.Token,
+			Provider:  "",
+			Success:   true,
+			Reason:    iamv1alpha2.AuthenticatedSuccessfully,
+			SourceIP:  "",
+			UserAgent: "",
+		},
 	}
+}
 
-	cfg, err := testEnv.Start()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(cfg).ToNot(BeNil())
-
-	err = apis.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-	})
-	Expect(err).ToNot(HaveOccurred())
-
-	k8sClient, err := kubernetes.NewForConfig(cfg)
-	Expect(err).NotTo(HaveOccurred())
-
-	ksClient, err := kubesphere.NewForConfig(cfg)
-	Expect(err).NotTo(HaveOccurred())
-
-	ksInformers := externalversions.NewSharedInformerFactory(ksClient, time.Second*30)
-	Expect(err).NotTo(HaveOccurred())
-
-	loginRecordInformer := ksInformers.Iam().V1alpha2().LoginRecords()
-	userInformer := ksInformers.Iam().V1alpha2().Users()
-
-	loginRecordController := NewLoginRecordController(k8sClient, ksClient, loginRecordInformer, userInformer, time.Hour, 1)
-	err = k8sManager.Add(loginRecordController)
-	Expect(err).NotTo(HaveOccurred())
-
-	go func() {
-		stopChan := ctrl.SetupSignalHandler()
-		ksInformers.Start(stopChan)
-		err = k8sManager.Start(stopChan)
-		Expect(err).ToNot(HaveOccurred())
-	}()
-
-	close(done)
-}, 60)
+func newUser(username string) *iamv1alpha2.User {
+	return &iamv1alpha2.User{
+		ObjectMeta: metav1.ObjectMeta{Name: username},
+	}
+}
 
 var _ = Describe("LoginRecord", func() {
-	const timeout = time.Second * 30
-	const interval = time.Second * 1
-
+	var k8sClient *fakek8s.Clientset
+	var ksClient *fakeks.Clientset
+	var user *iamv1alpha2.User
+	var loginRecord *iamv1alpha2.LoginRecord
+	var controller *loginRecordController
+	var informers externalversions.SharedInformerFactory
 	BeforeEach(func() {
-		admin := &iamv1alpha2.User{
-			ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-		}
-		Expect(k8sManager.GetClient().Create(context.Background(), admin, &client.CreateOptions{})).Should(Succeed())
+		user = newUser("admin")
+		loginRecord = newLoginRecord(user.Name)
+		k8sClient = fakek8s.NewSimpleClientset()
+		ksClient = fakeks.NewSimpleClientset(loginRecord, user)
+		informers = externalversions.NewSharedInformerFactory(ksClient, 0)
+		loginRecordInformer := informers.Iam().V1alpha2().LoginRecords()
+		userInformer := informers.Iam().V1alpha2().Users()
+		err := loginRecordInformer.Informer().GetIndexer().Add(loginRecord)
+		Expect(err).Should(BeNil())
+		err = userInformer.Informer().GetIndexer().Add(user)
+		Expect(err).Should(BeNil())
+		err = apis.AddToScheme(scheme.Scheme)
+		Expect(err).NotTo(HaveOccurred())
+		controller = NewLoginRecordController(k8sClient, ksClient, loginRecordInformer, userInformer, time.Hour, 1)
 	})
 
 	// Add Tests for OpenAPI validation (or additonal CRD features) specified in
@@ -125,59 +97,21 @@ var _ = Describe("LoginRecord", func() {
 	// test Kubernetes API server, which isn't the goal here.
 	Context("LoginRecord Controller", func() {
 		It("Should create successfully", func() {
-			ctx := context.Background()
-			username := "admin"
-			loginRecord := &iamv1alpha2.LoginRecord{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("%s-1", username),
-					Labels: map[string]string{
-						iamv1alpha2.UserReferenceLabel: username,
-					},
-				},
-				Spec: iamv1alpha2.LoginRecordSpec{
-					Type:      iamv1alpha2.Token,
-					Provider:  "",
-					Success:   true,
-					Reason:    iamv1alpha2.AuthenticatedSuccessfully,
-					SourceIP:  "",
-					UserAgent: "",
-				},
-			}
 
-			By("Expecting to create login record successfully")
-			Expect(k8sManager.GetClient().Create(ctx, loginRecord, &client.CreateOptions{})).Should(Succeed())
+			By("Expecting to reconcile successfully")
+			err := controller.reconcile(loginRecord.Name)
+			Expect(err).Should(BeNil())
 
-			expected := &iamv1alpha2.LoginRecord{}
-			Eventually(func() bool {
-				err := k8sManager.GetClient().Get(ctx, types.NamespacedName{Name: loginRecord.Name}, expected)
-				fmt.Print(err)
-				return !expected.CreationTimestamp.IsZero()
-			}, timeout, interval).Should(BeTrue())
-
-			loginRecord.Name = fmt.Sprintf("%s-2", username)
-			loginRecord.ResourceVersion = ""
-			By("Expecting to create login record successfully")
-			Expect(k8sManager.GetClient().Create(ctx, loginRecord, &client.CreateOptions{})).Should(Succeed())
-
-			Eventually(func() bool {
-				k8sManager.GetClient().Get(ctx, types.NamespacedName{Name: loginRecord.Name}, expected)
-				return !expected.CreationTimestamp.IsZero()
-			}, timeout, interval).Should(BeTrue())
-
-			By("Expecting to limit login record successfully")
-			Eventually(func() bool {
-				loginRecordList := &iamv1alpha2.LoginRecordList{}
-				selector := labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: username})
-				k8sManager.GetClient().List(ctx, loginRecordList, &client.ListOptions{LabelSelector: selector})
-				return len(loginRecordList.Items) == 1
-			}, timeout, interval).Should(BeTrue())
+			By("Expecting to update user last login time successfully")
+			err = controller.reconcile(loginRecord.Name)
+			Expect(err).Should(BeNil())
+			actions := ksClient.Actions()
+			Expect(len(actions)).Should(Equal(1))
+			newObject := user.DeepCopy()
+			newObject.Status.LastLoginTime = &loginRecord.CreationTimestamp
+			updateAction := clienttesting.NewUpdateAction(iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralUser), "", newObject)
+			updateAction.Subresource = "status"
+			Expect(actions[0]).Should(Equal(updateAction))
 		})
 	})
-})
-
-var _ = AfterSuite(func() {
-	By("tearing down the test environment")
-	gexec.KillAndWait(5 * time.Second)
-	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
 })
