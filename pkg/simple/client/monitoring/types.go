@@ -20,11 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/jszwec/csvutil"
 )
 
 const (
@@ -46,39 +44,9 @@ type Metric struct {
 
 type MetricValues []MetricValue
 
-func (m MetricValues) MarshalCSV() ([]byte, error) {
-
-	var ret []string
-	for _, v := range m {
-		tmp, err := v.MarshalCSV()
-		if err != nil {
-			return nil, err
-		}
-
-		ret = append(ret, string(tmp))
-	}
-
-	return []byte(strings.Join(ret, "||")), nil
-}
-
 type MetricData struct {
 	MetricType   string `json:"resultType,omitempty" description:"result type, one of matrix, vector" csv:"metric_type"`
 	MetricValues `json:"result,omitempty" description:"metric data including labels, time series and values" csv:"metric_values"`
-}
-
-func (m MetricData) MarshalCSV() ([]byte, error) {
-	var ret []byte
-
-	for _, v := range m.MetricValues {
-		tmp, err := csvutil.Marshal(&v)
-		if err != nil {
-			return nil, err
-		}
-
-		ret = append(ret, tmp...)
-	}
-
-	return ret, nil
 }
 
 // The first element is the timestamp, the second is the metric value.
@@ -102,41 +70,6 @@ type MetricValue struct {
 	Fee          float64 `json:"fee" description:"resource fee"`
 	ResourceUnit string  `json:"resource_unit"`
 	CurrencyUnit string  `json:"currency_unit"`
-}
-
-func (mv MetricValue) MarshalCSV() ([]byte, error) {
-	// metric value format:
-	// 	target,stats value(include fees),exported_value,exported_values
-	// for example:
-	// 	{workspace:demo-ws},,2021-02-23 01:00:00 AM 0|2021-02-23 02:00:00 AM 0|...
-	var metricValueCSVTemplate = "{%s},unit:%s|min:%.3f|max:%.3f|avg:%.3f|sum:%.3f|fee:%.2f %s,%s,%s"
-
-	var targetList []string
-	for k, v := range mv.Metadata {
-		targetList = append(targetList, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	exportedSampleStr := ""
-	if mv.ExportSample != nil {
-		exportedSampleStr = mv.ExportSample.Format()
-	}
-
-	exportedSeriesStrList := []string{}
-	for _, v := range mv.ExportedSeries {
-		exportedSeriesStrList = append(exportedSeriesStrList, v.Format())
-	}
-
-	return []byte(fmt.Sprintf(metricValueCSVTemplate,
-		strings.Join(targetList, "|"),
-		mv.ResourceUnit,
-		mv.MinValue,
-		mv.MaxValue,
-		mv.AvgValue,
-		mv.SumValue,
-		mv.Fee,
-		mv.CurrencyUnit,
-		exportedSampleStr,
-		exportedSeriesStrList)), nil
 }
 
 func (mv *MetricValue) TransferToExportedMetricValue() {
@@ -165,6 +98,10 @@ func (p Point) Value() float64 {
 
 func (p Point) transferToExported() ExportPoint {
 	return ExportPoint{p[0], p[1]}
+}
+
+func (p Point) Add(other Point) Point {
+	return Point{p[0], p[1] + other[1]}
 }
 
 // MarshalJSON implements json.Marshaler. It will be called when writing JSON to HTTP response
@@ -214,6 +151,14 @@ func (p *Point) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type CSVPoint struct {
+	MetricName   string `csv:"metric_name"`
+	Selector     string `csv:"selector"`
+	Time         string `csv:"time"`
+	Value        string `csv:"value"`
+	ResourceUnit string `csv:"unit"`
+}
+
 type ExportPoint [2]float64
 
 func (p ExportPoint) Timestamp() string {
@@ -226,4 +171,14 @@ func (p ExportPoint) Value() float64 {
 
 func (p ExportPoint) Format() string {
 	return p.Timestamp() + " " + strconv.FormatFloat(p.Value(), 'f', -1, 64)
+}
+
+func (p ExportPoint) TransformToCSVPoint(metricName string, selector string, resourceUnit string) CSVPoint {
+	return CSVPoint{
+		MetricName:   metricName,
+		Selector:     selector,
+		Time:         p.Timestamp(),
+		Value:        strconv.FormatFloat(p.Value(), 'f', -1, 64),
+		ResourceUnit: resourceUnit,
+	}
 }

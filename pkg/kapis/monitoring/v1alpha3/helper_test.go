@@ -22,10 +22,14 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
+	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
+	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
@@ -217,13 +221,78 @@ func TestParseRequestParams(t *testing.T) {
 			},
 			expectedErr: false,
 		},
+		{
+			params: reqParams{
+				time:      "1585830000",
+				operation: OperationQuery,
+			},
+			lvl:         monitoring.LevelApplication,
+			expectedErr: true,
+		},
+		{
+			params: reqParams{
+				start:         "1585880000",
+				end:           "1585830000",
+				operation:     OperationQuery,
+				namespaceName: "default",
+				applications:  "app1|app2",
+			},
+			lvl:         monitoring.LevelApplication,
+			expectedErr: true,
+		},
+		{
+			params: reqParams{
+				start:         "1585880000",
+				end:           "1585830000",
+				operation:     OperationQuery,
+				namespaceName: "default",
+			},
+			lvl:         monitoring.LevelApplication,
+			expectedErr: true,
+		},
+		{
+			params: reqParams{
+				target:        "meter_service_cpu_usage",
+				time:          "1585880000",
+				operation:     OperationQuery,
+				namespaceName: "default",
+			},
+			lvl:         monitoring.LevelService,
+			expectedErr: true,
+		},
+		{
+			params: reqParams{
+				target:        "meter_service_cpu_usage",
+				time:          "1585880000",
+				operation:     OperationQuery,
+				namespaceName: "default",
+				services:      "svc1|svc2",
+			},
+			lvl:         monitoring.LevelService,
+			expectedErr: true,
+		},
+		{
+			params: reqParams{
+				namespaceName: "default",
+			},
+			lvl:         monitoring.LevelOpenpitrix,
+			expectedErr: true,
+		},
 	}
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			client := fake.NewSimpleClientset(&tt.namespace)
-			fakeInformerFactory := informers.NewInformerFactories(client, nil, nil, nil, nil, nil)
-			handler := NewHandler(client, nil, nil, fakeInformerFactory, nil)
+			ksClient := fakeks.NewSimpleClientset()
+			istioClient := fakeistio.NewSimpleClientset()
+			snapshotClient := fakesnapshot.NewSimpleClientset()
+			apiextensionsClient := fakeapiextensions.NewSimpleClientset()
+			fakeInformerFactory := informers.NewInformerFactories(client, ksClient, istioClient, snapshotClient, apiextensionsClient, nil)
+
+			fakeInformerFactory.KubeSphereSharedInformerFactory()
+
+			handler := NewHandler(client, nil, nil, fakeInformerFactory, ksClient, nil)
+
 			result, err := handler.makeQueryOptions(tt.params, tt.lvl)
 			if err != nil {
 				if !tt.expectedErr {
@@ -238,6 +307,74 @@ func TestParseRequestParams(t *testing.T) {
 
 			if diff := cmp.Diff(result, tt.expected, cmp.AllowUnexported(result, tt.expected)); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", tt.expected, diff)
+			}
+		})
+	}
+}
+
+func TestExportMetrics(t *testing.T) {
+
+	fakeMetadata := map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+		"k3": "v3",
+	}
+
+	fakeExportedSeries := []monitoring.ExportPoint{
+		{1616641733, 2},
+		{1616641800, 4},
+	}
+
+	tests := []struct {
+		metrics     model.Metrics
+		expectedErr bool
+	}{
+		{
+			metrics: model.Metrics{
+				Results: []monitoring.Metric{
+					{
+						MetricName: "test",
+						MetricData: monitoring.MetricData{
+							MetricType: "",
+							MetricValues: []monitoring.MetricValue{
+								{
+									Metadata:       fakeMetadata,
+									ExportedSeries: fakeExportedSeries,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: false,
+		},
+		{
+			metrics: model.Metrics{
+				Results: []monitoring.Metric{
+					{
+						MetricName: "test",
+						MetricData: monitoring.MetricData{
+							MetricType: "",
+							MetricValues: []monitoring.MetricValue{
+								{
+									Metadata:       fakeMetadata,
+									ExportedSeries: nil,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: true,
+		},
+		{},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			_, err := exportMetrics(tt.metrics)
+			if err != nil && !tt.expectedErr {
+				t.Fatal("Failed to export metering metrics", err)
 			}
 		})
 	}

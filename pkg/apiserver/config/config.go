@@ -35,6 +35,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/kubeedge"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
+	"kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
@@ -101,6 +102,7 @@ type Config struct {
 	AlertingOptions       *alerting.Options                          `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
 	NotificationOptions   *notification.Options                      `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
 	KubeEdgeOptions       *kubeedge.Options                          `json:"kubeedge,omitempty" yaml:"kubeedge,omitempty" mapstructure:"kubeedge"`
+	MeteringOptions       *metering.Options                          `json:"metering,omitempty" yaml:"metering,omitempty" mapstructure:"metering"`
 }
 
 // newConfig creates a default non-empty Config
@@ -125,6 +127,7 @@ func New() *Config {
 		EventsOptions:         events.NewEventsOptions(),
 		AuditingOptions:       auditing.NewAuditingOptions(),
 		KubeEdgeOptions:       kubeedge.NewKubeEdgeOptions(),
+		MeteringOptions:       metering.NewMeteringOptions(),
 	}
 }
 
@@ -286,5 +289,9 @@ func (conf *Config) stripEmptyOptions() {
 
 	if conf.KubeEdgeOptions != nil && conf.KubeEdgeOptions.Endpoint == "" {
 		conf.KubeEdgeOptions = nil
+	}
+
+	if conf.MeteringOptions != nil && !conf.MeteringOptions.Enable {
+		conf.MeteringOptions = nil
 	}
 }

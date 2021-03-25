@@ -71,12 +71,12 @@ var MeterResourceMap = map[string]int{
 }
 
 type PriceInfo struct {
-	CpuPerCorePerHour                         float64 `json:"cpuPerCorePerHour" yaml:"cpuPerCorePerHour"`
-	MemPerGigabytesPerHour                    float64 `json:"memPerGigabytesPerHour" yaml:"memPerGigabytesPerHour"`
-	IngressNetworkTrafficPerGiagabytesPerHour float64 `json:"ingressNetworkTrafficPerGiagabytesPerHour" yaml:"ingressNetworkTrafficPerGiagabytesPerHour"`
-	EgressNetworkTrafficPerGigabytesPerHour   float64 `json:"egressNetworkTrafficPerGigabytesPerHour" yaml:"egressNetworkTrafficPerGigabytesPerHour"`
-	PvcPerGigabytesPerHour                    float64 `json:"pvcPerGigabytesPerHour" yaml:"pvcPerGigabytesPerHour"`
-	CurrencyUnit                              string  `json:"currencyUnit" yaml:"currencyUnit"`
+	CpuPerCorePerHour                        float64 `json:"cpuPerCorePerHour" yaml:"cpuPerCorePerHour"`
+	MemPerGigabytesPerHour                   float64 `json:"memPerGigabytesPerHour" yaml:"memPerGigabytesPerHour"`
+	IngressNetworkTrafficPerMegabytesPerHour float64 `json:"ingressNetworkTrafficPerMegabytesPerHour" yaml:"ingressNetworkTrafficPerGiagabytesPerHour"`
+	EgressNetworkTrafficPerMegabytesPerHour  float64 `json:"egressNetworkTrafficPerMegabytesPerHour" yaml:"egressNetworkTrafficPerGigabytesPerHour"`
+	PvcPerGigabytesPerHour                   float64 `json:"pvcPerGigabytesPerHour" yaml:"pvcPerGigabytesPerHour"`
+	CurrencyUnit                             string  `json:"currencyUnit" yaml:"currencyUnit"`
 }
 
 type Billing struct {
@@ -84,7 +84,8 @@ type Billing struct {
 }
 
 type MeterConfig struct {
-	Billing Billing `json:"billing" yaml:"billing"`
+	RetentionDay string  `json:"retentionDay" yaml:"retentionDay"`
+	Billing      Billing `json:"billing" yaml:"billing"`
 }
 
 func (mc MeterConfig) GetPriceInfo() PriceInfo {
@@ -197,11 +198,11 @@ func getFeeWithMeterName(meterName string, sum float64) float64 {
 		case METER_RESOURCE_TYPE_NET_INGRESS:
 			// unit: Megabyte, precision: 1
 			sum = math.Round(sum / 1048576)
-			return priceInfo.IngressNetworkTrafficPerGiagabytesPerHour * sum
+			return priceInfo.IngressNetworkTrafficPerMegabytesPerHour * sum
 		case METER_RESOURCE_TYPE_NET_EGRESS:
-			// unit: Megabyte, precision:
+			// unit: Megabyte, precision: 1
 			sum = math.Round(sum / 1048576)
-			return priceInfo.EgressNetworkTrafficPerGigabytesPerHour * sum
+			return priceInfo.EgressNetworkTrafficPerMegabytesPerHour * sum
 		case METER_RESOURCE_TYPE_PVC:
 			// unit: Gigabyte, precision: 0.1
 			sum = math.Round(sum/1073741824*10) / 10
@@ -217,37 +218,56 @@ func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float6
 	metricData := metric.MetricData
 	for index, metricValue := range metricData.MetricValues {
 
-		var points []monitoring.Point
+		// calulate min, max, avg value first, then squash points with factor
 		if metricData.MetricType == monitoring.MetricTypeMatrix {
-			points = metricValue.Series
+			metricData.MetricValues[index].MinValue = getMinPointValue(metricValue.Series)
+			metricData.MetricValues[index].MaxValue = getMaxPointValue(metricValue.Series)
+			metricData.MetricValues[index].AvgValue = getAvgPointValue(metricValue.Series)
 		} else {
-			points = append(points, *metricValue.Sample)
+			metricData.MetricValues[index].MinValue = (*metricValue.Sample)[1]
+			metricData.MetricValues[index].MaxValue = (*metricValue.Sample)[1]
+			metricData.MetricValues[index].AvgValue = (*metricValue.Sample)[1]
 		}
 
+		// squash points if step is more than one hour and calculate sum and fee
 		var factor float64 = 1
 		if scalingMap != nil {
 			factor = scalingMap[metricName]
 		}
+		metricData.MetricValues[index].Series = squashPoints(metricData.MetricValues[index].Series, int(factor))
 
-		if len(points) == 1 {
-			sample := points[0]
-			sum := sample[1] * factor
-			metricData.MetricValues[index].MinValue = sample[1]
-			metricData.MetricValues[index].MaxValue = sample[1]
-			metricData.MetricValues[index].AvgValue = sample[1]
+		if metricData.MetricType == monitoring.MetricTypeMatrix {
+			sum := getSumPointValue(metricData.MetricValues[index].Series)
 			metricData.MetricValues[index].SumValue = sum
 			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
 		} else {
-			sum := getSumPointValue(points) * factor
-			metricData.MetricValues[index].MinValue = getMinPointValue(points)
-			metricData.MetricValues[index].MaxValue = getMaxPointValue(points)
-			metricData.MetricValues[index].AvgValue = getAvgPointValue(points)
+			sum := (*metricValue.Sample)[1]
 			metricData.MetricValues[index].SumValue = sum
 			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
 		}
+
 		metricData.MetricValues[index].CurrencyUnit = getCurrencyUnit()
 		metricData.MetricValues[index].ResourceUnit = getResourceUnit(metricName)
 
 	}
 	return metricData
+}
+
+func squashPoints(input []monitoring.Point, factor int) (output []monitoring.Point) {
+
+	if factor <= 0 {
+		klog.Errorln("factor should be positive")
+		return nil
+	}
+
+	for i := 0; i < len(input); i++ {
+
+		if i%factor == 0 {
+			output = append([]monitoring.Point{input[len(input)-1-i]}, output...)
+		} else {
+			output[0] = output[0].Add(input[len(input)-1-i])
+		}
+	}
+
+	return output
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/client-go/kubernetes"
 
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	monitorhle "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
@@ -40,6 +41,6 @@ type meterHandler interface {
 	HandlePVCMetersQuery(req *restful.Request, resp *restful.Response)
 }
 
-func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, resourceGetter *resourcev1alpha3.ResourceGetter) meterHandler {
-	return monitorhle.NewHandler(k, m, nil, f, resourceGetter)
+func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) meterHandler {
+	return monitorhle.NewHandler(k, m, nil, f, ksClient, resourceGetter)
 }

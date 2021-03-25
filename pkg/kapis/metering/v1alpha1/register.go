@@ -20,6 +20,8 @@ package v1alpha1
 import (
 	"net/http"
 
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -42,10 +44,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha1"}
 
-func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteringClient monitoring.Interface, factory informers.InformerFactory, cache cache.Cache) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteringClient monitoring.Interface, factory informers.InformerFactory, ksClient versioned.Interface, cache cache.Cache) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	h := newHandler(k8sClient, meteringClient, factory, resourcev1alpha3.NewResourceGetter(factory, cache))
+	h := newHandler(k8sClient, meteringClient, factory, ksClient, resourcev1alpha3.NewResourceGetter(factory, cache))
 
 	ws.Route(ws.GET("/cluster").
 		To(h.HandleClusterMetersQuery).

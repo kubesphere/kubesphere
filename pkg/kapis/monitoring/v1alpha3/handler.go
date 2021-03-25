@@ -23,6 +23,9 @@ import (
 	"regexp"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/client-go/kubernetes"
 
@@ -34,12 +37,17 @@ import (
 )
 
 type handler struct {
-	k  kubernetes.Interface
-	mo model.MonitoringOperator
+	k         kubernetes.Interface
+	mo        model.MonitoringOperator
+	opRelease openpitrix.ReleaseInterface
 }
 
-func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, resourceGetter *resourcev1alpha3.ResourceGetter) *handler {
-	return &handler{k, model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter)}
+func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) *handler {
+	return &handler{
+		k:         k,
+		mo:        model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter),
+		opRelease: nil,
+	}
 }
 
 func (h handler) handleKubeSphereMetricsQuery(req *restful.Request, resp *restful.Response) {

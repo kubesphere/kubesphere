@@ -39,6 +39,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/kubeedge"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
+	"kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
@@ -170,6 +171,9 @@ func newTestConfig() (*Config, error) {
 		KubeEdgeOptions: &kubeedge.Options{
 			Endpoint: "http://edge-watcher.kubeedge.svc/api/",
 		},
+		MeteringOptions: &metering.Options{
+			Enable: false,
+		},
 	}
 	return conf, nil
 }
@@ -182,6 +186,13 @@ func saveTestConfig(t *testing.T, conf *Config) {
 	err = ioutil.WriteFile(fmt.Sprintf("%s.yaml", defaultConfigurationName), content, 0640)
 	if err != nil {
 		t.Fatalf("error write configuration file, %v", err)
+	}
+}
+
+func testMeteringConfig(t *testing.T, conf *Config) {
+	conf.ToMap()
+	if conf.MeteringOptions != nil {
+		t.Fatalf("setting metering options failed")
 	}
 }
 
@@ -214,4 +225,7 @@ func TestGet(t *testing.T) {
 	if diff := cmp.Diff(conf, conf2); diff != "" {
 		t.Fatal(diff)
 	}
+
+	testMeteringConfig(t, conf)
+
 }

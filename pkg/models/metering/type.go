@@ -1,12 +1,17 @@
 package metering
 
 type PriceInfo struct {
-	Currency                                  string  `json:"currency" description:"currency"`
-	CpuPerCorePerHour                         float64 `json:"cpu_per_core_per_hour,omitempty" description:"cpu price"`
-	MemPerGigabytesPerHour                    float64 `json:"mem_per_gigabytes_per_hour,omitempty" description:"mem price"`
-	IngressNetworkTrafficPerGiagabytesPerHour float64 `json:"ingress_network_traffic_per_giagabytes_per_hour,omitempty" description:"ingress price"`
-	EgressNetworkTrafficPerGiagabytesPerHour  float64 `json:"egress_network_traffic_per_gigabytes_per_hour,omitempty" description:"egress price"`
-	PvcPerGigabytesPerHour                    float64 `json:"pvc_per_gigabytes_per_hour,omitempty" description:"pvc price"`
+	Currency                                 string  `json:"currency" description:"currency"`
+	CpuPerCorePerHour                        float64 `json:"cpu_per_core_per_hour,omitempty" description:"cpu price"`
+	MemPerGigabytesPerHour                   float64 `json:"mem_per_gigabytes_per_hour,omitempty" description:"mem price"`
+	IngressNetworkTrafficPerMegabytesPerHour float64 `json:"ingress_network_traffic_per_megabytes_per_hour,omitempty" description:"ingress price"`
+	EgressNetworkTrafficPerMegabytesPerHour  float64 `json:"egress_network_traffic_per_megabytes_per_hour,omitempty" description:"egress price"`
+	PvcPerGigabytesPerHour                   float64 `json:"pvc_per_gigabytes_per_hour,omitempty" description:"pvc price"`
+}
+
+type PriceResponse struct {
+	RetentionDay string `json:"retention_day"`
+	PriceInfo    `json:",inline"`
 }
 
 // currently init method fill illegal value to hint that metering config file was not mounted yet
@@ -14,8 +19,8 @@ func (p *PriceInfo) Init() {
 	p.Currency = ""
 	p.CpuPerCorePerHour = -1
 	p.MemPerGigabytesPerHour = -1
-	p.IngressNetworkTrafficPerGiagabytesPerHour = -1
-	p.EgressNetworkTrafficPerGiagabytesPerHour = -1
+	p.IngressNetworkTrafficPerMegabytesPerHour = -1
+	p.EgressNetworkTrafficPerMegabytesPerHour = -1
 	p.PvcPerGigabytesPerHour = -1
 }
 
@@ -47,46 +52,105 @@ func (ps *PodsStats) Set(podName, meterName string, value float64) {
 	}
 }
 
-type AppStatistic struct {
-	CPUUsage            float64                      `json:"cpu_usage" description:"cpu_usage"`
-	MemoryUsageWoCache  float64                      `json:"memory_usage_wo_cache" description:"memory_usage_wo_cache"`
-	NetBytesTransmitted float64                      `json:"net_bytes_transmitted" description:"net_bytes_transmitted"`
-	NetBytesReceived    float64                      `json:"net_bytes_received" description:"net_bytes_received"`
-	PVCBytesTotal       float64                      `json:"pvc_bytes_total" description:"pvc_bytes_total"`
-	Services            map[string]*ServiceStatistic `json:"services" description:"services"`
+type OpenPitrixStatistic struct {
+	AppStatistic
 }
 
-func (as *AppStatistic) GetServiceStats(name string) *ServiceStatistic {
-	if as.Services == nil {
-		as.Services = make(map[string]*ServiceStatistic)
+type AppStatistic struct {
+	CPUUsage            float64                          `json:"cpu_usage" description:"cpu_usage"`
+	MemoryUsageWoCache  float64                          `json:"memory_usage_wo_cache" description:"memory_usage_wo_cache"`
+	NetBytesTransmitted float64                          `json:"net_bytes_transmitted" description:"net_bytes_transmitted"`
+	NetBytesReceived    float64                          `json:"net_bytes_received" description:"net_bytes_received"`
+	PVCBytesTotal       float64                          `json:"pvc_bytes_total" description:"pvc_bytes_total"`
+	Deploys             map[string]*DeploymentStatistic  `json:"deployments" description:"deployment statistic"`
+	Statefulsets        map[string]*StatefulsetStatistic `json:"statefulsets" description:"statefulset statistic"`
+	Daemonsets          map[string]*DaemonsetStatistic   `json:"daemonsets" description:"daemonsets statistics"`
+}
+
+func (as *AppStatistic) GetDeployStats(name string) *DeploymentStatistic {
+	if as.Deploys == nil {
+		as.Deploys = make(map[string]*DeploymentStatistic)
 	}
-	if as.Services[name] == nil {
-		as.Services[name] = &ServiceStatistic{}
+	if as.Deploys[name] == nil {
+		as.Deploys[name] = &DeploymentStatistic{}
 	}
-	return as.Services[name]
+	return as.Deploys[name]
+}
+
+func (as *AppStatistic) GetDaemonStats(name string) *DaemonsetStatistic {
+	if as.Daemonsets == nil {
+		as.Daemonsets = make(map[string]*DaemonsetStatistic)
+	}
+	if as.Daemonsets[name] == nil {
+		as.Daemonsets[name] = &DaemonsetStatistic{}
+	}
+	return as.Daemonsets[name]
+}
+
+func (as *AppStatistic) GetStatefulsetStats(name string) *StatefulsetStatistic {
+	if as.Statefulsets == nil {
+		as.Statefulsets = make(map[string]*StatefulsetStatistic)
+	}
+	if as.Statefulsets[name] == nil {
+		as.Statefulsets[name] = &StatefulsetStatistic{}
+	}
+	return as.Statefulsets[name]
 }
 
 func (as *AppStatistic) Aggregate() {
-	if as.Services == nil {
+	if as.Deploys == nil && as.Statefulsets == nil && as.Daemonsets == nil {
 		return
 	}
 
-	// remove duplicate pods which were selected by different svc
-	podsMap := make(map[string]struct{})
-	for _, svcObj := range as.Services {
-		for podName, podObj := range svcObj.Pods {
-			if _, ok := podsMap[podName]; ok {
-				continue
-			} else {
-				podsMap[podName] = struct{}{}
-			}
-			as.CPUUsage += podObj.CPUUsage
-			as.MemoryUsageWoCache += podObj.MemoryUsageWoCache
-			as.NetBytesTransmitted += podObj.NetBytesTransmitted
-			as.NetBytesReceived += podObj.NetBytesReceived
-			as.PVCBytesTotal += podObj.PVCBytesTotal
+	// aggregate deployment stats
+	for _, deployObj := range as.Deploys {
+		for _, podObj := range deployObj.Pods {
+			deployObj.CPUUsage += podObj.CPUUsage
+			deployObj.MemoryUsageWoCache += podObj.MemoryUsageWoCache
+			deployObj.NetBytesTransmitted += podObj.NetBytesTransmitted
+			deployObj.NetBytesReceived += podObj.NetBytesReceived
+			deployObj.PVCBytesTotal += podObj.PVCBytesTotal
 		}
+		as.CPUUsage += deployObj.CPUUsage
+		as.MemoryUsageWoCache += deployObj.MemoryUsageWoCache
+		as.NetBytesTransmitted += deployObj.NetBytesTransmitted
+		as.NetBytesReceived += deployObj.NetBytesReceived
+		as.PVCBytesTotal += deployObj.PVCBytesTotal
 	}
+
+	// aggregate statfulset stats
+	for _, statfulObj := range as.Statefulsets {
+		for _, podObj := range statfulObj.Pods {
+			statfulObj.CPUUsage += podObj.CPUUsage
+			statfulObj.MemoryUsageWoCache += podObj.MemoryUsageWoCache
+			statfulObj.NetBytesTransmitted += podObj.NetBytesTransmitted
+			statfulObj.NetBytesReceived += podObj.NetBytesReceived
+			statfulObj.PVCBytesTotal += podObj.PVCBytesTotal
+		}
+		as.CPUUsage += statfulObj.CPUUsage
+		as.MemoryUsageWoCache += statfulObj.MemoryUsageWoCache
+		as.NetBytesTransmitted += statfulObj.NetBytesTransmitted
+		as.NetBytesReceived += statfulObj.NetBytesReceived
+		as.PVCBytesTotal += statfulObj.PVCBytesTotal
+	}
+
+	// aggregate daemonset stats
+	for _, daemonsetObj := range as.Daemonsets {
+		for _, podObj := range daemonsetObj.Pods {
+			daemonsetObj.CPUUsage += podObj.CPUUsage
+			daemonsetObj.MemoryUsageWoCache += podObj.MemoryUsageWoCache
+			daemonsetObj.NetBytesTransmitted += podObj.NetBytesTransmitted
+			daemonsetObj.NetBytesReceived += podObj.NetBytesReceived
+			daemonsetObj.PVCBytesTotal += podObj.PVCBytesTotal
+		}
+		as.CPUUsage += daemonsetObj.CPUUsage
+		as.MemoryUsageWoCache += daemonsetObj.MemoryUsageWoCache
+		as.NetBytesTransmitted += daemonsetObj.NetBytesTransmitted
+		as.NetBytesReceived += daemonsetObj.NetBytesReceived
+		as.PVCBytesTotal += daemonsetObj.PVCBytesTotal
+	}
+
+	return
 }
 
 type ServiceStatistic struct {
@@ -251,11 +315,26 @@ func (ds *DaemonsetStatistic) Aggregate() {
 }
 
 type ResourceStatistic struct {
-	Apps         map[string]*AppStatistic         `json:"apps" description:"app statistic"`
-	Services     map[string]*ServiceStatistic     `json:"services" description:"service statistic"`
+	// openpitrix statistic
+	OpenPitrixs map[string]*OpenPitrixStatistic `json:"openpitrixs" description:"openpitrix statistic"`
+
+	// app crd statistic
+	Apps map[string]*AppStatistic `json:"apps" description:"app statistic"`
+
+	// k8s workload only which exclude app and op
 	Deploys      map[string]*DeploymentStatistic  `json:"deployments" description:"deployment statistic"`
 	Statefulsets map[string]*StatefulsetStatistic `json:"statefulsets" description:"statefulset statistic"`
 	Daemonsets   map[string]*DaemonsetStatistic   `json:"daemonsets" description:"daemonsets statistics"`
+}
+
+func (rs *ResourceStatistic) GetOpenPitrixStats(name string) *OpenPitrixStatistic {
+	if rs.OpenPitrixs == nil {
+		rs.OpenPitrixs = make(map[string]*OpenPitrixStatistic)
+	}
+	if rs.OpenPitrixs[name] == nil {
+		rs.OpenPitrixs[name] = &OpenPitrixStatistic{}
+	}
+	return rs.OpenPitrixs[name]
 }
 
 func (rs *ResourceStatistic) GetAppStats(name string) *AppStatistic {
@@ -266,16 +345,6 @@ func (rs *ResourceStatistic) GetAppStats(name string) *AppStatistic {
 		rs.Apps[name] = &AppStatistic{}
 	}
 	return rs.Apps[name]
-}
-
-func (rs *ResourceStatistic) GetServiceStats(name string) *ServiceStatistic {
-	if rs.Services == nil {
-		rs.Services = make(map[string]*ServiceStatistic)
-	}
-	if rs.Services[name] == nil {
-		rs.Services[name] = &ServiceStatistic{}
-	}
-	return rs.Services[name]
 }
 
 func (rs *ResourceStatistic) GetDeployStats(name string) *DeploymentStatistic {
