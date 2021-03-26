@@ -32,7 +32,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"path"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 )
@@ -320,10 +319,16 @@ func convertApp(app *v1alpha1.HelmApplication, versions []*v1alpha1.HelmApplicat
 	} else {
 		out.CategorySet = AppCategorySet{}
 	}
-	if versions != nil && len(versions) > 0 {
-		sort.Sort(AppVersions(versions))
-		out.LatestAppVersion = convertAppVersion(versions[len(versions)-1])
-	} else {
+
+	for _, version := range versions {
+		if app.Status.LatestVersion == version.GetVersionName() {
+			// find the latest version, and convert its format
+			out.LatestAppVersion = convertAppVersion(version)
+			break
+		}
+	}
+
+	if out.LatestAppVersion == nil {
 		out.LatestAppVersion = &AppVersion{}
 	}
 

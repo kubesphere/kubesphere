@@ -52,7 +52,7 @@ const (
 )
 
 func (r *ReconcileHelmApplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	klog.V(4).Info("sync helm application")
+	klog.V(4).Infof("sync helm application: %s ", request.String())
 
 	rootCtx := context.Background()
 	app := &v1alpha1.HelmApplication{}
