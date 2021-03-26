@@ -120,7 +120,7 @@ func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, o
 		edgeMetrics := make(map[string]monitoring.MetricData)
 
 		for i, ressMetric := range ress {
-			metircName := ressMetric.MetricName
+			metricName := ressMetric.MetricName
 			ressMetricValues := ressMetric.MetricData.MetricValues
 			if len(ressMetricValues) == 0 {
 				// this metric has no prometheus metrics data
@@ -131,7 +131,7 @@ func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, o
 						edgeMetrics[mrMetric.MetricName] = mrMetric.MetricData
 					}
 				}
-				if val, ok := edgeMetrics[metircName]; ok {
+				if val, ok := edgeMetrics[metricName]; ok {
 					ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
 				}
 			}
@@ -151,7 +151,7 @@ func (mo monitoringOperator) GetNamedMetricsOverTime(metrics []string, start, en
 		edgeMetrics := make(map[string]monitoring.MetricData)
 
 		for i, ressMetric := range ress {
-			metircName := ressMetric.MetricName
+			metricName := ressMetric.MetricName
 			ressMetricValues := ressMetric.MetricData.MetricValues
 			if len(ressMetricValues) == 0 {
 				// this metric has no prometheus metrics data
@@ -162,7 +162,7 @@ func (mo monitoringOperator) GetNamedMetricsOverTime(metrics []string, start, en
 						edgeMetrics[mrMetric.MetricName] = mrMetric.MetricData
 					}
 				}
-				if val, ok := edgeMetrics[metircName]; ok {
+				if val, ok := edgeMetrics[metricName]; ok {
 					ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
 				}
 			}
