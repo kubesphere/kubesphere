@@ -2,11 +2,13 @@ package jenkins
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/url"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
 func TestResetPaging(t *testing.T) {

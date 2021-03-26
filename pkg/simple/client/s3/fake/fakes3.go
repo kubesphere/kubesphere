@@ -18,10 +18,11 @@ package fake
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"io/ioutil"
+
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 type FakeS3 struct {

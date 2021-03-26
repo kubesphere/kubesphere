@@ -20,9 +20,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/controller/utils/controller"
 	"reflect"
 	"time"
+
+	"kubesphere.io/kubesphere/pkg/controller/utils/controller"
 
 	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
@@ -41,6 +42,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
@@ -53,7 +56,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (

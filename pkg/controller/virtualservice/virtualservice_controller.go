@@ -19,6 +19,8 @@ package virtualservice
 import (
 	"context"
 	"fmt"
+	"reflect"
+
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
@@ -41,12 +43,12 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	log "k8s.io/klog"
+
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	servicemeshclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
-	"reflect"
 
 	"time"
 )

@@ -18,6 +18,8 @@ package workspacerolebinding
 
 import (
 	"context"
+	"reflect"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,17 +28,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
-	"reflect"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (

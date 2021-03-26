@@ -19,12 +19,14 @@ package cas
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
-	gocas "gopkg.in/cas.v2"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"net/http"
 	"net/url"
+
+	"github.com/mitchellh/mapstructure"
+	gocas "gopkg.in/cas.v2"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 func init() {

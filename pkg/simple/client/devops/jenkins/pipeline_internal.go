@@ -18,12 +18,14 @@ package jenkins
 
 import (
 	"fmt"
-	"github.com/beevik/etree"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/internal"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/beevik/etree"
+
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/internal"
 )
 
 func replaceXmlVersion(config, oldVersion, targetVersion string) string {

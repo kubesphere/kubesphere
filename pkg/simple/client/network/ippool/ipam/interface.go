@@ -18,6 +18,7 @@ package ipam
 
 import (
 	"github.com/containernetworking/cni/pkg/types/current"
+
 	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 )
 

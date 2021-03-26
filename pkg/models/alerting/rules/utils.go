@@ -14,6 +14,7 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/rules"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 )

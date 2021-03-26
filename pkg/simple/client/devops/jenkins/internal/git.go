@@ -1,10 +1,12 @@
 package internal
 
 import (
+	"strconv"
+
 	"github.com/beevik/etree"
 	"k8s.io/klog"
+
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
-	"strconv"
 )
 
 func AppendGitSourceToEtree(source *etree.Element, gitSource *devopsv1alpha3.GitSource) {

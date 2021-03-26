@@ -17,6 +17,8 @@ limitations under the License.
 package persistentvolumeclaim
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	snapshot "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	snapshotefakeclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
@@ -25,10 +27,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
-	"testing"
 )
 
 var (

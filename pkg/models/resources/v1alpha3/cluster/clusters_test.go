@@ -17,15 +17,17 @@ limitations under the License.
 package cluster
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"testing"
 )
 
 var clusters = []*clusterv1alpha1.Cluster{

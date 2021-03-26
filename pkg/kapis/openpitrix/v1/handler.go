@@ -16,12 +16,17 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/url"
+	"strconv"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -35,9 +40,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"net/url"
-	"strconv"
-	"strings"
 )
 
 type openpitrixHandler struct {

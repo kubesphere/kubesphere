@@ -17,10 +17,12 @@ limitations under the License.
 package ldap
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	"testing"
 )
 
 func TestSimpleLdap(t *testing.T) {

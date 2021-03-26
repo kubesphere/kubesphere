@@ -18,21 +18,23 @@ package application
 
 import (
 	"context"
+	"math/rand"
+	"path/filepath"
+	"testing"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/klogr"
-	"kubesphere.io/kubesphere/pkg/apis"
-	"math/rand"
-	"path/filepath"
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"testing"
-	"time"
+
+	"kubesphere.io/kubesphere/pkg/apis"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

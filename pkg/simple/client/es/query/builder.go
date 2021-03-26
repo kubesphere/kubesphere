@@ -1,8 +1,9 @@
 package query
 
 import (
-	"github.com/json-iterator/go"
 	"reflect"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 // TODO: elastic/go-elasticsearch is working on Query DSL support.

@@ -19,14 +19,15 @@ package workloads
 import (
 	"context"
 	"fmt"
-	"k8s.io/api/batch/v1"
+	"strings"
+	"time"
+
+	v1 "k8s.io/api/batch/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
-	"strings"
-	"time"
 )
 
 const retryTimes = 3

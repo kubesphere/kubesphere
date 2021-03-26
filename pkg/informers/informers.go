@@ -17,6 +17,8 @@ limitations under the License.
 package informers
 
 import (
+	"time"
+
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
 	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	prominformers "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions"
@@ -27,9 +29,9 @@ import (
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"time"
 )
 
 // default re-sync period for all informer factories

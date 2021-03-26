@@ -21,6 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"sort"
+	"strings"
+
 	"github.com/go-openapi/strfmt"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	typed_v1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
@@ -42,10 +48,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/reposcache"
 	"kubesphere.io/kubesphere/pkg/utils/resourceparse"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"math"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sort"
-	"strings"
 )
 
 type ReleaseInterface interface {

@@ -19,9 +19,10 @@ package registries
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/docker/distribution/manifest/schema2"
 	log "k8s.io/klog"
-	"net/http"
 )
 
 // Digest returns the digest for an image.

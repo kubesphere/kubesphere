@@ -17,21 +17,23 @@ limitations under the License.
 package devops
 
 import (
-	"code.cloudfoundry.org/bytefmt"
 	"fmt"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-	clientgotesting "k8s.io/client-go/testing"
-	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
-	"kubesphere.io/kubesphere/pkg/utils/hashutil"
 	"mime/multipart"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"code.cloudfoundry.org/bytefmt"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
+
+	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
+	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+	"kubesphere.io/kubesphere/pkg/utils/hashutil"
 )
 
 const (

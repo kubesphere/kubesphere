@@ -23,6 +23,7 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	ksapi "kubesphere.io/kubesphere/pkg/api"
 	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"

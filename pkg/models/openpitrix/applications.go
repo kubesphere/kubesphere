@@ -18,10 +18,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
+	"time"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	v1alpha13 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
@@ -35,10 +41,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
 	"kubesphere.io/kubesphere/pkg/utils/reposcache"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sort"
-	"strings"
-	"time"
 )
 
 type ApplicationInterface interface {

@@ -17,9 +17,10 @@ limitations under the License.
 package request
 
 import (
-	"k8s.io/apimachinery/pkg/util/sets"
 	"net/http"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func newTestRequestInfoResolver() RequestInfoResolver {

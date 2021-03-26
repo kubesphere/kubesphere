@@ -17,10 +17,11 @@ limitations under the License.
 package devops
 
 import (
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"net/http"
 	"testing"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 )
 
 const baseUrl = "http://127.0.0.1/kapis/devops.kubesphere.io/v1alpha2/"

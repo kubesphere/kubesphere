@@ -15,6 +15,7 @@ package mysql
 
 import (
 	"fmt"
+
 	"github.com/gocraft/dbr"
 	"k8s.io/klog"
 )

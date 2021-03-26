@@ -22,14 +22,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/coreos/go-oidc"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/oauth2"
-	"io/ioutil"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	"net/http"
 )
 
 func init() {

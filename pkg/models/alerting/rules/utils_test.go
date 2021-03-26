@@ -7,6 +7,7 @@ import (
 	promresourcesv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/prometheus/rules"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 )

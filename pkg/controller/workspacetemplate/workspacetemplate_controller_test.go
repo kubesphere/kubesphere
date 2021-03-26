@@ -18,17 +18,19 @@ package workspacetemplate
 
 import (
 	"context"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 var _ = Describe("WorkspaceTemplate", func() {

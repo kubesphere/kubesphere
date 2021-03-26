@@ -21,13 +21,15 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"time"
 )
 
 type TokenManagementInterface interface {

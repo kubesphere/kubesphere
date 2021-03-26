@@ -18,11 +18,12 @@ package jenkins
 
 import (
 	"errors"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
 type GlobalRoleResponse struct {

@@ -20,8 +20,13 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"net/http"
+	"strings"
+
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
+
 	"kubesphere.io/kubesphere/pkg/apis"
 	"kubesphere.io/kubesphere/pkg/apiserver"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
@@ -31,8 +36,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
-
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -42,8 +45,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"net/http"
-	"strings"
 )
 
 type ServerRunOptions struct {

@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"helm.sh/helm/v3/pkg/repo"
-	"k8s.io/klog"
 	"strings"
 	"time"
+
+	"helm.sh/helm/v3/pkg/repo"
+	"k8s.io/klog"
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 )

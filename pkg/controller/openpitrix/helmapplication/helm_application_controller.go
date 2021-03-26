@@ -19,17 +19,19 @@ package helmapplication
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strconv"
-	"strings"
+
+	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 func init() {

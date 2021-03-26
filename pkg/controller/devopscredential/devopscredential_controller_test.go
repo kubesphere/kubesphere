@@ -17,12 +17,14 @@ limitations under the License.
 package devopscredential
 
 import (
-	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	"reflect"
 	"testing"
 	"time"
 
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
+
 	v1 "k8s.io/api/core/v1"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	fakeDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 
@@ -35,6 +37,7 @@ import (
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+
 	devops "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 )
 

@@ -27,6 +27,7 @@ import (
 	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 

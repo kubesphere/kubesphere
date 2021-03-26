@@ -22,8 +22,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	"kubesphere.io/kubesphere/pkg/version"
 	"log"
 
 	"github.com/emicklei/go-restful"
@@ -36,7 +34,9 @@ import (
 	promfake "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/fake"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2alpha1"
@@ -60,6 +60,7 @@ import (
 	fakedevops "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+	"kubesphere.io/kubesphere/pkg/version"
 )
 
 var output string

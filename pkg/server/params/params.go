@@ -18,10 +18,11 @@ package params
 
 import (
 	"fmt"
-	"github.com/emicklei/go-restful"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/emicklei/go-restful"
 )
 
 const (

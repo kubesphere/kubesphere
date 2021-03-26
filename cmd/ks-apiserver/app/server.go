@@ -18,16 +18,17 @@ package app
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	tracing "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
-
-	tracing "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 )
 
 func NewAPIServerCommand() *cobra.Command {

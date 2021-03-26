@@ -17,11 +17,13 @@ limitations under the License.
 package jenkins
 
 import (
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
 	"time"
+
+	"k8s.io/klog"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
 // TODO: deprecated, use SendJenkinsRequestWithHeaderResp() instead

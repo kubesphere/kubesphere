@@ -17,12 +17,14 @@ limitations under the License.
 package aliyunidaas
 
 import (
-	"golang.org/x/oauth2"
-	"gopkg.in/yaml.v3"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"reflect"
 	"testing"
+
+	"golang.org/x/oauth2"
+	"gopkg.in/yaml.v3"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 func Test_idaasProviderFactory_Create(t *testing.T) {

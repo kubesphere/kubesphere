@@ -19,8 +19,11 @@ package destinationrule
 import (
 	"context"
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"reflect"
+
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
+
+	"time"
 
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -36,8 +39,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	log "k8s.io/klog"
+
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
-	"time"
 
 	istioclientset "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"

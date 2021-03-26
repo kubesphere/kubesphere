@@ -18,18 +18,20 @@ package node
 
 import (
 	"fmt"
+	"sort"
+	"sync"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	resourceheper "k8s.io/kubectl/pkg/util/resource"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
-	"sort"
-	"sync"
-	"time"
 )
 
 // Those annotations were added to node only for display purposes

@@ -19,10 +19,12 @@ package union
 import (
 	"errors"
 	"fmt"
-	"k8s.io/apiserver/pkg/authentication/user"
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"reflect"
 	"testing"
+
+	"k8s.io/apiserver/pkg/authentication/user"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 )
 
 type mockAuthzHandler struct {

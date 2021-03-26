@@ -19,11 +19,12 @@ package resourceparse
 
 import (
 	"io"
+	"time"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/klog"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"time"
 )
 
 func Parse(reader io.Reader, namespace, rlsName string, local bool) ([]*resource.Info, error) {

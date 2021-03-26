@@ -17,11 +17,16 @@ limitations under the License.
 package notification
 
 import (
+	"math/rand"
+	"sort"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -29,9 +34,6 @@ import (
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	"math/rand"
-	"sort"
-	"testing"
 )
 
 const (

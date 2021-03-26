@@ -17,10 +17,11 @@ limitations under the License.
 package storage
 
 import (
-	"k8s.io/client-go/informers"
 	"strconv"
 
-	"k8s.io/api/core/v1"
+	"k8s.io/client-go/informers"
+
+	v1 "k8s.io/api/core/v1"
 	storageV1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"

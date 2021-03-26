@@ -20,17 +20,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"io"
 	"io/ioutil"
-	authtoken "kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dgrijalva/jwt-go"
+
+	authtoken "kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
 // Request Methods

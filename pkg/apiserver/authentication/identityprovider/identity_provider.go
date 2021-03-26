@@ -19,7 +19,9 @@ package identityprovider
 import (
 	"errors"
 	"fmt"
+
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
