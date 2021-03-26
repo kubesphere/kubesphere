@@ -9,3 +9,4 @@ You can open a Pull Request to submit your institution name and homepage if you 
 - 方正株式（武汉）科技开发有限公司
 - 武汉麦尔沃克信息技术
 - [InAccel - Scale-out FPGA-Accelerated Applications](https://inaccel.com)
+- [三诺生物](http://www.sinocare.com/)
