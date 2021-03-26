@@ -307,8 +307,9 @@ func (h *ProjectPipelineHandler) approvableCheck(nodes []clientDevOps.NodesDetai
 	if userInfo, ok = request.UserFrom(pipe.Context); ok {
 		createAuth := authorizer.AttributesRecord{
 			User:            userInfo,
-			Verb:            authorizer.VerbCreate,
+			Verb:            authorizer.VerbDelete,
 			Workspace:       pipe.Workspace,
+			DevOps:          pipe.ProjectName,
 			Resource:        "devopsprojects",
 			ResourceRequest: true,
 			ResourceScope:   request.DevOpsScope,

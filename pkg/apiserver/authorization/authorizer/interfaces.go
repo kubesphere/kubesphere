@@ -209,4 +209,6 @@ const (
 	VerbGet = "get"
 	// VerbWatch represents the verb of watching a resource
 	VerbWatch = "watch"
+	// VerbDelete represents the verb of deleting a resource
+	VerbDelete = "delete"
 )
