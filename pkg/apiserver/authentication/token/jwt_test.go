@@ -18,26 +18,24 @@ package token
 
 import (
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/apiserver/pkg/authentication/user"
 	"testing"
 )
 
 func TestTokenVerifyWithoutCacheValidate(t *testing.T) {
 
-	issuer := NewTokenIssuer("kubesphere", 0)
+	issuer := NewTokenIssuer("issuer", "secret", 0)
 
-	admin := &user.DefaultInfo{
-		Name: "admin",
+	admin := &Claims{
+		Username: "admin",
 	}
 
-	tokenString, err := issuer.IssueTo(admin, AccessToken, 0)
+	tokenString, err := issuer.IssueTo(admin, 0, "")
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	got, _, err := issuer.Verify(tokenString)
-
+	got, err := issuer.Verify(tokenString, "")
 	if err != nil {
 		t.Fatal(err)
 	}

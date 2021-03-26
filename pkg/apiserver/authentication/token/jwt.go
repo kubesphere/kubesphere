@@ -21,83 +21,102 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
+	"sync"
 	"time"
 )
 
-const (
-	DefaultIssuerName = "kubesphere"
-)
+var once = sync.Once{}
 
 type Claims struct {
-	Username  string              `json:"username"`
+	Username  string              `json:"username,omitempty"`
 	Groups    []string            `json:"groups,omitempty"`
 	Extra     map[string][]string `json:"extra,omitempty"`
 	TokenType TokenType           `json:"token_type"`
 	// Currently, we are not using any field in jwt.StandardClaims
-	jwt.StandardClaims
+	jwt.StandardClaims `json:",inline"`
+
+	// https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+	AuthorizingParty  string `json:"azp,omitempty"`
+	AccessTokenHash   string `json:"at_hash,omitempty"`
+	CodeHash          string `json:"c_hash,omitempty"`
+	Nonce             string `json:"nonce,omitempty"`
+	Email             string `json:"email,omitempty"`
+	EmailVerified     *bool  `json:"email_verified,omitempty"`
+	Name              string `json:"name,omitempty"`
+	PreferredUsername string `json:"preferred_username,omitempty"`
+}
+
+func (c *Claims) UserInfo() user.Info {
+	userInfo := &user.DefaultInfo{Name: c.Username, Groups: c.Groups, Extra: c.Extra}
+	return userInfo
+}
+
+func NewClaims(user user.Info) *Claims {
+	claims := Claims{
+		Username: user.GetName(),
+		//Groups:   user.GetGroups(),
+		Extra: user.GetExtra(),
+	}
+	return &claims
 }
 
 type jwtTokenIssuer struct {
 	name   string
 	secret []byte
-	// Maximum time difference
-	maximumClockSkew time.Duration
 }
 
-func (s *jwtTokenIssuer) Verify(tokenString string) (user.Info, TokenType, error) {
+func (s *jwtTokenIssuer) Verify(tokenString string, customSecret string) (*Claims, error) {
 	clm := &Claims{}
 	// verify token signature and expiration time
-	_, err := jwt.ParseWithClaims(tokenString, clm, s.keyFunc)
+	_, err := jwt.ParseWithClaims(tokenString, clm, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
+			if customSecret != "" {
+				return []byte(customSecret), nil
+			} else {
+				return s.secret, nil
+			}
+		} else {
+			return nil, fmt.Errorf("expect token signed with HMAC but got %v", token.Header["alg"])
+		}
+	})
 	if err != nil {
 		klog.Error(err)
-		return nil, "", err
+		return nil, err
 	}
-	return &user.DefaultInfo{Name: clm.Username, Groups: clm.Groups, Extra: clm.Extra}, clm.TokenType, nil
+	return clm, nil
 }
 
-func (s *jwtTokenIssuer) IssueTo(user user.Info, tokenType TokenType, expiresIn time.Duration) (string, error) {
-	issueAt := time.Now().Unix() - int64(s.maximumClockSkew.Seconds())
-	notBefore := issueAt
-	clm := &Claims{
-		Username:  user.GetName(),
-		Groups:    user.GetGroups(),
-		Extra:     user.GetExtra(),
-		TokenType: tokenType,
-		StandardClaims: jwt.StandardClaims{
-			IssuedAt:  issueAt,
-			Issuer:    s.name,
-			NotBefore: notBefore,
-		},
-	}
+func (s *jwtTokenIssuer) IssueTo(claims *Claims, expiresIn time.Duration, customSecret string) (string, error) {
+	now := time.Now()
+	claims.IssuedAt = now.Unix()
+	claims.Issuer = s.name
+	claims.NotBefore = now.Unix()
 
 	if expiresIn > 0 {
-		clm.ExpiresAt = clm.IssuedAt + int64(expiresIn.Seconds())
+		claims.ExpiresAt = now.Add(expiresIn).Unix()
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, clm)
+	signKey := s.secret
+	if customSecret != "" {
+		signKey = []byte(customSecret)
+	}
 
-	tokenString, err := token.SignedString(s.secret)
-
+	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(signKey)
 	if err != nil {
 		klog.Error(err)
 		return "", err
 	}
-
 	return tokenString, nil
 }
 
-func (s *jwtTokenIssuer) keyFunc(token *jwt.Token) (i interface{}, err error) {
-	if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
-		return s.secret, nil
-	} else {
-		return nil, fmt.Errorf("expect token signed with HMAC but got %v", token.Header["alg"])
-	}
-}
-
-func NewTokenIssuer(secret string, maximumClockSkew time.Duration) Issuer {
+func NewTokenIssuer(issuer, secret string, maximumClockSkew time.Duration) Issuer {
+	once.Do(func() {
+		jwt.TimeFunc = func() time.Time {
+			return time.Now().Add(maximumClockSkew)
+		}
+	})
 	return &jwtTokenIssuer{
-		name:             DefaultIssuerName,
-		secret:           []byte(secret),
-		maximumClockSkew: maximumClockSkew,
+		name:   issuer,
+		secret: []byte(secret),
 	}
 }

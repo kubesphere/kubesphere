@@ -18,10 +18,12 @@ package jwttoken
 
 import (
 	"context"
+	"errors"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/models/auth"
 
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
@@ -44,24 +46,30 @@ func NewTokenAuthenticator(tokenOperator auth.TokenManagementInterface, userList
 	}
 }
 
-func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
-	providedUser, err := t.tokenOperator.Verify(token)
+func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, tokenString string) (*authenticator.Response, bool, error) {
+	claims, err := t.tokenOperator.Verify(tokenString)
 	if err != nil {
 		klog.Error(err)
 		return nil, false, err
 	}
 
-	if providedUser.GetName() == iamv1alpha2.PreRegistrationUser {
+	if claims.TokenType != token.AccessToken && claims.TokenType != token.StaticToken {
+		err = errors.New("invalid token type")
+		klog.Error(err)
+		return nil, false, err
+	}
+	// pre-registered user
+	if claims.Username == iamv1alpha2.PreRegistrationUser {
 		return &authenticator.Response{
 			User: &user.DefaultInfo{
-				Name:   providedUser.GetName(),
-				Extra:  providedUser.GetExtra(),
-				Groups: providedUser.GetGroups(),
+				Name:   claims.Username,
+				Extra:  claims.Extra,
+				Groups: claims.Groups,
 			},
 		}, true, nil
 	}
 
-	dbUser, err := t.userLister.Get(providedUser.GetName())
+	dbUser, err := t.userLister.Get(claims.Username)
 	if err != nil {
 		return nil, false, err
 	}

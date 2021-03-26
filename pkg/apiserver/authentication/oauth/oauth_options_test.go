@@ -93,11 +93,11 @@ func TestClientResolveRedirectURL(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		redirectURL, err := test.client.ResolveRedirectURL(test.expectURL)
+		redirectURL, err := test.client.ValidateRedirectURI(test.expectURL)
 		if err != test.expectError {
 			t.Errorf("expected error: %s, got: %s", test.expectError, err)
 		}
-		if test.expectError == nil && test.expectURL != redirectURL {
+		if test.expectError == nil && test.expectURL != redirectURL.String() {
 			t.Errorf("expected redirect url: %s, got: %s", test.expectURL, redirectURL)
 		}
 	}

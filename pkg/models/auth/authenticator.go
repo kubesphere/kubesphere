@@ -152,13 +152,12 @@ func (p *passwordAuthenticator) Authenticate(username, password string) (authuse
 			return nil, "", err
 		}
 		u := &authuser.DefaultInfo{
-			Name: user.Name,
+			Name:  user.Name,
+			Extra: map[string][]string{iamv1alpha2.ExtraEmail: {user.Spec.Email}},
 		}
 		// check if the password is initialized
 		if uninitialized := user.Annotations[iamv1alpha2.UninitializedAnnotation]; uninitialized != "" {
-			u.Extra = map[string][]string{
-				iamv1alpha2.ExtraUninitialized: {uninitialized},
-			}
+			u.Extra[iamv1alpha2.ExtraUninitialized] = []string{uninitialized}
 		}
 		return u, "", nil
 	}
@@ -207,7 +206,7 @@ func (o oauth2Authenticator) Authenticate(provider, code string) (authuser.Info,
 		return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
 	}
 	if user != nil {
-		return &authuser.DefaultInfo{Name: user.GetName()}, providerOptions.Name, nil
+		return &authuser.DefaultInfo{Name: user.GetName(), Extra: map[string][]string{iamv1alpha2.ExtraEmail: {user.Spec.Email}}}, providerOptions.Name, nil
 	}
 
 	return nil, "", errors.NewNotFound(iamv1alpha2.Resource("user"), authenticated.GetUsername())

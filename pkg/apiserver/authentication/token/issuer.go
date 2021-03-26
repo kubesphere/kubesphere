@@ -17,23 +17,24 @@ limitations under the License.
 package token
 
 import (
-	"k8s.io/apiserver/pkg/authentication/user"
 	"time"
 )
 
 const (
-	AccessToken  TokenType = "access_token"
-	RefreshToken TokenType = "refresh_token"
-	StaticToken  TokenType = "static_token"
+	AccessToken       TokenType = "access_token"
+	RefreshToken      TokenType = "refresh_token"
+	StaticToken       TokenType = "static_token"
+	IDToken           TokenType = "id_token"
+	AuthorizationCode TokenType = "authorization_code"
 )
 
 type TokenType string
 
 // Issuer issues token to user, tokens are required to perform mutating requests to resources
 type Issuer interface {
-	// IssueTo issues a token a User, return error if issuing process failed
-	IssueTo(user user.Info, tokenType TokenType, expiresIn time.Duration) (string, error)
+	// IssueTo issues a token, return error if issuing process failed
+	IssueTo(claims *Claims, expiresIn time.Duration, customSecret string) (string, error)
 
-	// Verify verifies a token, and return a user info if it's a valid token, otherwise return error
-	Verify(string) (user.Info, TokenType, error)
+	// Verify verifies a token, and return Claims if it's a valid token, otherwise return error
+	Verify(token string, customSecret string) (*Claims, error)
 }
