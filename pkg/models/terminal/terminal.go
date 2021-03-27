@@ -26,6 +26,7 @@ import (
 	"github.com/gorilla/websocket"
 	"io"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -36,7 +37,8 @@ import (
 
 const (
 	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
+	writeWait         = 10 * time.Second
+	heartBeatInterval = 15 * time.Second
 )
 
 // PtyHandler is what remotecommand expects from a pty
@@ -112,6 +114,25 @@ func (t TerminalSession) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// sendHeartBeatPackage sends heartbeat package to client, keeps the connection alive so that it will not be killed by
+// the proxy server. See https://github.com/kubesphere/kubesphere/issues/3293
+func (t TerminalSession) sendHeartBeatPackage() {
+	msg, err := json.Marshal(TerminalMessage{
+		Op:   "ping",
+		Data: "",
+	})
+	if err != nil {
+		klog.V(4).Infof("failed to marshal heartbeat package into json, err: %+v", err)
+	}
+
+	t.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	if err = t.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+		klog.V(4).Infof("failed to send hearbet to client, err: %+v", err)
+	}
+
+	klog.V(4).Info("successfully sent heartbeat package")
+}
+
 // Toast can be used to send the user any OOB messages
 // hterm puts these in the center of the terminal
 func (t TerminalSession) Toast(p string) error {
@@ -132,8 +153,9 @@ func (t TerminalSession) Toast(p string) error {
 // Close shuts down the SockJS connection and sends the status code and reason to the client
 // Can happen if the process exits or if there is an error starting up the process
 // For now the status code is unused and reason is shown to the user (unless "")
-func (t TerminalSession) Close(status uint32, reason string) {
+func (t TerminalSession) Close(status uint32, reason string, stopChan chan<- struct{}) {
 	klog.Warning(status, reason)
+	close(stopChan)
 	t.conn.Close()
 }
 
@@ -200,7 +222,11 @@ func (t *terminaler) HandleSession(shell, namespace, podName, containerName stri
 	var err error
 	validShells := []string{"sh", "bash"}
 
+	stopChan := make(chan struct{})
+
 	session := &TerminalSession{conn: conn, sizeChan: make(chan remotecommand.TerminalSize)}
+
+	go wait.Until(session.sendHeartBeatPackage, heartBeatInterval, stopChan)
 
 	if isValidShell(validShells, shell) {
 		cmd := []string{shell}
@@ -217,9 +243,9 @@ func (t *terminaler) HandleSession(shell, namespace, podName, containerName stri
 	}
 
 	if err != nil {
-		session.Close(2, err.Error())
+		session.Close(2, err.Error(), stopChan)
 		return
 	}
 
-	session.Close(1, "Process exited")
+	session.Close(1, "Process exited", stopChan)
 }
