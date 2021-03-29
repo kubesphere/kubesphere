@@ -115,18 +115,27 @@ func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, o
 	ress := mo.prometheus.GetNamedMetrics(metrics, time, opt)
 
 	if mo.metricsserver != nil {
-		mr := mo.metricsserver.GetNamedMetrics(metrics, time, opt)
 
 		//Merge edge node metrics data
 		edgeMetrics := make(map[string]monitoring.MetricData)
-		for _, metric := range mr {
-			edgeMetrics[metric.MetricName] = metric.MetricData
-		}
 
-		for i, metric := range ress {
-			if val, ok := edgeMetrics[metric.MetricName]; ok {
-				ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+		for i, ressMetric := range ress {
+			metricName := ressMetric.MetricName
+			ressMetricValues := ressMetric.MetricData.MetricValues
+			if len(ressMetricValues) == 0 {
+				// this metric has no prometheus metrics data
+				if len(edgeMetrics) == 0 {
+					// start to request monintoring metricsApi data
+					mr := mo.metricsserver.GetNamedMetrics(metrics, time, opt)
+					for _, mrMetric := range mr {
+						edgeMetrics[mrMetric.MetricName] = mrMetric.MetricData
+					}
+				}
+				if val, ok := edgeMetrics[metricName]; ok {
+					ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+				}
 			}
+
 		}
 	}
 
@@ -137,17 +146,25 @@ func (mo monitoringOperator) GetNamedMetricsOverTime(metrics []string, start, en
 	ress := mo.prometheus.GetNamedMetricsOverTime(metrics, start, end, step, opt)
 
 	if mo.metricsserver != nil {
-		mr := mo.metricsserver.GetNamedMetricsOverTime(metrics, start, end, step, opt)
 
 		//Merge edge node metrics data
 		edgeMetrics := make(map[string]monitoring.MetricData)
-		for _, metric := range mr {
-			edgeMetrics[metric.MetricName] = metric.MetricData
-		}
 
-		for i, metric := range ress {
-			if val, ok := edgeMetrics[metric.MetricName]; ok {
-				ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+		for i, ressMetric := range ress {
+			metricName := ressMetric.MetricName
+			ressMetricValues := ressMetric.MetricData.MetricValues
+			if len(ressMetricValues) == 0 {
+				// this metric has no prometheus metrics data
+				if len(edgeMetrics) == 0 {
+					// start to request monintoring metricsApi data
+					mr := mo.metricsserver.GetNamedMetricsOverTime(metrics, start, end, step, opt)
+					for _, mrMetric := range mr {
+						edgeMetrics[mrMetric.MetricName] = mrMetric.MetricData
+					}
+				}
+				if val, ok := edgeMetrics[metricName]; ok {
+					ress[i].MetricData.MetricValues = append(ress[i].MetricData.MetricValues, val.MetricValues...)
+				}
 			}
 		}
 	}
