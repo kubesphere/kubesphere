@@ -112,7 +112,6 @@ var _ = Describe("LoginRecord", func() {
 			newObject := user.DeepCopy()
 			newObject.Status.LastLoginTime = &loginRecord.CreationTimestamp
 			updateAction := clienttesting.NewUpdateAction(iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralUser), "", newObject)
-			updateAction.Subresource = "status"
 			Expect(actions[0]).Should(Equal(updateAction))
 		})
 	})

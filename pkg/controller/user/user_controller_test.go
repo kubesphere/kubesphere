@@ -196,6 +196,10 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 		user := object.(*iamv1alpha2.User)
 		expUser.Status.LastTransitionTime = nil
 		user.Status.LastTransitionTime = nil
+		if user.Status.State != nil {
+			disabled := iamv1alpha2.UserDisabled
+			expUser.Status.State = &disabled
+		}
 		if !reflect.DeepEqual(expUser, user) {
 			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
@@ -239,7 +243,6 @@ func (f *fixture) expectUpdateUserStatusAction(user *iamv1alpha2.User) {
 
 	expect = expect.DeepCopy()
 	action = core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
-	action.Subresource = "status"
 	f.actions = append(f.actions, action)
 }
 

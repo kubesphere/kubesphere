@@ -59,6 +59,7 @@ const (
 	WorkspaceRoleAnnotation               = "iam.kubesphere.io/workspacerole"
 	ClusterRoleAnnotation                 = "iam.kubesphere.io/clusterrole"
 	UninitializedAnnotation               = "iam.kubesphere.io/uninitialized"
+	LastPasswordChangeTimeAnnotation      = "iam.kubesphere.io/last-password-change-time"
 	RoleAnnotation                        = "iam.kubesphere.io/role"
 	RoleTemplateLabel                     = "iam.kubesphere.io/role-template"
 	ScopeLabelFormat                      = "scope.kubesphere.io/%s"
@@ -96,7 +97,6 @@ const (
 // +kubebuilder:printcolumn:name="Email",type="string",JSONPath=".spec.email"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
-// +kubebuilder:subresource:status
 type User struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
