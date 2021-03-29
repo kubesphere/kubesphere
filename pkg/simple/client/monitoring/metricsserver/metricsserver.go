@@ -21,7 +21,7 @@ import (
 	"errors"
 	"time"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -65,8 +65,8 @@ func metricsAPISupported(discoveredAPIGroups *metav1.APIGroupList) bool {
 	return false
 }
 
-func (m metricsServer) listEdgeNodes() (map[string]v1.Node, error) {
-	nodes := make(map[string]v1.Node)
+func (m metricsServer) listEdgeNodes() (map[string]corev1.Node, error) {
+	nodes := make(map[string]corev1.Node)
 
 	nodeClient := m.k8s.CoreV1()
 
@@ -84,7 +84,7 @@ func (m metricsServer) listEdgeNodes() (map[string]v1.Node, error) {
 	return nodes, nil
 }
 
-func (m metricsServer) filterEdgeNodeNames(edgeNodes map[string]v1.Node, opts *monitoring.QueryOptions) map[string]bool {
+func (m metricsServer) filterEdgeNodeNames(edgeNodes map[string]corev1.Node, opts *monitoring.QueryOptions) map[string]bool {
 	edgeNodeNamesFiltered := make(map[string]bool)
 
 	regexMatcher, err := promlabels.NewMatcher(promlabels.MatchRegexp, "edgenodefilter", opts.ResourceFilter)
@@ -228,7 +228,7 @@ func (m metricsServer) GetNamedMetrics(metrics []string, ts time.Time, o monitor
 			metricsMap[m] = true
 		}
 
-		status := make(map[string]v1.NodeStatus)
+		status := make(map[string]corev1.NodeStatus)
 		for n, _ := range edgeNodeNamesFiltered {
 			status[n] = edgeNodes[n].Status
 		}
@@ -241,8 +241,8 @@ func (m metricsServer) GetNamedMetrics(metrics []string, ts time.Time, o monitor
 			}
 		}
 
-		var usage v1.ResourceList
-		var cap v1.ResourceList
+		var usage corev1.ResourceList
+		var cap corev1.ResourceList
 		for _, m := range metricsResult.Items {
 			_, ok := edgeNodeNamesFiltered[m.Name]
 			if !ok {
@@ -262,7 +262,7 @@ func (m metricsServer) GetNamedMetrics(metrics []string, ts time.Time, o monitor
 				metricValues[enm].Metadata["role"] = "edge"
 			}
 			for _, addr := range status[m.Name].Addresses {
-				if addr.Type == v1.NodeInternalIP {
+				if addr.Type == corev1.NodeInternalIP {
 					for _, enm := range edgeNodeMetrics {
 						metricValues[enm].Metadata["host_ip"] = addr.Address
 					}
@@ -348,7 +348,7 @@ func (m metricsServer) GetNamedMetricsOverTime(metrics []string, start, end time
 			metricsMap[m] = true
 		}
 
-		status := make(map[string]v1.NodeStatus)
+		status := make(map[string]corev1.NodeStatus)
 		for n, _ := range edgeNodeNamesFiltered {
 			status[n] = edgeNodes[n].Status
 		}
@@ -361,8 +361,8 @@ func (m metricsServer) GetNamedMetricsOverTime(metrics []string, start, end time
 			}
 		}
 
-		var usage v1.ResourceList
-		var cap v1.ResourceList
+		var usage corev1.ResourceList
+		var cap corev1.ResourceList
 		for _, m := range metricsResult.Items {
 			_, ok := edgeNodeNamesFiltered[m.Name]
 			if !ok {
@@ -382,7 +382,7 @@ func (m metricsServer) GetNamedMetricsOverTime(metrics []string, start, end time
 				metricValues[enm].Metadata["role"] = "edge"
 			}
 			for _, addr := range status[m.Name].Addresses {
-				if addr.Type == v1.NodeInternalIP {
+				if addr.Type == corev1.NodeInternalIP {
 					for _, enm := range edgeNodeMetrics {
 						metricValues[enm].Metadata["host_ip"] = addr.Address
 					}
