@@ -63,13 +63,13 @@ type MetricValue struct {
 	ExportSample   *ExportPoint  `json:"exported_value,omitempty" description:"exported time series, values of vector type"`
 	ExportedSeries []ExportPoint `json:"exported_values,omitempty" description:"exported time series, values of matrix type"`
 
-	MinValue     float64 `json:"min_value" description:"minimum value from monitor points"`
-	MaxValue     float64 `json:"max_value" description:"maximum value from monitor points"`
-	AvgValue     float64 `json:"avg_value" description:"average value from monitor points"`
-	SumValue     float64 `json:"sum_value" description:"sum value from monitor points"`
-	Fee          float64 `json:"fee" description:"resource fee"`
-	ResourceUnit string  `json:"resource_unit"`
-	CurrencyUnit string  `json:"currency_unit"`
+	MinValue     string `json:"min_value" description:"minimum value from monitor points"`
+	MaxValue     string `json:"max_value" description:"maximum value from monitor points"`
+	AvgValue     string `json:"avg_value" description:"average value from monitor points"`
+	SumValue     string `json:"sum_value" description:"sum value from monitor points"`
+	Fee          string `json:"fee" description:"resource fee"`
+	ResourceUnit string `json:"resource_unit"`
+	CurrencyUnit string `json:"currency_unit"`
 }
 
 func (mv *MetricValue) TransferToExportedMetricValue() {

@@ -40,7 +40,6 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
-	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/monitoring"
@@ -301,10 +300,9 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Returns(http.StatusOK, api.StatusOK, auditingv1alpha1.APIResponse{}))
 
 	ws.Route(ws.GET("/metering").
-		To(handler.QueryMeterings).
+		To(handler.QueryMetering).
 		Doc("Get meterings against the cluster.").
 		Param(ws.QueryParameter("level", "Metering level.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.QueryParameter("node", "Node name.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspace", "Workspace name.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespace", "Namespace name.").DataType("string").Required(false)).
@@ -330,7 +328,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Returns(http.StatusOK, api.StatusOK, monitoring.Metrics{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/metering/hierarchy").
-		To(handler.QueryMeteringsHierarchy).
+		To(handler.QueryMeteringHierarchy).
 		Param(ws.PathParameter("namespace", "Namespace name.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both workspace CPU usage and memory usage: `meter_pod_cpu_usage|meter_pod_memory_usage_wo_cache`.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).

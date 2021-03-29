@@ -15,6 +15,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 
@@ -25,6 +26,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	monitoringmodel "kubesphere.io/kubesphere/pkg/models/monitoring"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
@@ -691,7 +694,12 @@ func (t *tenantOperator) transformMetricData(metrics monitoringmodel.Metrics) me
 		for _, metricValue := range metric.MetricValues {
 			//metricValue.SumValue
 			podName := metricValue.Metadata["pod"]
-			podsStats.Set(podName, metricName, metricValue.SumValue)
+			if s, err := strconv.ParseFloat(metricValue.SumValue, 64); err != nil {
+				klog.Error("failed to parse string to float64")
+				return nil
+			} else {
+				podsStats.Set(podName, metricName, s)
+			}
 		}
 	}
 
@@ -769,9 +777,15 @@ func (t *tenantOperator) updateDeploysStats(user user.Info, cluster, ns string, 
 			return err
 		}
 
-		if ok, _ := t.isOpenPitrixComponent(cluster, ns, "deployment", deploy.Name); ok {
-			// TODO: for op deployment
-			continue
+		if ok, opName := t.isOpenPitrixComponent(cluster, ns, "deployment", deploy.Name); ok {
+			// for op deployment
+			for _, pod := range pods {
+				podsStat := podsStats[pod]
+				if err := resourceStats.GetOpenPitrixStats(opName).GetDeployStats(deploy.Name).SetPodStats(pod, podsStat); err != nil {
+					klog.Error(err)
+					return err
+				}
+			}
 		} else if ok, appName := t.isAppComponent(ns, "deployment", deploy.Name); ok {
 			// for app deployment
 			for _, pod := range pods {
@@ -798,7 +812,7 @@ func (t *tenantOperator) updateDeploysStats(user user.Info, cluster, ns string, 
 		}
 	}
 
-	// TODO: op aggregate for deployment components
+	// OpenPitrix aggregate for deployment components
 	for _, op := range resourceStats.OpenPitrixs {
 		op.Aggregate()
 	}
@@ -833,9 +847,14 @@ func (t *tenantOperator) updateDaemonsetsStats(user user.Info, cluster, ns strin
 			return err
 		}
 
-		if ok, _ := t.isOpenPitrixComponent(cluster, ns, "daemonset", daemonset.Name); ok {
-			// TODO: for op daemonset
-			continue
+		if ok, opName := t.isOpenPitrixComponent(cluster, ns, "daemonset", daemonset.Name); ok {
+			// for op daemonset
+			for _, pod := range pods {
+				if err := resourceStats.GetOpenPitrixStats(opName).GetDaemonStats(daemonset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
+					klog.Error(err)
+					return err
+				}
+			}
 		} else if ok, appName := t.isAppComponent(ns, "daemonset", daemonset.Name); ok {
 			// for app daemonset
 			for _, pod := range pods {
@@ -860,7 +879,7 @@ func (t *tenantOperator) updateDaemonsetsStats(user user.Info, cluster, ns strin
 
 	// here pod stats and level struct are ready
 
-	// TODO: op aggregate for daemonset components
+	// OpenPitrix aggregate for daemonset components
 	for _, op := range resourceStats.OpenPitrixs {
 		op.Aggregate()
 	}
@@ -877,8 +896,71 @@ func (t *tenantOperator) updateDaemonsetsStats(user user.Info, cluster, ns strin
 	return nil
 }
 
-// TODO: include op metering part
+func (t *tenantOperator) collectOpenPitrixComponents(cluster, ns string) map[string][]string {
+	var opComponentsMap = make(map[string][]string)
+	var ops []string
+	conditions := params.Conditions{
+		Match: make(map[string]string),
+		Fuzzy: make(map[string]string),
+	}
+
+	resp, err := t.opRelease.ListApplications("", cluster, ns, &conditions, 10, 0, "", false)
+	if err != nil {
+		klog.Error("failed to list op apps")
+		return nil
+	}
+	totalCount := resp.TotalCount
+	resp, err = t.opRelease.ListApplications("", cluster, ns, &conditions, totalCount, 0, "", false)
+	if err != nil {
+		klog.Error("failed to list op apps")
+		return nil
+	}
+
+	for _, item := range resp.Items {
+		app := item.(*openpitrix.Application)
+		ops = append(ops, app.Cluster.ClusterId)
+	}
+
+	for _, op := range ops {
+		app, err := t.opRelease.DescribeApplication("", cluster, ns, op)
+		if err != nil {
+			klog.Error(err)
+			return nil
+		}
+		for _, object := range app.ReleaseInfo {
+			unstructuredObj := object.(*unstructured.Unstructured)
+			if unstructuredObj.GetKind() == "Service" ||
+				unstructuredObj.GetKind() == "Deployment" ||
+				unstructuredObj.GetKind() == "Daemonset" ||
+				unstructuredObj.GetKind() == "Statefulset" {
+				opComponentsMap[op+":"+unstructuredObj.GetKind()] = append(opComponentsMap[unstructuredObj.GetKind()], unstructuredObj.GetName())
+			}
+		}
+	}
+
+	return opComponentsMap
+}
+
 func (t *tenantOperator) isOpenPitrixComponent(cluster, ns, kind, componentName string) (bool, string) {
+	opComponentsMap := t.collectOpenPitrixComponents(cluster, ns)
+
+	for k, v := range opComponentsMap {
+
+		kk := strings.Split(k, ":")
+		if len(kk) != 2 {
+			klog.Errorf("invalid op key %s", k)
+			return false, ""
+		}
+		opName := kk[0]
+		if kk[1] == strings.Title(kind) {
+			for _, svc := range v {
+				if componentName == svc {
+					return true, opName
+				}
+			}
+		}
+	}
+
 	return false, ""
 }
 
@@ -916,9 +998,14 @@ func (t *tenantOperator) updateStatefulsetsStats(user user.Info, cluster, ns str
 			return err
 		}
 
-		if ok, _ := t.isOpenPitrixComponent(cluster, ns, "statefulset", statefulset.Name); ok {
-			// TODO: for op statefulset
-			continue
+		if ok, opName := t.isOpenPitrixComponent(cluster, ns, "statefulset", statefulset.Name); ok {
+			// for op statefulset
+			for _, pod := range pods {
+				if err := resourceStats.GetOpenPitrixStats(opName).GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
+					klog.Error(err)
+					return err
+				}
+			}
 		} else if ok, appName := t.isAppComponent(ns, "daemonset", statefulset.Name); ok {
 			// for app statefulset
 			for _, pod := range pods {
@@ -943,7 +1030,7 @@ func (t *tenantOperator) updateStatefulsetsStats(user user.Info, cluster, ns str
 		}
 	}
 
-	// TODO: op aggregate for statefulset components
+	// OpenPitrix aggregate for statefulset components
 	for _, op := range resourceStats.OpenPitrixs {
 		op.Aggregate()
 	}

@@ -998,7 +998,7 @@ func (t *tenantOperator) MeteringHierarchy(user user.Info, queryParam *meteringv
 	podsStats := t.transformMetricData(res)
 
 	// classify pods stats
-	resourceStats, err := t.classifyPodStats(user, "", queryParam.NamespaceName, podsStats)
+	resourceStats, err := t.classifyPodStats(user, queryParam.Cluster, queryParam.NamespaceName, podsStats)
 	if err != nil {
 		klog.Error(err)
 		return metering.ResourceStatistic{}, err

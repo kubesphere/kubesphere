@@ -372,7 +372,7 @@ func TestExportMetrics(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			_, err := exportMetrics(tt.metrics)
+			_, err := exportMetrics(tt.metrics, time.Now().Add(-time.Hour), time.Now())
 			if err != nil && !tt.expectedErr {
 				t.Fatal("Failed to export metering metrics", err)
 			}

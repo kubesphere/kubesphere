@@ -43,10 +43,15 @@ type handler struct {
 }
 
 func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) *handler {
+	var opRelease openpitrix.Interface
+	if ksClient != nil {
+		opRelease = openpitrix.NewOpenpitrixOperator(f, ksClient, nil)
+	}
+
 	return &handler{
 		k:         k,
 		mo:        model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter),
-		opRelease: nil,
+		opRelease: opRelease,
 	}
 }
 

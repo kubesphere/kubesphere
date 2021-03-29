@@ -51,6 +51,7 @@ type Query struct {
 	Services         string
 	StorageClassName string
 	PVCFilter        string
+	Cluster          string
 }
 
 func ParseQueryParameter(req *restful.Request) *Query {
@@ -85,6 +86,7 @@ func ParseQueryParameter(req *restful.Request) *Query {
 	q.Services = req.QueryParameter("services")
 	q.StorageClassName = req.QueryParameter("storageclass")
 	q.PVCFilter = req.QueryParameter("pvc_filter")
+	q.Cluster = req.QueryParameter("cluster")
 
 	return &q
 }

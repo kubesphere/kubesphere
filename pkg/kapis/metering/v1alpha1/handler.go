@@ -30,15 +30,16 @@ import (
 )
 
 type meterHandler interface {
-	HandleClusterMetersQuery(req *restful.Request, resp *restful.Response)
-	HandleNodeMetersQuery(req *restful.Request, resp *restful.Response)
-	HandleWorkspaceMetersQuery(req *restful.Request, resp *restful.Response)
-	HandleNamespaceMetersQuery(re *restful.Request, resp *restful.Response)
-	HandleWorkloadMetersQuery(req *restful.Request, resp *restful.Response)
-	HandleApplicationMetersQuery(req *restful.Request, resp *restful.Response)
-	HandlePodMetersQuery(req *restful.Request, resp *restful.Response)
-	HandleServiceMetersQuery(req *restful.Request, resp *restful.Response)
-	HandlePVCMetersQuery(req *restful.Request, resp *restful.Response)
+	HandleClusterMeterQuery(req *restful.Request, resp *restful.Response)
+	HandleNodeMeterQuery(req *restful.Request, resp *restful.Response)
+	HandleWorkspaceMeterQuery(req *restful.Request, resp *restful.Response)
+	HandleNamespaceMeterQuery(re *restful.Request, resp *restful.Response)
+	HandleOpenpitrixMeterQuery(req *restful.Request, resp *restful.Response)
+	HandleWorkloadMeterQuery(req *restful.Request, resp *restful.Response)
+	HandleApplicationMeterQuery(req *restful.Request, resp *restful.Response)
+	HandlePodMeterQuery(req *restful.Request, resp *restful.Response)
+	HandleServiceMeterQuery(req *restful.Request, resp *restful.Response)
+	HandlePVCMeterQuery(req *restful.Request, resp *restful.Response)
 }
 
 func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) meterHandler {

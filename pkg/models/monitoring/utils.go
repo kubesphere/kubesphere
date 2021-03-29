@@ -1,7 +1,8 @@
 package monitoring
 
 import (
-	"math"
+	"fmt"
+	"math/big"
 	"os"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -18,6 +19,13 @@ const (
 	METER_RESOURCE_TYPE_PVC
 
 	meteringConfig = "/etc/kubesphere/metering/ks-metering.yaml"
+
+	meteringDefaultPrecision = 10
+	meteringCorePrecision    = 3
+	meteringMemPrecision     = 1
+	meteringIngressPrecision = 0
+	meteringEgressPrecision  = 0
+	meteringPvcPrecision     = 1
 )
 
 var meterResourceUnitMap = map[int]string{
@@ -110,48 +118,59 @@ func LoadYaml() (*MeterConfig, error) {
 	return &meterConfig, nil
 }
 
-func getMaxPointValue(points []monitoring.Point) float64 {
-	var max float64
+func getMaxPointValue(points []monitoring.Point) string {
+	var max *big.Float
 	for i, p := range points {
 		if i == 0 {
-			max = p.Value()
+			max = new(big.Float).SetFloat64(p.Value())
 		}
 
-		if p.Value() > max {
-			max = p.Value()
+		pf := new(big.Float).SetFloat64(p.Value())
+		if pf.Cmp(max) == 1 {
+			max = pf
 		}
 	}
 
-	return max
+	return fmt.Sprintf(generateFloatFormat(meteringDefaultPrecision), max)
 }
 
-func getMinPointValue(points []monitoring.Point) float64 {
-	var min float64
+func getMinPointValue(points []monitoring.Point) string {
+	var min *big.Float
 	for i, p := range points {
 		if i == 0 {
-			min = p.Value()
+			min = new(big.Float).SetFloat64(p.Value())
 		}
 
-		if p.Value() < min {
-			min = p.Value()
+		pf := new(big.Float).SetFloat64(p.Value())
+		if min.Cmp(pf) == 1 {
+			min = pf
 		}
 	}
 
-	return min
+	return fmt.Sprintf(generateFloatFormat(meteringDefaultPrecision), min)
 }
 
-func getSumPointValue(points []monitoring.Point) float64 {
-	avg := 0.0
+func getSumPointValue(points []monitoring.Point) string {
+	sum := new(big.Float).SetFloat64(0)
 
 	for _, p := range points {
-		avg += p.Value()
+		pf := new(big.Float).SetFloat64(p.Value())
+		sum.Add(sum, pf)
 	}
 
-	return avg
+	return fmt.Sprintf(generateFloatFormat(meteringDefaultPrecision), sum)
 }
 
-func getAvgPointValue(points []monitoring.Point) float64 {
-	return getSumPointValue(points) / float64(len(points))
+func getAvgPointValue(points []monitoring.Point) string {
+	sum, ok := new(big.Float).SetString(getSumPointValue(points))
+	if !ok {
+		klog.Error("failed to parse big.Float")
+		return ""
+	}
+
+	length := new(big.Float).SetFloat64(float64(len(points)))
+
+	return fmt.Sprintf("%.3f", sum.Quo(sum, length))
 }
 
 func getCurrencyUnit() string {
@@ -164,6 +183,10 @@ func getCurrencyUnit() string {
 	return meterConfig.GetPriceInfo().CurrencyUnit
 }
 
+func generateFloatFormat(precision int) string {
+	return "%." + fmt.Sprintf("%d", precision) + "f"
+}
+
 func getResourceUnit(meterName string) string {
 	if resourceType, ok := MeterResourceMap[meterName]; !ok {
 		klog.Errorf("invlaid meter %v", meterName)
@@ -173,43 +196,66 @@ func getResourceUnit(meterName string) string {
 	}
 }
 
-func getFeeWithMeterName(meterName string, sum float64) float64 {
+func getFeeWithMeterName(meterName string, sum string) string {
+
+	s, ok := new(big.Float).SetString(sum)
+	if !ok {
+		klog.Error("failed to parse string to float")
+		return ""
+	}
 
 	meterConfig, err := LoadYaml()
 	if err != nil {
 		klog.Error(err)
-		return -1
+		return ""
 	}
 	priceInfo := meterConfig.GetPriceInfo()
 
 	if resourceType, ok := MeterResourceMap[meterName]; !ok {
 		klog.Errorf("invlaid meter %v", meterName)
-		return -1
+		return ""
 	} else {
 		switch resourceType {
 		case METER_RESOURCE_TYPE_CPU:
-			// unit: core, precision: 0.001
-			sum = math.Round(sum*1000) / 1000
-			return priceInfo.CpuPerCorePerHour * sum
+			CpuPerCorePerHour := new(big.Float).SetFloat64(priceInfo.CpuPerCorePerHour)
+			tmp := s.Mul(s, CpuPerCorePerHour)
+
+			return fmt.Sprintf(generateFloatFormat(meteringCorePrecision), tmp)
 		case METER_RESOURCE_TYPE_MEM:
-			// unit: Gigabyte, precision: 0.1
-			sum = math.Round(sum/1073741824*10) / 10
-			return priceInfo.MemPerGigabytesPerHour * sum
+			oneGiga := new(big.Float).SetInt64(1073741824)
+			MemPerGigabytesPerHour := new(big.Float).SetFloat64(priceInfo.MemPerGigabytesPerHour)
+
+			// transform unit from bytes to Gigabytes
+			s.Quo(s, oneGiga)
+
+			return fmt.Sprintf(generateFloatFormat(meteringMemPrecision), s.Mul(s, MemPerGigabytesPerHour))
 		case METER_RESOURCE_TYPE_NET_INGRESS:
-			// unit: Megabyte, precision: 1
-			sum = math.Round(sum / 1048576)
-			return priceInfo.IngressNetworkTrafficPerMegabytesPerHour * sum
+			oneMega := new(big.Float).SetInt64(1048576)
+			IngressNetworkTrafficPerMegabytesPerHour := new(big.Float).SetFloat64(priceInfo.IngressNetworkTrafficPerMegabytesPerHour)
+
+			// transform unit from bytes to Migabytes
+			s.Quo(s, oneMega)
+
+			return fmt.Sprintf(generateFloatFormat(meteringIngressPrecision), s.Mul(s, IngressNetworkTrafficPerMegabytesPerHour))
 		case METER_RESOURCE_TYPE_NET_EGRESS:
-			// unit: Megabyte, precision: 1
-			sum = math.Round(sum / 1048576)
-			return priceInfo.EgressNetworkTrafficPerMegabytesPerHour * sum
+			oneMega := new(big.Float).SetInt64(1048576)
+			EgressNetworkTrafficPerMegabytesPerHour := new(big.Float).SetPrec(meteringEgressPrecision).SetFloat64(priceInfo.EgressNetworkTrafficPerMegabytesPerHour)
+
+			// transform unit from bytes to Migabytes
+			s.Quo(s, oneMega)
+
+			return fmt.Sprintf(generateFloatFormat(meteringEgressPrecision), s.Mul(s, EgressNetworkTrafficPerMegabytesPerHour))
 		case METER_RESOURCE_TYPE_PVC:
-			// unit: Gigabyte, precision: 0.1
-			sum = math.Round(sum/1073741824*10) / 10
-			return priceInfo.PvcPerGigabytesPerHour * sum
+			oneGiga := new(big.Float).SetInt64(1073741824)
+			PvcPerGigabytesPerHour := new(big.Float).SetPrec(meteringPvcPrecision).SetFloat64(priceInfo.PvcPerGigabytesPerHour)
+
+			// transform unit from bytes to Gigabytes
+			s.Quo(s, oneGiga)
+
+			return fmt.Sprintf(generateFloatFormat(meteringPvcPrecision), s.Mul(s, PvcPerGigabytesPerHour))
 		}
 
-		return -1
+		return ""
 	}
 }
 
@@ -224,9 +270,9 @@ func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float6
 			metricData.MetricValues[index].MaxValue = getMaxPointValue(metricValue.Series)
 			metricData.MetricValues[index].AvgValue = getAvgPointValue(metricValue.Series)
 		} else {
-			metricData.MetricValues[index].MinValue = (*metricValue.Sample)[1]
-			metricData.MetricValues[index].MaxValue = (*metricValue.Sample)[1]
-			metricData.MetricValues[index].AvgValue = (*metricValue.Sample)[1]
+			metricData.MetricValues[index].MinValue = getMinPointValue([]monitoring.Point{*metricValue.Sample})
+			metricData.MetricValues[index].MaxValue = getMaxPointValue([]monitoring.Point{*metricValue.Sample})
+			metricData.MetricValues[index].AvgValue = getAvgPointValue([]monitoring.Point{*metricValue.Sample})
 		}
 
 		// squash points if step is more than one hour and calculate sum and fee
@@ -241,7 +287,7 @@ func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float6
 			metricData.MetricValues[index].SumValue = sum
 			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
 		} else {
-			sum := (*metricValue.Sample)[1]
+			sum := getSumPointValue([]monitoring.Point{*metricValue.Sample})
 			metricData.MetricValues[index].SumValue = sum
 			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
 		}

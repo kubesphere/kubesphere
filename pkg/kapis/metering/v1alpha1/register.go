@@ -50,7 +50,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 	h := newHandler(k8sClient, meteringClient, factory, ksClient, resourcev1alpha3.NewResourceGetter(factory, cache))
 
 	ws.Route(ws.GET("/cluster").
-		To(h.HandleClusterMetersQuery).
+		To(h.HandleClusterMeterQuery).
 		Doc("Get cluster-level meter data.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which meter data to return. For example, the following filter matches both cluster CPU usage and disk usage: `meter_cluster_cpu_usage|meter_cluster_memory_usage`.").DataType("string").Required(false)).
@@ -64,7 +64,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes").
-		To(h.HandleNodeMetersQuery).
+		To(h.HandleNodeMeterQuery).
 		Doc("Get node-level meter data of all nodes.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which meter data to return. For example, the following filter matches both node CPU usage and disk usage: `meter_node_cpu_usage|meter_node_memory_usage`.").DataType("string").Required(false)).
@@ -85,7 +85,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}").
-		To(h.HandleNodeMetersQuery).
+		To(h.HandleNodeMeterQuery).
 		Doc("Get node-level meter data of the specific node.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("node", "Node name.").DataType("string").Required(true)).
@@ -102,7 +102,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces").
-		To(h.HandleWorkspaceMetersQuery).
+		To(h.HandleWorkspaceMeterQuery).
 		Doc("Get workspace-level meter data of all workspaces.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both workspace CPU usage and memory usage: `meter_workspace_cpu_usage|meter_workspace_memory_usage`.").DataType("string").Required(false)).
@@ -123,7 +123,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces/{workspace}").
-		To(h.HandleWorkspaceMetersQuery).
+		To(h.HandleWorkspaceMeterQuery).
 		Doc("Get workspace-level meter data of a specific workspace.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("workspace", "Workspace name.").DataType("string").Required(true)).
@@ -141,7 +141,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
-		To(h.HandleNamespaceMetersQuery).
+		To(h.HandleNamespaceMeterQuery).
 		Doc("Get namespace-level meter data of a specific workspace.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("workspace", "Workspace name.").DataType("string").Required(true)).
@@ -163,7 +163,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces").
-		To(h.HandleNamespaceMetersQuery).
+		To(h.HandleNamespaceMeterQuery).
 		Doc("Get namespace-level meter data of all namespaces.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both namespace CPU usage and memory usage: `meter_namespace_cpu_usage|meter_namespace_memory_usage_wo_cache`.").DataType("string").Required(false)).
@@ -183,8 +183,25 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET("/workspaces/{workspace}/namespaces/{namespace}").
+		To(h.HandleNamespaceMeterQuery).
+		Doc("Get namespace-level meter data of the specific namespace.").
+		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
+		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both namespace CPU usage and memory usage: `meter_namespace_cpu_usage|meter_namespace_memory_usage_wo_cache`.").DataType("string").Required(false)).
+		Param(ws.PathParameter("storageclass", "The name of the storageclass.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pvc_filter", "The PVC filter consists of a regexp pattern. It specifies which PVC data to return.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
+		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetersTag}).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
+		Produces(restful.MIME_JSON)
+
 	ws.Route(ws.GET("/namespaces/{namespace}").
-		To(h.HandleNamespaceMetersQuery).
+		To(h.HandleNamespaceMeterQuery).
 		Doc("Get namespace-level meter data of the specific namespace.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
@@ -201,7 +218,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads").
-		To(h.HandleWorkloadMetersQuery).
+		To(h.HandleWorkloadMeterQuery).
 		Doc("Get workload-level meter data of all workloads which belongs to a specific kind.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
@@ -222,7 +239,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/applications").
-		To(h.HandleApplicationMetersQuery).
+		To(h.HandleApplicationMeterQuery).
 		Doc("Get app-level meter data of a specific application. Navigate to the app by the app's namespace.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
@@ -240,8 +257,46 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET("/clusters/{cluster}/namespaces/{namespace}/openpitrixs").
+		To(h.HandleOpenpitrixMeterQuery).
+		Doc("Get app-level meter data of a specific openpitrix app. Navigate to the app by the app's namespace.").
+		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
+		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("openpitrix_ids", "Openpitrix application ids which can be joined by \"|\" ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both pod CPU usage and memory usage: `meter_application_cpu_usage|meter_application_memory_usage_wo_cache`.").DataType("string").Required(false)).
+		Param(ws.PathParameter("storageclass", "The name of the storageclass.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
+		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_metric", "Sort pods by the specified metric. Not applicable if **start** and **end** are provided.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_type", "Sort order. One of asc, desc.").DefaultValue("desc.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetersTag}).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/namespaces/{namespace}/openpitrixs").
+		To(h.HandleOpenpitrixMeterQuery).
+		Doc("Get app-level meter data of a specific openpitrix app. Navigate to the app by the app's namespace.").
+		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
+		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("openpitrix_ids", "Openpitrix application ids which can be joined by \"|\" ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both pod CPU usage and memory usage: `meter_application_cpu_usage|meter_application_memory_usage_wo_cache`.").DataType("string").Required(false)).
+		Param(ws.PathParameter("storageclass", "The name of the storageclass.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
+		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_metric", "Sort pods by the specified metric. Not applicable if **start** and **end** are provided.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_type", "Sort order. One of asc, desc.").DefaultValue("desc.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetersTag}).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
+		Produces(restful.MIME_JSON)
+
 	ws.Route(ws.GET("/namespaces/{namespace}/pods").
-		To(h.HandlePodMetersQuery).
+		To(h.HandlePodMeterQuery).
 		Doc("Get pod-level meter data of the specific namespace's pods.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
@@ -261,7 +316,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").
-		To(h.HandlePodMetersQuery).
+		To(h.HandlePodMeterQuery).
 		Doc("Get pod-level meter data of a specific pod. Navigate to the pod by the pod's namespace.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
@@ -277,7 +332,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload}/pods").
-		To(h.HandlePodMetersQuery).
+		To(h.HandlePodMeterQuery).
 		Doc("Get pod-level meter data of a specific workload's pods. Navigate to the workload by the namespace.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
@@ -299,7 +354,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}/pods").
-		To(h.HandlePodMetersQuery).
+		To(h.HandlePodMeterQuery).
 		Doc("Get pod-level meter data of all pods on a specific node.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("node", "Node name.").DataType("string").Required(true)).
@@ -319,7 +374,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}/pods/{pod}").
-		To(h.HandlePodMetersQuery).
+		To(h.HandlePodMeterQuery).
 		Doc("Get pod-level meter data of a specific pod. Navigate to the pod by the node where it is scheduled.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("node", "Node name.").DataType("string").Required(true)).
@@ -335,7 +390,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteri
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/services").
-		To(h.HandleServiceMetersQuery).
+		To(h.HandleServiceMeterQuery).
 		Doc("Get service-level meter data of the specific namespace's pods.").
 		Param(ws.QueryParameter("operation", "Metering operation.").DataType("string").Required(false).DefaultValue(monitoringv1alpha3.OperationQuery)).
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
