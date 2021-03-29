@@ -872,7 +872,7 @@ func (j *Jenkins) ToJenkinsfile(httpParameters *devops.HttpParameters) (*devops.
 	return res, err
 }
 
-func (j *Jenkins) ToJson(httpParameters *devops.HttpParameters) (*devops.ResJson, error) {
+func (j *Jenkins) ToJson(httpParameters *devops.HttpParameters) (map[string]interface{}, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,

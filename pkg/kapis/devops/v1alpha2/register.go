@@ -614,6 +614,13 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Writes(devops.ResJenkinsfile{}))
 
 		// match /pipeline-model-converter/toJson
+		/*
+		 * Considering the following reasons, we use a generic data struct here.
+		 * - A fixed go struct might need to change again once Jenkins has new features.
+		 * - No refer requirement for the specific data struct
+		 * Please read the official document if you want to know more details
+		 * https://github.com/jenkinsci/pipeline-model-definition-plugin/blob/fc8d22192d7d3a17badc3b8af7191a84bb7fd4ca/EXTENDING.md#conversion-to-json-representation-from-jenkinsfile
+		 */
 		webservice.Route(webservice.POST("/tojson").
 			To(projectPipelineHandler.ToJson).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsfileTag}).
@@ -621,8 +628,8 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Produces("application/json", "charset=utf-8").
 			Doc("Convert jenkinsfile to json format. Usually the frontend uses json to show or edit pipeline").
 			Reads(devops.ReqJenkinsfile{}).
-			Returns(http.StatusOK, RespOK, devops.ResJson{}).
-			Writes(devops.ResJson{}))
+			Returns(http.StatusOK, RespOK, map[string]interface{}{}).
+			Writes(map[string]interface{}{}))
 	}
 	return nil
 }

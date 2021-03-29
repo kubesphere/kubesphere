@@ -116,7 +116,7 @@ type DevopsOperator interface {
 	CheckCron(projectName string, req *http.Request) (*devops.CheckCronRes, error)
 
 	ToJenkinsfile(req *http.Request) (*devops.ResJenkinsfile, error)
-	ToJson(req *http.Request) (*devops.ResJson, error)
+	ToJson(req *http.Request) (map[string]interface{}, error)
 }
 
 type devopsOperator struct {
@@ -935,7 +935,7 @@ func (d devopsOperator) ToJenkinsfile(req *http.Request) (*devops.ResJenkinsfile
 	return res, err
 }
 
-func (d devopsOperator) ToJson(req *http.Request) (*devops.ResJson, error) {
+func (d devopsOperator) ToJson(req *http.Request) (map[string]interface{}, error) {
 
 	res, err := d.devopsClient.ToJson(convertToHttpParameters(req))
 	if err != nil {

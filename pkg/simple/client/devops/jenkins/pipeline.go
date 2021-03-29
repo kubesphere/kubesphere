@@ -856,19 +856,10 @@ func (p *Pipeline) ToJenkinsfile() (*devops.ResJenkinsfile, error) {
 	return &jenkinsfile, err
 }
 
-func (p *Pipeline) ToJson() (*devops.ResJson, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+func (p *Pipeline) ToJson() (result map[string]interface{}, err error) {
+	var data []byte
+	if data, err = p.Jenkins.SendPureRequest(p.Path, p.HttpParameters); err == nil {
+		err = json.Unmarshal(data, &result)
 	}
-
-	var toJson devops.ResJson
-	err = json.Unmarshal(res, &toJson)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return &toJson, err
+	return
 }
