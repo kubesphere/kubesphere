@@ -17,12 +17,14 @@ limitations under the License.
 package devops
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"net/http"
 )
 
 type PipelineSonarGetter interface {

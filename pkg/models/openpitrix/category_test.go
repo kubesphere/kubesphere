@@ -18,13 +18,15 @@ package openpitrix
 
 import (
 	"context"
+	"testing"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
+
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"testing"
 )
 
 func TestOpenPitrixCategory(t *testing.T) {

@@ -17,9 +17,11 @@ limitations under the License.
 package k8s
 
 import (
-	"github.com/spf13/pflag"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"os"
+
+	"github.com/spf13/pflag"
+
+	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
 type KubernetesOptions struct {

@@ -17,16 +17,17 @@ limitations under the License.
 package s3
 
 import (
-	"code.cloudfoundry.org/bytefmt"
 	"fmt"
+	"io"
+	"time"
+
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"io"
 	"k8s.io/klog"
-	"time"
 )
 
 type Client struct {

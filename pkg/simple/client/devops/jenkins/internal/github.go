@@ -1,11 +1,13 @@
 package internal
 
 import (
-	"github.com/beevik/etree"
-	"k8s.io/klog"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"strconv"
 	"strings"
+
+	"github.com/beevik/etree"
+	"k8s.io/klog"
+
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 )
 
 func AppendGithubSourceToEtree(source *etree.Element, githubSource *devopsv1alpha3.GithubSource) {

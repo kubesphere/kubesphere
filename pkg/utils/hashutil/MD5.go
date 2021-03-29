@@ -17,9 +17,10 @@ limitations under the License.
 package hashutil
 
 import (
-	"code.cloudfoundry.org/bytefmt"
 	"encoding/hex"
 	"io"
+
+	"code.cloudfoundry.org/bytefmt"
 	"k8s.io/klog"
 
 	"kubesphere.io/kubesphere/pkg/utils/readerutils"

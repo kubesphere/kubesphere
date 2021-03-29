@@ -18,8 +18,9 @@ package path
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"strings"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 )

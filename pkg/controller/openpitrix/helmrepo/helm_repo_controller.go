@@ -18,6 +18,9 @@ package helmrepo
 
 import (
 	"context"
+	"math"
+	"time"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,17 +28,16 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"k8s.io/utils/strings"
-	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"math"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"time"
+
+	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 const (

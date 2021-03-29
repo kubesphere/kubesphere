@@ -17,11 +17,13 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
+	restfulspec "github.com/emicklei/go-restful-openapi"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 )
 
 const groupName = "servicemesh.kubesphere.io"

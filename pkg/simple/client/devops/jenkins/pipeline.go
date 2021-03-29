@@ -20,14 +20,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"k8s.io/klog"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
 type Pipeline struct {

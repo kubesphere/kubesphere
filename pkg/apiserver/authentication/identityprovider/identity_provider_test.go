@@ -19,8 +19,9 @@
 package identityprovider
 
 import (
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"testing"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 type emptyOAuthProviderFactory struct {

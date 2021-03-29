@@ -18,9 +18,10 @@ package esutil
 
 import (
 	"fmt"
-	"github.com/google/go-cmp/cmp"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestResolveIndexNames(t *testing.T) {

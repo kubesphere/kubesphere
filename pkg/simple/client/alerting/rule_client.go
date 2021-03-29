@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"net/http"
+
+	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/api"
 )
-import "github.com/prometheus/client_golang/api"
 
 const (
 	apiPrefix      = "/api/v1"

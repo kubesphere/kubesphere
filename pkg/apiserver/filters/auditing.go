@@ -17,10 +17,12 @@ limitations under the License.
 package filters
 
 import (
+	"net/http"
+
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/auditing"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	"net/http"
 )
 
 func WithAuditing(handler http.Handler, a auditing.Auditing) http.Handler {

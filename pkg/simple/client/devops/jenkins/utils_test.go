@@ -1,9 +1,10 @@
 package jenkins
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseJenkinsQuery(t *testing.T) {

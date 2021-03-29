@@ -22,8 +22,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,9 +38,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"os"
-	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {

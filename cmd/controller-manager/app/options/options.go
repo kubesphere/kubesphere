@@ -18,14 +18,16 @@ package options
 
 import (
 	"flag"
-	"k8s.io/apimachinery/pkg/labels"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"

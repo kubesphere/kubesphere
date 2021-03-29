@@ -1,7 +1,7 @@
 package es
 
 import (
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 	"k8s.io/klog"
 )
 

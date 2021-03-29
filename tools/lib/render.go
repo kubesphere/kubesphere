@@ -19,10 +19,11 @@ package lib
 import (
 	"encoding/json"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apiserver/pkg/registry/rest"
 	"log"
 	"net"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/go-openapi/spec"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

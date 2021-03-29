@@ -17,17 +17,19 @@ limitations under the License.
 package workspace
 
 import (
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
 	"github.com/onsi/gomega/gexec"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/klogr"
-	"kubesphere.io/kubesphere/pkg/apis"
-	"os"
-	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"testing"
-	"time"
+
+	"kubesphere.io/kubesphere/pkg/apis"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

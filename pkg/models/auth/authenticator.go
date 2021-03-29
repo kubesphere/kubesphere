@@ -20,16 +20,19 @@ package auth
 
 import (
 	"fmt"
+	"net/mail"
+
 	"golang.org/x/crypto/bcrypt"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"net/mail"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	authuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
+
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"

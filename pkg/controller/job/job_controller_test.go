@@ -17,6 +17,10 @@ limitations under the License.
 package job
 
 import (
+	"reflect"
+	"testing"
+	"time"
+
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,9 +31,6 @@ import (
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	"reflect"
-	"testing"
-	"time"
 )
 
 var (

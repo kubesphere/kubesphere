@@ -18,18 +18,20 @@ package application
 
 import (
 	"context"
+	"path/filepath"
+	"reflect"
+	"testing"
+
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
-	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"path/filepath"
-	"reflect"
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"testing"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
 var c client.Client

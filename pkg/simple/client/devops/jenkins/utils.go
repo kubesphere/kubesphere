@@ -19,12 +19,13 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"k8s.io/klog"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"k8s.io/klog"
 )
 
 func makeJson(data interface{}) string {

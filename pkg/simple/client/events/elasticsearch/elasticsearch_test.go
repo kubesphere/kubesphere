@@ -18,14 +18,16 @@ package elasticsearch
 
 import (
 	"encoding/json"
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/events"
 )
 
 func MockElasticsearchService(pattern string, fakeCode int, fakeResp string) *httptest.Server {

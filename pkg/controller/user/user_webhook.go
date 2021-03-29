@@ -19,11 +19,13 @@ package user
 import (
 	"context"
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"net/http"
 	"net/mail"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 )
 
 type EmailValidator struct {

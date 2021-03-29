@@ -20,14 +20,16 @@ package capability
 import (
 	"context"
 	"errors"
+	"net"
+	"net/url"
+	"time"
+
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/keepalive"
+
 	"kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
-	"net"
-	"net/url"
-	"time"
 )
 
 const (

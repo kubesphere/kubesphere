@@ -20,6 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
@@ -53,8 +56,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	ippoolclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func addControllers(

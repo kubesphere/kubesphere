@@ -21,14 +21,16 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"time"
+
 	"github.com/go-ldap/ldap"
 	"github.com/mitchellh/mapstructure"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	"time"
 )
 
 const (

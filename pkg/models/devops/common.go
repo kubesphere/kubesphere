@@ -18,10 +18,12 @@ package devops
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/fatih/structs"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"time"
 )
 
 func GetColumnsFromStruct(s interface{}) []string {

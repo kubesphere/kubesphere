@@ -16,12 +16,14 @@ limitations under the License.
 package hpa
 
 import (
+	"sort"
+
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
+
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"sort"
 )
 
 type hpaSearcher struct {

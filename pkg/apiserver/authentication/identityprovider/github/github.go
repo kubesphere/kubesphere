@@ -20,13 +20,15 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"github.com/mitchellh/mapstructure"
-	"golang.org/x/oauth2"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"net/http"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
+	"golang.org/x/oauth2"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 const (

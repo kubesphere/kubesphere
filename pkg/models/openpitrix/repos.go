@@ -16,6 +16,10 @@ package openpitrix
 import (
 	"context"
 	"encoding/json"
+	"net/url"
+	"sort"
+	"strings"
+
 	"github.com/go-openapi/strfmt"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	typed_v1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
@@ -34,10 +40,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
 	"kubesphere.io/kubesphere/pkg/utils/reposcache"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"net/url"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sort"
-	"strings"
 )
 
 const DescriptionLen = 512

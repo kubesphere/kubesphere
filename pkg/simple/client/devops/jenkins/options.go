@@ -18,7 +18,9 @@ package jenkins
 
 import (
 	"fmt"
+
 	"github.com/spf13/pflag"
+
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 

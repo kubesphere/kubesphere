@@ -20,10 +20,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 
+	"github.com/mitchellh/mapstructure"
+
 	"golang.org/x/oauth2"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )

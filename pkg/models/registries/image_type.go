@@ -17,8 +17,9 @@ limitations under the License.
 package registries
 
 import (
-	"github.com/opencontainers/go-digest"
 	"time"
+
+	"github.com/opencontainers/go-digest"
 )
 
 // ImageBlobInfo describes the info of an image.

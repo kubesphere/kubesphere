@@ -18,11 +18,12 @@ package registries
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
+
 	"github.com/docker/distribution/reference"
 	"github.com/opencontainers/go-digest"
 	log "k8s.io/klog"
-	"net/url"
-	"strings"
 )
 
 // Image holds information about an image.

@@ -17,12 +17,14 @@ limitations under the License.
 package ldap
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"os"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"gopkg.in/yaml.v3"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 func TestNewLdapProvider(t *testing.T) {

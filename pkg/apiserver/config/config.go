@@ -18,7 +18,11 @@ package config
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/spf13/viper"
+
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
@@ -39,8 +43,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"reflect"
-	"strings"
 )
 
 // Package config saves configuration for running KubeSphere components

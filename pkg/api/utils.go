@@ -17,12 +17,13 @@ limitations under the License.
 package api
 
 import (
-	"github.com/emicklei/go-restful"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/klog"
 	"net/http"
 	"runtime"
 	"strings"
+
+	"github.com/emicklei/go-restful"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog"
 )
 
 // Avoid emitting errors that look like valid HTML. Quotes are okay.

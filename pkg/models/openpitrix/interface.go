@@ -17,15 +17,17 @@ limitations under the License.
 package openpitrix
 
 import (
+	"sync"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ks_informers "kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/reposcache"
-	"sync"
 )
 
 type Interface interface {

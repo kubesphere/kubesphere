@@ -17,9 +17,11 @@ limitations under the License.
 package auditing
 
 import (
-	"github.com/spf13/pflag"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"time"
+
+	"github.com/spf13/pflag"
+
+	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
 type Options struct {

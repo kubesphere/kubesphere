@@ -17,12 +17,14 @@ limitations under the License.
 package s2irun
 
 import (
+	"sort"
+
 	"k8s.io/apimachinery/pkg/labels"
+
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"sort"
 )
 
 type s2iRunSearcher struct {

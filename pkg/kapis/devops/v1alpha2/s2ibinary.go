@@ -17,14 +17,16 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"code.cloudfoundry.org/bytefmt"
 	"fmt"
+	"net/http"
+
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/utils/hashutil"
-	"net/http"
 )
 
 type S2iBinaryHandler struct {

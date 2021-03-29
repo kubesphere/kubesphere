@@ -20,11 +20,13 @@ package quota
 
 import (
 	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 )
 
 // Following code copied from github.com/openshift/library-go/pkg/quota/quotautil

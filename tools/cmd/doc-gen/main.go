@@ -22,9 +22,10 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
+
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/version"
-	"log"
 
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -36,6 +37,7 @@ import (
 	promfake "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/fake"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"

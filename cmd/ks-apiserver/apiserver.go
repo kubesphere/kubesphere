@@ -17,8 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"kubesphere.io/kubesphere/cmd/ks-apiserver/app"
 	"log"
+
+	"kubesphere.io/kubesphere/cmd/ks-apiserver/app"
 )
 
 func main() {

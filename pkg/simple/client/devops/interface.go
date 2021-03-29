@@ -18,9 +18,10 @@ package devops
 
 import (
 	"fmt"
-	"github.com/asaskevich/govalidator"
 	"net/http"
 	"strconv"
+
+	"github.com/asaskevich/govalidator"
 )
 
 type Interface interface {

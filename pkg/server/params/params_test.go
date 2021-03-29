@@ -17,11 +17,12 @@ limitations under the License.
 package params
 
 import (
-	"gotest.tools/assert"
 	"net/http"
 	"net/url"
 	"reflect"
 	"testing"
+
+	"gotest.tools/assert"
 
 	"github.com/emicklei/go-restful"
 )
