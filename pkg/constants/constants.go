@@ -28,6 +28,7 @@ const (
 	KubeSphereNamespace           = "kubesphere-system"
 	KubeSphereControlNamespace    = "kubesphere-controls-system"
 	PorterNamespace               = "porter-system"
+	WeaveNamespace                = "weave"
 	IngressControllerNamespace    = KubeSphereControlNamespace
 	AdminUserName                 = "admin"
 	IngressControllerPrefix       = "kubesphere-router-"
@@ -132,5 +133,5 @@ const (
 )
 
 var (
-	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace, PorterNamespace}
+	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace, PorterNamespace, WeaveNamespace}
 )
