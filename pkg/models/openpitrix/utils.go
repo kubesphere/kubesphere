@@ -336,6 +336,7 @@ func convertApp(app *v1alpha1.HelmApplication, versions []*v1alpha1.HelmApplicat
 	out.Isv = app.GetWorkspace()
 
 	out.ClusterTotal = &rlsCount
+	out.Owner = app.GetCreator()
 
 	return out
 }

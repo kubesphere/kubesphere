@@ -171,6 +171,7 @@ func (c *releaseOperator) CreateApplication(workspace, clusterName, namespace st
 		},
 		Spec: v1alpha1.HelmReleaseSpec{
 			Name:                 request.Name,
+			Description:          stringutils.ShortenString(request.Description, v1alpha1.MsgLen),
 			Version:              1,
 			Values:               strfmt.Base64(request.Conf),
 			ApplicationId:        strings.TrimSuffix(request.AppId, v1alpha1.HelmApplicationAppStoreSuffix),
@@ -265,6 +266,11 @@ func (c *releaseOperator) ListApplications(workspace, clusterName, namespace str
 
 	if versionId != "" {
 		ls[constants.ChartApplicationVersionIdLabelKey] = versionId
+	}
+
+	repoId := conditions.Match[RepoId]
+	if repoId != "" {
+		ls[constants.ChartRepoIdLabelKey] = repoId
 	}
 
 	if workspace != "" {
