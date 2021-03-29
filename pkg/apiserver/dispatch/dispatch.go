@@ -18,18 +18,19 @@ package dispatch
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
-	"net/http"
-	"strings"
 
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 )
 
 const proxyURLFormat = "/api/v1/namespaces/kubesphere-system/services/:ks-apiserver:/proxy%s"
@@ -77,13 +78,13 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 	}
 
 	if !c.IsClusterReady(cluster) {
-		http.Error(w, fmt.Sprintf("cluster %s is not ready", cluster.Name), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("cluster %s is not ready", cluster.Name), http.StatusBadRequest)
 		return
 	}
 
 	innCluster := c.GetInnerCluster(cluster.Name)
 	if innCluster == nil {
-		http.Error(w, fmt.Sprintf("cluster %s is not ready", cluster.Name), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("cluster %s is not ready", cluster.Name), http.StatusBadRequest)
 		return
 	}
 
