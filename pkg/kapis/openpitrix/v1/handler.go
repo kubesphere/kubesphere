@@ -24,6 +24,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 
@@ -597,7 +598,11 @@ func (h *openpitrixHandler) GetAppVersionFiles(req *restful.Request, resp *restf
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		if apierrors.IsNotFound(err) {
+			api.HandleNotFound(resp, nil, err)
+		} else {
+			api.HandleBadRequest(resp, nil, err)
+		}
 		return
 	}
 

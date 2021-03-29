@@ -71,7 +71,7 @@ func (r *ReconcileHelmApplication) Reconcile(request reconcile.Request) (reconci
 		if !sliceutil.HasString(app.ObjectMeta.Finalizers, appFinalizer) {
 			app.ObjectMeta.Finalizers = append(app.ObjectMeta.Finalizers, appFinalizer)
 			if err := r.Update(rootCtx, app); err != nil {
-				return ctrl.Result{}, err
+				return reconcile.Result{}, err
 			}
 			// create app success
 			appOperationTotal.WithLabelValues("creation", app.GetTrueName(), strconv.FormatBool(inAppStore(app))).Inc()
@@ -80,7 +80,11 @@ func (r *ReconcileHelmApplication) Reconcile(request reconcile.Request) (reconci
 		if !inAppStore(app) {
 			if app.Status.State == v1alpha1.StateActive ||
 				app.Status.State == v1alpha1.StateSuspended {
-				return reconcile.Result{}, r.createAppCopyInAppStore(rootCtx, app)
+				if err := r.createAppCopyInAppStore(rootCtx, app); err != nil {
+					klog.Errorf("create app copy failed, error: %s", err)
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{}, nil
 			}
 		}
 	} else {
@@ -122,9 +126,9 @@ func (r *ReconcileHelmApplication) deleteAppCopyInAppStore(ctx context.Context, 
 	return nil
 }
 
-// create a application copy in app store
-func (r *ReconcileHelmApplication) createAppCopyInAppStore(ctx context.Context, from *v1alpha1.HelmApplication) error {
-	name := fmt.Sprintf("%s%s", from.Name, v1alpha1.HelmApplicationAppStoreSuffix)
+// createAppCopyInAppStore create a application copy in app store
+func (r *ReconcileHelmApplication) createAppCopyInAppStore(ctx context.Context, originApp *v1alpha1.HelmApplication) error {
+	name := fmt.Sprintf("%s%s", originApp.Name, v1alpha1.HelmApplicationAppStoreSuffix)
 
 	app := &v1alpha1.HelmApplication{}
 	err := r.Get(ctx, types.NamespacedName{Name: name}, app)
@@ -134,23 +138,25 @@ func (r *ReconcileHelmApplication) createAppCopyInAppStore(ctx context.Context, 
 
 	if app.Name == "" {
 		app.Name = name
-		labels := from.Labels
+		labels := originApp.Labels
 		if len(labels) == 0 {
 			labels = make(map[string]string, 3)
 		}
 		labels[constants.ChartRepoIdLabelKey] = v1alpha1.AppStoreRepoId
 
-		// assign a category to app
+		// assign a default category to app
 		if labels[constants.CategoryIdLabelKey] == "" {
 			labels[constants.CategoryIdLabelKey] = v1alpha1.UncategorizedId
 		}
-		labels[v1alpha1.OriginWorkspaceLabelKey] = from.GetWorkspace()
-
+		// record the original workspace
+		labels[v1alpha1.OriginWorkspaceLabelKey] = originApp.GetWorkspace()
 		// apps in store are global resource.
 		delete(labels, constants.WorkspaceLabelKey)
+
+		app.Annotations = originApp.Annotations
 		app.Labels = labels
 
-		app.Spec = *from.Spec.DeepCopy()
+		app.Spec = *originApp.Spec.DeepCopy()
 
 		err = r.Create(context.TODO(), app)
 		if err != nil {
@@ -160,7 +166,7 @@ func (r *ReconcileHelmApplication) createAppCopyInAppStore(ctx context.Context, 
 
 	if app.Status.State == "" {
 		// update status if needed
-		return updateHelmApplicationStatus(r.Client, from.Name, true)
+		return updateHelmApplicationStatus(r.Client, originApp.Name, true)
 	}
 
 	return nil
