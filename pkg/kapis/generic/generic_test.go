@@ -17,11 +17,12 @@ limitations under the License.
 package generic
 
 import (
-	"github.com/emicklei/go-restful"
-	"github.com/google/go-cmp/cmp"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/emicklei/go-restful"
+	"github.com/google/go-cmp/cmp"
 )
 
 var group = "test.kubesphere.io"

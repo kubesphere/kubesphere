@@ -17,13 +17,15 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"github.com/gorilla/websocket"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/models/terminal"
-	"net/http"
 )
 
 var upgrader = websocket.Upgrader{

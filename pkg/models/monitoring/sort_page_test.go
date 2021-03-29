@@ -18,11 +18,12 @@ package monitoring
 
 import (
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"github.com/json-iterator/go"
 	"io/ioutil"
 	"math"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func TestSort(t *testing.T) {

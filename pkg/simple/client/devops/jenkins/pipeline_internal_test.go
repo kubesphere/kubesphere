@@ -17,9 +17,10 @@ limitations under the License.
 package jenkins
 
 import (
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"reflect"
 	"testing"
+
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 )
 
 func Test_NoScmPipelineConfig(t *testing.T) {

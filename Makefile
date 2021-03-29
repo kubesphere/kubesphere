@@ -52,6 +52,9 @@ e2e: fmt vet
 fmt:
 	gofmt -w ./pkg ./cmd ./tools ./api
 
+goimports:
+	@hack/update-goimports.sh
+
 # Run go vet against code
 vet:
 	go vet ./pkg/... ./cmd/...

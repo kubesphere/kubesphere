@@ -17,10 +17,12 @@ limitations under the License.
 package prometheus
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus/testdata"
-	"testing"
 )
 
 func TestMakeExpr(t *testing.T) {

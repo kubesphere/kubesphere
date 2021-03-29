@@ -18,6 +18,7 @@ package groupbinding
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"

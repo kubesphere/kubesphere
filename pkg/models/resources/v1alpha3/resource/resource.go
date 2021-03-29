@@ -18,10 +18,14 @@ package resource
 
 import (
 	"errors"
+
 	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
@@ -80,8 +84,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspacerole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspacerolebinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspacetemplate"
-	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
 var ErrResourceNotSupported = errors.New("resource is not supported")

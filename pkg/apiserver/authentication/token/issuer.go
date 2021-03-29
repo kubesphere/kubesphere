@@ -17,8 +17,9 @@ limitations under the License.
 package token
 
 import (
-	"k8s.io/apiserver/pkg/authentication/user"
 	"time"
+
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 const (

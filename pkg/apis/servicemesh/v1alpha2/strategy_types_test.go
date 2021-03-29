@@ -18,10 +18,11 @@ package v1alpha2
 
 import (
 	"io/ioutil"
+	"testing"
+
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
-	"testing"
 
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"

@@ -19,9 +19,10 @@ package application
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,8 +30,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 	"sigs.k8s.io/application/api/v1beta1"
+
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 )
 
 const (

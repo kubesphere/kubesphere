@@ -20,13 +20,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	ksfake "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	"testing"
 )
 
 func TestIPAM_blockGenerator(t *testing.T) {

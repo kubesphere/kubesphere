@@ -18,11 +18,13 @@ package v1alpha2
 
 import (
 	"fmt"
-	"github.com/emicklei/go-restful"
 	"io/ioutil"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
+	"k8s.io/klog"
+
+	"kubesphere.io/kubesphere/pkg/api"
 )
 
 // default jaeger query api endpoint address

@@ -18,15 +18,17 @@ package generic
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 // genericProxy is a simple proxy for external service.

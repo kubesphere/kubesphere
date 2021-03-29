@@ -17,12 +17,14 @@ package jenkins
 import (
 	"bytes"
 	"errors"
-	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/emicklei/go-restful"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
 const (

@@ -32,10 +32,11 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
+
+	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"

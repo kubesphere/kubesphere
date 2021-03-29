@@ -18,9 +18,10 @@ package cache
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/go-redis/redis"
 	"k8s.io/klog"
-	"time"
 )
 
 type Client struct {

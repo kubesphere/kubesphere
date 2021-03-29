@@ -18,12 +18,14 @@ package helmrelease
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
 	"path"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
+
+	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
 )
 
 func (r *ReconcileHelmRelease) GetChartData(rls *v1alpha1.HelmRelease) (chartName string, chartData []byte, err error) {

@@ -18,10 +18,11 @@ package query
 
 import (
 	"fmt"
-	"github.com/emicklei/go-restful"
-	"github.com/google/go-cmp/cmp"
 	"net/http"
 	"testing"
+
+	"github.com/emicklei/go-restful"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestParseQueryParameter(t *testing.T) {

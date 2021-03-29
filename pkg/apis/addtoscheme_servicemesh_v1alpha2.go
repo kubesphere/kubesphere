@@ -18,6 +18,7 @@ package apis
 
 import (
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
+
 	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"

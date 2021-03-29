@@ -18,9 +18,10 @@ package sonarqube
 
 import (
 	"fmt"
-	"github.com/kubesphere/sonargo/sonar"
-	"k8s.io/klog"
 	"strings"
+
+	sonargo "github.com/kubesphere/sonargo/sonar"
+	"k8s.io/klog"
 )
 
 type Client struct {

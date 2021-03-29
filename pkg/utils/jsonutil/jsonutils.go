@@ -18,8 +18,9 @@ package jsonutil
 
 import (
 	"encoding/json"
-	"k8s.io/klog"
 	"strings"
+
+	"k8s.io/klog"
 )
 
 type JsonRawMessage []byte

@@ -18,7 +18,9 @@ package elasticsearch
 
 import (
 	"fmt"
-	"github.com/json-iterator/go"
+
+	jsoniter "github.com/json-iterator/go"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/es"
 	"kubesphere.io/kubesphere/pkg/simple/client/es/query"

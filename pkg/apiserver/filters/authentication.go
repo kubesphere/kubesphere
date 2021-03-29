@@ -19,6 +19,8 @@ package filters
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,8 +28,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	"net/http"
 )
 
 // WithAuthentication installs authentication handler to handler chain.

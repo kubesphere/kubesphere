@@ -20,8 +20,9 @@ package basictoken
 
 import (
 	"errors"
-	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"net/http"
+
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 )
 
 type Authenticator struct {

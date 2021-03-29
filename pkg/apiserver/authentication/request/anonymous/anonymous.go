@@ -17,10 +17,11 @@ limitations under the License.
 package anonymous
 
 import (
-	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 	"net/http"
 	"strings"
+
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 type Authenticator struct{}

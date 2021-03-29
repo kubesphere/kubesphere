@@ -17,9 +17,10 @@ limitations under the License.
 package token
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"testing"
 )
 
 func TestTokenVerifyWithoutCacheValidate(t *testing.T) {

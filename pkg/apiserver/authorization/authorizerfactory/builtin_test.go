@@ -17,8 +17,9 @@ limitations under the License.
 package authorizerfactory
 
 import (
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"testing"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 )
 
 // Following code copied from k8s.io/apiserver/pkg/authorization/authorizerfactory to avoid import collision

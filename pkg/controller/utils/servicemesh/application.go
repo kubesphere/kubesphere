@@ -1,11 +1,12 @@
 package servicemesh
 
 import (
+	"strings"
+
 	apiv1alpha3 "istio.io/api/networking/v1alpha3"
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (

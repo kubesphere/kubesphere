@@ -19,16 +19,21 @@
 package capability
 
 import (
-	"github.com/google/go-cmp/cmp"
 	"math/rand"
 
+	"github.com/google/go-cmp/cmp"
+
 	//"github.com/google/go-cmp/cmp"
+	"reflect"
+	"testing"
+	"time"
+
 	snapbeta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	snapfake "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
 	snapinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	storagev1 "k8s.io/api/storage/v1"
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -36,12 +41,10 @@ import (
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+
 	ksv1alpha1 "kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
 	ksfake "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"reflect"
-	"testing"
-	"time"
 )
 
 var (

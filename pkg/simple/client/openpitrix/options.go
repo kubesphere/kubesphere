@@ -18,6 +18,7 @@ package openpitrix
 
 import (
 	"github.com/spf13/pflag"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )

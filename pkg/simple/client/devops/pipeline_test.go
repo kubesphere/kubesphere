@@ -2,8 +2,9 @@ package devops
 
 import (
 	"fmt"
-	"gotest.tools/assert"
 	"testing"
+
+	"gotest.tools/assert"
 )
 
 func TestGetSubmitters(t *testing.T) {

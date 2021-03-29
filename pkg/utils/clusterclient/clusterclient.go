@@ -18,16 +18,18 @@ package clusterclient
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+	"sync"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
-	"net/http"
-	"net/url"
-	"sync"
 )
 
 var (

@@ -18,9 +18,14 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
@@ -42,9 +47,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"os"
-	"testing"
-	"time"
 )
 
 func newTestConfig() (*Config, error) {

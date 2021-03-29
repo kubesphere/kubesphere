@@ -28,6 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	"sigs.k8s.io/application/api/v1beta1"
+	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
+
 	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
@@ -39,8 +42,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"sigs.k8s.io/application/api/v1beta1"
-	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 )
 
 type MonitoringOperator interface {

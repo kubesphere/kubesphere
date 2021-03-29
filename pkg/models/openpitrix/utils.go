@@ -18,11 +18,17 @@ package openpitrix
 
 import (
 	"fmt"
+	"path"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-openapi/strfmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/resource"
+
 	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/server/params"
@@ -30,10 +36,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"path"
-	"regexp"
-	"strings"
-	"time"
 )
 
 func convertRepoEvent(meta *metav1.ObjectMeta, state *v1alpha1.HelmRepoSyncState) *RepoEvent {

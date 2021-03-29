@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
