@@ -598,7 +598,7 @@ func (t *tenantOperator) processApplicationMetersQuery(meters []string, q QueryO
 		klog.Error(err.Error())
 		return
 	}
-	componentsMap := t.mo.GetAppComponentsMap(aso.NamespaceName, aso.Applications)
+	componentsMap := t.mo.GetAppWorkloads(aso.NamespaceName, aso.Applications)
 
 	for k, _ := range componentsMap {
 		opt := monitoring.ApplicationOption{
@@ -698,88 +698,22 @@ func (t *tenantOperator) transformMetricData(metrics monitoringmodel.Metrics) me
 	return podsStats
 }
 
-func (t *tenantOperator) classifyPodStats(user user.Info, ns string, podsStats metering.PodsStats) (resourceStats metering.ResourceStatistic, err error) {
-
-	if err = t.updateServicesStats(user, ns, podsStats, &resourceStats); err != nil {
+func (t *tenantOperator) classifyPodStats(user user.Info, cluster, ns string, podsStats metering.PodsStats) (resourceStats metering.ResourceStatistic, err error) {
+	// classify pod stats into following 3 levels under spedified namespace and user info
+	// 	1. project -> workload(deploy, sts, ds) -> pod
+	// 	2. project -> app -> workload(deploy, sts, ds) -> pod
+	// 	3. project -> op -> workload(deploy, sts, ds) -> pod
+	if err = t.updateDeploysStats(user, cluster, ns, podsStats, &resourceStats); err != nil {
 		return
 	}
-
-	if err = t.updateDeploysStats(user, ns, podsStats, &resourceStats); err != nil {
+	if err = t.updateDaemonsetsStats(user, cluster, ns, podsStats, &resourceStats); err != nil {
 		return
 	}
-
-	if err = t.updateDaemonsetsStats(user, ns, podsStats, &resourceStats); err != nil {
-		return
-	}
-
-	if err = t.updateStatefulsetsStats(user, ns, podsStats, &resourceStats); err != nil {
+	if err = t.updateStatefulsetsStats(user, cluster, ns, podsStats, &resourceStats); err != nil {
 		return
 	}
 
 	return
-}
-
-func (t *tenantOperator) updateServicesStats(user user.Info, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
-
-	svcList, err := t.listServices(user, ns)
-	if err != nil {
-		return err
-	}
-
-	for _, svc := range svcList.Items {
-		if svc.Annotations[constants.ApplicationReleaseName] != "" &&
-			svc.Annotations[constants.ApplicationReleaseNS] != "" &&
-			t.isOpNamespace(ns) {
-			// for op svc
-			// currently we do NOT include op svc
-			continue
-		} else {
-			appName, nameOK := svc.Labels[constants.ApplicationName]
-			appVersion, versionOK := svc.Labels[constants.ApplicationVersion]
-
-			svcPodsMap := t.mo.GetSerivePodsMap(ns, []string{svc.Name})
-			pods := svcPodsMap[svc.Name]
-
-			if nameOK && versionOK {
-				// for app crd svc
-				for _, pod := range pods {
-					podStat := podsStats[pod]
-					if podStat == nil {
-						klog.Warningf("%v not found", pod)
-						continue
-					}
-
-					appFullName := appName + ":" + appVersion
-					if err := resourceStats.GetAppStats(appFullName).GetServiceStats(svc.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-						klog.Error(err)
-						return err
-					}
-				}
-			} else {
-				// for k8s svc
-				for _, pod := range pods {
-					if err := resourceStats.GetServiceStats(svc.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-						klog.Error(err)
-						return err
-					}
-				}
-			}
-		}
-	}
-
-	// aggregate svc data
-	for _, app := range resourceStats.Apps {
-		for _, svc := range app.Services {
-			svc.Aggregate()
-		}
-		app.Aggregate()
-	}
-
-	for _, svc := range resourceStats.Services {
-		svc.Aggregate()
-	}
-
-	return nil
 }
 
 func (t *tenantOperator) listServices(user user.Info, ns string) (*corev1.ServiceList, error) {
@@ -817,7 +751,11 @@ func (t *tenantOperator) listServices(user user.Info, ns string) (*corev1.Servic
 	return svcs, nil
 }
 
-func (t *tenantOperator) updateDeploysStats(user user.Info, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
+// updateDeploysStats will update deployment field in resource stats struct with pod stats data and deployments will be classified into 3 classes:
+// 1. openpitrix deployments
+// 2. app deployments
+// 3. k8s deploymnets
+func (t *tenantOperator) updateDeploysStats(user user.Info, cluster, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
 	deployList, err := t.listDeploys(user, ns)
 	if err != nil {
 		return err
@@ -825,44 +763,63 @@ func (t *tenantOperator) updateDeploysStats(user user.Info, ns string, podsStats
 
 	for _, deploy := range deployList.Items {
 
-		if deploy.Annotations[constants.ApplicationReleaseName] != "" &&
-			deploy.Annotations[constants.ApplicationReleaseNS] != "" &&
-			t.isOpNamespace(ns) {
-			// for op deploy
-			// currently we do NOT include op deploy
-			continue
-		} else {
-			_, appNameOK := deploy.Labels[constants.ApplicationName]
-			_, appVersionOK := deploy.Labels[constants.ApplicationVersion]
+		pods, err := t.listPods(user, ns, deploy.Spec.Selector)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
 
-			pods, err := t.listPods(user, ns, deploy.Spec.Selector)
-			if err != nil {
-				klog.Error(err)
-				return err
+		if ok, _ := t.isOpenPitrixComponent(cluster, ns, "deployment", deploy.Name); ok {
+			// TODO: for op deployment
+			continue
+		} else if ok, appName := t.isAppComponent(ns, "deployment", deploy.Name); ok {
+			// for app deployment
+			for _, pod := range pods {
+				podsStat := podsStats[pod]
+				if podsStat == nil {
+					klog.Warningf("%v not found", pod)
+					continue
+				}
+
+				if err := resourceStats.GetAppStats(appName).GetDeployStats(deploy.Name).SetPodStats(pod, podsStat); err != nil {
+					klog.Error(err)
+					return err
+				}
 			}
 
-			if appNameOK && appVersionOK {
-				// for app crd svc
-				continue
-			} else {
-				// for k8s svc
-				for _, pod := range pods {
-					if err := resourceStats.GetDeployStats(deploy.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-						klog.Error(err)
-						return err
-					}
+		} else {
+			// for k8s deployment only
+			for _, pod := range pods {
+				if err := resourceStats.GetDeployStats(deploy.Name).SetPodStats(pod, podsStats[pod]); err != nil {
+					klog.Error(err)
+					return err
 				}
 			}
 		}
 	}
 
+	// TODO: op aggregate for deployment components
+	for _, op := range resourceStats.OpenPitrixs {
+		op.Aggregate()
+	}
+
+	// app aggregate for deployment components
+	for _, app := range resourceStats.Apps {
+		app.Aggregate()
+	}
+
+	// k8s aggregate for deployment components
 	for _, deploy := range resourceStats.Deploys {
 		deploy.Aggregate()
 	}
 	return nil
 }
 
-func (t *tenantOperator) updateDaemonsetsStats(user user.Info, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
+// updateDaemonsetsStats will update daemonsets field in resource stats struct with pod stats data and daemonsets will be classified into 3 classes:
+// 	1. openpitrix daemonsets
+// 	2. app daemonsets
+// 	3. k8s daemonsets
+func (t *tenantOperator) updateDaemonsetsStats(user user.Info, cluster, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
 	daemonsetList, err := t.listDaemonsets(user, ns)
 	if err != nil {
 		return err
@@ -870,59 +827,81 @@ func (t *tenantOperator) updateDaemonsetsStats(user user.Info, ns string, podsSt
 
 	for _, daemonset := range daemonsetList.Items {
 
-		if daemonset.Annotations["meta.helm.sh/release-name"] != "" &&
-			daemonset.Annotations["meta.helm.sh/release-namespace"] != "" &&
-			t.isOpNamespace(ns) {
-			// for op deploy
-			// currently we do NOT include op deploy
+		pods, err := t.listPods(user, ns, daemonset.Spec.Selector)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		if ok, _ := t.isOpenPitrixComponent(cluster, ns, "daemonset", daemonset.Name); ok {
+			// TODO: for op daemonset
 			continue
-		} else {
-			appName := daemonset.Labels[constants.ApplicationName]
-			appVersion := daemonset.Labels[constants.ApplicationVersion]
-
-			pods, err := t.listPods(user, ns, daemonset.Spec.Selector)
-			if err != nil {
-				klog.Error(err)
-				return err
+		} else if ok, appName := t.isAppComponent(ns, "daemonset", daemonset.Name); ok {
+			// for app daemonset
+			for _, pod := range pods {
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	app field(create if not existed) -> statefulsets field(create if not existed) -> pod
+				if err := resourceStats.GetAppStats(appName).GetDaemonStats(daemonset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
+					klog.Error(err)
+					return err
+				}
 			}
-
-			if appName != "" && appVersion != "" {
-				// for app crd svc
-				continue
-			} else {
-				// for k8s svc
-				for _, pod := range pods {
-					if err := resourceStats.GetDaemonsetStats(daemonset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-						klog.Error(err)
-						return err
-					}
+		} else {
+			// for k8s daemonset
+			for _, pod := range pods {
+				if err := resourceStats.GetDaemonsetStats(daemonset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
+					klog.Error(err)
+					return err
 				}
 			}
 		}
 	}
 
+	// here pod stats and level struct are ready
+
+	// TODO: op aggregate for daemonset components
+	for _, op := range resourceStats.OpenPitrixs {
+		op.Aggregate()
+	}
+
+	// app aggregate for daemonset components
+	for _, app := range resourceStats.Apps {
+		app.Aggregate()
+	}
+
+	// k8s aggregate for daemonset components
 	for _, daemonset := range resourceStats.Daemonsets {
 		daemonset.Aggregate()
 	}
 	return nil
 }
 
-func (t *tenantOperator) isOpNamespace(ns string) bool {
-
-	nsObj, err := t.k8sclient.CoreV1().Namespaces().Get(context.Background(), ns, metav1.GetOptions{})
-	if err != nil {
-		return false
-	}
-
-	ws := nsObj.Labels[constants.WorkspaceLabelKey]
-
-	if len(ws) != 0 && ws != "system-workspace" {
-		return true
-	}
-	return false
+// TODO: include op metering part
+func (t *tenantOperator) isOpenPitrixComponent(cluster, ns, kind, componentName string) (bool, string) {
+	return false, ""
 }
 
-func (t *tenantOperator) updateStatefulsetsStats(user user.Info, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
+func (t *tenantOperator) isAppComponent(ns, kind, componentName string) (bool, string) {
+
+	appWorkloads := t.mo.GetAppWorkloads(ns, nil)
+
+	for appName, cList := range appWorkloads {
+		for _, component := range cList {
+			if component == fmt.Sprintf("%s:%s", strings.Title(kind), componentName) {
+				return true, appName
+			}
+		}
+	}
+
+	return false, ""
+}
+
+// updateStatefulsetsStats will update statefulsets field in resource stats struct with pod stats data and statefulsets will be classified into 3 classes:
+// 	1. openpitrix statefulsets
+// 	2. app statefulsets
+// 	3. k8s statefulsets
+func (t *tenantOperator) updateStatefulsetsStats(user user.Info, cluster, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
 	statefulsetsList, err := t.listStatefulsets(user, ns)
 	if err != nil {
 		return err
@@ -930,37 +909,51 @@ func (t *tenantOperator) updateStatefulsetsStats(user user.Info, ns string, pods
 
 	for _, statefulset := range statefulsetsList.Items {
 
-		if statefulset.Annotations[constants.ApplicationReleaseName] != "" &&
-			statefulset.Annotations[constants.ApplicationReleaseNS] != "" &&
-			t.isOpNamespace(ns) {
-			// for op deploy
-			// currently we do NOT include op deploy
+		// query pod list under the statefulset within the namespace
+		pods, err := t.listPods(user, ns, statefulset.Spec.Selector)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		if ok, _ := t.isOpenPitrixComponent(cluster, ns, "statefulset", statefulset.Name); ok {
+			// TODO: for op statefulset
 			continue
-		} else {
-			appName := statefulset.Labels[constants.ApplicationName]
-			appVersion := statefulset.Labels[constants.ApplicationVersion]
-
-			pods, err := t.listPods(user, ns, statefulset.Spec.Selector)
-			if err != nil {
-				klog.Error(err)
-				return err
+		} else if ok, appName := t.isAppComponent(ns, "daemonset", statefulset.Name); ok {
+			// for app statefulset
+			for _, pod := range pods {
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	app field(create if not existed) -> statefulsets field(create if not existed) -> pod
+				if err := resourceStats.GetAppStats(appName).GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
+					klog.Error(err)
+					return err
+				}
 			}
-
-			if appName != "" && appVersion != "" {
-				// for app crd svc
-				continue
-			} else {
-				// for k8s svc
-				for _, pod := range pods {
-					if err := resourceStats.GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-						klog.Error(err)
-						return err
-					}
+		} else {
+			// for k8s statefulset
+			for _, pod := range pods {
+				// same as above, the direction is similar:
+				// k8s field(create if not existed) -> statefulsets field(create if not existed) -> pod
+				if err := resourceStats.GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
+					klog.Error(err)
+					return err
 				}
 			}
 		}
 	}
 
+	// TODO: op aggregate for statefulset components
+	for _, op := range resourceStats.OpenPitrixs {
+		op.Aggregate()
+	}
+
+	// app aggregate for statefulset components
+	for _, app := range resourceStats.Apps {
+		app.Aggregate()
+	}
+
+	// k8s aggregate for statefulset components
 	for _, statefulset := range resourceStats.Statefulsets {
 		statefulset.Aggregate()
 	}
@@ -1046,6 +1039,16 @@ func (t *tenantOperator) listDeploys(user user.Info, ns string) (*appv1.Deployme
 	}
 
 	return deploys, nil
+}
+
+func (t *tenantOperator) getAppNameFromLabels(labels map[string]string) string {
+	appName := labels[constants.ApplicationName]
+	appVersion := labels[constants.ApplicationVersion]
+	if appName == "" || appVersion == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s:%s", appName, appVersion)
 }
 
 func (t *tenantOperator) listDaemonsets(user user.Info, ns string) (*appv1.DaemonSetList, error) {

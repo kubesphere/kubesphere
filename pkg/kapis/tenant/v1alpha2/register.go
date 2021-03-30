@@ -334,6 +334,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Param(ws.PathParameter("namespace", "Namespace name.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both workspace CPU usage and memory usage: `meter_pod_cpu_usage|meter_pod_memory_usage_wo_cache`.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("cluster", "Cluster name").DataType("string").Required(false)).
 		Doc("get current metering hierarchies info in last one hour").
 		Writes(metering.ResourceStatistic{}).
 		Returns(http.StatusOK, api.StatusOK, metering.ResourceStatistic{}))

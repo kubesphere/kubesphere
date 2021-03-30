@@ -59,7 +59,7 @@ type MonitoringOperator interface {
 	// meter
 	GetNamedMetersOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) (Metrics, error)
 	GetNamedMeters(metrics []string, time time.Time, opt monitoring.QueryOption) (Metrics, error)
-	GetAppComponentsMap(ns string, apps []string) map[string][]string
+	GetAppWorkloads(ns string, apps []string) map[string][]string
 	GetSerivePodsMap(ns string, services []string) map[string][]string
 }
 
@@ -432,10 +432,10 @@ func (mo monitoringOperator) GetNamedMetersOverTime(meters []string, start, end 
 	}
 
 	// query time range: (start, end], so here we need to exclude start itself.
-	if start.Add(step).After(end) {
+	if start.Add(time.Hour).After(end) {
 		start = end
 	} else {
-		start = start.Add(step)
+		start = start.Add(time.Hour)
 	}
 
 	var opts []monitoring.QueryOption
@@ -444,10 +444,10 @@ func (mo monitoringOperator) GetNamedMetersOverTime(meters []string, start, end 
 	opts = append(opts, monitoring.MeterOption{
 		Start: start,
 		End:   end,
-		Step:  step,
+		Step:  time.Hour,
 	})
 
-	ress := mo.prometheus.GetNamedMetersOverTime(meters, start, end, step, opts)
+	ress := mo.prometheus.GetNamedMetersOverTime(meters, start, end, time.Hour, opts)
 	sMap := generateScalingFactorMap(step)
 
 	for i, _ := range ress {
@@ -471,7 +471,7 @@ func (mo monitoringOperator) GetNamedMeters(meters []string, time time.Time, opt
 	return metersPerHour, nil
 }
 
-func (mo monitoringOperator) GetAppComponentsMap(ns string, apps []string) map[string][]string {
+func (mo monitoringOperator) GetAppWorkloads(ns string, apps []string) map[string][]string {
 
 	componentsMap := make(map[string][]string)
 	applicationList := []*appv1beta1.Application{}
@@ -584,7 +584,7 @@ func (mo monitoringOperator) GetSerivePodsMap(ns string, services []string) map[
 
 		svcSelector := svcObj.Spec.Selector
 		if len(svcSelector) == 0 {
-			return svcPodsMap
+			continue
 		}
 
 		svcLabels := labels.Set{}

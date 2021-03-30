@@ -30,6 +30,7 @@ const (
 	LevelWorkspace
 	LevelNamespace
 	LevelApplication
+	LevelOpenpitrix
 	LevelWorkload
 	LevelService
 	LevelPod
@@ -150,6 +151,7 @@ func (aso ApplicationsOption) Apply(o *QueryOptions) {
 	return
 }
 
+// ApplicationsOption & OpenpitrixsOption share the same ApplicationOption struct
 type ApplicationOption struct {
 	NamespaceName         string
 	Application           string

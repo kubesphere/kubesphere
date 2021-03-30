@@ -25,13 +25,14 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/api"
+
 	"github.com/jszwec/csvutil"
 
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
@@ -217,9 +218,14 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 			return q, errors.New(fmt.Sprintf(ErrParameterNotfound, "namespace"))
 		}
 
+		application := []string{}
+		if len(r.applications) != 0 {
+			application = strings.Split(r.applications, "|")
+		}
+
 		q.option = monitoring.ApplicationsOption{
 			NamespaceName:    r.namespaceName,
-			Applications:     strings.Split(r.applications, "|"),
+			Applications:     application,
 			StorageClassName: r.storageClassName, // metering pvc
 		}
 		q.namedMetrics = model.ApplicationMetrics
@@ -247,10 +253,17 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 
 	case monitoring.LevelService:
 		q.identifier = model.IdentifierService
+
+		svcs := []string{}
+		if len(r.services) != 0 {
+			svcs = strings.Split(r.services, "|")
+		}
+
 		q.option = monitoring.ServicesOption{
 			NamespaceName: r.namespaceName,
-			Services:      strings.Split(r.services, "|"),
+			Services:      svcs,
 		}
+
 		q.namedMetrics = model.ServiceMetrics
 
 	case monitoring.LevelContainer:
@@ -379,9 +392,8 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 	return q, nil
 }
 
-func ExportMetrics(resp *restful.Response, metrics model.Metrics) {
-	resp.Header().Set(restful.HEADER_ContentType, "text/plain")
-	resp.Header().Set("Content-Disposition", "attachment")
+func exportMetrics(metrics model.Metrics) (*bytes.Buffer, error) {
+	var resBytes []byte
 
 	for i, _ := range metrics.Results {
 		ret := metrics.Results[i]
@@ -390,14 +402,72 @@ func ExportMetrics(resp *restful.Response, metrics model.Metrics) {
 		}
 	}
 
-	resBytes, err := csvutil.Marshal(metrics.Results)
-	if err != nil {
-		api.HandleBadRequest(resp, nil, err)
-		return
+	for _, metric := range metrics.Results {
+
+		metricName := metric.MetricName
+
+		var csvpoints []monitoring.CSVPoint
+		for _, metricVal := range metric.MetricValues {
+
+			var targetList []string
+			for k, v := range metricVal.Metadata {
+				targetList = append(targetList, fmt.Sprintf("%s=%s", k, v))
+			}
+			selector := strings.Join(targetList, "|")
+
+			var startTime, endTime string
+			if len(metricVal.ExportedSeries) > 0 {
+				startTime = metricVal.ExportedSeries[0].Timestamp()
+				endTime = metricVal.ExportedSeries[len(metricVal.ExportedSeries)-1].Timestamp()
+			}
+
+			statsTab := "\nmetric_name,selector,start_time,end_time,min,max,avg,sum,fee, currency_unit\n" +
+				fmt.Sprintf("%s,%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%s\n\n",
+					metricName,
+					selector,
+					startTime,
+					endTime,
+					metricVal.MinValue,
+					metricVal.MaxValue,
+					metricVal.AvgValue,
+					metricVal.SumValue,
+					metricVal.Fee,
+					metricVal.CurrencyUnit)
+
+			csvpoints = nil
+			resourceUnit := metricVal.ResourceUnit
+			for _, p := range metricVal.ExportedSeries {
+				csvpoints = append(csvpoints, p.TransformToCSVPoint(metricName, selector, resourceUnit))
+			}
+
+			dataTab, err := csvutil.Marshal(csvpoints)
+			if err != nil {
+				return nil, err
+			}
+
+			resBytes = append(resBytes, statsTab...)
+			resBytes = append(resBytes, dataTab...)
+		}
+	}
+
+	if len(resBytes) == 0 {
+		resBytes = []byte("no data")
 	}
 
 	output := new(bytes.Buffer)
-	_, err = output.Write(resBytes)
+	_, err := output.Write(resBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return output, nil
+}
+
+func ExportMetrics(resp *restful.Response, metrics model.Metrics) {
+	resp.Header().Set(restful.HEADER_ContentType, "text/plain")
+	resp.Header().Set("Content-Disposition", "attachment")
+
+	output, err := exportMetrics(metrics)
 	if err != nil {
 		api.HandleBadRequest(resp, nil, err)
 		return
@@ -408,5 +478,6 @@ func ExportMetrics(resp *restful.Response, metrics model.Metrics) {
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
+
 	return
 }

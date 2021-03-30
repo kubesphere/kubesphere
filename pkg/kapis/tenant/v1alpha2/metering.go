@@ -64,25 +64,26 @@ func (h *tenantHandler) QueryMeteringsHierarchy(req *restful.Request, resp *rest
 
 func (h *tenantHandler) HandlePriceInfoQuery(req *restful.Request, resp *restful.Response) {
 
-	var priceInfoResponse metering.PriceInfo
-	priceInfoResponse.Init()
+	var priceResponse metering.PriceResponse
+	priceResponse.Init()
 
 	meterConfig, err := monitoring.LoadYaml()
 	if err != nil {
 		klog.Warning(err)
-		resp.WriteAsJson(priceInfoResponse)
+		resp.WriteAsJson(priceResponse)
 		return
 	}
 
 	priceInfo := meterConfig.GetPriceInfo()
-	priceInfoResponse.Currency = priceInfo.CurrencyUnit
-	priceInfoResponse.CpuPerCorePerHour = priceInfo.CpuPerCorePerHour
-	priceInfoResponse.MemPerGigabytesPerHour = priceInfo.MemPerGigabytesPerHour
-	priceInfoResponse.IngressNetworkTrafficPerGiagabytesPerHour = priceInfo.IngressNetworkTrafficPerGiagabytesPerHour
-	priceInfoResponse.EgressNetworkTrafficPerGiagabytesPerHour = priceInfo.EgressNetworkTrafficPerGigabytesPerHour
-	priceInfoResponse.PvcPerGigabytesPerHour = priceInfo.PvcPerGigabytesPerHour
+	priceResponse.RetentionDay = meterConfig.RetentionDay
+	priceResponse.Currency = priceInfo.CurrencyUnit
+	priceResponse.CpuPerCorePerHour = priceInfo.CpuPerCorePerHour
+	priceResponse.MemPerGigabytesPerHour = priceInfo.MemPerGigabytesPerHour
+	priceResponse.IngressNetworkTrafficPerMegabytesPerHour = priceInfo.IngressNetworkTrafficPerMegabytesPerHour
+	priceResponse.EgressNetworkTrafficPerMegabytesPerHour = priceInfo.EgressNetworkTrafficPerMegabytesPerHour
+	priceResponse.PvcPerGigabytesPerHour = priceInfo.PvcPerGigabytesPerHour
 
-	resp.WriteAsJson(priceInfoResponse)
+	resp.WriteAsJson(priceResponse)
 
 	return
 }

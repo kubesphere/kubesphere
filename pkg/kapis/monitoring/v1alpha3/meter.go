@@ -32,6 +32,10 @@ func getMetricPosMap(metrics []monitoring.Metric) map[string]int {
 	return metricMap
 }
 
+func (h handler) getAppWorkloads(ns string, apps []string) map[string][]string {
+	return h.mo.GetAppWorkloads(ns, apps)
+}
+
 func (h handler) handleApplicationMetersQuery(meters []string, resp *restful.Response, q queryOptions) {
 	var metricMap = make(map[string]int)
 	var res model.Metrics
@@ -43,13 +47,13 @@ func (h handler) handleApplicationMetersQuery(meters []string, resp *restful.Res
 		klog.Error("invalid application option")
 		return
 	}
-	componentsMap := h.mo.GetAppComponentsMap(aso.NamespaceName, aso.Applications)
+	appWorkloads := h.getAppWorkloads(aso.NamespaceName, aso.Applications)
 
-	for k, _ := range componentsMap {
+	for k, _ := range appWorkloads {
 		opt := monitoring.ApplicationOption{
 			NamespaceName:         aso.NamespaceName,
 			Application:           k,
-			ApplicationComponents: componentsMap[k],
+			ApplicationComponents: appWorkloads[k],
 			StorageClassName:      aso.StorageClassName,
 		}
 
