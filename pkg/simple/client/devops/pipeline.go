@@ -203,6 +203,7 @@ type SCMOrg struct {
 		} `json:"self,omitempty" description:"scm org self info"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
 	Avatar                      string `json:"avatar,omitempty" description:"the url of organization avatar"`
+	Key                         string `json:"key,omitempty" description:"the key of a Bitbucket organization"`
 	JenkinsOrganizationPipeline bool   `json:"jenkinsOrganizationPipeline,omitempty" description:"weather or not already have jenkins pipeline."`
 	Name                        string `json:"name,omitempty" description:"organization name"`
 }
