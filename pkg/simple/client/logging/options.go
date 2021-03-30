@@ -24,6 +24,9 @@ import (
 
 type Options struct {
 	Host        string `json:"host" yaml:"host"`
+	BasicAuth   bool   `json:"basicAuth" yaml:"basicAuth"`
+	Username    string `json:"username" yaml:"username"`
+	Password    string `json:"password" yaml:"password"`
 	IndexPrefix string `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
 	Version     string `json:"version" yaml:"version"`
 }
@@ -52,6 +55,20 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 		"Elasticsearch logging service host. KubeSphere is using elastic as log store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin log API instead, and"+
 		" the following elastic search options will be ignored.")
+
+	fs.BoolVar(&s.BasicAuth, "logging-elasticsearch-basicAuth", c.BasicAuth, ""+
+		"Elasticsearch logging service basic auth enabled. KubeSphere is using elastic as logging store, "+
+		"if it is set to true, KubeSphere will connect to ElasticSearch using provided username and password by "+
+		"logging-elasticsearch-username and logging-elasticsearch-username. Otherwise, KubeSphere will "+
+		"anonymously access the Elasticsearch.")
+
+	fs.StringVar(&s.Username, "logging-elasticsearch-username", c.Username, ""+
+		"ElasticSearch authentication username, only needed when logging-elasticsearch-basicAuth is"+
+		"set to true. ")
+
+	fs.StringVar(&s.Password, "logging-elasticsearch-password", c.Password, ""+
+		"ElasticSearch authentication password, only needed when logging-elasticsearch-basicAuth is"+
+		"set to true. ")
 
 	fs.StringVar(&s.IndexPrefix, "logging-index-prefix", c.IndexPrefix, ""+
 		"Index name prefix. KubeSphere will retrieve logs against indices matching the prefix.")

@@ -24,6 +24,9 @@ import (
 
 type Options struct {
 	Host        string `json:"host" yaml:"host"`
+	BasicAuth   bool   `json:"basicAuth" yaml:"basicAuth"`
+	Username    string `json:"username" yaml:"username"`
+	Password    string `json:"password" yaml:"password"`
 	IndexPrefix string `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
 	Version     string `json:"version" yaml:"version"`
 }
@@ -53,6 +56,20 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 		"Elasticsearch service host. KubeSphere is using elastic as event store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin event API instead, and"+
 		" the following elastic search options will be ignored.")
+
+	fs.BoolVar(&s.BasicAuth, "events-elasticsearch-basicAuth", c.BasicAuth, ""+
+		"Elasticsearch events service basic auth enabled. KubeSphere is using elastic as events store, "+
+		"if it is set to true, KubeSphere will connect to ElasticSearch using provided username and password by "+
+		"events-elasticsearch-username and events-elasticsearch-username. Otherwise, KubeSphere will "+
+		"anonymously access the Elasticsearch.")
+
+	fs.StringVar(&s.Username, "events-elasticsearch-username", c.Username, ""+
+		"ElasticSearch authentication username, only needed when events-elasticsearch-basicAuth is"+
+		"set to true. ")
+
+	fs.StringVar(&s.Password, "events-elasticsearch-password", c.Password, ""+
+		"ElasticSearch authentication password, only needed when events-elasticsearch-basicAuth is"+
+		"set to true. ")
 
 	fs.StringVar(&s.IndexPrefix, "events-index-prefix", c.IndexPrefix, ""+
 		"Index name prefix. KubeSphere will retrieve events against indices matching the prefix.")

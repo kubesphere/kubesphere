@@ -41,29 +41,35 @@ const (
 
 // Elasticsearch client
 type Client struct {
-	host    string
-	version string
-	index   string
+	host      string
+	basicAuth bool
+	username  string
+	password  string
+	version   string
+	index     string
 
 	c   versions.Client
 	mux sync.Mutex
 }
 
-func NewClient(host, indexPrefix, version string) (*Client, error) {
+func NewClient(host string, basicAuth bool, username, password, indexPrefix, version string) (*Client, error) {
 	var err error
 	es := &Client{
-		host:    host,
-		version: version,
-		index:   indexPrefix,
+		host:      host,
+		basicAuth: basicAuth,
+		username:  username,
+		password:  password,
+		version:   version,
+		index:     indexPrefix,
 	}
 
 	switch es.version {
 	case ElasticV5:
-		es.c, err = v5.New(es.host, es.index)
+		es.c, err = v5.New(es.host, es.basicAuth, es.username, es.password, es.index)
 	case ElasticV6:
-		es.c, err = v6.New(es.host, es.index)
+		es.c, err = v6.New(es.host, es.basicAuth, es.username, es.password, es.index)
 	case ElasticV7:
-		es.c, err = v7.New(es.host, es.index)
+		es.c, err = v7.New(es.host, es.basicAuth, es.username, es.password, es.index)
 	case "":
 		es.c = nil
 	default:
@@ -89,7 +95,7 @@ func (c *Client) loadClient() error {
 
 	// Detect Elasticsearch server version using Info API.
 	// Info API is backward compatible across v5, v6 and v7.
-	esv6, err := v6.New(c.host, "")
+	esv6, err := v6.New(c.host, c.basicAuth, c.username, c.password, c.index)
 	if err != nil {
 		return err
 	}
@@ -126,11 +132,11 @@ func (c *Client) loadClient() error {
 	v := strings.Split(number, ".")[0]
 	switch v {
 	case ElasticV5:
-		vc, err = v5.New(c.host, c.index)
+		vc, err = v5.New(c.host, c.basicAuth, c.username, c.password, c.index)
 	case ElasticV6:
-		vc, err = v6.New(c.host, c.index)
+		vc, err = v6.New(c.host, c.basicAuth, c.username, c.password, c.index)
 	case ElasticV7:
-		vc, err = v7.New(c.host, c.index)
+		vc, err = v7.New(c.host, c.basicAuth, c.username, c.password, c.index)
 	default:
 		err = fmt.Errorf("unsupported elasticsearch version %s", version)
 	}
