@@ -87,6 +87,9 @@ func (r *ReconcileHelmApplication) Reconcile(request reconcile.Request) (reconci
 				return reconcile.Result{}, nil
 			}
 		}
+
+		// app has changed, update app status
+		return reconcile.Result{}, updateHelmApplicationStatus(r.Client, strings.TrimSuffix(app.Name, v1alpha1.HelmApplicationAppStoreSuffix), inAppStore(app))
 	} else {
 		// delete app copy in appStore
 		if !inAppStore(app) {
@@ -162,11 +165,6 @@ func (r *ReconcileHelmApplication) createAppCopyInAppStore(ctx context.Context, 
 		if err != nil {
 			return err
 		}
-	}
-
-	if app.Status.State == "" {
-		// update status if needed
-		return updateHelmApplicationStatus(r.Client, originApp.Name, true)
 	}
 
 	return nil
