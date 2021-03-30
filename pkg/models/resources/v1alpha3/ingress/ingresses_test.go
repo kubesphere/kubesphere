@@ -17,15 +17,17 @@ limitations under the License.
 package ingress
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
-	"testing"
 )
 
 func TestListIngresses(t *testing.T) {

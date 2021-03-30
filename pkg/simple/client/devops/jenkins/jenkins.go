@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"log"
 	"net/http"
 	"net/url"
@@ -30,6 +28,10 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"k8s.io/klog"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
 // Basic Authentication

@@ -18,10 +18,11 @@ package idutils
 
 import (
 	"errors"
+	"net"
+
 	"github.com/golang/example/stringutil"
 	"github.com/sony/sonyflake"
 	"github.com/speps/go-hashids"
-	"net"
 
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )

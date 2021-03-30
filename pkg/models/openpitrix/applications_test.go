@@ -19,17 +19,19 @@ package openpitrix
 import (
 	"context"
 	"encoding/base64"
+	"testing"
+
 	"github.com/go-openapi/strfmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
-	"testing"
 )
 
 var rawChartData = "H4sIFAAAAAAA/ykAK2FIUjBjSE02THk5NWIzVjBkUzVpWlM5Nk9WVjZNV2xqYW5keVRRbz1IZWxtAOxYUW/bNhDOM3/FTVmBNltoubEdQEAfirTAim1pMA/ZwzAUtHSS2FAkS1JOvLT77QNJ2XGUZEmxJukw34NEkcfj3fG+41EOrRsc1Mw4umCN2LoPStM0nYxG4Z2maf+dDif7W8NROhyP0v3R/t5WOnw+nAy3IL0XbXrUWsfMVvqv1+ob9x8hpvkxGsuVzGD+nDCtV59DOpzQlBRoc8O1C30v4QcUDeQ+YKBUBn5sZ2gkOrREsgYz8AFF3EJjBkxrwXPmZ5L5UmpKhzQlj232hjoK+J8z0aK9twRwG/6fD8d9/I+GG/w/CBkMGD1QrXQZDAnhDaswIwAGtbLcKbPIQFZcnhEA3QpxpATPFxm8KQ+VOzJoUToC4FiVQZJ0Ao5aIaaYG3Q2g9//CLnh7RyN4QUGtrIV4krnYzvjf0gB/w4bLZhDO3hXo9BoLHX6y6WCW/C/t7c/6eF/NN6c/w9D5+eDHZjzJgOLDkou0J/dLxrvlrzGDHYGnz4Rz0Ven2kmC3A1gkcuqDK0Qy1ASce3CwWWXCIkPrKoZ0xg92KItcIBjQXnoZdCj+Phs54M4CM408ocJnuhyZtpW5b8DJLdBDpZKAvfjKodGGQOga1W8OllAR9aJnjJsfClSFCakt8wyg78zq/gDbAww5y1FsGqBteqmmhqyVEUFphBELzhDgtwClzNLTydLYIbXh1OPS+XFViN+TNK3pRgUCCznb9yJR3j0nbVU+jjDk65EDBDaK3X0wILynfaXu/VZfK88CwvV47sZ9alw24cv4uzhV3J+TYonr24+25e6LhyQRRCf4n+iXOXel7q/EzltOHSlZA8sbtPbNKTFRe9e2xd37wUcWtb6bHRVbl+G8N2drERuQSbobhpSwPLxX727Vh3cWx3ZTp89Ae1YDlC8l0Cybvk88GjmkbJqJ69Qb04GPWrUTTU1oOgcgbn58BlLtqiZwqNi/UGLQrMnTI/dQLpWnR0lr1c3UH8GNOanqzgSLkarK4S5+fXTPkIH1rlsGfpVSkNk6zCYne2iIKWkTJFM+d5f3701LRT/p991Tdx99r1423pin8irOn1OnNpHZM5XtZ4HTzXxWg/YdvOQpbnvurzmay1eKMxgfll5D28KelcZqN5XLmX9p9eNvUii9FnNwmS67at4XwpMukayZ0EXMHyY5++j0+9+i9XsuRVw/SXvAze+v9nnPbqv3E63tR/D0InXBYZHIRt/5lp0qBjBXPM3wBXKWoZH1eBG/PU2i+kIVnO9qwZ+C8CsEHaV0oB/9Qf6bySyuB9rHEb/sd7V/7/7E3GG/w/BG3DEXMOjbS+DogxAKc1Spi1XBT+OqNZfsIqtJRsw6/+ymNbrZVxFmyNQkAl1Awa5vKay+p7f+dhjs8RNHP1Wj+TBdkGiVX4IQxPtcGSn2EBp9zV8M0zCm+lWICSYaZXCTQaEFwiJfTV9N3UKYNkG7p69fhgCgU3ltCKu0F4RvUJnf1pBuG57KirgX8sP+1cDi4EzVh+0upw97Vkh9pTTXbojJ2QHeoa31aGV2TnL7INx8xw1Vp48+q1JVQb9R5zRygvkA0iu1HvCZ3bXBU42CS9DW1oQ18z/R0AAP//GfF7tgAeAAA="

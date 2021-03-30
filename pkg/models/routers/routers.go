@@ -20,6 +20,9 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"sort"
+	"strings"
+
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,8 +33,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
-	"sort"
-	"strings"
 )
 
 // choose router node ip by labels, currently select master node

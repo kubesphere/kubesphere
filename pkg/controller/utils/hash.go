@@ -2,9 +2,10 @@ package utils
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"hash"
 	"hash/fnv"
+
+	"github.com/davecgh/go-spew/spew"
 	"k8s.io/apimachinery/pkg/util/rand"
 )
 

@@ -18,16 +18,18 @@ package elasticsearch
 
 import (
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"github.com/json-iterator/go"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/simple/client/es"
-	"kubesphere.io/kubesphere/pkg/simple/client/es/query"
-	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	jsoniter "github.com/json-iterator/go"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/es"
+	"kubesphere.io/kubesphere/pkg/simple/client/es/query"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 )
 
 func TestGetCurrentStats(t *testing.T) {

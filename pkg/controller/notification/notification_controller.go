@@ -19,6 +19,9 @@ package notification
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -33,14 +36,13 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
-	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
-	"kubesphere.io/kubesphere/pkg/constants"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
+
+	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
+	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 const (

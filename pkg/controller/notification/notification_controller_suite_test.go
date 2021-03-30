@@ -17,12 +17,14 @@ limitations under the License.
 package notification
 
 import (
-	"k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/kubernetes/scheme"
-	"kubesphere.io/kubesphere/pkg/apis"
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	"path/filepath"
 	"testing"
+
+	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
+
+	"kubesphere.io/kubesphere/pkg/apis"
+	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

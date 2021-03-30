@@ -19,11 +19,12 @@ package monitoring
 import (
 	"errors"
 	"fmt"
-	"github.com/json-iterator/go"
-	"github.com/jszwec/csvutil"
 	"strconv"
 	"strings"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
+	"github.com/jszwec/csvutil"
 )
 
 const (

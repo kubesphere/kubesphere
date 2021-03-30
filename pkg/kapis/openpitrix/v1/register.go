@@ -14,9 +14,12 @@ limitations under the License.
 package v1
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
@@ -27,7 +30,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"net/http"
 )
 
 const (

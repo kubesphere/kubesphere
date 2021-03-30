@@ -19,10 +19,11 @@ package oauth
 import (
 	"encoding/json"
 	"errors"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/url"
 	"strings"
 	"time"
+
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 type GrantHandlerType string

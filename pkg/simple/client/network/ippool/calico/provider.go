@@ -21,9 +21,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	k8sinformers "k8s.io/client-go/informers"
 	"net"
 	"time"
+
+	k8sinformers "k8s.io/client-go/informers"
 
 	v3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
@@ -41,6 +42,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	"kubesphere.io/kubesphere/pkg/apis/network/calicov3"
 	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
@@ -50,7 +53,6 @@ import (
 	calicoset "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/clientset/versioned"
 	calicoInformer "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/informers/externalversions"
 	blockInformer "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/informers/externalversions/network/calicov3"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (

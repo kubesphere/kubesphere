@@ -1,10 +1,11 @@
 package internal
 
 import (
-	"github.com/beevik/etree"
-	"k8s.io/klog"
 	"strconv"
 	"strings"
+
+	"github.com/beevik/etree"
+	"k8s.io/klog"
 
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 )

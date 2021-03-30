@@ -17,10 +17,11 @@ limitations under the License.
 package cache
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 var dataSet = map[string]string{

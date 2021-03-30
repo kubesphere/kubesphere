@@ -18,14 +18,16 @@ package prometheus
 
 import (
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"github.com/json-iterator/go"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	jsoniter "github.com/json-iterator/go"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
 func TestGetNamedMetrics(t *testing.T) {

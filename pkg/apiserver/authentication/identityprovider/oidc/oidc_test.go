@@ -26,18 +26,20 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	"gopkg.in/square/go-jose.v2"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
+	"gopkg.in/square/go-jose.v2"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 var (

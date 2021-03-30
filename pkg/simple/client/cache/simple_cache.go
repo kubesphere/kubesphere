@@ -17,10 +17,11 @@ limitations under the License.
 package cache
 
 import (
-	"kubesphere.io/kubesphere/pkg/server/errors"
 	"regexp"
 	"strings"
 	"time"
+
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 var ErrNoSuchKey = errors.New("no such key")

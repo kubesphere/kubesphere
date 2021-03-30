@@ -17,22 +17,24 @@ limitations under the License.
 package devops
 
 import (
-	"code.cloudfoundry.org/bytefmt"
 	"context"
 	"fmt"
+	"mime/multipart"
+	"net/http"
+	"reflect"
+
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsS3 "github.com/aws/aws-sdk-go/service/s3"
 	"github.com/emicklei/go-restful"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
-	"mime/multipart"
-	"net/http"
-	"reflect"
 )
 
 const (

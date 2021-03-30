@@ -20,11 +20,13 @@ package quota
 
 import (
 	"context"
+	"time"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
+
+	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
 
 	lru "github.com/hashicorp/golang-lru"
 
@@ -32,6 +34,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	etcd "k8s.io/apiserver/pkg/storage/etcd3"
+
 	utilquota "kubesphere.io/kubesphere/kube/pkg/quota/v1"
 )
 

@@ -18,13 +18,15 @@
 package metrics
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	compbasemetrics "k8s.io/component-base/metrics"
+
 	ksVersion "kubesphere.io/kubesphere/pkg/version"
-	"net/http"
 )
 
 var (

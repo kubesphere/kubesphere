@@ -19,11 +19,15 @@ package v1alpha2
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/klog"
+
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -33,11 +37,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"net/url"
-	"strings"
+
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"net/http"
 )
 
 const (

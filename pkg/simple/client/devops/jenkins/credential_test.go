@@ -17,9 +17,10 @@ limitations under the License.
 package jenkins
 
 import (
+	"testing"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestNewUsernamePasswordCredential(t *testing.T) {

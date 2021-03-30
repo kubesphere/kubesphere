@@ -19,22 +19,25 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	applicationv1alpha1 "kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/version"
 	"kubesphere.io/kubesphere/tools/lib"
-	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/go-openapi/spec"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/kube-openapi/pkg/common"
+
 	applicationinstall "kubesphere.io/kubesphere/pkg/apis/application/crdinstall"
 	devopsinstall "kubesphere.io/kubesphere/pkg/apis/devops/crdinstall"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"

@@ -1,8 +1,9 @@
 package utils
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sort"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // IsDeletionCandidate checks if object is candidate to be deleted

@@ -21,9 +21,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 
-	"k8s.io/apimachinery/pkg/labels"
-	"kubesphere.io/kubesphere/pkg/server/params"
 	"sort"
+
+	"k8s.io/apimachinery/pkg/labels"
+
+	"kubesphere.io/kubesphere/pkg/server/params"
 )
 
 type workspaceSearcher struct {

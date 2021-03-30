@@ -20,18 +20,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"gopkg.in/yaml.v3"
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	"k8s.io/klog"
 	kpath "k8s.io/utils/path"
+	"sigs.k8s.io/kustomize/pkg/types"
+
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"sigs.k8s.io/kustomize/pkg/types"
-	"strings"
-	"time"
 )
 
 const (

@@ -18,9 +18,10 @@ package helmwrapper
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"os"
 	"testing"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 func TestHelmInstall(t *testing.T) {

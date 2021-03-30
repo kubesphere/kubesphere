@@ -18,6 +18,12 @@ package auditing
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"k8s.io/api/auditregistration/v1alpha1"
 	v1 "k8s.io/api/authentication/v1"
@@ -26,17 +32,13 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
+
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/apis/auditing/v1alpha1"
 	v1alpha12 "kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"testing"
-	"time"
 )
 
 var noResyncPeriodFunc = func() time.Duration { return 0 }

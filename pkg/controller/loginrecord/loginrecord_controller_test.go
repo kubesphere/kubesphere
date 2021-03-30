@@ -18,20 +18,22 @@ package loginrecord
 
 import (
 	"fmt"
+	"math/rand"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	clienttesting "k8s.io/client-go/testing"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
+
 	"kubesphere.io/kubesphere/pkg/apis"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"math/rand"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	"testing"
-	"time"
 )
 
 func TestLoginRecordController(t *testing.T) {

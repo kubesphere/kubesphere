@@ -17,9 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"testing"
+
 	cnet "github.com/projectcalico/libcalico-go/lib/net"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestIPAMBlock(t *testing.T) {

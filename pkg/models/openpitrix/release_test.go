@@ -19,11 +19,13 @@ package openpitrix
 import (
 	"context"
 	"encoding/base64"
+	"testing"
+
 	"github.com/go-openapi/strfmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"testing"
 )
 
 func TestOpenPitrixRelease(t *testing.T) {

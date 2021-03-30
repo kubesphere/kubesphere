@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/json-iterator/go"
 	"io/ioutil"
 
-	"k8s.io/api/core/v1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/google/go-cmp/cmp"
+	jsoniter "github.com/json-iterator/go"
+
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,8 +25,8 @@ import (
 
 // mergeResourceLists will merge resoure lists. When two lists have the same resourece, the value from
 // the last list will be present in the result
-func mergeResourceLists(resourceLists ...corev1.ResourceList) corev1.ResourceList {
-	result := corev1.ResourceList{}
+func mergeResourceLists(resourceLists ...v1.ResourceList) v1.ResourceList {
+	result := v1.ResourceList{}
 	for _, rl := range resourceLists {
 		for resource, quantity := range rl {
 			result[resource] = quantity
@@ -35,38 +35,38 @@ func mergeResourceLists(resourceLists ...corev1.ResourceList) corev1.ResourceLis
 	return result
 }
 
-func getResourceList(cpu, memory string) corev1.ResourceList {
-	res := corev1.ResourceList{}
+func getResourceList(cpu, memory string) v1.ResourceList {
+	res := v1.ResourceList{}
 	if cpu != "" {
-		res[corev1.ResourceCPU] = resource.MustParse(cpu)
+		res[v1.ResourceCPU] = resource.MustParse(cpu)
 	}
 	if memory != "" {
-		res[corev1.ResourceMemory] = resource.MustParse(memory)
+		res[v1.ResourceMemory] = resource.MustParse(memory)
 	}
 	return res
 }
 
 var nodeCapacity = mergeResourceLists(getResourceList("8", "8Gi"))
-var node1 = &corev1.Node{
+var node1 = &v1.Node{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "edgenode-1",
 		Labels: map[string]string{
 			"node-role.kubernetes.io/edge": "",
 		},
 	},
-	Status: corev1.NodeStatus{
+	Status: v1.NodeStatus{
 		Capacity: nodeCapacity,
 	},
 }
 
-var node2 = &corev1.Node{
+var node2 = &v1.Node{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "edgenode-2",
 		Labels: map[string]string{
 			"node-role.kubernetes.io/edge": "",
 		},
 	},
-	Status: corev1.NodeStatus{
+	Status: v1.NodeStatus{
 		Capacity: nodeCapacity,
 	},
 }

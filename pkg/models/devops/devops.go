@@ -23,6 +23,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"sort"
+	"strings"
+	"sync"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +37,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
@@ -41,10 +47,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	resourcesV1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"net/http"
-	"sort"
-	"strings"
-	"sync"
 )
 
 const (

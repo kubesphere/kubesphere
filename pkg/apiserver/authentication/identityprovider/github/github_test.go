@@ -21,17 +21,19 @@ package github
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 var githubServer *httptest.Server

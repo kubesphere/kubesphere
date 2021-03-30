@@ -18,6 +18,7 @@ package globalrolebinding
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"

@@ -19,9 +19,8 @@ jobs:
     env:
       GO111MODULE: on
     steps:
-
       - name: Set up Go 1.13
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v2
         with:
           go-version: 1.13
         id: go
@@ -31,6 +30,9 @@ jobs:
 
       - name: Check pr is properly formatted
         run: diff -u <(echo -n) <(gofmt -d ./pkg ./cmd ./tools ./test)
+
+      - name: Verify goimports
+        run: go get -u golang.org/x/tools/cmd/goimports && bash hack/verify-goimports.sh
 
       - name: Downloading go dependencies
         run: go mod vendor

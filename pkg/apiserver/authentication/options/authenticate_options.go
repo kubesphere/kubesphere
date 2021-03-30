@@ -18,7 +18,10 @@ package options
 
 import (
 	"errors"
+	"time"
+
 	"github.com/spf13/pflag"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/aliyunidaas"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/cas"
@@ -26,7 +29,6 @@ import (
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/ldap"
 	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/oidc"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	"time"
 )
 
 type AuthenticationOptions struct {

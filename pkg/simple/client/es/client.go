@@ -19,16 +19,18 @@ package es
 import (
 	"context"
 	"fmt"
-	"github.com/json-iterator/go"
-	"kubesphere.io/kubesphere/pkg/simple/client/es/query"
-	"kubesphere.io/kubesphere/pkg/simple/client/es/versions"
-	"kubesphere.io/kubesphere/pkg/simple/client/es/versions/v5"
-	"kubesphere.io/kubesphere/pkg/simple/client/es/versions/v6"
-	"kubesphere.io/kubesphere/pkg/simple/client/es/versions/v7"
-	"kubesphere.io/kubesphere/pkg/utils/esutil"
 	"strings"
 	"sync"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/es/query"
+	"kubesphere.io/kubesphere/pkg/simple/client/es/versions"
+	v5 "kubesphere.io/kubesphere/pkg/simple/client/es/versions/v5"
+	v6 "kubesphere.io/kubesphere/pkg/simple/client/es/versions/v6"
+	v7 "kubesphere.io/kubesphere/pkg/simple/client/es/versions/v7"
+	"kubesphere.io/kubesphere/pkg/utils/esutil"
 )
 
 const (

@@ -18,8 +18,9 @@ package term
 
 import (
 	"fmt"
-	"github.com/docker/docker/pkg/term"
 	"io"
+
+	"github.com/docker/docker/pkg/term"
 )
 
 // TerminalSize returns the current width and height of the user's terminal. If it isn't a terminal,

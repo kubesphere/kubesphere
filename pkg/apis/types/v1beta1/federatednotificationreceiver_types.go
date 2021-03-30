@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 )
 
