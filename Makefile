@@ -42,7 +42,7 @@ ks-apiserver: fmt vet
 
 # Build ks-controller-manager binary
 ks-controller-manager: fmt vet
-	hack/gobuild.sh cmd/controller-manager
+	hack/gobuild.sh cmd/ks-controller-manager
 
 # Build e2e binary
 e2e: fmt vet

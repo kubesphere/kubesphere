@@ -52,7 +52,6 @@ const (
 // +kubebuilder:resource:scope=Cluster
 type IPAMBlock struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Specification of the IPAMBlock.
 	Spec IPAMBlockSpec `json:"spec,omitempty"`

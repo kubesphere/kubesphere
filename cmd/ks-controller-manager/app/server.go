@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
+	"kubesphere.io/kubesphere/cmd/ks-controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/controller/application"
