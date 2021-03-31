@@ -17,6 +17,7 @@ limitations under the License.
 package openpitrix
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"regexp"
@@ -754,7 +755,7 @@ func attachmentKeyInStorage(ws, id string) string {
 	return path.Join(ws, id)
 }
 
-func convertAppVersionReview(appVersion *v1alpha1.HelmApplicationVersion) *AppVersionReview {
+func convertAppVersionReview(app *v1alpha1.HelmApplication, appVersion *v1alpha1.HelmApplicationVersion) *AppVersionReview {
 	review := &AppVersionReview{}
 	status := appVersion.Status
 	review.Reviewer = status.Audit[0].Operator
@@ -766,7 +767,7 @@ func convertAppVersionReview(appVersion *v1alpha1.HelmApplicationVersion) *AppVe
 	review.VersionName = appVersion.GetVersionName()
 
 	review.StatusTime = strfmt.DateTime(status.Audit[0].Time.Time)
-	review.AppName = appVersion.GetTrueName()
+	review.AppName = app.GetTrueName()
 	return review
 }
 
