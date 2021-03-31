@@ -1,18 +1,18 @@
 [
     {
-        "metric_name": "node_cpu_usage",
+        "metric_name": "pod_cpu_usage",
         "data": {
             "resultType": "matrix",
             "result": [
                 {
                     "metric": {
-                        "node": "edgenode-2",
-                        "role": "edge"
+                        "namespace": "kubeedge",
+                        "pod":"pod1"
                     },
-                    "values": [
+                    "values":[
                         [
-                            1616675696,
-                            "2"
+                             1616675696,
+                            "0.001"
                         ]
                     ]
                 }
@@ -20,19 +20,19 @@
         }
     },
     {
-        "metric_name": "node_cpu_utilisation",
+        "metric_name": "pod_memory_usage_wo_cache",
         "data": {
             "resultType": "matrix",
             "result": [
                 {
                     "metric": {
-                        "node": "edgenode-2",
-                        "role": "edge"
+                        "namespace": "kubeedge",
+                        "pod":"pod1"
                     },
                     "values": [
                         [
                             1616675696,
-                            "0.25"
+                            "1"
                         ]
                     ]
                 }
