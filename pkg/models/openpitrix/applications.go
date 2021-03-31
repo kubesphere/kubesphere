@@ -242,6 +242,7 @@ func (c *applicationOperator) CreateApp(req *CreateAppRequest) (*CreateAppRespon
 		Spec: v1alpha1.HelmApplicationSpec{
 			Name:        req.Name,
 			Description: stringutils.ShortenString(chrt.GetDescription(), v1alpha1.MsgLen),
+			Icon:        stringutils.ShortenString(chrt.GetIcon(), v1alpha1.MsgLen),
 		},
 	}
 	app, err := c.createApp(helmApp, req.Icon)
