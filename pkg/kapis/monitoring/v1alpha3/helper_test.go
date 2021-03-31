@@ -274,8 +274,23 @@ func TestParseRequestParams(t *testing.T) {
 		{
 			params: reqParams{
 				namespaceName: "default",
+				openpitrixs: "op1|op2",
 			},
 			lvl:         monitoring.LevelOpenpitrix,
+			expectedErr: true,
+		},
+		{
+			params: reqParams{
+				namespaceName: "default",
+			},
+			lvl:         monitoring.LevelOpenpitrix,
+			expectedErr: true,
+		},
+		{
+			params: reqParams{
+
+			},
+			lvl: monitoring.LevelOpenpitrix,
 			expectedErr: true,
 		},
 	}
