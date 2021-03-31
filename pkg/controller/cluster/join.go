@@ -24,24 +24,23 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclient "k8s.io/client-go/kubernetes"
+	k8sscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	fedapis "sigs.k8s.io/kubefed/pkg/apis"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 
 	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	k8sscheme "k8s.io/client-go/kubernetes/scheme"
-	fedapis "sigs.k8s.io/kubefed/pkg/apis"
-	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
 
 var (
@@ -79,7 +78,7 @@ const (
 // the joiningNamespace parameter.
 func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	joiningNamespace, hostClusterName, joiningClusterName, secretName string, labels map[string]string,
-	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
+	scope apiextv1.ResourceScope, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
 
 	hostClientset, err := HostClientset(hostConfig)
 	if err != nil {
@@ -264,7 +263,7 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 // account is returned on success.
 func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface,
 	namespace, joiningClusterName, hostClusterName string,
-	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (string, error) {
+	scope apiextv1.ResourceScope, dryRun, errorOnExisting bool) (string, error) {
 
 	klog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
@@ -278,7 +277,7 @@ func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface
 
 	klog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	if scope == apiextv1b1.NamespaceScoped {
+	if scope == apiextv1.NamespaceScoped {
 		klog.V(2).Infof("Creating role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 		err = createRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun, errorOnExisting)

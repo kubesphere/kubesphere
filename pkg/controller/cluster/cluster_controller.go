@@ -27,7 +27,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -730,7 +730,7 @@ func (c *clusterController) joinFederation(clusterConfig *rest.Config, joiningCl
 		joiningClusterName,
 		fmt.Sprintf("%s-secret", joiningClusterName),
 		labels,
-		apiextv1b1.ClusterScoped,
+		apiextv1.ClusterScoped,
 		false,
 		false)
 }
