@@ -56,6 +56,7 @@ const (
 	configMapKind        = "ConfigMap"
 	configMapAPIVersion  = "v1"
 	privateKeyAnnotation = "kubesphere.io/private-key"
+	residual             = 72 * time.Hour
 )
 
 type Interface interface {
@@ -81,19 +82,19 @@ func NewReadOnlyOperator(configMapInformer corev1informers.ConfigMapInformer, ma
 
 func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 	configName := fmt.Sprintf(kubeconfigNameFormat, user.Name)
-	_, err := o.configMapInformer.Lister().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName)
-	// already exist
-	if err == nil {
+	cm, err := o.configMapInformer.Lister().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName)
+	// already exist and cert will not expire in 3 days
+	if err == nil && !isExpirated(cm, user.Name) {
 		return nil
 	}
 
 	// internal error
-	if !errors.IsNotFound(err) {
+	if err != nil && !errors.IsNotFound(err) {
 		klog.Error(err)
 		return err
 	}
 
-	// create if not exist
+	// create a new CSR
 	var ca []byte
 	if len(o.config.CAData) > 0 {
 		ca = o.config.CAData
@@ -134,7 +135,18 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 		return err
 	}
 
-	cm := &corev1.ConfigMap{
+	// update configmap if it already exist.
+	if cm != nil {
+		cm.Data = map[string]string{kubeconfigFileName: string(kubeconfig)}
+		if _, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Update(context.Background(), cm, metav1.UpdateOptions{}); err != nil {
+			klog.Errorln(err)
+			return err
+		}
+		return nil
+	}
+
+	// create a new config
+	cm = &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       configMapKind,
 			APIVersion: configMapAPIVersion,
@@ -303,4 +315,29 @@ func getControlledUsername(cm *corev1.ConfigMap) string {
 		}
 	}
 	return ""
+}
+
+func isExpirated(cm *corev1.ConfigMap, username string) bool {
+	data := []byte(cm.Data[kubeconfigFileName])
+	kubeconfig, err := clientcmd.Load(data)
+	if err != nil {
+		klog.Errorln(err)
+		return true
+	}
+	authInfo, ok := kubeconfig.AuthInfos[username]
+	if ok {
+		clientCert, err := certutil.ParseCertsPEM(authInfo.ClientCertificateData)
+		if err != nil {
+			klog.Errorln(err)
+			return true
+		}
+		for _, cert := range clientCert {
+			if cert.NotAfter.Before(time.Now().Add(residual)) {
+				return true
+			}
+		}
+		return false
+	}
+	//ignore the kubeconfig, since it's not approved yet.
+	return false
 }
