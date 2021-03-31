@@ -133,13 +133,19 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Bind to workspace if the namespace created by kubesphere
 	_, hasWorkspaceLabel := namespace.Labels[tenantv1alpha1.WorkspaceLabel]
-	if hasWorkspaceLabel {
-		if err := r.bindWorkspace(rootCtx, logger, namespace); err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		if err := r.unbindWorkspace(rootCtx, logger, namespace); err != nil {
-			return ctrl.Result{}, err
+	// if the namespace doesn't have a label like kubefed.io/managed: "true" (single cluster environment)
+	// or it has a label like kubefed.io/managed: "false"(multi-cluster environment), we set the owner reference filed.
+	// Otherwise, kubefed controller will remove owner reference.
+	kubefedManaged := namespace.Labels[constants.KubefedManagedLabel] == "true"
+	if !kubefedManaged {
+		if hasWorkspaceLabel {
+			if err := r.bindWorkspace(rootCtx, logger, namespace); err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			if err := r.unbindWorkspace(rootCtx, logger, namespace); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 	// Initialize roles for devops/project namespaces if created by kubesphere
