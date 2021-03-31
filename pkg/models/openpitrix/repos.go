@@ -20,7 +20,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-openapi/strfmt"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -160,7 +159,8 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 		repoCopy.Spec.Description = stringutils.ShortenString(*request.Description, DescriptionLen)
 	}
 
-	if request.Name != nil && len(*request.Name) > 0 && *request.Name != repoCopy.Name {
+	// modify name of the repo
+	if request.Name != nil && len(*request.Name) > 0 && *request.Name != repoCopy.Spec.Name {
 		items, err := c.repoLister.List(labels.SelectorFromSet(map[string]string{constants.WorkspaceLabelKey: repo.GetWorkspace()}))
 		if err != nil && !apierrors.IsNotFound(err) {
 			klog.Errorf("list helm repo failed: %s", err)
@@ -207,10 +207,12 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 
 		repoCopy.Spec.Credential = *cred
 		repoCopy.Spec.Url = parsedUrl.String()
+
+		// change repo name and description won't change version
+		repoCopy.Spec.Version += 1
 	}
 
 	patch := client.MergeFrom(repo)
-	repoCopy.Spec.Version += 1
 	data, err := patch.Data(repoCopy)
 	if err != nil {
 		klog.Error("create patch failed", err)
@@ -238,16 +240,8 @@ func (c *repoOperator) DescribeRepo(id string) (*Repo, error) {
 		return nil, err
 	}
 
-	var desRepo Repo
-
-	desRepo.URL = repo.Spec.Url
-	desRepo.Description = repo.Spec.Description
-	desRepo.Name = repo.GetTrueName()
-	desRepo.RepoId = repo.Name
-	dt, _ := strfmt.ParseDateTime(repo.CreationTimestamp.String())
-	desRepo.CreateTime = &dt
-
-	return &desRepo, nil
+	retRepo := convertRepo(repo)
+	return retRepo, nil
 }
 
 func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {

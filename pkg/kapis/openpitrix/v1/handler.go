@@ -218,7 +218,11 @@ func (h *openpitrixHandler) DescribeRepo(req *restful.Request, resp *restful.Res
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		if apierrors.IsNotFound(err) {
+			api.HandleNotFound(resp, nil, err)
+			return
+		}
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 

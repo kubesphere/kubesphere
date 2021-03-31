@@ -690,8 +690,8 @@ type Repo struct {
 	// repository name
 	Name string `json:"name,omitempty"`
 
-	// owner
-	Owner string `json:"owner,omitempty"`
+	// creator
+	Creator string `json:"creator,omitempty"`
 
 	// runtime provider eg.[qingcloud|aliyun|aws|kubernetes]
 	Providers []string `json:"providers"`

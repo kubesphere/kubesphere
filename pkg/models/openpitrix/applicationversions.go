@@ -230,7 +230,11 @@ func (c *applicationOperator) ListAppVersionReviews(conditions *params.Condition
 	items := make([]interface{}, 0, len(filtered))
 
 	for i, j := offset, 0; i < len(filtered) && j < limit; i, j = i+1, j+1 {
-		review := convertAppVersionReview(filtered[i])
+		app, err := c.appLister.Get(filtered[i].GetHelmApplicationId())
+		if err != nil {
+			return nil, err
+		}
+		review := convertAppVersionReview(app, filtered[i])
 		items = append(items, review)
 	}
 
