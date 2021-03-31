@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
@@ -18,7 +19,8 @@ const (
 	METER_RESOURCE_TYPE_NET_EGRESS
 	METER_RESOURCE_TYPE_PVC
 
-	meteringConfig = "/etc/kubesphere/metering/ks-metering.yaml"
+	meteringConfigDir  = "/etc/kubesphere/metering/"
+	meteringConfigName = "ks-metering.yaml"
 
 	meteringDefaultPrecision = 10
 	meteringCorePrecision    = 3
@@ -103,11 +105,21 @@ func (mc MeterConfig) GetPriceInfo() PriceInfo {
 func LoadYaml() (*MeterConfig, error) {
 
 	var meterConfig MeterConfig
+	var mf *os.File
+	var err error
 
-	mf, err := os.Open(meteringConfig)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+	if _, err := os.Stat(meteringConfigName); os.IsNotExist(err) {
+		mf, err = os.Open(filepath.Join(meteringConfigDir, meteringConfigName))
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+	} else {
+		mf, err = os.Open(meteringConfigName)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
 	}
 
 	if err = yaml.NewYAMLOrJSONDecoder(mf, 1024).Decode(&meterConfig); err != nil {
@@ -170,7 +182,7 @@ func getAvgPointValue(points []monitoring.Point) string {
 
 	length := new(big.Float).SetFloat64(float64(len(points)))
 
-	return fmt.Sprintf("%.3f", sum.Quo(sum, length))
+	return fmt.Sprintf(generateFloatFormat(meteringDefaultPrecision), sum.Quo(sum, length))
 }
 
 func getCurrencyUnit() string {
