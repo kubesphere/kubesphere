@@ -407,6 +407,10 @@ func convertRepo(in *v1alpha1.HelmRepo) *Repo {
 	out.CreateTime = &date
 
 	out.Description = in.Spec.Description
+	out.Creator = in.GetCreator()
+
+	cred, _ := json.Marshal(in.Spec.Credential)
+	out.Credential = string(cred)
 
 	out.URL = in.Spec.Url
 	return &out
