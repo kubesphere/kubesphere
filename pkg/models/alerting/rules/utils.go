@@ -216,7 +216,8 @@ func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroup
 		return nil, nil
 	}
 
-	var epRules = make(map[string]*alerting.AlertingRule)
+	var epRule *alerting.AlertingRule
+out:
 	for _, group := range epRuleGroups {
 		fileShort := strings.TrimSuffix(filepath.Base(group.File), filepath.Ext(group.File))
 		if !strings.HasPrefix(fileShort, ruleNamespace+"-") {
@@ -226,33 +227,23 @@ func GetAlertingRuleStatus(ruleNamespace string, rule *ResourceRule, epRuleGroup
 			continue
 		}
 
-		for _, epRule := range group.Rules {
-			if eid, err := GenEndpointRuleId(group.Name, epRule, extLabels); err != nil {
+		if group.Name != rule.Group {
+			continue
+		}
+
+		for _, epr := range group.Rules {
+			if epr.Name != rule.Alert { // first check name to speed up the hit
+				continue
+			}
+			if eid, err := GenEndpointRuleId(group.Name, epr, extLabels); err != nil {
 				return nil, errors.Wrap(err, ErrGenRuleId)
 			} else {
-				if rule.Rule.Alert == epRule.Name {
-					epRules[eid] = epRule
+				if rule.Id == eid {
+					epRule = epr
+					break out
 				}
 			}
 		}
-	}
-	var epRule *alerting.AlertingRule
-	if rule.Custom {
-		// guarantees the stability of the get operations.
-		var ids []string
-		for k, _ := range epRules {
-			ids = append(ids, k)
-		}
-		if l := len(ids); l > 0 {
-			if l > 1 {
-				sort.Slice(ids, func(i, j int) bool {
-					return v2alpha1.AlertingRuleIdCompare(ids[i], ids[j])
-				})
-			}
-			epRule = epRules[ids[0]]
-		}
-	} else {
-		epRule = epRules[rule.Id]
 	}
 
 	return getAlertingRuleStatus(&rule.ResourceRuleItem, epRule, rule.Custom, rule.Level), nil
