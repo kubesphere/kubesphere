@@ -12,6 +12,11 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+# Default image repo
+REPO=kubespheredev
+# Default image tag
+TAG=latest
+
 OUTPUT_DIR=bin
 GOFLAGS=-mod=vendor
 define ALL_HELP_INFO
@@ -85,9 +90,9 @@ openapi:
 	go run ./tools/cmd/doc-gen/main.go
 # Build the docker image
 docker-build: all
-	hack/docker_build.sh
+	hack/docker_build.sh ${TAG} ${REPO}
 docker-build-no-test: ks-apiserver ks-controller-manager
-	hack/docker_build.sh
+	hack/docker_build.sh ${TAG} ${REPO}
 
 # Run tests
 test: fmt vet

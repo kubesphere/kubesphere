@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ex
+set -e
 set -o pipefail
 
 tag_for_branch() {
@@ -30,22 +30,14 @@ get_repo() {
     echo "$repo"
 }
 
-# push to kubespheredev with default latest tag
+# push to $REPO with default $TAG tag
 TAG=$(tag_for_branch "$1")
 REPO=$(get_repo "$2")
 
-# Push image to dockerhub, need to support multiple push
-cat ~/.docker/config.json | grep index.docker.io
-if [[ $? != 0 ]]; then
-  echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-fi
-
 docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
-docker push $REPO/ks-apiserver:$TAG
 # print the full docker image path for your convience
 docker images --digests | grep $REPO/ks-apiserver | grep $TAG | awk '{print $1":"$2"@"$3}'
 
 docker build -f build/ks-controller-manager/Dockerfile -t $REPO/ks-controller-manager:$TAG .
-docker push $REPO/ks-controller-manager:$TAG
 # print the full docker image path for your convience
 docker images --digests | grep $REPO/ks-controller-manager | grep $TAG | awk '{print $1":"$2"@"$3}'
