@@ -781,10 +781,10 @@ func (t *tenantOperator) updateDeploysStats(user user.Info, cluster, ns string, 
 			// for op deployment
 			for _, pod := range pods {
 				podsStat := podsStats[pod]
-				if err := resourceStats.GetOpenPitrixStats(opName).GetDeployStats(deploy.Name).SetPodStats(pod, podsStat); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	OpenPitrix field(create if not existed) -> deployments field(create if not existed) -> pod
+				resourceStats.GetOpenPitrixStats(opName).GetDeployStats(deploy.Name).SetPodStats(pod, podsStat)
 			}
 		} else if ok, appName := t.isAppComponent(ns, "deployment", deploy.Name); ok {
 			// for app deployment
@@ -794,20 +794,19 @@ func (t *tenantOperator) updateDeploysStats(user user.Info, cluster, ns string, 
 					klog.Warningf("%v not found", pod)
 					continue
 				}
-
-				if err := resourceStats.GetAppStats(appName).GetDeployStats(deploy.Name).SetPodStats(pod, podsStat); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	App field(create if not existed) -> deployments field(create if not existed) -> pod
+				resourceStats.GetAppStats(appName).GetDeployStats(deploy.Name).SetPodStats(pod, podsStat)
 			}
 
 		} else {
 			// for k8s deployment only
 			for _, pod := range pods {
-				if err := resourceStats.GetDeployStats(deploy.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	Deployments field(create if not existed) -> pod
+				resourceStats.GetDeployStats(deploy.Name).SetPodStats(pod, podsStats[pod])
 			}
 		}
 	}
@@ -850,29 +849,26 @@ func (t *tenantOperator) updateDaemonsetsStats(user user.Info, cluster, ns strin
 		if ok, opName := t.isOpenPitrixComponent(cluster, ns, "daemonset", daemonset.Name); ok {
 			// for op daemonset
 			for _, pod := range pods {
-				if err := resourceStats.GetOpenPitrixStats(opName).GetDaemonStats(daemonset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	OpenPitrix field(create if not existed) -> daemonsets field(create if not existed) -> pod
+				resourceStats.GetOpenPitrixStats(opName).GetDaemonStats(daemonset.Name).SetPodStats(pod, podsStats[pod])
 			}
 		} else if ok, appName := t.isAppComponent(ns, "daemonset", daemonset.Name); ok {
 			// for app daemonset
 			for _, pod := range pods {
 				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
 				// and then set pod stats data, the direction is as follows:
-				// 	app field(create if not existed) -> statefulsets field(create if not existed) -> pod
-				if err := resourceStats.GetAppStats(appName).GetDaemonStats(daemonset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// 	App field(create if not existed) -> daemonsets field(create if not existed) -> pod
+				resourceStats.GetAppStats(appName).GetDaemonStats(daemonset.Name).SetPodStats(pod, podsStats[pod])
 			}
 		} else {
 			// for k8s daemonset
 			for _, pod := range pods {
-				if err := resourceStats.GetDaemonsetStats(daemonset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	Daemonsets field(create if not existed) -> pod
+				resourceStats.GetDaemonsetStats(daemonset.Name).SetPodStats(pod, podsStats[pod])
 			}
 		}
 	}
@@ -1001,31 +997,26 @@ func (t *tenantOperator) updateStatefulsetsStats(user user.Info, cluster, ns str
 		if ok, opName := t.isOpenPitrixComponent(cluster, ns, "statefulset", statefulset.Name); ok {
 			// for op statefulset
 			for _, pod := range pods {
-				if err := resourceStats.GetOpenPitrixStats(opName).GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	OpenPitrix field(create if not existed) -> statefulsets field(create if not existed) -> pod
+				resourceStats.GetOpenPitrixStats(opName).GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod])
 			}
 		} else if ok, appName := t.isAppComponent(ns, "daemonset", statefulset.Name); ok {
 			// for app statefulset
 			for _, pod := range pods {
 				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
 				// and then set pod stats data, the direction is as follows:
-				// 	app field(create if not existed) -> statefulsets field(create if not existed) -> pod
-				if err := resourceStats.GetAppStats(appName).GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// 	App field(create if not existed) -> statefulsets field(create if not existed) -> pod
+				resourceStats.GetAppStats(appName).GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod])
 			}
 		} else {
 			// for k8s statefulset
 			for _, pod := range pods {
-				// same as above, the direction is similar:
-				// k8s field(create if not existed) -> statefulsets field(create if not existed) -> pod
-				if err := resourceStats.GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod]); err != nil {
-					klog.Error(err)
-					return err
-				}
+				// aggregate order is from bottom(pods) to top(app), we should create outer field if not exists
+				// and then set pod stats data, the direction is as follows:
+				// 	Statefulsets field(create if not existed) -> pod
+				resourceStats.GetStatefulsetStats(statefulset.Name).SetPodStats(pod, podsStats[pod])
 			}
 		}
 	}

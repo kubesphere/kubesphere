@@ -161,12 +161,11 @@ type ServiceStatistic struct {
 	Pods                map[string]*PodStatistic `json:"pods" description:"pod statistic"`
 }
 
-func (ss *ServiceStatistic) SetPodStats(name string, podStat *PodStatistic) error {
+func (ss *ServiceStatistic) SetPodStats(name string, podStat *PodStatistic) {
 	if ss.Pods == nil {
 		ss.Pods = make(map[string]*PodStatistic)
 	}
 	ss.Pods[name] = podStat
-	return nil
 }
 
 func (ss *ServiceStatistic) GetPodStats(name string) *PodStatistic {
@@ -211,12 +210,11 @@ func (ds *DeploymentStatistic) GetPodStats(name string) *PodStatistic {
 	return ds.Pods[name]
 }
 
-func (ds *DeploymentStatistic) SetPodStats(name string, podStat *PodStatistic) error {
+func (ds *DeploymentStatistic) SetPodStats(name string, podStat *PodStatistic) {
 	if ds.Pods == nil {
 		ds.Pods = make(map[string]*PodStatistic)
 	}
 	ds.Pods[name] = podStat
-	return nil
 }
 
 func (ds *DeploymentStatistic) Aggregate() {
@@ -252,12 +250,11 @@ func (ss *StatefulsetStatistic) GetPodStats(name string) *PodStatistic {
 	return ss.Pods[name]
 }
 
-func (ss *StatefulsetStatistic) SetPodStats(name string, podStat *PodStatistic) error {
+func (ss *StatefulsetStatistic) SetPodStats(name string, podStat *PodStatistic) {
 	if ss.Pods == nil {
 		ss.Pods = make(map[string]*PodStatistic)
 	}
 	ss.Pods[name] = podStat
-	return nil
 }
 
 func (ss *StatefulsetStatistic) Aggregate() {
@@ -293,12 +290,11 @@ func (ds *DaemonsetStatistic) GetPodStats(name string) *PodStatistic {
 	return ds.Pods[name]
 }
 
-func (ds *DaemonsetStatistic) SetPodStats(name string, podStat *PodStatistic) error {
+func (ds *DaemonsetStatistic) SetPodStats(name string, podStat *PodStatistic) {
 	if ds.Pods == nil {
 		ds.Pods = make(map[string]*PodStatistic)
 	}
 	ds.Pods[name] = podStat
-	return nil
 }
 
 func (ds *DaemonsetStatistic) Aggregate() {
