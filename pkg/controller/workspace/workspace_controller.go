@@ -126,6 +126,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	} else {
 		for _, namespace := range namespaces.Items {
+			// managed by kubefed-controller-manager
+			kubefedManaged := namespace.Labels[constants.KubefedManagedLabel] == "true"
+			if kubefedManaged {
+				continue
+			}
+			// managed by workspace
 			if err := r.bindWorkspace(rootCtx, logger, &namespace, workspace); err != nil {
 				return ctrl.Result{}, err
 			}
