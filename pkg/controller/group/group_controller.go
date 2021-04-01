@@ -146,7 +146,7 @@ func (c *Controller) reconcile(key string) error {
 		}
 
 		if group.Labels != nil {
-			// Set OwnerReferences when the group has a parent. And it's owned by kubefed
+			// Set OwnerReferences when the group has a parent. And it's not owned by kubefed
 			if group.Labels[constants.KubefedManagedLabel] != "true" {
 				if parent, ok := group.Labels[iam1alpha2.GroupParent]; ok && !k8sutil.IsControlledBy(group.OwnerReferences, "Group", parent) {
 					if g == nil {
