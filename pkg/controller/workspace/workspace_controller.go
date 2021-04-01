@@ -84,11 +84,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// controlled kubefed-controller-manager
-	if workspace.Labels[constants.KubefedManagedLabel] == "true" {
-		return ctrl.Result{}, nil
-	}
-
 	// name of your custom finalizer
 	finalizer := "finalizers.tenant.kubesphere.io"
 
