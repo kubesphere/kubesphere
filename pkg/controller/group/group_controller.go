@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	iam1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	fedv1beta1types "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
@@ -145,10 +146,11 @@ func (c *Controller) reconcile(key string) error {
 			}
 		}
 
-		if group.Labels != nil {
-			// Set OwnerReferences when the group has a parent. And it's not owned by kubefed
-			if group.Labels[constants.KubefedManagedLabel] != "true" {
-				if parent, ok := group.Labels[iam1alpha2.GroupParent]; ok && !k8sutil.IsControlledBy(group.OwnerReferences, "Group", parent) {
+		// Set OwnerReferences when the group has a parent or Workspace. And it's not owned by kubefed
+		if group.Labels != nil && group.Labels[constants.KubefedManagedLabel] != "true" {
+			if parent, ok := group.Labels[iam1alpha2.GroupParent]; ok {
+				// If the Group is owned by a Parent
+				if !k8sutil.IsControlledBy(group.OwnerReferences, "Group", parent) {
 					if g == nil {
 						g = group.DeepCopy()
 					}
@@ -156,7 +158,7 @@ func (c *Controller) reconcile(key string) error {
 					if err != nil {
 						if errors.IsNotFound(err) {
 							utilruntime.HandleError(fmt.Errorf("Parent group '%s' no longer exists", key))
-							delete(group.Labels, iam1alpha2.GroupParent)
+							delete(g.Labels, iam1alpha2.GroupParent)
 						} else {
 							klog.Error(err)
 							return err
@@ -164,6 +166,27 @@ func (c *Controller) reconcile(key string) error {
 					} else {
 						if err := controllerutil.SetControllerReference(groupParent, g, scheme.Scheme); err != nil {
 							klog.Error(err)
+							return err
+						}
+					}
+				}
+			} else if ws, ok := group.Labels[constants.WorkspaceLabelKey]; ok {
+				// If the Group is owned by a Workspace
+				if !k8sutil.IsControlledBy(group.OwnerReferences, tenantv1alpha2.ResourceKindWorkspaceTemplate, ws) {
+					workspace, err := c.ksClient.TenantV1alpha2().WorkspaceTemplates().Get(context.Background(), ws, metav1.GetOptions{})
+					if err != nil {
+						if errors.IsNotFound(err) {
+							utilruntime.HandleError(fmt.Errorf("Workspace '%s' no longer exists", ws))
+						} else {
+							klog.Error(err)
+							return err
+						}
+					} else {
+						if g == nil {
+							g = group.DeepCopy()
+						}
+						g.OwnerReferences = k8sutil.RemoveWorkspaceOwnerReference(g.OwnerReferences)
+						if err := controllerutil.SetControllerReference(workspace, g, scheme.Scheme); err != nil {
 							return err
 						}
 					}
