@@ -192,7 +192,7 @@ func (q *AlertingRuleQueryParams) Filter(rules []*GettableAlertingRule) []*Getta
 }
 
 func (q *AlertingRuleQueryParams) matches(rule *GettableAlertingRule) bool {
-	if q.NameContainFilter != "" && !containsI(rule.Name, q.NameContainFilter) {
+	if q.NameContainFilter != "" && !containsCaseInsensitive(rule.Name, q.NameContainFilter) {
 		return false
 	}
 	if q.State != "" && q.State != rule.State {
@@ -210,7 +210,7 @@ func (q *AlertingRuleQueryParams) matches(rule *GettableAlertingRule) bool {
 		}
 	}
 	for k, v := range q.LabelContainFilters {
-		if fv, ok := rule.Labels[k]; !ok || !containsI(fv, v) {
+		if fv, ok := rule.Labels[k]; !ok || !containsCaseInsensitive(fv, v) {
 			return false
 		}
 	}
@@ -340,7 +340,7 @@ func (q *AlertQueryParams) matches(alert *Alert) bool {
 		}
 	}
 	for k, v := range q.LabelContainFilters {
-		if fv, ok := alert.Labels[k]; !ok || !containsI(fv, v) {
+		if fv, ok := alert.Labels[k]; !ok || !containsCaseInsensitive(fv, v) {
 			return false
 		}
 	}
@@ -527,8 +527,8 @@ func NewBulkItemErrorServerResponse(ruleName string, err error) *BulkItemRespons
 	}
 }
 
-// containsI reports whether substr is case-insensitive within s.
-func containsI(s, substr string) bool {
+// containsCaseInsensitive reports whether substr is case-insensitive within s.
+func containsCaseInsensitive(s, substr string) bool {
 	return strings.Contains(
 		strings.ToLower(s),
 		strings.ToLower(substr))
