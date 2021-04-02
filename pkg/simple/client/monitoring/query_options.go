@@ -151,6 +151,18 @@ func (aso ApplicationsOption) Apply(o *QueryOptions) {
 	return
 }
 
+type OpenpitrixsOption struct {
+	Cluster          string
+	NamespaceName    string
+	Openpitrixs      []string
+	StorageClassName string
+}
+
+func (oso OpenpitrixsOption) Apply(o *QueryOptions) {
+	// nothing should be done
+	return
+}
+
 // ApplicationsOption & OpenpitrixsOption share the same ApplicationOption struct
 type ApplicationOption struct {
 	NamespaceName         string

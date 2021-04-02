@@ -60,6 +60,7 @@ const (
 )
 
 type reqParams struct {
+	metering         bool
 	operation        string
 	time             string
 	start            string
@@ -84,6 +85,8 @@ type reqParams struct {
 	expression       string
 	metric           string
 	applications     string
+	openpitrixs      string
+	cluster          string
 	services         string
 	pvcFilter        string
 }
@@ -118,7 +121,6 @@ func (q queryOptions) shouldSort() bool {
 
 func parseRequestParams(req *restful.Request) reqParams {
 	var r reqParams
-	r.operation = req.QueryParameter("operation")
 	r.time = req.QueryParameter("time")
 	r.start = req.QueryParameter("start")
 	r.end = req.QueryParameter("end")
@@ -131,21 +133,8 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.resourceFilter = req.QueryParameter("resources_filter")
 	r.workspaceName = req.PathParameter("workspace")
 	r.namespaceName = req.PathParameter("namespace")
-
-	if req.QueryParameter("node") != "" {
-		r.nodeName = req.QueryParameter("node")
-	} else {
-		// compatible with monitoring request
-		r.nodeName = req.PathParameter("node")
-	}
-
-	if req.QueryParameter("kind") != "" {
-		r.workloadKind = req.QueryParameter("kind")
-	} else {
-		// compatible with monitoring request
-		r.workloadKind = req.PathParameter("kind")
-	}
-
+	r.workloadKind = req.PathParameter("kind")
+	r.nodeName = req.PathParameter("node")
 	r.workloadName = req.PathParameter("workload")
 	r.podName = req.PathParameter("pod")
 	r.containerName = req.PathParameter("container")
@@ -154,11 +143,45 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.componentType = req.PathParameter("component")
 	r.expression = req.QueryParameter("expr")
 	r.metric = req.QueryParameter("metric")
-	r.applications = req.QueryParameter("applications")
-	r.services = req.QueryParameter("services")
-	r.pvcFilter = req.QueryParameter("pvc_filter")
 
 	return r
+}
+
+func parseMeteringRequestParams(req *restful.Request) reqParams {
+	params := parseRequestParams(req)
+
+	// mark this request is metering req
+	params.metering = true
+
+	// whether need to export metering data
+	params.operation = req.QueryParameter("operation")
+
+	// OpenPitrix belongs to which cluster
+	params.cluster = req.PathParameter("cluster")
+
+	// specified which application crds
+	params.applications = req.QueryParameter("applications")
+
+	// specified which OpenPitrix apps
+	params.openpitrixs = req.QueryParameter("openpitrix_ids")
+
+	// specified which service
+	params.services = req.QueryParameter("services")
+
+	// specified which pvc
+	params.pvcFilter = req.QueryParameter("pvc_filter")
+
+	// support node param in URL query
+	if req.QueryParameter("node") != "" {
+		params.nodeName = req.QueryParameter("node")
+	}
+
+	// support kind param in URL query
+	if req.QueryParameter("kind") != "" {
+		params.workloadKind = req.QueryParameter("kind")
+	}
+
+	return params
 }
 
 func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOptions, err error) {
@@ -228,6 +251,26 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 			Applications:     application,
 			StorageClassName: r.storageClassName, // metering pvc
 		}
+		q.namedMetrics = model.ApplicationMetrics
+
+	case monitoring.LevelOpenpitrix:
+		q.identifier = model.IdentifierApplication
+		if r.namespaceName == "" {
+			return q, errors.New(fmt.Sprintf(ErrParameterNotfound, "namespace"))
+		}
+
+		ops := []string{}
+		if len(r.openpitrixs) != 0 {
+			ops = strings.Split(r.openpitrixs, "|")
+		}
+		q.option = monitoring.OpenpitrixsOption{
+			Cluster:          r.cluster,
+			NamespaceName:    r.namespaceName,
+			Openpitrixs:      ops,
+			StorageClassName: r.storageClassName,
+		}
+
+		// op share the same metrics with application
 		q.namedMetrics = model.ApplicationMetrics
 
 	case monitoring.LevelWorkload:
@@ -339,7 +382,7 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 	}
 
 	// Ensure query start time to be after the namespace creation time
-	if r.namespaceName != "" {
+	if r.namespaceName != "" && !r.metering {
 		ns, err := h.k.CoreV1().Namespaces().Get(context.Background(), r.namespaceName, corev1.GetOptions{})
 		if err != nil {
 			return q, err
@@ -392,7 +435,7 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 	return q, nil
 }
 
-func exportMetrics(metrics model.Metrics) (*bytes.Buffer, error) {
+func exportMetrics(metrics model.Metrics, startTime, endTime time.Time) (*bytes.Buffer, error) {
 	var resBytes []byte
 
 	for i, _ := range metrics.Results {
@@ -415,18 +458,12 @@ func exportMetrics(metrics model.Metrics) (*bytes.Buffer, error) {
 			}
 			selector := strings.Join(targetList, "|")
 
-			var startTime, endTime string
-			if len(metricVal.ExportedSeries) > 0 {
-				startTime = metricVal.ExportedSeries[0].Timestamp()
-				endTime = metricVal.ExportedSeries[len(metricVal.ExportedSeries)-1].Timestamp()
-			}
-
 			statsTab := "\nmetric_name,selector,start_time,end_time,min,max,avg,sum,fee, currency_unit\n" +
-				fmt.Sprintf("%s,%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%s\n\n",
+				fmt.Sprintf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n\n",
 					metricName,
 					selector,
-					startTime,
-					endTime,
+					startTime.String(),
+					endTime.String(),
 					metricVal.MinValue,
 					metricVal.MaxValue,
 					metricVal.AvgValue,
@@ -463,11 +500,11 @@ func exportMetrics(metrics model.Metrics) (*bytes.Buffer, error) {
 	return output, nil
 }
 
-func ExportMetrics(resp *restful.Response, metrics model.Metrics) {
+func ExportMetrics(resp *restful.Response, metrics model.Metrics, startTime, endTime time.Time) {
 	resp.Header().Set(restful.HEADER_ContentType, "text/plain")
 	resp.Header().Set("Content-Disposition", "attachment")
 
-	output, err := exportMetrics(metrics)
+	output, err := exportMetrics(metrics, startTime, endTime)
 	if err != nil {
 		api.HandleBadRequest(resp, nil, err)
 		return

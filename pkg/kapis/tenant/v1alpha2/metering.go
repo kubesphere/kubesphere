@@ -6,6 +6,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 
+	"strconv"
+	"time"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	meteringv1alpha1 "kubesphere.io/kubesphere/pkg/api/metering/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -15,7 +18,7 @@ import (
 	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
-func (h *tenantHandler) QueryMeterings(req *restful.Request, resp *restful.Response) {
+func (h *tenantHandler) QueryMetering(req *restful.Request, resp *restful.Response) {
 
 	u, ok := request.UserFrom(req.Request.Context())
 	if !ok {
@@ -34,14 +37,29 @@ func (h *tenantHandler) QueryMeterings(req *restful.Request, resp *restful.Respo
 	}
 
 	if q.Operation == monitoringv1alpha3.OperationExport {
-		monitoringv1alpha3.ExportMetrics(resp, res)
+
+		start, err := strconv.ParseInt(q.Start, 10, 64)
+		if err != nil {
+			api.HandleBadRequest(resp, nil, err)
+			return
+		}
+		end, err := strconv.ParseInt(q.End, 10, 64)
+		if err != nil {
+			api.HandleBadRequest(resp, nil, err)
+			return
+		}
+
+		startTime := time.Unix(start, 0)
+		endTime := time.Unix(end, 0)
+
+		monitoringv1alpha3.ExportMetrics(resp, res, startTime, endTime)
 		return
 	}
 
 	resp.WriteAsJson(res)
 }
 
-func (h *tenantHandler) QueryMeteringsHierarchy(req *restful.Request, resp *restful.Response) {
+func (h *tenantHandler) QueryMeteringHierarchy(req *restful.Request, resp *restful.Response) {
 	u, ok := request.UserFrom(req.Request.Context())
 	if !ok {
 		err := fmt.Errorf("cannot obtain user info")
