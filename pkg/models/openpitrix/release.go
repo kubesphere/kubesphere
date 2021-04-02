@@ -99,8 +99,11 @@ func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest) erro
 		return err
 	}
 
-	if oldRls.Status.State != v1alpha1.HelmStatusActive {
-		return errors.New("application is not active now")
+	switch oldRls.Status.State {
+	case v1alpha1.StateActive, v1alpha1.HelmStatusUpgraded, v1alpha1.HelmStatusCreated:
+		// no operation
+	default:
+		return errors.New("can not upgrade application now")
 	}
 
 	version, err := c.getAppVersion("", request.VersionId)

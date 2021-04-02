@@ -29,12 +29,10 @@ func TestHelmInstall(t *testing.T) {
 		SetAnnotations(map[string]string{constants.CreatorAnnotationKey: "1234"}),
 		SetMock(true))
 
-	res, err := wr.install("dummy-chart", "", "dummy-value", false)
+	err := wr.install("dummy-chart", "", "dummy-value", false)
 	if err != nil {
 		t.Fail()
 	}
-
-	_ = res
 }
 
 func TestHelperProcess(t *testing.T) {

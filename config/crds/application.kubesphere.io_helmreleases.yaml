@@ -98,14 +98,14 @@ spec:
                 items:
                   properties:
                     deployTime:
-                      description: deploy time
+                      description: deploy time, upgrade time or check status time
                       format: date-time
                       type: string
                     message:
                       description: A human readable message indicating details about why the release is in this state.
                       type: string
                     state:
-                      description: deploy state
+                      description: current state of the release
                       type: string
                   required:
                   - deployTime
@@ -113,7 +113,7 @@ spec:
                   type: object
                 type: array
               lastDeployed:
-                description: last successful deploy time
+                description: last deploy time or upgrade time
                 format: date-time
                 type: string
               lastUpdate:

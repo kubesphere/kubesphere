@@ -108,6 +108,10 @@ func newTestConfig() (*Config, error) {
 				SessionToken:    "abcdefghijklmn",
 				Bucket:          "app",
 			},
+			ReleaseControllerOptions: &openpitrix.ReleaseControllerOptions{
+				MaxConcurrent: 10,
+				WaitTime:      30 * time.Second,
+			},
 		},
 		NetworkOptions: &network.Options{
 			EnableNetworkPolicy: true,

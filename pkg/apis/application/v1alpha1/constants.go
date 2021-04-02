@@ -39,9 +39,9 @@ const (
 	HelmStatusDeleting    = "deleting"
 	HelmStatusUpgrading   = "upgrading"
 	HelmStatusRollbacking = "rollbacking"
-	HelmStatusPending     = "pending"
-	HelmStatusSuccessful  = "successful"
 	HelmStatusFailed      = "failed"
+	HelmStatusCreated     = "created"
+	HelmStatusUpgraded    = "upgraded"
 
 	AttachmentTypeScreenshot = "screenshot"
 	AttachmentTypeIcon       = "icon"

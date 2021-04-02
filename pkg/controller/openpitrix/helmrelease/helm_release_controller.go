@@ -19,8 +19,11 @@ package helmrelease
 import (
 	"context"
 	"errors"
-	"math"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/flowcontrol"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,6 +47,7 @@ import (
 
 const (
 	HelmReleaseFinalizer = "helmrelease.application.kubesphere.io"
+	MaxBackoffTime       = 15 * time.Minute
 )
 
 var (
@@ -65,20 +69,29 @@ type ReconcileHelmRelease struct {
 	client.Client
 	recorder record.EventRecorder
 	// mock helm install && uninstall
-	helmMock bool
-	informer cache.SharedIndexInformer
+	helmMock                  bool
+	informer                  cache.SharedIndexInformer
+	checkReleaseStatusBackoff *flowcontrol.Backoff
 
 	clusterClients     clusterclient.ClusterClients
 	MultiClusterEnable bool
+
+	MaxConcurrent int
+	// wait time when check release is ready or not
+	WaitTime time.Duration
+
+	StopChan <-chan struct{}
 }
 
-//
-//                 <==>upgrading===================
-//               |                                 \
-// creating===>active=====>deleting=>deleted       |
-//          \    ^           /                     |
-//           \   |  /======>                      /
-//            \=>failed<==========================
+//            =========================>
+//            ^                         |
+//            |        <==upgraded<==upgrading================
+//            |        \      =========^                     /
+//            |         |   /                               |
+// creating=>created===>active=====>deleting=>deleted       |
+//                 \    ^           /                     |
+//                  \   |  /======>                      /
+//                   \=>failed<==========================
 // Reconcile reads that state of the cluster for a helmreleases object and makes changes based on the state read
 // and what is in the helmreleases.Spec
 // +kubebuilder:rbac:groups=application.kubesphere.io,resources=helmreleases,verbs=get;list;watch;create;update;patch;delete
@@ -167,106 +180,156 @@ func (r *ReconcileHelmRelease) Reconcile(request reconcile.Request) (reconcile.R
 // Check the state of the instance then decide what to do.
 func (r *ReconcileHelmRelease) reconcile(instance *v1alpha1.HelmRelease) (reconcile.Result, error) {
 
-	if instance.Status.State == v1alpha1.HelmStatusActive && instance.Status.Version == instance.Spec.Version {
-		// todo check release status
-		return reconcile.Result{}, nil
-	}
-
-	ft := failedTimes(instance.Status.DeployStatus)
-	if v1alpha1.HelmStatusFailed == instance.Status.State && ft > 0 {
-		// failed too much times, exponential backoff, max delay 180s
-		retryAfter := time.Duration(math.Min(math.Exp2(float64(ft)), 180)) * time.Second
-		var lastDeploy time.Time
-
-		if instance.Status.LastDeployed != nil {
-			lastDeploy = instance.Status.LastDeployed.Time
-		} else {
-			lastDeploy = instance.Status.LastUpdate.Time
-		}
-		if time.Now().Before(lastDeploy.Add(retryAfter)) {
-			return reconcile.Result{RequeueAfter: retryAfter}, nil
-		}
-	}
-
 	var err error
 	switch instance.Status.State {
-	case v1alpha1.HelmStatusDeleting:
+	case v1alpha1.HelmStatusDeleting, v1alpha1.HelmStatusFailed:
 		// no operation
 		return reconcile.Result{}, nil
 	case v1alpha1.HelmStatusActive:
 		// Release used to be active, but instance.Status.Version not equal to instance.Spec.Version
-		instance.Status.State = v1alpha1.HelmStatusUpgrading
-		// Update the state first.
-		err = r.Status().Update(context.TODO(), instance)
-		return reconcile.Result{}, err
+		if instance.Status.Version != instance.Spec.Version {
+			instance.Status.State = v1alpha1.HelmStatusUpgrading
+			// Update the state first.
+			err = r.Status().Update(context.TODO(), instance)
+			return reconcile.Result{}, err
+		} else {
+			return reconcile.Result{}, nil
+		}
 	case v1alpha1.HelmStatusCreating:
 		// create new release
-		err = r.createOrUpgradeHelmRelease(instance, false)
-	case v1alpha1.HelmStatusFailed:
-		err = r.createOrUpgradeHelmRelease(instance, false)
+		return r.createOrUpgradeHelmRelease(instance, false)
 	case v1alpha1.HelmStatusUpgrading:
 		// We can update the release now.
-		err = r.createOrUpgradeHelmRelease(instance, true)
+		return r.createOrUpgradeHelmRelease(instance, true)
+	case v1alpha1.HelmStatusCreated, v1alpha1.HelmStatusUpgraded:
+		if instance.Status.Version != instance.Spec.Version {
+			// Start a new backoff.
+			r.checkReleaseStatusBackoff.DeleteEntry(rlsBackoffKey(instance))
+
+			instance.Status.State = v1alpha1.HelmStatusUpgrading
+			err = r.Status().Update(context.TODO(), instance)
+			return reconcile.Result{}, err
+		} else {
+			retry, err := r.checkReleaseIsReady(instance)
+			return reconcile.Result{RequeueAfter: retry}, err
+		}
 	case v1alpha1.HelmStatusRollbacking:
 		// TODO: rollback helm release
-	}
-
-	now := metav1.Now()
-	var deployStatus v1alpha1.HelmReleaseDeployStatus
-	if err != nil {
-		instance.Status.State = v1alpha1.HelmStatusFailed
-		instance.Status.Message = stringutils.ShortenString(err.Error(), v1alpha1.MsgLen)
-		deployStatus.Message = instance.Status.Message
-		deployStatus.State = v1alpha1.HelmStatusFailed
-	} else {
-		instance.Status.State = v1alpha1.StateActive
-		instance.Status.Message = ""
-		instance.Status.Version = instance.Spec.Version
-		deployStatus.State = v1alpha1.HelmStatusSuccessful
-	}
-
-	deployStatus.Time = now
-	instance.Status.LastUpdate = now
-	instance.Status.LastDeployed = &now
-	if len(instance.Status.DeployStatus) > 0 {
-		instance.Status.DeployStatus = append([]v1alpha1.HelmReleaseDeployStatus{deployStatus}, instance.Status.DeployStatus...)
-		// At most ten records will be saved.
-		if len(instance.Status.DeployStatus) >= 10 {
-			instance.Status.DeployStatus = instance.Status.DeployStatus[:10:10]
-		}
-	} else {
-		instance.Status.DeployStatus = append([]v1alpha1.HelmReleaseDeployStatus{deployStatus})
-	}
-
-	err = r.Status().Update(context.TODO(), instance)
-	if err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, nil
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func failedTimes(status []v1alpha1.HelmReleaseDeployStatus) int {
-	count := 0
-	for i := range status {
-		if status[i].State == v1alpha1.HelmStatusFailed {
-			count += 1
-		}
-	}
-	return count
+func rlsBackoffKey(rls *v1alpha1.HelmRelease) string {
+	return rls.Name
 }
 
-func (r *ReconcileHelmRelease) createOrUpgradeHelmRelease(rls *v1alpha1.HelmRelease, upgrade bool) error {
+// doCheck check whether helm release's resources are ready or not.
+func (r *ReconcileHelmRelease) doCheck(rls *v1alpha1.HelmRelease) (retryAfter time.Duration, err error) {
+	backoffKey := rlsBackoffKey(rls)
+	clusterName := rls.GetRlsCluster()
+
+	var clusterConfig string
+	if r.MultiClusterEnable && clusterName != "" {
+		clusterConfig, err = r.clusterClients.GetClusterKubeconfig(clusterName)
+		if err != nil {
+			klog.Errorf("get cluster %s config failed", clusterConfig)
+			return
+		}
+	}
+
+	hw := helmwrapper.NewHelmWrapper(clusterConfig, rls.GetRlsNamespace(), rls.Spec.Name,
+		helmwrapper.SetMock(r.helmMock))
+
+	ready, err := hw.IsReleaseReady(r.WaitTime)
+
+	if err != nil {
+		// release resources not ready
+		klog.Errorf("check release %s/%s status failed, error: %s", rls.GetRlsNamespace(), rls.GetTrueName(), err)
+		// check status next time
+		r.checkReleaseStatusBackoff.Next(backoffKey, r.checkReleaseStatusBackoff.Clock.Now())
+		retryAfter = r.checkReleaseStatusBackoff.Get(backoffKey)
+		err := r.updateStatus(rls, rls.Status.State, err.Error())
+		return retryAfter, err
+	} else {
+		klog.V(4).Infof("check release %s/%s status success, ready: %v", rls.GetRlsNamespace(), rls.GetTrueName(), ready)
+		// install or upgrade success, remove the release from the queue.
+		r.checkReleaseStatusBackoff.DeleteEntry(backoffKey)
+		// Release resources are ready, it's active now.
+		err := r.updateStatus(rls, v1alpha1.HelmStatusActive, "")
+		// If update status failed, the controller need update the status next time.
+		return 0, err
+	}
+}
+
+// checkReleaseIsReady check whether helm release's are ready or not.
+// If retryAfter > 0 , then the controller will recheck it next time.
+func (r *ReconcileHelmRelease) checkReleaseIsReady(rls *v1alpha1.HelmRelease) (retryAfter time.Duration, err error) {
+	backoffKey := rlsBackoffKey(rls)
+	now := time.Now()
+	if now.Sub(rls.Status.LastDeployed.Time) > MaxBackoffTime {
+		klog.V(2).Infof("check release %s/%s too much times, ignore it", rls.GetRlsNamespace(), rls.GetTrueName())
+		r.checkReleaseStatusBackoff.DeleteEntry(backoffKey)
+		return 0, nil
+	}
+
+	if !r.checkReleaseStatusBackoff.IsInBackOffSinceUpdate(backoffKey, r.checkReleaseStatusBackoff.Clock.Now()) {
+		klog.V(4).Infof("start to check release %s/%s status ", rls.GetRlsNamespace(), rls.GetTrueName())
+		return r.doCheck(rls)
+	} else {
+		// backoff, check next time
+		retryAfter := r.checkReleaseStatusBackoff.Get(backoffKey)
+		klog.V(4).Infof("check release %s/%s status has been limited by backoff - %v remaining",
+			rls.GetRlsNamespace(), rls.GetTrueName(), retryAfter)
+		return retryAfter, nil
+	}
+}
+
+func (r *ReconcileHelmRelease) updateStatus(rls *v1alpha1.HelmRelease, currentState, msg string) error {
+	now := metav1.Now()
+	var deployStatus v1alpha1.HelmReleaseDeployStatus
+	rls.Status.Message = stringutils.ShortenString(msg, v1alpha1.MsgLen)
+
+	deployStatus.Message = stringutils.ShortenString(msg, v1alpha1.MsgLen)
+	deployStatus.State = currentState
+	deployStatus.Time = now
+
+	if rls.Status.State != currentState &&
+		(currentState == v1alpha1.HelmStatusCreated || currentState == v1alpha1.HelmStatusUpgraded) {
+		rls.Status.Version = rls.Spec.Version
+		rls.Status.LastDeployed = &now
+	}
+
+	rls.Status.State = currentState
+	// record then new state
+	rls.Status.DeployStatus = append([]v1alpha1.HelmReleaseDeployStatus{deployStatus}, rls.Status.DeployStatus...)
+
+	if len(rls.Status.DeployStatus) > 10 {
+		rls.Status.DeployStatus = rls.Status.DeployStatus[:10:10]
+	}
+
+	rls.Status.LastUpdate = now
+	err := r.Status().Update(context.TODO(), rls)
+
+	return err
+}
+
+// createOrUpgradeHelmRelease will run helm install to install a new release if upgrade is false,
+// run helm upgrade if upgrade is true
+func (r *ReconcileHelmRelease) createOrUpgradeHelmRelease(rls *v1alpha1.HelmRelease, upgrade bool) (reconcile.Result, error) {
+
+	// Install or upgrade release
 	var chartData []byte
 	var err error
 	_, chartData, err = r.GetChartData(rls)
 	if err != nil {
-		return err
+		return reconcile.Result{}, err
 	}
 
 	if len(chartData) == 0 {
 		klog.Errorf("empty chart data failed, release name %s, chart name: %s", rls.Name, rls.Spec.ChartName)
-		return ErrAppVersionDataIsEmpty
+		return reconcile.Result{}, ErrAppVersionDataIsEmpty
 	}
 
 	clusterName := rls.GetRlsCluster()
@@ -276,7 +339,7 @@ func (r *ReconcileHelmRelease) createOrUpgradeHelmRelease(rls *v1alpha1.HelmRele
 		clusterConfig, err = r.clusterClients.GetClusterKubeconfig(clusterName)
 		if err != nil {
 			klog.Errorf("get cluster %s config failed", clusterConfig)
-			return err
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -285,16 +348,25 @@ func (r *ReconcileHelmRelease) createOrUpgradeHelmRelease(rls *v1alpha1.HelmRele
 		// We just add kubesphere.io/creator annotation now.
 		helmwrapper.SetAnnotations(map[string]string{constants.CreatorAnnotationKey: rls.GetCreator()}),
 		helmwrapper.SetMock(r.helmMock))
-	var res helmwrapper.HelmRes
+
+	var currentState string
 	if upgrade {
-		res, err = hw.Upgrade(rls.Spec.ChartName, string(chartData), string(rls.Spec.Values))
+		err = hw.Upgrade(rls.Spec.ChartName, string(chartData), string(rls.Spec.Values))
+		currentState = v1alpha1.HelmStatusUpgraded
 	} else {
-		res, err = hw.Install(rls.Spec.ChartName, string(chartData), string(rls.Spec.Values))
+		err = hw.Install(rls.Spec.ChartName, string(chartData), string(rls.Spec.Values))
+		currentState = v1alpha1.HelmStatusCreated
 	}
+
+	var msg string
 	if err != nil {
-		return errors.New(res.Message)
+		// install or upgrade failed
+		currentState = v1alpha1.HelmStatusFailed
+		msg = err.Error()
 	}
-	return nil
+	err = r.updateStatus(rls, currentState, msg)
+
+	return reconcile.Result{}, err
 }
 
 func (r *ReconcileHelmRelease) uninstallHelmRelease(rls *v1alpha1.HelmRelease) error {
@@ -329,12 +401,9 @@ func (r *ReconcileHelmRelease) uninstallHelmRelease(rls *v1alpha1.HelmRelease) e
 
 	hw := helmwrapper.NewHelmWrapper(clusterConfig, rls.GetRlsNamespace(), rls.Spec.Name, helmwrapper.SetMock(r.helmMock))
 
-	res, err := hw.Uninstall()
+	err = hw.Uninstall()
 
-	if err != nil {
-		return errors.New(res.Message)
-	}
-	return nil
+	return err
 }
 
 func (r *ReconcileHelmRelease) SetupWithManager(mgr ctrl.Manager) error {
@@ -343,7 +412,12 @@ func (r *ReconcileHelmRelease) SetupWithManager(mgr ctrl.Manager) error {
 		r.clusterClients = clusterclient.NewClusterClient(r.KsFactory.Cluster().V1alpha1().Clusters())
 	}
 
+	// exponential backoff
+	r.checkReleaseStatusBackoff = flowcontrol.NewBackOff(2*time.Second, MaxBackoffTime)
+	go wait.Until(r.checkReleaseStatusBackoff.GC, 1*time.Minute, r.StopChan)
+
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrent}).
 		For(&v1alpha1.HelmRelease{}).
 		Complete(r)
 }
