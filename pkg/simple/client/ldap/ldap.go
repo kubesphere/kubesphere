@@ -171,8 +171,6 @@ func (l *ldapInterfaceImpl) newConn() (ldap.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
 	err = conn.Bind(l.managerDN, l.managerPassword)
 	if err != nil {
 		return nil, err

@@ -161,7 +161,7 @@ func (c *loginRecordController) updateUserLastLoginTime(user *iamv1alpha2.User, 
 	if user.DeletionTimestamp.IsZero() &&
 		(user.Status.LastLoginTime == nil || user.Status.LastLoginTime.Before(&loginRecord.CreationTimestamp)) {
 		user.Status.LastLoginTime = &loginRecord.CreationTimestamp
-		_, err := c.ksClient.IamV1alpha2().Users().UpdateStatus(context.Background(), user, metav1.UpdateOptions{})
+		_, err := c.ksClient.IamV1alpha2().Users().Update(context.Background(), user, metav1.UpdateOptions{})
 		return err
 	}
 	return nil
