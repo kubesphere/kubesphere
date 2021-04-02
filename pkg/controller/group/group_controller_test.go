@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,12 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	fedv1beta1types "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -49,6 +49,7 @@ var (
 
 func init() {
 	v1alpha2.AddToScheme(scheme.Scheme)
+	tenantv1alpha2.AddToScheme(scheme.Scheme)
 }
 
 type fixture struct {
@@ -268,6 +269,7 @@ func filterInformerActions(actions []core.Action) []core.Action {
 				action.Matches("watch", "groups") ||
 				action.Matches("list", "groups") ||
 				action.Matches("list", "namespaces") ||
+				action.Matches("get", "workspacetemplates") ||
 				action.Matches("list", "federatedgroups") ||
 				action.Matches("watch", "federatedgroups")) {
 			continue
@@ -287,6 +289,20 @@ func (f *fixture) expectUpdateGroupsFinalizerAction(group *v1alpha2.Group) {
 	expect.Labels[constants.KubefedManagedLabel] = "false"
 	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "groups"}, "", expect)
 	f.actions = append(f.actions, action)
+}
+
+func (f *fixture) expectUpdateWorkspaceRefAction(child *v1alpha2.Group, wsp *tenantv1alpha2.WorkspaceTemplate) {
+	expect := child.DeepCopy()
+	if expect.Labels == nil {
+		expect.Labels = make(map[string]string, 0)
+	}
+
+	controllerutil.SetControllerReference(wsp, expect, scheme.Scheme)
+
+	expect.Finalizers = []string{"finalizers.kubesphere.io/groups"}
+	expect.Labels[constants.KubefedManagedLabel] = "false"
+	updateAction := core.NewUpdateAction(schema.GroupVersionResource{Resource: "groups"}, "", expect)
+	f.actions = append(f.actions, updateAction)
 }
 
 func (f *fixture) expectUpdateParentsRefAction(parent, child *v1alpha2.Group) {
@@ -382,6 +398,26 @@ func TestGroupCreateWithParent(t *testing.T) {
 	f.objects = append(f.objects, parent, child)
 
 	f.expectUpdateParentsRefAction(parent, child)
+	f.run(getKey(child, t))
+}
+
+func TestGroupCreateWithWorkspace(t *testing.T) {
+	f := newFixture(t)
+	child := newGroup("child")
+	child.Labels = map[string]string{constants.WorkspaceLabelKey: "wsp"}
+
+	f.groupLister = append(f.groupLister, child)
+	f.objects = append(f.objects, child)
+
+	wsp := tenantv1alpha2.WorkspaceTemplate{
+		TypeMeta: metav1.TypeMeta{APIVersion: tenantv1alpha2.SchemeGroupVersion.String(), Kind: tenantv1alpha2.ResourceKindWorkspaceTemplate},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "wsp",
+		},
+	}
+	f.objects = append(f.objects, &wsp)
+
+	f.expectUpdateWorkspaceRefAction(child, &wsp)
 	f.run(getKey(child, t))
 }
 
