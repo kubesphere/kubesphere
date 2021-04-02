@@ -101,7 +101,7 @@ func NewClient(options *auditing.Options) (auditing.Client, error) {
 	c := &client{}
 
 	var err error
-	c.c, err = es.NewClient(options.Host, options.IndexPrefix, options.Version)
+	c.c, err = es.NewClient(options.Host, options.BasicAuth, options.Username, options.Password, options.IndexPrefix, options.Version)
 	return c, err
 }
 

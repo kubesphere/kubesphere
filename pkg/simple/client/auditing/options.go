@@ -34,6 +34,9 @@ type Options struct {
 	// The batch interval of auditing events.
 	EventBatchInterval time.Duration `json:"eventBatchInterval" yaml:"eventBatchInterval"`
 	Host               string        `json:"host" yaml:"host"`
+	BasicAuth          bool          `json:"basicAuth" yaml:"basicAuth"`
+	Username           string        `json:"username" yaml:"username"`
+	Password           string        `json:"password" yaml:"password"`
 	IndexPrefix        string        `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
 	Version            string        `json:"version" yaml:"version"`
 }
@@ -61,6 +64,21 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.BoolVar(&s.Enable, "auditing-enabled", c.Enable, "Enable auditing component or not. ")
 
 	fs.StringVar(&s.WebhookUrl, "auditing-webhook-url", c.WebhookUrl, "Auditing wehook url")
+
+	fs.BoolVar(&s.BasicAuth, "auditing-elasticsearch-basicAuth", c.BasicAuth, ""+
+		"Elasticsearch auditing service basic auth enabled. KubeSphere is using elastic as auditing store, "+
+		"if it is set to true, KubeSphere will connect to ElasticSearch using provided username and password by "+
+		"auditing-elasticsearch-username and auditing-elasticsearch-username. Otherwise, KubeSphere will "+
+		"anonymously access the Elasticsearch.")
+
+	fs.StringVar(&s.Username, "auditing-elasticsearch-username", c.Username, ""+
+		"ElasticSearch authentication username, only needed when auditing-elasticsearch-basicAuth is"+
+		"set to true. ")
+
+	fs.StringVar(&s.Password, "auditing-elasticsearch-password", c.Password, ""+
+		"ElasticSearch authentication password, only needed when auditing-elasticsearch-basicAuth is"+
+		"set to true. ")
+
 	fs.IntVar(&s.EventSendersNum, "auditing-event-senders-num", c.EventSendersNum,
 		"The maximum concurrent senders which send auditing events to the auditing webhook.")
 	fs.IntVar(&s.EventBatchSize, "auditing-event-batch-size", c.EventBatchSize,

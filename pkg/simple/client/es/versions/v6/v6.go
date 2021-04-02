@@ -33,9 +33,19 @@ type Elastic struct {
 	index  string
 }
 
-func New(address string, index string) (*Elastic, error) {
-	client, err := elasticsearch.NewClient(elasticsearch.Config{
+func New(address string, basicAuth bool, username, password, index string) (*Elastic, error) {
+	var client *elasticsearch.Client
+	var err error
+
+	if !basicAuth {
+		username = ""
+		password = ""
+	}
+
+	client, err = elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{address},
+		Username:  username,
+		Password:  password,
 	})
 
 	return &Elastic{Client: client, index: index}, err

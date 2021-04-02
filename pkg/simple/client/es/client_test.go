@@ -90,7 +90,7 @@ func TestClient_Search(t *testing.T) {
 			srv := mockElasticsearchService("/ks-logstash*/_search", test.fakeResp, test.fakeCode)
 			defer srv.Close()
 
-			c, err := NewClient(srv.URL, "ks-logstash", test.fakeVersion)
+			c, err := NewClient(srv.URL, false, "", "", "ks-logstash", test.fakeVersion)
 			if err != nil {
 				t.Fatalf("create client error, %s", err)
 			}
