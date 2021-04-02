@@ -146,29 +146,30 @@ func (c *Controller) reconcile(key string) error {
 		}
 
 		if group.Labels != nil {
-			// Set OwnerReferences when the group has a parent.
-			if parent, ok := group.Labels[iam1alpha2.GroupParent]; ok && !k8sutil.IsControlledBy(group.OwnerReferences, "Group", parent) {
-				if g == nil {
-					g = group.DeepCopy()
-				}
-				groupParent, err := c.groupLister.Get(parent)
-				if err != nil {
-					if errors.IsNotFound(err) {
-						utilruntime.HandleError(fmt.Errorf("Parent group '%s' no longer exists", key))
-						delete(group.Labels, iam1alpha2.GroupParent)
-					} else {
-						klog.Error(err)
-						return err
+			// Set OwnerReferences when the group has a parent. And it's not owned by kubefed
+			if group.Labels[constants.KubefedManagedLabel] != "true" {
+				if parent, ok := group.Labels[iam1alpha2.GroupParent]; ok && !k8sutil.IsControlledBy(group.OwnerReferences, "Group", parent) {
+					if g == nil {
+						g = group.DeepCopy()
 					}
-				} else {
-					if err := controllerutil.SetControllerReference(groupParent, g, scheme.Scheme); err != nil {
-						klog.Error(err)
-						return err
+					groupParent, err := c.groupLister.Get(parent)
+					if err != nil {
+						if errors.IsNotFound(err) {
+							utilruntime.HandleError(fmt.Errorf("Parent group '%s' no longer exists", key))
+							delete(group.Labels, iam1alpha2.GroupParent)
+						} else {
+							klog.Error(err)
+							return err
+						}
+					} else {
+						if err := controllerutil.SetControllerReference(groupParent, g, scheme.Scheme); err != nil {
+							klog.Error(err)
+							return err
+						}
 					}
 				}
 			}
 		}
-
 		if g != nil {
 			if _, err = c.ksClient.IamV1alpha2().Groups().Update(context.Background(), g, metav1.UpdateOptions{}); err != nil {
 				return err
