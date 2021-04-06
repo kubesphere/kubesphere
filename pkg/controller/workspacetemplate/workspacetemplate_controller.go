@@ -172,6 +172,7 @@ func (r *Reconciler) singleClusterSync(ctx context.Context, logger logr.Logger, 
 					logger.Error(err, "create workspace failed")
 					return err
 				}
+				return nil
 			}
 		}
 		logger.Error(err, "get workspace failed")
@@ -207,6 +208,7 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, w
 					logger.Error(err, "create federated workspace failed")
 					return err
 				}
+				return nil
 			}
 		}
 		logger.Error(err, "get federated workspace failed")
