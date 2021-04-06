@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
@@ -66,7 +66,7 @@ type APIResource struct {
 	// suffixing an 's'.
 	PluralName string `json:"pluralName"`
 	// Scope of the resource.
-	Scope apiextv1b1.ResourceScope `json:"scope"`
+	Scope apiextv1.ResourceScope `json:"scope"`
 }
 
 // PropagationMode defines the state of propagation to member clusters.
@@ -207,18 +207,20 @@ func (f *FederatedTypeConfig) GetFederatedType() metav1.APIResource {
 	return apiResourceToMeta(f.Spec.FederatedType, f.GetFederatedNamespaced())
 }
 
+// TODO (hectorj2f): It should get deprecated once we move to the new status approach
+// because the type is the same as the target type.
 func (f *FederatedTypeConfig) GetStatusType() *metav1.APIResource {
 	if f.Spec.StatusType == nil {
 		return nil
 	}
+	// Return the original target type
 	metaAPIResource := apiResourceToMeta(*f.Spec.StatusType, f.Spec.StatusType.Namespaced())
 	return &metaAPIResource
 }
 
 func (f *FederatedTypeConfig) GetStatusEnabled() bool {
 	return f.Spec.StatusCollection != nil &&
-		*f.Spec.StatusCollection == StatusCollectionEnabled &&
-		f.Name == "services"
+		*f.Spec.StatusCollection == StatusCollectionEnabled
 }
 
 // TODO(font): This method should be removed from the interface i.e. remove
@@ -243,7 +245,7 @@ func (f *FederatedTypeConfig) IsNamespace() bool {
 }
 
 func (a *APIResource) Namespaced() bool {
-	return a.Scope == apiextv1b1.NamespaceScoped
+	return a.Scope == apiextv1.NamespaceScoped
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {

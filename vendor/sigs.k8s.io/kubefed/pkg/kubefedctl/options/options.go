@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -101,7 +101,7 @@ func (o *CommonJoinOptions) SetName(args []string) error {
 	return nil
 }
 
-func GetScopeFromKubeFedConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
+func GetScopeFromKubeFedConfig(hostConfig *rest.Config, namespace string) (apiextv1.ResourceScope, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to get kubefed clientset")

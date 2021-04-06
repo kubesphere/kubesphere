@@ -137,7 +137,7 @@ func (w *asyncWorker) deliver(qualifiedName QualifiedName, delay time.Duration, 
 	key := qualifiedName.String()
 	if failed {
 		w.backoff.Next(key, time.Now())
-		delay = delay + w.backoff.Get(key)
+		delay += w.backoff.Get(key)
 	} else {
 		w.backoff.Reset(key)
 	}

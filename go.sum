@@ -875,8 +875,8 @@ sigs.k8s.io/controller-runtime v0.6.4/go.mod h1:WlZNXcM0++oyaQt4B7C2lEE5JYRs8vJU
 sigs.k8s.io/controller-tools v0.4.0 h1:9zIdrc6q9RKke8+DnVPVBVZ+cfF9L0TwM01cxNnklYo=
 sigs.k8s.io/controller-tools v0.4.0/go.mod h1:G9rHdZMVlBDocIxGkK3jHLWqcTMNvveypYJwrvYKjWU=
 sigs.k8s.io/kind v0.8.1/go.mod h1:oNKTxUVPYkV9lWzY6CVMNluVq8cBsyq+UgPJdvA3uu4=
-sigs.k8s.io/kubefed v0.4.0 h1:eNZ5SpblUBQEzPHs8XtAjEwmkbs498IhrGvqzdynHOY=
-sigs.k8s.io/kubefed v0.4.0/go.mod h1:YBq2sF7Usjfh1xmop6E7k+5USBYfhB5IMLitCoOnOkM=
+sigs.k8s.io/kubefed v0.6.1 h1:5NqfXCYPG1UC7H2KCs8tX77XN1ohHv+VegkZ69UWvF0=
+sigs.k8s.io/kubefed v0.6.1/go.mod h1:dP40OsC2z1m2uzkk8YiTMdaO/Y8/2zvAAWfGuYnJTKU=
 sigs.k8s.io/kustomize v2.0.3+incompatible h1:JUufWFNlI44MdtnjUqVnvh29rR37PQFzPbLXqhyOyX0=
 sigs.k8s.io/kustomize v2.0.3+incompatible/go.mod h1:MkjgH3RdOWrievjo6c9T245dYlB5QeXV4WCbnt/PEpU=
 sigs.k8s.io/structured-merge-diff/v3 v3.0.0 h1:dOmIZBMfhcHS09XZkMyUgkq5trg3/jRyJYFZUiaOp8E=

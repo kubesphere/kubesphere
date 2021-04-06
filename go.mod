@@ -34,8 +34,7 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-ldap/ldap v3.0.3+incompatible
-	github.com/go-logr/logr v0.1.0
-	github.com/go-logr/zapr v0.1.1 // indirect
+	github.com/go-logr/logr v0.3.0
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/spec v0.19.7
 	github.com/go-openapi/strfmt v0.19.5
@@ -55,8 +54,8 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/mitchellh/mapstructure v1.2.2
-	github.com/onsi/ginkgo v1.14.0
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/ginkgo v1.14.2
+	github.com/onsi/gomega v1.10.3
 	github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -66,12 +65,12 @@ require (
 	github.com/prometheus-community/prom-label-proxy v0.2.0
 	github.com/prometheus-operator/prometheus-operator v0.42.2-0.20200928114327-fbd01683839a
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.42.1
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.8.0
 	github.com/prometheus/common v0.11.1
 	github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.6.1
@@ -92,26 +91,26 @@ require (
 	istio.io/api v0.0.0-20201113182140-d4b7e3fc2b44
 	istio.io/client-go v0.0.0-20201113183938-0734e976e785
 	istio.io/gogo-genproto v0.0.0-20201113182723-5b8563d8a012 // indirect
-	k8s.io/api v0.19.0
-	k8s.io/apiextensions-apiserver v0.18.6
-	k8s.io/apimachinery v0.19.0
-	k8s.io/apiserver v0.18.6
+	k8s.io/api v0.19.3
+	k8s.io/apiextensions-apiserver v0.19.3
+	k8s.io/apimachinery v0.19.3
+	k8s.io/apiserver v0.19.3
 	k8s.io/cli-runtime v0.18.6
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.19.0
-	k8s.io/component-base v0.18.6
+	k8s.io/component-base v0.19.3
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.0.0
-	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
-	k8s.io/kubectl v0.18.6
+	k8s.io/kube-openapi v0.0.0-20200923155610-8b5066479488
+	k8s.io/kubectl v0.19.3
 	k8s.io/metrics v0.18.6
-	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
+	k8s.io/utils v0.0.0-20201005171033-6301aaf42dc7
 	kubesphere.io/client-go v0.0.0
 	kubesphere.io/monitoring-dashboard v0.1.2
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 	sigs.k8s.io/controller-runtime v0.6.4
 	sigs.k8s.io/controller-tools v0.4.0
-	sigs.k8s.io/kubefed v0.7.0
+	sigs.k8s.io/kubefed v0.6.1
 	sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/yaml v1.2.0
 )
@@ -742,7 +741,7 @@ replace (
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.6.4
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.4.0
 	sigs.k8s.io/kind => sigs.k8s.io/kind v0.8.1
-	sigs.k8s.io/kubefed => sigs.k8s.io/kubefed v0.4.0
+	sigs.k8s.io/kubefed => sigs.k8s.io/kubefed v0.6.1
 	sigs.k8s.io/kustomize => sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/structured-merge-diff/v3 => sigs.k8s.io/structured-merge-diff/v3 v3.0.0
 	sigs.k8s.io/yaml => sigs.k8s.io/yaml v1.2.0

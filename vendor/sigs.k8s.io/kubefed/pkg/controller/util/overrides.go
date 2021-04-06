@@ -19,7 +19,7 @@ package util
 import (
 	"encoding/json"
 
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -159,8 +159,8 @@ func UnstructuredToInterface(rawObj *unstructured.Unstructured, obj interface{})
 	return json.Unmarshal(content, obj)
 }
 
-// ApplyJsonPatch applies the override on to the given unstructured object.
-func ApplyJsonPatch(obj *unstructured.Unstructured, overrides ClusterOverrides) error {
+// ApplyJSONPatch applies the override on to the given unstructured object.
+func ApplyJSONPatch(obj *unstructured.Unstructured, overrides ClusterOverrides) error {
 	// TODO: Do the defaulting of "op" field to "replace" in API defaulting
 	for i, overrideItem := range overrides {
 		if overrideItem.Op == "" {
@@ -177,12 +177,12 @@ func ApplyJsonPatch(obj *unstructured.Unstructured, overrides ClusterOverrides) 
 		return err
 	}
 
-	ObjectJSONBytes, err := obj.MarshalJSON()
+	objectJSONBytes, err := obj.MarshalJSON()
 	if err != nil {
 		return err
 	}
 
-	patchedObjectJSONBytes, err := patch.Apply(ObjectJSONBytes)
+	patchedObjectJSONBytes, err := patch.Apply(objectJSONBytes)
 	if err != nil {
 		return err
 	}
