@@ -28,6 +28,7 @@ import (
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
+	"kubesphere.io/kubesphere/pkg/version"
 
 	tracing "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 )
@@ -73,6 +74,17 @@ cluster's shared state through which all other components interact.`,
 		fmt.Fprintf(cmd.OutOrStdout(), "%s\n\n"+usageFmt, cmd.Long, cmd.UseLine())
 		cliflag.PrintSections(cmd.OutOrStdout(), namedFlagSets, cols)
 	})
+
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the version of KubeSphere ks-apiserver",
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Println(version.Get())
+		},
+	}
+
+	cmd.AddCommand(versionCmd)
+
 	return cmd
 }
 
