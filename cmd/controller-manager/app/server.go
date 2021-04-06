@@ -57,6 +57,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
+	"kubesphere.io/kubesphere/pkg/version"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
@@ -112,6 +113,17 @@ func NewControllerManagerCommand() *cobra.Command {
 		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s\n\n"+usageFmt, cmd.Long, cmd.UseLine())
 		cliflag.PrintSections(cmd.OutOrStdout(), namedFlagSets, cols)
 	})
+
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the version of KubeSphere ks-apiserver",
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Println(version.Get())
+		},
+	}
+
+	cmd.AddCommand(versionCmd)
+
 	return cmd
 }
 

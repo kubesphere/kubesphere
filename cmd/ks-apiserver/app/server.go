@@ -79,7 +79,7 @@ cluster's shared state through which all other components interact.`,
 		Use:   "version",
 		Short: "Print the version of KubeSphere ks-apiserver",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(version.Get())
+			cmd.Println(version.Get())
 		},
 	}
 
