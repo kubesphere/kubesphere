@@ -239,6 +239,13 @@ func SetAnnotations(annotations map[string]string) Option {
 	}
 }
 
+// extra labels added to all resources in chart
+func SetLabels(labels map[string]string) Option {
+	return func(wrapper *helmWrapper) {
+		wrapper.labels = labels
+	}
+}
+
 func SetMock(mock bool) Option {
 	return func(wrapper *helmWrapper) {
 		wrapper.mock = mock

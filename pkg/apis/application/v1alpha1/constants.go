@@ -57,5 +57,7 @@ const (
 	UncategorizedId                = "ctg-uncategorized"
 	AppStoreRepoId                 = "repo-helm"
 
+	ApplicationInstance = "app.kubesphere.io/instance"
+
 	OriginWorkspaceLabelKey = "kubesphere.io/workspace-origin"
 )

@@ -345,8 +345,10 @@ func (r *ReconcileHelmRelease) createOrUpgradeHelmRelease(rls *v1alpha1.HelmRele
 
 	// If clusterConfig is empty, this application will be installed in current host.
 	hw := helmwrapper.NewHelmWrapper(clusterConfig, rls.GetRlsNamespace(), rls.Spec.Name,
-		// We just add kubesphere.io/creator annotation now.
 		helmwrapper.SetAnnotations(map[string]string{constants.CreatorAnnotationKey: rls.GetCreator()}),
+		helmwrapper.SetLabels(map[string]string{
+			v1alpha1.ApplicationInstance: rls.GetTrueName(),
+		}),
 		helmwrapper.SetMock(r.helmMock))
 
 	var currentState string
