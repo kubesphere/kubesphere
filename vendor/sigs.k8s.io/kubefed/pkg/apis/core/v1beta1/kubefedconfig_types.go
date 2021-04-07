@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,7 +26,7 @@ type KubeFedConfigSpec struct {
 	// The scope of the KubeFed control plane should be either
 	// `Namespaced` or `Cluster`. `Namespaced` indicates that the
 	// KubeFed namespace will be the only target of the control plane.
-	Scope apiextv1b1.ResourceScope `json:"scope"`
+	Scope apiextv1.ResourceScope `json:"scope"`
 	// +optional
 	ControllerDuration *DurationConfig `json:"controllerDuration,omitempty"`
 	// +optional

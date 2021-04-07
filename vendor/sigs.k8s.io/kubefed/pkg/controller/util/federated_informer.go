@@ -141,7 +141,6 @@ func NewFederatedInformer(
 	apiResource *metav1.APIResource,
 	triggerFunc func(pkgruntime.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) (FederatedInformer, error) {
-
 	targetInformerFactory := func(cluster *fedv1b1.KubeFedCluster, clusterConfig *restclient.Config) (cache.Store, cache.Controller, error) {
 		resourceClient, err := NewResourceClient(clusterConfig, apiResource)
 		if err != nil {
@@ -201,15 +200,16 @@ func NewFederatedInformer(
 			},
 			AddFunc: func(cur interface{}) {
 				curCluster, ok := cur.(*fedv1b1.KubeFedCluster)
-				if !ok {
+				switch {
+				case !ok:
 					klog.Errorf("Cluster %v/%v not added; incorrect type", curCluster.Namespace, curCluster.Name)
-				} else if IsClusterReady(&curCluster.Status) {
+				case IsClusterReady(&curCluster.Status):
 					federatedInformer.addCluster(curCluster)
 					klog.Infof("Cluster %v/%v is ready", curCluster.Namespace, curCluster.Name)
 					if clusterLifecycle.ClusterAvailable != nil {
 						clusterLifecycle.ClusterAvailable(curCluster)
 					}
-				} else {
+				default:
 					klog.Infof("Cluster %v/%v not added; it is not ready.", curCluster.Namespace, curCluster.Name)
 				}
 			},
@@ -348,10 +348,8 @@ func (f *federatedInformerImpl) getConfigForClusterUnlocked(clusterName string) 
 	klog.V(4).Infof("Getting config for cluster %q", clusterName)
 	if cluster, found, err := f.getReadyClusterUnlocked(clusterName); found && err == nil {
 		return f.configFactory(cluster)
-	} else {
-		if err != nil {
-			return nil, err
-		}
+	} else if err != nil {
+		return nil, err
 	}
 	return nil, errors.Errorf("cluster %q not found", clusterName)
 }
@@ -418,10 +416,8 @@ func (f *federatedInformerImpl) getReadyClusterUnlocked(name string) (*fedv1b1.K
 				return cluster, true, nil
 			}
 			return nil, false, nil
-
 		}
 		return nil, false, errors.Errorf("wrong data in FederatedInformerImpl cluster store: %v", obj)
-
 	} else {
 		return nil, false, err
 	}
@@ -541,7 +537,6 @@ func (fs *federatedStoreImpl) GetKeyFor(item interface{}) string {
 // Checks whether stores for all clusters form the lists (and only these) are there and
 // are synced.
 func (fs *federatedStoreImpl) ClustersSynced(clusters []*fedv1b1.KubeFedCluster) bool {
-
 	// Get the list of informers to check under a lock and check it outside.
 	okSoFar, informersToCheck := func() (bool, []informer) {
 		fs.federatedInformer.Lock()

@@ -22,7 +22,7 @@ import (
 
 // ReplicaSchedulingPreferenceSpec defines the desired state of ReplicaSchedulingPreference
 type ReplicaSchedulingPreferenceSpec struct {
-	//TODO (@irfanurrehman); upgrade this to label selector only if need be.
+	// TODO (@irfanurrehman); upgrade this to label selector only if need be.
 	// The idea of this API is to have a a set of preferences which can
 	// be used for a target FederatedDeployment or FederatedReplicaset.
 	// Although the set of preferences in question can be applied to multiple
@@ -75,7 +75,7 @@ type ReplicaSchedulingPreferenceStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=replicaschedulingpreferences
+// +kubebuilder:resource:path=replicaschedulingpreferences,shortName=rsp
 
 type ReplicaSchedulingPreference struct {
 	metav1.TypeMeta   `json:",inline"`

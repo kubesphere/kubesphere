@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // Copies cluster-independent, user provided data from the given ObjectMeta struct. If in
@@ -114,7 +113,7 @@ func ObjectMetaAndSpecEquivalent(a, b runtime.Object) bool {
 	return ObjectMetaEquivalent(objectMetaA, objectMetaB) && reflect.DeepEqual(specA, specB)
 }
 
-func MetaAccessor(obj pkgruntime.Object) metav1.Object {
+func MetaAccessor(obj runtime.Object) metav1.Object {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		// This should always succeed if obj is not nil.  Also,
