@@ -67,6 +67,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
+const orphanFinalizer = "orphan.finalizers.kubesphere.io"
+
 type Interface interface {
 	ListWorkspaces(user user.Info, query *query.Query) (*api.ListResult, error)
 	ListNamespaces(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
@@ -74,7 +76,7 @@ type Interface interface {
 	ListFederatedNamespaces(info user.Info, workspace string, param *query.Query) (*api.ListResult, error)
 	CreateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	CreateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
-	DeleteWorkspace(workspace string) error
+	DeleteWorkspace(workspace string, opts metav1.DeleteOptions) error
 	UpdateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
 	DescribeWorkspace(workspace string) (*tenantv1alpha2.WorkspaceTemplate, error)
 	ListWorkspaceClusters(workspace string) (*api.ListResult, error)
@@ -538,8 +540,22 @@ func (t *tenantOperator) ListClusters(user user.Info) (*api.ListResult, error) {
 	return &api.ListResult{Items: items, TotalItems: len(items)}, nil
 }
 
-func (t *tenantOperator) DeleteWorkspace(workspace string) error {
-	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Delete(context.Background(), workspace, *metav1.NewDeleteOptions(0))
+func (t *tenantOperator) DeleteWorkspace(workspace string, opts metav1.DeleteOptions) error {
+
+	if opts.PropagationPolicy != nil && *opts.PropagationPolicy == metav1.DeletePropagationOrphan {
+		wsp, err := t.DescribeWorkspace(workspace)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		wsp.Finalizers = append(wsp.Finalizers, orphanFinalizer)
+		_, err = t.ksclient.TenantV1alpha2().WorkspaceTemplates().Update(context.Background(), wsp, metav1.UpdateOptions{})
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Delete(context.Background(), workspace, opts)
 }
 
 // listIntersectedNamespaces returns a list of namespaces that MUST meet ALL the following filters:

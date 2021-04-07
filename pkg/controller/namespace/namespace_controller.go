@@ -170,6 +170,10 @@ func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, name
 		// skip if workspace not found
 		return client.IgnoreNotFound(err)
 	}
+	// workspace has been deleted
+	if !workspace.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.unbindWorkspace(ctx, logger, namespace)
+	}
 	// owner reference not match workspace label
 	if !metav1.IsControlledBy(namespace, workspace) {
 		namespace := namespace.DeepCopy()
@@ -188,11 +192,19 @@ func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, name
 }
 
 func (r *Reconciler) unbindWorkspace(ctx context.Context, logger logr.Logger, namespace *corev1.Namespace) error {
-	if k8sutil.IsControlledBy(namespace.OwnerReferences, tenantv1alpha1.ResourceKindWorkspace, "") {
-		namespace := namespace.DeepCopy()
-		namespace.OwnerReferences = k8sutil.RemoveWorkspaceOwnerReference(namespace.OwnerReferences)
-		logger.V(4).Info("remove owner reference", "workspace", namespace.Labels[constants.WorkspaceLabelKey])
-		if err := r.Update(ctx, namespace); err != nil {
+	_, hasWorkspaceLabel := namespace.Labels[tenantv1alpha1.WorkspaceLabel]
+	if hasWorkspaceLabel || k8sutil.IsControlledBy(namespace.OwnerReferences, tenantv1alpha1.ResourceKindWorkspace, "") {
+		ns := namespace.DeepCopy()
+
+		wsName := k8sutil.GetWorkspaceOwnerName(ns.OwnerReferences)
+		if hasWorkspaceLabel {
+			wsName = namespace.Labels[tenantv1alpha1.WorkspaceLabel]
+		}
+
+		delete(ns.Labels, constants.WorkspaceLabelKey)
+		ns.OwnerReferences = k8sutil.RemoveWorkspaceOwnerReference(ns.OwnerReferences)
+		logger.V(4).Info("remove owner reference and label", "namespace", ns.Name, "workspace", wsName)
+		if err := r.Update(ctx, ns); err != nil {
 			logger.Error(err, "update owner reference failed")
 			return err
 		}

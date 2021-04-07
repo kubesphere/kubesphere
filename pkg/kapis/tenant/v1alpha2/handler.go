@@ -23,6 +23,7 @@ import (
 	"github.com/emicklei/go-restful"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
@@ -219,7 +220,14 @@ func (h *tenantHandler) CreateWorkspace(request *restful.Request, response *rest
 func (h *tenantHandler) DeleteWorkspace(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
 
-	err := h.tenant.DeleteWorkspace(workspace)
+	opts := metav1.DeleteOptions{}
+
+	err := request.ReadEntity(&opts)
+	if err != nil {
+		opts = *metav1.NewDeleteOptions(0)
+	}
+
+	err = h.tenant.DeleteWorkspace(workspace, opts)
 
 	if err != nil {
 		klog.Error(err)

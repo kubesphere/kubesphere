@@ -44,3 +44,14 @@ func RemoveWorkspaceOwnerReference(ownerReferences []metav1.OwnerReference) []me
 	}
 	return tmp
 }
+
+// GetWorkspaceOwnerName return workspace kind owner name
+func GetWorkspaceOwnerName(ownerReferences []metav1.OwnerReference) string {
+	for _, owner := range ownerReferences {
+		if owner.Kind == tenantv1alpha1.ResourceKindWorkspace ||
+			owner.Kind == tenantv1alpha2.ResourceKindWorkspaceTemplate {
+			return owner.Name
+		}
+	}
+	return ""
+}
