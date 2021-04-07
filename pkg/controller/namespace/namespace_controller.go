@@ -192,11 +192,12 @@ func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, name
 }
 
 func (r *Reconciler) unbindWorkspace(ctx context.Context, logger logr.Logger, namespace *corev1.Namespace) error {
-	if k8sutil.IsControlledBy(namespace.OwnerReferences, tenantv1alpha1.ResourceKindWorkspace, "") || len(namespace.Labels) > 0 {
+	_, hasWorkspaceLabel := namespace.Labels[tenantv1alpha1.WorkspaceLabel]
+	if hasWorkspaceLabel || k8sutil.IsControlledBy(namespace.OwnerReferences, tenantv1alpha1.ResourceKindWorkspace, "") {
 		ns := namespace.DeepCopy()
 
 		wsName := k8sutil.GetWorkspaceOwnerName(ns.OwnerReferences)
-		if _, ok := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; ok {
+		if hasWorkspaceLabel {
 			wsName = namespace.Labels[tenantv1alpha1.WorkspaceLabel]
 		}
 

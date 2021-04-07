@@ -125,10 +125,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 			// remove our finalizer from the list and update it.
 			workspaceTemplate.ObjectMeta.Finalizers = sliceutil.RemoveString(workspaceTemplate.ObjectMeta.Finalizers, func(item string) bool {
-				return item == workspaceTemplateFinalizer
-			})
-			workspaceTemplate.ObjectMeta.Finalizers = sliceutil.RemoveString(workspaceTemplate.ObjectMeta.Finalizers, func(item string) bool {
-				return item == orphanFinalizer
+				return item == workspaceTemplateFinalizer || item == orphanFinalizer
 			})
 
 			logger.V(4).Info("update workspace template")
