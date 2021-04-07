@@ -51,6 +51,7 @@ import (
 	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/version"
 )
 
 // Cluster controller only runs under multicluster mode. Cluster controller is following below steps,
@@ -582,6 +583,13 @@ func (c *clusterController) syncCluster(key string) error {
 		cluster.Status.Configz = configz
 	}
 
+	v, err := c.tryFetchKubeSphereVersion(clusterDt.config.Host, clusterDt.transport)
+	if err != nil {
+		klog.Errorf("failed to get KubeSphere version, err: %#v", err)
+	} else {
+		cluster.Status.KubeSphereVersion = v
+	}
+
 	// label cluster host cluster if configz["multicluster"]==true
 	if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
 		if cluster.Labels == nil {
@@ -658,6 +666,44 @@ func (c *clusterController) tryToFetchKubeSphereComponents(host string, transpor
 		return nil, err
 	}
 	return configz, nil
+}
+
+//
+func (c *clusterController) tryFetchKubeSphereVersion(host string, transport http.RoundTripper) (string, error) {
+	client := http.Client{
+		Transport: transport,
+		Timeout:   5 * time.Second,
+	}
+
+	response, err := client.Get(fmt.Sprintf(proxyFormat, host, "kapis/version"))
+	if err != nil {
+		return "", err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		klog.V(4).Infof("Response status code isn't 200.")
+		return "", fmt.Errorf("response code %d", response.StatusCode)
+	}
+
+	info := version.Info{}
+	decoder := json.NewDecoder(response.Body)
+	err = decoder.Decode(&info)
+	if err != nil {
+		return "", err
+	}
+
+	// currently, we kubesphere v2.1 can not be joined as a member cluster and it will never be reconciled,
+	// so we don't consider that situation
+	// for kubesphere v3.0.0, the gitVersion is always v0.0.0, so we return v3.0.0
+	if info.GitVersion == "v0.0.0" {
+		return "v3.0.0", nil
+	}
+
+	if len(info.GitVersion) == 0 {
+		return "unknown", nil
+	}
+
+	return info.GitVersion, nil
 }
 
 func (c *clusterController) addCluster(obj interface{}) {

@@ -136,6 +136,9 @@ type ClusterStatus struct {
 	// GitVersion of the kubernetes cluster, this field is populated by cluster controller
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 
+	// GitVersion of the /kapis/version api response, this field is populated by cluster controller
+	KubeSphereVersion string `json:"kubeSphereVersion,omitempty"`
+
 	// Count of the kubernetes cluster nodes
 	// This field may not reflect the instant status of the cluster.
 	NodeCount int `json:"nodeCount,omitempty"`
