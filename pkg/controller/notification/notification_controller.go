@@ -18,6 +18,7 @@ package notification
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -47,8 +49,9 @@ import (
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a Foo is synced
-	successSynced  = "Synced"
-	controllerName = "notification-controller"
+	successSynced         = "Synced"
+	controllerName        = "notification-controller"
+	messageResourceSynced = "Notification synced successfully"
 )
 
 type Controller struct {
@@ -119,6 +122,18 @@ func (c *Controller) setEventHandlers() error {
 			})
 			c.informerSynced = append(c.informerSynced, informer.HasSynced)
 		}
+	}
+
+	// Watch the cluster add and delete operator.
+	if informer, err := c.ksCache.GetInformer(context.Background(), &v1alpha1.Cluster{}); err != nil {
+		klog.Errorf("get cluster informer error, %v", err)
+		return err
+	} else {
+		informer.AddEventHandler(toolscache.ResourceEventHandlerFuncs{
+			AddFunc:    c.enqueue,
+			DeleteFunc: c.enqueue,
+		})
+		c.informerSynced = append(c.informerSynced, informer.HasSynced)
 	}
 
 	return nil
@@ -224,15 +239,28 @@ func (c *Controller) reconcile(obj interface{}) error {
 	}
 
 	name := accessor.GetName()
-	kind := runtimeObj.GetObjectKind().GroupVersionKind().String()
+
+	// If the cluster changed, add or delete, it should update the annotations of secrets
+	// which the notification controller managed, then the notification controller
+	// will receiver a event to reconcile the secret.
+	if _, ok := obj.(*v1alpha1.Cluster); ok {
+		err = c.updateSecret()
+		if err != nil {
+			klog.Errorf("update secret failed, %s", err)
+			return err
+		}
+
+		return nil
+	}
+
 	err = c.Get(context.Background(), client.ObjectKey{Name: accessor.GetName(), Namespace: accessor.GetNamespace()}, runtimeObj)
 	if err != nil {
 		// The user may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
-			utilruntime.HandleError(fmt.Errorf("obj '%s, %s' in work queue no longer exists", kind, name))
-			c.recorder.Event(runtimeObj, corev1.EventTypeNormal, successSynced, fmt.Sprintf("%s synced successfully", kind))
-			klog.Infof("Successfully synced %s:%s", kind, name)
+			utilruntime.HandleError(fmt.Errorf("obj '%s' in work queue no longer exists", name))
+			c.recorder.Event(runtimeObj, corev1.EventTypeNormal, successSynced, messageResourceSynced)
+			klog.Infof("Successfully synced %s", name)
 			return nil
 		}
 		klog.Error(err)
@@ -243,8 +271,8 @@ func (c *Controller) reconcile(obj interface{}) error {
 		return err
 	}
 
-	c.recorder.Event(runtimeObj, corev1.EventTypeNormal, successSynced, fmt.Sprintf("%s synced successfully", kind))
-	klog.Infof("Successfully synced %s:%s", kind, name)
+	c.recorder.Event(runtimeObj, corev1.EventTypeNormal, successSynced, messageResourceSynced)
+	klog.Infof("Successfully synced %s", name)
 	return nil
 }
 
@@ -299,18 +327,20 @@ func (c *Controller) syncFederatedConfig(obj *v2beta1.Config) error {
 				},
 			}
 
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
+			err = controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
 			if err != nil {
+				klog.Errorf("FederatedNotificationConfig '%s' SetControllerReference failed, %s", obj.Name, err)
 				return err
 			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
+
+			if err = c.Create(context.Background(), fedObj); err != nil {
+				klog.Errorf("create FederatedNotificationConfig '%s' failed, %s", obj.Name, err)
 				return err
 			}
 
 			return nil
 		}
-		klog.Error(err)
+		klog.Errorf("get FederatedNotificationConfig '%s' failed, %s", obj.Name, err)
 		return err
 	}
 
@@ -320,7 +350,7 @@ func (c *Controller) syncFederatedConfig(obj *v2beta1.Config) error {
 		fedObj.Spec.Template.Labels = obj.Labels
 
 		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
+			klog.Errorf("update FederatedNotificationConfig '%s' failed, %s", obj.Name, err)
 			return err
 		}
 	}
@@ -355,18 +385,20 @@ func (c *Controller) syncFederatedReceiver(obj *v2beta1.Receiver) error {
 				},
 			}
 
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
+			err = controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
 			if err != nil {
+				klog.Errorf("FederatedNotificationReceiver '%s' SetControllerReference failed, %s", obj.Name, err)
 				return err
 			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
+
+			if err = c.Create(context.Background(), fedObj); err != nil {
+				klog.Errorf("create FederatedNotificationReceiver '%s' failed, %s", obj.Name, err)
 				return err
 			}
 
 			return nil
 		}
-		klog.Error(err)
+		klog.Errorf("get FederatedNotificationReceiver '%s' failed, %s", obj.Name, err)
 		return err
 	}
 
@@ -376,7 +408,7 @@ func (c *Controller) syncFederatedReceiver(obj *v2beta1.Receiver) error {
 		fedObj.Spec.Template.Labels = obj.Labels
 
 		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
+			klog.Errorf("update FederatedNotificationReceiver '%s' failed, %s", obj.Name, err)
 			return err
 		}
 	}
@@ -411,18 +443,26 @@ func (c *Controller) syncFederatedSecret(obj *corev1.Secret) error {
 				},
 			}
 
-			err := controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
+			err = c.updateOverrides(obj, fedObj)
 			if err != nil {
+				klog.Errorf("update FederatedSecret '%s' overrides failed, %s", obj.Name, err)
 				return err
 			}
-			if err := c.Create(context.Background(), fedObj); err != nil {
-				klog.Errorf("create '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
+
+			err = controllerutil.SetControllerReference(obj, fedObj, scheme.Scheme)
+			if err != nil {
+				klog.Errorf("FederatedSecret '%s' SetControllerReference failed, %s", obj.Name, err)
+				return err
+			}
+
+			if err = c.Create(context.Background(), fedObj); err != nil {
+				klog.Errorf("create FederatedSecret '%s' failed, %s", obj.Name, err)
 				return err
 			}
 
 			return nil
 		}
-		klog.Error(err)
+		klog.Errorf("get FederatedSecret '%s' failed, %s", obj.Name, err)
 		return err
 	}
 
@@ -433,9 +473,72 @@ func (c *Controller) syncFederatedSecret(obj *corev1.Secret) error {
 		fedObj.Spec.Template.Data = obj.Data
 		fedObj.Spec.Template.StringData = obj.StringData
 		fedObj.Spec.Template.Type = obj.Type
+	}
 
-		if err := c.Update(context.Background(), fedObj); err != nil {
-			klog.Errorf("update '%s:%s' failed, %s", fedObj.GetObjectKind().GroupVersionKind().String(), obj.Name, err)
+	err = c.updateOverrides(obj, fedObj)
+	if err != nil {
+		klog.Errorf("update FederatedSecret '%s' overrides failed, %s", obj.Name, err)
+		return err
+	}
+
+	if err := c.Update(context.Background(), fedObj); err != nil {
+		klog.Errorf("update FederatedSecret '%s' failed, %s", obj.Name, err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *Controller) updateOverrides(obj *corev1.Secret, fedSecret *v1beta1.FederatedSecret) error {
+	clusterList := &v1alpha1.ClusterList{}
+	err := c.ksCache.List(context.Background(), clusterList)
+	if err != nil {
+		return err
+	}
+
+	bs, err := json.Marshal(obj.Labels)
+	if err != nil {
+		return err
+	}
+
+	fedSecret.Spec.Overrides = fedSecret.Spec.Overrides[:0]
+	for _, cluster := range clusterList.Items {
+		fedSecret.Spec.Overrides = append(fedSecret.Spec.Overrides, v1beta1.GenericOverrideItem{
+			ClusterName: cluster.Name,
+			ClusterOverrides: []v1beta1.ClusterOverride{
+				{
+					Path: "/metadata/labels",
+					Value: runtime.RawExtension{
+						Raw: bs,
+					},
+				},
+			},
+		})
+	}
+
+	return nil
+}
+
+// Update the annotations of secrets which the notification controller managed, rigger a  reconcile.
+func (c *Controller) updateSecret() error {
+
+	secretList := &corev1.SecretList{}
+	err := c.ksCache.List(context.Background(), secretList,
+		client.InNamespace(constants.NotificationSecretNamespace),
+		client.MatchingLabels{
+			constants.NotificationManagedLabel: "true",
+		})
+	if err != nil {
+		return err
+	}
+
+	for _, secret := range secretList.Items {
+		if secret.Annotations == nil {
+			secret.Annotations = make(map[string]string)
+		}
+
+		secret.Annotations["reloadtimestamp"] = time.Now().String()
+		if err := c.Update(context.Background(), &secret); err != nil {
 			return err
 		}
 	}

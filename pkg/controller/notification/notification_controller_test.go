@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -91,16 +92,19 @@ var (
 			informerCacheCancel()
 		})
 
-		// Add Tests for OpenAPI validation (or additonal CRD features) specified in
+		// Add Tests for OpenAPI validation (or additional CRD features) specified in
 		// your API definition.
 		// Avoid adding tests for vanilla CRUD operations because they would
 		// test Kubernetes API server, which isn't the goal here.
 		Context("Notification Controller", func() {
 			It("Should create successfully", func() {
 
+				r, err := NewController(fakek8s.NewSimpleClientset(), cl, ksCache)
+				Expect(err).ToNot(HaveOccurred())
+
 				// Create a secret
 				Expect(cl.Create(context.Background(), secret)).Should(Succeed())
-				time.Sleep(time.Second)
+				Expect(r.reconcile(secret)).Should(Succeed())
 
 				fedSecret := &v1beta1.FederatedSecret{}
 				By("Expecting to create federated secret successfully")
@@ -110,11 +114,11 @@ var (
 					return !fedSecret.CreationTimestamp.IsZero()
 				}, timeout, interval).Should(BeTrue())
 
-				err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.NotificationSecretNamespace}, secret)
+				err = ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.NotificationSecretNamespace}, secret)
 				Expect(err).Should(Succeed())
 				secret.StringData = map[string]string{"foo": "bar"}
 				Expect(cl.Update(context.Background(), secret)).Should(Succeed())
-				time.Sleep(time.Second)
+				Expect(r.reconcile(secret)).Should(Succeed())
 
 				By("Expecting to update federated secret successfully")
 				Eventually(func() bool {
@@ -133,8 +137,7 @@ var (
 
 		obj := &v2beta1.Config{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "foo",
-				Namespace: constants.NotificationSecretNamespace,
+				Name: "foo",
 				Labels: map[string]string{
 					"type": "default",
 				},
@@ -169,16 +172,19 @@ var (
 			informerCacheCancel()
 		})
 
-		// Add Tests for OpenAPI validation (or additonal CRD features) specified in
+		// Add Tests for OpenAPI validation (or additional CRD features) specified in
 		// your API definition.
 		// Avoid adding tests for vanilla CRUD operations because they would
 		// test Kubernetes API server, which isn't the goal here.
 		Context("Notification Controller", func() {
 			It("Should create successfully", func() {
 
-				// Create a bject
+				r, err := NewController(fakek8s.NewSimpleClientset(), cl, ksCache)
+				Expect(err).ToNot(HaveOccurred())
+
+				// Create a object
 				Expect(cl.Create(context.Background(), obj)).Should(Succeed())
-				time.Sleep(time.Second)
+				Expect(r.reconcile(obj)).Should(Succeed())
 
 				fedObj := &v1beta1.FederatedNotificationConfig{}
 				By("Expecting to create federated object successfully")
@@ -188,11 +194,11 @@ var (
 					return !fedObj.CreationTimestamp.IsZero()
 				}, timeout, interval).Should(BeTrue())
 
-				err := ksCache.Get(context.Background(), client.ObjectKey{Name: obj.Name}, obj)
+				err = ksCache.Get(context.Background(), client.ObjectKey{Name: obj.Name}, obj)
 				Expect(err).Should(Succeed())
 				obj.Labels = map[string]string{"foo": "bar"}
 				Expect(cl.Update(context.Background(), obj)).Should(Succeed())
-				time.Sleep(time.Second)
+				Expect(r.reconcile(obj)).Should(Succeed())
 
 				By("Expecting to update federated object successfully")
 				Eventually(func() bool {

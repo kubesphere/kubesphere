@@ -20,18 +20,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"k8s.io/client-go/kubernetes/fake"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
 	"kubesphere.io/kubesphere/pkg/apis"
 	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 )
 
 func TestSource(t *testing.T) {
@@ -42,7 +39,6 @@ func TestSource(t *testing.T) {
 
 var testenv *envtest.Environment
 var cfg *rest.Config
-var k8sManager ctrl.Manager
 
 var _ = BeforeSuite(func(done Done) {
 
@@ -55,27 +51,8 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = v2beta1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = apis.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-	})
-	Expect(err).ToNot(HaveOccurred())
-
-	r, err := NewController(fake.NewSimpleClientset(), k8sManager.GetClient(), k8sManager.GetCache())
-	Expect(err).ToNot(HaveOccurred())
-	err = k8sManager.Add(r)
-	Expect(err).ToNot(HaveOccurred())
-
-	go func() {
-		err = k8sManager.Start(ctrl.SetupSignalHandler())
-		Expect(err).ToNot(HaveOccurred())
-	}()
+	Expect(v2beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(apis.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	close(done)
 }, 60)
