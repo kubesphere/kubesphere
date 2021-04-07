@@ -60,35 +60,36 @@ const (
 )
 
 type reqParams struct {
-	metering         bool
-	operation        string
-	time             string
-	start            string
-	end              string
-	step             string
-	target           string
-	order            string
-	page             string
-	limit            string
-	metricFilter     string
-	resourceFilter   string
-	nodeName         string
-	workspaceName    string
-	namespaceName    string
-	workloadKind     string
-	workloadName     string
-	podName          string
-	containerName    string
-	pvcName          string
-	storageClassName string
-	componentType    string
-	expression       string
-	metric           string
-	applications     string
-	openpitrixs      string
-	cluster          string
-	services         string
-	pvcFilter        string
+	metering                  bool
+	operation                 string
+	time                      string
+	start                     string
+	end                       string
+	step                      string
+	target                    string
+	order                     string
+	page                      string
+	limit                     string
+	metricFilter              string
+	namespacedResourcesFilter string
+	resourceFilter            string
+	nodeName                  string
+	workspaceName             string
+	namespaceName             string
+	workloadKind              string
+	workloadName              string
+	podName                   string
+	containerName             string
+	pvcName                   string
+	storageClassName          string
+	componentType             string
+	expression                string
+	metric                    string
+	applications              string
+	openpitrixs               string
+	cluster                   string
+	services                  string
+	pvcFilter                 string
 }
 
 type queryOptions struct {
@@ -130,6 +131,7 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.page = req.QueryParameter("page")
 	r.limit = req.QueryParameter("limit")
 	r.metricFilter = req.QueryParameter("metrics_filter")
+	r.namespacedResourcesFilter = req.QueryParameter("namespaced_resources_filter")
 	r.resourceFilter = req.QueryParameter("resources_filter")
 	r.workspaceName = req.PathParameter("workspace")
 	r.namespaceName = req.PathParameter("namespace")
@@ -285,12 +287,13 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 	case monitoring.LevelPod:
 		q.identifier = model.IdentifierPod
 		q.option = monitoring.PodOption{
-			ResourceFilter: r.resourceFilter,
-			NodeName:       r.nodeName,
-			NamespaceName:  r.namespaceName,
-			WorkloadKind:   r.workloadKind,
-			WorkloadName:   r.workloadName,
-			PodName:        r.podName,
+			NamespacedResourcesFilter: r.namespacedResourcesFilter,
+			ResourceFilter:            r.resourceFilter,
+			NodeName:                  r.nodeName,
+			NamespaceName:             r.namespaceName,
+			WorkloadKind:              r.workloadKind,
+			WorkloadName:              r.workloadName,
+			PodName:                   r.podName,
 		}
 		q.namedMetrics = model.PodMetrics
 

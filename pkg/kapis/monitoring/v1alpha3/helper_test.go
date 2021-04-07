@@ -291,6 +291,33 @@ func TestParseRequestParams(t *testing.T) {
 			lvl:         monitoring.LevelOpenpitrix,
 			expectedErr: true,
 		},
+		{
+			params: reqParams{
+				time:                      "1585880000",
+				namespacedResourcesFilter: "test1|test2",
+			},
+			lvl: monitoring.LevelPod,
+			expected: queryOptions{
+				metricFilter: ".*",
+				identifier:   "pod",
+				time:         time.Unix(1585880000, 0),
+				namedMetrics: []string{
+					"pod_cpu_usage",
+					"pod_memory_usage",
+					"pod_memory_usage_wo_cache",
+					"pod_net_bytes_transmitted",
+					"pod_net_bytes_received",
+					"meter_pod_cpu_usage",
+					"meter_pod_memory_usage_wo_cache",
+					"meter_pod_net_bytes_transmitted",
+					"meter_pod_net_bytes_received",
+					"meter_pod_pvc_bytes_total",
+				},
+				Operation: OperationQuery,
+				option:    monitoring.PodOption{NamespacedResourcesFilter: "test1|test2", ResourceFilter: ".*"},
+			},
+			expectedErr: false,
+		},
 	}
 
 	for i, tt := range tests {
