@@ -1,6 +1,6 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -15,120 +15,113 @@ spec:
     plural: ippools
     singular: ippool
   scope: Cluster
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          properties:
-            blockSize:
-              description: The block size to use for IP address assignments from this
-                pool. Defaults to 26 for IPv4 and 112 for IPv6.
-              type: integer
-            cidr:
-              description: The pool CIDR.
-              type: string
-            disabled:
-              description: When disabled is true, IPAM will not assign addresses from
-                this pool.
-              type: boolean
-            dns:
-              description: DNS contains values interesting for DNS resolvers
-              properties:
-                domain:
-                  type: string
-                nameservers:
-                  items:
-                    type: string
-                  type: array
-                options:
-                  items:
-                    type: string
-                  type: array
-                search:
-                  items:
-                    type: string
-                  type: array
-              type: object
-            gateway:
-              type: string
-            rangeEnd:
-              description: The last ip, inclusive
-              type: string
-            rangeStart:
-              description: The first ip, inclusive
-              type: string
-            routes:
-              items:
-                properties:
-                  dst:
-                    type: string
-                  gateway:
-                    type: string
-                type: object
-              type: array
-            type:
-              type: string
-            vlanConfig:
-              properties:
-                master:
-                  type: string
-                vlanId:
-                  format: int32
-                  type: integer
-              required:
-              - master
-              - vlanId
-              type: object
-          required:
-          - cidr
-          - type
-          type: object
-        status:
-          properties:
-            allocations:
-              type: integer
-            capacity:
-              type: integer
-            reserved:
-              type: integer
-            synced:
-              type: boolean
-            unallocated:
-              type: integer
-            workspaces:
-              additionalProperties:
-                properties:
-                  allocations:
-                    type: integer
-                required:
-                - allocations
-                type: object
-              type: object
-          required:
-          - allocations
-          - capacity
-          - unallocated
-          type: object
-      type: object
-  version: v1alpha1
   versions:
   - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              blockSize:
+                description: The block size to use for IP address assignments from this pool. Defaults to 26 for IPv4 and 112 for IPv6.
+                type: integer
+              cidr:
+                description: The pool CIDR.
+                type: string
+              disabled:
+                description: When disabled is true, IPAM will not assign addresses from this pool.
+                type: boolean
+              dns:
+                description: DNS contains values interesting for DNS resolvers
+                properties:
+                  domain:
+                    type: string
+                  nameservers:
+                    items:
+                      type: string
+                    type: array
+                  options:
+                    items:
+                      type: string
+                    type: array
+                  search:
+                    items:
+                      type: string
+                    type: array
+                type: object
+              gateway:
+                type: string
+              rangeEnd:
+                description: The last ip, inclusive
+                type: string
+              rangeStart:
+                description: The first ip, inclusive
+                type: string
+              routes:
+                items:
+                  properties:
+                    dst:
+                      type: string
+                    gateway:
+                      type: string
+                  type: object
+                type: array
+              type:
+                type: string
+              vlanConfig:
+                properties:
+                  master:
+                    type: string
+                  vlanId:
+                    format: int32
+                    type: integer
+                required:
+                - master
+                - vlanId
+                type: object
+            required:
+            - cidr
+            - type
+            type: object
+          status:
+            properties:
+              allocations:
+                type: integer
+              capacity:
+                type: integer
+              reserved:
+                type: integer
+              synced:
+                type: boolean
+              unallocated:
+                type: integer
+              workspaces:
+                additionalProperties:
+                  properties:
+                    allocations:
+                      type: integer
+                  required:
+                  - allocations
+                  type: object
+                type: object
+            required:
+            - allocations
+            - capacity
+            - unallocated
+            type: object
+        type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

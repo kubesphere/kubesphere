@@ -1,0 +1,104 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: federatedroles.iam.kubesphere.io
+spec:
+  group: iam.kubesphere.io
+  names:
+    kind: FederatedRole
+    listKind: FederatedRoleList
+    plural: federatedroles
+    singular: federatedrole
+  scope: Namespaced
+  versions:
+  - name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              placement:
+                properties:
+                  clusterSelector:
+                    properties:
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                    type: object
+                  clusters:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                type: object
+              template:
+                properties:
+                  metadata:
+                    type: object
+                  rules:
+                    items:
+                      description: PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to.
+                      properties:
+                        apiGroups:
+                          description: APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed.
+                          items:
+                            type: string
+                          type: array
+                        nonResourceURLs:
+                          description: NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                          items:
+                            type: string
+                          type: array
+                        resourceNames:
+                          description: ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+                          items:
+                            type: string
+                          type: array
+                        resources:
+                          description: Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
+                          items:
+                            type: string
+                          type: array
+                        verbs:
+                          description: Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - verbs
+                      type: object
+                    type: array
+                type: object
+            required:
+            - placement
+            - template
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
