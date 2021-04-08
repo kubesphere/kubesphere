@@ -707,22 +707,17 @@ func (h *openpitrixHandler) ListApplications(req *restful.Request, resp *restful
 	clusterName := req.PathParameter("cluster")
 	namespace := req.PathParameter("namespace")
 	workspace := req.PathParameter("workspace")
-	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.StatusTime)
 	conditions, err := params.ParseConditions(req)
-
-	if offset < 0 {
-		offset = 0
-	}
-
-	if limit <= 0 {
-		limit = 10
-	}
-
 	if err != nil {
 		klog.V(4).Infoln(err)
 		api.HandleBadRequest(resp, nil, err)
 		return
+	}
+
+	reverse := false
+	if conditions.Match[openpitrix.Ascending] == "true" {
+		reverse = true
 	}
 
 	result, err := h.openpitrix.ListApplications(workspace, clusterName, namespace, conditions, limit, offset, orderBy, reverse)
