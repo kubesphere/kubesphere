@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -53,6 +54,30 @@ var (
 				Labels: map[string]string{
 					constants.NotificationManagedLabel: "true",
 				},
+			},
+		}
+
+		config := &v2beta1.Config{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+				Labels: map[string]string{
+					"type": "global",
+				},
+			},
+		}
+
+		receiver := &v2beta1.Receiver{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+				Labels: map[string]string{
+					"type": "default",
+				},
+			},
+		}
+
+		host := &v1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "host",
 			},
 		}
 
@@ -114,6 +139,7 @@ var (
 					return !fedSecret.CreationTimestamp.IsZero()
 				}, timeout, interval).Should(BeTrue())
 
+				// Update a secret
 				err = ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.NotificationSecretNamespace}, secret)
 				Expect(err).Should(Succeed())
 				secret.StringData = map[string]string{"foo": "bar"}
@@ -126,85 +152,92 @@ var (
 					Expect(err).Should(Succeed())
 					return string(fedSecret.Spec.Template.Data["foo"]) == "bar"
 				}, timeout, interval).Should(BeTrue())
-			})
-		})
-	})
 
-	_ = Describe("Notification", func() {
+				// Create a Config
+				Expect(cl.Create(context.Background(), config)).Should(Succeed())
+				Expect(r.reconcile(config)).Should(Succeed())
 
-		const timeout = time.Second * 30
-		const interval = time.Second * 1
-
-		obj := &v2beta1.Config{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "foo",
-				Labels: map[string]string{
-					"type": "default",
-				},
-			},
-		}
-
-		var (
-			cl                  client.Client
-			ksCache             cache.Cache
-			informerCacheCtx    context.Context
-			informerCacheCancel context.CancelFunc
-		)
-
-		BeforeEach(func() {
-			var err error
-			cl, err = client.New(cfg, client.Options{})
-			Expect(err).NotTo(HaveOccurred())
-
-			ksCache, err = cache.New(cfg, cache.Options{})
-			Expect(err).NotTo(HaveOccurred())
-
-			informerCacheCtx, informerCacheCancel = context.WithCancel(context.Background())
-			go func(ctx context.Context) {
-				defer GinkgoRecover()
-				Expect(ksCache.Start(ctx.Done())).To(Succeed())
-			}(informerCacheCtx)
-			Expect(ksCache.WaitForCacheSync(informerCacheCtx.Done())).To(BeTrue())
-		})
-
-		AfterEach(func() {
-			By("cleaning up")
-			informerCacheCancel()
-		})
-
-		// Add Tests for OpenAPI validation (or additional CRD features) specified in
-		// your API definition.
-		// Avoid adding tests for vanilla CRUD operations because they would
-		// test Kubernetes API server, which isn't the goal here.
-		Context("Notification Controller", func() {
-			It("Should create successfully", func() {
-
-				r, err := NewController(fakek8s.NewSimpleClientset(), cl, ksCache)
-				Expect(err).ToNot(HaveOccurred())
-
-				// Create a object
-				Expect(cl.Create(context.Background(), obj)).Should(Succeed())
-				Expect(r.reconcile(obj)).Should(Succeed())
-
-				fedObj := &v1beta1.FederatedNotificationConfig{}
+				fedConfig := &v1beta1.FederatedNotificationConfig{}
 				By("Expecting to create federated object successfully")
 				Eventually(func() bool {
-					err := ksCache.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
+					err := ksCache.Get(context.Background(), client.ObjectKey{Name: config.Name}, fedConfig)
 					Expect(err).Should(Succeed())
-					return !fedObj.CreationTimestamp.IsZero()
+					return !fedConfig.CreationTimestamp.IsZero()
 				}, timeout, interval).Should(BeTrue())
 
-				err = ksCache.Get(context.Background(), client.ObjectKey{Name: obj.Name}, obj)
+				// Update a config
+				err = ksCache.Get(context.Background(), client.ObjectKey{Name: config.Name}, config)
 				Expect(err).Should(Succeed())
-				obj.Labels = map[string]string{"foo": "bar"}
-				Expect(cl.Update(context.Background(), obj)).Should(Succeed())
-				Expect(r.reconcile(obj)).Should(Succeed())
+				config.Labels = map[string]string{"foo": "bar"}
+				Expect(cl.Update(context.Background(), config)).Should(Succeed())
+				Expect(r.reconcile(config)).Should(Succeed())
 
 				By("Expecting to update federated object successfully")
 				Eventually(func() bool {
-					err := ksCache.Get(context.Background(), client.ObjectKey{Name: obj.Name}, fedObj)
+					err := ksCache.Get(context.Background(), client.ObjectKey{Name: config.Name}, fedConfig)
 					Expect(err).Should(Succeed())
-					return fedObj.Spec.Template.Labels["foo"] == "bar"
+					return fedConfig.Spec.Template.Labels["foo"] == "bar"
+				}, timeout, interval).Should(BeTrue())
+
+				// Create a receiver
+				Expect(cl.Create(context.Background(), receiver)).Should(Succeed())
+				Expect(r.reconcile(receiver)).Should(Succeed())
+
+				fedReceiver := &v1beta1.FederatedNotificationReceiver{}
+				By("Expecting to create federated object successfully")
+				Eventually(func() bool {
+					err := ksCache.Get(context.Background(), client.ObjectKey{Name: receiver.Name}, fedReceiver)
+					Expect(err).Should(Succeed())
+					return !fedReceiver.CreationTimestamp.IsZero()
+				}, timeout, interval).Should(BeTrue())
+
+				// Update a receiver
+				err = ksCache.Get(context.Background(), client.ObjectKey{Name: receiver.Name}, receiver)
+				Expect(err).Should(Succeed())
+				receiver.Labels = map[string]string{"foo": "bar"}
+				Expect(cl.Update(context.Background(), receiver)).Should(Succeed())
+				Expect(r.reconcile(receiver)).Should(Succeed())
+
+				By("Expecting to update federated object successfully")
+				Eventually(func() bool {
+					err := ksCache.Get(context.Background(), client.ObjectKey{Name: receiver.Name}, fedReceiver)
+					Expect(err).Should(Succeed())
+					return fedReceiver.Spec.Template.Labels["foo"] == "bar"
+				}, timeout, interval).Should(BeTrue())
+
+				// Add a cluster
+				Expect(cl.Create(informerCacheCtx, host)).Should(Succeed())
+				Expect(r.reconcile(secret)).Should(Succeed())
+
+				By("Expecting to update federated secret successfully")
+				Eventually(func() bool {
+					err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.NotificationSecretNamespace}, fedSecret)
+					Expect(err).Should(Succeed())
+
+					if fedSecret.Spec.Overrides == nil ||
+						len(fedSecret.Spec.Overrides) != 1 ||
+						fedSecret.Spec.Overrides[0].ClusterName != "host" {
+						return false
+					}
+
+					return true
+				}, timeout, interval).Should(BeTrue())
+
+				// Delete a cluster
+				Expect(cl.Delete(informerCacheCtx, host)).Should(Succeed())
+				Expect(r.reconcile(secret)).Should(Succeed())
+
+				By("Expecting to update federated secret successfully")
+				Eventually(func() bool {
+					err := ksCache.Get(context.Background(), client.ObjectKey{Name: secret.Name, Namespace: constants.NotificationSecretNamespace}, fedSecret)
+					Expect(err).Should(Succeed())
+
+					if fedSecret.Spec.Overrides != nil ||
+						len(fedSecret.Spec.Overrides) != 0 {
+						return false
+					}
+
+					return true
 				}, timeout, interval).Should(BeTrue())
 			})
 		})

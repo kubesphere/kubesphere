@@ -124,7 +124,7 @@ func (c *Controller) setEventHandlers() error {
 		}
 	}
 
-	// Watch the cluster add and delete operator.
+	// Watch the cluster add and delete operations.
 	if informer, err := c.ksCache.GetInformer(context.Background(), &v1alpha1.Cluster{}); err != nil {
 		klog.Errorf("get cluster informer error, %v", err)
 		return err
@@ -240,9 +240,8 @@ func (c *Controller) reconcile(obj interface{}) error {
 
 	name := accessor.GetName()
 
-	// If the cluster changed, add or delete, it should update the annotations of secrets
-	// which the notification controller managed, then the notification controller
-	// will receiver a event to reconcile the secret.
+	// The notification controller should update the annotations of secrets managed by itself
+	// whenever a cluster is added or deleted. This way, the controller will have a chance to override the secret.
 	if _, ok := obj.(*v1alpha1.Cluster); ok {
 		err = c.updateSecret()
 		if err != nil {
@@ -519,7 +518,7 @@ func (c *Controller) updateOverrides(obj *corev1.Secret, fedSecret *v1beta1.Fede
 	return nil
 }
 
-// Update the annotations of secrets which the notification controller managed, rigger a  reconcile.
+// Update the annotations of secrets managed by the notification controller to trigger a reconcile.
 func (c *Controller) updateSecret() error {
 
 	secretList := &corev1.SecretList{}
