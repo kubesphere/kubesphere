@@ -110,13 +110,22 @@ func (m metricsServer) parseEdgePods(opts *monitoring.QueryOptions) map[string]b
 
 	edgePods := make(map[string]bool)
 
+	var filters []string
+
 	r, _ := regexp.Compile(`\s*\|\s*|\$`)
-	filters := r.Split(opts.ResourceFilter, -1)
+	if opts.ResourceFilter != "" {
+		filters = r.Split(opts.ResourceFilter, -1)
+	}
+
+	if opts.NamespacedResourcesFilter != "" {
+		filters = r.Split(opts.NamespacedResourcesFilter, -1)
+	}
 
 	for _, p := range filters {
-		if p != "" {
-			edgePods[p] = true
+		if p == "" || p == ".*" {
+			continue
 		}
+		edgePods[p] = true
 	}
 
 	return edgePods
@@ -140,8 +149,10 @@ func (m metricsServer) getNodeMetricsFromMetricsAPI() (*metricsapi.NodeMetricsLi
 }
 
 // pods metrics of edge nodes
-func (m metricsServer) getPodMetricsFromMetricsAPI(edgePods map[string]bool, podName string, ns string) ([]metricsapi.PodMetrics, error) {
+func (m metricsServer) getPodMetricsFromMetricsAPI(edgePods map[string]bool, opts *monitoring.QueryOptions) ([]metricsapi.PodMetrics, error) {
 	mc := m.metricsClient.MetricsV1beta1()
+	podName := opts.PodName
+	ns := opts.NamespaceName
 
 	// single pod request
 	if ns != "" && podName != "" {
@@ -160,23 +171,10 @@ func (m metricsServer) getPodMetricsFromMetricsAPI(edgePods map[string]bool, pod
 		return []metricsapi.PodMetrics{*metrics}, nil
 	}
 
-	if len(edgePods) == 0 {
-		return nil, nil
-	}
-
-	var isNamespacedEdgePod bool
-
-	for p, _ := range edgePods {
-		if ok := strings.Contains(p, "/"); ok {
-			isNamespacedEdgePod = true
-		}
-		break
-	}
-
 	combinedPodMetrics := []metricsapi.PodMetrics{}
 
 	// handle cases with when edgePodName contains namespaceName
-	if isNamespacedEdgePod {
+	if opts.NamespacedResourcesFilter != "" {
 		for p, _ := range edgePods {
 			splitedPodName := strings.Split(p, "/")
 			ns, p = strings.ReplaceAll(splitedPodName[0], " ", ""), strings.ReplaceAll(splitedPodName[1], " ", "")
@@ -390,6 +388,15 @@ func (m metricsServer) GetNodeLevelNamedMetrics(metrics []string, ts time.Time, 
 			metricValues[enm].Metadata["role"] = "edge"
 		}
 
+		for _, addr := range status[m.Name].Addresses {
+			if addr.Type == v1.NodeInternalIP {
+				for _, enm := range edgeNodeMetrics {
+					metricValues[enm].Metadata["host_ip"] = addr.Address
+				}
+				break
+			}
+		}
+
 		for k, v := range metricsMap {
 			switch k {
 			case metricsNodeCPUUsage:
@@ -445,7 +452,7 @@ func (m metricsServer) GetPodLevelNamedMetrics(metrics []string, ts time.Time, o
 		return res
 	}
 
-	podMetricsFromMetricsAPI, err := m.getPodMetricsFromMetricsAPI(edgePods, opts.PodName, opts.NamespaceName)
+	podMetricsFromMetricsAPI, err := m.getPodMetricsFromMetricsAPI(edgePods, opts)
 	if err != nil {
 		klog.Errorf("Get pod metrics of edge nodes error %v\n", err)
 		return m.parseErrorResp(metrics, err)
@@ -668,7 +675,7 @@ func (m metricsServer) GetPodLevelNamedMetricsOverTime(metrics []string, start, 
 		return res
 	}
 
-	podMetricsFromMetricsAPI, err := m.getPodMetricsFromMetricsAPI(edgePods, opts.PodName, opts.NamespaceName)
+	podMetricsFromMetricsAPI, err := m.getPodMetricsFromMetricsAPI(edgePods, opts)
 	if err != nil {
 		klog.Errorf("Get pod metrics of edge nodes error %v\n", err)
 		return m.parseErrorResp(metrics, err)

@@ -6,7 +6,7 @@
             "result": [
                 {
                     "metric": {
-                        "namespace": "kubeedge",
+                        "namespace": "ns1",
                         "pod":"pod1"
                     },
                     "values":[
@@ -26,7 +26,7 @@
             "result": [
                 {
                     "metric": {
-                        "namespace": "kubeedge",
+                        "namespace": "ns1",
                         "pod":"pod1"
                     },
                     "values": [

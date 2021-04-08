@@ -6,12 +6,12 @@
             "result": [
                 {
                     "metric": {
-                        "namespace": "kubeedge",
-                        "pod":"pod1"
+                        "namespace": "ns2",
+                        "pod":"pod2"
                     },
                     "value": [
                         1616675696,
-                        "0.001"
+                        "0.002"
                     ]
                 }
             ]
@@ -24,12 +24,12 @@
             "result": [
                 {
                     "metric": {
-                        "namespace": "kubeedge",
-                        "pod":"pod1"
+                        "namespace": "ns2",
+                        "pod":"pod2"
                     },
                     "value": [
                         1616675696,
-                        "1"
+                        "2"
                     ]
                 }
             ]
