@@ -373,11 +373,16 @@ func convertAppVersion(in *v1alpha1.HelmApplicationVersion) *AppVersion {
 	out.CreateTime = &date
 	if len(in.Status.Audit) > 0 {
 		t = in.Status.Audit[0].Time.Time
-		updateDate := strfmt.DateTime(t)
-		out.UpdateTime = &updateDate
+		changeTime := strfmt.DateTime(t)
+		out.StatusTime = &changeTime
 	} else {
-		out.UpdateTime = &date
+		out.StatusTime = &date
 	}
+
+	// chart create time or update time
+	updateTime := strfmt.DateTime(in.Spec.Created.Time)
+	out.UpdateTime = &updateTime
+
 	if in.Spec.Metadata != nil {
 		out.Description = in.Spec.Description
 		out.Icon = in.Spec.Icon
@@ -386,6 +391,7 @@ func convertAppVersion(in *v1alpha1.HelmApplicationVersion) *AppVersion {
 	out.Status = in.State()
 	out.Owner = in.GetCreator()
 	out.Name = in.GetVersionName()
+	out.PackageName = fmt.Sprintf("%s-%s.tgz", in.GetTrueName(), in.GetChartVersion())
 	out.VersionId = in.GetHelmApplicationVersionId()
 	return &out
 }

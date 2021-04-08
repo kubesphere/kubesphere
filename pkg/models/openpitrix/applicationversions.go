@@ -159,13 +159,72 @@ func (c *applicationOperator) ModifyAppVersion(id string, request *ModifyAppVers
 
 	versionCopy := version.DeepCopy()
 	spec := &versionCopy.Spec
-	if request.Name != nil && *request.Name != "" {
-		spec.Version, spec.AppVersion = parseChartVersionName(*request.Name)
+
+	// extract information from chart package
+	if len(request.Package) > 0 {
+		if version.Status.State != v1alpha1.StateDraft {
+			return actionNotPermitted
+		}
+		// 1. Parse the chart package
+		chart, err := helmrepoindex.LoadPackage(request.Package)
+		if err != nil {
+			klog.Errorf("load package failed, error: %s", err)
+			return err
+		}
+
+		// chart name must match with the original one
+		if spec.Name != chart.GetName() {
+			return fmt.Errorf("chart name not match, current name: %s, original name: %s", chart.GetName(), spec.Name)
+		}
+
+		// new version name
+		if chart.GetVersionName() != version.GetVersionName() {
+			existsVersion, err := c.getAppVersionByVersionName(version.GetHelmApplicationId(), chart.GetVersionName())
+			if err != nil {
+				return err
+			}
+			if existsVersion != nil {
+				return appVersionItemExists
+			}
+		}
+
+		// 2. update crd info
+		spec.Version = chart.GetVersion()
+		spec.AppVersion = chart.GetAppVersion()
+		spec.Icon = chart.GetIcon()
+		spec.Home = chart.GetHome()
+		spec.Description = stringutils.ShortenString(chart.GetDescription(), v1alpha1.MsgLen)
+
+		now := metav1.Now()
+		spec.Created = &now
+
+		// 3. save chart data to s3 storage, just overwrite the legacy data
+		err = c.backingStoreClient.Upload(dataKeyInStorage(versionCopy.GetWorkspace(), versionCopy.Name), versionCopy.Name, bytes.NewReader(request.Package))
+		if err != nil {
+			klog.Errorf("upload chart for app version: %s/%s failed, error: %s", versionCopy.GetWorkspace(),
+				versionCopy.GetTrueName(), err)
+			return uploadChartDataFailed
+		} else {
+			klog.V(4).Infof("chart data uploaded for app version: %s/%s", versionCopy.GetWorkspace(), versionCopy.GetTrueName())
+		}
+	} else {
+		// new version name
+		if request.Name != nil && *request.Name != "" && version.GetVersionName() != *request.Name {
+			spec.Version, spec.AppVersion = parseChartVersionName(*request.Name)
+			existsVersion, err := c.getAppVersionByVersionName(version.GetHelmApplicationId(), *request.Name)
+			if err != nil {
+				return err
+			}
+			if existsVersion != nil {
+				return appVersionItemExists
+			}
+		}
+
+		if request.Description != nil && *request.Description != "" {
+			spec.Description = stringutils.ShortenString(*request.Description, v1alpha1.MsgLen)
+		}
 	}
 
-	if request.Description != nil && *request.Description != "" {
-		spec.Description = stringutils.ShortenString(*request.Description, v1alpha1.MsgLen)
-	}
 	patch := client.MergeFrom(version)
 	data, err := patch.Data(versionCopy)
 	if err != nil {
@@ -380,26 +439,35 @@ func (c *applicationOperator) DoAppVersionAction(versionId string, request *Acti
 	return nil
 }
 
-// Create helmApplicationVersion and helmAudit
-func (c *applicationOperator) createApplicationVersion(ver *v1alpha1.HelmApplicationVersion) (*v1alpha1.HelmApplicationVersion, error) {
+func (c *applicationOperator) getAppVersionByVersionName(appId, verName string) (*v1alpha1.HelmApplicationVersion, error) {
 	ls := map[string]string{
-		constants.ChartApplicationIdLabelKey: ver.GetHelmApplicationId(),
+		constants.ChartApplicationIdLabelKey: appId,
 	}
 
-	list, err := c.versionLister.List(labels.SelectorFromSet(ls))
+	versions, err := c.versionLister.List(labels.SelectorFromSet(ls))
 
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, err
 	}
 
-	if len(list) > 0 {
-		verName := ver.GetVersionName()
-		for _, v := range list {
-			if verName == v.GetVersionName() {
-				klog.V(2).Infof("helm application version: %s exist", verName)
-				return nil, appVersionItemExists
-			}
+	for _, ver := range versions {
+		if verName == ver.GetVersionName() {
+			return ver, nil
 		}
+	}
+
+	return nil, nil
+}
+
+// Create helmApplicationVersion and helmAudit
+func (c *applicationOperator) createApplicationVersion(ver *v1alpha1.HelmApplicationVersion) (*v1alpha1.HelmApplicationVersion, error) {
+	existsVersion, err := c.getAppVersionByVersionName(ver.GetHelmApplicationId(), ver.GetVersionName())
+	if err != nil {
+		return nil, err
+	}
+	if existsVersion != nil {
+		klog.V(2).Infof("helm application version: %s exist", ver.GetVersionName())
+		return nil, appVersionItemExists
 	}
 
 	// save chart data to s3 storage
