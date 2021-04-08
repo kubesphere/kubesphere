@@ -27,6 +27,8 @@ jobs:
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Check pr is properly formatted
         run: diff -u <(echo -n) <(gofmt -d ./pkg ./cmd ./tools ./test)
