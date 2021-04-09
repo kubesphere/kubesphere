@@ -535,7 +535,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 
 	apiextensionsInformerFactory := s.InformerFactory.ApiExtensionSharedInformerFactory()
 	apiextensionsGVRs := []schema.GroupVersionResource{
-		{Group: "apiextensions.k8s.io", Version: "v1beta1", Resource: "customresourcedefinitions"},
+		{Group: "apiextensions.k8s.io", Version: "v1", Resource: "customresourcedefinitions"},
 	}
 
 	for _, gvr := range apiextensionsGVRs {

@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
-var crds = []*v1beta1.CustomResourceDefinition{
+var crds = []*v1.CustomResourceDefinition{
 	{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "clusters.cluster.kubesphere.io",
@@ -49,7 +49,7 @@ var crds = []*v1beta1.CustomResourceDefinition{
 	},
 }
 
-func crdsToRuntimeObjects(crds ...*v1beta1.CustomResourceDefinition) []runtime.Object {
+func crdsToRuntimeObjects(crds ...*v1.CustomResourceDefinition) []runtime.Object {
 	items := make([]runtime.Object, 0)
 
 	for _, crd := range crds {
@@ -59,7 +59,7 @@ func crdsToRuntimeObjects(crds ...*v1beta1.CustomResourceDefinition) []runtime.O
 	return items
 }
 
-func crdsToInterface(crds ...*v1beta1.CustomResourceDefinition) []interface{} {
+func crdsToInterface(crds ...*v1.CustomResourceDefinition) []interface{} {
 	items := make([]interface{}, 0)
 
 	for _, crd := range crds {
@@ -93,7 +93,7 @@ func TestCrdGetterList(t *testing.T) {
 	informers := apiextensionsinformers.NewSharedInformerFactory(client, 0)
 
 	for _, crd := range crds {
-		informers.Apiextensions().V1beta1().CustomResourceDefinitions().Informer().GetIndexer().Add(crd)
+		informers.Apiextensions().V1().CustomResourceDefinitions().Informer().GetIndexer().Add(crd)
 	}
 
 	for _, testCase := range testCases {
