@@ -10,5 +10,4 @@ reviewers:
     - xyz-li
 
 labels:
-    - area/api
     - area/app-management
