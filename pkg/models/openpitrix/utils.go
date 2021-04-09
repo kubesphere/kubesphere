@@ -383,8 +383,13 @@ func convertAppVersion(in *v1alpha1.HelmApplicationVersion) *AppVersion {
 	}
 
 	// chart create time or update time
-	updateTime := strfmt.DateTime(in.Spec.Created.Time)
-	out.UpdateTime = &updateTime
+	if in.Spec.Created != nil {
+		updateTime := strfmt.DateTime(in.Spec.Created.Time)
+		out.UpdateTime = &updateTime
+	} else {
+		// Charts in the repo are without this field
+		out.UpdateTime = &date
+	}
 
 	if in.Spec.Metadata != nil {
 		out.Description = in.Spec.Description
