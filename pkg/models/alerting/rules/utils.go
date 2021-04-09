@@ -30,6 +30,8 @@ const (
 	LabelKeyThanosRulerReplica = "thanos_ruler_replica"
 	LabelKeyPrometheusReplica  = "prometheus_replica"
 
+	LabelKeyRuleId = "rule_id"
+
 	LabelKeyAlertType   = "alerttype"
 	LabelValueAlertType = "metric"
 )
@@ -89,6 +91,9 @@ func GenResourceRuleIdIgnoreFormat(group string, rule *promresourcesv1.Rule) str
 
 	lbls := make(map[string]string)
 	for k, v := range rule.Labels {
+		if k == LabelKeyRuleId {
+			continue
+		}
 		lbls[k] = v
 	}
 	lbls[LabelKeyInternalRuleGroup] = group
@@ -127,6 +132,9 @@ func GenEndpointRuleId(group string, epRule *alerting.AlertingRule,
 
 	lbls := make(map[string]string)
 	for k, v := range labelsMap {
+		if k == LabelKeyRuleId {
+			continue
+		}
 		lbls[k] = v
 	}
 	lbls[LabelKeyInternalRuleGroup] = group

@@ -26,6 +26,8 @@ import (
 const (
 	customAlertingRuleResourcePrefix = "custom-alerting-rule-"
 
+	CustomRuleResourceLabelKeyLevel = "custom-alerting-rule-level"
+
 	customRuleGroupDefaultPrefix = "alerting.custom.defaults."
 	customRuleGroupSize          = 20
 )
@@ -144,6 +146,14 @@ func (r *ruleResource) updateAlertingRules(rules ...*RuleWithGroup) (bool, error
 		}
 	}
 
+	var referNs = r.Namespace
+	if len(r.Labels) > 0 {
+		if l, ok := r.Labels[CustomRuleResourceLabelKeyLevel]; ok &&
+			v2alpha1.RuleLevel(l) == v2alpha1.RuleLevelCluster {
+			referNs = ""
+		}
+	}
+
 	addRules := func(g *promresourcesv1.RuleGroup) bool {
 		var add bool
 		var num = customRuleGroupSize - len(g.Rules)
@@ -157,7 +167,7 @@ func (r *ruleResource) updateAlertingRules(rules ...*RuleWithGroup) (bool, error
 					// Because Prometheus may migrate information such as alerts from the old rule into the new rule
 					// when updating a rule within a group.
 					if _, ok := gNames[g.Name]; !ok {
-						g.Rules = append(g.Rules, rule.Rule)
+						appendRules(g, referNs, rule.Rule)
 						num--
 						delete(ruleMap, name)
 						add = true
@@ -238,6 +248,14 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 		spec = new(promresourcesv1.PrometheusRuleSpec)
 	}
 
+	var referNs = r.Namespace
+	if len(r.Labels) > 0 {
+		if l, ok := r.Labels[CustomRuleResourceLabelKeyLevel]; ok &&
+			v2alpha1.RuleLevel(l) == v2alpha1.RuleLevelCluster {
+			referNs = ""
+		}
+	}
+
 	// For the rules that have specific group names, add them to the matched groups.
 	// For the rules that do not specify group names, add them to the automatically generated groups until the limit is reached.
 	for i, g := range spec.Groups {
@@ -253,7 +271,7 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 
 		if !groupedRulesDrained {
 			if _, ok := groupedRules[gName]; ok {
-				spec.Groups[i].Rules = append(spec.Groups[i].Rules, groupedRules[gName]...)
+				appendRules(&spec.Groups[i], referNs, groupedRules[gName]...)
 				delete(groupedRules, gName)
 				commit = true
 			}
@@ -275,7 +293,7 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 				if stop = cursor + num; stop > len(unGroupedRules) {
 					stop = len(unGroupedRules)
 				}
-				spec.Groups[i].Rules = append(spec.Groups[i].Rules, unGroupedRules[cursor:stop]...)
+				appendRules(&spec.Groups[i], referNs, unGroupedRules[cursor:stop]...)
 				cursor = stop
 				commit = true
 			}
@@ -288,7 +306,9 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 		if len(rules) == 0 {
 			continue
 		}
-		spec.Groups = append(spec.Groups, promresourcesv1.RuleGroup{Name: gName, Rules: rules})
+		g := promresourcesv1.RuleGroup{Name: gName}
+		appendRules(&g, referNs, rules...)
+		spec.Groups = append(spec.Groups, g)
 		commit = true
 	}
 	for groupMax++; cursor < len(rules); groupMax++ {
@@ -297,7 +317,7 @@ func (r *ruleResource) addAlertingRules(rules ...*RuleWithGroup) (bool, error) {
 		if stop = cursor + customRuleGroupSize; stop > len(unGroupedRules) {
 			stop = len(unGroupedRules)
 		}
-		g.Rules = append(g.Rules, unGroupedRules[cursor:stop]...)
+		appendRules(&g, referNs, unGroupedRules[cursor:stop]...)
 		spec.Groups = append(spec.Groups, g)
 		cursor = stop
 		commit = true
@@ -327,6 +347,25 @@ func (r *ruleResource) commit(ctx context.Context, prometheusResourceClient prom
 	}
 	npr.DeepCopyInto(&pr)
 	return nil
+}
+
+func appendRules(group *promresourcesv1.RuleGroup, referNs string, rules ...promresourcesv1.Rule) {
+	if len(rules) == 0 {
+		return
+	}
+	for i := range rules {
+		r := &rules[i]
+		id := GenResourceRuleIdIgnoreFormat(group.Name, r)
+		if r.Labels == nil {
+			r.Labels = make(map[string]string)
+		}
+		var v = id
+		if referNs != "" {
+			v = referNs + "-" + id
+		}
+		r.Labels[LabelKeyRuleId] = v
+	}
+	group.Rules = append(group.Rules, rules...)
 }
 
 type PrometheusRuler struct {

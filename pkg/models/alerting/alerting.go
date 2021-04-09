@@ -24,8 +24,6 @@ import (
 
 const (
 	rulerNamespace = constants.KubeSphereMonitoringNamespace
-
-	customRuleResourceLabelKeyLevel = "custom-alerting-rule-level"
 )
 
 // Operator contains all operations to alerting rules. The operations may involve manipulations of prometheusrule
@@ -254,7 +252,7 @@ func (o *operator) listCustomAlertingRules(ctx context.Context, ruleNamespace *c
 	}
 
 	resourceRulesMap, err := o.resourceRuleCache.ListRules(ruler, ruleNamespace,
-		labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)}))
+		labels.SelectorFromSet(labels.Set{rules.CustomRuleResourceLabelKeyLevel: string(level)}))
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +285,7 @@ func (o *operator) getCustomAlertingRule(ctx context.Context, ruleNamespace *cor
 	}
 
 	resourceRule, err := o.resourceRuleCache.GetRule(ruler, ruleNamespace,
-		labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)}), ruleName)
+		labels.SelectorFromSet(labels.Set{rules.CustomRuleResourceLabelKeyLevel: string(level)}), ruleName)
 	if err != nil {
 		return nil, err
 	}
@@ -426,14 +424,14 @@ func (o *operator) CreateCustomAlertingRule(ctx context.Context, namespace strin
 		}
 		rule.Query = expr
 	}
-	ruleResourceLabels[customRuleResourceLabelKeyLevel] = string(level)
+	ruleResourceLabels[rules.CustomRuleResourceLabelKeyLevel] = string(level)
 
 	ruleNamespace, err := o.namespaceInformer.Lister().Get(namespace)
 	if err != nil {
 		return err
 	}
 
-	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)})
+	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{rules.CustomRuleResourceLabelKeyLevel: string(level)})
 	resourceRule, err := o.resourceRuleCache.GetRule(ruler, ruleNamespace, extraRuleResourceSelector, rule.Name)
 	if err != nil {
 		return err
@@ -491,14 +489,14 @@ func (o *operator) UpdateCustomAlertingRule(ctx context.Context, namespace, name
 		}
 		rule.Query = expr
 	}
-	ruleResourceLabels[customRuleResourceLabelKeyLevel] = string(level)
+	ruleResourceLabels[rules.CustomRuleResourceLabelKeyLevel] = string(level)
 
 	ruleNamespace, err := o.namespaceInformer.Lister().Get(namespace)
 	if err != nil {
 		return err
 	}
 
-	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)})
+	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{rules.CustomRuleResourceLabelKeyLevel: string(level)})
 	resourceRule, err := o.resourceRuleCache.GetRule(ruler, ruleNamespace, extraRuleResourceSelector, rule.Name)
 	if err != nil {
 		return err
@@ -550,7 +548,7 @@ func (o *operator) DeleteCustomAlertingRule(ctx context.Context, namespace, name
 		return err
 	}
 
-	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)})
+	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{rules.CustomRuleResourceLabelKeyLevel: string(level)})
 	resourceRules, err := o.resourceRuleCache.GetRuleByIdOrName(ruler, ruleNamespace, extraRuleResourceSelector, name)
 	if err != nil {
 		return err
@@ -602,13 +600,13 @@ func (o *operator) CreateOrUpdateCustomAlertingRules(ctx context.Context, namesp
 	} else {
 		level = v2alpha1.RuleLevelNamespace
 	}
-	ruleResourceLabels[customRuleResourceLabelKeyLevel] = string(level)
+	ruleResourceLabels[rules.CustomRuleResourceLabelKeyLevel] = string(level)
 	ruleNamespace, err := o.namespaceInformer.Lister().Get(namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)})
+	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{rules.CustomRuleResourceLabelKeyLevel: string(level)})
 
 	resourceRulesMap, err := o.resourceRuleCache.ListRules(ruler, ruleNamespace, extraRuleResourceSelector)
 	if err != nil {
@@ -766,7 +764,7 @@ func (o *operator) DeleteCustomAlertingRules(ctx context.Context, namespace stri
 		return nil, err
 	}
 
-	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{customRuleResourceLabelKeyLevel: string(level)})
+	extraRuleResourceSelector := labels.SelectorFromSet(labels.Set{rules.CustomRuleResourceLabelKeyLevel: string(level)})
 	resourceRulesMap, err := o.resourceRuleCache.ListRules(ruler, ruleNamespace, extraRuleResourceSelector)
 	if err != nil {
 		return nil, err
