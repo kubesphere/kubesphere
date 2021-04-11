@@ -39,9 +39,9 @@ const (
 	HelmStatusDeleting    = "deleting"
 	HelmStatusUpgrading   = "upgrading"
 	HelmStatusRollbacking = "rollbacking"
-	HelmStatusPending     = "pending"
-	HelmStatusSuccessful  = "successful"
 	HelmStatusFailed      = "failed"
+	HelmStatusCreated     = "created"
+	HelmStatusUpgraded    = "upgraded"
 
 	AttachmentTypeScreenshot = "screenshot"
 	AttachmentTypeIcon       = "icon"
@@ -56,6 +56,8 @@ const (
 	UncategorizedName              = "uncategorized"
 	UncategorizedId                = "ctg-uncategorized"
 	AppStoreRepoId                 = "repo-helm"
+
+	ApplicationInstance = "app.kubesphere.io/instance"
 
 	OriginWorkspaceLabelKey = "kubesphere.io/workspace-origin"
 )

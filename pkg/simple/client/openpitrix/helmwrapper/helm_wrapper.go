@@ -26,6 +26,11 @@ import (
 	"strings"
 	"time"
 
+	"helm.sh/helm/v3/pkg/cli"
+
+	"helm.sh/helm/v3/pkg/kube"
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	"gopkg.in/yaml.v3"
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	"k8s.io/klog"
@@ -41,6 +46,8 @@ const (
 )
 
 var (
+	ErrorTimedOutToWaitResource = errors.New("timed out waiting for resources to be ready")
+
 	UninstallNotFoundFormat = "Error: uninstall: Release not loaded: %s: release: not found"
 	StatusNotFoundFormat    = "Error: release: not found"
 	releaseExists           = "release exists"
@@ -62,12 +69,50 @@ type HelmRes struct {
 var _ HelmWrapper = &helmWrapper{}
 
 type HelmWrapper interface {
-	Install(chartName, chartData, values string) (HelmRes, error)
+	Install(chartName, chartData, values string) error
 	// upgrade a release
-	Upgrade(chartName, chartData, values string) (HelmRes, error)
-	Uninstall() (HelmRes, error)
+	Upgrade(chartName, chartData, values string) error
+	Uninstall() error
 	// Get manifests
 	Manifest() (string, error)
+
+	// IsReleaseReady check helm release is ready or not
+	IsReleaseReady(timeout time.Duration) (bool, error)
+}
+
+// IsReleaseReady check helm releases is ready or not
+// If the return values is (true, nil), then the resources are ready
+func (c *helmWrapper) IsReleaseReady(waitTime time.Duration) (bool, error) {
+
+	// Get the manifest to build resources
+	manifest, err := c.Manifest()
+	if err != nil {
+		return false, err
+	}
+
+	var client *kube.Client
+	if c.Kubeconfig == "" {
+		client = kube.New(nil)
+	} else {
+		helmSettings := cli.New()
+		helmSettings.KubeConfig = c.kubeConfigPath()
+		client = kube.New(helmSettings.RESTClientGetter())
+	}
+
+	client.Namespace = c.Namespace
+	resources, err := client.Build(bytes.NewBufferString(manifest), true)
+
+	err = client.Wait(resources, waitTime)
+
+	if err == nil {
+		return true, nil
+	}
+
+	if err == wait.ErrWaitTimeout {
+		return false, ErrorTimedOutToWaitResource
+	}
+
+	return false, err
 }
 
 func (c *helmWrapper) Status() (status *helmrelease.Release, err error) {
@@ -144,8 +189,7 @@ type helmWrapper struct {
 	annotations map[string]string
 
 	// helm cmd path
-	cmdPath string
-	// base should be /dev/shm on linux
+	cmdPath         string
 	base            string
 	workspaceSuffix string
 	dryRun          bool
@@ -170,7 +214,7 @@ func (c *helmWrapper) chartPath() string {
 
 func (c *helmWrapper) cleanup() {
 	if err := os.RemoveAll(c.Workspace()); err != nil {
-		klog.Errorf("remove dir %s faield, error: %s", c.Workspace(), err)
+		klog.Errorf("remove dir %s failed, error: %s", c.Workspace(), err)
 	}
 }
 
@@ -192,6 +236,13 @@ func SetDryRun(dryRun bool) Option {
 func SetAnnotations(annotations map[string]string) Option {
 	return func(wrapper *helmWrapper) {
 		wrapper.annotations = annotations
+	}
+}
+
+// extra labels added to all resources in chart
+func SetLabels(labels map[string]string) Option {
+	return func(wrapper *helmWrapper) {
+		wrapper.labels = labels
 	}
 }
 
@@ -325,7 +376,7 @@ func (c *helmWrapper) createChart(chartName, chartData, values string) error {
 }
 
 // helm uninstall
-func (c *helmWrapper) Uninstall() (res HelmRes, err error) {
+func (c *helmWrapper) Uninstall() (err error) {
 	start := time.Now()
 	defer func() {
 		klog.V(2).Infof("run command end, namespace: %s, name: %s elapsed: %v", c.Namespace, c.ReleaseName, time.Now().Sub(start))
@@ -373,49 +424,53 @@ func (c *helmWrapper) Uninstall() (res HelmRes, err error) {
 
 	if err != nil {
 		eMsg := strings.TrimSpace(stderr.String())
+		// release does not exist. It's ok.
 		if fmt.Sprintf(UninstallNotFoundFormat, c.ReleaseName) == eMsg {
-			return res, nil
+			return nil
 		}
 		klog.Errorf("run command failed, stderr: %s, error: %v", eMsg, err)
-		res.Message = eMsg
+		return errors.New("%s", eMsg)
 	} else {
 		klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
-		klog.V(8).Infof("namespace: %s, name: %s, run command success, stdout: %s", c.Namespace, c.ReleaseName, stdout)
 	}
 
 	return
 }
 
 // helm upgrade
-func (c *helmWrapper) Upgrade(chartName, chartData, values string) (res HelmRes, err error) {
-	// TODO: check release status first
-	if true {
+func (c *helmWrapper) Upgrade(chartName, chartData, values string) (err error) {
+	sts, err := c.Status()
+	if err != nil {
+		return err
+	}
+
+	if sts.Info.Status == "deployed" {
 		return c.install(chartName, chartData, values, true)
 	} else {
-		klog.V(3).Infof("release %s/%s not exists, cannot upgrade it, install a new one", c.Namespace, c.ReleaseName)
-		return
+		err = errors.New("cannot upgrade release %s/%s, current state is %s", c.Namespace, c.ReleaseName, sts.Info.Status)
+		return err
 	}
 }
 
 // helm install
-func (c *helmWrapper) Install(chartName, chartData, values string) (res HelmRes, err error) {
+func (c *helmWrapper) Install(chartName, chartData, values string) (err error) {
 	sts, err := c.Status()
 	if err == nil {
 		// helm release has been installed
 		if sts.Info != nil && sts.Info.Status == "deployed" {
-			return HelmRes{}, nil
+			return nil
 		}
-		return HelmRes{}, errors.New(releaseExists)
+		return errors.New(releaseExists)
 	} else {
 		if err.Error() == StatusNotFoundFormat {
 			// continue to install
 			return c.install(chartName, chartData, values, false)
 		}
-		return HelmRes{}, err
+		return err
 	}
 }
 
-func (c *helmWrapper) install(chartName, chartData, values string, upgrade bool) (res HelmRes, err error) {
+func (c *helmWrapper) install(chartName, chartData, values string, upgrade bool) (err error) {
 	if klog.V(2) {
 		start := time.Now()
 		defer func() {
@@ -493,7 +548,8 @@ func (c *helmWrapper) install(chartName, chartData, values string, upgrade bool)
 
 	if err != nil {
 		klog.Errorf("namespace: %s, name: %s, run command: %s failed, stderr: %s, error: %v", c.Namespace, c.ReleaseName, cmd.String(), stderr, err)
-		res.Message = stderr.String()
+		// return the error of helm install
+		return errors.New("%s", stderr.String())
 	} else {
 		klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
 		klog.V(8).Infof("namespace: %s, name: %s, run command success, stdout: %s", c.Namespace, c.ReleaseName, stdout)

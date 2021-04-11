@@ -86,16 +86,16 @@ func (l HelmReleaseList) Len() int      { return len(l) }
 func (l HelmReleaseList) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 func (l HelmReleaseList) Less(i, j int) bool {
 	var t1, t2 time.Time
-	if l[i].Status.LastUpdate.IsZero() {
+	if l[i].Status.LastDeployed == nil {
 		t1 = l[i].CreationTimestamp.Time
 	} else {
-		t1 = l[i].Status.LastUpdate.Time
+		t1 = l[i].Status.LastDeployed.Time
 	}
 
-	if l[j].Status.LastUpdate.IsZero() {
+	if l[j].Status.LastDeployed == nil {
 		t2 = l[j].CreationTimestamp.Time
 	} else {
-		t2 = l[j].Status.LastUpdate.Time
+		t2 = l[j].Status.LastDeployed.Time
 	}
 
 	if t1.After(t2) {
@@ -221,14 +221,14 @@ func convertApplication(rls *v1alpha1.HelmRelease, rlsInfos []*resource.Info) *A
 	cluster.Status = rls.Status.State
 	cluster.Env = string(rls.Spec.Values)
 	if cluster.Status == "" {
-		cluster.Status = v1alpha1.HelmStatusPending
+		cluster.Status = v1alpha1.HelmStatusCreating
 	}
 	cluster.AdditionalInfo = rls.Status.Message
 	cluster.Description = rls.Spec.Description
 	dt := strfmt.DateTime(rls.CreationTimestamp.Time)
 	cluster.CreateTime = &dt
-	if !rls.Status.LastUpdate.Time.IsZero() {
-		ut := strfmt.DateTime(rls.Status.LastUpdate.Time)
+	if rls.Status.LastDeployed != nil {
+		ut := strfmt.DateTime(rls.Status.LastDeployed.Time)
 		cluster.StatusTime = &ut
 	} else {
 		cluster.StatusTime = &dt
@@ -236,6 +236,7 @@ func convertApplication(rls *v1alpha1.HelmRelease, rlsInfos []*resource.Info) *A
 	cluster.AppId = rls.Spec.ApplicationId
 	cluster.VersionId = rls.Spec.ApplicationVersionId
 	cluster.Name = rls.GetTrueName()
+	cluster.AdditionalInfo = rls.Status.Message
 
 	if rls.GetRlsCluster() != "" {
 		cluster.RuntimeId = rls.GetRlsCluster()

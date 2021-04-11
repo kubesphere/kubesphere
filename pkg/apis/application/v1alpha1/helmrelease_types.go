@@ -58,9 +58,9 @@ type HelmReleaseSpec struct {
 type HelmReleaseDeployStatus struct {
 	// A human readable message indicating details about why the release is in this state.
 	Message string `json:"message,omitempty"`
-	// deploy state
+	// current state of the release
 	State string `json:"state"`
-	// deploy time
+	// deploy time, upgrade time or check status time
 	Time metav1.Time `json:"deployTime"`
 }
 
@@ -76,7 +76,7 @@ type HelmReleaseStatus struct {
 	DeployStatus []HelmReleaseDeployStatus `json:"deployStatus,omitempty"`
 	// last update time
 	LastUpdate metav1.Time `json:"lastUpdate,omitempty"`
-	// last successful deploy time
+	// last deploy time or upgrade time
 	LastDeployed *metav1.Time `json:"lastDeployed,omitempty"`
 }
 

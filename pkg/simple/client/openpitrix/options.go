@@ -17,6 +17,8 @@ limitations under the License.
 package openpitrix
 
 import (
+	"time"
+
 	"github.com/spf13/pflag"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -24,12 +26,22 @@ import (
 )
 
 type Options struct {
-	S3Options *s3.Options `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
+	S3Options                *s3.Options               `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
+	ReleaseControllerOptions *ReleaseControllerOptions `json:"releaseControllerOptions,omitempty" yaml:"releaseControllerOptions,omitempty" mapstructure:"releaseControllerOptions"`
+}
+
+type ReleaseControllerOptions struct {
+	MaxConcurrent int           `json:"maxConcurrent,omitempty" yaml:"maxConcurrent,omitempty" mapstructure:"maxConcurrent"`
+	WaitTime      time.Duration `json:"waitTime,omitempty" yaml:"waitTime,omitempty" mapstructure:"waitTime"`
 }
 
 func NewOptions() *Options {
 	return &Options{
 		S3Options: &s3.Options{},
+		ReleaseControllerOptions: &ReleaseControllerOptions{
+			MaxConcurrent: 10,
+			WaitTime:      30 * time.Second,
+		},
 	}
 }
 
@@ -47,6 +59,10 @@ func (s *Options) AppStoreConfIsEmpty() bool {
 // ApplyTo overrides options if it's valid, which endpoint is not empty
 func (s *Options) ApplyTo(options *Options) {
 	if s.S3Options != nil {
+		reflectutils.Override(options, s)
+	}
+
+	if s.ReleaseControllerOptions != nil {
 		reflectutils.Override(options, s)
 	}
 }
@@ -72,4 +88,7 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.BoolVar(&s.S3Options.DisableSSL, "openpitrix-s3-disable-SSL", c.S3Options.DisableSSL, "disable ssl")
 
 	fs.BoolVar(&s.S3Options.ForcePathStyle, "openpitrix-s3-force-path-style", c.S3Options.ForcePathStyle, "force path style")
+
+	fs.DurationVar(&s.ReleaseControllerOptions.WaitTime, "openpitrix-release-controller-options-wait-time", c.ReleaseControllerOptions.WaitTime, "wait time when check release is ready or not")
+	fs.IntVar(&s.ReleaseControllerOptions.MaxConcurrent, "openpitrix-release-controller-options-max-concurrent", c.ReleaseControllerOptions.MaxConcurrent, "the maximum number of concurrent Reconciles which can be run for release controller")
 }

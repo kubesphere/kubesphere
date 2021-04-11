@@ -264,6 +264,9 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		StorageClient:      opS3Client,
 		KsFactory:          informerFactory.KubeSphereSharedInformerFactory(),
 		MultiClusterEnable: s.MultiClusterOptions.Enable,
+		WaitTime:           s.OpenPitrixOptions.ReleaseControllerOptions.WaitTime,
+		MaxConcurrent:      s.OpenPitrixOptions.ReleaseControllerOptions.MaxConcurrent,
+		StopChan:           stopCh,
 	}).SetupWithManager(mgr)
 
 	if err != nil {
