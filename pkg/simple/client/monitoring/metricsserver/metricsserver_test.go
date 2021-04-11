@@ -2,7 +2,6 @@ package metricsserver
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -75,14 +74,14 @@ var node2 = &v1.Node{
 var pod1 = &v1.Pod{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "pod1",
-		Namespace: "kubeedge",
+		Namespace: "ns1",
 	},
 }
 
 var pod2 = &v1.Pod{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "pod2",
-		Namespace: "kubeedge",
+		Namespace: "ns2",
 	},
 }
 
@@ -135,7 +134,7 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pod1",
-			Namespace: "kubeedge",
+			Namespace: "ns1",
 		},
 		Timestamp: metav1.Time{Time: metricsTime},
 		Window:    metav1.Duration{Duration: time.Minute},
@@ -159,7 +158,7 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pod2",
-			Namespace: "kubeedge",
+			Namespace: "ns2",
 		},
 		Timestamp: metav1.Time{Time: metricsTime},
 		Window:    metav1.Duration{Duration: time.Minute},
@@ -213,32 +212,52 @@ func TestGetNamedMetrics(t *testing.T) {
 		},
 	}
 	podMetricsTests := []struct {
-		metrics       []string
-		filter        string
-		expected      string
-		podName       string
-		namespaceName string
+		metrics          []string
+		filter           string
+		namespacedFilter string
+		expected         string
+		podName          string
+		namespaceName    string
 	}{
 		{
-			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
-			filter:        "pod1$",
-			expected:      "metrics-vector-4.json",
-			podName:       "",
-			namespaceName: "",
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "pod1$",
+			namespacedFilter: "",
+			expected:         "metrics-vector-4.json",
+			podName:          "",
+			namespaceName:    "",
 		},
 		{
-			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
-			filter:        "default/pod2$",
-			expected:      "metrics-vector-5.json",
-			podName:       "",
-			namespaceName: "",
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "pod1|pod2$",
+			namespacedFilter: "",
+			expected:         "metrics-vector-5.json",
+			podName:          "",
+			namespaceName:    "",
 		},
 		{
-			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
-			filter:        "",
-			expected:      "metrics-vector-6.json",
-			podName:       "pod1",
-			namespaceName: "kubeedge",
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "",
+			namespacedFilter: "ns2/pod2$",
+			expected:         "metrics-vector-6.json",
+			podName:          "",
+			namespaceName:    "",
+		},
+		{
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "",
+			namespacedFilter: "ns1/pod1|ns2/pod2$",
+			expected:         "metrics-vector-7.json",
+			podName:          "",
+			namespaceName:    "",
+		},
+		{
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "",
+			namespacedFilter: "",
+			expected:         "metrics-vector-8.json",
+			podName:          "pod1",
+			namespaceName:    "ns1",
 		},
 	}
 
@@ -292,18 +311,38 @@ func TestGetNamedMetrics(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if tt.podName == "pod1" || strings.Contains(tt.filter, "pod1") {
+			fakeMetricsclient.ClearActions()
+			if tt.podName == "pod1" || tt.filter == "pod1$" || tt.namespacedFilter == "ns1/pod1$" {
 				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 					return true, &podMetric1, nil
 				})
-			} else {
+			} else if tt.podName == "pod2" || tt.filter == "pod2$" || tt.namespacedFilter == "ns2/pod2$" {
 				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 					return true, &podMetric2, nil
+				})
+			} else {
+				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+					ns := action.GetNamespace()
+					if ns == "ns1" {
+						return true, &podMetric1, nil
+					} else if ns == "ns2" {
+						return true, &podMetric2, nil
+					} else {
+						return true, &metricsV1beta1.PodMetricsList{}, nil
+					}
 				})
 			}
 
 			client := NewMetricsServer(fakeK8sClient, true, fakeMetricsclient)
-			result := client.GetNamedMetrics(tt.metrics, time.Now(), monitoring.PodOption{ResourceFilter: tt.filter, PodName: tt.podName, NamespaceName: tt.namespaceName})
+			result := client.GetNamedMetrics(
+				tt.metrics,
+				time.Now(),
+				monitoring.PodOption{
+					ResourceFilter:            tt.filter,
+					NamespacedResourcesFilter: tt.namespacedFilter,
+					PodName:                   tt.podName,
+					NamespaceName:             tt.namespaceName,
+				})
 			if diff := cmp.Diff(result, expected); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
 			}
@@ -335,32 +374,52 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 	}
 
 	podMetricsTests := []struct {
-		metrics       []string
-		filter        string
-		expected      string
-		podName       string
-		namespaceName string
+		metrics          []string
+		filter           string
+		namespacedFilter string
+		expected         string
+		podName          string
+		namespaceName    string
 	}{
 		{
-			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
-			filter:        "pod1$",
-			expected:      "metrics-matrix-4.json",
-			podName:       "",
-			namespaceName: "",
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "pod1$",
+			namespacedFilter: "",
+			expected:         "metrics-matrix-4.json",
+			podName:          "",
+			namespaceName:    "",
 		},
 		{
-			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
-			filter:        "default/pod2$",
-			expected:      "metrics-matrix-5.json",
-			podName:       "",
-			namespaceName: "",
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "pod1|pod2$",
+			namespacedFilter: "",
+			expected:         "metrics-matrix-5.json",
+			podName:          "",
+			namespaceName:    "",
 		},
 		{
-			metrics:       []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
-			filter:        "",
-			expected:      "metrics-matrix-6.json",
-			podName:       "pod1",
-			namespaceName: "kubeedge",
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "",
+			namespacedFilter: "ns2/pod2$",
+			expected:         "metrics-matrix-6.json",
+			podName:          "",
+			namespaceName:    "",
+		},
+		{
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "",
+			namespacedFilter: "ns1/pod1|ns2/pod2$",
+			expected:         "metrics-matrix-7.json",
+			podName:          "",
+			namespaceName:    "",
+		},
+		{
+			metrics:          []string{"pod_cpu_usage", "pod_memory_usage_wo_cache"},
+			filter:           "",
+			namespacedFilter: "",
+			expected:         "metrics-matrix-8.json",
+			podName:          "pod1",
+			namespaceName:    "ns1",
 		},
 	}
 
@@ -406,6 +465,7 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 	}
 
 	for i, tt := range podMetricsTests {
+
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			expected := make([]monitoring.Metric, 0)
 			err := jsonFromFile(tt.expected, &expected)
@@ -413,18 +473,39 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if tt.podName == "pod1" || strings.Contains(tt.filter, "pod1") {
+			fakeMetricsclient.ClearActions()
+			if tt.podName == "pod1" || tt.filter == "pod1$" || tt.namespacedFilter == "ns1/pod1$" {
 				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 					return true, &podMetric1, nil
 				})
-			} else {
+			} else if tt.podName == "pod2" || tt.filter == "pod2$" || tt.namespacedFilter == "ns2/pod2$" {
 				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 					return true, &podMetric2, nil
+				})
+			} else {
+				fakeMetricsclient.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+					ns := action.GetNamespace()
+					if ns == "ns1" {
+						return true, &podMetric1, nil
+					} else if ns == "ns2" {
+						return true, &podMetric2, nil
+					} else {
+						return true, &metricsV1beta1.PodMetricsList{}, nil
+					}
 				})
 			}
 
 			client := NewMetricsServer(fakeK8sClient, true, fakeMetricsclient)
-			result := client.GetNamedMetricsOverTime(tt.metrics, time.Now().Add(-time.Minute*3), time.Now(), time.Minute, monitoring.PodOption{ResourceFilter: tt.filter, PodName: tt.podName, NamespaceName: tt.namespaceName})
+			result := client.GetNamedMetricsOverTime(
+				tt.metrics, time.Now().Add(-time.Minute*3),
+				time.Now(),
+				time.Minute,
+				monitoring.PodOption{
+					ResourceFilter:            tt.filter,
+					NamespacedResourcesFilter: tt.namespacedFilter,
+					PodName:                   tt.podName,
+					NamespaceName:             tt.namespaceName,
+				})
 			if diff := cmp.Diff(result, expected); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
 			}

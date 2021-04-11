@@ -6,14 +6,14 @@
             "result": [
                 {
                     "metric": {
-                        "namespace": "ns2",
-                        "pod":"pod2"
+                        "namespace": "ns1",
+                        "pod":"pod1"
                     },
-                    "values": [
+                    "values":[
                         [
-                            1616675696,
-                            "0.002"
-                        ]                     
+                             1616675696,
+                            "0.001"
+                        ]
                     ]
                 }
             ]
@@ -26,13 +26,13 @@
             "result": [
                 {
                     "metric": {
-                        "namespace": "ns2",
-                        "pod":"pod2"
+                        "namespace": "ns1",
+                        "pod":"pod1"
                     },
                     "values": [
                         [
                             1616675696,
-                            "2"
+                            "1"
                         ]
                     ]
                 }
