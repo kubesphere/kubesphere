@@ -156,6 +156,7 @@ spec:
                               format: int32
                               type: integer
                             protocol:
+                              default: TCP
                               description: The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". Default is TCP.
                               type: string
                             targetPort:
