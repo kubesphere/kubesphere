@@ -115,16 +115,23 @@ func (mo monitoringOperator) GetMetricOverTime(expr, namespace string, start, en
 func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, opt monitoring.QueryOption) Metrics {
 	ress := mo.prometheus.GetNamedMetrics(metrics, time, opt)
 
-	if mo.metricsserver != nil {
+	opts := &monitoring.QueryOptions{}
+	opt.Apply(opts)
 
+	var isNodeRankingQuery bool
+	if opts.QueryType == "rank" {
+		isNodeRankingQuery = true
+	}
+
+	if mo.metricsserver != nil {
 		//Merge edge node metrics data
 		edgeMetrics := make(map[string]monitoring.MetricData)
 
 		for i, ressMetric := range ress {
 			metricName := ressMetric.MetricName
 			ressMetricValues := ressMetric.MetricData.MetricValues
-			if len(ressMetricValues) == 0 {
-				// this metric has no prometheus metrics data
+			if len(ressMetricValues) == 0 || isNodeRankingQuery {
+				// this metric has no prometheus metrics data or the request need to list all nodes metrics
 				if len(edgeMetrics) == 0 {
 					// start to request monintoring metricsApi data
 					mr := mo.metricsserver.GetNamedMetrics(metrics, time, opt)

@@ -80,6 +80,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("sort_type", "Sort order. One of asc, desc.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
+		Param(ws.QueryParameter("type", "The query type. This field can be set to 'rank' for node ranking query or '' for others. Defaults to ''.").DataType("string").Required(false).DefaultValue("")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NodeMetricsTag}).
 		Writes(model.Metrics{}).
 		Returns(http.StatusOK, respOK, model.Metrics{})).
