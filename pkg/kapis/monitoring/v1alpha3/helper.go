@@ -90,6 +90,7 @@ type reqParams struct {
 	cluster                   string
 	services                  string
 	pvcFilter                 string
+	queryType                 string
 }
 
 type queryOptions struct {
@@ -145,6 +146,7 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.componentType = req.PathParameter("component")
 	r.expression = req.QueryParameter("expr")
 	r.metric = req.QueryParameter("metric")
+	r.queryType = req.QueryParameter("type")
 
 	return r
 }
@@ -213,6 +215,7 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 			NodeName:         r.nodeName,
 			PVCFilter:        r.pvcFilter,        // metering pvc
 			StorageClassName: r.storageClassName, // metering pvc
+			QueryType:        r.queryType,
 		}
 		q.namedMetrics = model.NodeMetrics
 

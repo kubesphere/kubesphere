@@ -67,6 +67,7 @@ type QueryOptions struct {
 	Level Level
 
 	NamespacedResourcesFilter string
+	QueryType                 string
 	ResourceFilter            string
 	NodeName                  string
 	WorkspaceName             string
@@ -98,6 +99,7 @@ type NodeOption struct {
 	NodeName         string
 	PVCFilter        string
 	StorageClassName string
+	QueryType        string
 }
 
 func (no NodeOption) Apply(o *QueryOptions) {
@@ -106,6 +108,7 @@ func (no NodeOption) Apply(o *QueryOptions) {
 	o.NodeName = no.NodeName
 	o.PVCFilter = no.PVCFilter
 	o.StorageClassName = no.StorageClassName
+	o.QueryType = no.QueryType
 }
 
 type WorkspaceOption struct {
