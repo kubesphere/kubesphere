@@ -116,11 +116,11 @@ spec:
                   type: boolean
                 description: Configz is status of components enabled in the member cluster. This is synchronized with member cluster every amount of time, like 5 minutes.
                 type: object
+              kubeSphereVersion:
+                description: GitVersion of the /kapis/version api response, this field is populated by cluster controller
+                type: string
               kubernetesVersion:
                 description: GitVersion of the kubernetes cluster, this field is populated by cluster controller
-                type: string
-              kubesphereVersion:
-                description: GitVersion of the /kapis/version api response, this field is populated by cluster controller
                 type: string
               nodeCount:
                 description: Count of the kubernetes cluster nodes This field may not reflect the instant status of the cluster.

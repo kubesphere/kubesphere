@@ -38,8 +38,7 @@ const (
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
 type IPAMHandle struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Specification of the IPAMHandle.
 	Spec IPAMHandleSpec `json:"spec,omitempty"`

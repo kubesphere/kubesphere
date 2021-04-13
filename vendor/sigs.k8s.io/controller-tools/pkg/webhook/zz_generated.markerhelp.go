@@ -76,6 +76,10 @@ func (Config) Help() *markers.DefinitionHelp {
 				Summary: "specifies the target API versions of the {Mutating,Validating}WebhookConfiguration objects itself to generate.  Defaults to v1.",
 				Details: "",
 			},
+			"AdmissionReviewVersions": markers.DetailedHelp{
+				Summary: "is an ordered list of preferred `AdmissionReview` versions the Webhook expects. For generating v1 {Mutating,Validating}WebhookConfiguration, this is mandatory. For generating v1beta1 {Mutating,Validating}WebhookConfiguration, this is optional, and default to v1beta1.",
+				Details: "",
+			},
 		},
 	}
 }

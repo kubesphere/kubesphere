@@ -109,7 +109,7 @@ require (
 	kubesphere.io/monitoring-dashboard v0.1.2
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 	sigs.k8s.io/controller-runtime v0.6.4
-	sigs.k8s.io/controller-tools v0.4.0
+	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kubefed v0.6.1
 	sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/yaml v1.2.0
@@ -739,7 +739,7 @@ replace (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.7
 	sigs.k8s.io/application => sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.6.4
-	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.4.0
+	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kind => sigs.k8s.io/kind v0.8.1
 	sigs.k8s.io/kubefed => sigs.k8s.io/kubefed v0.6.1
 	sigs.k8s.io/kustomize => sigs.k8s.io/kustomize v2.0.3+incompatible

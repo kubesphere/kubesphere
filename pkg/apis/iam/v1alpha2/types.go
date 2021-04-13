@@ -99,7 +99,6 @@ const (
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type User struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -174,7 +173,6 @@ type UserList struct {
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type GlobalRole struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -200,7 +198,6 @@ type GlobalRoleList struct {
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type GlobalRoleBinding struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -233,7 +230,6 @@ type GlobalRoleBindingList struct {
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type WorkspaceRole struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
