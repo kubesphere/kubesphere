@@ -673,11 +673,28 @@ func filterApps(apps []*v1alpha1.HelmApplication, conditions *params.Conditions)
 		return apps
 	}
 
+	// filter app by param app_id
+	appIdMap := make(map[string]string)
+	if len(conditions.Match[AppId]) > 0 {
+		ids := strings.Split(conditions.Match[AppId], "|")
+		for _, id := range ids {
+			if len(id) > 0 {
+				appIdMap[id] = ""
+			}
+		}
+	}
+
 	curr := 0
 	for i := 0; i < len(apps); i++ {
 		if conditions.Match[Keyword] != "" {
 			fv := filterAppByName(apps[i], conditions.Match[Keyword])
 			if !fv {
+				continue
+			}
+		}
+
+		if len(appIdMap) > 0 {
+			if _, exists := appIdMap[apps[i].Name]; !exists {
 				continue
 			}
 		}

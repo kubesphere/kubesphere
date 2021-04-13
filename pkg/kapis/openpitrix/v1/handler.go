@@ -406,10 +406,6 @@ func (h *openpitrixHandler) ListApps(req *restful.Request, resp *restful.Respons
 		conditions.Match[openpitrix.WorkspaceLabel] = req.PathParameter("workspace")
 	}
 
-	if conditions.Match[openpitrix.WorkspaceLabel] == "" {
-		conditions.Match[openpitrix.WorkspaceLabel] = req.QueryParameter("workspace")
-	}
-
 	result, err := h.openpitrix.ListApps(conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
