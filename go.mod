@@ -84,7 +84,7 @@ require (
 	gopkg.in/square/go-jose.v2 v2.4.0
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.11.0
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 	gotest.tools v2.2.0+incompatible
 	helm.sh/helm/v3 v3.3.0
@@ -111,7 +111,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.6.4
 	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kubefed v0.6.1
-	sigs.k8s.io/kustomize v2.0.3+incompatible
+	sigs.k8s.io/kustomize/api v0.8.6
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -301,6 +301,7 @@ replace (
 	github.com/gliderlabs/ssh => github.com/gliderlabs/ssh v0.1.1
 	github.com/glycerine/go-unsnap-stream => github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd
 	github.com/glycerine/goconvey => github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31
+	github.com/go-errors/errors => github.com/go-errors/errors v1.0.1
 	github.com/go-kit/kit => github.com/go-kit/kit v0.10.0
 	github.com/go-ldap/ldap => github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logfmt/logfmt => github.com/go-logfmt/logfmt v0.5.0
@@ -329,6 +330,7 @@ replace (
 	github.com/gobuffalo/genny => github.com/gobuffalo/genny v0.1.1
 	github.com/gobuffalo/gitgen => github.com/gobuffalo/gitgen v0.0.0-20190315122116-cc086187d211
 	github.com/gobuffalo/gogen => github.com/gobuffalo/gogen v0.1.1
+	github.com/gobuffalo/here => github.com/gobuffalo/here v0.6.0
 	github.com/gobuffalo/logger => github.com/gobuffalo/logger v0.0.0-20190315122211-86e12af44bc2
 	github.com/gobuffalo/mapi => github.com/gobuffalo/mapi v1.0.2
 	github.com/gobuffalo/packd => github.com/gobuffalo/packd v0.1.0
@@ -371,6 +373,7 @@ replace (
 	github.com/google/martian => github.com/google/martian v2.1.0+incompatible
 	github.com/google/pprof => github.com/google/pprof v0.0.0-20200417002340-c6e0a841f49a
 	github.com/google/renameio => github.com/google/renameio v0.1.0
+	github.com/google/shlex => github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid => github.com/google/uuid v1.1.1
 	github.com/googleapis/gax-go => github.com/googleapis/gax-go v2.0.2+incompatible
 	github.com/googleapis/gax-go/v2 => github.com/googleapis/gax-go/v2 v2.0.5
@@ -472,6 +475,7 @@ replace (
 	github.com/magiconair/properties => github.com/magiconair/properties v1.8.0
 	github.com/mailru/easyjson => github.com/mailru/easyjson v0.7.1
 	github.com/markbates/oncer => github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2
+	github.com/markbates/pkger => github.com/markbates/pkger v0.17.1
 	github.com/markbates/safe => github.com/markbates/safe v1.0.1
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.1.6
 	github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.0-20191113090002-7c0f6868bffe
@@ -502,6 +506,7 @@ replace (
 	github.com/mna/pigeon => github.com/mna/pigeon v0.0.0-20180808201053-bb0192cfc2ae
 	github.com/modern-go/concurrent => github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 	github.com/modern-go/reflect2 => github.com/modern-go/reflect2 v1.0.1
+	github.com/monochromegane/go-gitignore => github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
 	github.com/montanaflynn/stats => github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
 	github.com/morikuni/aec => github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c
 	github.com/mozillazg/go-cos => github.com/mozillazg/go-cos v0.13.0
@@ -651,6 +656,7 @@ replace (
 	go.etcd.io/etcd => go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
 	go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.3.2
 	go.opencensus.io => go.opencensus.io v0.22.3
+	go.starlark.net => go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5
 	go.uber.org/atomic => go.uber.org/atomic v1.6.0
 	go.uber.org/automaxprocs => go.uber.org/automaxprocs v1.2.0
 	go.uber.org/goleak => go.uber.org/goleak v1.1.0
@@ -704,7 +710,7 @@ replace (
 	gopkg.in/tchap/go-patricia.v2 => gopkg.in/tchap/go-patricia.v2 v2.2.6
 	gopkg.in/tomb.v1 => gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 	gopkg.in/warnings.v0 => gopkg.in/warnings.v0 v0.1.2
-	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 	gotest.tools => gotest.tools v2.2.0+incompatible
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.3.0
@@ -743,6 +749,8 @@ replace (
 	sigs.k8s.io/kind => sigs.k8s.io/kind v0.8.1
 	sigs.k8s.io/kubefed => sigs.k8s.io/kubefed v0.6.1
 	sigs.k8s.io/kustomize => sigs.k8s.io/kustomize v2.0.3+incompatible
+	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.8.6
+	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.10.17
 	sigs.k8s.io/structured-merge-diff/v3 => sigs.k8s.io/structured-merge-diff/v3 v3.0.0
 	sigs.k8s.io/yaml => sigs.k8s.io/yaml v1.2.0
 	sourcegraph.com/sourcegraph/appdash => sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0
