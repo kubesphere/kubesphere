@@ -35,7 +35,7 @@ import (
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	"k8s.io/klog"
 	kpath "k8s.io/utils/path"
-	"sigs.k8s.io/kustomize/pkg/types"
+	"sigs.k8s.io/kustomize/api/types"
 
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
@@ -299,8 +299,8 @@ func (c *helmWrapper) setupPostRenderEnvironment() error {
 
 	kustomizationConfig := types.Kustomization{
 		Resources:         []string{"./.local-helm-output.yaml"},
-		CommonAnnotations: c.annotations, // add extra annotations to output
-		CommonLabels:      c.labels,      // add extra labels to output
+		CommonAnnotations: c.annotations,                               // add extra annotations to output
+		Labels:            []types.Label{types.Label{Pairs: c.labels}}, // Labels to add to all objects but not selectors.
 	}
 
 	err = yaml.NewEncoder(kustomization).Encode(kustomizationConfig)

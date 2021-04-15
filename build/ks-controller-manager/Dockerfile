@@ -4,7 +4,7 @@
 FROM alpine:3.11
 
 ARG HELM_VERSION=v3.5.2
-ARG KUSTOMIZE_VERSION=v4.0.5
+ARG KUSTOMIZE_VERSION=v4.1.0
 
 RUN apk add --no-cache ca-certificates
 # install helm
