@@ -94,6 +94,12 @@ func (c *helmWrapper) IsReleaseReady(waitTime time.Duration) (bool, error) {
 	if c.Kubeconfig == "" {
 		client = kube.New(nil)
 	} else {
+		// kube.New() needs kubeconfig.
+		err := c.ensureWorkspace()
+		if err != nil {
+			return false, err
+		}
+		defer c.cleanup()
 		helmSettings := cli.New()
 		helmSettings.KubeConfig = c.kubeConfigPath()
 		client = kube.New(helmSettings.RESTClientGetter())
