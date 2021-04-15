@@ -586,7 +586,7 @@ func filterAppByName(app *v1alpha1.HelmApplication, namePart string) bool {
 	}
 
 	name := app.GetTrueName()
-	if strings.Contains(name, namePart) {
+	if strings.Contains(strings.ToLower(name), strings.ToLower(namePart)) {
 		return true
 	}
 	return false
@@ -615,7 +615,7 @@ func filterAppReviews(versions []*v1alpha1.HelmApplicationVersion, conditions *p
 	curr := 0
 	for i := 0; i < len(versions); i++ {
 		if conditions.Match[Keyword] != "" {
-			if !(strings.Contains(versions[i].Spec.Name, conditions.Match[Keyword])) {
+			if !(strings.Contains(strings.ToLower(versions[i].Spec.Name), strings.ToLower(conditions.Match[Keyword]))) {
 				continue
 			}
 		}
@@ -645,8 +645,8 @@ func filterAppVersions(versions []*v1alpha1.HelmApplicationVersion, conditions *
 	curr := 0
 	for i := 0; i < len(versions); i++ {
 		if conditions.Match[Keyword] != "" {
-			if !(strings.Contains(versions[i].Spec.Version, conditions.Match[Keyword]) ||
-				strings.Contains(versions[i].Spec.AppVersion, conditions.Match[Keyword])) {
+			if !(strings.Contains(strings.ToLower(versions[i].Spec.Version), strings.ToLower(conditions.Match[Keyword])) ||
+				strings.Contains(strings.ToLower(versions[i].Spec.AppVersion), strings.ToLower(conditions.Match[Keyword]))) {
 				continue
 			}
 		}
@@ -754,11 +754,11 @@ func filterReleases(releases []*v1alpha1.HelmRelease, conditions *params.Conditi
 
 	curr := 0
 	for i := 0; i < len(releases); i++ {
-		keyword := conditions.Match[Keyword]
+		keyword := strings.ToLower(conditions.Match[Keyword])
 		if keyword != "" {
-			fv := strings.Contains(releases[i].GetTrueName(), keyword) ||
-				strings.Contains(releases[i].Spec.ChartVersion, keyword) ||
-				strings.Contains(releases[i].Spec.ChartAppVersion, keyword)
+			fv := strings.Contains(strings.ToLower(releases[i].GetTrueName()), keyword) ||
+				strings.Contains(strings.ToLower(releases[i].Spec.ChartVersion), keyword) ||
+				strings.Contains(strings.ToLower(releases[i].Spec.ChartAppVersion), keyword)
 			if !fv {
 				continue
 			}

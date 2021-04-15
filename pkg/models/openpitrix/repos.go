@@ -274,9 +274,10 @@ func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, 
 }
 
 func helmRepoFilter(namePrefix string, list []*v1alpha1.HelmRepo) (res []*v1alpha1.HelmRepo) {
+	lowerPrefix := strings.ToLower(namePrefix)
 	for _, repo := range list {
 		name := repo.GetTrueName()
-		if strings.Contains(name, namePrefix) {
+		if strings.Contains(strings.ToLower(name), lowerPrefix) {
 			res = append(res, repo)
 		}
 	}
