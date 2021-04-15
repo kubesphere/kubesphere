@@ -550,7 +550,7 @@ func (c *applicationOperator) GetAppVersionFiles(versionId string, request *GetA
 		switch header.Typeflag {
 		case tar.TypeReg:
 			curData, _ := ioutil.ReadAll(tarReader)
-			name := strings.TrimLeft(header.Name, fmt.Sprintf("%s/", version.GetTrueName()))
+			name := strings.TrimPrefix(header.Name, fmt.Sprintf("%s/", version.GetTrueName()))
 			res.Files[name] = curData
 		default:
 			klog.Errorf(
