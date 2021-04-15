@@ -343,7 +343,7 @@ func TestGetNamedMetrics(t *testing.T) {
 					PodName:                   tt.podName,
 					NamespaceName:             tt.namespaceName,
 				})
-			if diff := cmp.Diff(result, expected); diff != "" {
+			if diff := cmp.Diff(sortedResults(result), expected); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
 			}
 		})
@@ -506,7 +506,7 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 					PodName:                   tt.podName,
 					NamespaceName:             tt.namespaceName,
 				})
-			if diff := cmp.Diff(result, expected); diff != "" {
+			if diff := cmp.Diff(sortedResults(result), expected); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
 			}
 		})
@@ -524,4 +524,23 @@ func jsonFromFile(expectedFile string, expectedJsonPtr interface{}) error {
 	}
 
 	return nil
+}
+
+func sortedResults(result []monitoring.Metric) []monitoring.Metric {
+
+	for _, mr := range result {
+		metricValues := mr.MetricData.MetricValues
+		length := len(metricValues)
+		for i, mv := range metricValues {
+			podName, _ := mv.Metadata["pod"]
+			if i == 0 && podName == "pod2" && length >= 2 {
+				metricValues[0], metricValues[1] = metricValues[1], metricValues[0]
+			}
+			break
+
+		}
+	}
+
+	return result
+
 }
