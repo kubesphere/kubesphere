@@ -97,9 +97,9 @@ var hostCluster = &clusterv1alpha1.Cluster{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "host",
 		Annotations: map[string]string{
-			"kubesphere.io/description": "Automatically created by kubesphere, " +
-				"we encourage you to use host cluster for clusters management only, " +
-				"deploy workloads to member clusters.",
+			"kubesphere.io/description": "The description was created by KubeSphere automatically. " +
+				"It is recommended that you use the Host Cluster to manage clusters only " +
+				"and deploy workloads on Member Clusters.",
 		},
 		Labels: map[string]string{
 			clusterv1alpha1.HostCluster: "",
