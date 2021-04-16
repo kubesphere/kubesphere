@@ -66,8 +66,9 @@ func (im *imOperator) UpdateUser(new *iamv1alpha2.User) (*iamv1alpha2.User, erro
 		klog.Error(err)
 		return nil, err
 	}
-	// keep encrypted password
+	// keep encrypted password and user status
 	new.Spec.EncryptedPassword = old.Spec.EncryptedPassword
+	new.Status = old.Status
 	updated, err := im.ksClient.IamV1alpha2().Users().Update(context.Background(), new, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Error(err)
