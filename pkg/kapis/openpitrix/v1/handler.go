@@ -201,8 +201,12 @@ func (h *openpitrixHandler) ModifyRepo(req *restful.Request, resp *restful.Respo
 	err = h.openpitrix.ModifyRepo(repoId, &updateRepoRequest)
 
 	if err != nil {
-		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		klog.Error(err)
+		if apierrors.IsNotFound(err) {
+			api.HandleNotFound(resp, nil, err)
+			return
+		}
+		api.HandleBadRequest(resp, nil, err)
 		return
 	} else {
 		klog.V(4).Info("modify repo: ", repoId)

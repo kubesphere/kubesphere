@@ -175,11 +175,10 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 				return repoItemExists
 			}
 		}
-
 		repoCopy.Spec.Name = *request.Name
 	}
 
-	// modify credential
+	// modify url or credential
 	if request.URL != nil && len(*request.URL) > 0 {
 		parsedUrl, err := url.Parse(*request.URL)
 		if err != nil {
@@ -209,6 +208,13 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 
 		repoCopy.Spec.Credential = *cred
 		repoCopy.Spec.Url = parsedUrl.String()
+
+		// validate repo
+		_, err = c.ValidateRepo(repoCopy.Spec.Url, &repo.Spec.Credential)
+		if err != nil {
+			klog.Errorf("validate repo failed, err: %s", err)
+			return err
+		}
 
 		// change repo name and description won't change version
 		repoCopy.Spec.Version += 1
