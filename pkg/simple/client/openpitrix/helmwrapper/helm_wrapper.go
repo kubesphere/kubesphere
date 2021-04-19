@@ -31,7 +31,7 @@ import (
 	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	"k8s.io/klog"
 	kpath "k8s.io/utils/path"

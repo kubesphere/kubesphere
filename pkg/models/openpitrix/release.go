@@ -21,9 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"sort"
 	"strings"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 
 	"github.com/go-openapi/strfmt"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -318,15 +319,16 @@ func (c *releaseOperator) ListApplications(workspace, clusterName, namespace str
 		sort.Sort(HelmReleaseList(releases))
 	}
 
-	result := models.PageableResponse{TotalCount: len(releases)}
-	result.Items = make([]interface{}, 0, int(math.Min(float64(limit), float64(len(releases)))))
-
-	for i, j := offset, 0; i < len(releases) && j < limit; i, j = i+1, j+1 {
+	totalCount := len(releases)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	releases = releases[start:end]
+	items := make([]interface{}, 0, len(releases))
+	for i := range releases {
 		app := convertApplication(releases[i], nil)
-		result.Items = append(result.Items, app)
+		items = append(items, app)
 	}
 
-	return &result, nil
+	return &models.PageableResponse{TotalCount: totalCount, Items: items}, nil
 }
 
 func (c *releaseOperator) DescribeApplication(workspace, clusterName, namespace, applicationId string) (*Application, error) {

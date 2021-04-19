@@ -20,6 +20,8 @@ import (
 	"sort"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -266,11 +268,14 @@ func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, 
 		sort.Sort(HelmRepoList(repos))
 	}
 
-	items := make([]interface{}, 0, limit)
+	totalCount := len(repos)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	repos = repos[start:end]
+	items := make([]interface{}, 0, len(repos))
 	for i, j := offset, 0; i < len(repos) && j < limit; i, j = i+1, j+1 {
 		items = append(items, convertRepo(repos[i]))
 	}
-	return &models.PageableResponse{Items: items, TotalCount: len(repos)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
 }
 
 func helmRepoFilter(namePrefix string, list []*v1alpha1.HelmRepo) (res []*v1alpha1.HelmRepo) {
@@ -311,10 +316,14 @@ func (c *repoOperator) ListRepoEvents(repoId string, conditions *params.Conditio
 		return nil, err
 	}
 
-	items := make([]interface{}, 0, limit)
-	for i, j := offset, 0; i < len(repo.Status.SyncState) && j < limit; i, j = i+1, j+1 {
-		items = append(items, convertRepoEvent(&repo.ObjectMeta, &repo.Status.SyncState[j]))
+	states := repo.Status.SyncState
+	totalCount := len(states)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	states = states[start:end]
+	items := make([]interface{}, 0, len(states))
+	for i := range states {
+		items = append(items, convertRepoEvent(&repo.ObjectMeta, &states[i]))
 	}
 
-	return &models.PageableResponse{Items: items, TotalCount: len(repo.Status.SyncState)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
 }

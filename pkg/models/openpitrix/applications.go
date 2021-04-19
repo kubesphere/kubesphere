@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -308,19 +310,20 @@ func (c *applicationOperator) ListApps(conditions *params.Conditions, orderBy st
 		sort.Sort(HelmApplicationList(apps))
 	}
 
-	items := make([]interface{}, 0, limit)
+	totalCount := len(apps)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	apps = apps[start:end]
+	items := make([]interface{}, 0, len(apps))
 
-	for i, j := offset, 0; i < len(apps) && j < limit; i, j = i+1, j+1 {
+	for i := range apps {
 		versions, err := c.getAppVersionsByAppId(apps[i].GetHelmApplicationId())
 		if err != nil && !apierrors.IsNotFound(err) {
 			return nil, err
 		}
-
 		ctg, _ := c.ctgLister.Get(apps[i].GetHelmCategoryId())
-
 		items = append(items, convertApp(apps[i], versions, ctg, 0))
 	}
-	return &models.PageableResponse{Items: items, TotalCount: len(apps)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
 }
 
 func (c *applicationOperator) DeleteApp(id string) error {

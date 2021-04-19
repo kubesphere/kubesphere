@@ -17,6 +17,8 @@ import (
 	"context"
 	"sort"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -183,10 +185,13 @@ func (c *categoryOperator) ListCategories(conditions *params.Conditions, orderBy
 
 	sort.Sort(HelmCategoryList(ctgs))
 
-	items := make([]interface{}, 0, limit)
-	for i, j := offset, 0; i < len(ctgs) && j < limit; i, j = i+1, j+1 {
+	totalCount := len(ctgs)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	ctgs = ctgs[start:end]
+	items := make([]interface{}, 0, len(ctgs))
+	for i := range ctgs {
 		items = append(items, convertCategory(ctgs[i]))
 	}
 
-	return &models.PageableResponse{Items: items, TotalCount: len(ctgs)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
 }
