@@ -119,11 +119,11 @@ func (l ldapProvider) Authenticate(username string, password string) (identitypr
 		klog.Error(err)
 		return nil, err
 	}
+
 	conn.SetTimeout(time.Duration(l.ReadTimeout) * time.Millisecond)
 	defer conn.Close()
-	err = conn.Bind(l.ManagerDN, l.ManagerPassword)
 
-	if err != nil {
+	if err = conn.Bind(l.ManagerDN, l.ManagerPassword); err != nil {
 		klog.Error(err)
 		return nil, err
 	}
@@ -147,21 +147,28 @@ func (l ldapProvider) Authenticate(username string, password string) (identitypr
 		return nil, err
 	}
 
-	if len(result.Entries) != 1 {
-		return nil, errors.NewUnauthorized("incorrect password")
+	if len(result.Entries) == 0 {
+		return nil, errors.NewUnauthorized(fmt.Sprintf("ldap: no results returned for filter: %v", filter))
 	}
 
+	if len(result.Entries) > 1 {
+		return nil, errors.NewUnauthorized(fmt.Sprintf("ldap: filter returned multiple results: %v", filter))
+	}
+
+	// len(result.Entries) == 1
 	entry := result.Entries[0]
 	if err = conn.Bind(entry.DN, password); err != nil {
-		klog.Error(err)
 		if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
-			return nil, errors.NewUnauthorized("incorrect password")
+			klog.V(4).Infof("ldap: %v", err)
+			return nil, errors.NewUnauthorized("ldap: incorrect password")
 		}
+		klog.Error(err)
 		return nil, err
 	}
 	email := entry.GetAttributeValue(l.MailAttribute)
+	uid := entry.GetAttributeValue(l.LoginAttribute)
 	return &ldapIdentity{
-		Username: username,
+		Username: uid,
 		Email:    email,
 	}, nil
 }
