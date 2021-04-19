@@ -176,6 +176,17 @@ func saveTestConfig(t *testing.T, conf *MeterConfig) {
 	}
 }
 
+func testInvalidConfig(t *testing.T) {
+	os.Mkdir(meteringConfigName, os.ModeDir)
+	defer os.RemoveAll(meteringConfigName)
+	_, err := LoadYaml()
+	if err == nil {
+		t.Error("LoadYaml should fail")
+		return
+	}
+	return
+}
+
 func cleanTestConfig(t *testing.T) {
 
 	if _, err := os.Stat(meteringConfigName); os.IsNotExist(err) {
@@ -303,7 +314,100 @@ func TestSquashPoints(t *testing.T) {
 	}
 }
 
+func TestLoadYaml(t *testing.T) {
+
+	testInvalidConfig(t)
+
+	// LoadYaml file not exist
+	_, err := LoadYaml()
+	if err == nil {
+		t.Error("LoadYaml should return error.")
+		return
+	}
+
+	saveTestConfig(t, &MeterConfig{
+		Billing: Billing{
+			PriceInfo: PriceInfo{
+				IngressNetworkTrafficPerMegabytesPerHour: 1,
+				EgressNetworkTrafficPerMegabytesPerHour:  2,
+				CpuPerCorePerHour:                        3,
+				MemPerGigabytesPerHour:                   4,
+				PvcPerGigabytesPerHour:                   5,
+				CurrencyUnit:                             "CNY",
+			},
+		},
+	})
+
+	_, err = LoadYaml()
+	if err != nil {
+		t.Error("LoadYaml failed")
+		return
+	}
+	cleanTestConfig(t)
+}
+
 func TestGetFeeWithMeterName(t *testing.T) {
+	saveTestConfig(t, &MeterConfig{
+		Billing: Billing{
+			PriceInfo: PriceInfo{
+				IngressNetworkTrafficPerMegabytesPerHour: 1,
+				EgressNetworkTrafficPerMegabytesPerHour:  2,
+				CpuPerCorePerHour:                        3,
+				MemPerGigabytesPerHour:                   4,
+				PvcPerGigabytesPerHour:                   5,
+				CurrencyUnit:                             "CNY",
+			},
+		},
+	})
+	defer cleanTestConfig(t)
+
+	if getFeeWithMeterName("meter_cluster_cpu_usage", "1") != "3.000" {
+		t.Error("failed to get fee with meter_cluster_cpu_usage")
+		return
+	}
+	if getFeeWithMeterName("meter_cluster_memory_usage", "0") != "0.000" {
+		t.Error("failed to get fee with meter_cluster_memory_usage")
+		return
+	}
+	if getFeeWithMeterName("meter_cluster_net_bytes_transmitted", "0") != "0.000" {
+		t.Error("failed to get fee with meter_cluster_net_bytes_transmitted")
+		return
+	}
+	if getFeeWithMeterName("meter_cluster_net_bytes_received", "0") != "0.000" {
+		t.Error("failed to get fee with meter_cluster_net_bytes_received")
+		return
+	}
+	if getFeeWithMeterName("meter_cluster_pvc_bytes_total", "0") != "0.000" {
+		t.Error("failed to get fee with meter_cluster_pvc_bytes_total")
+		return
+	}
+}
+
+func TestGetPriceInfo(t *testing.T) {
+	meterConfig := MeterConfig{
+		Billing: Billing{
+			PriceInfo: PriceInfo{
+				CpuPerCorePerHour:                        1,
+				MemPerGigabytesPerHour:                   1,
+				IngressNetworkTrafficPerMegabytesPerHour: 1,
+				EgressNetworkTrafficPerMegabytesPerHour:  1,
+				PvcPerGigabytesPerHour:                   1,
+				CurrencyUnit:                             "USD",
+			},
+		},
+	}
+
+	if meterConfig.GetPriceInfo().CurrencyUnit != meterConfig.Billing.PriceInfo.CurrencyUnit ||
+		meterConfig.GetPriceInfo().CpuPerCorePerHour != meterConfig.Billing.PriceInfo.CpuPerCorePerHour ||
+		meterConfig.GetPriceInfo().MemPerGigabytesPerHour != meterConfig.Billing.PriceInfo.MemPerGigabytesPerHour ||
+		meterConfig.GetPriceInfo().IngressNetworkTrafficPerMegabytesPerHour != meterConfig.Billing.PriceInfo.IngressNetworkTrafficPerMegabytesPerHour ||
+		meterConfig.GetPriceInfo().EgressNetworkTrafficPerMegabytesPerHour != meterConfig.Billing.PriceInfo.EgressNetworkTrafficPerMegabytesPerHour ||
+		meterConfig.GetPriceInfo().PvcPerGigabytesPerHour != meterConfig.Billing.PriceInfo.PvcPerGigabytesPerHour {
+		t.Error("failed to get price info")
+	}
+}
+
+func TestUpdateMetricStatData(t *testing.T) {
 
 	saveTestConfig(t, &MeterConfig{
 		Billing: Billing{

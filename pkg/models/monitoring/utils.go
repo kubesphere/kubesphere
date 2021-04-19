@@ -23,11 +23,7 @@ const (
 	meteringConfigName = "ks-metering.yaml"
 
 	meteringDefaultPrecision = 10
-	meteringCorePrecision    = 3
-	meteringMemPrecision     = 1
-	meteringIngressPrecision = 0
-	meteringEgressPrecision  = 0
-	meteringPvcPrecision     = 1
+	meteringFeePrecision     = 3
 )
 
 var meterResourceUnitMap = map[int]string{
@@ -232,7 +228,7 @@ func getFeeWithMeterName(meterName string, sum string) string {
 			CpuPerCorePerHour := new(big.Float).SetFloat64(priceInfo.CpuPerCorePerHour)
 			tmp := s.Mul(s, CpuPerCorePerHour)
 
-			return fmt.Sprintf(generateFloatFormat(meteringCorePrecision), tmp)
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), tmp)
 		case METER_RESOURCE_TYPE_MEM:
 			oneGiga := new(big.Float).SetInt64(1073741824)
 			MemPerGigabytesPerHour := new(big.Float).SetFloat64(priceInfo.MemPerGigabytesPerHour)
@@ -240,7 +236,7 @@ func getFeeWithMeterName(meterName string, sum string) string {
 			// transform unit from bytes to Gigabytes
 			s.Quo(s, oneGiga)
 
-			return fmt.Sprintf(generateFloatFormat(meteringMemPrecision), s.Mul(s, MemPerGigabytesPerHour))
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), s.Mul(s, MemPerGigabytesPerHour))
 		case METER_RESOURCE_TYPE_NET_INGRESS:
 			oneMega := new(big.Float).SetInt64(1048576)
 			IngressNetworkTrafficPerMegabytesPerHour := new(big.Float).SetFloat64(priceInfo.IngressNetworkTrafficPerMegabytesPerHour)
@@ -248,23 +244,23 @@ func getFeeWithMeterName(meterName string, sum string) string {
 			// transform unit from bytes to Migabytes
 			s.Quo(s, oneMega)
 
-			return fmt.Sprintf(generateFloatFormat(meteringIngressPrecision), s.Mul(s, IngressNetworkTrafficPerMegabytesPerHour))
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), s.Mul(s, IngressNetworkTrafficPerMegabytesPerHour))
 		case METER_RESOURCE_TYPE_NET_EGRESS:
 			oneMega := new(big.Float).SetInt64(1048576)
-			EgressNetworkTrafficPerMegabytesPerHour := new(big.Float).SetPrec(meteringEgressPrecision).SetFloat64(priceInfo.EgressNetworkTrafficPerMegabytesPerHour)
+			EgressNetworkTrafficPerMegabytesPerHour := new(big.Float).SetPrec(meteringFeePrecision).SetFloat64(priceInfo.EgressNetworkTrafficPerMegabytesPerHour)
 
 			// transform unit from bytes to Migabytes
 			s.Quo(s, oneMega)
 
-			return fmt.Sprintf(generateFloatFormat(meteringEgressPrecision), s.Mul(s, EgressNetworkTrafficPerMegabytesPerHour))
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), s.Mul(s, EgressNetworkTrafficPerMegabytesPerHour))
 		case METER_RESOURCE_TYPE_PVC:
 			oneGiga := new(big.Float).SetInt64(1073741824)
-			PvcPerGigabytesPerHour := new(big.Float).SetPrec(meteringPvcPrecision).SetFloat64(priceInfo.PvcPerGigabytesPerHour)
+			PvcPerGigabytesPerHour := new(big.Float).SetPrec(meteringFeePrecision).SetFloat64(priceInfo.PvcPerGigabytesPerHour)
 
 			// transform unit from bytes to Gigabytes
 			s.Quo(s, oneGiga)
 
-			return fmt.Sprintf(generateFloatFormat(meteringPvcPrecision), s.Mul(s, PvcPerGigabytesPerHour))
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), s.Mul(s, PvcPerGigabytesPerHour))
 		}
 
 		return ""
