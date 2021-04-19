@@ -33,25 +33,31 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
 type handler struct {
-	k         kubernetes.Interface
-	mo        model.MonitoringOperator
-	opRelease openpitrix.ReleaseInterface
+	k               kubernetes.Interface
+	mo              model.MonitoringOperator
+	opRelease       openpitrix.ReleaseInterface
+	meteringOptions *meteringclient.Options
 }
 
-func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) *handler {
+func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options) *handler {
 	var opRelease openpitrix.Interface
 	if ksClient != nil {
 		opRelease = openpitrix.NewOpenpitrixOperator(f, ksClient, nil)
 	}
+	if meteringOptions == nil {
+		meteringOptions = &meteringclient.DefaultMeteringOption
+	}
 
 	return &handler{
-		k:         k,
-		mo:        model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter),
-		opRelease: opRelease,
+		k:               k,
+		mo:              model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter),
+		opRelease:       opRelease,
+		meteringOptions: meteringOptions,
 	}
 }
 

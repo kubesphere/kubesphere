@@ -62,9 +62,9 @@ func (h handler) handleApplicationMetersQuery(meters []string, resp *restful.Res
 		}
 
 		if q.isRangeQuery() {
-			current_res, err = h.mo.GetNamedMetersOverTime(meters, q.start, q.end, q.step, opt)
+			current_res, err = h.mo.GetNamedMetersOverTime(meters, q.start, q.end, q.step, opt, h.meteringOptions.Billing.PriceInfo)
 		} else {
-			current_res, err = h.mo.GetNamedMeters(meters, q.time, opt)
+			current_res, err = h.mo.GetNamedMeters(meters, q.time, opt, h.meteringOptions.Billing.PriceInfo)
 		}
 		if err != nil {
 			api.HandleBadRequest(resp, nil, err)
@@ -119,9 +119,9 @@ func (h handler) handleServiceMetersQuery(meters []string, resp *restful.Respons
 		}
 
 		if q.isRangeQuery() {
-			current_res, err = h.mo.GetNamedMetersOverTime(meters, q.start, q.end, q.step, opt)
+			current_res, err = h.mo.GetNamedMetersOverTime(meters, q.start, q.end, q.step, opt, h.meteringOptions.Billing.PriceInfo)
 		} else {
-			current_res, err = h.mo.GetNamedMeters(meters, q.time, opt)
+			current_res, err = h.mo.GetNamedMeters(meters, q.time, opt, h.meteringOptions.Billing.PriceInfo)
 		}
 		if err != nil {
 			api.HandleBadRequest(resp, nil, err)
@@ -197,13 +197,13 @@ func (h handler) handleNamedMetersQuery(resp *restful.Response, q queryOptions) 
 	}
 
 	if q.isRangeQuery() {
-		res, err = h.mo.GetNamedMetersOverTime(meters, q.start, q.end, q.step, q.option)
+		res, err = h.mo.GetNamedMetersOverTime(meters, q.start, q.end, q.step, q.option, h.meteringOptions.Billing.PriceInfo)
 		if err != nil {
 			api.HandleBadRequest(resp, nil, err)
 			return
 		}
 	} else {
-		res, err = h.mo.GetNamedMeters(meters, q.time, q.option)
+		res, err = h.mo.GetNamedMeters(meters, q.time, q.option, h.meteringOptions.Billing.PriceInfo)
 		if err != nil {
 			api.HandleBadRequest(resp, nil, err)
 			return
@@ -434,9 +434,9 @@ func (h handler) handleOpenpitrixMetersQuery(meters []string, resp *restful.Resp
 		}
 
 		if q.isRangeQuery() {
-			current_res, err = h.mo.GetNamedMetersOverTime(meters, q.start, q.end, q.step, opt)
+			current_res, err = h.mo.GetNamedMetersOverTime(meters, q.start, q.end, q.step, opt, h.meteringOptions.Billing.PriceInfo)
 		} else {
-			current_res, err = h.mo.GetNamedMeters(meters, q.time, opt)
+			current_res, err = h.mo.GetNamedMeters(meters, q.time, opt, h.meteringOptions.Billing.PriceInfo)
 		}
 		if err != nil {
 			api.HandleBadRequest(resp, nil, err)

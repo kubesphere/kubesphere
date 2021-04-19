@@ -46,20 +46,28 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
+	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
 type tenantHandler struct {
-	tenant tenant.Interface
+	tenant          tenant.Interface
+	meteringOptions *meteringclient.Options
 }
 
 func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface,
 	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
 	am am.AccessManagementInterface, authorizer authorizer.Authorizer,
-	monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) *tenantHandler {
+	monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter,
+	meteringOptions *meteringclient.Options) *tenantHandler {
+
+	if meteringOptions == nil {
+		meteringOptions = &meteringclient.DefaultMeteringOption
+	}
 
 	return &tenantHandler{
-		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourceGetter),
+		tenant:          tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourceGetter),
+		meteringOptions: meteringOptions,
 	}
 }
 
