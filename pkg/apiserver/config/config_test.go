@@ -176,7 +176,7 @@ func newTestConfig() (*Config, error) {
 			Endpoint: "http://edge-watcher.kubeedge.svc/api/",
 		},
 		MeteringOptions: &metering.Options{
-			Enable: false,
+			RetentionDay: "7d",
 		},
 	}
 	return conf, nil
@@ -190,13 +190,6 @@ func saveTestConfig(t *testing.T, conf *Config) {
 	err = ioutil.WriteFile(fmt.Sprintf("%s.yaml", defaultConfigurationName), content, 0640)
 	if err != nil {
 		t.Fatalf("error write configuration file, %v", err)
-	}
-}
-
-func testMeteringConfig(t *testing.T, conf *Config) {
-	conf.ToMap()
-	if conf.MeteringOptions != nil {
-		t.Fatalf("setting metering options failed")
 	}
 }
 
@@ -229,7 +222,58 @@ func TestGet(t *testing.T) {
 	if diff := cmp.Diff(conf, conf2); diff != "" {
 		t.Fatal(diff)
 	}
+}
 
-	testMeteringConfig(t, conf)
+func TestStripEmptyOptions(t *testing.T) {
+	var config Config
 
+	config.RedisOptions = &cache.Options{Host: ""}
+	config.DevopsOptions = &jenkins.Options{Host: ""}
+	config.MonitoringOptions = &prometheus.Options{Endpoint: ""}
+	config.SonarQubeOptions = &sonarqube.Options{Host: ""}
+	config.LdapOptions = &ldap.Options{Host: ""}
+	config.NetworkOptions = &network.Options{
+		EnableNetworkPolicy: false,
+		WeaveScopeHost:      "",
+		IPPoolType:          networkv1alpha1.IPPoolTypeNone,
+	}
+	config.ServiceMeshOptions = &servicemesh.Options{
+		IstioPilotHost:            "",
+		ServicemeshPrometheusHost: "",
+		JaegerQueryHost:           "",
+	}
+	config.S3Options = &s3.Options{
+		Endpoint: "",
+	}
+	config.AlertingOptions = &alerting.Options{
+		Endpoint:            "",
+		PrometheusEndpoint:  "",
+		ThanosRulerEndpoint: "",
+	}
+	config.LoggingOptions = &logging.Options{Host: ""}
+	config.NotificationOptions = &notification.Options{Endpoint: ""}
+	config.MultiClusterOptions = &multicluster.Options{Enable: false}
+	config.EventsOptions = &events.Options{Host: ""}
+	config.AuditingOptions = &auditing.Options{Host: ""}
+	config.KubeEdgeOptions = &kubeedge.Options{Endpoint: ""}
+
+	config.stripEmptyOptions()
+
+	if config.RedisOptions != nil ||
+		config.DevopsOptions != nil ||
+		config.MonitoringOptions != nil ||
+		config.SonarQubeOptions != nil ||
+		config.LdapOptions != nil ||
+		config.NetworkOptions != nil ||
+		config.ServiceMeshOptions != nil ||
+		config.S3Options != nil ||
+		config.AlertingOptions != nil ||
+		config.LoggingOptions != nil ||
+		config.NotificationOptions != nil ||
+		config.MultiClusterOptions != nil ||
+		config.EventsOptions != nil ||
+		config.AuditingOptions != nil ||
+		config.KubeEdgeOptions != nil {
+		t.Fatal("config stripEmptyOptions failed")
+	}
 }
