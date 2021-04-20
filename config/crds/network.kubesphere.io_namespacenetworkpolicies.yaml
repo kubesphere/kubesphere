@@ -19,6 +19,7 @@ spec:
     - nsnp
     singular: namespacenetworkpolicy
   scope: Namespaced
+  preserveUnknownFields: false
   versions:
   - name: v1alpha1
     schema:

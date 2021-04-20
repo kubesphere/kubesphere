@@ -61,6 +61,13 @@ type PluginInfo struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient:noStatus
 // +genclient:nonNamespaced
+// +kubebuilder:printcolumn:name="Provisioner",type="string",JSONPath=".spec.provisioner"
+// +kubebuilder:printcolumn:name="Volume",type="boolean",JSONPath=".spec.features.volume.create"
+// +kubebuilder:printcolumn:name="Expand",type="string",JSONPath=".spec.features.volume.expandMode"
+// +kubebuilder:printcolumn:name="Clone",type="boolean",JSONPath=".spec.features.volume.clone"
+// +kubebuilder:printcolumn:name="Snapshot",type="boolean",JSONPath=".spec.features.snapshot.create"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:resource:scope="Cluster"
 
 // StorageClassCapability is the Schema for the storage class capability API
 // +k8s:openapi-gen=true
@@ -91,6 +98,10 @@ type StorageClassCapabilityList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient:noStatus
 // +genclient:nonNamespaced
+// +kubebuilder:printcolumn:name="Provisioner",type="string",JSONPath=".spec.pluginInfo.name"
+// +kubebuilder:printcolumn:name="Expand",type="string",JSONPath=".spec.features.volume.expandMode"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:resource:scope="Cluster"
 
 // ProvisionerCapability is the schema for the provisionercapability API
 // +k8s:openapi-gen=true
