@@ -28,6 +28,7 @@ import (
 	monitoringmodel "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
@@ -538,7 +539,7 @@ func (t *tenantOperator) makeQueryOptions(user user.Info, q meteringv1alpha1.Que
 	return qo, nil
 }
 
-func (t *tenantOperator) ProcessNamedMetersQuery(q QueryOptions) (metrics monitoringmodel.Metrics, err error) {
+func (t *tenantOperator) ProcessNamedMetersQuery(q QueryOptions, priceInfo meteringclient.PriceInfo) (metrics monitoringmodel.Metrics, err error) {
 	var meters []string
 	for _, meter := range q.NamedMetrics {
 		if !strings.HasPrefix(meter, monitoringmodel.MetricMeterPrefix) {
@@ -559,20 +560,20 @@ func (t *tenantOperator) ProcessNamedMetersQuery(q QueryOptions) (metrics monito
 
 	_, ok := q.Option.(monitoring.ApplicationsOption)
 	if ok {
-		metrics, err = t.processApplicationMetersQuery(meters, q)
+		metrics, err = t.processApplicationMetersQuery(meters, q, priceInfo)
 		return
 	}
 
 	_, ok = q.Option.(monitoring.ServicesOption)
 	if ok {
-		metrics, err = t.processServiceMetersQuery(meters, q)
+		metrics, err = t.processServiceMetersQuery(meters, q, priceInfo)
 		return
 	}
 
 	if q.isRangeQuery() {
-		metrics, err = t.mo.GetNamedMetersOverTime(meters, q.Start, q.End, q.Step, q.Option)
+		metrics, err = t.mo.GetNamedMetersOverTime(meters, q.Start, q.End, q.Step, q.Option, priceInfo)
 	} else {
-		metrics, err = t.mo.GetNamedMeters(meters, q.Time, q.Option)
+		metrics, err = t.mo.GetNamedMeters(meters, q.Time, q.Option, priceInfo)
 		if q.shouldSort() {
 			metrics = *metrics.Sort(q.Target, q.Order, q.Identifier).Page(q.Page, q.Limit)
 		}
@@ -591,7 +592,7 @@ func getMetricPosMap(metrics []monitoring.Metric) map[string]int {
 	return metricMap
 }
 
-func (t *tenantOperator) processApplicationMetersQuery(meters []string, q QueryOptions) (res monitoringmodel.Metrics, err error) {
+func (t *tenantOperator) processApplicationMetersQuery(meters []string, q QueryOptions, priceInfo meteringclient.PriceInfo) (res monitoringmodel.Metrics, err error) {
 	var metricMap = make(map[string]int)
 	var current_res monitoringmodel.Metrics
 
@@ -612,9 +613,9 @@ func (t *tenantOperator) processApplicationMetersQuery(meters []string, q QueryO
 		}
 
 		if q.isRangeQuery() {
-			current_res, err = t.mo.GetNamedMetersOverTime(meters, q.Start, q.End, q.Step, opt)
+			current_res, err = t.mo.GetNamedMetersOverTime(meters, q.Start, q.End, q.Step, opt, priceInfo)
 		} else {
-			current_res, err = t.mo.GetNamedMeters(meters, q.Time, opt)
+			current_res, err = t.mo.GetNamedMeters(meters, q.Time, opt, priceInfo)
 		}
 
 		if res.Results == nil {
@@ -639,7 +640,7 @@ func (t *tenantOperator) processApplicationMetersQuery(meters []string, q QueryO
 	return
 }
 
-func (t *tenantOperator) processServiceMetersQuery(meters []string, q QueryOptions) (res monitoringmodel.Metrics, err error) {
+func (t *tenantOperator) processServiceMetersQuery(meters []string, q QueryOptions, priceInfo meteringclient.PriceInfo) (res monitoringmodel.Metrics, err error) {
 	var metricMap = make(map[string]int)
 	var current_res monitoringmodel.Metrics
 
@@ -659,9 +660,9 @@ func (t *tenantOperator) processServiceMetersQuery(meters []string, q QueryOptio
 		}
 
 		if q.isRangeQuery() {
-			current_res, err = t.mo.GetNamedMetersOverTime(meters, q.Start, q.End, q.Step, opt)
+			current_res, err = t.mo.GetNamedMetersOverTime(meters, q.Start, q.End, q.Step, opt, priceInfo)
 		} else {
-			current_res, err = t.mo.GetNamedMeters(meters, q.Time, opt)
+			current_res, err = t.mo.GetNamedMeters(meters, q.Time, opt, priceInfo)
 		}
 
 		if res.Results == nil {

@@ -16,7 +16,9 @@ limitations under the License.
 
 package monitoring
 
-import "time"
+import (
+	"time"
+)
 
 type Interface interface {
 	GetMetric(expr string, time time.Time) Metric

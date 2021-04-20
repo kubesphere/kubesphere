@@ -63,6 +63,7 @@ import (
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events"
 	loggingclient "kubesphere.io/kubesphere/pkg/simple/client/logging"
+	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
@@ -90,8 +91,8 @@ type Interface interface {
 	PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	PatchWorkspace(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error)
 	ListClusters(info user.Info) (*api.ListResult, error)
-	Metering(user user.Info, queryParam *meteringv1alpha1.Query) (monitoring.Metrics, error)
-	MeteringHierarchy(user user.Info, queryParam *meteringv1alpha1.Query) (metering.ResourceStatistic, error)
+	Metering(user user.Info, queryParam *meteringv1alpha1.Query, priceInfo meteringclient.PriceInfo) (monitoring.Metrics, error)
+	MeteringHierarchy(user user.Info, queryParam *meteringv1alpha1.Query, priceInfo meteringclient.PriceInfo) (metering.ResourceStatistic, error)
 	CreateWorkspaceResourceQuota(workspace string, resourceQuota *quotav1alpha2.ResourceQuota) (*quotav1alpha2.ResourceQuota, error)
 	DeleteWorkspaceResourceQuota(workspace string, resourceQuotaName string) error
 	UpdateWorkspaceResourceQuota(workspace string, resourceQuota *quotav1alpha2.ResourceQuota) (*quotav1alpha2.ResourceQuota, error)
@@ -991,7 +992,7 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 	})
 }
 
-func (t *tenantOperator) Metering(user user.Info, query *meteringv1alpha1.Query) (metrics monitoring.Metrics, err error) {
+func (t *tenantOperator) Metering(user user.Info, query *meteringv1alpha1.Query, priceInfo meteringclient.PriceInfo) (metrics monitoring.Metrics, err error) {
 
 	var opt QueryOptions
 
@@ -999,13 +1000,13 @@ func (t *tenantOperator) Metering(user user.Info, query *meteringv1alpha1.Query)
 	if err != nil {
 		return
 	}
-	metrics, err = t.ProcessNamedMetersQuery(opt)
+	metrics, err = t.ProcessNamedMetersQuery(opt, priceInfo)
 
 	return
 }
 
-func (t *tenantOperator) MeteringHierarchy(user user.Info, queryParam *meteringv1alpha1.Query) (metering.ResourceStatistic, error) {
-	res, err := t.Metering(user, queryParam)
+func (t *tenantOperator) MeteringHierarchy(user user.Info, queryParam *meteringv1alpha1.Query, priceInfo meteringclient.PriceInfo) (metering.ResourceStatistic, error) {
+	res, err := t.Metering(user, queryParam, priceInfo)
 	if err != nil {
 		return metering.ResourceStatistic{}, err
 	}

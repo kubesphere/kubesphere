@@ -3,12 +3,10 @@ package monitoring
 import (
 	"fmt"
 	"math/big"
-	"os"
-	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
 
+	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
@@ -76,56 +74,6 @@ var MeterResourceMap = map[string]int{
 	"meter_pod_pvc_bytes_total":               METER_RESOURCE_TYPE_PVC,
 }
 
-type PriceInfo struct {
-	CpuPerCorePerHour                        float64 `json:"cpuPerCorePerHour" yaml:"cpuPerCorePerHour"`
-	MemPerGigabytesPerHour                   float64 `json:"memPerGigabytesPerHour" yaml:"memPerGigabytesPerHour"`
-	IngressNetworkTrafficPerMegabytesPerHour float64 `json:"ingressNetworkTrafficPerMegabytesPerHour" yaml:"ingressNetworkTrafficPerGiagabytesPerHour"`
-	EgressNetworkTrafficPerMegabytesPerHour  float64 `json:"egressNetworkTrafficPerMegabytesPerHour" yaml:"egressNetworkTrafficPerGigabytesPerHour"`
-	PvcPerGigabytesPerHour                   float64 `json:"pvcPerGigabytesPerHour" yaml:"pvcPerGigabytesPerHour"`
-	CurrencyUnit                             string  `json:"currencyUnit" yaml:"currencyUnit"`
-}
-
-type Billing struct {
-	PriceInfo PriceInfo `json:"priceInfo" yaml:"priceInfo"`
-}
-
-type MeterConfig struct {
-	RetentionDay string  `json:"retentionDay" yaml:"retentionDay"`
-	Billing      Billing `json:"billing" yaml:"billing"`
-}
-
-func (mc MeterConfig) GetPriceInfo() PriceInfo {
-	return mc.Billing.PriceInfo
-}
-
-func LoadYaml() (*MeterConfig, error) {
-
-	var meterConfig MeterConfig
-	var mf *os.File
-	var err error
-
-	if _, err := os.Stat(meteringConfigName); os.IsNotExist(err) {
-		mf, err = os.Open(filepath.Join(meteringConfigDir, meteringConfigName))
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-	} else {
-		mf, err = os.Open(meteringConfigName)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-	}
-
-	if err = yaml.NewYAMLOrJSONDecoder(mf, 1024).Decode(&meterConfig); err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return &meterConfig, nil
-}
-
 func getMaxPointValue(points []monitoring.Point) string {
 	var max *big.Float
 	for i, p := range points {
@@ -181,16 +129,6 @@ func getAvgPointValue(points []monitoring.Point) string {
 	return fmt.Sprintf(generateFloatFormat(meteringDefaultPrecision), sum.Quo(sum, length))
 }
 
-func getCurrencyUnit() string {
-	meterConfig, err := LoadYaml()
-	if err != nil {
-		klog.Error(err)
-		return ""
-	}
-
-	return meterConfig.GetPriceInfo().CurrencyUnit
-}
-
 func generateFloatFormat(precision int) string {
 	return "%." + fmt.Sprintf("%d", precision) + "f"
 }
@@ -204,20 +142,13 @@ func getResourceUnit(meterName string) string {
 	}
 }
 
-func getFeeWithMeterName(meterName string, sum string) string {
+func getFeeWithMeterName(meterName string, sum string, priceInfo meteringclient.PriceInfo) string {
 
 	s, ok := new(big.Float).SetString(sum)
 	if !ok {
 		klog.Error("failed to parse string to float")
 		return ""
 	}
-
-	meterConfig, err := LoadYaml()
-	if err != nil {
-		klog.Error(err)
-		return ""
-	}
-	priceInfo := meterConfig.GetPriceInfo()
 
 	if resourceType, ok := MeterResourceMap[meterName]; !ok {
 		klog.Errorf("invlaid meter %v", meterName)
@@ -267,7 +198,7 @@ func getFeeWithMeterName(meterName string, sum string) string {
 	}
 }
 
-func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float64) monitoring.MetricData {
+func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float64, priceInfo meteringclient.PriceInfo) monitoring.MetricData {
 	metricName := metric.MetricName
 	metricData := metric.MetricData
 	for index, metricValue := range metricData.MetricValues {
@@ -293,14 +224,14 @@ func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float6
 		if metricData.MetricType == monitoring.MetricTypeMatrix {
 			sum := getSumPointValue(metricData.MetricValues[index].Series)
 			metricData.MetricValues[index].SumValue = sum
-			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
+			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum, priceInfo)
 		} else {
 			sum := getSumPointValue([]monitoring.Point{*metricValue.Sample})
 			metricData.MetricValues[index].SumValue = sum
-			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
+			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum, priceInfo)
 		}
 
-		metricData.MetricValues[index].CurrencyUnit = getCurrencyUnit()
+		metricData.MetricValues[index].CurrencyUnit = priceInfo.CurrencyUnit
 		metricData.MetricValues[index].ResourceUnit = getResourceUnit(metricName)
 
 	}

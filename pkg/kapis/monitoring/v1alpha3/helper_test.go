@@ -331,7 +331,7 @@ func TestParseRequestParams(t *testing.T) {
 
 			fakeInformerFactory.KubeSphereSharedInformerFactory()
 
-			handler := NewHandler(client, nil, nil, fakeInformerFactory, ksClient, nil)
+			handler := NewHandler(client, nil, nil, fakeInformerFactory, ksClient, nil, nil)
 
 			result, err := handler.makeQueryOptions(tt.params, tt.lvl)
 			if err != nil {
@@ -417,5 +417,22 @@ func TestExportMetrics(t *testing.T) {
 				t.Fatal("Failed to export metering metrics", err)
 			}
 		})
+	}
+}
+
+func TestGetMetricPosMap(t *testing.T) {
+	metrics := []monitoring.Metric{
+		{
+			MetricName: "a",
+		},
+		{
+			MetricName: "b",
+		},
+	}
+
+	metricMap := getMetricPosMap(metrics)
+	if metricMap["a"] != 0 ||
+		metricMap["b"] != 1 {
+		t.Fatal("getMetricPosMap failed")
 	}
 }

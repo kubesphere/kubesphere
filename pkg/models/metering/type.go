@@ -1,27 +1,23 @@
 package metering
 
 type PriceInfo struct {
-	Currency                                 string  `json:"currency" description:"currency"`
-	CpuPerCorePerHour                        float64 `json:"cpu_per_core_per_hour,omitempty" description:"cpu price"`
-	MemPerGigabytesPerHour                   float64 `json:"mem_per_gigabytes_per_hour,omitempty" description:"mem price"`
+	// currency unit, currently support CNY and USD
+	Currency string `json:"currency" description:"currency"`
+	// cpu cost with above currency unit for per core per hour
+	CpuPerCorePerHour float64 `json:"cpu_per_core_per_hour,omitempty" description:"cpu price"`
+	// mem cost with above currency unit for per GB per hour
+	MemPerGigabytesPerHour float64 `json:"mem_per_gigabytes_per_hour,omitempty" description:"mem price"`
+	// ingress network traffic cost with above currency unit for per MB per hour
 	IngressNetworkTrafficPerMegabytesPerHour float64 `json:"ingress_network_traffic_per_megabytes_per_hour,omitempty" description:"ingress price"`
-	EgressNetworkTrafficPerMegabytesPerHour  float64 `json:"egress_network_traffic_per_megabytes_per_hour,omitempty" description:"egress price"`
-	PvcPerGigabytesPerHour                   float64 `json:"pvc_per_gigabytes_per_hour,omitempty" description:"pvc price"`
+	// egress network traffice cost with above currency unit for per MB per hour
+	EgressNetworkTrafficPerMegabytesPerHour float64 `json:"egress_network_traffic_per_megabytes_per_hour,omitempty" description:"egress price"`
+	// pvc cost with above currency unit for per GB per hour
+	PvcPerGigabytesPerHour float64 `json:"pvc_per_gigabytes_per_hour,omitempty" description:"pvc price"`
 }
 
 type PriceResponse struct {
 	RetentionDay string `json:"retention_day"`
 	PriceInfo    `json:",inline"`
-}
-
-// currently init method fill illegal value to hint that metering config file was not mounted yet
-func (p *PriceInfo) Init() {
-	p.Currency = ""
-	p.CpuPerCorePerHour = -1
-	p.MemPerGigabytesPerHour = -1
-	p.IngressNetworkTrafficPerMegabytesPerHour = -1
-	p.EgressNetworkTrafficPerMegabytesPerHour = -1
-	p.PvcPerGigabytesPerHour = -1
 }
 
 type PodStatistic struct {
