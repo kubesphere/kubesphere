@@ -49,7 +49,7 @@ func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, m
 	if ksClient != nil {
 		opRelease = openpitrix.NewOpenpitrixOperator(f, ksClient, nil)
 	}
-	if meteringOptions == nil {
+	if meteringOptions == nil || meteringOptions.RetentionDay == "" {
 		meteringOptions = &meteringclient.DefaultMeteringOption
 	}
 

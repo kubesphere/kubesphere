@@ -61,7 +61,7 @@ func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.In
 	monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter,
 	meteringOptions *meteringclient.Options) *tenantHandler {
 
-	if meteringOptions == nil {
+	if meteringOptions == nil || meteringOptions.RetentionDay == "" {
 		meteringOptions = &meteringclient.DefaultMeteringOption
 	}
 
