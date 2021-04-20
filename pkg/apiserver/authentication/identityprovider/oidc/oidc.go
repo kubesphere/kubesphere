@@ -25,6 +25,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+
 	"github.com/coreos/go-oidc"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/mitchellh/mapstructure"
@@ -93,6 +95,10 @@ type endpoint struct {
 	UserInfoURL string `json:"userInfoURL" yaml:"userInfoURL"`
 	//  URL of the OP's JSON Web Key Set [JWK](https://openid.net/specs/openid-connect-discovery-1_0.html#JWK) document.
 	JWKSURL string `json:"jwksURL"`
+	// URL at the OP to which an RP can perform a redirect to request that the End-User be logged out at the OP.
+	// This URL MUST use the https scheme and MAY contain port, path, and query parameter components.
+	// https://openid.net/specs/openid-connect-rpinitiated-1_0.html#OPMetadata
+	EndSessionURL string `json:"endSessionURL"`
 }
 
 type oidcIdentity struct {
@@ -157,23 +163,23 @@ func (f *oidcProviderFactory) Create(options oauth.DynamicOptions) (identityprov
 		oidcProvider.Endpoint.TokenURL, _ = providerJSON["token_endpoint"].(string)
 		oidcProvider.Endpoint.UserInfoURL, _ = providerJSON["userinfo_endpoint"].(string)
 		oidcProvider.Endpoint.JWKSURL, _ = providerJSON["jwks_uri"].(string)
+		oidcProvider.Endpoint.EndSessionURL, _ = providerJSON["end_session_endpoint"].(string)
 		oidcProvider.Provider = provider
 		oidcProvider.Verifier = provider.Verifier(&oidc.Config{
 			// TODO: support HS256
 			ClientID: oidcProvider.ClientID,
 		})
 		options["endpoint"] = oauth.DynamicOptions{
-			"authURL":     oidcProvider.Endpoint.AuthURL,
-			"tokenURL":    oidcProvider.Endpoint.TokenURL,
-			"userInfoURL": oidcProvider.Endpoint.UserInfoURL,
-			"jwksURL":     oidcProvider.Endpoint.JWKSURL,
+			"authURL":       oidcProvider.Endpoint.AuthURL,
+			"tokenURL":      oidcProvider.Endpoint.TokenURL,
+			"userInfoURL":   oidcProvider.Endpoint.UserInfoURL,
+			"jwksURL":       oidcProvider.Endpoint.JWKSURL,
+			"endSessionURL": oidcProvider.Endpoint.EndSessionURL,
 		}
 	}
 	scopes := []string{oidc.ScopeOpenID}
-	if len(oidcProvider.Scopes) > 0 {
+	if !sliceutil.HasString(oidcProvider.Scopes, oidc.ScopeOpenID) {
 		scopes = append(scopes, oidcProvider.Scopes...)
-	} else {
-		scopes = append(scopes, "openid", "profile", "email")
 	}
 	oidcProvider.Scopes = scopes
 	oidcProvider.OAuth2Config = &oauth2.Config{
@@ -270,8 +276,8 @@ func (o *oidcProvider) IdentityExchange(code string) (identityprovider.Identity,
 	if o.PreferredUsernameKey != "" {
 		preferredUsernameKey = o.PreferredUsernameKey
 	}
-	preferredUsername, _ = claims[preferredUsernameKey].(string)
 
+	preferredUsername, _ = claims[preferredUsernameKey].(string)
 	if preferredUsername == "" {
 		preferredUsername, _ = claims["name"].(string)
 	}

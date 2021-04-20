@@ -19,6 +19,9 @@ package oauth
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+
+	"kubesphere.io/kubesphere/pkg/server/errors"
 
 	"github.com/emicklei/go-restful"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -319,4 +322,34 @@ func (h *handler) refreshTokenGrant(req *restful.Request, response *restful.Resp
 	}
 
 	response.WriteEntity(result)
+}
+
+func (h *handler) Logout(req *restful.Request, resp *restful.Response) {
+	authenticated, ok := request.UserFrom(req.Request.Context())
+	if ok {
+		if err := h.tokenOperator.RevokeAllUserTokens(authenticated.GetName()); err != nil {
+			api.HandleInternalError(resp, req, apierrors.NewInternalError(err))
+			return
+		}
+	}
+
+	postLogoutRedirectURI := req.QueryParameter("post_logout_redirect_uri")
+	if postLogoutRedirectURI == "" {
+		resp.WriteAsJson(errors.None)
+		return
+	}
+
+	redirectURL, err := url.Parse(postLogoutRedirectURI)
+	if err != nil {
+		api.HandleBadRequest(resp, req, fmt.Errorf("invalid logout redirect URI: %s", err))
+		return
+	}
+
+	state := req.QueryParameter("state")
+	if state != "" {
+		redirectURL.Query().Add("state", state)
+	}
+
+	resp.Header().Set("Content-Type", "text/plain")
+	http.Redirect(resp, req.Request, redirectURL.String(), http.StatusFound)
 }
