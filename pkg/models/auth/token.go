@@ -37,6 +37,8 @@ type TokenManagementInterface interface {
 	Verify(token string) (user.Info, error)
 	// IssueTo issues a token a User, return error if issuing process failed
 	IssueTo(user user.Info) (*oauth.Token, error)
+	// RevokeAllUserTokens revoke all user tokens
+	RevokeAllUserTokens(username string) error
 }
 
 type tokenOperator struct {
@@ -93,7 +95,7 @@ func (t tokenOperator) IssueTo(user user.Info) (*oauth.Token, error) {
 	}
 
 	if !t.options.MultipleLogin {
-		if err = t.revokeAllUserTokens(user.GetName()); err != nil {
+		if err = t.RevokeAllUserTokens(user.GetName()); err != nil {
 			klog.Error(err)
 			return nil, err
 		}
@@ -113,7 +115,7 @@ func (t tokenOperator) IssueTo(user user.Info) (*oauth.Token, error) {
 	return result, nil
 }
 
-func (t tokenOperator) revokeAllUserTokens(username string) error {
+func (t tokenOperator) RevokeAllUserTokens(username string) error {
 	pattern := fmt.Sprintf("kubesphere:user:%s:token:*", username)
 	if keys, err := t.cache.Keys(pattern); err != nil {
 		klog.Error(err)
