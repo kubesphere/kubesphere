@@ -1,12 +1,18 @@
 package metering
 
 type PriceInfo struct {
-	CpuPerCorePerHour                        float64 `json:"cpuPerCorePerHour" yaml:"cpuPerCorePerHour"`
-	MemPerGigabytesPerHour                   float64 `json:"memPerGigabytesPerHour" yaml:"memPerGigabytesPerHour"`
+	// currency unit, currently support CNY and USD
+	CpuPerCorePerHour float64 `json:"cpuPerCorePerHour" yaml:"cpuPerCorePerHour"`
+	// cpu cost with above currency unit for per core per hour
+	MemPerGigabytesPerHour float64 `json:"memPerGigabytesPerHour" yaml:"memPerGigabytesPerHour"`
+	// mem cost with above currency unit for per GB per hour
 	IngressNetworkTrafficPerMegabytesPerHour float64 `json:"ingressNetworkTrafficPerMegabytesPerHour" yaml:"ingressNetworkTrafficPerGiagabytesPerHour"`
-	EgressNetworkTrafficPerMegabytesPerHour  float64 `json:"egressNetworkTrafficPerMegabytesPerHour" yaml:"egressNetworkTrafficPerGigabytesPerHour"`
-	PvcPerGigabytesPerHour                   float64 `json:"pvcPerGigabytesPerHour" yaml:"pvcPerGigabytesPerHour"`
-	CurrencyUnit                             string  `json:"currencyUnit" yaml:"currencyUnit"`
+	// ingress network traffic cost with above currency unit for per MB per hour
+	EgressNetworkTrafficPerMegabytesPerHour float64 `json:"egressNetworkTrafficPerMegabytesPerHour" yaml:"egressNetworkTrafficPerGigabytesPerHour"`
+	// egress network traffice cost with above currency unit for per MB per hour
+	PvcPerGigabytesPerHour float64 `json:"pvcPerGigabytesPerHour" yaml:"pvcPerGigabytesPerHour"`
+	// pvc cost with above currency unit for per GB per hour
+	CurrencyUnit string `json:"currencyUnit" yaml:"currencyUnit"`
 }
 
 type Billing struct {
