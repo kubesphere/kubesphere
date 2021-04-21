@@ -2,13 +2,11 @@ package monitoring
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"gopkg.in/yaml.v2"
 
+	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
@@ -164,56 +162,6 @@ func TestGetAvgPointValue(t *testing.T) {
 	}
 }
 
-func saveTestConfig(t *testing.T, conf *MeterConfig) {
-	content, err := yaml.Marshal(conf)
-	if err != nil {
-		t.Fatalf("error marshal config. %v", err)
-	}
-
-	err = ioutil.WriteFile(meteringConfigName, content, 0640)
-	if err != nil {
-		t.Fatalf("error write configuration file, %v", err)
-	}
-}
-
-func cleanTestConfig(t *testing.T) {
-
-	if _, err := os.Stat(meteringConfigName); os.IsNotExist(err) {
-		t.Log("file not exists, skipping")
-		return
-	}
-
-	err := os.Remove(meteringConfigName)
-	if err != nil {
-		t.Fatalf("remove %s file failed", meteringConfigName)
-	}
-
-}
-
-func TestGetCurrencyUnit(t *testing.T) {
-	if getCurrencyUnit() != "" {
-		t.Fatal("currency unit should be empty")
-	}
-
-	saveTestConfig(t, &MeterConfig{
-		Billing: Billing{
-			PriceInfo: PriceInfo{
-				IngressNetworkTrafficPerMegabytesPerHour: 1,
-				EgressNetworkTrafficPerMegabytesPerHour:  2,
-				CpuPerCorePerHour:                        3,
-				MemPerGigabytesPerHour:                   4,
-				PvcPerGigabytesPerHour:                   5,
-				CurrencyUnit:                             "CNY",
-			},
-		},
-	})
-	defer cleanTestConfig(t)
-
-	if getCurrencyUnit() != "CNY" {
-		t.Fatal("failed to get currency unit from config")
-	}
-}
-
 func TestGenerateFloatFormat(t *testing.T) {
 	format := generateFloatFormat(10)
 	if format != "%.10f" {
@@ -305,19 +253,47 @@ func TestSquashPoints(t *testing.T) {
 
 func TestGetFeeWithMeterName(t *testing.T) {
 
-	saveTestConfig(t, &MeterConfig{
-		Billing: Billing{
-			PriceInfo: PriceInfo{
-				IngressNetworkTrafficPerMegabytesPerHour: 1,
-				EgressNetworkTrafficPerMegabytesPerHour:  2,
-				CpuPerCorePerHour:                        3,
-				MemPerGigabytesPerHour:                   4,
-				PvcPerGigabytesPerHour:                   5,
-				CurrencyUnit:                             "CNY",
-			},
-		},
-	})
-	defer cleanTestConfig(t)
+	priceInfo := meteringclient.PriceInfo{
+		IngressNetworkTrafficPerMegabytesPerHour: 1,
+		EgressNetworkTrafficPerMegabytesPerHour:  2,
+		CpuPerCorePerHour:                        3,
+		MemPerGigabytesPerHour:                   4,
+		PvcPerGigabytesPerHour:                   5,
+		CurrencyUnit:                             "CNY",
+	}
+
+	if getFeeWithMeterName("meter_cluster_cpu_usage", "1", priceInfo) != "3.000" {
+		t.Error("failed to get fee with meter_cluster_cpu_usage")
+		return
+	}
+	if getFeeWithMeterName("meter_cluster_memory_usage", "0", priceInfo) != "0.000" {
+		t.Error("failed to get fee with meter_cluster_memory_usage")
+		return
+	}
+	if getFeeWithMeterName("meter_cluster_net_bytes_transmitted", "0", priceInfo) != "0.000" {
+		t.Error("failed to get fee with meter_cluster_net_bytes_transmitted")
+		return
+	}
+	if getFeeWithMeterName("meter_cluster_net_bytes_received", "0", priceInfo) != "0.000" {
+		t.Error("failed to get fee with meter_cluster_net_bytes_received")
+		return
+	}
+	if getFeeWithMeterName("meter_cluster_pvc_bytes_total", "0", priceInfo) != "0.000" {
+		t.Error("failed to get fee with meter_cluster_pvc_bytes_total")
+		return
+	}
+}
+
+func TestUpdateMetricStatData(t *testing.T) {
+
+	priceInfo := meteringclient.PriceInfo{
+		IngressNetworkTrafficPerMegabytesPerHour: 1,
+		EgressNetworkTrafficPerMegabytesPerHour:  2,
+		CpuPerCorePerHour:                        3,
+		MemPerGigabytesPerHour:                   4,
+		PvcPerGigabytesPerHour:                   5,
+		CurrencyUnit:                             "CNY",
+	}
 
 	tests := []struct {
 		metric     monitoring.Metric
@@ -393,7 +369,7 @@ func TestGetFeeWithMeterName(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := updateMetricStatData(test.metric, test.scalingMap)
+		got := updateMetricStatData(test.metric, test.scalingMap, priceInfo)
 		if diff := cmp.Diff(got, test.expected); diff != "" {
 			t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
 			return

@@ -68,6 +68,7 @@ var _ = BeforeSuite(func(done Done) {
 				"token_endpoint":         fmt.Sprintf("%s/token", oidcServer.URL),
 				"authorization_endpoint": fmt.Sprintf("%s/authorize", oidcServer.URL),
 				"userinfo_endpoint":      fmt.Sprintf("%s/userinfo", oidcServer.URL),
+				"end_session_endpoint":   fmt.Sprintf("%s/endsession", oidcServer.URL),
 				"jwks_uri":               fmt.Sprintf("%s/keys", oidcServer.URL),
 				"response_types_supported": []string{
 					"code",
@@ -182,10 +183,11 @@ var _ = Describe("OIDC", func() {
 				"redirectURL":        "http://ks-console/oauth/redirect",
 				"insecureSkipVerify": true,
 				"endpoint": oauth.DynamicOptions{
-					"authURL":     fmt.Sprintf("%s/authorize", oidcServer.URL),
-					"tokenURL":    fmt.Sprintf("%s/token", oidcServer.URL),
-					"userInfoURL": fmt.Sprintf("%s/userinfo", oidcServer.URL),
-					"jwksURL":     fmt.Sprintf("%s/keys", oidcServer.URL),
+					"authURL":       fmt.Sprintf("%s/authorize", oidcServer.URL),
+					"tokenURL":      fmt.Sprintf("%s/token", oidcServer.URL),
+					"userInfoURL":   fmt.Sprintf("%s/userinfo", oidcServer.URL),
+					"jwksURL":       fmt.Sprintf("%s/keys", oidcServer.URL),
+					"endSessionURL": fmt.Sprintf("%s/endsession", oidcServer.URL),
 				},
 			}
 			Expect(config).Should(Equal(expected))

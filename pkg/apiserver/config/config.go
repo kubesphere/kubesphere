@@ -290,8 +290,4 @@ func (conf *Config) stripEmptyOptions() {
 	if conf.KubeEdgeOptions != nil && conf.KubeEdgeOptions.Endpoint == "" {
 		conf.KubeEdgeOptions = nil
 	}
-
-	if conf.MeteringOptions != nil && !conf.MeteringOptions.Enable {
-		conf.MeteringOptions = nil
-	}
 }

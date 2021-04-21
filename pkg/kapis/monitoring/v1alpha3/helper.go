@@ -132,7 +132,9 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.page = req.QueryParameter("page")
 	r.limit = req.QueryParameter("limit")
 	r.metricFilter = req.QueryParameter("metrics_filter")
-	r.namespacedResourcesFilter = req.QueryParameter("namespaced_resources_filter")
+	// namespacedResourcesFilter supports only <namespace>/<pod_name>|<namespace>/<pod_name> format
+	// which is different from resources_filter or metrics_filter, so wipe off the possible $ at the end.
+	r.namespacedResourcesFilter = strings.TrimRight(req.QueryParameter("namespaced_resources_filter"), "$")
 	r.resourceFilter = req.QueryParameter("resources_filter")
 	r.workspaceName = req.PathParameter("workspace")
 	r.namespaceName = req.PathParameter("namespace")

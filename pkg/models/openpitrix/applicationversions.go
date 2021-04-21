@@ -26,10 +26,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"reflect"
 	"sort"
 	"strings"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -263,12 +264,14 @@ func (c *applicationOperator) ListAppVersions(conditions *params.Conditions, ord
 		sort.Sort(AppVersions(versions))
 	}
 
-	items := make([]interface{}, 0, int(math.Min(float64(limit), float64(len(versions)))))
-
-	for i, j := offset, 0; i < len(versions) && j < limit; i, j = i+1, j+1 {
+	totalCount := len(versions)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	versions = versions[start:end]
+	items := make([]interface{}, 0, len(versions))
+	for i := range versions {
 		items = append(items, convertAppVersion(versions[i]))
 	}
-	return &models.PageableResponse{Items: items, TotalCount: len(versions)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
 }
 
 func (c *applicationOperator) ListAppVersionReviews(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
@@ -286,9 +289,11 @@ func (c *applicationOperator) ListAppVersionReviews(conditions *params.Condition
 		sort.Sort(AppVersionReviews(filtered))
 	}
 
+	totalCount := len(filtered)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	filtered = filtered[start:end]
 	items := make([]interface{}, 0, len(filtered))
-
-	for i, j := offset, 0; i < len(filtered) && j < limit; i, j = i+1, j+1 {
+	for i := range filtered {
 		app, err := c.appLister.Get(filtered[i].GetHelmApplicationId())
 		if err != nil {
 			return nil, err
@@ -297,7 +302,7 @@ func (c *applicationOperator) ListAppVersionReviews(conditions *params.Condition
 		items = append(items, review)
 	}
 
-	return &models.PageableResponse{Items: items, TotalCount: len(filtered)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
 }
 
 func (c *applicationOperator) ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
@@ -330,13 +335,16 @@ func (c *applicationOperator) ListAppVersionAudits(conditions *params.Conditions
 
 	sort.Sort(AppVersionAuditList(allAudits))
 
-	items := make([]interface{}, 0, limit)
+	totalCount := len(allAudits)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	allAudits = allAudits[start:end]
+	items := make([]interface{}, 0, len(allAudits))
 
-	for i, j := offset, 0; i < len(allAudits) && j < limit; i, j = i+1, j+1 {
+	for i := range allAudits {
 		items = append(items, allAudits[i])
 	}
 
-	return &models.PageableResponse{Items: items, TotalCount: len(allAudits)}, nil
+	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
 }
 
 func (c *applicationOperator) DoAppVersionAction(versionId string, request *ActionRequest) error {

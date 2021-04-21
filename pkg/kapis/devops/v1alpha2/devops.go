@@ -58,17 +58,29 @@ func (h *ProjectPipelineHandler) GetPipeline(req *restful.Request, resp *restful
 func (h *ProjectPipelineHandler) getPipelinesByRequest(req *restful.Request) (api.ListResult, error) {
 	// this is a very trick way, but don't have a better solution for now
 	var (
-		start      int
-		limit      int
-		namespace  string
-		nameFilter string
+		start     int
+		limit     int
+		namespace string
 	)
 
 	// parse query from the request
-	query := req.QueryParameter("q")
+	pipelineFilter, namespace := parseNameFilterFromQuery(req.QueryParameter("q"))
+
+	// make sure we have an appropriate value
+	limit, start = params.ParsePaging(req)
+	return h.devopsOperator.ListPipelineObj(namespace, pipelineFilter, func(list []*v1alpha3.Pipeline, i int, j int) bool {
+		return strings.Compare(strings.ToUpper(list[i].Name), strings.ToUpper(list[j].Name)) < 0
+	}, limit, start)
+}
+
+func parseNameFilterFromQuery(query string) (filter devops.PipelineFilter, namespace string) {
+	var (
+		nameFilter string
+	)
+
 	for _, val := range strings.Split(query, ";") {
 		if strings.HasPrefix(val, "pipeline:") {
-			nsAndName := strings.TrimLeft(val, "pipeline:")
+			nsAndName := strings.TrimPrefix(val, "pipeline:")
 			filterMeta := strings.Split(nsAndName, "/")
 			if len(filterMeta) >= 2 {
 				namespace = filterMeta[0]
@@ -81,18 +93,13 @@ func (h *ProjectPipelineHandler) getPipelinesByRequest(req *restful.Request) (ap
 		}
 	}
 
-	pipelineFilter := func(pipeline *v1alpha3.Pipeline) bool {
+	filter = func(pipeline *v1alpha3.Pipeline) bool {
 		return strings.Contains(pipeline.Name, nameFilter)
 	}
 	if nameFilter == "" {
-		pipelineFilter = nil
+		filter = nil
 	}
-
-	// make sure we have an appropriate value
-	limit, start = params.ParsePaging(req)
-	return h.devopsOperator.ListPipelineObj(namespace, pipelineFilter, func(list []*v1alpha3.Pipeline, i int, j int) bool {
-		return strings.Compare(strings.ToUpper(list[i].Name), strings.ToUpper(list[j].Name)) < 0
-	}, limit, start)
+	return
 }
 
 func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restful.Response) {

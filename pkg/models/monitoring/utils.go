@@ -3,12 +3,10 @@ package monitoring
 import (
 	"fmt"
 	"math/big"
-	"os"
-	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
 
+	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
@@ -23,11 +21,7 @@ const (
 	meteringConfigName = "ks-metering.yaml"
 
 	meteringDefaultPrecision = 10
-	meteringCorePrecision    = 3
-	meteringMemPrecision     = 1
-	meteringIngressPrecision = 0
-	meteringEgressPrecision  = 0
-	meteringPvcPrecision     = 1
+	meteringFeePrecision     = 3
 )
 
 var meterResourceUnitMap = map[int]string{
@@ -78,56 +72,6 @@ var MeterResourceMap = map[string]int{
 	"meter_pod_net_bytes_transmitted":         METER_RESOURCE_TYPE_NET_EGRESS,
 	"meter_pod_net_bytes_received":            METER_RESOURCE_TYPE_NET_INGRESS,
 	"meter_pod_pvc_bytes_total":               METER_RESOURCE_TYPE_PVC,
-}
-
-type PriceInfo struct {
-	CpuPerCorePerHour                        float64 `json:"cpuPerCorePerHour" yaml:"cpuPerCorePerHour"`
-	MemPerGigabytesPerHour                   float64 `json:"memPerGigabytesPerHour" yaml:"memPerGigabytesPerHour"`
-	IngressNetworkTrafficPerMegabytesPerHour float64 `json:"ingressNetworkTrafficPerMegabytesPerHour" yaml:"ingressNetworkTrafficPerGiagabytesPerHour"`
-	EgressNetworkTrafficPerMegabytesPerHour  float64 `json:"egressNetworkTrafficPerMegabytesPerHour" yaml:"egressNetworkTrafficPerGigabytesPerHour"`
-	PvcPerGigabytesPerHour                   float64 `json:"pvcPerGigabytesPerHour" yaml:"pvcPerGigabytesPerHour"`
-	CurrencyUnit                             string  `json:"currencyUnit" yaml:"currencyUnit"`
-}
-
-type Billing struct {
-	PriceInfo PriceInfo `json:"priceInfo" yaml:"priceInfo"`
-}
-
-type MeterConfig struct {
-	RetentionDay string  `json:"retentionDay" yaml:"retentionDay"`
-	Billing      Billing `json:"billing" yaml:"billing"`
-}
-
-func (mc MeterConfig) GetPriceInfo() PriceInfo {
-	return mc.Billing.PriceInfo
-}
-
-func LoadYaml() (*MeterConfig, error) {
-
-	var meterConfig MeterConfig
-	var mf *os.File
-	var err error
-
-	if _, err := os.Stat(meteringConfigName); os.IsNotExist(err) {
-		mf, err = os.Open(filepath.Join(meteringConfigDir, meteringConfigName))
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-	} else {
-		mf, err = os.Open(meteringConfigName)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-	}
-
-	if err = yaml.NewYAMLOrJSONDecoder(mf, 1024).Decode(&meterConfig); err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return &meterConfig, nil
 }
 
 func getMaxPointValue(points []monitoring.Point) string {
@@ -185,16 +129,6 @@ func getAvgPointValue(points []monitoring.Point) string {
 	return fmt.Sprintf(generateFloatFormat(meteringDefaultPrecision), sum.Quo(sum, length))
 }
 
-func getCurrencyUnit() string {
-	meterConfig, err := LoadYaml()
-	if err != nil {
-		klog.Error(err)
-		return ""
-	}
-
-	return meterConfig.GetPriceInfo().CurrencyUnit
-}
-
 func generateFloatFormat(precision int) string {
 	return "%." + fmt.Sprintf("%d", precision) + "f"
 }
@@ -208,20 +142,13 @@ func getResourceUnit(meterName string) string {
 	}
 }
 
-func getFeeWithMeterName(meterName string, sum string) string {
+func getFeeWithMeterName(meterName string, sum string, priceInfo meteringclient.PriceInfo) string {
 
 	s, ok := new(big.Float).SetString(sum)
 	if !ok {
 		klog.Error("failed to parse string to float")
 		return ""
 	}
-
-	meterConfig, err := LoadYaml()
-	if err != nil {
-		klog.Error(err)
-		return ""
-	}
-	priceInfo := meterConfig.GetPriceInfo()
 
 	if resourceType, ok := MeterResourceMap[meterName]; !ok {
 		klog.Errorf("invlaid meter %v", meterName)
@@ -232,7 +159,7 @@ func getFeeWithMeterName(meterName string, sum string) string {
 			CpuPerCorePerHour := new(big.Float).SetFloat64(priceInfo.CpuPerCorePerHour)
 			tmp := s.Mul(s, CpuPerCorePerHour)
 
-			return fmt.Sprintf(generateFloatFormat(meteringCorePrecision), tmp)
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), tmp)
 		case METER_RESOURCE_TYPE_MEM:
 			oneGiga := new(big.Float).SetInt64(1073741824)
 			MemPerGigabytesPerHour := new(big.Float).SetFloat64(priceInfo.MemPerGigabytesPerHour)
@@ -240,7 +167,7 @@ func getFeeWithMeterName(meterName string, sum string) string {
 			// transform unit from bytes to Gigabytes
 			s.Quo(s, oneGiga)
 
-			return fmt.Sprintf(generateFloatFormat(meteringMemPrecision), s.Mul(s, MemPerGigabytesPerHour))
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), s.Mul(s, MemPerGigabytesPerHour))
 		case METER_RESOURCE_TYPE_NET_INGRESS:
 			oneMega := new(big.Float).SetInt64(1048576)
 			IngressNetworkTrafficPerMegabytesPerHour := new(big.Float).SetFloat64(priceInfo.IngressNetworkTrafficPerMegabytesPerHour)
@@ -248,30 +175,30 @@ func getFeeWithMeterName(meterName string, sum string) string {
 			// transform unit from bytes to Migabytes
 			s.Quo(s, oneMega)
 
-			return fmt.Sprintf(generateFloatFormat(meteringIngressPrecision), s.Mul(s, IngressNetworkTrafficPerMegabytesPerHour))
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), s.Mul(s, IngressNetworkTrafficPerMegabytesPerHour))
 		case METER_RESOURCE_TYPE_NET_EGRESS:
 			oneMega := new(big.Float).SetInt64(1048576)
-			EgressNetworkTrafficPerMegabytesPerHour := new(big.Float).SetPrec(meteringEgressPrecision).SetFloat64(priceInfo.EgressNetworkTrafficPerMegabytesPerHour)
+			EgressNetworkTrafficPerMegabytesPerHour := new(big.Float).SetPrec(meteringFeePrecision).SetFloat64(priceInfo.EgressNetworkTrafficPerMegabytesPerHour)
 
 			// transform unit from bytes to Migabytes
 			s.Quo(s, oneMega)
 
-			return fmt.Sprintf(generateFloatFormat(meteringEgressPrecision), s.Mul(s, EgressNetworkTrafficPerMegabytesPerHour))
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), s.Mul(s, EgressNetworkTrafficPerMegabytesPerHour))
 		case METER_RESOURCE_TYPE_PVC:
 			oneGiga := new(big.Float).SetInt64(1073741824)
-			PvcPerGigabytesPerHour := new(big.Float).SetPrec(meteringPvcPrecision).SetFloat64(priceInfo.PvcPerGigabytesPerHour)
+			PvcPerGigabytesPerHour := new(big.Float).SetPrec(meteringFeePrecision).SetFloat64(priceInfo.PvcPerGigabytesPerHour)
 
 			// transform unit from bytes to Gigabytes
 			s.Quo(s, oneGiga)
 
-			return fmt.Sprintf(generateFloatFormat(meteringPvcPrecision), s.Mul(s, PvcPerGigabytesPerHour))
+			return fmt.Sprintf(generateFloatFormat(meteringFeePrecision), s.Mul(s, PvcPerGigabytesPerHour))
 		}
 
 		return ""
 	}
 }
 
-func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float64) monitoring.MetricData {
+func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float64, priceInfo meteringclient.PriceInfo) monitoring.MetricData {
 	metricName := metric.MetricName
 	metricData := metric.MetricData
 	for index, metricValue := range metricData.MetricValues {
@@ -297,14 +224,14 @@ func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float6
 		if metricData.MetricType == monitoring.MetricTypeMatrix {
 			sum := getSumPointValue(metricData.MetricValues[index].Series)
 			metricData.MetricValues[index].SumValue = sum
-			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
+			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum, priceInfo)
 		} else {
 			sum := getSumPointValue([]monitoring.Point{*metricValue.Sample})
 			metricData.MetricValues[index].SumValue = sum
-			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum)
+			metricData.MetricValues[index].Fee = getFeeWithMeterName(metricName, sum, priceInfo)
 		}
 
-		metricData.MetricValues[index].CurrencyUnit = getCurrencyUnit()
+		metricData.MetricValues[index].CurrencyUnit = priceInfo.CurrencyUnit
 		metricData.MetricValues[index].ResourceUnit = getResourceUnit(metricName)
 
 	}

@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	"github.com/google/go-cmp/cmp"
 
 	"kubesphere.io/kubesphere/pkg/models/metering"
@@ -190,4 +192,33 @@ func TestTransformMetricData(t *testing.T) {
 		})
 	}
 
+}
+
+func TestGetAppNameFromLabels(t *testing.T) {
+	var tOperator tenantOperator
+
+	tests := []struct {
+		labels        map[string]string
+		expectedValue string
+	}{
+		{
+			labels:        make(map[string]string),
+			expectedValue: "",
+		},
+		{
+			labels: map[string]string{
+				constants.ApplicationName:    "app1",
+				constants.ApplicationVersion: "v2",
+			},
+			expectedValue: "app1:v2",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			if diff := cmp.Diff(tOperator.getAppNameFromLabels(tt.labels), tt.expectedValue); diff != "" {
+				t.Errorf("%T differ (-got, +want): %s", tt.expectedValue, diff)
+			}
+		})
+	}
 }

@@ -110,6 +110,23 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
+	// https://openid.net/specs/openid-connect-rpinitiated-1_0.html
+	ws.Route(ws.GET("/logout").
+		Doc("This endpoint takes an ID token and logs the user out of KubeSphere if the "+
+			"subject matches the current session.").
+		Param(ws.QueryParameter("id_token_hint", "ID Token previously issued by the OP "+
+			"to the RP passed to the Logout Endpoint as a hint about the End-User's current authenticated "+
+			"session with the Client. This is used as an indication of the identity of the End-User that "+
+			"the RP is requesting be logged out by the OP.").Required(false)).
+		Param(ws.QueryParameter("post_logout_redirect_uri", "URL to which the RP is requesting "+
+			"that the End-User's User Agent be redirected after a logout has been performed. ").Required(false)).
+		Param(ws.QueryParameter("state", "Opaque value used by the RP to maintain state between "+
+			"the logout request and the callback to the endpoint specified by the post_logout_redirect_uri parameter.").
+			Required(false)).
+		To(handler.Logout).
+		Returns(http.StatusOK, http.StatusText(http.StatusOK), "").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
+
 	c.Add(ws)
 
 	// legacy auth API

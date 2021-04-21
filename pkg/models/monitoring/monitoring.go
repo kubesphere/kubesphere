@@ -41,6 +41,7 @@ import (
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
@@ -57,8 +58,8 @@ type MonitoringOperator interface {
 	GetWorkspaceStats(workspace string) Metrics
 
 	// meter
-	GetNamedMetersOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) (Metrics, error)
-	GetNamedMeters(metrics []string, time time.Time, opt monitoring.QueryOption) (Metrics, error)
+	GetNamedMetersOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption, priceInfo meteringclient.PriceInfo) (Metrics, error)
+	GetNamedMeters(metrics []string, time time.Time, opt monitoring.QueryOption, priceInfo meteringclient.PriceInfo) (Metrics, error)
 	GetAppWorkloads(ns string, apps []string) map[string][]string
 	GetSerivePodsMap(ns string, services []string) map[string][]string
 }
@@ -421,7 +422,7 @@ func generateScalingFactorMap(step time.Duration) map[string]float64 {
 	return scalingMap
 }
 
-func (mo monitoringOperator) GetNamedMetersOverTime(meters []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) (metrics Metrics, err error) {
+func (mo monitoringOperator) GetNamedMetersOverTime(meters []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption, priceInfo meteringclient.PriceInfo) (metrics Metrics, err error) {
 
 	if step.Hours() < 1 {
 		klog.Warning("step should be longer than one hour")
@@ -458,13 +459,13 @@ func (mo monitoringOperator) GetNamedMetersOverTime(meters []string, start, end 
 	sMap := generateScalingFactorMap(step)
 
 	for i, _ := range ress {
-		ress[i].MetricData = updateMetricStatData(ress[i], sMap)
+		ress[i].MetricData = updateMetricStatData(ress[i], sMap, priceInfo)
 	}
 
 	return Metrics{Results: ress}, nil
 }
 
-func (mo monitoringOperator) GetNamedMeters(meters []string, time time.Time, opt monitoring.QueryOption) (Metrics, error) {
+func (mo monitoringOperator) GetNamedMeters(meters []string, time time.Time, opt monitoring.QueryOption, priceInfo meteringclient.PriceInfo) (Metrics, error) {
 
 	metersPerHour := mo.getNamedMetersWithHourInterval(meters, time, opt)
 
@@ -472,7 +473,7 @@ func (mo monitoringOperator) GetNamedMeters(meters []string, time time.Time, opt
 
 		res := metersPerHour.Results[metricIndex]
 
-		metersPerHour.Results[metricIndex].MetricData = updateMetricStatData(res, nil)
+		metersPerHour.Results[metricIndex].MetricData = updateMetricStatData(res, nil, priceInfo)
 	}
 
 	return metersPerHour, nil
