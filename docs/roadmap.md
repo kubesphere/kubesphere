@@ -20,20 +20,20 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 ### IAM:
 
 - [x] Add account confirmation process, solve problems caused by special characters in username.[#2953](https://github.com/kubesphere/kubesphere/issues/2953)
-- [ ] Support [CAS](https://apereo.github.io/cas/5.0.x/protocol/CAS-Protocol-Specification.html) identity provider.[#3047](https://github.com/kubesphere/kubesphere/issues/3047)
-- [ ] Support [OIDC](https://openid.net/specs/openid-connect-core-1_0.html) identity provider.[#2941](https://github.com/kubesphere/kubesphere/issues/2941)
+- [x] Support [CAS](https://apereo.github.io/cas/5.0.x/protocol/CAS-Protocol-Specification.html) identity provider.[#3047](https://github.com/kubesphere/kubesphere/issues/3047)
+- [x] Support [OIDC](https://openid.net/specs/openid-connect-core-1_0.html) identity provider.[#2941](https://github.com/kubesphere/kubesphere/issues/2941)
 - [x] Support IDaaS(Alibaba Cloud Identity as a Service) identity provider.[#2997](https://github.com/kubesphere/kubesphere/pull/2997)
 - [x] Improve LDAP identity provider, support LDAPS and search filter.[#2970](https://github.com/kubesphere/kubesphere/issues/2970)
 - [x] Improve identity provider plugin, simplify identity provider configuration.[#2970](https://github.com/kubesphere/kubesphere/issues/2970)
-- [ ] Limit login record maximum entries.[#3191](https://github.com/kubesphere/kubesphere/issues/3191)
-- [ ] Service account management, allows to assign role to Service Account [#3211](https://github.com/kubesphere/kubesphere/issues/3211)
+- [x] Limit login record maximum entries.[#3191](https://github.com/kubesphere/kubesphere/issues/3191)
+- [x] Service account management, allows to assign role to Service Account [#3211](https://github.com/kubesphere/kubesphere/issues/3211)
 
 ### Multitenancy:
 
 - [ ] Support transfer namespace to another workspace.[#3028](https://github.com/kubesphere/kubesphere/issues/3028)
 - [x] Add user group, now users can be assigned to a group and invite a group to a workspace or a project.[#2940](https://github.com/kubesphere/kubesphere/issues/2940)
-- [ ] Add resource quota to a workspace. The resource quota is the same with Kubernetes[ResourceQuota](https://kubernetes.io/docs/concepts/policy/resource-quotas/), providesconstraints that limit aggregate resource consumption by all namespaces within.[  ](https://kubernetes.io/docs/concepts/policy/resource-quotas/)[#2939](https://github.com/kubesphere/kubesphere/issues/2939)
-- [ ] Add choose of whether to cascade delete related resources when deleting workspace.[#3192](https://github.com/kubesphere/kubesphere/issues/3192)
+- [x] Add resource quota to a workspace. The resource quota is the same with Kubernetes[ResourceQuota](https://kubernetes.io/docs/concepts/policy/resource-quotas/), providesconstraints that limit aggregate resource consumption by all namespaces within.[  ](https://kubernetes.io/docs/concepts/policy/resource-quotas/)[#2939](https://github.com/kubesphere/kubesphere/issues/2939)
+- [x] Add choose of whether to cascade delete related resources when deleting workspace.[#3192](https://github.com/kubesphere/kubesphere/issues/3192)
 
 ### DevOps:
 
@@ -155,6 +155,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Fix multi-cluster-status-condition. [#3135](https://github.com/kubesphere/kubesphere/issues/3135)
 - [x] Fix edge cluster can't join to the host cluster. [#3198](https://github.com/kubesphere/kubesphere/issues/3198)
 - [x] Fix can not rollout restart tower agent. [#29](https://github.com/kubesphere/tower/issues/29)
+- [x] Fix failed calling webhook due to certificate relies on legacy Common Name field. [#2928](https://github.com/kubesphere/kubesphere/issues/2928)
 
 ### DevOps:
 
