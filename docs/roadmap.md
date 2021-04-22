@@ -37,11 +37,11 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 ### DevOps:
 
-- [x] Support Gitlab with Kubesphere multi-branch pipeline. [#3100](https://github.com/kubesphere/kubesphere/issues/3100)
+- [x] Support Gitlab with KubeSphere multi-branch pipeline. [#3100](https://github.com/kubesphere/kubesphere/issues/3100)
 - [x] Run multiple DevOps pipelines at the same time instead of just one.[#1811](https://github.com/kubesphere/kubesphere/issues/1811)
-- [x] Clone pipeline. Users now can create exactly same pipeline from an existing one.[#3053](https://github.com/kubesphere/kubesphere/issues/3053)
+- [x] Create a Pipeline from an existing one. Users now can create exactly same pipeline from an existing one.[#3053](https://github.com/kubesphere/kubesphere/issues/3053)
 - [x] Add approval control for pipelines. [#2483](https://github.com/kubesphere/kubesphere/issues/2483) [#3006](https://github.com/kubesphere/kubesphere/issues/3006)
-- [ ] Add and display the status of the pipeline on the front page. [#3007](https://github.com/kubesphere/kubesphere/issues/3007)
+- [x] Add and display the status of the pipeline on the front page. [#3007](https://github.com/kubesphere/kubesphere/issues/3007)
 - [x] Support tag trigger pipeline. [#3051](https://github.com/kubesphere/kubesphere/issues/3051)
 - [x] Interactive creation pipeline. [#1283](https://github.com/kubesphere/console/issues/1283)
 - [x] Add S2I webhook support. [#6](https://github.com/kubesphere/s2ioperator/issues/6)
