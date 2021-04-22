@@ -56,12 +56,12 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 ### KubeEdge Integration [#3070](https://github.com/kubesphere/kubesphere/issues/3070)
 
 - [x] KubeEdge cloud components setup.
-- [ ] KubeEdge edge nodes setup.
+- [x] KubeEdge edge nodes setup.
 - [x] Edge nodes logging and metrics support.
 - [x] Automatic network configuration on edge node joining/leaving.
-- [ ] Automatic taint edge node on joining.
-- [ ] Cloud workloads (such as daemonset) with wide tolerations should not be scheduled to edge node by adding a node selector.
-- [ ] Scheduling workloads to edge nodes.
+- [x] Automatic taint edge node on joining.
+- [x] Cloud workloads (such as daemonset) with wide tolerations should not be scheduled to edge node by adding a node selector.
+- [x] Scheduling workloads to edge nodes.
 
 ### Observability
 
@@ -82,13 +82,14 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 #### Multi-tenant Notification support including Email/DingTalk/Slack/Wechat works/Webhook [#3066](https://github.com/kubesphere/kubesphere/issues/3066)
 
-- [ ] More notification channels including Email, DingTalk, Slack, WeChat works, Webhook
+- [x] More notification channels including Email, DingTalk, Slack, WeCom, Webhook
 - [ ] Multi-tenant control of notification
 
 #### Logging
 
-- [x] Support collecting kubelet/docker/containerd logs. [38](https://github.com/kubesphere/fluentbit-operator/pull/38)
-- [x] Support output logs to Loki. [#39](https://github.com/kubesphere/fluentbit-operator/pull/39)
+- [x] Support output logs to [Loki](https://github.com/kubesphere/fluentbit-operator/blob/master/docs/plugins/output/loki.md). [#39](https://github.com/kubesphere/fluentbit-operator/pull/39)
+- [x] Support collecting kubelet/docker/containerd logs. [#38](https://github.com/kubesphere/fluentbit-operator/pull/38)
+- [x] Support collecting [auditd](https://github.com/kubesphere/fluentbit-operator#auditd) log. [#45](https://github.com/kubesphere/fluentbit-operator/pull/45)
 - [ ] Support containerd log format
 
 ### Application Lifecycle Management (OpenPitrix)
@@ -128,12 +129,14 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [ ] Using human-readable error message for S2I, [#140](https://github.com/kubesphere/s2ioperator/issues/140)
 
 - [ ] https://github.com/kubesphere/tower/issues/31)
+
 ### Observability
 
-- [ ] Upgrade to Prometheus v2.25.0
-- [x] Upgrade Notification Manager to v0.7.0+ [Releases](https://github.com/kubesphere/notification-manager/releases)
-- [x] Upgrade FluentBit Operator to v0.3.0+ [Releases](https://github.com/kubesphere/fluentbit-operator/releases)
-- [ ] Upgrade FluentBit to v1.6.9+
+- [x] Upgrade Prometheus to v2.26.0
+- [x] Upgrade kube-state-metrics to v1.9.7
+- [x] Upgrade Notification Manager to v1.0.0 [Releases](https://github.com/kubesphere/notification-manager/releases)
+- [x] Upgrade FluentBit Operator to v0.5.0 [Releases](https://github.com/kubesphere/fluentbit-operator/releases)
+- [x] Upgrade FluentBit to v1.6.9
 
 ## **BugFix:**
 
