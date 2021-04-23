@@ -104,7 +104,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 ### Metering
 
-- [ ] Support for viewing resource consumption at the cluster, workspace, and application template levels [#3062](https://github.com/kubesphere/kubesphere/issues/3062)
+- [x] Support for viewing resource consumption at the cluster, workspace, and application template levels [#3062](https://github.com/kubesphere/kubesphere/issues/3062)
 
 ### MultiCluster:
 
