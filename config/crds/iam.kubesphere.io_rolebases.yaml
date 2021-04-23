@@ -32,6 +32,8 @@ spec:
             type: object
           role:
             type: object
+            x-kubernetes-embedded-resource: true
+            x-kubernetes-preserve-unknown-fields: true
         required:
         - role
         type: object
