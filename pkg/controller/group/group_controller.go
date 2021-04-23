@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/util/validation"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -237,10 +239,13 @@ func (c *Controller) reconcile(key string) error {
 }
 
 func (c *Controller) deleteGroupBindings(group *iam1alpha2.Group) error {
-
+	if len(group.Name) > validation.LabelValueMaxLength {
+		// ignore invalid label value error
+		return nil
+	}
 	// Groupbindings that created by kubesphere will be deleted directly.
 	listOptions := metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{iam1alpha2.GroupReferenceLabel: group.Name}).String(),
+		LabelSelector: labels.SelectorFromValidatedSet(labels.Set{iam1alpha2.GroupReferenceLabel: group.Name}).String(),
 	}
 	if err := c.ksClient.IamV1alpha2().GroupBindings().
 		DeleteCollection(context.Background(), *metav1.NewDeleteOptions(0), listOptions); err != nil {
@@ -252,8 +257,12 @@ func (c *Controller) deleteGroupBindings(group *iam1alpha2.Group) error {
 
 // remove all RoleBindings.
 func (c *Controller) deleteRoleBindings(group *iam1alpha2.Group) error {
+	if len(group.Name) > validation.LabelValueMaxLength {
+		// ignore invalid label value error
+		return nil
+	}
 	listOptions := metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{iam1alpha2.GroupReferenceLabel: group.Name}).String(),
+		LabelSelector: labels.SelectorFromValidatedSet(labels.Set{iam1alpha2.GroupReferenceLabel: group.Name}).String(),
 	}
 	deleteOptions := *metav1.NewDeleteOptions(0)
 
