@@ -213,8 +213,8 @@ round(
 						$instanceSelector
 					}[$step]
 				),
-				"node", "
-				$1",
+				"node",
+				"$1",
 				"instance",
 				"(.*)"
 			)
