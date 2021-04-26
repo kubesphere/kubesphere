@@ -43,8 +43,10 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [x] Add approval control for pipelines. [#2483](https://github.com/kubesphere/kubesphere/issues/2483) [#3006](https://github.com/kubesphere/kubesphere/issues/3006)
 - [x] Add and display the status of the pipeline on the front page. [#3007](https://github.com/kubesphere/kubesphere/issues/3007)
 - [x] Support tag trigger pipeline. [#3051](https://github.com/kubesphere/kubesphere/issues/3051)
+- [x] Using human-readable error message for pipeline cron text. [#2919](https://github.com/kubesphere/kubesphere/issues/2919)
 - [x] Interactive creation pipeline. [#1283](https://github.com/kubesphere/console/issues/1283)
 - [x] Add S2I webhook support. [#6](https://github.com/kubesphere/s2ioperator/issues/6)
+- [x] Using human-readable error message for S2I. [#140](https://github.com/kubesphere/s2ioperator/issues/140)
 
 ### microservice
 
@@ -124,11 +126,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 ### DevOps:
 
 - [x] Upgrade Jenkins Version to 2.249.1. [#2618](https://github.com/kubesphere/kubesphere/issues/2618)
-- [x] Using Jenkins distribution solution to deploy Jenkins, [#2182](https://github.com/kubesphere/kubesphere/issues/2182)
-- [x] Using human-readable error message for pipeline cron text , [#2919](https://github.com/kubesphere/kubesphere/issues/2919)
-- [ ] Using human-readable error message for S2I, [#140](https://github.com/kubesphere/s2ioperator/issues/140)
-
-- [ ] https://github.com/kubesphere/tower/issues/31)
+- [x] Using Jenkins distribution solution to deploy Jenkins. [#2182](https://github.com/kubesphere/kubesphere/issues/2182)
 
 ### Observability
 
@@ -171,12 +169,12 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 ## DevOps
 
-- [ ] Create / Edit Pipeline Process Optimization.
-- [ ] S2I/B2I supports webhook.
-- [ ] Image registry optimization.
-- [ ] Pipeline support integration with JIRA.
-- [ ] Pipeline integrates the notification of KubeSphere.
-- [ ] Pipeline integrates KubeSphere custom monitoring.
+- [x] Create / Edit Pipeline Process Optimization.
+- [x] S2I/B2I supports webhook.
+- [x] Image registry optimization.
+- [x] Pipeline support integration with JIRA.
+- [x] Pipeline integrates the notification of KubeSphere.
+- [x] Pipeline integrates KubeSphere custom monitoring.
 
 ## Observability
 
