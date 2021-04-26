@@ -35,3 +35,12 @@ jobs:
 
       - name: Run e2e testing
         run: go test ./test/e2e
+
+      - name: slack
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        if: failure()
