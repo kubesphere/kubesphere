@@ -2,7 +2,7 @@
 
 set -ex
 set -o pipefail
-
+BUILDPLATFORM="linux/amd64,linux/arm64"
 tag_for_branch() {
     local tag=$1
     if [[ "${tag}" == "" ]]; then
@@ -40,13 +40,12 @@ if [[ $? != 0 ]]; then
   echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 fi
 
-TAG=$TAG-multiarch
-docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
-docker push $REPO/ks-apiserver:$TAG
-# print the full docker image path for your convience
-docker images --digests | grep $REPO/ks-apiserver | grep $TAG | awk '{print $1":"$2"@"$3}'
+docker buildx build --platform=${BUILDPLATFORM} \
+                    -f build/Dockerfile \
+                    -t $REPO/ks-apiserver-multiarch:$TAG . \
+                    --target=ks-apiserver --push
 
-docker build -f build/ks-controller-manager/Dockerfile -t $REPO/ks-controller-manager:$TAG .
-docker push $REPO/ks-controller-manager:$TAG
-# print the full docker image path for your convience
-docker images --digests | grep $REPO/ks-controller-manager | grep $TAG | awk '{print $1":"$2"@"$3}'
+docker buildx build --platform=${BUILDPLATFORM} \
+                    -f build/Dockerfile \
+                    -t $REPO/ks-controller-manager-multiarch:$TAG . \
+                    --target=ks-controller-manager --push

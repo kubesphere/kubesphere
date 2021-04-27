@@ -35,8 +35,10 @@ HW=$(uname -m)
 case $HW in
     x86_64)
       ARCH=amd64 ;;
+    aarch64)
+      ARCH=arm64 ;;
     *)
-      echo "Only x86_64 machines are supported !"
+      echo "Only x86_64/arm64 machines are supported !"
       exit 1
       ;;
 esac
