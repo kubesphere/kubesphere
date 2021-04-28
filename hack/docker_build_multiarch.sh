@@ -40,12 +40,13 @@ if [[ $? != 0 ]]; then
   echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 fi
 
+TAG=$TAG-multiarch
 docker buildx build --platform=${BUILDPLATFORM} \
                     -f build/Dockerfile \
-                    -t $REPO/ks-apiserver-multiarch:$TAG . \
+                    -t $REPO/ks-apiserver:$TAG . \
                     --target=ks-apiserver --push
 
 docker buildx build --platform=${BUILDPLATFORM} \
                     -f build/Dockerfile \
-                    -t $REPO/ks-controller-manager-multiarch:$TAG . \
+                    -t $REPO/ks-controller-manager:$TAG . \
                     --target=ks-controller-manager --push
