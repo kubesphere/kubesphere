@@ -40,7 +40,6 @@ if [[ $? != 0 ]]; then
   echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 fi
 
-TAG=$TAG-multiarch
 docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
 docker push $REPO/ks-apiserver:$TAG
 # print the full docker image path for your convience
