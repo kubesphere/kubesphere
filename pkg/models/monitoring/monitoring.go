@@ -31,7 +31,8 @@ import (
 	"sigs.k8s.io/application/api/v1beta1"
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 
-	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/api/iam/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"

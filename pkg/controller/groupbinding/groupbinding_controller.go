@@ -37,8 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	fedv1beta1types "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	fedv1beta1types "kubesphere.io/api/types/v1beta1"
+
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	fedv1beta1informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/types/v1beta1"

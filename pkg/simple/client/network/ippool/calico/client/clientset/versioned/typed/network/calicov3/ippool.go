@@ -27,7 +27,8 @@ import (
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
 
-	calicov3 "kubesphere.io/kubesphere/pkg/apis/network/calicov3"
+	calicov3 "kubesphere.io/api/network/calicov3"
+
 	scheme "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/clientset/versioned/scheme"
 )
 

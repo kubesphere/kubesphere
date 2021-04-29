@@ -19,8 +19,9 @@ package federatednamespace
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
+	typesv1beta1 "kubesphere.io/api/types/v1beta1"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"

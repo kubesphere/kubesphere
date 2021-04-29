@@ -26,7 +26,8 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"

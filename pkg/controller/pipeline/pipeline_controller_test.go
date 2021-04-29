@@ -37,7 +37,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 
-	devops "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	devops "kubesphere.io/api/devops/v1alpha3"
+
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 )

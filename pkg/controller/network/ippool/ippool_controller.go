@@ -41,8 +41,9 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	networkInformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"

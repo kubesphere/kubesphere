@@ -48,7 +48,7 @@ GROUPS_WITH_VERSIONS="$4"
 shift 4
 
 
-GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/{client-gen,lister-gen,informer-gen}
+GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/{client-gen,lister-gen,informer-gen,deepcopy-gen}
 
 function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 

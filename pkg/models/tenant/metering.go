@@ -19,9 +19,10 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 
+	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	meteringv1alpha1 "kubesphere.io/kubesphere/pkg/api/metering/v1alpha1"
-	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/api/application/v1alpha1"
 )
 
 func TestLoadRepo(t *testing.T) {

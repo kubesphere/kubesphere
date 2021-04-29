@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	v1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 )
 
 // WorkspaceTemplateLister helps list WorkspaceTemplates.

@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 )
 
 func init() {

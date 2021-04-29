@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
+	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
 )
 
 func init() {

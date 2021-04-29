@@ -27,7 +27,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/auditing/v1alpha1"
+	v1alpha1 "kubesphere.io/api/auditing/v1alpha1"
 )
 
 // FakeRules implements RuleInterface

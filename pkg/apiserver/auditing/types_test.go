@@ -33,7 +33,8 @@ import (
 	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 
-	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/apis/auditing/v1alpha1"
+	auditingv1alpha1 "kubesphere.io/api/auditing/v1alpha1"
+
 	v1alpha12 "kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"

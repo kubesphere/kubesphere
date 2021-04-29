@@ -38,8 +38,9 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
-	workspacev1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	"kubesphere.io/api/network/v1alpha1"
+	workspacev1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+
 	ksnetclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	nspolicy "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"
 	workspace "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"

@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
+	"kubesphere.io/api/notification/v2beta1"
 )
 
 func init() {

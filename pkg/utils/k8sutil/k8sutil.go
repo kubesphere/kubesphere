@@ -19,8 +19,8 @@ package k8sutil
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 )
 
 // IsControlledBy returns whether the ownerReferences contains the specified resource kind

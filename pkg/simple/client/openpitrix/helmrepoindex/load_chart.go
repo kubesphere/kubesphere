@@ -26,7 +26,8 @@ import (
 
 	"helm.sh/helm/v3/pkg/getter"
 
-	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/api/application/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 )
 

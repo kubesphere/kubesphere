@@ -27,8 +27,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
+	"kubesphere.io/api/notification/v2beta1"
+
 	"kubesphere.io/kubesphere/pkg/apis"
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 )
 
 func TestSource(t *testing.T) {

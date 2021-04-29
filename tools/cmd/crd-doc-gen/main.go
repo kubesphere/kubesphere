@@ -26,9 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	applicationv1alpha1 "kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
-	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	applicationv1alpha1 "kubesphere.io/api/application/v1alpha1"
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
+
 	"kubesphere.io/kubesphere/pkg/version"
 	"kubesphere.io/kubesphere/tools/lib"
 
@@ -38,15 +39,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/kube-openapi/pkg/common"
 
-	applicationinstall "kubesphere.io/kubesphere/pkg/apis/application/crdinstall"
-	devopsinstall "kubesphere.io/kubesphere/pkg/apis/devops/crdinstall"
-	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
-	networkinstall "kubesphere.io/kubesphere/pkg/apis/network/crdinstall"
-	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
-	servicemeshinstall "kubesphere.io/kubesphere/pkg/apis/servicemesh/crdinstall"
-	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
-	tenantinstall "kubesphere.io/kubesphere/pkg/apis/tenant/crdinstall"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	applicationinstall "kubesphere.io/api/application/crdinstall"
+	devopsinstall "kubesphere.io/api/devops/crdinstall"
+	devopsv1alpha1 "kubesphere.io/api/devops/v1alpha1"
+	networkinstall "kubesphere.io/api/network/crdinstall"
+	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
+	servicemeshinstall "kubesphere.io/api/servicemesh/crdinstall"
+	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
+	tenantinstall "kubesphere.io/api/tenant/crdinstall"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 )
 
 var output string

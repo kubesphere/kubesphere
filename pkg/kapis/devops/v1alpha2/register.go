@@ -28,7 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/klog"
 
-	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	devopsv1alpha1 "kubesphere.io/api/devops/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"

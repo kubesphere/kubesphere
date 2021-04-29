@@ -29,7 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"

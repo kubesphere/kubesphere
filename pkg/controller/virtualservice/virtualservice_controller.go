@@ -44,7 +44,8 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	log "k8s.io/klog"
 
-	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
+	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
+
 	servicemeshclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"

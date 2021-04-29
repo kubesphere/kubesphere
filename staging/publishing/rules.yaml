@@ -15,6 +15,14 @@ rules:
   #   name: release-3.1
   #   go: 1.13.15
 
+- destination: api
+  library: true
+  branches:
+  - source:
+      branch: master
+      dir: staging/src/kubesphere.io/api
+    name: master
+
   smoke-test: |
     # assumes GO111MODULE=on
     go build ./...

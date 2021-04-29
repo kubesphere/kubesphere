@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	storagev1alpha1 "kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
+	storagev1alpha1 "kubesphere.io/api/storage/v1alpha1"
 )
 
 func init() {

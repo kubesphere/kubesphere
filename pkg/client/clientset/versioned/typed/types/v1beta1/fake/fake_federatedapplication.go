@@ -27,7 +27,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	v1beta1 "kubesphere.io/api/types/v1beta1"
 )
 
 // FakeFederatedApplications implements FederatedApplicationInterface

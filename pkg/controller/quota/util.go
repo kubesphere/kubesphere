@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
+	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
 )
 
 // Following code copied from github.com/openshift/library-go/pkg/quota/quotautil

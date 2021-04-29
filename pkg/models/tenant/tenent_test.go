@@ -30,10 +30,11 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/rbac"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"

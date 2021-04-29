@@ -20,7 +20,7 @@ package v2beta1
 
 import (
 	rest "k8s.io/client-go/rest"
-	v2beta1 "kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
+	v2beta1 "kubesphere.io/api/notification/v2beta1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 )
 

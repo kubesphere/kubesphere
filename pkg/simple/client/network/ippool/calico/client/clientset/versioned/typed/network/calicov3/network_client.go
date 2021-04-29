@@ -21,7 +21,8 @@ package calicov3
 import (
 	rest "k8s.io/client-go/rest"
 
-	calicov3 "kubesphere.io/kubesphere/pkg/apis/network/calicov3"
+	calicov3 "kubesphere.io/api/network/calicov3"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/clientset/versioned/scheme"
 )
 

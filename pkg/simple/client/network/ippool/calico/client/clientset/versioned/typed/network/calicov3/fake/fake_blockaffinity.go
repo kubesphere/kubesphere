@@ -28,7 +28,7 @@ import (
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
 
-	calicov3 "kubesphere.io/kubesphere/pkg/apis/network/calicov3"
+	calicov3 "kubesphere.io/api/network/calicov3"
 )
 
 // FakeBlockAffinities implements BlockAffinityInterface
