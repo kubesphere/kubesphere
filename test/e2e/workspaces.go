@@ -24,7 +24,8 @@ import (
 	. "github.com/onsi/gomega"
 	"kubesphere.io/client-go/client"
 
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+
 	"kubesphere.io/kubesphere/test/e2e/framework"
 	"kubesphere.io/kubesphere/test/e2e/framework/iam"
 	"kubesphere.io/kubesphere/test/e2e/framework/workspace"

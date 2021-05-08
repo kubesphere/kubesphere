@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 )
 
 var _ = Describe("Workspace", func() {

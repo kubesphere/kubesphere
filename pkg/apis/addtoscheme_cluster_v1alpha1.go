@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
+	"kubesphere.io/api/cluster/v1alpha1"
 )
 
 func init() {

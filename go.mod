@@ -76,7 +76,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
-	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/grpc v1.30.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
@@ -105,6 +104,7 @@ require (
 	k8s.io/kubectl v0.19.3
 	k8s.io/metrics v0.18.6
 	k8s.io/utils v0.0.0-20201005171033-6301aaf42dc7
+	kubesphere.io/api v0.0.0
 	kubesphere.io/client-go v0.0.0
 	kubesphere.io/monitoring-dashboard v0.1.2
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
@@ -735,6 +735,7 @@ replace (
 	k8s.io/kubectl => k8s.io/kubectl v0.18.6
 	k8s.io/metrics => k8s.io/metrics v0.18.6
 	k8s.io/utils => k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
+	kubesphere.io/api => ./staging/src/kubesphere.io/api
 	kubesphere.io/client-go => ./staging/src/kubesphere.io/client-go
 	kubesphere.io/monitoring-dashboard => kubesphere.io/monitoring-dashboard v0.1.2
 	rsc.io/binaryregexp => rsc.io/binaryregexp v0.2.0

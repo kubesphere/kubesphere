@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 
-	calicov3 "kubesphere.io/kubesphere/pkg/apis/network/calicov3"
+	calicov3 "kubesphere.io/api/network/calicov3"
 )
 
 // IPPoolLister helps list IPPools.

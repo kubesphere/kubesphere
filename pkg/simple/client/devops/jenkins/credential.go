@@ -23,7 +23,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
 
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 

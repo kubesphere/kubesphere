@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
+	v1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
 )
 
 // ServicePolicyLister helps list ServicePolicies.

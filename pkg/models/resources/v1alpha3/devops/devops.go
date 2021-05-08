@@ -19,8 +19,9 @@ package devops
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
+	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"

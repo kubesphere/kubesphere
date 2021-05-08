@@ -28,12 +28,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
+	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
+	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/api/auditing/v1alpha1"
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
-	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"

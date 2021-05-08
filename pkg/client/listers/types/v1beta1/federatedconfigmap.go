@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	v1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	v1beta1 "kubesphere.io/api/types/v1beta1"
 )
 
 // FederatedConfigMapLister helps list FederatedConfigMaps.

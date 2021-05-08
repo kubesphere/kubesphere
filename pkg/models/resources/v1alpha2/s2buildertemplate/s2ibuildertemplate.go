@@ -17,7 +17,8 @@ limitations under the License.
 package s2buildertemplate
 
 import (
-	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	"kubesphere.io/api/devops/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 

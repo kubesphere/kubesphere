@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
+	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
 
 	lru "github.com/hashicorp/golang-lru"
 

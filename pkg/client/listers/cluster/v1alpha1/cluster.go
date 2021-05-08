@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
+	v1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 )
 
 // ClusterLister helps list Clusters.

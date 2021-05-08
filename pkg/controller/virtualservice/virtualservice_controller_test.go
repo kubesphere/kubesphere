@@ -34,7 +34,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 
-	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
+	"kubesphere.io/api/servicemesh/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"

@@ -39,7 +39,8 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
+
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devopsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha3"
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha3"

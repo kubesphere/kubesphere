@@ -29,9 +29,10 @@ import (
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
 
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha3"

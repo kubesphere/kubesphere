@@ -40,7 +40,7 @@ import (
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	log "k8s.io/klog"
 
-	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
+	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
 
 	istioclientset "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"

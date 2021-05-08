@@ -26,7 +26,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
-	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	v1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 	scheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 )
 

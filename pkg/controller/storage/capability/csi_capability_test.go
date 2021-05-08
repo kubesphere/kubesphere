@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog"
 
-	"kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
+	"kubesphere.io/api/storage/v1alpha1"
 )
 
 var DefaultControllerRPCType = []csi.ControllerServiceCapability_RPC_Type{

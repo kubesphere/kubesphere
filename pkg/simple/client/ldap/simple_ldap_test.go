@@ -22,7 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 )
 
 func TestSimpleLdap(t *testing.T) {

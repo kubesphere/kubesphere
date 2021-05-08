@@ -30,8 +30,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
 
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	apirequest "kubesphere.io/kubesphere/pkg/apiserver/request"

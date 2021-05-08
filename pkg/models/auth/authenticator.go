@@ -33,7 +33,8 @@ import (
 	authuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"

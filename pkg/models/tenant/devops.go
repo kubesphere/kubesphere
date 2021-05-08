@@ -25,9 +25,10 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 
+	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"

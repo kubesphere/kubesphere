@@ -27,8 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 
+	"kubesphere.io/api/notification/v2beta1"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"

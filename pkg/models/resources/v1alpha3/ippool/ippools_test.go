@@ -25,9 +25,10 @@ import (
 	k8sinformers "k8s.io/client-go/informers"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 
+	"kubesphere.io/api/network/v1alpha1"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"

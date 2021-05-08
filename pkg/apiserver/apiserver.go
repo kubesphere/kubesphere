@@ -24,7 +24,7 @@ import (
 	rt "runtime"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
+	"kubesphere.io/api/notification/v2beta1"
 
 	openpitrixv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v2alpha1"
 
@@ -39,11 +39,12 @@ import (
 	"k8s.io/klog"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 
-	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	notificationv2beta1 "kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	notificationv2beta1 "kubesphere.io/api/notification/v2beta1"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+	typesv1beta1 "kubesphere.io/api/types/v1beta1"
+
 	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"

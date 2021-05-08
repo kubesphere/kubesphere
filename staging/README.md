@@ -7,6 +7,7 @@ top-level kubesphere.io repositories.
 Repositories currently staged here:
 
 - [`kubesphere.io/client-go`](https://github.com/kubesphere/client-go)
+- [`kubesphere.io/api`](https://github.com/kubesphere/api)
 
 
 The code in the staging/ directory is authoritative, i.e. the only copy of the

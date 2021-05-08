@@ -36,7 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/api/application/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )

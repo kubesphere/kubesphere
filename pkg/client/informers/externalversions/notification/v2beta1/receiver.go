@@ -26,7 +26,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
-	notificationv2beta1 "kubesphere.io/kubesphere/pkg/apis/notification/v2beta1"
+	notificationv2beta1 "kubesphere.io/api/notification/v2beta1"
 	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
 	v2beta1 "kubesphere.io/kubesphere/pkg/client/listers/notification/v2beta1"

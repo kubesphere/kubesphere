@@ -19,8 +19,9 @@ package cluster
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/api"
-	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"

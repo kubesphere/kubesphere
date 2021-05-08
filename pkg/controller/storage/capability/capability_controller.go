@@ -50,7 +50,8 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	capability "kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
+	capability "kubesphere.io/api/storage/v1alpha1"
+
 	crdscheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	capabilityclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/storage/v1alpha1"
 	capabilityinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/storage/v1alpha1"

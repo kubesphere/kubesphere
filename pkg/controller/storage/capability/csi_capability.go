@@ -29,7 +29,7 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/keepalive"
 
-	"kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
+	"kubesphere.io/api/storage/v1alpha1"
 )
 
 const (

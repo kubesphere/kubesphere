@@ -39,7 +39,8 @@ import (
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 
-	"kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
+	"kubesphere.io/api/types/v1beta1"
+
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
 )
 

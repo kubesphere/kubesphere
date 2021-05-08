@@ -27,7 +27,8 @@ import (
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 
-	networkcalicov3 "kubesphere.io/kubesphere/pkg/apis/network/calicov3"
+	networkcalicov3 "kubesphere.io/api/network/calicov3"
+
 	versioned "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/clientset/versioned"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/informers/externalversions/internalinterfaces"
 	calicov3 "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico/client/listers/network/calicov3"

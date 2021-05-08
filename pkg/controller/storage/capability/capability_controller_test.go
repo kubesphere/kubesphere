@@ -42,7 +42,8 @@ import (
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 
-	ksv1alpha1 "kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
+	ksv1alpha1 "kubesphere.io/api/storage/v1alpha1"
+
 	ksfake "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 )

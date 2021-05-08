@@ -39,11 +39,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+
 	evaluatorcore "kubesphere.io/kubesphere/kube/pkg/quota/v1/evaluator/core"
 	"kubesphere.io/kubesphere/kube/pkg/quota/v1/generic"
 	"kubesphere.io/kubesphere/kube/pkg/quota/v1/install"
-	quotav1alpha2 "kubesphere.io/kubesphere/pkg/apis/quota/v1alpha2"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 

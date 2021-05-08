@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	api "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
+	api "kubesphere.io/api/network/v1alpha1"
 )
 
 func init() {

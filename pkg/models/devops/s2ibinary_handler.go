@@ -31,7 +31,8 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 
-	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	"kubesphere.io/api/devops/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"

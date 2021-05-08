@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/api/iam/v1alpha2"
 )
 
 type EmailValidator struct {

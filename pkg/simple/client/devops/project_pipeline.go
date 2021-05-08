@@ -16,7 +16,7 @@ limitations under the License.
 
 package devops
 
-import "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+import "kubesphere.io/api/devops/v1alpha3"
 
 type ProjectPipelineOperator interface {
 	CreateProjectPipeline(projectId string, pipeline *v1alpha3.Pipeline) (string, error)

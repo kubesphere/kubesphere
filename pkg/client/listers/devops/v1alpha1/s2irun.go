@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	v1alpha1 "kubesphere.io/api/devops/v1alpha1"
 )
 
 // S2iRunLister helps list S2iRuns.

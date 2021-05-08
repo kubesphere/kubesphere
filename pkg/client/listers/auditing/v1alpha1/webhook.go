@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/auditing/v1alpha1"
+	v1alpha1 "kubesphere.io/api/auditing/v1alpha1"
 )
 
 // WebhookLister helps list Webhooks.

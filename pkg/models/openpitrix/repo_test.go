@@ -24,7 +24,8 @@ import (
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
 
-	"kubesphere.io/kubesphere/pkg/apis/application/v1alpha1"
+	"kubesphere.io/api/application/v1alpha1"
+
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
