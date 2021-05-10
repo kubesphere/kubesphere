@@ -44,8 +44,9 @@ type GenericPlacement struct {
 }
 
 type ClusterOverride struct {
-	Op    string               `json:"op,omitempty"`
-	Path  string               `json:"path"`
+	Op   string `json:"op,omitempty"`
+	Path string `json:"path"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Value runtime.RawExtension `json:"value,omitempty"`
 }
 
