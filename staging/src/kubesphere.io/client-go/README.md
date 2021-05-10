@@ -52,7 +52,7 @@ import (
 	err := f.GenericClient(f.BaseName).Create(context.TODO(), ns, opts, &client.WorkspaceOptions{Name: "Workspace"})
 ```
 
-The KubeSphere API Architecture can be found at https://kubesphere.io/docs/api-reference/api-docs/
+The KubeSphere API Architecture can be found at https://kubesphere.io/docs/reference/api-docs/
 
 # Where does it come from?
 
