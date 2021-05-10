@@ -259,40 +259,42 @@ func (t *tenantOperator) makeQueryOptions(user user.Info, q meteringv1alpha1.Que
 			}
 		}
 
-		if q.NamespaceName != "" {
-			nsOption.ResourceFilter = q.NamespaceName
-		} else {
-			var nsList *api.ListResult
-			qu := query.New()
-			qu.LabelSelector = q.LabelSelector
-			nsList, err = t.ListNamespaces(user, q.WorkspaceName, qu)
-			if err != nil {
-				return qo, err
-			}
+		if nsOption.ResourceFilter == "" {
+			if q.NamespaceName != "" {
+				nsOption.ResourceFilter = q.NamespaceName
+			} else {
+				var nsList *api.ListResult
+				qu := query.New()
+				qu.LabelSelector = q.LabelSelector
+				nsList, err = t.ListNamespaces(user, q.WorkspaceName, qu)
+				if err != nil {
+					return qo, err
+				}
 
-			targetNs := []string{}
-			for _, item := range nsList.Items {
-				ns := item.(*corev1.Namespace)
-				if ok, _ := regexp.MatchString(q.ResourceFilter, ns.ObjectMeta.GetName()); ok {
-					listPods = authorizer.AttributesRecord{
-						User:            user,
-						Verb:            "list",
-						Resource:        "pods",
-						Namespace:       ns.ObjectMeta.GetName(),
-						ResourceScope:   request.NamespaceScope,
-						ResourceRequest: true,
-					}
-					decision, _, err = t.authorizer.Authorize(listPods)
-					if err != nil {
-						klog.Error(err)
-						return
-					}
-					if decision == authorizer.DecisionAllow {
-						targetNs = append(targetNs, ns.ObjectMeta.GetName())
+				targetNs := []string{}
+				for _, item := range nsList.Items {
+					ns := item.(*corev1.Namespace)
+					if ok, _ := regexp.MatchString(q.ResourceFilter, ns.ObjectMeta.GetName()); ok {
+						listPods = authorizer.AttributesRecord{
+							User:            user,
+							Verb:            "list",
+							Resource:        "pods",
+							Namespace:       ns.ObjectMeta.GetName(),
+							ResourceScope:   request.NamespaceScope,
+							ResourceRequest: true,
+						}
+						decision, _, err = t.authorizer.Authorize(listPods)
+						if err != nil {
+							klog.Error(err)
+							return
+						}
+						if decision == authorizer.DecisionAllow {
+							targetNs = append(targetNs, ns.ObjectMeta.GetName())
+						}
 					}
 				}
+				nsOption.ResourceFilter = strings.Join(targetNs, "|")
 			}
-			nsOption.ResourceFilter = strings.Join(targetNs, "|")
 		}
 
 		qo.Option = nsOption
