@@ -17,19 +17,32 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"log"
 	"testing"
 
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestStorageGroupBinding(t *testing.T) {
+	err := SchemeBuilder.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := fake.NewFakeClientWithScheme(scheme.Scheme)
+
 	key := types.NamespacedName{
 		Name: "foo",
 	}
 	created := &GroupBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "GroupBinding",
+			APIVersion: "iam.kubesphere.io/v1alpha2",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},

@@ -17,19 +17,32 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"log"
 	"testing"
 
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestStorageDevOpsProject(t *testing.T) {
+	err := SchemeBuilder.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := fake.NewFakeClientWithScheme(scheme.Scheme)
+
 	key := types.NamespacedName{
 		Name: "foo",
 	}
 	created := &DevOpsProject{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DevOpsProject",
+			APIVersion: "devops.kubesphere.io/v1alpha3",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		}}

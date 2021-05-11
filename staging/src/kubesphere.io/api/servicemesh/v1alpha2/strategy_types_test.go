@@ -18,11 +18,13 @@ package v1alpha2
 
 import (
 	"io/ioutil"
+	"log"
 	"testing"
 
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
@@ -31,11 +33,21 @@ import (
 )
 
 func TestStorageStrategy(t *testing.T) {
+	err := SchemeBuilder.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := fake.NewFakeClientWithScheme(scheme.Scheme)
+
 	key := types.NamespacedName{
 		Name:      "foo",
 		Namespace: "default",
 	}
 	created := &Strategy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Strategy",
+			APIVersion: "servicemesh.kubesphere.io/v1alpha2",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
