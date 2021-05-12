@@ -927,11 +927,12 @@ func (t *tenantOperator) collectOpenPitrixComponents(cluster, ns string) map[str
 		}
 		for _, object := range app.ReleaseInfo {
 			unstructuredObj := object.(*unstructured.Unstructured)
-			if unstructuredObj.GetKind() == "Service" ||
-				unstructuredObj.GetKind() == "Deployment" ||
-				unstructuredObj.GetKind() == "Daemonset" ||
-				unstructuredObj.GetKind() == "Statefulset" {
-				opComponentsMap[op+":"+unstructuredObj.GetKind()] = append(opComponentsMap[unstructuredObj.GetKind()], unstructuredObj.GetName())
+			kind := unstructuredObj.GetKind()
+			if kind == "Service" ||
+				kind == "Deployment" ||
+				kind == "DaemonSet" ||
+				kind == "StatefulSet" {
+				opComponentsMap[op+":"+strings.ToLower(kind)] = append(opComponentsMap[kind], unstructuredObj.GetName())
 			}
 		}
 	}
@@ -950,7 +951,7 @@ func (t *tenantOperator) isOpenPitrixComponent(cluster, ns, kind, componentName 
 			return false, ""
 		}
 		opName := kk[0]
-		if kk[1] == strings.Title(kind) {
+		if kk[1] == kind {
 			for _, svc := range v {
 				if componentName == svc {
 					return true, opName
