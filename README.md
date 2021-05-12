@@ -3,7 +3,7 @@
 [![License](http://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/KubeSphere/KubeSphere/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/kubesphere/kubesphere.svg?branch=master)](https://travis-ci.org/kubesphere/kubesphere)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubesphere/kubesphere)](https://goreportcard.com/report/github.com/kubesphere/kubesphere)
-[![KubeSphere release](https://img.shields.io/github/release/kubesphere/kubesphere.svg?color=release&label=release&logo=release&logoColor=release)](https://github.com/kubesphere/kubesphere/releases/tag/v3.0.0)
+[![KubeSphere release](https://img.shields.io/github/release/kubesphere/kubesphere.svg?color=release&label=release&logo=release&logoColor=release)](https://github.com/kubesphere/kubesphere/releases/tag/v3.1.0)
 
 ![logo](docs/images/kubesphere-logo.png)
 
@@ -69,7 +69,7 @@ Please see the [Feature and Benefits](https://kubesphere.io/docs/introduction/fe
 
 ## Latest Release
 
-KubeSphere 3.0.0 is now generally available! See the [Release Notes For 3.0.0](https://kubesphere.io/docs/release/release-v300/) for the updates.
+KubeSphere 3.1.0 is now generally available! See the [Release Notes For 3.1.0](https://kubesphere.io/docs/release/release-v310/) for the updates.
 
 ## Installation
 
@@ -81,21 +81,18 @@ KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In 
 
 ### Installing on Existing Kubernetes Cluster
 
-- [Installing KubeSphere on Amazon EKS](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-eks/)
-- [Installing KubeSphere on Azure AKS](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-aks/)
-- [Installing KubeSphere on Google GKE](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-gke/)
-- [Installing KubeSphere on DigitalOcean Kubernetes](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-do/)
-- [Installing KubeSphere on Oracle OKE](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-oke/)
-- [Installing KubeSphere on Tencent TKE](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-ks-on-tencent-tke/)
-- [Installing KubeSphere on Huaweicloud CCE](https://v3-0.docs.kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-ks-on-huawei-cce/)
+- [Installing KubeSphere on Amazon EKS](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-eks/)
+- [Installing KubeSphere on Azure AKS](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-aks/)
+- [Installing KubeSphere on Google GKE](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-gke/)
+- [Installing KubeSphere on DigitalOcean Kubernetes](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-do/)
+- [Installing KubeSphere on Oracle OKE](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-oke/)
+- [Installing KubeSphere on Huaweicloud CCE](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-huaweicloud-cce/)
 
 ### Installing on Linux
 
-- [Installing KubeSphere on Azure VM](https://v3-0.docs.kubesphere.io/docs/installing-on-linux/public-cloud/install-ks-on-azure-vms/)
-- [Installing KubeSphere on VMware vSphere](https://v3-0.docs.kubesphere.io/docs/installing-on-linux/on-premises/install-kubesphere-on-vmware-vsphere/)
-- [Installing KubeSphere on QingCloud Instance](https://v3-0.docs.kubesphere.io/docs/installing-on-linux/public-cloud/kubesphere-on-qingcloud-instance/)
-- [Installing on Alibaba Cloud ECS](https://v3-0.docs.kubesphere.io/docs/installing-on-linux/public-cloud/install-kubesphere-on-ali-ecs/)
-- [Installing on Huaweicloud VM](https://v3-0.docs.kubesphere.io/docs/installing-on-linux/public-cloud/install-ks-on-huaweicloud-ecs/)
+- [Installing KubeSphere on Azure VM](https://kubesphere.io/docs/installing-on-linux/public-cloud/install-kubesphere-on-azure-vms/)
+- [Installing KubeSphere on VMware vSphere](https://kubesphere.io/docs/installing-on-linux/on-premises/install-kubesphere-on-vmware-vsphere/)
+- [Installing KubeSphere on QingCloud Instance](https://kubesphere.io/docs/installing-on-linux/public-cloud/install-kubesphere-on-qingcloud-vms/)
 
 ## Contributing, Support, Discussion, and Community
 
