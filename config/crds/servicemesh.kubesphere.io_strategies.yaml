@@ -259,8 +259,10 @@ spec:
                                     additionalProperties:
                                       description: Describes how to match a given string in HTTP headers. Match is case-sensitive.
                                       type: object
+                                      x-kubernetes-preserve-unknown-fields: true
                                     description: "The header keys must be lowercase and use hyphen as the separator, e.g. _x-request-id_. \n Header values are case-sensitive and formatted as follows: \n - `exact: \"value\"` for exact string match \n - `prefix: \"value\"` for prefix-based match \n - `regex: \"value\"` for ECMAscript style regex-based match \n If the value is empty and only the name of header is specfied, presence of the header is checked. **Note:** The keys `uri`, `scheme`, `method`, and `authority` will be ignored."
                                     type: object
+                                    x-kubernetes-preserve-unknown-fields: true
                                   ignore_uri_case:
                                     description: "Flag to specify whether the URI matching should be case-insensitive. \n **Note:** The case will be ignored only in the case of `exact` and `prefix` URI matches."
                                     type: boolean
