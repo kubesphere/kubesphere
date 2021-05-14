@@ -27,6 +27,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 )
 
+const RoleName = "rolename"
+
 type workspacerolebindingsGetter struct {
 	sharedInformers informers.SharedInformerFactory
 }
@@ -76,6 +78,10 @@ func (d *workspacerolebindingsGetter) filter(object runtime.Object, filter query
 	if !ok {
 		return false
 	}
-
-	return v1alpha3.DefaultObjectMetaFilter(role.ObjectMeta, filter)
+	switch filter.Field {
+	case RoleName:
+		return role.RoleRef.Name == string(filter.Value)
+	default:
+		return v1alpha3.DefaultObjectMetaFilter(role.ObjectMeta, filter)
+	}
 }
