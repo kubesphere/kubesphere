@@ -215,7 +215,11 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		if err != nil {
 			return nil, err
 		}
-		server.TLSConfig.Certificates = []tls.Certificate{certificate}
+
+		server.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{certificate},
+		}
+		server.Addr = fmt.Sprintf(":%d", s.GenericServerRunOptions.SecurePort)
 	}
 
 	sch := scheme.Scheme
