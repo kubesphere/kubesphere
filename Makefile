@@ -90,6 +90,13 @@ docker-build: all
 docker-build-no-test: ks-apiserver ks-controller-manager
 	hack/docker_build.sh
 
+helm-package:
+	ls config/crds/ | grep -v types.kubefed.io | xargs -i cp -r config/crds/{} config/ks-core/crds/
+	helm package config/ks-core --app-version=v3.1.0 --version=0.1.0 -d ./bin
+
+helm-deploy:
+	helm upgrade --install ks-core ./config/ks-core -n kubesphere-system --create-namespace
+
 # Run tests
 test: fmt vet
 	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=2m; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt

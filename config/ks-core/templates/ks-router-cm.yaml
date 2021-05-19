@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ks-router-config
+  namespace: kubesphere-system
+data:
+  ingress-controller-svc.yaml: |+
+{{- include "ingress-controller-svc.yaml" . }}
+  ingress-controller.yaml: |
+{{- include "ingress-controller.yaml" . }}
