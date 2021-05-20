@@ -13,7 +13,7 @@ data:
       maximumClockSkew: {{ .Values.config.authentication.maximumClockSkew | default "10s" }}
       multipleLogin: {{ .Values.console.enableMultiLogin | default true }}
       kubectlImage: {{ .Values.image.ks_kubectl_repo }}:{{ .Values.image.ks_kubectl_tag | default "latest" }}
-      jwtSecret: "{{ .Values.jwtSecret }}"
+      jwtSecret: "{{ .Values.config.jwtSecret | default (randAlphaNum 32 ) }}"
 {{- if .Values.config.authentication.oauthOptions }}
       {{- with .Values.config.authentication.oauthOptions }}
       oauthOptions:

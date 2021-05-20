@@ -39,7 +39,7 @@ config:
   # Specifies whether the kubesphere-config configmap should be created
   create: true
   authentication: {}
-  # Jwt Secret is required
+  # Jwt Secret is required by ks-apiserver, a random string would be generated if it's empty
   jwtSecret: ""
   multicluster: {}
   monitoring: {}
