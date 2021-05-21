@@ -61,3 +61,15 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Returns user's password or use default
+*/}}
+{{- define "getOrDefaultPass" }}
+{{- $pws := (lookup "iam.kubesphere.io/v1alpha2" "User" "" .Name) -}}
+{{- if $pws }}
+{{- $pws.spec.password  -}}
+{{- else -}}
+{{- .Default -}}
+{{- end -}}
+{{- end }}

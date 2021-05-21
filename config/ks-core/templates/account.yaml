@@ -1,0 +1,13 @@
+---
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: User
+metadata:
+  name: admin
+  annotations:
+    iam.kubesphere.io/uninitialized: "true"
+    helm.sh/resource-policy: keep
+spec:
+  email: admin@kubesphere.io
+  password: "{{ include "getOrDefaultPass" (dict "Name" "admin" "Default" "$2a$10$zcHepmzfKPoxCVCYZr5K7ORPZZ/ySe9p/7IUb/8u./xHrnSX2LOCO") }}"
+status:
+  state: Active
