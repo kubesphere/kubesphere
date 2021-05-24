@@ -76,7 +76,7 @@ type Controller struct {
 }
 
 func NewController(client clientset.Interface,
-	devopsClinet devopsClient.Interface,
+	devopsClient devopsClient.Interface,
 	namespaceInformer corev1informer.NamespaceInformer,
 	secretInformer corev1informer.SecretInformer) *Controller {
 
@@ -89,7 +89,7 @@ func NewController(client clientset.Interface,
 
 	v := &Controller{
 		client:           client,
-		devopsClient:     devopsClinet,
+		devopsClient:     devopsClient,
 		workqueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "devopscredential"),
 		secretLister:     secretInformer.Lister(),
 		secretSynced:     secretInformer.Informer().HasSynced,
