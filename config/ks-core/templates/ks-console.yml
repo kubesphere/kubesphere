@@ -6,7 +6,6 @@ metadata:
     tier: frontend
     version: {{ .Chart.AppVersion }}
   name: ks-console
-  namespace: kubesphere-system
 spec:
   strategy:
     rollingUpdate:
@@ -101,7 +100,6 @@ metadata:
     tier: frontend
     version: {{ .Chart.AppVersion }}
   name: ks-console
-  namespace: kubesphere-system
 spec:
   ports:
   - name: nginx

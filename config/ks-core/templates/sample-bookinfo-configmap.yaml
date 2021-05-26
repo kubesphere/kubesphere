@@ -375,4 +375,3 @@ data:
 kind: ConfigMap
 metadata:
   name: sample-bookinfo
-  namespace: kubesphere-system

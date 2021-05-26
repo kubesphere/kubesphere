@@ -73,6 +73,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: system:kubesphere-router-role
+  namespace: kubesphere-controls-system
   annotations:
     kubernetes.io/created-by: kubesphere.io/ks-router
 rules:
@@ -115,6 +116,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kubesphere-router-serviceaccount
+  namespace: kubesphere-controls-system
   annotations:
     kubernetes.io/created-by: kubesphere.io/ks-router
 ---
@@ -137,6 +139,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: nginx-ingress-role-nisa-binding
+  namespace: kubesphere-controls-system
   annotations:
     kubernetes.io/created-by: kubesphere.io/ks-router
 roleRef:
@@ -152,6 +155,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: default-http-backend
+  namespace: kubesphere-controls-system
   labels:
     app: kubesphere 
     component: kubesphere-router
@@ -198,6 +202,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: default-http-backend
+  namespace: kubesphere-controls-system
   labels:
     app: kubesphere
     component: kubesphere-router

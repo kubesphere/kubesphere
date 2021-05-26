@@ -6,7 +6,6 @@ metadata:
     tier: backend
     version: {{ .Chart.AppVersion }}
   name: ks-controller-manager
-  namespace: kubesphere-system
 spec:
   strategy:
     rollingUpdate:
@@ -115,7 +114,6 @@ metadata:
     tier: backend
     version: {{ .Chart.AppVersion }}
   name: ks-controller-manager
-  namespace: kubesphere-system
 spec:
   ports:
   - port: 443

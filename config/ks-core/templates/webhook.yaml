@@ -12,7 +12,6 @@ data:
 kind: Secret
 metadata:
   name: ks-controller-manager-webhook-cert
-  namespace: kubesphere-system
 type: Opaque
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -26,7 +25,7 @@ webhooks:
     caBundle: {{ b64enc $ca.Cert | quote }}
     service:
       name: ks-controller-manager
-      namespace: kubesphere-system
+      namespace: {{ .Release.Namespace }}
       path: /validate-email-iam-kubesphere-io-v1alpha2
       port: 443
   failurePolicy: Fail
@@ -64,7 +63,7 @@ webhooks:
       caBundle: {{ b64enc $ca.Cert | quote }}
       service:
         name: ks-controller-manager
-        namespace: kubesphere-system
+        namespace: {{ .Release.Namespace }}
         path: /validate-network-kubesphere-io-v1alpha1
         port: 443
     failurePolicy: Fail
@@ -102,7 +101,7 @@ webhooks:
       caBundle: {{ b64enc $ca.Cert | quote }}
       service:
         name: ks-controller-manager
-        namespace: kubesphere-system
+        namespace: {{ .Release.Namespace }}
         path: /validate-quota-kubesphere-io-v1alpha2
         port: 443
     failurePolicy: Ignore
