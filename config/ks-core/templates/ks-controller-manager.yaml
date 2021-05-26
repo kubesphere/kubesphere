@@ -101,7 +101,7 @@ spec:
                 values:
                 - ks-controller-manager
             namespaces:
-            - kubesphere-system
+            - {{ .Release.Namespace }}
 {{- end }}
 
 ---

@@ -83,7 +83,7 @@ spec:
                 values:
                 - ks-apiserver
             namespaces:
-            - kubesphere-system
+            - {{ .Release.Namespace }}
 {{- end }}
       volumes:
       - hostPath:

@@ -71,7 +71,7 @@ spec:
                 values:
                 - ks-console
             namespaces:
-            - kubesphere-system
+            - {{ .Release.Namespace }}
 {{- end }}
       volumes:
       - configMap:
