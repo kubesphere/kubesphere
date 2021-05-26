@@ -1,7 +1,7 @@
 {{- $ca := genCA "ks-controller-manager-ca" 3650 }}
 {{- $cn := printf "%s-admission-webhook" .Release.Name }}
-{{- $altName1 := printf "ks-controller-manager.kubesphere-system" }}
-{{- $altName2 := printf "ks-controller-manager.kubesphere-system.svc"  }}
+{{- $altName1 := printf "ks-controller-manager.%s" .Release.Namespace }}
+{{- $altName2 := printf "ks-controller-manager.%s.svc" .Release.Namespace }}
 {{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
 
 apiVersion: v1

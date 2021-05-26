@@ -44,8 +44,8 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           failureThreshold: 8
-      serviceAccount: kubesphere
-      serviceAccountName: kubesphere
+      serviceAccount: {{ include "ks-core.serviceAccountName" . }}
+      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
