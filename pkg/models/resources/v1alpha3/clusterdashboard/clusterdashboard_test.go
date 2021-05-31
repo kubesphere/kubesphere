@@ -18,16 +18,14 @@ package clusterdashboard
 
 import (
 	"context"
-	"path/filepath"
 	"reflect"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
@@ -45,24 +43,12 @@ func compare(actual *monitoringdashboardv1alpha1.ClusterDashboard,
 }
 
 func TestGetListClusterDashboards(t *testing.T) {
-	e := &envtest.Environment{CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "..", "config", "crds")}}
-	cfg, err := e.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	sch := scheme.Scheme
 	if err := monitoringdashboardv1alpha1.AddToScheme(sch); err != nil {
 		t.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
-	stopCh := make(chan struct{})
-
-	ce, _ := cache.New(cfg, cache.Options{Scheme: sch})
-	go ce.Start(stopCh)
-	ce.WaitForCacheSync(stopCh)
-
-	c, _ = client.New(cfg, client.Options{Scheme: sch})
+	c = fake.NewFakeClientWithScheme(sch)
 
 	var labelSet1 = map[string]string{"foo-1": "bar-1"}
 	var labelSet2 = map[string]string{"foo-2": "bar-2"}
@@ -85,12 +71,12 @@ func TestGetListClusterDashboards(t *testing.T) {
 	ctx := context.TODO()
 
 	for _, board := range testCases {
-		if err = c.Create(ctx, board); err != nil {
+		if err := c.Create(ctx, board); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	getter := New(ce)
+	getter := New(c)
 
 	results, err := getter.List("", &query.Query{})
 	if err != nil {
