@@ -69,933 +69,1131 @@ spec:
                     description: Metadata of the virtual services created from this template
                     type: object
                   spec:
-                    description: Spec indicates the behavior of a destination rule.
+                    description: 'Configuration affecting load balancing, outlier detection,
+                      etc. See more details at: https://istio.io/docs/reference/config/networking/destination-rule.html'
                     properties:
-                      export_to:
-                        description: "A list of namespaces to which this destination rule is exported. The resolution of a destination rule to apply to a service occurs in the context of a hierarchy of namespaces. Exporting a destination rule allows it to be included in the resolution hierarchy for services in other namespaces. This feature provides a mechanism for service owners and mesh administrators to control the visibility of destination rules across namespace boundaries. \n If no namespaces are specified then the destination rule is exported to all namespaces by default. \n The value \".\" is reserved and defines an export to the same namespace that the destination rule is declared in. Similarly, the value \"*\" is reserved and defines an export to all namespaces. \n NOTE: in the current release, the `exportTo` value is restricted to \".\" or \"*\" (i.e., the current namespace or all namespaces)."
+                      exportTo:
+                        description: A list of namespaces to which this destination rule is
+                          exported.
                         items:
+                          format: string
                           type: string
                         type: array
                       host:
-                        description: "The name of a service from the service registry. Service names are looked up from the platform's service registry (e.g., Kubernetes services, Consul services, etc.) and from the hosts declared by [ServiceEntries](https://istio.io/docs/reference/config/networking/service-entry/#ServiceEntry). Rules defined for services that do not exist in the service registry will be ignored. \n *Note for Kubernetes users*: When short names are used (e.g. \"reviews\" instead of \"reviews.default.svc.cluster.local\"), Istio will interpret the short name based on the namespace of the rule, not the service. A rule in the \"default\" namespace containing a host \"reviews\" will be interpreted as \"reviews.default.svc.cluster.local\", irrespective of the actual namespace associated with the reviews service. _To avoid potential misconfigurations, it is recommended to always use fully qualified domain names over short names._ \n Note that the host field applies to both HTTP and TCP services."
+                        description: The name of a service from the service registry.
+                        format: string
                         type: string
                       subsets:
-                        description: One or more named sets that represent individual versions of a service. Traffic policies can be overridden at subset level.
                         items:
-                          description: "A subset of endpoints of a service. Subsets can be used for scenarios like A/B testing, or routing to a specific version of a service. Refer to [VirtualService](https://istio.io/docs/reference/config/networking/virtual-service/#VirtualService) documentation for examples of using subsets in these scenarios. In addition, traffic policies defined at the service-level can be overridden at a subset-level. The following rule uses a round robin load balancing policy for all traffic going to a subset named testversion that is composed of endpoints (e.g., pods) with labels (version:v3). \n {{<tabset category-name=\"example\">}} {{<tab name=\"v1alpha3\" category-value=\"v1alpha3\">}} ```yaml apiVersion: networking.istio.io/v1alpha3 kind: DestinationRule metadata:   name: bookinfo-ratings spec:   host: ratings.prod.svc.cluster.local   trafficPolicy:     loadBalancer:       simple: LEAST_CONN   subsets:   - name: testversion     labels:       version: v3     trafficPolicy:       loadBalancer:         simple: ROUND_ROBIN ``` {{</tab>}} \n {{<tab name=\"v1beta1\" category-value=\"v1beta1\">}} ```yaml apiVersion: networking.istio.io/v1beta1 kind: DestinationRule metadata:   name: bookinfo-ratings spec:   host: ratings.prod.svc.cluster.local   trafficPolicy:     loadBalancer:       simple: LEAST_CONN   subsets:   - name: testversion     labels:       version: v3     trafficPolicy:       loadBalancer:         simple: ROUND_ROBIN ``` {{</tab>}} {{</tabset>}} \n **Note:** Policies specified for subsets will not take effect until a route rule explicitly sends traffic to this subset. \n One or more labels are typically required to identify the subset destination, however, when the corresponding DestinationRule represents a host that supports multiple SNI hosts (e.g., an egress gateway), a subset without labels may be meaningful. In this case a traffic policy with [ClientTLSSettings](#ClientTLSSettings) can be used to identify a specific SNI host corresponding to the named subset."
                           properties:
                             labels:
                               additionalProperties:
+                                format: string
                                 type: string
-                              description: Labels apply a filter over the endpoints of a service in the service registry. See route rules for examples of usage.
                               type: object
                             name:
-                              description: Name of the subset. The service name and the subset name can be used for traffic splitting in a route rule.
+                              description: Name of the subset.
+                              format: string
                               type: string
-                            traffic_policy:
-                              description: Traffic policies that apply to this subset. Subsets inherit the traffic policies specified at the DestinationRule level. Settings specified at the subset level will override the corresponding settings specified at the DestinationRule level.
+                            trafficPolicy:
+                              description: Traffic policies that apply to this subset.
                               properties:
-                                connection_pool:
-                                  description: Settings controlling the volume of connections to an upstream service
+                                connectionPool:
                                   properties:
                                     http:
                                       description: HTTP connection pool settings.
                                       properties:
-                                        h2_upgrade_policy:
-                                          description: Specify if http1.1 connection should be upgraded to http2 for the associated destination.
+                                        h2UpgradePolicy:
+                                          description: Specify if http1.1 connection should
+                                            be upgraded to http2 for the associated destination.
+                                          enum:
+                                            - DEFAULT
+                                            - DO_NOT_UPGRADE
+                                            - UPGRADE
+                                          type: string
+                                        http1MaxPendingRequests:
+                                          description: Maximum number of pending HTTP requests
+                                            to a destination.
                                           format: int32
                                           type: integer
-                                        http1_max_pending_requests:
-                                          description: Maximum number of pending HTTP requests to a destination. Default 2^32-1.
+                                        http2MaxRequests:
+                                          description: Maximum number of requests to a backend.
                                           format: int32
                                           type: integer
-                                        http2_max_requests:
-                                          description: Maximum number of requests to a backend. Default 2^32-1.
+                                        idleTimeout:
+                                          description: The idle timeout for upstream connection
+                                            pool connections.
+                                          type: string
+                                        maxRequestsPerConnection:
+                                          description: Maximum number of requests per connection
+                                            to a backend.
                                           format: int32
                                           type: integer
-                                        idle_timeout:
-                                          description: The idle timeout for upstream connection pool connections. The idle timeout is defined as the period in which there are no active requests. If not set, the default is 1 hour. When the idle timeout is reached the connection will be closed. Note that request based timeouts mean that HTTP/2 PINGs will not keep the connection alive. Applies to both HTTP1.1 and HTTP2 connections.
-                                          properties:
-                                            nanos:
-                                              description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                              format: int32
-                                              type: integer
-                                            seconds:
-                                              description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                              format: int64
-                                              type: integer
-                                          type: object
-                                        max_requests_per_connection:
-                                          description: Maximum number of requests per connection to a backend. Setting this parameter to 1 disables keep alive. Default 0, meaning "unlimited", up to 2^29.
+                                        maxRetries:
                                           format: int32
                                           type: integer
-                                        max_retries:
-                                          description: Maximum number of retries that can be outstanding to all hosts in a cluster at a given time. Defaults to 2^32-1.
-                                          format: int32
-                                          type: integer
+                                        useClientProtocol:
+                                          description: If set to true, client protocol will
+                                            be preserved while initiating connection to backend.
+                                          type: boolean
                                       type: object
                                     tcp:
-                                      description: Settings common to both HTTP and TCP upstream connections.
+                                      description: Settings common to both HTTP and TCP upstream
+                                        connections.
                                       properties:
-                                        connect_timeout:
-                                          description: 'TCP connection timeout. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
-                                          properties:
-                                            nanos:
-                                              description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                              format: int32
-                                              type: integer
-                                            seconds:
-                                              description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                              format: int64
-                                              type: integer
-                                          type: object
-                                        max_connections:
-                                          description: Maximum number of HTTP1 /TCP connections to a destination host. Default 2^32-1.
+                                        connectTimeout:
+                                          description: TCP connection timeout.
+                                          type: string
+                                        maxConnections:
+                                          description: Maximum number of HTTP1 /TCP connections
+                                            to a destination host.
                                           format: int32
                                           type: integer
-                                        tcp_keepalive:
-                                          description: If set then set SO_KEEPALIVE on the socket to enable TCP Keepalives.
+                                        tcpKeepalive:
+                                          description: If set then set SO_KEEPALIVE on the
+                                            socket to enable TCP Keepalives.
                                           properties:
                                             interval:
-                                              description: The time duration between keep-alive probes. Default is to use the OS level configuration (unless overridden, Linux defaults to 75s.)
-                                              properties:
-                                                nanos:
-                                                  description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                  format: int32
-                                                  type: integer
-                                                seconds:
-                                                  description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                  format: int64
-                                                  type: integer
-                                              type: object
+                                              description: The time duration between keep-alive
+                                                probes.
+                                              type: string
                                             probes:
-                                              description: Maximum number of keepalive probes to send without response before deciding the connection is dead. Default is to use the OS level configuration (unless overridden, Linux defaults to 9.)
-                                              format: int32
                                               type: integer
                                             time:
-                                              description: The time duration a connection needs to be idle before keep-alive probes start being sent. Default is to use the OS level configuration (unless overridden, Linux defaults to 7200s (ie 2 hours.)
-                                              properties:
-                                                nanos:
-                                                  description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                  format: int32
-                                                  type: integer
-                                                seconds:
-                                                  description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                  format: int64
-                                                  type: integer
-                                              type: object
+                                              type: string
                                           type: object
                                       type: object
                                   type: object
-                                load_balancer:
+                                loadBalancer:
                                   description: Settings controlling the load balancer algorithms.
+                                  oneOf:
+                                    - not:
+                                        anyOf:
+                                          - required:
+                                              - simple
+                                          - properties:
+                                              consistentHash:
+                                                oneOf:
+                                                  - not:
+                                                      anyOf:
+                                                        - required:
+                                                            - httpHeaderName
+                                                        - required:
+                                                            - httpCookie
+                                                        - required:
+                                                            - useSourceIp
+                                                        - required:
+                                                            - httpQueryParameterName
+                                                  - required:
+                                                      - httpHeaderName
+                                                  - required:
+                                                      - httpCookie
+                                                  - required:
+                                                      - useSourceIp
+                                                  - required:
+                                                      - httpQueryParameterName
+                                            required:
+                                              - consistentHash
+                                    - required:
+                                        - simple
+                                    - properties:
+                                        consistentHash:
+                                          oneOf:
+                                            - not:
+                                                anyOf:
+                                                  - required:
+                                                      - httpHeaderName
+                                                  - required:
+                                                      - httpCookie
+                                                  - required:
+                                                      - useSourceIp
+                                                  - required:
+                                                      - httpQueryParameterName
+                                            - required:
+                                                - httpHeaderName
+                                            - required:
+                                                - httpCookie
+                                            - required:
+                                                - useSourceIp
+                                            - required:
+                                                - httpQueryParameterName
+                                      required:
+                                        - consistentHash
                                   properties:
-                                    locality_lb_setting:
-                                      description: Locality load balancer settings, this will override mesh wide settings in entirety, meaning no merging would be performed between this object and the object one in MeshConfig
+                                    consistentHash:
+                                      properties:
+                                        httpCookie:
+                                          description: Hash based on HTTP cookie.
+                                          properties:
+                                            name:
+                                              description: Name of the cookie.
+                                              format: string
+                                              type: string
+                                            path:
+                                              description: Path to set for the cookie.
+                                              format: string
+                                              type: string
+                                            ttl:
+                                              description: Lifetime of the cookie.
+                                              type: string
+                                          type: object
+                                        httpHeaderName:
+                                          description: Hash based on a specific HTTP header.
+                                          format: string
+                                          type: string
+                                        httpQueryParameterName:
+                                          description: Hash based on a specific HTTP query
+                                            parameter.
+                                          format: string
+                                          type: string
+                                        minimumRingSize:
+                                          type: integer
+                                        useSourceIp:
+                                          description: Hash based on the source IP address.
+                                          type: boolean
+                                      type: object
+                                    localityLbSetting:
                                       properties:
                                         distribute:
-                                          description: 'Optional: only one of distribute or failover can be set. Explicitly specify loadbalancing weight across different zones and geographical locations. Refer to [Locality weighted load balancing](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/locality_weight) If empty, the locality weight is set according to the endpoints number within it.'
+                                          description: 'Optional: only one of distribute or
+                                            failover can be set.'
                                           items:
-                                            description: 'Describes how traffic originating in the ''from'' zone or sub-zone is distributed over a set of ''to'' zones. Syntax for specifying a zone is {region}/{zone}/{sub-zone} and terminal wildcards are allowed on any segment of the specification. Examples: * - matches all localities us-west/* - all zones and sub-zones within the us-west region us-west/zone-1/* - all sub-zones within us-west/zone-1'
                                             properties:
                                               from:
-                                                description: Originating locality, '/' separated, e.g. 'region/zone/sub_zone'.
+                                                description: Originating locality, '/' separated,
+                                                  e.g.
+                                                format: string
                                                 type: string
                                               to:
                                                 additionalProperties:
-                                                  format: int32
                                                   type: integer
-                                                description: Map of upstream localities to traffic distribution weights. The sum of all weights should be == 100. Any locality not assigned a weight will receive no traffic.
+                                                description: Map of upstream localities to
+                                                  traffic distribution weights.
                                                 type: object
                                             type: object
                                           type: array
                                         enabled:
-                                          description: enable locality load balancing, this is DestinationRule-level and will override mesh wide settings in entirety. e.g. true means that turn on locality load balancing for this DestinationRule no matter what mesh wide settings is.
-                                          properties:
-                                            value:
-                                              description: The bool value.
-                                              type: boolean
-                                          type: object
+                                          description: enable locality load balancing, this
+                                            is DestinationRule-level and will override mesh
+                                            wide settings in entirety.
+                                          nullable: true
+                                          type: boolean
                                         failover:
-                                          description: 'Optional: only failover or distribute can be set. Explicitly specify the region traffic will land on when endpoints in local region becomes unhealthy. Should be used together with OutlierDetection to detect unhealthy endpoints. Note: if no OutlierDetection specified, this will not take effect.'
+                                          description: 'Optional: only failover or distribute
+                                            can be set.'
                                           items:
-                                            description: Specify the traffic failover policy across regions. Since zone and sub-zone failover is supported by default this only needs to be specified for regions when the operator needs to constrain traffic failover so that the default behavior of failing over to any endpoint globally does not apply. This is useful when failing over traffic across regions would not improve service health or may need to be restricted for other reasons like regulatory controls.
                                             properties:
                                               from:
                                                 description: Originating region.
+                                                format: string
                                                 type: string
                                               to:
-                                                description: Destination region the traffic will fail over to when endpoints in the 'from' region becomes unhealthy.
+                                                format: string
                                                 type: string
                                             type: object
                                           type: array
                                       type: object
+                                    simple:
+                                      enum:
+                                        - ROUND_ROBIN
+                                        - LEAST_CONN
+                                        - RANDOM
+                                        - PASSTHROUGH
+                                      type: string
                                   type: object
-                                outlier_detection:
-                                  description: Settings controlling eviction of unhealthy hosts from the load balancing pool
+                                outlierDetection:
                                   properties:
-                                    base_ejection_time:
-                                      description: 'Minimum ejection duration. A host will remain ejected for a period equal to the product of minimum ejection duration and the number of times the host has been ejected. This technique allows the system to automatically increase the ejection period for unhealthy upstream servers. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 30s.'
-                                      properties:
-                                        nanos:
-                                          description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                          format: int32
-                                          type: integer
-                                        seconds:
-                                          description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                          format: int64
-                                          type: integer
-                                      type: object
-                                    consecutive_5xx_errors:
-                                      description: "Number of 5xx errors before a host is ejected from the connection pool. When the upstream host is accessed over an opaque TCP connection, connect timeouts, connection error/failure and request failure events qualify as a 5xx error. This feature defaults to 5 but can be disabled by setting the value to 0. \n Note that consecutive_gateway_errors and consecutive_5xx_errors can be used separately or together. Because the errors counted by consecutive_gateway_errors are also included in consecutive_5xx_errors, if the value of consecutive_gateway_errors is greater than or equal to the value of consecutive_5xx_errors, consecutive_gateway_errors will have no effect."
-                                      properties:
-                                        value:
-                                          description: The uint32 value.
-                                          format: int32
-                                          type: integer
-                                      type: object
-                                    consecutive_errors:
-                                      description: Number of errors before a host is ejected from the connection pool. Defaults to 5. When the upstream host is accessed over HTTP, a 502, 503, or 504 return code qualifies as an error. When the upstream host is accessed over an opaque TCP connection, connect timeouts and connection error/failure events qualify as an error. $hide_from_docs
+                                    baseEjectionTime:
+                                      description: Minimum ejection duration.
+                                      type: string
+                                    consecutive5xxErrors:
+                                      description: Number of 5xx errors before a host is ejected
+                                        from the connection pool.
+                                      nullable: true
+                                      type: integer
+                                    consecutiveErrors:
                                       format: int32
                                       type: integer
-                                    consecutive_gateway_errors:
-                                      description: "Number of gateway errors before a host is ejected from the connection pool. When the upstream host is accessed over HTTP, a 502, 503, or 504 return code qualifies as a gateway error. When the upstream host is accessed over an opaque TCP connection, connect timeouts and connection error/failure events qualify as a gateway error. This feature is disabled by default or when set to the value 0. \n Note that consecutive_gateway_errors and consecutive_5xx_errors can be used separately or together. Because the errors counted by consecutive_gateway_errors are also included in consecutive_5xx_errors, if the value of consecutive_gateway_errors is greater than or equal to the value of consecutive_5xx_errors, consecutive_gateway_errors will have no effect."
-                                      properties:
-                                        value:
-                                          description: The uint32 value.
-                                          format: int32
-                                          type: integer
-                                      type: object
+                                    consecutiveGatewayErrors:
+                                      description: Number of gateway errors before a host
+                                        is ejected from the connection pool.
+                                      nullable: true
+                                      type: integer
                                     interval:
-                                      description: 'Time interval between ejection sweep analysis. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
-                                      properties:
-                                        nanos:
-                                          description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                          format: int32
-                                          type: integer
-                                        seconds:
-                                          description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                          format: int64
-                                          type: integer
-                                      type: object
-                                    max_ejection_percent:
-                                      description: Maximum % of hosts in the load balancing pool for the upstream service that can be ejected. Defaults to 10%.
+                                      description: Time interval between ejection sweep analysis.
+                                      type: string
+                                    maxEjectionPercent:
                                       format: int32
                                       type: integer
-                                    min_health_percent:
-                                      description: Outlier detection will be enabled as long as the associated load balancing pool has at least min_health_percent hosts in healthy mode. When the percentage of healthy hosts in the load balancing pool drops below this threshold, outlier detection will be disabled and the proxy will load balance across all hosts in the pool (healthy and unhealthy). The threshold can be disabled by setting it to 0%. The default is 0% as it's not typically applicable in k8s environments with few pods per service.
+                                    minHealthPercent:
                                       format: int32
                                       type: integer
                                   type: object
-                                port_level_settings:
-                                  description: Traffic policies specific to individual ports. Note that port level settings will override the destination-level settings. Traffic settings specified at the destination-level will not be inherited when overridden by port-level settings, i.e. default values will be applied to fields omitted in port-level traffic policies.
+                                portLevelSettings:
+                                  description: Traffic policies specific to individual ports.
                                   items:
-                                    description: Traffic policies that apply to specific ports of the service
                                     properties:
-                                      connection_pool:
-                                        description: Settings controlling the volume of connections to an upstream service
+                                      connectionPool:
                                         properties:
                                           http:
                                             description: HTTP connection pool settings.
                                             properties:
-                                              h2_upgrade_policy:
-                                                description: Specify if http1.1 connection should be upgraded to http2 for the associated destination.
+                                              h2UpgradePolicy:
+                                                description: Specify if http1.1 connection
+                                                  should be upgraded to http2 for the associated
+                                                  destination.
+                                                enum:
+                                                  - DEFAULT
+                                                  - DO_NOT_UPGRADE
+                                                  - UPGRADE
+                                                type: string
+                                              http1MaxPendingRequests:
+                                                description: Maximum number of pending HTTP
+                                                  requests to a destination.
                                                 format: int32
                                                 type: integer
-                                              http1_max_pending_requests:
-                                                description: Maximum number of pending HTTP requests to a destination. Default 2^32-1.
+                                              http2MaxRequests:
+                                                description: Maximum number of requests to
+                                                  a backend.
                                                 format: int32
                                                 type: integer
-                                              http2_max_requests:
-                                                description: Maximum number of requests to a backend. Default 2^32-1.
+                                              idleTimeout:
+                                                description: The idle timeout for upstream
+                                                  connection pool connections.
+                                                type: string
+                                              maxRequestsPerConnection:
+                                                description: Maximum number of requests per
+                                                  connection to a backend.
                                                 format: int32
                                                 type: integer
-                                              idle_timeout:
-                                                description: The idle timeout for upstream connection pool connections. The idle timeout is defined as the period in which there are no active requests. If not set, the default is 1 hour. When the idle timeout is reached the connection will be closed. Note that request based timeouts mean that HTTP/2 PINGs will not keep the connection alive. Applies to both HTTP1.1 and HTTP2 connections.
-                                                properties:
-                                                  nanos:
-                                                    description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                    format: int32
-                                                    type: integer
-                                                  seconds:
-                                                    description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                    format: int64
-                                                    type: integer
-                                                type: object
-                                              max_requests_per_connection:
-                                                description: Maximum number of requests per connection to a backend. Setting this parameter to 1 disables keep alive. Default 0, meaning "unlimited", up to 2^29.
+                                              maxRetries:
                                                 format: int32
                                                 type: integer
-                                              max_retries:
-                                                description: Maximum number of retries that can be outstanding to all hosts in a cluster at a given time. Defaults to 2^32-1.
-                                                format: int32
-                                                type: integer
+                                              useClientProtocol:
+                                                description: If set to true, client protocol
+                                                  will be preserved while initiating connection
+                                                  to backend.
+                                                type: boolean
                                             type: object
                                           tcp:
-                                            description: Settings common to both HTTP and TCP upstream connections.
+                                            description: Settings common to both HTTP and
+                                              TCP upstream connections.
                                             properties:
-                                              connect_timeout:
-                                                description: 'TCP connection timeout. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
-                                                properties:
-                                                  nanos:
-                                                    description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                    format: int32
-                                                    type: integer
-                                                  seconds:
-                                                    description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                    format: int64
-                                                    type: integer
-                                                type: object
-                                              max_connections:
-                                                description: Maximum number of HTTP1 /TCP connections to a destination host. Default 2^32-1.
+                                              connectTimeout:
+                                                description: TCP connection timeout.
+                                                type: string
+                                              maxConnections:
+                                                description: Maximum number of HTTP1 /TCP
+                                                  connections to a destination host.
                                                 format: int32
                                                 type: integer
-                                              tcp_keepalive:
-                                                description: If set then set SO_KEEPALIVE on the socket to enable TCP Keepalives.
+                                              tcpKeepalive:
+                                                description: If set then set SO_KEEPALIVE
+                                                  on the socket to enable TCP Keepalives.
                                                 properties:
                                                   interval:
-                                                    description: The time duration between keep-alive probes. Default is to use the OS level configuration (unless overridden, Linux defaults to 75s.)
-                                                    properties:
-                                                      nanos:
-                                                        description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                        format: int32
-                                                        type: integer
-                                                      seconds:
-                                                        description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                        format: int64
-                                                        type: integer
-                                                    type: object
+                                                    description: The time duration between
+                                                      keep-alive probes.
+                                                    type: string
                                                   probes:
-                                                    description: Maximum number of keepalive probes to send without response before deciding the connection is dead. Default is to use the OS level configuration (unless overridden, Linux defaults to 9.)
-                                                    format: int32
                                                     type: integer
                                                   time:
-                                                    description: The time duration a connection needs to be idle before keep-alive probes start being sent. Default is to use the OS level configuration (unless overridden, Linux defaults to 7200s (ie 2 hours.)
-                                                    properties:
-                                                      nanos:
-                                                        description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                        format: int32
-                                                        type: integer
-                                                      seconds:
-                                                        description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                        format: int64
-                                                        type: integer
-                                                    type: object
+                                                    type: string
                                                 type: object
                                             type: object
                                         type: object
-                                      load_balancer:
-                                        description: Settings controlling the load balancer algorithms.
+                                      loadBalancer:
+                                        description: Settings controlling the load balancer
+                                          algorithms.
+                                        oneOf:
+                                          - not:
+                                              anyOf:
+                                                - required:
+                                                    - simple
+                                                - properties:
+                                                    consistentHash:
+                                                      oneOf:
+                                                        - not:
+                                                            anyOf:
+                                                              - required:
+                                                                  - httpHeaderName
+                                                              - required:
+                                                                  - httpCookie
+                                                              - required:
+                                                                  - useSourceIp
+                                                              - required:
+                                                                  - httpQueryParameterName
+                                                        - required:
+                                                            - httpHeaderName
+                                                        - required:
+                                                            - httpCookie
+                                                        - required:
+                                                            - useSourceIp
+                                                        - required:
+                                                            - httpQueryParameterName
+                                                  required:
+                                                    - consistentHash
+                                          - required:
+                                              - simple
+                                          - properties:
+                                              consistentHash:
+                                                oneOf:
+                                                  - not:
+                                                      anyOf:
+                                                        - required:
+                                                            - httpHeaderName
+                                                        - required:
+                                                            - httpCookie
+                                                        - required:
+                                                            - useSourceIp
+                                                        - required:
+                                                            - httpQueryParameterName
+                                                  - required:
+                                                      - httpHeaderName
+                                                  - required:
+                                                      - httpCookie
+                                                  - required:
+                                                      - useSourceIp
+                                                  - required:
+                                                      - httpQueryParameterName
+                                            required:
+                                              - consistentHash
                                         properties:
-                                          locality_lb_setting:
-                                            description: Locality load balancer settings, this will override mesh wide settings in entirety, meaning no merging would be performed between this object and the object one in MeshConfig
+                                          consistentHash:
+                                            properties:
+                                              httpCookie:
+                                                description: Hash based on HTTP cookie.
+                                                properties:
+                                                  name:
+                                                    description: Name of the cookie.
+                                                    format: string
+                                                    type: string
+                                                  path:
+                                                    description: Path to set for the cookie.
+                                                    format: string
+                                                    type: string
+                                                  ttl:
+                                                    description: Lifetime of the cookie.
+                                                    type: string
+                                                type: object
+                                              httpHeaderName:
+                                                description: Hash based on a specific HTTP
+                                                  header.
+                                                format: string
+                                                type: string
+                                              httpQueryParameterName:
+                                                description: Hash based on a specific HTTP
+                                                  query parameter.
+                                                format: string
+                                                type: string
+                                              minimumRingSize:
+                                                type: integer
+                                              useSourceIp:
+                                                description: Hash based on the source IP address.
+                                                type: boolean
+                                            type: object
+                                          localityLbSetting:
                                             properties:
                                               distribute:
-                                                description: 'Optional: only one of distribute or failover can be set. Explicitly specify loadbalancing weight across different zones and geographical locations. Refer to [Locality weighted load balancing](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/locality_weight) If empty, the locality weight is set according to the endpoints number within it.'
+                                                description: 'Optional: only one of distribute
+                                                  or failover can be set.'
                                                 items:
-                                                  description: 'Describes how traffic originating in the ''from'' zone or sub-zone is distributed over a set of ''to'' zones. Syntax for specifying a zone is {region}/{zone}/{sub-zone} and terminal wildcards are allowed on any segment of the specification. Examples: * - matches all localities us-west/* - all zones and sub-zones within the us-west region us-west/zone-1/* - all sub-zones within us-west/zone-1'
                                                   properties:
                                                     from:
-                                                      description: Originating locality, '/' separated, e.g. 'region/zone/sub_zone'.
+                                                      description: Originating locality, '/'
+                                                        separated, e.g.
+                                                      format: string
                                                       type: string
                                                     to:
                                                       additionalProperties:
-                                                        format: int32
                                                         type: integer
-                                                      description: Map of upstream localities to traffic distribution weights. The sum of all weights should be == 100. Any locality not assigned a weight will receive no traffic.
+                                                      description: Map of upstream localities
+                                                        to traffic distribution weights.
                                                       type: object
                                                   type: object
                                                 type: array
                                               enabled:
-                                                description: enable locality load balancing, this is DestinationRule-level and will override mesh wide settings in entirety. e.g. true means that turn on locality load balancing for this DestinationRule no matter what mesh wide settings is.
-                                                properties:
-                                                  value:
-                                                    description: The bool value.
-                                                    type: boolean
-                                                type: object
+                                                description: enable locality load balancing,
+                                                  this is DestinationRule-level and will override
+                                                  mesh wide settings in entirety.
+                                                nullable: true
+                                                type: boolean
                                               failover:
-                                                description: 'Optional: only failover or distribute can be set. Explicitly specify the region traffic will land on when endpoints in local region becomes unhealthy. Should be used together with OutlierDetection to detect unhealthy endpoints. Note: if no OutlierDetection specified, this will not take effect.'
+                                                description: 'Optional: only failover or distribute
+                                                  can be set.'
                                                 items:
-                                                  description: Specify the traffic failover policy across regions. Since zone and sub-zone failover is supported by default this only needs to be specified for regions when the operator needs to constrain traffic failover so that the default behavior of failing over to any endpoint globally does not apply. This is useful when failing over traffic across regions would not improve service health or may need to be restricted for other reasons like regulatory controls.
                                                   properties:
                                                     from:
                                                       description: Originating region.
+                                                      format: string
                                                       type: string
                                                     to:
-                                                      description: Destination region the traffic will fail over to when endpoints in the 'from' region becomes unhealthy.
+                                                      format: string
                                                       type: string
                                                   type: object
                                                 type: array
                                             type: object
+                                          simple:
+                                            enum:
+                                              - ROUND_ROBIN
+                                              - LEAST_CONN
+                                              - RANDOM
+                                              - PASSTHROUGH
+                                            type: string
                                         type: object
-                                      outlier_detection:
-                                        description: Settings controlling eviction of unhealthy hosts from the load balancing pool
+                                      outlierDetection:
                                         properties:
-                                          base_ejection_time:
-                                            description: 'Minimum ejection duration. A host will remain ejected for a period equal to the product of minimum ejection duration and the number of times the host has been ejected. This technique allows the system to automatically increase the ejection period for unhealthy upstream servers. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 30s.'
-                                            properties:
-                                              nanos:
-                                                description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                format: int32
-                                                type: integer
-                                              seconds:
-                                                description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                format: int64
-                                                type: integer
-                                            type: object
-                                          consecutive_5xx_errors:
-                                            description: "Number of 5xx errors before a host is ejected from the connection pool. When the upstream host is accessed over an opaque TCP connection, connect timeouts, connection error/failure and request failure events qualify as a 5xx error. This feature defaults to 5 but can be disabled by setting the value to 0. \n Note that consecutive_gateway_errors and consecutive_5xx_errors can be used separately or together. Because the errors counted by consecutive_gateway_errors are also included in consecutive_5xx_errors, if the value of consecutive_gateway_errors is greater than or equal to the value of consecutive_5xx_errors, consecutive_gateway_errors will have no effect."
-                                            properties:
-                                              value:
-                                                description: The uint32 value.
-                                                format: int32
-                                                type: integer
-                                            type: object
-                                          consecutive_errors:
-                                            description: Number of errors before a host is ejected from the connection pool. Defaults to 5. When the upstream host is accessed over HTTP, a 502, 503, or 504 return code qualifies as an error. When the upstream host is accessed over an opaque TCP connection, connect timeouts and connection error/failure events qualify as an error. $hide_from_docs
+                                          baseEjectionTime:
+                                            description: Minimum ejection duration.
+                                            type: string
+                                          consecutive5xxErrors:
+                                            description: Number of 5xx errors before a host
+                                              is ejected from the connection pool.
+                                            nullable: true
+                                            type: integer
+                                          consecutiveErrors:
                                             format: int32
                                             type: integer
-                                          consecutive_gateway_errors:
-                                            description: "Number of gateway errors before a host is ejected from the connection pool. When the upstream host is accessed over HTTP, a 502, 503, or 504 return code qualifies as a gateway error. When the upstream host is accessed over an opaque TCP connection, connect timeouts and connection error/failure events qualify as a gateway error. This feature is disabled by default or when set to the value 0. \n Note that consecutive_gateway_errors and consecutive_5xx_errors can be used separately or together. Because the errors counted by consecutive_gateway_errors are also included in consecutive_5xx_errors, if the value of consecutive_gateway_errors is greater than or equal to the value of consecutive_5xx_errors, consecutive_gateway_errors will have no effect."
-                                            properties:
-                                              value:
-                                                description: The uint32 value.
-                                                format: int32
-                                                type: integer
-                                            type: object
+                                          consecutiveGatewayErrors:
+                                            description: Number of gateway errors before a
+                                              host is ejected from the connection pool.
+                                            nullable: true
+                                            type: integer
                                           interval:
-                                            description: 'Time interval between ejection sweep analysis. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
-                                            properties:
-                                              nanos:
-                                                description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                format: int32
-                                                type: integer
-                                              seconds:
-                                                description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                format: int64
-                                                type: integer
-                                            type: object
-                                          max_ejection_percent:
-                                            description: Maximum % of hosts in the load balancing pool for the upstream service that can be ejected. Defaults to 10%.
+                                            description: Time interval between ejection sweep
+                                              analysis.
+                                            type: string
+                                          maxEjectionPercent:
                                             format: int32
                                             type: integer
-                                          min_health_percent:
-                                            description: Outlier detection will be enabled as long as the associated load balancing pool has at least min_health_percent hosts in healthy mode. When the percentage of healthy hosts in the load balancing pool drops below this threshold, outlier detection will be disabled and the proxy will load balance across all hosts in the pool (healthy and unhealthy). The threshold can be disabled by setting it to 0%. The default is 0% as it's not typically applicable in k8s environments with few pods per service.
+                                          minHealthPercent:
                                             format: int32
                                             type: integer
                                         type: object
                                       port:
-                                        description: Specifies the number of a port on the destination service on which this policy is being applied.
                                         properties:
                                           number:
-                                            description: Valid port number
-                                            format: int32
                                             type: integer
                                         type: object
                                       tls:
-                                        description: TLS related settings for connections to the upstream service.
+                                        description: TLS related settings for connections
+                                          to the upstream service.
                                         properties:
-                                          ca_certificates:
-                                            description: 'OPTIONAL: The path to the file containing certificate authority certificates to use in verifying a presented server certificate. If omitted, the proxy will not verify the server''s certificate. Should be empty if mode is `ISTIO_MUTUAL`.'
+                                          caCertificates:
+                                            format: string
                                             type: string
-                                          client_certificate:
-                                            description: REQUIRED if mode is `MUTUAL`. The path to the file holding the client-side TLS certificate to use. Should be empty if mode is `ISTIO_MUTUAL`.
+                                          clientCertificate:
+                                            description: REQUIRED if mode is `MUTUAL`.
+                                            format: string
+                                            type: string
+                                          credentialName:
+                                            format: string
                                             type: string
                                           mode:
-                                            description: Indicates whether connections to this port should be secured using TLS. The value of this field determines how TLS is enforced.
-                                            format: int32
-                                            type: integer
-                                          private_key:
-                                            description: REQUIRED if mode is `MUTUAL`. The path to the file holding the client's private key. Should be empty if mode is `ISTIO_MUTUAL`.
+                                            enum:
+                                              - DISABLE
+                                              - SIMPLE
+                                              - MUTUAL
+                                              - ISTIO_MUTUAL
+                                            type: string
+                                          privateKey:
+                                            description: REQUIRED if mode is `MUTUAL`.
+                                            format: string
                                             type: string
                                           sni:
-                                            description: SNI string to present to the server during TLS handshake.
+                                            description: SNI string to present to the server
+                                              during TLS handshake.
+                                            format: string
                                             type: string
-                                          subject_alt_names:
-                                            description: A list of alternate names to verify the subject identity in the certificate. If specified, the proxy will verify that the server certificate's subject alt name matches one of the specified values. If specified, this list overrides the value of subject_alt_names from the ServiceEntry.
+                                          subjectAltNames:
                                             items:
+                                              format: string
                                               type: string
                                             type: array
                                         type: object
                                     type: object
                                   type: array
                                 tls:
-                                  description: TLS related settings for connections to the upstream service.
+                                  description: TLS related settings for connections to the
+                                    upstream service.
                                   properties:
-                                    ca_certificates:
-                                      description: 'OPTIONAL: The path to the file containing certificate authority certificates to use in verifying a presented server certificate. If omitted, the proxy will not verify the server''s certificate. Should be empty if mode is `ISTIO_MUTUAL`.'
+                                    caCertificates:
+                                      format: string
                                       type: string
-                                    client_certificate:
-                                      description: REQUIRED if mode is `MUTUAL`. The path to the file holding the client-side TLS certificate to use. Should be empty if mode is `ISTIO_MUTUAL`.
+                                    clientCertificate:
+                                      description: REQUIRED if mode is `MUTUAL`.
+                                      format: string
+                                      type: string
+                                    credentialName:
+                                      format: string
                                       type: string
                                     mode:
-                                      description: Indicates whether connections to this port should be secured using TLS. The value of this field determines how TLS is enforced.
-                                      format: int32
-                                      type: integer
-                                    private_key:
-                                      description: REQUIRED if mode is `MUTUAL`. The path to the file holding the client's private key. Should be empty if mode is `ISTIO_MUTUAL`.
+                                      enum:
+                                        - DISABLE
+                                        - SIMPLE
+                                        - MUTUAL
+                                        - ISTIO_MUTUAL
+                                      type: string
+                                    privateKey:
+                                      description: REQUIRED if mode is `MUTUAL`.
+                                      format: string
                                       type: string
                                     sni:
-                                      description: SNI string to present to the server during TLS handshake.
+                                      description: SNI string to present to the server during
+                                        TLS handshake.
+                                      format: string
                                       type: string
-                                    subject_alt_names:
-                                      description: A list of alternate names to verify the subject identity in the certificate. If specified, the proxy will verify that the server certificate's subject alt name matches one of the specified values. If specified, this list overrides the value of subject_alt_names from the ServiceEntry.
+                                    subjectAltNames:
                                       items:
+                                        format: string
                                         type: string
                                       type: array
                                   type: object
                               type: object
                           type: object
                         type: array
-                      traffic_policy:
-                        description: Traffic policies to apply (load balancing policy, connection pool sizes, outlier detection).
+                      trafficPolicy:
                         properties:
-                          connection_pool:
-                            description: Settings controlling the volume of connections to an upstream service
+                          connectionPool:
                             properties:
                               http:
                                 description: HTTP connection pool settings.
                                 properties:
-                                  h2_upgrade_policy:
-                                    description: Specify if http1.1 connection should be upgraded to http2 for the associated destination.
+                                  h2UpgradePolicy:
+                                    description: Specify if http1.1 connection should be upgraded
+                                      to http2 for the associated destination.
+                                    enum:
+                                      - DEFAULT
+                                      - DO_NOT_UPGRADE
+                                      - UPGRADE
+                                    type: string
+                                  http1MaxPendingRequests:
+                                    description: Maximum number of pending HTTP requests to
+                                      a destination.
                                     format: int32
                                     type: integer
-                                  http1_max_pending_requests:
-                                    description: Maximum number of pending HTTP requests to a destination. Default 2^32-1.
+                                  http2MaxRequests:
+                                    description: Maximum number of requests to a backend.
                                     format: int32
                                     type: integer
-                                  http2_max_requests:
-                                    description: Maximum number of requests to a backend. Default 2^32-1.
+                                  idleTimeout:
+                                    description: The idle timeout for upstream connection
+                                      pool connections.
+                                    type: string
+                                  maxRequestsPerConnection:
+                                    description: Maximum number of requests per connection
+                                      to a backend.
                                     format: int32
                                     type: integer
-                                  idle_timeout:
-                                    description: The idle timeout for upstream connection pool connections. The idle timeout is defined as the period in which there are no active requests. If not set, the default is 1 hour. When the idle timeout is reached the connection will be closed. Note that request based timeouts mean that HTTP/2 PINGs will not keep the connection alive. Applies to both HTTP1.1 and HTTP2 connections.
-                                    properties:
-                                      nanos:
-                                        description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                        format: int32
-                                        type: integer
-                                      seconds:
-                                        description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                        format: int64
-                                        type: integer
-                                    type: object
-                                  max_requests_per_connection:
-                                    description: Maximum number of requests per connection to a backend. Setting this parameter to 1 disables keep alive. Default 0, meaning "unlimited", up to 2^29.
+                                  maxRetries:
                                     format: int32
                                     type: integer
-                                  max_retries:
-                                    description: Maximum number of retries that can be outstanding to all hosts in a cluster at a given time. Defaults to 2^32-1.
-                                    format: int32
-                                    type: integer
+                                  useClientProtocol:
+                                    description: If set to true, client protocol will be preserved
+                                      while initiating connection to backend.
+                                    type: boolean
                                 type: object
                               tcp:
-                                description: Settings common to both HTTP and TCP upstream connections.
+                                description: Settings common to both HTTP and TCP upstream
+                                  connections.
                                 properties:
-                                  connect_timeout:
-                                    description: 'TCP connection timeout. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
-                                    properties:
-                                      nanos:
-                                        description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                        format: int32
-                                        type: integer
-                                      seconds:
-                                        description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                        format: int64
-                                        type: integer
-                                    type: object
-                                  max_connections:
-                                    description: Maximum number of HTTP1 /TCP connections to a destination host. Default 2^32-1.
+                                  connectTimeout:
+                                    description: TCP connection timeout.
+                                    type: string
+                                  maxConnections:
+                                    description: Maximum number of HTTP1 /TCP connections
+                                      to a destination host.
                                     format: int32
                                     type: integer
-                                  tcp_keepalive:
-                                    description: If set then set SO_KEEPALIVE on the socket to enable TCP Keepalives.
+                                  tcpKeepalive:
+                                    description: If set then set SO_KEEPALIVE on the socket
+                                      to enable TCP Keepalives.
                                     properties:
                                       interval:
-                                        description: The time duration between keep-alive probes. Default is to use the OS level configuration (unless overridden, Linux defaults to 75s.)
-                                        properties:
-                                          nanos:
-                                            description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                            format: int32
-                                            type: integer
-                                          seconds:
-                                            description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                            format: int64
-                                            type: integer
-                                        type: object
+                                        description: The time duration between keep-alive
+                                          probes.
+                                        type: string
                                       probes:
-                                        description: Maximum number of keepalive probes to send without response before deciding the connection is dead. Default is to use the OS level configuration (unless overridden, Linux defaults to 9.)
-                                        format: int32
                                         type: integer
                                       time:
-                                        description: The time duration a connection needs to be idle before keep-alive probes start being sent. Default is to use the OS level configuration (unless overridden, Linux defaults to 7200s (ie 2 hours.)
-                                        properties:
-                                          nanos:
-                                            description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                            format: int32
-                                            type: integer
-                                          seconds:
-                                            description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                            format: int64
-                                            type: integer
-                                        type: object
+                                        type: string
                                     type: object
                                 type: object
                             type: object
-                          load_balancer:
+                          loadBalancer:
                             description: Settings controlling the load balancer algorithms.
+                            oneOf:
+                              - not:
+                                  anyOf:
+                                    - required:
+                                        - simple
+                                    - properties:
+                                        consistentHash:
+                                          oneOf:
+                                            - not:
+                                                anyOf:
+                                                  - required:
+                                                      - httpHeaderName
+                                                  - required:
+                                                      - httpCookie
+                                                  - required:
+                                                      - useSourceIp
+                                                  - required:
+                                                      - httpQueryParameterName
+                                            - required:
+                                                - httpHeaderName
+                                            - required:
+                                                - httpCookie
+                                            - required:
+                                                - useSourceIp
+                                            - required:
+                                                - httpQueryParameterName
+                                      required:
+                                        - consistentHash
+                              - required:
+                                  - simple
+                              - properties:
+                                  consistentHash:
+                                    oneOf:
+                                      - not:
+                                          anyOf:
+                                            - required:
+                                                - httpHeaderName
+                                            - required:
+                                                - httpCookie
+                                            - required:
+                                                - useSourceIp
+                                            - required:
+                                                - httpQueryParameterName
+                                      - required:
+                                          - httpHeaderName
+                                      - required:
+                                          - httpCookie
+                                      - required:
+                                          - useSourceIp
+                                      - required:
+                                          - httpQueryParameterName
+                                required:
+                                  - consistentHash
                             properties:
-                              locality_lb_setting:
-                                description: Locality load balancer settings, this will override mesh wide settings in entirety, meaning no merging would be performed between this object and the object one in MeshConfig
+                              consistentHash:
+                                properties:
+                                  httpCookie:
+                                    description: Hash based on HTTP cookie.
+                                    properties:
+                                      name:
+                                        description: Name of the cookie.
+                                        format: string
+                                        type: string
+                                      path:
+                                        description: Path to set for the cookie.
+                                        format: string
+                                        type: string
+                                      ttl:
+                                        description: Lifetime of the cookie.
+                                        type: string
+                                    type: object
+                                  httpHeaderName:
+                                    description: Hash based on a specific HTTP header.
+                                    format: string
+                                    type: string
+                                  httpQueryParameterName:
+                                    description: Hash based on a specific HTTP query parameter.
+                                    format: string
+                                    type: string
+                                  minimumRingSize:
+                                    type: integer
+                                  useSourceIp:
+                                    description: Hash based on the source IP address.
+                                    type: boolean
+                                type: object
+                              localityLbSetting:
                                 properties:
                                   distribute:
-                                    description: 'Optional: only one of distribute or failover can be set. Explicitly specify loadbalancing weight across different zones and geographical locations. Refer to [Locality weighted load balancing](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/locality_weight) If empty, the locality weight is set according to the endpoints number within it.'
+                                    description: 'Optional: only one of distribute or failover
+                                      can be set.'
                                     items:
-                                      description: 'Describes how traffic originating in the ''from'' zone or sub-zone is distributed over a set of ''to'' zones. Syntax for specifying a zone is {region}/{zone}/{sub-zone} and terminal wildcards are allowed on any segment of the specification. Examples: * - matches all localities us-west/* - all zones and sub-zones within the us-west region us-west/zone-1/* - all sub-zones within us-west/zone-1'
                                       properties:
                                         from:
-                                          description: Originating locality, '/' separated, e.g. 'region/zone/sub_zone'.
+                                          description: Originating locality, '/' separated,
+                                            e.g.
+                                          format: string
                                           type: string
                                         to:
                                           additionalProperties:
-                                            format: int32
                                             type: integer
-                                          description: Map of upstream localities to traffic distribution weights. The sum of all weights should be == 100. Any locality not assigned a weight will receive no traffic.
+                                          description: Map of upstream localities to traffic
+                                            distribution weights.
                                           type: object
                                       type: object
                                     type: array
                                   enabled:
-                                    description: enable locality load balancing, this is DestinationRule-level and will override mesh wide settings in entirety. e.g. true means that turn on locality load balancing for this DestinationRule no matter what mesh wide settings is.
-                                    properties:
-                                      value:
-                                        description: The bool value.
-                                        type: boolean
-                                    type: object
+                                    description: enable locality load balancing, this is DestinationRule-level
+                                      and will override mesh wide settings in entirety.
+                                    nullable: true
+                                    type: boolean
                                   failover:
-                                    description: 'Optional: only failover or distribute can be set. Explicitly specify the region traffic will land on when endpoints in local region becomes unhealthy. Should be used together with OutlierDetection to detect unhealthy endpoints. Note: if no OutlierDetection specified, this will not take effect.'
+                                    description: 'Optional: only failover or distribute can
+                                      be set.'
                                     items:
-                                      description: Specify the traffic failover policy across regions. Since zone and sub-zone failover is supported by default this only needs to be specified for regions when the operator needs to constrain traffic failover so that the default behavior of failing over to any endpoint globally does not apply. This is useful when failing over traffic across regions would not improve service health or may need to be restricted for other reasons like regulatory controls.
                                       properties:
                                         from:
                                           description: Originating region.
+                                          format: string
                                           type: string
                                         to:
-                                          description: Destination region the traffic will fail over to when endpoints in the 'from' region becomes unhealthy.
+                                          format: string
                                           type: string
                                       type: object
                                     type: array
                                 type: object
+                              simple:
+                                enum:
+                                  - ROUND_ROBIN
+                                  - LEAST_CONN
+                                  - RANDOM
+                                  - PASSTHROUGH
+                                type: string
                             type: object
-                          outlier_detection:
-                            description: Settings controlling eviction of unhealthy hosts from the load balancing pool
+                          outlierDetection:
                             properties:
-                              base_ejection_time:
-                                description: 'Minimum ejection duration. A host will remain ejected for a period equal to the product of minimum ejection duration and the number of times the host has been ejected. This technique allows the system to automatically increase the ejection period for unhealthy upstream servers. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 30s.'
-                                properties:
-                                  nanos:
-                                    description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                    format: int32
-                                    type: integer
-                                  seconds:
-                                    description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                    format: int64
-                                    type: integer
-                                type: object
-                              consecutive_5xx_errors:
-                                description: "Number of 5xx errors before a host is ejected from the connection pool. When the upstream host is accessed over an opaque TCP connection, connect timeouts, connection error/failure and request failure events qualify as a 5xx error. This feature defaults to 5 but can be disabled by setting the value to 0. \n Note that consecutive_gateway_errors and consecutive_5xx_errors can be used separately or together. Because the errors counted by consecutive_gateway_errors are also included in consecutive_5xx_errors, if the value of consecutive_gateway_errors is greater than or equal to the value of consecutive_5xx_errors, consecutive_gateway_errors will have no effect."
-                                properties:
-                                  value:
-                                    description: The uint32 value.
-                                    format: int32
-                                    type: integer
-                                type: object
-                              consecutive_errors:
-                                description: Number of errors before a host is ejected from the connection pool. Defaults to 5. When the upstream host is accessed over HTTP, a 502, 503, or 504 return code qualifies as an error. When the upstream host is accessed over an opaque TCP connection, connect timeouts and connection error/failure events qualify as an error. $hide_from_docs
+                              baseEjectionTime:
+                                description: Minimum ejection duration.
+                                type: string
+                              consecutive5xxErrors:
+                                description: Number of 5xx errors before a host is ejected
+                                  from the connection pool.
+                                nullable: true
+                                type: integer
+                              consecutiveErrors:
                                 format: int32
                                 type: integer
-                              consecutive_gateway_errors:
-                                description: "Number of gateway errors before a host is ejected from the connection pool. When the upstream host is accessed over HTTP, a 502, 503, or 504 return code qualifies as a gateway error. When the upstream host is accessed over an opaque TCP connection, connect timeouts and connection error/failure events qualify as a gateway error. This feature is disabled by default or when set to the value 0. \n Note that consecutive_gateway_errors and consecutive_5xx_errors can be used separately or together. Because the errors counted by consecutive_gateway_errors are also included in consecutive_5xx_errors, if the value of consecutive_gateway_errors is greater than or equal to the value of consecutive_5xx_errors, consecutive_gateway_errors will have no effect."
-                                properties:
-                                  value:
-                                    description: The uint32 value.
-                                    format: int32
-                                    type: integer
-                                type: object
+                              consecutiveGatewayErrors:
+                                description: Number of gateway errors before a host is ejected
+                                  from the connection pool.
+                                nullable: true
+                                type: integer
                               interval:
-                                description: 'Time interval between ejection sweep analysis. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
-                                properties:
-                                  nanos:
-                                    description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                    format: int32
-                                    type: integer
-                                  seconds:
-                                    description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                    format: int64
-                                    type: integer
-                                type: object
-                              max_ejection_percent:
-                                description: Maximum % of hosts in the load balancing pool for the upstream service that can be ejected. Defaults to 10%.
+                                description: Time interval between ejection sweep analysis.
+                                type: string
+                              maxEjectionPercent:
                                 format: int32
                                 type: integer
-                              min_health_percent:
-                                description: Outlier detection will be enabled as long as the associated load balancing pool has at least min_health_percent hosts in healthy mode. When the percentage of healthy hosts in the load balancing pool drops below this threshold, outlier detection will be disabled and the proxy will load balance across all hosts in the pool (healthy and unhealthy). The threshold can be disabled by setting it to 0%. The default is 0% as it's not typically applicable in k8s environments with few pods per service.
+                              minHealthPercent:
                                 format: int32
                                 type: integer
                             type: object
-                          port_level_settings:
-                            description: Traffic policies specific to individual ports. Note that port level settings will override the destination-level settings. Traffic settings specified at the destination-level will not be inherited when overridden by port-level settings, i.e. default values will be applied to fields omitted in port-level traffic policies.
+                          portLevelSettings:
+                            description: Traffic policies specific to individual ports.
                             items:
-                              description: Traffic policies that apply to specific ports of the service
                               properties:
-                                connection_pool:
-                                  description: Settings controlling the volume of connections to an upstream service
+                                connectionPool:
                                   properties:
                                     http:
                                       description: HTTP connection pool settings.
                                       properties:
-                                        h2_upgrade_policy:
-                                          description: Specify if http1.1 connection should be upgraded to http2 for the associated destination.
+                                        h2UpgradePolicy:
+                                          description: Specify if http1.1 connection should
+                                            be upgraded to http2 for the associated destination.
+                                          enum:
+                                            - DEFAULT
+                                            - DO_NOT_UPGRADE
+                                            - UPGRADE
+                                          type: string
+                                        http1MaxPendingRequests:
+                                          description: Maximum number of pending HTTP requests
+                                            to a destination.
                                           format: int32
                                           type: integer
-                                        http1_max_pending_requests:
-                                          description: Maximum number of pending HTTP requests to a destination. Default 2^32-1.
+                                        http2MaxRequests:
+                                          description: Maximum number of requests to a backend.
                                           format: int32
                                           type: integer
-                                        http2_max_requests:
-                                          description: Maximum number of requests to a backend. Default 2^32-1.
+                                        idleTimeout:
+                                          description: The idle timeout for upstream connection
+                                            pool connections.
+                                          type: string
+                                        maxRequestsPerConnection:
+                                          description: Maximum number of requests per connection
+                                            to a backend.
                                           format: int32
                                           type: integer
-                                        idle_timeout:
-                                          description: The idle timeout for upstream connection pool connections. The idle timeout is defined as the period in which there are no active requests. If not set, the default is 1 hour. When the idle timeout is reached the connection will be closed. Note that request based timeouts mean that HTTP/2 PINGs will not keep the connection alive. Applies to both HTTP1.1 and HTTP2 connections.
-                                          properties:
-                                            nanos:
-                                              description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                              format: int32
-                                              type: integer
-                                            seconds:
-                                              description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                              format: int64
-                                              type: integer
-                                          type: object
-                                        max_requests_per_connection:
-                                          description: Maximum number of requests per connection to a backend. Setting this parameter to 1 disables keep alive. Default 0, meaning "unlimited", up to 2^29.
+                                        maxRetries:
                                           format: int32
                                           type: integer
-                                        max_retries:
-                                          description: Maximum number of retries that can be outstanding to all hosts in a cluster at a given time. Defaults to 2^32-1.
-                                          format: int32
-                                          type: integer
+                                        useClientProtocol:
+                                          description: If set to true, client protocol will
+                                            be preserved while initiating connection to backend.
+                                          type: boolean
                                       type: object
                                     tcp:
-                                      description: Settings common to both HTTP and TCP upstream connections.
+                                      description: Settings common to both HTTP and TCP upstream
+                                        connections.
                                       properties:
-                                        connect_timeout:
-                                          description: 'TCP connection timeout. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
-                                          properties:
-                                            nanos:
-                                              description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                              format: int32
-                                              type: integer
-                                            seconds:
-                                              description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                              format: int64
-                                              type: integer
-                                          type: object
-                                        max_connections:
-                                          description: Maximum number of HTTP1 /TCP connections to a destination host. Default 2^32-1.
+                                        connectTimeout:
+                                          description: TCP connection timeout.
+                                          type: string
+                                        maxConnections:
+                                          description: Maximum number of HTTP1 /TCP connections
+                                            to a destination host.
                                           format: int32
                                           type: integer
-                                        tcp_keepalive:
-                                          description: If set then set SO_KEEPALIVE on the socket to enable TCP Keepalives.
+                                        tcpKeepalive:
+                                          description: If set then set SO_KEEPALIVE on the
+                                            socket to enable TCP Keepalives.
                                           properties:
                                             interval:
-                                              description: The time duration between keep-alive probes. Default is to use the OS level configuration (unless overridden, Linux defaults to 75s.)
-                                              properties:
-                                                nanos:
-                                                  description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                  format: int32
-                                                  type: integer
-                                                seconds:
-                                                  description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                  format: int64
-                                                  type: integer
-                                              type: object
+                                              description: The time duration between keep-alive
+                                                probes.
+                                              type: string
                                             probes:
-                                              description: Maximum number of keepalive probes to send without response before deciding the connection is dead. Default is to use the OS level configuration (unless overridden, Linux defaults to 9.)
-                                              format: int32
                                               type: integer
                                             time:
-                                              description: The time duration a connection needs to be idle before keep-alive probes start being sent. Default is to use the OS level configuration (unless overridden, Linux defaults to 7200s (ie 2 hours.)
-                                              properties:
-                                                nanos:
-                                                  description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                                  format: int32
-                                                  type: integer
-                                                seconds:
-                                                  description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                                  format: int64
-                                                  type: integer
-                                              type: object
+                                              type: string
                                           type: object
                                       type: object
                                   type: object
-                                load_balancer:
+                                loadBalancer:
                                   description: Settings controlling the load balancer algorithms.
+                                  oneOf:
+                                    - not:
+                                        anyOf:
+                                          - required:
+                                              - simple
+                                          - properties:
+                                              consistentHash:
+                                                oneOf:
+                                                  - not:
+                                                      anyOf:
+                                                        - required:
+                                                            - httpHeaderName
+                                                        - required:
+                                                            - httpCookie
+                                                        - required:
+                                                            - useSourceIp
+                                                        - required:
+                                                            - httpQueryParameterName
+                                                  - required:
+                                                      - httpHeaderName
+                                                  - required:
+                                                      - httpCookie
+                                                  - required:
+                                                      - useSourceIp
+                                                  - required:
+                                                      - httpQueryParameterName
+                                            required:
+                                              - consistentHash
+                                    - required:
+                                        - simple
+                                    - properties:
+                                        consistentHash:
+                                          oneOf:
+                                            - not:
+                                                anyOf:
+                                                  - required:
+                                                      - httpHeaderName
+                                                  - required:
+                                                      - httpCookie
+                                                  - required:
+                                                      - useSourceIp
+                                                  - required:
+                                                      - httpQueryParameterName
+                                            - required:
+                                                - httpHeaderName
+                                            - required:
+                                                - httpCookie
+                                            - required:
+                                                - useSourceIp
+                                            - required:
+                                                - httpQueryParameterName
+                                      required:
+                                        - consistentHash
                                   properties:
-                                    locality_lb_setting:
-                                      description: Locality load balancer settings, this will override mesh wide settings in entirety, meaning no merging would be performed between this object and the object one in MeshConfig
+                                    consistentHash:
+                                      properties:
+                                        httpCookie:
+                                          description: Hash based on HTTP cookie.
+                                          properties:
+                                            name:
+                                              description: Name of the cookie.
+                                              format: string
+                                              type: string
+                                            path:
+                                              description: Path to set for the cookie.
+                                              format: string
+                                              type: string
+                                            ttl:
+                                              description: Lifetime of the cookie.
+                                              type: string
+                                          type: object
+                                        httpHeaderName:
+                                          description: Hash based on a specific HTTP header.
+                                          format: string
+                                          type: string
+                                        httpQueryParameterName:
+                                          description: Hash based on a specific HTTP query
+                                            parameter.
+                                          format: string
+                                          type: string
+                                        minimumRingSize:
+                                          type: integer
+                                        useSourceIp:
+                                          description: Hash based on the source IP address.
+                                          type: boolean
+                                      type: object
+                                    localityLbSetting:
                                       properties:
                                         distribute:
-                                          description: 'Optional: only one of distribute or failover can be set. Explicitly specify loadbalancing weight across different zones and geographical locations. Refer to [Locality weighted load balancing](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/locality_weight) If empty, the locality weight is set according to the endpoints number within it.'
+                                          description: 'Optional: only one of distribute or
+                                            failover can be set.'
                                           items:
-                                            description: 'Describes how traffic originating in the ''from'' zone or sub-zone is distributed over a set of ''to'' zones. Syntax for specifying a zone is {region}/{zone}/{sub-zone} and terminal wildcards are allowed on any segment of the specification. Examples: * - matches all localities us-west/* - all zones and sub-zones within the us-west region us-west/zone-1/* - all sub-zones within us-west/zone-1'
                                             properties:
                                               from:
-                                                description: Originating locality, '/' separated, e.g. 'region/zone/sub_zone'.
+                                                description: Originating locality, '/' separated,
+                                                  e.g.
+                                                format: string
                                                 type: string
                                               to:
                                                 additionalProperties:
-                                                  format: int32
                                                   type: integer
-                                                description: Map of upstream localities to traffic distribution weights. The sum of all weights should be == 100. Any locality not assigned a weight will receive no traffic.
+                                                description: Map of upstream localities to
+                                                  traffic distribution weights.
                                                 type: object
                                             type: object
                                           type: array
                                         enabled:
-                                          description: enable locality load balancing, this is DestinationRule-level and will override mesh wide settings in entirety. e.g. true means that turn on locality load balancing for this DestinationRule no matter what mesh wide settings is.
-                                          properties:
-                                            value:
-                                              description: The bool value.
-                                              type: boolean
-                                          type: object
+                                          description: enable locality load balancing, this
+                                            is DestinationRule-level and will override mesh
+                                            wide settings in entirety.
+                                          nullable: true
+                                          type: boolean
                                         failover:
-                                          description: 'Optional: only failover or distribute can be set. Explicitly specify the region traffic will land on when endpoints in local region becomes unhealthy. Should be used together with OutlierDetection to detect unhealthy endpoints. Note: if no OutlierDetection specified, this will not take effect.'
+                                          description: 'Optional: only failover or distribute
+                                            can be set.'
                                           items:
-                                            description: Specify the traffic failover policy across regions. Since zone and sub-zone failover is supported by default this only needs to be specified for regions when the operator needs to constrain traffic failover so that the default behavior of failing over to any endpoint globally does not apply. This is useful when failing over traffic across regions would not improve service health or may need to be restricted for other reasons like regulatory controls.
                                             properties:
                                               from:
                                                 description: Originating region.
+                                                format: string
                                                 type: string
                                               to:
-                                                description: Destination region the traffic will fail over to when endpoints in the 'from' region becomes unhealthy.
+                                                format: string
                                                 type: string
                                             type: object
                                           type: array
                                       type: object
+                                    simple:
+                                      enum:
+                                        - ROUND_ROBIN
+                                        - LEAST_CONN
+                                        - RANDOM
+                                        - PASSTHROUGH
+                                      type: string
                                   type: object
-                                outlier_detection:
-                                  description: Settings controlling eviction of unhealthy hosts from the load balancing pool
+                                outlierDetection:
                                   properties:
-                                    base_ejection_time:
-                                      description: 'Minimum ejection duration. A host will remain ejected for a period equal to the product of minimum ejection duration and the number of times the host has been ejected. This technique allows the system to automatically increase the ejection period for unhealthy upstream servers. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 30s.'
-                                      properties:
-                                        nanos:
-                                          description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                          format: int32
-                                          type: integer
-                                        seconds:
-                                          description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                          format: int64
-                                          type: integer
-                                      type: object
-                                    consecutive_5xx_errors:
-                                      description: "Number of 5xx errors before a host is ejected from the connection pool. When the upstream host is accessed over an opaque TCP connection, connect timeouts, connection error/failure and request failure events qualify as a 5xx error. This feature defaults to 5 but can be disabled by setting the value to 0. \n Note that consecutive_gateway_errors and consecutive_5xx_errors can be used separately or together. Because the errors counted by consecutive_gateway_errors are also included in consecutive_5xx_errors, if the value of consecutive_gateway_errors is greater than or equal to the value of consecutive_5xx_errors, consecutive_gateway_errors will have no effect."
-                                      properties:
-                                        value:
-                                          description: The uint32 value.
-                                          format: int32
-                                          type: integer
-                                      type: object
-                                    consecutive_errors:
-                                      description: Number of errors before a host is ejected from the connection pool. Defaults to 5. When the upstream host is accessed over HTTP, a 502, 503, or 504 return code qualifies as an error. When the upstream host is accessed over an opaque TCP connection, connect timeouts and connection error/failure events qualify as an error. $hide_from_docs
+                                    baseEjectionTime:
+                                      description: Minimum ejection duration.
+                                      type: string
+                                    consecutive5xxErrors:
+                                      description: Number of 5xx errors before a host is ejected
+                                        from the connection pool.
+                                      nullable: true
+                                      type: integer
+                                    consecutiveErrors:
                                       format: int32
                                       type: integer
-                                    consecutive_gateway_errors:
-                                      description: "Number of gateway errors before a host is ejected from the connection pool. When the upstream host is accessed over HTTP, a 502, 503, or 504 return code qualifies as a gateway error. When the upstream host is accessed over an opaque TCP connection, connect timeouts and connection error/failure events qualify as a gateway error. This feature is disabled by default or when set to the value 0. \n Note that consecutive_gateway_errors and consecutive_5xx_errors can be used separately or together. Because the errors counted by consecutive_gateway_errors are also included in consecutive_5xx_errors, if the value of consecutive_gateway_errors is greater than or equal to the value of consecutive_5xx_errors, consecutive_gateway_errors will have no effect."
-                                      properties:
-                                        value:
-                                          description: The uint32 value.
-                                          format: int32
-                                          type: integer
-                                      type: object
+                                    consecutiveGatewayErrors:
+                                      description: Number of gateway errors before a host
+                                        is ejected from the connection pool.
+                                      nullable: true
+                                      type: integer
                                     interval:
-                                      description: 'Time interval between ejection sweep analysis. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
-                                      properties:
-                                        nanos:
-                                          description: Signed fractions of a second at nanosecond resolution of the span of time. Durations less than one second are represented with a 0 `seconds` field and a positive or negative `nanos` field. For durations of one second or more, a non-zero value for the `nanos` field must be of the same sign as the `seconds` field. Must be from -999,999,999 to +999,999,999 inclusive.
-                                          format: int32
-                                          type: integer
-                                        seconds:
-                                          description: 'Signed seconds of the span of time. Must be from -315,576,000,000 to +315,576,000,000 inclusive. Note: these bounds are computed from: 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years'
-                                          format: int64
-                                          type: integer
-                                      type: object
-                                    max_ejection_percent:
-                                      description: Maximum % of hosts in the load balancing pool for the upstream service that can be ejected. Defaults to 10%.
+                                      description: Time interval between ejection sweep analysis.
+                                      type: string
+                                    maxEjectionPercent:
                                       format: int32
                                       type: integer
-                                    min_health_percent:
-                                      description: Outlier detection will be enabled as long as the associated load balancing pool has at least min_health_percent hosts in healthy mode. When the percentage of healthy hosts in the load balancing pool drops below this threshold, outlier detection will be disabled and the proxy will load balance across all hosts in the pool (healthy and unhealthy). The threshold can be disabled by setting it to 0%. The default is 0% as it's not typically applicable in k8s environments with few pods per service.
+                                    minHealthPercent:
                                       format: int32
                                       type: integer
                                   type: object
                                 port:
-                                  description: Specifies the number of a port on the destination service on which this policy is being applied.
                                   properties:
                                     number:
-                                      description: Valid port number
-                                      format: int32
                                       type: integer
                                   type: object
                                 tls:
-                                  description: TLS related settings for connections to the upstream service.
+                                  description: TLS related settings for connections to the
+                                    upstream service.
                                   properties:
-                                    ca_certificates:
-                                      description: 'OPTIONAL: The path to the file containing certificate authority certificates to use in verifying a presented server certificate. If omitted, the proxy will not verify the server''s certificate. Should be empty if mode is `ISTIO_MUTUAL`.'
+                                    caCertificates:
+                                      format: string
                                       type: string
-                                    client_certificate:
-                                      description: REQUIRED if mode is `MUTUAL`. The path to the file holding the client-side TLS certificate to use. Should be empty if mode is `ISTIO_MUTUAL`.
+                                    clientCertificate:
+                                      description: REQUIRED if mode is `MUTUAL`.
+                                      format: string
+                                      type: string
+                                    credentialName:
+                                      format: string
                                       type: string
                                     mode:
-                                      description: Indicates whether connections to this port should be secured using TLS. The value of this field determines how TLS is enforced.
-                                      format: int32
-                                      type: integer
-                                    private_key:
-                                      description: REQUIRED if mode is `MUTUAL`. The path to the file holding the client's private key. Should be empty if mode is `ISTIO_MUTUAL`.
+                                      enum:
+                                        - DISABLE
+                                        - SIMPLE
+                                        - MUTUAL
+                                        - ISTIO_MUTUAL
+                                      type: string
+                                    privateKey:
+                                      description: REQUIRED if mode is `MUTUAL`.
+                                      format: string
                                       type: string
                                     sni:
-                                      description: SNI string to present to the server during TLS handshake.
+                                      description: SNI string to present to the server during
+                                        TLS handshake.
+                                      format: string
                                       type: string
-                                    subject_alt_names:
-                                      description: A list of alternate names to verify the subject identity in the certificate. If specified, the proxy will verify that the server certificate's subject alt name matches one of the specified values. If specified, this list overrides the value of subject_alt_names from the ServiceEntry.
+                                    subjectAltNames:
                                       items:
+                                        format: string
                                         type: string
                                       type: array
                                   type: object
                               type: object
                             type: array
                           tls:
-                            description: TLS related settings for connections to the upstream service.
+                            description: TLS related settings for connections to the upstream
+                              service.
                             properties:
-                              ca_certificates:
-                                description: 'OPTIONAL: The path to the file containing certificate authority certificates to use in verifying a presented server certificate. If omitted, the proxy will not verify the server''s certificate. Should be empty if mode is `ISTIO_MUTUAL`.'
+                              caCertificates:
+                                format: string
                                 type: string
-                              client_certificate:
-                                description: REQUIRED if mode is `MUTUAL`. The path to the file holding the client-side TLS certificate to use. Should be empty if mode is `ISTIO_MUTUAL`.
+                              clientCertificate:
+                                description: REQUIRED if mode is `MUTUAL`.
+                                format: string
+                                type: string
+                              credentialName:
+                                format: string
                                 type: string
                               mode:
-                                description: Indicates whether connections to this port should be secured using TLS. The value of this field determines how TLS is enforced.
-                                format: int32
-                                type: integer
-                              private_key:
-                                description: REQUIRED if mode is `MUTUAL`. The path to the file holding the client's private key. Should be empty if mode is `ISTIO_MUTUAL`.
+                                enum:
+                                  - DISABLE
+                                  - SIMPLE
+                                  - MUTUAL
+                                  - ISTIO_MUTUAL
+                                type: string
+                              privateKey:
+                                description: REQUIRED if mode is `MUTUAL`.
+                                format: string
                                 type: string
                               sni:
-                                description: SNI string to present to the server during TLS handshake.
+                                description: SNI string to present to the server during TLS
+                                  handshake.
+                                format: string
                                 type: string
-                              subject_alt_names:
-                                description: A list of alternate names to verify the subject identity in the certificate. If specified, the proxy will verify that the server certificate's subject alt name matches one of the specified values. If specified, this list overrides the value of subject_alt_names from the ServiceEntry.
+                              subjectAltNames:
                                 items:
+                                  format: string
                                   type: string
                                 type: array
                             type: object
