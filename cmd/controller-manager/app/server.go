@@ -116,7 +116,7 @@ func NewControllerManagerCommand() *cobra.Command {
 
 	versionCmd := &cobra.Command{
 		Use:   "version",
-		Short: "Print the version of KubeSphere ks-apiserver",
+		Short: "Print the version of KubeSphere controller-manager",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Println(version.Get())
 		},
