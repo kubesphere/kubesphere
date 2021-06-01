@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ks-apiserver
+    tier: backend
+    version: {{ .Chart.AppVersion }}
+  name: ks-apiserver
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+    type: RollingUpdate
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ks-apiserver
+      tier: backend
+      # version: {{ .Chart.AppVersion }}
+  template:
+    metadata:
+      labels:
+        app: ks-apiserver
+        tier: backend
+        # version: {{ .Chart.AppVersion }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - command:
+        - ks-apiserver
+        - --logtostderr=true
+        image: {{ .Values.image.ks_apiserver_repo }}:{{ .Values.image.ks_apiserver_tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: ks-apiserver
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.apiserverResources | nindent 12 }}
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: docker-sock
+        - mountPath: /etc/kubesphere/ingress-controller
+          name: ks-router-config
+        - mountPath: /etc/kubesphere/
+          name: kubesphere-config
+        - mountPath: /etc/localtime
+          name: host-time
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            path: /kapis/version
+            port: 9090
+            scheme: HTTP
+          initialDelaySeconds: 15
+          timeoutSeconds: 15
+      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: In
+                values:
+                - ""
+{{- if gt .Values.replicaCount 1.0 }}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - ks-apiserver
+            namespaces:
+            - {{ .Release.Namespace }}
+{{- end }}
+      volumes:
+      - hostPath:
+          path: /var/run/docker.sock
+          type: ""
+        name: docker-sock
+      - configMap:
+          defaultMode: 420
+          name: ks-router-config
+        name: ks-router-config
+      - configMap:
+          defaultMode: 420
+          name: kubesphere-config
+        name: kubesphere-config
+      - hostPath:
+          path: /etc/localtime
+          type: ""
+        name: host-time
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-apiserver
+  labels:
+    app: ks-apiserver
+    tier: backend
+    version: {{ .Chart.AppVersion }}
+  name: ks-apiserver
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: ks-apiserver
+    tier: backend
+    # version: {{ .Chart.AppVersion }}
+  type: ClusterIP

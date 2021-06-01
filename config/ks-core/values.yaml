@@ -1,0 +1,118 @@
+# Default values for ks-core.
+
+replicaCount: 1
+
+image:
+  # Overrides the image tag whose default is the chart appVersion.
+  ks_controller_manager_repo: kubesphere/ks-controller-manager
+  ks_controller_manager_tag: ""
+
+  ks_apiserver_repo: kubesphere/ks-apiserver
+  ks_apiserver_tag: ""
+  ks_console_repo: "kubesphere/ks-console"
+  ks_console_tag: ""
+
+  ks_kubectl_repo: kubesphere/kubectl
+  ks_kubectl_tag: ""
+
+  nginx_ingress_controller_repo: kubesphere/nginx-ingress-controller
+  nginx_ingress_controller_tag: "v0.35.0"
+  defaultbackend_repo: "mirrorgooglecontainers/defaultbackend-amd64"
+  defaultbackend_tag: "1.4"
+
+  bookinfo_productpage_v1_repo: kubesphere/examples-bookinfo-productpage-v1
+  bookinfo_productpage_v1_tag: "1.16.2"
+
+  bookinfo_reviews_v1_repo: kubesphere/examples-bookinfo-reviews-v1
+  bookinfo_reviews_v1_tag: "1.16.2"
+
+  bookinfo_details_v1_repo: kubesphere/examples-bookinfo-details-v1
+  bookinfo_details_v1_tag: "1.16.2"
+
+  bookinfo_ratings_v1_repo: kubesphere/examples-bookinfo-ratings-v1
+  bookinfo_ratings_v1_tag: "1.16.3"
+
+  pullPolicy: IfNotPresent
+
+
+config:
+  # Specifies whether the kubesphere-config configmap should be created
+  create: true
+  authentication: {}
+  # Jwt Secret is required by ks-apiserver, a random string would be generated if it's empty
+  jwtSecret: ""
+  multicluster: {}
+  monitoring: {}
+
+console:
+  port: 30880
+  type: NodePort
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "kubesphere"
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+apiserverResources:
+  limits:
+    cpu: 1
+    memory: 1024Mi
+  requests:
+    cpu: 20m
+    memory: 100Mi
+
+consoleResources:
+  limits:
+    cpu: 1
+    memory: 1024Mi
+  requests:
+    cpu: 20m
+    memory: 100Mi
+
+controllerManagerResources:
+  limits:
+    cpu: 1
+    memory: 1000Mi
+  requests:
+    cpu: 30m
+    memory: 50Mi
+
+# Kubernetes Version shows in KubeSphere console
+kube_version: "v1.19.4"
+
+tolerations: 
+  - key: node-role.kubernetes.io/master
+    effect: NoSchedule
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 60
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 60
+
+affinity: {}

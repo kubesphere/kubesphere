@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ks-console
+    tier: frontend
+    version: {{ .Chart.AppVersion }}
+  name: ks-console
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+    type: RollingUpdate
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ks-console
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: ks-console
+        tier: frontend
+    spec:   
+      containers:
+      - image: {{ .Values.image.ks_console_repo }}:{{ .Values.image.ks_console_tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: ks-console
+        resources:
+          {{- toYaml .Values.consoleResources | nindent 12 }}
+        volumeMounts:
+        - mountPath: /opt/kubesphere/console/server/local_config.yaml
+          name: ks-console-config
+          subPath: local_config.yaml
+        - mountPath: /opt/kubesphere/console/server/sample
+          name: sample-bookinfo
+        - mountPath: /etc/localtime
+          name: host-time
+        livenessProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 15
+          timeoutSeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 8
+      serviceAccount: {{ include "ks-core.serviceAccountName" . }}
+      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: In
+                values:
+                - ""
+{{- if gt .Values.replicaCount 1.0 }}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - ks-console
+            namespaces:
+            - {{ .Release.Namespace }}
+{{- end }}
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: ks-console-config
+          items:
+          - key: local_config.yaml
+            path: local_config.yaml
+        name: ks-console-config
+      - configMap:
+          defaultMode: 420
+          name: sample-bookinfo
+        name: sample-bookinfo
+      - hostPath:
+          path: /etc/localtime
+          type: ""
+        name: host-time
+        
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ks-console
+    tier: frontend
+    version: {{ .Chart.AppVersion }}
+  name: ks-console
+spec:
+  ports:
+  - name: nginx
+    port: 80
+    protocol: TCP
+    targetPort: 8000
+    {{- with .Values.console.port }}
+    nodePort:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}    
+  selector:
+    app: ks-console
+    tier: frontend
+  type: {{ .Values.console.type }}

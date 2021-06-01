@@ -1,0 +1,243 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:kubesphere-router-clusterrole
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-router
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - endpoints
+      - nodes
+      - pods
+      - secrets
+      - namespaces
+    verbs:
+      - list
+      - watch
+      - get
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "extensions"
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "networking.k8s.io"
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+        - events
+    verbs:
+        - create
+        - patch
+  - apiGroups:
+      - "extensions"
+    resources:
+      - ingresses/status
+    verbs:
+      - update
+  - apiGroups:
+      - "networking.k8s.io"
+    resources:
+      - ingresses/status
+    verbs:
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: system:kubesphere-router-role
+  namespace: kubesphere-controls-system
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-router
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - pods
+      - secrets
+      - namespaces
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      # Defaults to "<election-id>-<ingress-class>"
+      # Here: "<ingress-controller-leader>-<nginx>"
+      # This has to be adapted if you change either parameter
+      # when launching the nginx-ingress-controller.
+      - "ingress-controller-leader-nginx"
+    verbs:
+      - get
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - endpoints
+    verbs:
+      - get
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubesphere-router-serviceaccount
+  namespace: kubesphere-controls-system
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-router
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:nginx-ingress-clusterrole-nisa-binding
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-router
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:kubesphere-router-clusterrole
+subjects:
+  - kind: ServiceAccount
+    name: kubesphere-router-serviceaccount
+    namespace: kubesphere-controls-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nginx-ingress-role-nisa-binding
+  namespace: kubesphere-controls-system
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-router
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: system:kubesphere-router-role
+subjects:
+  - kind: ServiceAccount
+    name: kubesphere-router-serviceaccount
+    namespace: kubesphere-controls-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: default-http-backend
+  namespace: kubesphere-controls-system
+  labels:
+    app: kubesphere 
+    component: kubesphere-router
+    version: express-1.0.alpha
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubesphere
+      component: kubesphere-router
+  template:
+    metadata:
+      labels:
+        app: kubesphere
+        component: kubesphere-router
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: default-http-backend
+        # Any image is permissible as long as:
+        # 1. It serves a 404 page at /
+        # 2. It serves 200 on a /healthz endpoint
+        image: {{ .Values.image.defaultbackend_repo }}:{{ .Values.image.defaultbackend_tag | default "latest" }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 10m
+            memory: 20Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: default-http-backend
+  namespace: kubesphere-controls-system
+  labels:
+    app: kubesphere
+    component: kubesphere-router
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-router
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: kubesphere
+    component: kubesphere-router
+
+---
+# create a seviceaccount for kubectl pod
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubesphere-cluster-admin
+  namespace: kubesphere-controls-system
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/kubectl
+---
+# bind kubesphere-cluster-admin sa to clusterrole cluster-admin
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:kubesphere-cluster-admin
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/kubectl
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: kubesphere-cluster-admin
+    namespace: kubesphere-controls-system

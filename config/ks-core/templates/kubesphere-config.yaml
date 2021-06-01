@@ -1,0 +1,33 @@
+{{- if .Values.config.create -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubesphere-config
+data:
+  kubesphere.yaml: |
+    authentication:
+      authenticateRateLimiterMaxTries: {{ .Values.config.authentication.authenticateRateLimiterMaxTries | default 10 }}
+      authenticateRateLimiterDuration: {{ .Values.config.authentication.authenticationRateLimiterDuration | default "10m0s" }}
+      loginHistoryRetentionPeriod: {{ .Values.config.authentication.loginHistoryRetentionPeriod | default "168h"  }}
+      maximumClockSkew: {{ .Values.config.authentication.maximumClockSkew | default "10s" }}
+      multipleLogin: {{ .Values.console.enableMultiLogin | default true }}
+      kubectlImage: {{ .Values.image.ks_kubectl_repo }}:{{ .Values.image.ks_kubectl_tag | default "latest" }}
+      jwtSecret: "{{ .Values.config.jwtSecret | default (randAlphaNum 32 ) }}"
+{{- if .Values.config.authentication.oauthOptions }}
+      {{- with .Values.config.authentication.oauthOptions }}
+      oauthOptions:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- else if eq (default .Values.config.multicluster.clusterRole "none") "member" }}
+      oauthOptions:
+        accessTokenMaxAge: 0
+{{- end }}
+    monitoring:
+      endpoint: {{ .Values.config.monitoring.endpoint | default "http://prometheus-operated.kubesphere-monitoring-system.svc:9090" }}
+
+    {{- with .Values.config.servicemesh }}
+    servicemesh:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+{{- end }}
