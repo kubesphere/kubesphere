@@ -18,35 +18,19 @@ package dashboard
 
 import (
 	"context"
-	"path/filepath"
 	"reflect"
 	"testing"
 
-	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog/v2"
 	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
 var c client.Client
-
-func createNamespace(name string, ctx context.Context) {
-	namespace := &core.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-	err := c.Create(ctx, namespace)
-	if err != nil {
-		klog.Error(err)
-	}
-}
 
 func compare(actual *monitoringdashboardv1alpha1.Dashboard, expects ...*monitoringdashboardv1alpha1.Dashboard) bool {
 	for _, app := range expects {
@@ -58,24 +42,12 @@ func compare(actual *monitoringdashboardv1alpha1.Dashboard, expects ...*monitori
 }
 
 func TestGetListDashboards(t *testing.T) {
-	e := &envtest.Environment{CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "..", "config", "crds")}}
-	cfg, err := e.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	sch := scheme.Scheme
 	if err := monitoringdashboardv1alpha1.AddToScheme(sch); err != nil {
 		t.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
-	stopCh := make(chan struct{})
-
-	ce, _ := cache.New(cfg, cache.Options{Scheme: sch})
-	go ce.Start(stopCh)
-	ce.WaitForCacheSync(stopCh)
-
-	c, _ = client.New(cfg, client.Options{Scheme: sch})
+	c = fake.NewFakeClientWithScheme(sch)
 
 	var labelSet1 = map[string]string{"foo-1": "bar-1"}
 	var labelSet2 = map[string]string{"foo-2": "bar-2"}
@@ -99,15 +71,14 @@ func TestGetListDashboards(t *testing.T) {
 	}
 
 	ctx := context.TODO()
-	createNamespace(ns, ctx)
 
 	for _, board := range testCases {
-		if err = c.Create(ctx, board); err != nil {
+		if err := c.Create(ctx, board); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	getter := New(ce)
+	getter := New(c)
 
 	results, err := getter.List(ns, &query.Query{})
 	if err != nil {

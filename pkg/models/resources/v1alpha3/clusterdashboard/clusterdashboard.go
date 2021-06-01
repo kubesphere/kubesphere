@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -32,10 +31,10 @@ import (
 )
 
 type dashboardGetter struct {
-	c cache.Cache
+	c client.Reader
 }
 
-func New(c cache.Cache) v1alpha3.Interface {
+func New(c client.Reader) v1alpha3.Interface {
 	return &dashboardGetter{c}
 }
 
