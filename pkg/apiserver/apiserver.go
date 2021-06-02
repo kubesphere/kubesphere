@@ -325,6 +325,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 
 	handler := s.Server.Handler
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
+	handler = filters.WithDevOpsAPIServer(handler, s.Config.DevopsOptions, &errorResponder{})
 
 	if s.Config.AuditingOptions.Enable {
 		handler = filters.WithAuditing(handler,

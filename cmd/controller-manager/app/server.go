@@ -136,7 +136,8 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	var devopsClient devops.Interface
-	if s.DevopsOptions != nil && len(s.DevopsOptions.Host) != 0 {
+	if s.DevopsOptions != nil && s.DevopsOptions.Enable && len(s.DevopsOptions.Host) != 0 {
+		// create the DevOps client only when it's enabled
 		devopsClient, err = jenkins.NewDevopsClient(s.DevopsOptions)
 		if err != nil {
 			return fmt.Errorf("failed to connect jenkins, please check jenkins status, error: %v", err)
