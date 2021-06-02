@@ -98,11 +98,19 @@ docker-build-no-test: ks-apiserver ks-controller-manager
 	hack/docker_build.sh
 
 helm-package:
-	ls config/crds/ | grep -v types.kubefed.io | xargs -i cp -r config/crds/{} config/ks-core/crds/
+	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
 	helm package config/ks-core --app-version=v3.1.0 --version=0.1.0 -d ./bin
 
 helm-deploy:
+	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
+	- kubectl create ns kubesphere-controls-system
 	helm upgrade --install ks-core ./config/ks-core -n kubesphere-system --create-namespace
+	kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/roles/ks-core/prepare/files/ks-init/role-templates.yaml
+
+helm-uninstall:
+	- kubectl delete ns kubesphere-controls-system
+	helm uninstall ks-core -n kubesphere-system
+	kubectl delete -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/roles/ks-core/prepare/files/ks-init/role-templates.yaml
 
 # Run tests
 test: fmt vet
