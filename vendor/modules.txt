@@ -102,8 +102,6 @@ github.com/coreos/go-systemd/journal
 github.com/coreos/pkg/capnslog
 # github.com/davecgh/go-spew v1.1.1 => github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/dgrijalva/jwt-go v3.2.0+incompatible => github.com/dgrijalva/jwt-go v3.2.0+incompatible
-github.com/dgrijalva/jwt-go
 # github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1+incompatible
 github.com/docker/distribution
 github.com/docker/distribution/digestset
@@ -179,6 +177,8 @@ github.com/exponent-io/jsonpath
 github.com/fatih/color
 # github.com/fatih/structs v1.1.0 => github.com/fatih/structs v1.1.0
 github.com/fatih/structs
+# github.com/form3tech-oss/jwt-go v3.2.2+incompatible => github.com/form3tech-oss/jwt-go v3.2.2+incompatible
+github.com/form3tech-oss/jwt-go
 # github.com/fsnotify/fsnotify v1.4.9 => github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.0 => github.com/ghodss/yaml v1.0.0
@@ -1590,6 +1590,7 @@ kubesphere.io/api/application/crdinstall
 kubesphere.io/api/application/v1alpha1
 kubesphere.io/api/auditing/v1alpha1
 kubesphere.io/api/cluster/v1alpha1
+kubesphere.io/api/constants
 kubesphere.io/api/devops/crdinstall
 kubesphere.io/api/devops/v1alpha1
 kubesphere.io/api/devops/v1alpha3
