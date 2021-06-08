@@ -1,0 +1,20 @@
+apiVersion: storage.kubesphere.io/v1alpha1
+kind: ProvisionerCapability
+metadata:
+  name: disk-csi-qingcloud-com
+spec:
+  pluginInfo:
+    name: disk.csi.qingcloud.com
+    version: ""
+  features:
+    topology: true
+    snapshot:
+      create: true
+      list: false
+    volume:
+      attach: true
+      clone: true
+      create: true
+      expandMode: OFFLINE
+      list: false
+      stats: true
