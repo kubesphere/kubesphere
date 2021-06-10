@@ -23,6 +23,11 @@ import (
 	"regexp"
 	"strings"
 
+	"k8s.io/klog"
+
+	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
+
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 
@@ -44,10 +49,18 @@ type handler struct {
 	meteringOptions *meteringclient.Options
 }
 
-func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options) *handler {
+func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options) *handler {
 	var opRelease openpitrix.Interface
+	var s3Client s3.Interface
+	if opOptions != nil && opOptions.S3Options != nil && len(opOptions.S3Options.Endpoint) != 0 {
+		var err error
+		s3Client, err = s3.NewS3Client(opOptions.S3Options)
+		if err != nil {
+			klog.Errorf("failed to connect to storage, please check storage service status, error: %v", err)
+		}
+	}
 	if ksClient != nil {
-		opRelease = openpitrix.NewOpenpitrixOperator(f, ksClient, nil)
+		opRelease = openpitrix.NewOpenpitrixOperator(f, ksClient, s3Client)
 	}
 	if meteringOptions == nil || meteringOptions.RetentionDay == "" {
 		meteringOptions = &meteringclient.DefaultMeteringOption
@@ -55,7 +68,7 @@ func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, m
 
 	return &handler{
 		k:               k,
-		mo:              model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter),
+		mo:              model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter, opRelease),
 		opRelease:       opRelease,
 		meteringOptions: meteringOptions,
 	}
