@@ -200,7 +200,7 @@ func (c *applicationOperator) ModifyAppVersion(id string, request *ModifyAppVers
 		spec.Created = &now
 
 		// 3. save chart data to s3 storage, just overwrite the legacy data
-		err = c.backingStoreClient.Upload(dataKeyInStorage(versionCopy.GetWorkspace(), versionCopy.Name), versionCopy.Name, bytes.NewReader(request.Package))
+		err = c.backingStoreClient.Upload(dataKeyInStorage(versionCopy.GetWorkspace(), versionCopy.Name), versionCopy.Name, bytes.NewBuffer(request.Package), len(request.Package))
 		if err != nil {
 			klog.Errorf("upload chart for app version: %s/%s failed, error: %s", versionCopy.GetWorkspace(),
 				versionCopy.GetTrueName(), err)
@@ -488,7 +488,7 @@ func (c *applicationOperator) createApplicationVersion(ver *v1alpha1.HelmApplica
 		klog.Errorf("decode error: %s", err)
 		return nil, err
 	} else {
-		err = c.backingStoreClient.Upload(dataKeyInStorage(ver.GetWorkspace(), ver.Name), ver.Name, bytes.NewReader(ver.Spec.Data))
+		err = c.backingStoreClient.Upload(dataKeyInStorage(ver.GetWorkspace(), ver.Name), ver.Name, bytes.NewBuffer(ver.Spec.Data), len(ver.Spec.Data))
 		if err != nil {
 			klog.Errorf("upload chart for app version: %s/%s failed, error: %s", ver.GetWorkspace(),
 				ver.GetTrueName(), err)
