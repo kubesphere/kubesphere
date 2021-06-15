@@ -100,10 +100,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object.
 		if !sliceutil.HasString(namespace.ObjectMeta.Finalizers, finalizer) {
-			// create only once, ignore already exists error
-			if err := r.initCreatorRoleBinding(rootCtx, logger, namespace); err != nil {
-				return ctrl.Result{}, err
-			}
 			namespace.ObjectMeta.Finalizers = append(namespace.ObjectMeta.Finalizers, finalizer)
 			if namespace.Labels == nil {
 				namespace.Labels = make(map[string]string)
@@ -130,6 +126,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
+	}
+
+	// Create role binding after creator changed
+	if err := r.initCreatorRoleBinding(rootCtx, logger, namespace); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Bind to workspace if the namespace created by kubesphere
@@ -304,7 +305,16 @@ func (r *Reconciler) initCreatorRoleBinding(ctx context.Context, logger logr.Log
 	}
 	var user iamv1alpha2.User
 	if err := r.Get(ctx, types.NamespacedName{Name: creator}, &user); err != nil {
-		return client.IgnoreNotFound(err)
+		if errors.IsNotFound(err) {
+			delete(namespace.Annotations, constants.CreatorAnnotationKey)
+			logger.V(4).Info("remove creator annotation", "creator", user.Name)
+			if err = r.Update(ctx, namespace); err != nil {
+				logger.Error(err, "failed to remove creator annotation")
+				return err
+			}
+			return nil
+		}
+		return err
 	}
 	creatorRoleBinding := newCreatorRoleBinding(creator, namespace.Name)
 	logger.V(4).Info("init creator role binding", "creator", user.Name)
