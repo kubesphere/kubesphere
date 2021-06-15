@@ -16,16 +16,14 @@ limitations under the License.
 
 package s3
 
-import (
-	"io"
-)
+import "io"
 
 type Interface interface {
 	//read the content, caller should close the io.ReadCloser.
 	Read(key string) ([]byte, error)
 
 	// Upload uploads a object to storage and returns object location if succeeded
-	Upload(key, fileName string, body io.Reader) error
+	Upload(key, fileName string, body io.Reader, size int) error
 
 	GetDownloadURL(key string, fileName string) (string, error)
 
