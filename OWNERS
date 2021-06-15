@@ -1,6 +1,9 @@
 approvers:
     - zryfish #oncall
     - rayzhou2017
+    - wansir
+    - zheng1
+    - benjaminhuo
 
 reviewers:
     - rayzhou2017
@@ -8,16 +11,16 @@ reviewers:
     - benjaminhuo
     - calvinyv
     - FeynmanZhou
-    - huanggze
-    - huojiao2006
-    - Ma-Dan
-    - magicsong
     - pixiake
-    - runzexia
     - wansir
-    - wnxn
     - zheng1
-    - soulseen
-    - shaowenchen
     - stoneshi-yunify
     - linuxsuren
+    - RolandMa1986
+    - wanjunlei
+    - xyz-li
+    - junotx
+    - yuswift
+    - zhu733756
+    - JohnNiang
+    - dkeven
