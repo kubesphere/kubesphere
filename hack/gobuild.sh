@@ -42,7 +42,7 @@ GOBINARY=${GOBINARY:-go}
 LDFLAGS=$(kube::version::ldflags)
 
 # forgoing -i (incremental build) because it will be deprecated by tool chain.
-time GOOS=${BUILD_GOOS} CGO_ENABLED=0 GOARCH=${BUILD_GOARCH} ${GOBINARY} build \
+GOOS=${BUILD_GOOS} CGO_ENABLED=0 GOARCH=${BUILD_GOARCH} ${GOBINARY} build \
         -ldflags="${LDFLAGS}" \
         -o ${OUT} \
         ${BUILDPATH}
