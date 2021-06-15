@@ -39,21 +39,26 @@ endef
 all: test ks-apiserver ks-controller-manager
 
 # Build ks-apiserver binary
-ks-apiserver: fmt vet
+ks-apiserver:
 	hack/gobuild.sh cmd/ks-apiserver
 
 # Build ks-controller-manager binary
-ks-controller-manager: fmt vet
+ks-controller-manager:
 	hack/gobuild.sh cmd/controller-manager
 
+# Run all verify scripts hack/verify-*.sh
+verify-all:
+	hack/verify-all.sh
+
 # Build e2e binary
-e2e: fmt vet
+e2e:
 	hack/build_e2e.sh test/e2e
 
 # Run go fmt against code 
 fmt:
 	gofmt -w ./pkg ./cmd ./tools ./api
 
+# Format all import, `goimports` is required.
 goimports:
 	@hack/update-goimports.sh
 
@@ -91,11 +96,23 @@ openapi:
 	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./staging/src/kubesphere.io/api/devops/v1alpha3,./vendor/k8s.io/apimachinery/pkg/runtime -p kubesphere.io/api/devops/v1alpha3 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
 	go run ./tools/cmd/crd-doc-gen/main.go
 	go run ./tools/cmd/doc-gen/main.go
+
 # Build the docker image
-docker-build: all
+container:
+	DRY_RUN=true hack/docker_build.sh
+
+# Build and push 
+container-push:
 	hack/docker_build.sh
-docker-build-no-test: ks-apiserver ks-controller-manager
-	hack/docker_build.sh
+
+# Build container images for multiple platforms.
+#   Currently, only linux/amd64,linux/arm64 are supported.
+container-cross:
+	DRY_RUN=true hack/docker_build_multiarch.sh
+
+# Build and push
+container-cross-push:
+	hack/docker_build_multiarch.sh
 
 helm-package:
 	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
@@ -113,7 +130,7 @@ helm-uninstall:
 	kubectl delete -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/roles/ks-core/prepare/files/ks-init/role-templates.yaml
 
 # Run tests
-test: fmt vet
+test: vet
 	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=2m; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
 
 .PHONY: clean
@@ -125,26 +142,3 @@ clean:
 # download controller-gen if necessary
 clientset: 
 	./hack/generate_client.sh ${GV}
-
-
-# Currently in the upgrade phase of controller tools.
-# But the new controller tools are not compatible with the old version.
-# With these commands you may need to manually modify the generated code
-# So don't use it unless you know it very deeply
-internal-crds:
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/network/..." output:crd:artifacts:config=config/crd/bases
-
-internal-generate-apis: internal-controller-gen
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./pkg/apis/network/...
-
-internal-controller-gen:
-ifeq (, $(shell which controller-gen))
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.0-beta.4
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
-
-network-rbac:
-	$(CONTROLLER_GEN) paths=./pkg/controller/network/provider/ paths=./pkg/controller/network/ rbac:roleName=network-manager output:rbac:artifacts:config=kustomize/network/calico-k8s
-	$(CONTROLLER_GEN) paths=./pkg/controller/network/ rbac:roleName=network-manager output:rbac:artifacts:config=kustomize/network/calico-etcd
