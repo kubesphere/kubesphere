@@ -19,7 +19,6 @@ require (
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -31,6 +30,7 @@ require (
 	github.com/emicklei/go-restful-openapi v1.4.1
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fatih/structs v1.1.0
+	github.com/form3tech-oss/jwt-go v3.2.2+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr v0.3.0
@@ -291,6 +291,7 @@ replace (
 	github.com/felixge/httpsnoop => github.com/felixge/httpsnoop v1.0.1
 	github.com/flynn/go-shlex => github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
 	github.com/fogleman/gg => github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90
+	github.com/form3tech-oss/jwt-go => github.com/form3tech-oss/jwt-go v3.2.2+incompatible
 	github.com/franela/goblin => github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db
 	github.com/franela/goreq => github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8
 	github.com/fsnotify/fsnotify => github.com/fsnotify/fsnotify v1.4.9
