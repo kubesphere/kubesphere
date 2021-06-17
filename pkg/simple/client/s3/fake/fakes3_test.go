@@ -25,7 +25,7 @@ func TestFakeS3(t *testing.T) {
 	s3 := NewFakeS3()
 	key := "hello"
 	fileName := "world"
-	err := s3.Upload(key, fileName, nil)
+	err := s3.Upload(key, fileName, nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

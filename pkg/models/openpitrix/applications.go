@@ -116,7 +116,7 @@ func (c *applicationOperator) createApp(app *v1alpha1.HelmApplication, iconData 
 	if len(iconData) != 0 {
 		// save icon attachment
 		iconId := idutils.GetUuid(v1alpha1.HelmAttachmentPrefix)
-		err = c.backingStoreClient.Upload(iconId, iconId, bytes.NewBuffer(iconData))
+		err = c.backingStoreClient.Upload(iconId, iconId, bytes.NewBuffer(iconData), len(iconData))
 		if err != nil {
 			klog.Errorf("save icon attachment failed, error: %s", err)
 			return nil, err
@@ -499,7 +499,7 @@ func (c *applicationOperator) modifyAppAttachment(app *v1alpha1.HelmApplication,
 				// add attachment to app
 				add := idutils.GetUuid("att-")
 				*attachments = append(*attachments, add)
-				err = c.backingStoreClient.Upload(add, add, bytes.NewBuffer(request.AttachmentContent))
+				err = c.backingStoreClient.Upload(add, add, bytes.NewBuffer(request.AttachmentContent), len(request.AttachmentContent))
 				if err != nil {
 					return "", err
 				} else {
@@ -518,7 +518,7 @@ func (c *applicationOperator) modifyAppAttachment(app *v1alpha1.HelmApplication,
 	}
 	if len(request.AttachmentContent) != 0 {
 		add := idutils.GetUuid("att-")
-		err = c.backingStoreClient.Upload(add, add, bytes.NewBuffer(request.AttachmentContent))
+		err = c.backingStoreClient.Upload(add, add, bytes.NewBuffer(request.AttachmentContent), len(request.AttachmentContent))
 		if err != nil {
 			return "", err
 		} else {
