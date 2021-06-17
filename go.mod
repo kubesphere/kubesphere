@@ -41,6 +41,7 @@ require (
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/google/go-cmp v0.5.0
 	github.com/google/uuid v1.1.1
@@ -347,7 +348,7 @@ replace (
 	github.com/gofrs/flock => github.com/gofrs/flock v0.7.1
 	github.com/gofrs/uuid => github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gogo/googleapis => github.com/gogo/googleapis v1.1.0
-	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	github.com/gogo/status => github.com/gogo/status v1.0.3
 	github.com/golang-migrate/migrate/v4 => github.com/golang-migrate/migrate/v4 v4.7.0
 	github.com/golang/example => github.com/golang/example v0.0.0-20170904185048-46695d81d1fa

@@ -250,7 +250,7 @@ github.com/gobwas/glob/util/strings
 # github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6 => github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 github.com/gocraft/dbr
 github.com/gocraft/dbr/dialect
-# github.com/gogo/protobuf v1.3.1 => github.com/gogo/protobuf v1.3.1
+# github.com/gogo/protobuf v1.3.2 => github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
@@ -738,7 +738,7 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200616195046-dc31b401abb5 => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
+# golang.org/x/tools v0.0.0-20210106214847-113979e3529a => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/passes/inspect
 golang.org/x/tools/go/ast/astutil
