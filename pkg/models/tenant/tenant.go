@@ -127,7 +127,7 @@ func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ks
 		events:         events.NewEventsOperator(evtsClient),
 		lo:             logging.NewLoggingOperator(loggingClient),
 		auditing:       auditing.NewEventsOperator(auditingclient),
-		mo:             monitoring.NewMonitoringOperator(monitoringclient, nil, k8sclient, informers, resourceGetter),
+		mo:             monitoring.NewMonitoringOperator(monitoringclient, nil, k8sclient, informers, resourceGetter, nil),
 		opRelease:      openpitrixRelease,
 	}
 }
