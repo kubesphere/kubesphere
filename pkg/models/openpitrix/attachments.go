@@ -15,6 +15,7 @@ package openpitrix
 
 import (
 	"bytes"
+
 	"github.com/go-openapi/strfmt"
 	"k8s.io/klog"
 
