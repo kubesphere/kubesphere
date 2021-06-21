@@ -18,6 +18,10 @@ package k8s
 
 import (
 	"os"
+	"os/user"
+	"path"
+
+	"k8s.io/client-go/util/homedir"
 
 	"github.com/spf13/pflag"
 
@@ -44,12 +48,26 @@ type KubernetesOptions struct {
 }
 
 // NewKubernetesOptions returns a `zero` instance
-func NewKubernetesOptions() *KubernetesOptions {
-	return &KubernetesOptions{
-		KubeConfig: "",
-		QPS:        1e6,
-		Burst:      1e6,
+func NewKubernetesOptions() (option *KubernetesOptions) {
+	option = &KubernetesOptions{
+		QPS:   1e6,
+		Burst: 1e6,
 	}
+
+	// make it be easier for those who wants to run api-server locally
+	homePath := homedir.HomeDir()
+	if homePath == "" {
+		// try os/user.HomeDir when $HOME is unset.
+		if u, err := user.Current(); err == nil {
+			homePath = u.HomeDir
+		}
+	}
+
+	userHomeConfig := path.Join(homePath, ".kube/config")
+	if _, err := os.Stat(userHomeConfig); err == nil {
+		option.KubeConfig = userHomeConfig
+	}
+	return
 }
 
 func (k *KubernetesOptions) Validate() []error {
