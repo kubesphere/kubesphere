@@ -1,0 +1,20 @@
+apiVersion: storage.kubesphere.io/v1alpha1
+kind: ProvisionerCapability
+metadata:
+  name: neonsan-csi-qingstor-com
+spec:
+  pluginInfo:
+    name: neonsan.csi.qingstor.com
+    version: ""
+  features:
+    topology: false
+    snapshot:
+      create: true
+      list: false
+    volume:
+      attach: true
+      clone: true
+      create: true
+      expandMode: OFFLINE
+      list: false
+      stats: true
