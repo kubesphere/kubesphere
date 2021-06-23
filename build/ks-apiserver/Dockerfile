@@ -31,7 +31,6 @@ WORKDIR /workspace
 ADD . /workspace/
 
 RUN make ks-apiserver
-RUN pwd && ls -alh
 RUN mv /workspace/bin/cmd/ks-apiserver ${OUTDIR}/usr/local/bin/
 
 ##############
