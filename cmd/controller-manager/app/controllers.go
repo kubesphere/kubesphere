@@ -30,8 +30,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
-	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
-	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
 	"kubesphere.io/kubesphere/pkg/controller/globalrole"
 	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/group"
@@ -42,15 +40,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	"kubesphere.io/kubesphere/pkg/controller/notification"
-	"kubesphere.io/kubesphere/pkg/controller/pipeline"
-	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
-	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 	"kubesphere.io/kubesphere/pkg/controller/storage/capability"
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
@@ -63,7 +57,6 @@ func addControllers(
 	mgr manager.Manager,
 	client k8s.Client,
 	informerFactory informers.InformerFactory,
-	devopsClient devops.Interface,
 	s3Client s3.Interface,
 	ldapClient ldapclient.Interface,
 	options *k8s.KubernetesOptions,
@@ -100,38 +93,6 @@ func addControllers(
 	}
 
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
-
-	var s2iBinaryController, s2iRunController, devopsProjectController, devopsPipelineController, devopsCredentialController manager.Runnable
-	if devopsClient != nil {
-		s2iBinaryController = s2ibinary.NewController(client.Kubernetes(),
-			client.KubeSphere(),
-			kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
-			s3Client,
-		)
-
-		s2iRunController = s2irun.NewS2iRunController(client.Kubernetes(),
-			client.KubeSphere(),
-			kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
-			kubesphereInformer.Devops().V1alpha1().S2iRuns())
-
-		devopsProjectController = devopsproject.NewController(client.Kubernetes(),
-			client.KubeSphere(), devopsClient,
-			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-			informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
-			informerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha1().Workspaces())
-
-		devopsPipelineController = pipeline.NewController(client.Kubernetes(),
-			client.KubeSphere(),
-			devopsClient,
-			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-			informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().Pipelines())
-
-		devopsCredentialController = devopscredential.NewController(client.Kubernetes(),
-			devopsClient,
-			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-			informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
-
-	}
 
 	storageCapabilityController := capability.NewController(
 		client.KubeSphere().StorageV1alpha1().StorageClassCapabilities(),
@@ -186,7 +147,7 @@ func addControllers(
 		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
 		fedUserCache, fedUserCacheController,
 		kubernetesInformer.Core().V1().ConfigMaps(),
-		ldapClient, devopsClient,
+		ldapClient,
 		authenticationOptions, multiClusterEnabled)
 
 	loginRecordController := loginrecord.NewLoginRecordController(
@@ -262,8 +223,6 @@ func addControllers(
 		"virtualservice-controller":     vsController,
 		"destinationrule-controller":    drController,
 		"job-controller":                jobController,
-		"s2ibinary-controller":          s2iBinaryController,
-		"s2irun-controller":             s2iRunController,
 		"storagecapability-controller":  storageCapabilityController,
 		"volumeexpansion-controller":    volumeExpansionController,
 		"user-controller":               userController,
@@ -276,12 +235,6 @@ func addControllers(
 		"ippool-controller":             ippoolController,
 		"groupbinding-controller":       groupBindingController,
 		"group-controller":              groupController,
-	}
-
-	if devopsClient != nil {
-		controllers["pipeline-controller"] = devopsPipelineController
-		controllers["devopsprojects-controller"] = devopsProjectController
-		controllers["devopscredential-controller"] = devopsCredentialController
 	}
 
 	if multiClusterEnabled {

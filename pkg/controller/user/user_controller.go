@@ -56,9 +56,7 @@ import (
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
-	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
@@ -85,7 +83,6 @@ type userController struct {
 	loginRecordLister     iamv1alpha2listers.LoginRecordLister
 	fedUserCache          cache.Store
 	ldapClient            ldapclient.Interface
-	devopsClient          devops.Interface
 	authenticationOptions *authoptions.AuthenticationOptions
 	multiClusterEnabled   bool
 	// recorder is an event recorder for recording Event resources to the
@@ -99,7 +96,6 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 	fedUserCache cache.Store, fedUserController cache.Controller,
 	configMapInformer corev1informers.ConfigMapInformer,
 	ldapClient ldapclient.Interface,
-	devopsClient devops.Interface,
 	authenticationOptions *authoptions.AuthenticationOptions,
 	multiClusterEnabled bool) *userController {
 
@@ -130,7 +126,6 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 		loginRecordLister:     loginRecordInformer.Lister(),
 		fedUserCache:          fedUserCache,
 		ldapClient:            ldapClient,
-		devopsClient:          devopsClient,
 		recorder:              recorder,
 		multiClusterEnabled:   multiClusterEnabled,
 		authenticationOptions: authenticationOptions,
@@ -199,14 +194,6 @@ func (c *userController) reconcile(key string) error {
 				return err
 			}
 
-			if c.devopsClient != nil {
-				// unassign jenkins role, unassign multiple times is allowed
-				if err = c.waitForUnassignDevOpsAdminRole(user); err != nil {
-					// ignore timeout error
-					c.recorder.Event(user, corev1.EventTypeWarning, controller.FailedSynced, fmt.Sprintf(syncFailMessage, err))
-				}
-			}
-
 			if err = c.deleteLoginRecords(user); err != nil {
 				c.recorder.Event(user, corev1.EventTypeWarning, controller.FailedSynced, fmt.Sprintf(syncFailMessage, err))
 				return err
@@ -252,15 +239,6 @@ func (c *userController) reconcile(key string) error {
 			klog.Error(err)
 			c.recorder.Event(user, corev1.EventTypeWarning, controller.FailedSynced, fmt.Sprintf(syncFailMessage, err))
 			return err
-		}
-	}
-
-	if c.devopsClient != nil {
-		// assign jenkins role after user create, assign multiple times is allowed
-		// used as logged-in users can do anything
-		if err = c.waitForAssignDevOpsAdminRole(user); err != nil {
-			// ignore timeout error
-			c.recorder.Event(user, corev1.EventTypeWarning, controller.FailedSynced, fmt.Sprintf(syncFailMessage, err))
 		}
 	}
 
@@ -412,27 +390,6 @@ func (c *userController) updateFederatedUser(fedUser *iamv1alpha2.FederatedUser)
 		return err
 	}
 	return nil
-}
-
-func (c *userController) waitForAssignDevOpsAdminRole(user *iamv1alpha2.User) error {
-	err := utilwait.PollImmediate(interval, timeout, func() (done bool, err error) {
-		if err := c.devopsClient.AssignGlobalRole(modelsdevops.JenkinsAdminRoleName, user.Name); err != nil {
-			klog.Error(err)
-			return false, err
-		}
-		return true, nil
-	})
-	return err
-}
-
-func (c *userController) waitForUnassignDevOpsAdminRole(user *iamv1alpha2.User) error {
-	err := utilwait.PollImmediate(interval, timeout, func() (done bool, err error) {
-		if err := c.devopsClient.UnAssignGlobalRole(modelsdevops.JenkinsAdminRoleName, user.Name); err != nil {
-			return false, err
-		}
-		return true, nil
-	})
-	return err
 }
 
 func (c *userController) waitForSyncToLDAP(user *iamv1alpha2.User) error {

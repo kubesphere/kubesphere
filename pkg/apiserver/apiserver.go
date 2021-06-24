@@ -66,8 +66,6 @@ import (
 	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2alpha1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
-	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	kubeedgev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/kubeedge/v1alpha1"
 	meteringv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/metering/v1alpha1"
@@ -93,13 +91,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
-	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
 )
@@ -116,7 +112,6 @@ const (
 )
 
 type APIServer struct {
-
 	// number of kubesphere apiserver
 	ServerCount int
 
@@ -147,12 +142,7 @@ type APIServer struct {
 	LoggingClient logging.Client
 
 	//
-	DevopsClient devops.Interface
-
-	//
 	S3Client s3.Interface
-
-	SonarClient sonarqube.SonarInterface
 
 	EventsClient events.Client
 
@@ -215,7 +205,8 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.AuthenticationOptions)
 	amOperator := am.NewOperator(s.KubernetesClient.KubeSphere(),
 		s.KubernetesClient.Kubernetes(),
-		s.InformerFactory)
+		s.InformerFactory,
+		s.Config)
 	rbacAuthorizer := rbac.NewRBACAuthorizer(amOperator)
 
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
@@ -256,20 +247,6 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.Config.ServiceMeshOptions, s.container, s.KubernetesClient.Kubernetes(), s.CacheClient))
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
-	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container,
-		s.InformerFactory.KubeSphereSharedInformerFactory(),
-		s.DevopsClient,
-		s.SonarClient,
-		s.KubernetesClient.KubeSphere(),
-		s.S3Client,
-		s.Config.DevopsOptions.Host,
-		rbacAuthorizer))
-	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container,
-		s.DevopsClient,
-		s.KubernetesClient.Kubernetes(),
-		s.KubernetesClient.KubeSphere(),
-		s.InformerFactory.KubeSphereSharedInformerFactory(),
-		s.InformerFactory.KubernetesSharedInformerFactory()))
 	urlruntime.Must(notificationv1.AddToContainer(s.container, s.Config.NotificationOptions.Endpoint))
 	urlruntime.Must(alertingv1.AddToContainer(s.container, s.Config.AlertingOptions.Endpoint))
 	urlruntime.Must(alertingv2alpha1.AddToContainer(s.container, s.InformerFactory,
@@ -344,7 +321,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	case authorizationoptions.RBAC:
 		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
-		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
+		amOperator := am.NewReadOnlyOperator(s.InformerFactory, s.Config)
 		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))
 	}
 
@@ -450,19 +427,9 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspacerolebindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "loginrecords"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
-		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
 		{Group: "network.kubesphere.io", Version: "v1alpha1", Resource: "ippools"},
 		{Group: "notification.kubesphere.io", Version: "v2beta1", Resource: v2beta1.ResourcesPluralConfig},
 		{Group: "notification.kubesphere.io", Version: "v2beta1", Resource: v2beta1.ResourcesPluralReceiver},
-	}
-
-	devopsGVRs := []schema.GroupVersionResource{
-		{Group: "devops.kubesphere.io", Version: "v1alpha1", Resource: "s2ibinaries"},
-		{Group: "devops.kubesphere.io", Version: "v1alpha1", Resource: "s2ibuildertemplates"},
-		{Group: "devops.kubesphere.io", Version: "v1alpha1", Resource: "s2iruns"},
-		{Group: "devops.kubesphere.io", Version: "v1alpha1", Resource: "s2ibuilders"},
-		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
-		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "pipelines"},
 	}
 
 	servicemeshGVRs := []schema.GroupVersionResource{
@@ -484,11 +451,6 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedResourceQuota),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedPersistentVolumeClaim),
 		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedApplication),
-	}
-
-	// skip caching devops resources if devops not enabled
-	if s.DevopsClient != nil {
-		ksGVRs = append(ksGVRs, devopsGVRs...)
 	}
 
 	// skip caching servicemesh resources if servicemesh not enabled

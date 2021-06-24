@@ -88,6 +88,7 @@ func (t *tenantOperator) ListDevOpsProjects(user user.Info, workspace string, qu
 		controlledDevOpsProject := obj.(*corev1.Namespace).Labels[constants.DevOpsProjectLabelKey]
 		// skip if not controlled by devops project
 		if controlledDevOpsProject == "" {
+			klog.Warningf("no devops project found in namespace %s", roleBinding.Namespace)
 			continue
 		}
 

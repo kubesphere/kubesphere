@@ -250,11 +250,11 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 				}
 			}
 		} else if requestAttributes.GetResourceScope() == request.DevOpsScope {
-			if workspace, err = r.am.GetDevOpsControlledWorkspace(requestAttributes.GetDevOps()); err != nil {
-				if !visitor(nil, "", nil, err) {
-					return
-				}
-			}
+			//if workspace, err = r.am.GetDevOpsControlledWorkspace(requestAttributes.GetDevOps()); err != nil {
+			//	if !visitor(nil, "", nil, err) {
+			//		return
+			//	}
+			//}
 		}
 
 		if workspace == "" {
@@ -297,13 +297,13 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		namespace := requestAttributes.GetNamespace()
 		// list devops role binding
 		if requestAttributes.GetResourceScope() == request.DevOpsScope {
-			if relatedNamespace, err := r.am.GetDevOpsRelatedNamespace(requestAttributes.GetDevOps()); err != nil {
-				if !visitor(nil, "", nil, err) {
-					return
-				}
-			} else {
-				namespace = relatedNamespace
-			}
+			//if relatedNamespace, err := r.am.GetDevOpsRelatedNamespace(requestAttributes.GetDevOps()); err != nil {
+			//	if !visitor(nil, "", nil, err) {
+			//		return
+			//	}
+			//} else {
+			//	namespace = relatedNamespace
+			//}
 		}
 
 		if roleBindings, err := r.am.ListRoleBindings("", nil, namespace); err != nil {

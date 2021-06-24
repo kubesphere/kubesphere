@@ -43,8 +43,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2alpha1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
-	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
@@ -59,9 +57,7 @@ import (
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam/group"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
-	fakedevops "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 )
 
 var output string
@@ -122,8 +118,6 @@ func generateSwaggerJson() []byte {
 	urlruntime.Must(oauth.AddToContainer(container, nil, nil, nil, nil, nil, nil))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(container, informerFactory.KubernetesSharedInformerFactory(),
 		informerFactory.KubeSphereSharedInformerFactory(), "", "", ""))
-	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fakedevops.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), "", nil))
-	urlruntime.Must(devopsv1alpha3.AddToContainer(container, &fakedevops.Devops{}, clientsets.Kubernetes(), clientsets.KubeSphere(), informerFactory.KubeSphereSharedInformerFactory(), informerFactory.KubernetesSharedInformerFactory()))
 	urlruntime.Must(iamv1alpha2.AddToContainer(container, nil, nil, group.New(informerFactory, clientsets.KubeSphere(), clientsets.Kubernetes()), nil))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(container, clientsets.Kubernetes(), nil, nil, informerFactory, nil))
 	urlruntime.Must(openpitrixv1.AddToContainer(container, informerFactory, fake.NewSimpleClientset(), nil))
@@ -217,7 +211,6 @@ func generateSwaggerJson() []byte {
 		{
 			Name: "DevOps",
 			Tags: []string{
-				constants.DevOpsProjectTag,
 				constants.DevOpsCredentialTag,
 				constants.DevOpsPipelineTag,
 				constants.DevOpsProjectMemberTag,

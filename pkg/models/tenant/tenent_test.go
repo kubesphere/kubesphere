@@ -541,7 +541,7 @@ func prepare() Interface {
 			RoleBindings().Informer().GetIndexer().Add(roleBinding)
 	}
 
-	amOperator := am.NewOperator(ksClient, k8sClient, fakeInformerFactory)
+	amOperator := am.NewOperator(ksClient, k8sClient, fakeInformerFactory, nil)
 	authorizer := rbac.NewRBACAuthorizer(amOperator)
 
 	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil, amOperator, authorizer, nil, nil)

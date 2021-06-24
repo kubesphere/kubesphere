@@ -1099,10 +1099,10 @@ func (h *iamHandler) DescribeNamespaceRole(request *restful.Request, response *r
 
 // resolve the namespace which controlled by the devops project
 func (h *iamHandler) resolveNamespace(namespace string, devops string) (string, error) {
-	if devops == "" {
-		return namespace, nil
-	}
-	return h.am.GetDevOpsRelatedNamespace(devops)
+	//if devops == "" {
+	return namespace, nil
+	//}
+	//return h.am.GetDevOpsRelatedNamespace(devops)
 }
 
 func (h *iamHandler) PatchWorkspaceRole(request *restful.Request, response *restful.Response) {

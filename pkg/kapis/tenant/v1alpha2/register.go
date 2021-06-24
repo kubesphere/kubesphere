@@ -155,22 +155,6 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceTag}))
 
-	ws.Route(ws.GET("/workspaces/{workspace}/devops").
-		To(handler.ListDevOpsProjects).
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Doc("List the devops projects of the specified workspace for the current user").
-		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
-
-	ws.Route(ws.GET("/workspaces/{workspace}/workspacemembers/{workspacemember}/devops").
-		To(handler.ListDevOpsProjects).
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("workspacemember", "workspacemember username")).
-		Doc("List the devops projects of specified workspace for the workspace member").
-		Reads(corev1.Namespace{}).
-		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
-
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces/{namespace}").
 		To(handler.DescribeNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).

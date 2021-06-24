@@ -29,7 +29,6 @@ import (
 	"k8s.io/klog"
 
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
@@ -41,7 +40,6 @@ import (
 
 type KubeSphereControllerManagerOptions struct {
 	KubernetesOptions     *k8s.KubernetesOptions
-	DevopsOptions         *jenkins.Options
 	S3Options             *s3.Options
 	AuthenticationOptions *authoptions.AuthenticationOptions
 	LdapOptions           *ldapclient.Options
@@ -66,7 +64,6 @@ type KubeSphereControllerManagerOptions struct {
 func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
 	s := &KubeSphereControllerManagerOptions{
 		KubernetesOptions:     k8s.NewKubernetesOptions(),
-		DevopsOptions:         jenkins.NewDevopsOptions(),
 		S3Options:             s3.NewS3Options(),
 		LdapOptions:           ldapclient.NewOptions(),
 		OpenPitrixOptions:     openpitrix.NewOptions(),
@@ -91,7 +88,6 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
-	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
 	s.AuthenticationOptions.AddFlags(fss.FlagSet("authentication"), s.AuthenticationOptions)
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
@@ -130,7 +126,6 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 
 func (s *KubeSphereControllerManagerOptions) Validate() []error {
 	var errs []error
-	errs = append(errs, s.DevopsOptions.Validate()...)
 	errs = append(errs, s.KubernetesOptions.Validate()...)
 	errs = append(errs, s.S3Options.Validate()...)
 	errs = append(errs, s.OpenPitrixOptions.Validate()...)

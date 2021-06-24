@@ -50,8 +50,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/workspacerolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -67,7 +65,6 @@ func NewControllerManagerCommand() *cobra.Command {
 		// make sure LeaderElection is not nil
 		s = &options.KubeSphereControllerManagerOptions{
 			KubernetesOptions:     conf.KubernetesOptions,
-			DevopsOptions:         conf.DevopsOptions,
 			S3Options:             conf.S3Options,
 			AuthenticationOptions: conf.AuthenticationOptions,
 			LdapOptions:           conf.LdapOptions,
@@ -133,15 +130,6 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	if err != nil {
 		klog.Errorf("Failed to create kubernetes clientset %v", err)
 		return err
-	}
-
-	var devopsClient devops.Interface
-	if s.DevopsOptions != nil && s.DevopsOptions.Enable && len(s.DevopsOptions.Host) != 0 {
-		// create the DevOps client only when it's enabled
-		devopsClient, err = jenkins.NewDevopsClient(s.DevopsOptions)
-		if err != nil {
-			return fmt.Errorf("failed to connect jenkins, please check jenkins status, error: %v", err)
-		}
 	}
 
 	var ldapClient ldapclient.Interface
@@ -300,7 +288,6 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	if err = addControllers(mgr,
 		kubernetesClient,
 		informerFactory,
-		devopsClient,
 		s3Client,
 		ldapClient,
 		s.KubernetesOptions,

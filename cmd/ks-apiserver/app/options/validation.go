@@ -26,7 +26,6 @@ func (s *ServerRunOptions) Validate() []error {
 	errors = append(errors, s.KubernetesOptions.Validate()...)
 	errors = append(errors, s.ServiceMeshOptions.Validate()...)
 	errors = append(errors, s.MonitoringOptions.Validate()...)
-	errors = append(errors, s.SonarQubeOptions.Validate()...)
 	errors = append(errors, s.S3Options.Validate()...)
 	errors = append(errors, s.OpenPitrixOptions.Validate()...)
 	errors = append(errors, s.NetworkOptions.Validate()...)

@@ -84,10 +84,9 @@ const (
 	TerminalTag     = "Terminal"
 	MultiClusterTag = "Multi-cluster"
 
-	WorkspaceTag     = "Workspace"
-	NamespaceTag     = "Namespace"
-	DevOpsProjectTag = "DevOps Project"
-	UserResourceTag  = "User's Resources"
+	WorkspaceTag    = "Workspace"
+	NamespaceTag    = "Namespace"
+	UserResourceTag = "User's Resources"
 
 	NamespaceResourcesTag = "Namespace Resources"
 	ClusterResourcesTag   = "Cluster Resources"

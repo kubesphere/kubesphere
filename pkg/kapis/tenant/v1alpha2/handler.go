@@ -143,36 +143,6 @@ func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Respo
 	resp.WriteEntity(result)
 }
 
-func (h *tenantHandler) ListDevOpsProjects(req *restful.Request, resp *restful.Response) {
-	workspace := req.PathParameter("workspace")
-	queryParam := query.ParseQueryParameter(req)
-
-	var workspaceMember user.Info
-	if username := req.PathParameter("workspacemember"); username != "" {
-		workspaceMember = &user.DefaultInfo{
-			Name: username,
-		}
-	} else {
-		requestUser, ok := request.UserFrom(req.Request.Context())
-		if !ok {
-			err := fmt.Errorf("cannot obtain user info")
-			klog.Errorln(err)
-			api.HandleForbidden(resp, nil, err)
-			return
-		}
-		workspaceMember = requestUser
-	}
-
-	result, err := h.tenant.ListDevOpsProjects(workspaceMember, workspace, queryParam)
-
-	if err != nil {
-		api.HandleInternalError(resp, nil, err)
-		return
-	}
-
-	resp.WriteEntity(result)
-}
-
 func (h *tenantHandler) CreateNamespace(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
 	var namespace corev1.Namespace

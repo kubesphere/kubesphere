@@ -11,10 +11,10 @@ require (
 	github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e // indirect
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/Microsoft/go-winio v0.4.12 // indirect
-	github.com/PuerkitoBio/goquery v1.5.0
+	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
 	github.com/aws/aws-sdk-go v1.33.12
-	github.com/beevik/etree v1.1.0
+	github.com/beevik/etree v1.1.0 // indirect
 	github.com/containernetworking/cni v0.8.0
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/davecgh/go-spew v1.1.1
@@ -29,7 +29,7 @@ require (
 	github.com/emicklei/go-restful v2.14.3+incompatible
 	github.com/emicklei/go-restful-openapi v1.4.1
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/fatih/structs v1.1.0
+	github.com/fatih/structs v1.1.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-ldap/ldap v3.0.3+incompatible
@@ -52,7 +52,7 @@ require (
 	github.com/jszwec/csvutil v1.5.0
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0
-	github.com/kubesphere/sonargo v0.0.2
+	github.com/kubesphere/sonargo v0.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.2.2
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3

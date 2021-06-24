@@ -25,12 +25,14 @@ import (
 )
 
 type Options struct {
-	Host                 string `json:",omitempty" yaml:"host" description:"Jenkins service host address"`
-	Username             string `json:",omitempty" yaml:"username" description:"Jenkins admin username"`
-	Password             string `json:",omitempty" yaml:"password" description:"Jenkins admin password"`
-	MaxConnections       int    `json:"maxConnections,omitempty" yaml:"maxConnections" description:"Maximum connections allowed to connect to Jenkins"`
-	Enable               bool   `json:"enable" yaml:"enable" description:"DevOps controller and apiserver can be disabled, it will be replaced by a separate component"`
-	DevOpsServiceAddress string `json:"devopsServiceAddress" yaml:"devopsServiceAddress" description:"The separate DevOps Service address"`
+	Host                       string `json:",omitempty" yaml:"host" description:"Jenkins service host address"`
+	Username                   string `json:",omitempty" yaml:"username" description:"Jenkins admin username"`
+	Password                   string `json:",omitempty" yaml:"password" description:"Jenkins admin password"`
+	MaxConnections             int    `json:"maxConnections,omitempty" yaml:"maxConnections" description:"Maximum connections allowed to connect to Jenkins"`
+	DevOpsServiceAddress       string `json:"devopsServiceAddress" yaml:"devopsServiceAddress" description:"The separate DevOps Service address"`
+	DevOpsPluginServiceAddress string `json:"devopsPluginServiceAddress" yaml:"devopsPluginServiceAddress" description:"The KubeSphere DevOps plugin Service address"`
+	// K8sBearerToken does not take input from outside
+	K8sBearerToken string
 }
 
 // NewDevopsOptions returns a `zero` instance
@@ -40,7 +42,6 @@ func NewDevopsOptions() *Options {
 		Username:       "",
 		Password:       "",
 		MaxConnections: 100,
-		Enable:         true,
 	}
 }
 
@@ -84,8 +85,6 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 
 	fs.IntVar(&s.MaxConnections, "jenkins-max-connections", c.MaxConnections, ""+
 		"Maximum allowed connections to Jenkins. ")
-
-	fs.BoolVar(&s.Enable, "enable", s.Enable, "DevOps controller and apiserver can be disabled, it will be replaced by a separate component")
 
 	fs.StringVar(&s.DevOpsServiceAddress, "devops-service-address", c.DevOpsServiceAddress,
 		"The separate DevOps Service address.")

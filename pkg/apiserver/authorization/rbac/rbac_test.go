@@ -920,7 +920,7 @@ func newMockRBACAuthorizer(staticRoles *StaticRoles) (*RBACAuthorizer, error) {
 			return nil, err
 		}
 	}
-	return NewRBACAuthorizer(am.NewReadOnlyOperator(fakeInformerFactory)), nil
+	return NewRBACAuthorizer(am.NewReadOnlyOperator(fakeInformerFactory, nil)), nil
 }
 
 func TestAppliesTo(t *testing.T) {
