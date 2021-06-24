@@ -23,6 +23,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -34,11 +36,11 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, client kubernetes.Interface, config *rest.Config) error {
+func AddToContainer(c *restful.Container, client kubernetes.Interface, authorizer authorizer.Authorizer, config *rest.Config) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
 
-	handler := newTerminalHandler(client, config)
+	handler := newTerminalHandler(client, authorizer, config)
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/pods/{pod}/exec").
 		To(handler.handleTerminalSession).
