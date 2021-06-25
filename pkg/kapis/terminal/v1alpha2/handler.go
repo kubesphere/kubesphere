@@ -17,7 +17,12 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"errors"
 	"net/http"
+
+	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
+	requestctx "kubesphere.io/kubesphere/pkg/apiserver/request"
 
 	"github.com/emicklei/go-restful"
 	"github.com/gorilla/websocket"
@@ -37,9 +42,10 @@ var upgrader = websocket.Upgrader{
 
 type terminalHandler struct {
 	terminaler terminal.Interface
+	authorizer authorizer.Authorizer
 }
 
-func newTerminalHandler(client kubernetes.Interface, config *rest.Config) *terminalHandler {
+func newTerminalHandler(client kubernetes.Interface, authorizer authorizer.Authorizer, config *rest.Config) *terminalHandler {
 	return &terminalHandler{
 		terminaler: terminal.NewTerminaler(client, config),
 	}
@@ -50,6 +56,29 @@ func (t *terminalHandler) handleTerminalSession(request *restful.Request, respon
 	podName := request.PathParameter("pod")
 	containerName := request.QueryParameter("container")
 	shell := request.QueryParameter("shell")
+
+	user, _ := requestctx.UserFrom(request.Request.Context())
+
+	createPodsExec := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            "create",
+		Resource:        "pods",
+		Subresource:     "exec",
+		Namespace:       namespace,
+		ResourceRequest: true,
+		ResourceScope:   requestctx.NamespaceScope,
+	}
+
+	decision, reason, err := t.authorizer.Authorize(createPodsExec)
+	if err != nil {
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	if decision != authorizer.DecisionAllow {
+		api.HandleForbidden(response, request, errors.New(reason))
+		return
+	}
 
 	conn, err := upgrader.Upgrade(response.ResponseWriter, request.Request, nil)
 	if err != nil {
