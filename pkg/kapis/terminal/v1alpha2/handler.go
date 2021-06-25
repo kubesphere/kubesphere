@@ -47,6 +47,7 @@ type terminalHandler struct {
 
 func newTerminalHandler(client kubernetes.Interface, authorizer authorizer.Authorizer, config *rest.Config) *terminalHandler {
 	return &terminalHandler{
+		authorizer: authorizer,
 		terminaler: terminal.NewTerminaler(client, config),
 	}
 }
