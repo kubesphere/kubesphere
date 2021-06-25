@@ -75,7 +75,7 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.6.1
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
-	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
+	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/grpc v1.30.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
@@ -664,7 +664,7 @@ replace (
 	go.uber.org/multierr => go.uber.org/multierr v1.3.0
 	go.uber.org/tools => go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
 	go.uber.org/zap => go.uber.org/zap v1.13.0
-	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20190121172915-509febef88a4
 	golang.org/x/image => golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
@@ -673,6 +673,7 @@ replace (
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
+	golang.org/x/term => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	golang.org/x/text => golang.org/x/text v0.3.0
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
