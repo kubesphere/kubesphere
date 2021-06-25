@@ -90,7 +90,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 
 // User is the Schema for the users API
@@ -155,8 +155,7 @@ type UserStatus struct {
 	LastLoginTime *metav1.Time `json:"lastLoginTime,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // UserList contains a list of User
 type UserList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -168,8 +167,7 @@ type UserList struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type GlobalRole struct {
 	metav1.TypeMeta `json:",inline"`
@@ -181,8 +179,7 @@ type GlobalRole struct {
 	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // GlobalRoleList contains a list of GlobalRole
 type GlobalRoleList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -192,10 +189,9 @@ type GlobalRoleList struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// GlobalRoleBinding is the Schema for the globalrolebindings API
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:categories="iam",scope="Cluster"
+// GlobalRoleBinding is the Schema for the globalrolebindings API
 type GlobalRoleBinding struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -210,8 +206,7 @@ type GlobalRoleBinding struct {
 	RoleRef rbacv1.RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // GlobalRoleBindingList contains a list of GlobalRoleBinding
 type GlobalRoleBindingList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -223,8 +218,7 @@ type GlobalRoleBindingList struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
 // +kubebuilder:printcolumn:name="Alias",type="string",JSONPath=".metadata.annotations.kubesphere\\.io/alias-name"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
@@ -238,8 +232,7 @@ type WorkspaceRole struct {
 	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // WorkspaceRoleList contains a list of WorkspaceRole
 type WorkspaceRoleList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -249,11 +242,10 @@ type WorkspaceRoleList struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// WorkspaceRoleBinding is the Schema for the workspacerolebindings API
+// +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
+// WorkspaceRoleBinding is the Schema for the workspacerolebindings API
 type WorkspaceRoleBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -267,8 +259,7 @@ type WorkspaceRoleBinding struct {
 	RoleRef rbacv1.RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // WorkspaceRoleBindingList contains a list of WorkspaceRoleBinding
 type WorkspaceRoleBindingList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -278,7 +269,7 @@ type WorkspaceRoleBindingList struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type RoleBase struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -288,8 +279,7 @@ type RoleBase struct {
 	Role runtime.RawExtension `json:"role"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // RoleBaseList contains a list of RoleBase
 type RoleBaseList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -299,7 +289,7 @@ type RoleBaseList struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".spec.type"
 // +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".spec.provider"
 // +kubebuilder:printcolumn:name="From",type="string",JSONPath=".spec.sourceIP"
@@ -336,8 +326,7 @@ const (
 	Token     LoginType = "Token"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +kubebuilder:object:root=true
 // LoginRecordList contains a list of LoginRecord
 type LoginRecordList struct {
 	metav1.TypeMeta `json:",inline"`

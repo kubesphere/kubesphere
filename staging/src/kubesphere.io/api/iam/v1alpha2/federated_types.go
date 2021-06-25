@@ -96,50 +96,60 @@ var (
 	}
 )
 
+// +kubebuilder:object:generate=false
 type FederatedRoleBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              FederatedRoleBindingSpec `json:"spec"`
 }
 
+// +kubebuilder:object:generate=false
 type FederatedRoleBindingSpec struct {
 	Template  RoleBindingTemplate `json:"template"`
 	Placement Placement           `json:"placement"`
 }
+
+// +kubebuilder:object:generate=false
 type RoleBindingTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Subjects          []rbacv1.Subject `json:"subjects,omitempty"`
 	RoleRef           rbacv1.RoleRef   `json:"roleRef"`
 }
 
+// +kubebuilder:object:generate=false
 type FederatedRole struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              FederatedRoleSpec `json:"spec"`
 }
 
+// +kubebuilder:object:generate=false
 type FederatedRoleSpec struct {
 	Template  RoleTemplate `json:"template"`
 	Placement Placement    `json:"placement"`
 }
 
+// +kubebuilder:object:generate=false
 type RoleTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// +optional
 	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
+// +kubebuilder:object:generate=false
 type FederatedUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              FederatedUserSpec `json:"spec"`
 }
 
+// +kubebuilder:object:generate=false
 type FederatedUserSpec struct {
 	Template  UserTemplate `json:"template"`
 	Placement Placement    `json:"placement"`
 }
 
+// +kubebuilder:object:generate=false
 type UserTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              UserSpec `json:"spec"`
@@ -147,15 +157,18 @@ type UserTemplate struct {
 	Status UserStatus `json:"status,omitempty"`
 }
 
+// +kubebuilder:object:generate=false
 type Placement struct {
 	Clusters        []Cluster       `json:"clusters,omitempty"`
 	ClusterSelector ClusterSelector `json:"clusterSelector,omitempty"`
 }
 
+//+kubebuilder:object:generate=true
 type ClusterSelector struct {
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }
 
+// +kubebuilder:object:generate=false
 type Cluster struct {
 	Name string `json:"name"`
 }

@@ -18,9 +18,7 @@ limitations under the License.
 
 // Package v1alpha2 contains API Schema definitions for the iam v1alpha2 API group
 // +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=kubesphere.io/api/iam
-// +k8s:defaulter-gen=TypeMeta
+// +kubebuilder:object:generate=true
 // +groupName=iam.kubesphere.io
 package v1alpha2
 
