@@ -3,49 +3,38 @@
 set -ex
 set -o pipefail
 
-tag_for_branch() {
-    local tag=$1
-    if [[ "${tag}" == "" ]]; then
-        tag=$(git branch --show-current)
-        tag=${tag/\//-}
-    fi
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
 
-    if [[ "${tag}" == "master" ]]; then
-        tag="latest"
-    fi
-    echo ${tag}
-}
+# push to kubesphere with default latest tag
+TAG=${TAG:-latest}
+REPO=${REPO:-kubesphere}
 
-get_repo() {
-    local repo=${REPO} # read from env
-    repo=${repo:-kubespheredev}
-    if [[ "$1" != "" ]]; then
-      repo="$1"
-    fi
+# If set, just building, no pushing
+DRY_RUN=${DRY_RUN:-}
 
-    # set the default value if there's no user defined
-    if [[ "${repo}" == "" ]]; then
-      repo="kubespheredev"
-    fi
-    echo "$repo"
-}
+# support other container tools. e.g. podman
+CONTAINER_CLI=${CONTAINER_CLI:-docker}
+CONTAINER_BUILDER=${CONTAINER_BUILDER:-build}
 
-# push to kubespheredev with default latest tag
-TAG=$(tag_for_branch "$1")
-REPO=$(get_repo "$2")
+# use host os and arch as default target os and arch
+TARGETOS=${TARGETOS:-$(kube::util::host_os)}
+TARGETARCH=${TARGETARCH:-$(kube::util::host_arch)}
 
-# Push image to dockerhub, need to support multiple push
-cat ~/.docker/config.json | grep index.docker.io
-if [[ $? != 0 ]]; then
-  echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+${CONTAINER_CLI} ${CONTAINER_BUILDER} \
+  --build-arg TARGETARCH=${TARGETARCH} \
+  --build-arg TARGETOS=${TARGETOS} \
+  -f build/ks-apiserver/Dockerfile \
+  -t "${REPO}"/ks-apiserver:"${TAG}" .
+  
+
+${CONTAINER_CLI} ${CONTAINER_BUILDER} \
+  --build-arg TARGETARCH=${TARGETARCH} \
+  --build-arg TARGETOS=${TARGETOS} \
+  -f build/ks-controller-manager/Dockerfile \
+  -t "${REPO}"/ks-apiserver:"${TAG}" .
+
+if [[ -z "${DRY_RUN:-}" ]]; then
+  ${CONTAINER_CLI} push "${REPO}"/ks-apiserver:"${TAG}"
+  ${CONTAINER_CLI} push "${REPO}"/ks-controller-manager:"${TAG}"
 fi
-
-docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
-docker push $REPO/ks-apiserver:$TAG
-# print the full docker image path for your convience
-docker images --digests | grep $REPO/ks-apiserver | grep $TAG | awk '{print $1":"$2"@"$3}'
-
-docker build -f build/ks-controller-manager/Dockerfile -t $REPO/ks-controller-manager:$TAG .
-docker push $REPO/ks-controller-manager:$TAG
-# print the full docker image path for your convience
-docker images --digests | grep $REPO/ks-controller-manager | grep $TAG | awk '{print $1":"$2"@"$3}'
