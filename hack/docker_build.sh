@@ -32,7 +32,7 @@ ${CONTAINER_CLI} ${CONTAINER_BUILDER} \
   --build-arg TARGETARCH=${TARGETARCH} \
   --build-arg TARGETOS=${TARGETOS} \
   -f build/ks-controller-manager/Dockerfile \
-  -t "${REPO}"/ks-apiserver:"${TAG}" .
+  -t "${REPO}"/ks-controller-manager:"${TAG}" .
 
 if [[ -z "${DRY_RUN:-}" ]]; then
   ${CONTAINER_CLI} push "${REPO}"/ks-apiserver:"${TAG}"

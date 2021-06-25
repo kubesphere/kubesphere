@@ -33,5 +33,5 @@ ${CONTAINER_CLI} ${CONTAINER_BUILDER} \
   --platform ${PLATFORMS} \
   ${PUSH} \
   -f build/ks-controller-manager/Dockerfile \
-  -t "${REPO}"/ks-apiserver:"${TAG}" .
+  -t "${REPO}"/ks-controller-manager:"${TAG}" .
 
