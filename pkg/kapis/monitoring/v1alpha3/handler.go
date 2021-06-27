@@ -23,6 +23,7 @@ import (
 	"regexp"
 	"strings"
 
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/klog"
 
 	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -31,7 +32,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 
-	"github.com/emicklei/go-restful"
 	"k8s.io/client-go/kubernetes"
 
 	"kubesphere.io/kubesphere/pkg/api"

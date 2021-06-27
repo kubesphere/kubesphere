@@ -21,7 +21,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/google/go-cmp/cmp"
 )
 

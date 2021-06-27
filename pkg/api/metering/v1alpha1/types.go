@@ -3,7 +3,7 @@ package v1alpha1
 import (
 	"time"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"

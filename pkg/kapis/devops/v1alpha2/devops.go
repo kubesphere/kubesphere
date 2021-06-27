@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/apiserver/pkg/authentication/user"
 	log "k8s.io/klog"
 	"k8s.io/klog/v2"

@@ -17,7 +17,7 @@ limitations under the License.
 package jenkins
 
 import (
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/klog"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"

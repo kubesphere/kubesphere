@@ -17,7 +17,7 @@ limitations under the License.
 package runtime
 
 import (
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

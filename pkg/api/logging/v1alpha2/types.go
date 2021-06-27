@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 )

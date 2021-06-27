@@ -20,7 +20,7 @@ package metrics
 import (
 	"net/http"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	apimachineryversion "k8s.io/apimachinery/pkg/version"

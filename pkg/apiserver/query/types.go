@@ -19,7 +19,7 @@ package query
 import (
 	"strconv"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"

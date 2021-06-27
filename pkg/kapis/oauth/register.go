@@ -19,7 +19,7 @@ package oauth
 import (
 	"net/http"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 
 	"kubesphere.io/kubesphere/pkg/api"

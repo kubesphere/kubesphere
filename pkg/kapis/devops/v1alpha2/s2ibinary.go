@@ -21,7 +21,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/bytefmt"
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/klog"
 
 	"kubesphere.io/kubesphere/pkg/api"

@@ -19,7 +19,7 @@
 package v1alpha1
 
 import (
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/client-go/kubernetes"
 
 	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"

@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/reference"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	log "k8s.io/klog"
 )
 
