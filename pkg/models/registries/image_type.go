@@ -19,7 +19,7 @@ package registries
 import (
 	"time"
 
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 )
 
 // ImageBlobInfo describes the info of an image.

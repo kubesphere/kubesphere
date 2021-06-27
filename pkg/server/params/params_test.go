@@ -22,9 +22,8 @@ import (
 	"reflect"
 	"testing"
 
+	restful "github.com/emicklei/go-restful"
 	"gotest.tools/assert"
-
-	"github.com/emicklei/go-restful"
 )
 
 func TestParseConditions(t *testing.T) {

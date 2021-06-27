@@ -65,7 +65,7 @@ func (c *attachmentOperator) CreateAttachment(data []byte) (*Attachment, error) 
 	}
 	id := idutils.GetUuid36(v1alpha1.HelmAttachmentPrefix)
 
-	err := c.backingStoreClient.Upload(id, id, bytes.NewBuffer(data))
+	err := c.backingStoreClient.Upload(id, id, bytes.NewBuffer(data), len(data))
 	if err != nil {
 		klog.Errorf("upload attachment failed, err: %s", err)
 		return nil, err

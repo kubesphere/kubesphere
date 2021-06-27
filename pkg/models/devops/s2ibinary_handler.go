@@ -26,7 +26,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsS3 "github.com/aws/aws-sdk-go/service/s3"
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
@@ -103,7 +103,7 @@ func (s *s2iBinaryUploader) UploadS2iBinary(namespace, name, md5 string, fileHea
 	copy.Spec.FileName = fileHeader.Filename
 	copy.Spec.DownloadURL = fmt.Sprintf(GetS2iBinaryURL, namespace, name, copy.Spec.FileName)
 
-	err = s.s3Client.Upload(fmt.Sprintf("%s-%s", namespace, name), copy.Spec.FileName, binFile)
+	err = s.s3Client.Upload(fmt.Sprintf("%s-%s", namespace, name), copy.Spec.FileName, binFile, int(fileHeader.Size))
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {

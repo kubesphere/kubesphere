@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/klog"
 
 	"kubesphere.io/kubesphere/pkg/api"

@@ -23,7 +23,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/server/errors"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"

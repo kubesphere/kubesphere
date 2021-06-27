@@ -3,7 +3,7 @@ package v1alpha2
 import (
 	"fmt"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/klog"
 
 	"strconv"

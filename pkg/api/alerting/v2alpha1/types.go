@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	prommodel "github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/timestamp"

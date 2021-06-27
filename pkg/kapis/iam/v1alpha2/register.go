@@ -21,7 +21,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/api/rbac/v1"

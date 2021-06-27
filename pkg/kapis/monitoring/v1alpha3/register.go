@@ -24,7 +24,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"

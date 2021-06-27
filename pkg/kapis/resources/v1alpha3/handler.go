@@ -19,7 +19,7 @@ package v1alpha3
 import (
 	"strings"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"k8s.io/klog"
 
 	"kubesphere.io/kubesphere/pkg/api"

@@ -43,7 +43,7 @@ type Object struct {
 	Body     io.Reader
 }
 
-func (s *FakeS3) Upload(key, fileName string, body io.Reader) error {
+func (s *FakeS3) Upload(key, fileName string, body io.Reader, size int) error {
 	s.Storage[key] = &Object{
 		Key:      key,
 		FileName: fileName,

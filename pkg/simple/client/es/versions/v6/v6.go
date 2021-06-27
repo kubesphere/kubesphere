@@ -24,7 +24,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v6"
+	elasticsearch "github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/v6/esapi"
 )
 

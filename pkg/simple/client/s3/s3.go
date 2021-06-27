@@ -19,6 +19,7 @@ package s3
 import (
 	"fmt"
 	"io"
+	"math"
 	"time"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -36,10 +37,40 @@ type Client struct {
 	bucket    string
 }
 
-func (s *Client) Upload(key, fileName string, body io.Reader) error {
+const (
+	DefaultPartSize = 5 * bytefmt.MEGABYTE
+	// MinConcurrency is the minimum concurrency when uploading a part to Amazon S3,
+	// it's also the default value of Concurrency in aws-sdk-go.
+	MinConcurrency = 5
+	// MaxConcurrency is the maximum concurrency to limit the goroutines.
+	MaxConcurrency = 128
+)
+
+// calculateConcurrency calculates the concurrency for better performance,
+// make the concurrency in range [5, 128].
+func calculateConcurrency(size int) int {
+	if size <= 0 {
+		return MinConcurrency
+	}
+	c := int(math.Ceil(float64(size) / float64(DefaultPartSize)))
+	if c < MinConcurrency {
+		return MinConcurrency
+	} else if c > MaxConcurrency {
+		return MaxConcurrency
+	}
+	return c
+}
+
+// Upload use Multipart upload to upload a single object as a set of parts.
+// If the data length is known to be large, it is recommended to pass in the data length,
+// it will helps to calculate concurrency. Otherwise, `size` can be 0,
+// use 5 as default upload concurrency, same as aws-sdk-go.
+// See https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html for more details.
+func (s *Client) Upload(key, fileName string, body io.Reader, size int) error {
 	uploader := s3manager.NewUploader(s.s3Session, func(uploader *s3manager.Uploader) {
-		uploader.PartSize = 5 * bytefmt.MEGABYTE
+		uploader.PartSize = DefaultPartSize
 		uploader.LeavePartsOnError = true
+		uploader.Concurrency = calculateConcurrency(size)
 	})
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:             aws.String(s.bucket),
