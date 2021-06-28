@@ -25,7 +25,7 @@
           serviceAccountName: kubesphere-router-serviceaccount
           containers:
             - name: nginx-ingress-controller
-              image: image: {{ .Values.image.nginx_ingress_controller_repo }}:{{ .Values.image.nginx_ingress_controller_tag | default .Chart.AppVersion}}
+              image: {{ .Values.image.nginx_ingress_controller_repo }}:{{ .Values.image.nginx_ingress_controller_tag | default .Chart.AppVersion}}
               args:
                 - /nginx-ingress-controller
                 - --default-backend-service=$(POD_NAMESPACE)/default-http-backend

@@ -76,7 +76,7 @@ data:
                   cpu: '1'
                   memory: 1000Mi
               imagePullPolicy: IfNotPresent
-              image: {{- .Values.image.bookinfo_productpage_v1_repo }}:{{- .Values.image.bookinfo_productpage_v1_tag }}
+              image: {{ .Values.image.bookinfo_productpage_v1_repo }}:{{ .Values.image.bookinfo_productpage_v1_tag }}
               ports:
                 - name: http-web
                   protocol: TCP
@@ -156,7 +156,7 @@ data:
                   cpu: '1'
                   memory: 1000Mi
               imagePullPolicy: IfNotPresent
-              image: {{- .Values.image.bookinfo_reviews_v1_repo }}:{{- .Values.image.bookinfo_reviews_v1_tag }}
+              image: {{ .Values.image.bookinfo_reviews_v1_repo }}:{{ .Values.image.bookinfo_reviews_v1_tag }}
               ports:
                 - name: http-web
                   protocol: TCP
@@ -236,7 +236,7 @@ data:
                   cpu: '1'
                   memory: 1000Mi
               imagePullPolicy: IfNotPresent
-              image: {{- .Values.image.bookinfo_details_v1_repo }}:{{- .Values.image.bookinfo_details_v1_tag }}
+              image: {{ .Values.image.bookinfo_details_v1_repo }}:{{ .Values.image.bookinfo_details_v1_tag }}
               ports:
                 - name: http-web
                   protocol: TCP
@@ -316,7 +316,7 @@ data:
                   cpu: '1'
                   memory: 1000Mi
               imagePullPolicy: IfNotPresent
-              image: {{- .Values.image.bookinfo_ratings_v1_repo }}:{{- .Values.image.bookinfo_ratings_v1_tag }}
+              image: {{ .Values.image.bookinfo_ratings_v1_repo }}:{{ .Values.image.bookinfo_ratings_v1_tag }}
               ports:
                 - name: http-web
                   protocol: TCP
