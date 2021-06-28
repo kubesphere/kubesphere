@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/form3tech-oss/jwt-go"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 )
