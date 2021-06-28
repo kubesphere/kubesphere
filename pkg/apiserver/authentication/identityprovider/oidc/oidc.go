@@ -28,7 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 
 	oidc "github.com/coreos/go-oidc"
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/form3tech-oss/jwt-go"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/oauth2"
 
