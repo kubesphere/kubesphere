@@ -44,16 +44,10 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          bash hack/docker_build.sh master
 
           if [[ $? == 0 ]]; then
             tag=nightly-$(date '+%Y%m%d')
-
-            docker tag kubespheredev/ks-apiserver kubespheredev/ks-apiserver:${tag}
-            docker tag kubespheredev/ks-controller-manager kubespheredev/ks-controller-manager:${tag}
-
-            docker push kubespheredev/ks-apiserver:${tag}
-            docker push kubespheredev/ks-controller-manager:${tag}
+            REPO=kubespheredev TAG=${tag} make container-push
           else
             exit -1
           fi
