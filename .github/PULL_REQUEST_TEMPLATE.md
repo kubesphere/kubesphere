@@ -7,19 +7,20 @@
 
 ### What type of PR is this?
 <!-- 
-Add one of the following kinds:
-/kind bug
-/kind cleanup
-/kind documentation
-/kind feature
-/kind design
+Uncomment only one ` /kind <>` line, hit enter to put that in a new line, and remove leading whitespaces from that line:
+
+</kind bug
+</kind cleanup
+</kind documentation
+</kind feature
+</kind design
 
 Optionally add one or more of the following kinds if applicable:
-/kind api-change
-/kind deprecation
-/kind failing-test
-/kind flake
-/kind regression
+</kind api-change
+</kind deprecation
+</kind failing-test
+</kind flake
+</kind regression
 -->
 
 
