@@ -17,5 +17,5 @@ limitations under the License.
 package helmwrapper
 
 const (
-	helmPath = "/usr/bin/helm"
+	helmPath = "/usr/local/bin/helm"
 )
