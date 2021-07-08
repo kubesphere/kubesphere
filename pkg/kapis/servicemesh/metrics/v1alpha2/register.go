@@ -22,24 +22,29 @@ import (
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
+	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 )
 
 const groupName = "servicemesh.kubesphere.io"
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container) error {
+func AddToContainer(o *servicemesh.Options, c *restful.Container, client kubernetes.Interface, cache cache.Interface) error {
 
 	tags := []string{"ServiceMesh"}
 
 	webservice := runtime.NewWebService(GroupVersion)
 
+	h := NewHandler(o, client, cache)
+
 	// Get service metrics
 	// GET /namespaces/{namespace}/services/{service}/metrics
 	webservice.Route(webservice.GET("/namespaces/{namespace}/services/{service}/metrics").
-		To(getServiceMetrics).
+		To(h.GetServiceMetrics).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get service metrics from a specific namespace").
 		Param(webservice.PathParameter("namespace", "name of the namespace")).
@@ -59,7 +64,7 @@ func AddToContainer(c *restful.Container) error {
 	// Get app metrics
 	// Get /namespaces/{namespace}/apps/{app}/metrics
 	webservice.Route(webservice.GET("/namespaces/{namespace}/apps/{app}/metrics").
-		To(getAppMetrics).
+		To(h.GetAppMetrics).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get app metrics from a specific namespace").
 		Param(webservice.PathParameter("namespace", "name of the namespace")).
@@ -79,7 +84,7 @@ func AddToContainer(c *restful.Container) error {
 	// Get workload metrics
 	// Get /namespaces/{namespace}/workloads/{workload}/metrics
 	webservice.Route(webservice.GET("/namespaces/{namespace}/workloads/{workload}/metrics").
-		To(getWorkloadMetrics).
+		To(h.GetWorkloadMetrics).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get workload metrics from a specific namespace").
 		Param(webservice.PathParameter("namespace", "name of the namespace").Required(true)).
@@ -99,7 +104,7 @@ func AddToContainer(c *restful.Container) error {
 	// Get namespace metrics
 	// Get /namespaces/{namespace}/metrics
 	webservice.Route(webservice.GET("/namespaces/{namespace}/metrics").
-		To(getNamespaceMetrics).
+		To(h.GetNamespaceMetrics).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get metrics from a specific namespace").
 		Param(webservice.PathParameter("namespace", "name of the namespace").Required(true)).
@@ -118,7 +123,7 @@ func AddToContainer(c *restful.Container) error {
 	// Get namespace graph
 	// Get /namespaces/{namespace}/graph
 	webservice.Route(webservice.GET("/namespaces/{namespace}/graph").
-		To(getNamespaceGraph).
+		To(h.GetNamespaceGraph).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get service graph for a specific namespace").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
@@ -133,7 +138,7 @@ func AddToContainer(c *restful.Container) error {
 
 	// Get namespace health
 	webservice.Route(webservice.GET("/namespaces/{namespace}/health").
-		To(getNamespaceHealth).
+		To(h.GetNamespaceHealth).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get app/service/workload health of a namespace").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
@@ -145,7 +150,7 @@ func AddToContainer(c *restful.Container) error {
 
 	// Get workloads health
 	webservice.Route(webservice.GET("/namespaces/{namespace}/workloads/{workload}/health").
-		To(getWorkloadHealth).
+		To(h.GetWorkloadHealth).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get workload health").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
@@ -156,7 +161,7 @@ func AddToContainer(c *restful.Container) error {
 
 	// Get app health
 	webservice.Route(webservice.GET("/namespaces/{namespace}/apps/{app}/health").
-		To(getAppHealth).
+		To(h.GetAppHealth).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get app health").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
@@ -167,7 +172,7 @@ func AddToContainer(c *restful.Container) error {
 
 	// Get service health
 	webservice.Route(webservice.GET("/namespaces/{namespace}/services/{service}/health").
-		To(getServiceHealth).
+		To(h.GetServiceHealth).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get service health").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
@@ -178,7 +183,7 @@ func AddToContainer(c *restful.Container) error {
 
 	// Get service tracing
 	webservice.Route(webservice.GET("/namespaces/{namespace}/services/{service}/traces").
-		To(getServiceTracing).
+		To(h.GetServiceTracing).
 		Doc("Get tracing of a service, should have servicemesh enabled first").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("namespace", "namespace of service").Required(true)).

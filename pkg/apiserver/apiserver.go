@@ -254,7 +254,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		auth.NewLoginRecorder(s.KubernetesClient.KubeSphere(),
 			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister()),
 		s.Config.AuthenticationOptions))
-	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
+	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.Config.ServiceMeshOptions, s.container, s.KubernetesClient.Kubernetes(), s.CacheClient))
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container,
 		s.InformerFactory.KubeSphereSharedInformerFactory(),

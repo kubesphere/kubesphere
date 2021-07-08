@@ -29,8 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"kubesphere.io/kubesphere/pkg/version"
-
-	tracing "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 )
 
 func NewAPIServerCommand() *cobra.Command {
@@ -90,8 +88,6 @@ cluster's shared state through which all other components interact.`,
 
 func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 
-	initializeServicemeshConfig(s)
-
 	apiserver, err := s.NewAPIServer(stopCh)
 	if err != nil {
 		return err
@@ -103,16 +99,4 @@ func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 	}
 
 	return apiserver.Run(stopCh)
-}
-
-func initializeServicemeshConfig(s *options.ServerRunOptions) {
-	// Config jaeger query endpoint address
-	if s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.JaegerQueryHost) != 0 {
-		tracing.JaegerQueryUrl = s.ServiceMeshOptions.JaegerQueryHost
-	}
-
-	// Set the kiali query endpoint address
-	if s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.KialiQueryHost) != 0 {
-		tracing.KialiQueryUrl = s.ServiceMeshOptions.KialiQueryHost
-	}
 }
