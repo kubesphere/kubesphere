@@ -26,7 +26,7 @@ jobs:
         run: go mod vendor
 
       - name: Create kind cluster
-        uses: helm/kind-action@v1.0.0-rc.1
+        uses: helm/kind-action@v1.2.0
         with:
           config: .github/workflows/kind/kind.yaml
 
