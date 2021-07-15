@@ -237,7 +237,7 @@ func (c IPAMClient) autoAssign(handleID string, attrs map[string]string, request
 func (c IPAMClient) assignFromExistingBlock(block *v1alpha1.IPAMBlock, handleID string, attrs map[string]string) (*cnet.IPNet, error) {
 	ips := block.AutoAssign(1, handleID, attrs)
 	if len(ips) == 0 {
-		return nil, fmt.Errorf("block %s has no availabe IP", block.BlockName())
+		return nil, fmt.Errorf("block %s has no available IP", block.BlockName())
 	}
 
 	err := c.incrementHandle(handleID, block, 1)

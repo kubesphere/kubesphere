@@ -56,7 +56,7 @@ func ParsePaging(req *restful.Request) (limit, offset int) {
 	}
 	offset = (page - 1) * limit
 
-	// use the explict offset
+	// use the explicit offset
 	if start := req.QueryParameter("start"); start != "" {
 		offset = AtoiOrDefault(start, offset)
 	}

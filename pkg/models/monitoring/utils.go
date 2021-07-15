@@ -203,7 +203,7 @@ func updateMetricStatData(metric monitoring.Metric, scalingMap map[string]float6
 	metricData := metric.MetricData
 	for index, metricValue := range metricData.MetricValues {
 
-		// calulate min, max, avg value first, then squash points with factor
+		// calculate min, max, avg value first, then squash points with factor
 		if metricData.MetricType == monitoring.MetricTypeMatrix {
 			metricData.MetricValues[index].MinValue = getMinPointValue(metricValue.Series)
 			metricData.MetricValues[index].MaxValue = getMaxPointValue(metricValue.Series)

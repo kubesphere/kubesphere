@@ -128,7 +128,7 @@ func NewController(
 
 	// ProvisionerCapability acts as a value source of its relevant StorageClassCapabilities
 	// so when a PC is created/updated, the corresponding SCCs should be created(if not exists)/updated
-	// we achive this by simply enqueueing the StorageClasses of the same provisioner
+	// we achieve this by simply enqueueing the StorageClasses of the same provisioner
 	// but don't overdo by cascade deleting the SCCs when a PC is deleted
 	// since the role of PCs is more like a template rather than owner to SCCs
 

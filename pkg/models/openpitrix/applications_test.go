@@ -47,7 +47,7 @@ func TestOpenPitrixApp(t *testing.T) {
 	// validate package
 	validateResp, err := appOperator.ValidatePackage(validateReq)
 	if err != nil || validateResp.Error != "" {
-		klog.Errorf("validate pacakge failed, error: %s", err)
+		klog.Errorf("validate package failed, error: %s", err)
 		t.FailNow()
 	}
 
@@ -58,7 +58,7 @@ func TestOpenPitrixApp(t *testing.T) {
 	// validate corrupted package
 	validateResp, err = appOperator.ValidatePackage(validateReq)
 	if err == nil {
-		klog.Errorf("validate pacakge failed, error: %s", err)
+		klog.Errorf("validate package failed, error: %s", err)
 		t.FailNow()
 	}
 
