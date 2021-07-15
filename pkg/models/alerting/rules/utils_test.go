@@ -27,10 +27,10 @@ func TestGetAlertingRulesStatus(t *testing.T) {
 			Level:  v2alpha1.RuleLevelNamespace,
 			Custom: true,
 			ResourceRulesMap: map[string]*ResourceRuleCollection{
-				"custom-alerting-rule-jqbgn": &ResourceRuleCollection{
-					GroupSet: map[string]struct{}{"alerting.custom.defaults": struct{}{}},
+				"custom-alerting-rule-jqbgn": {
+					GroupSet: map[string]struct{}{"alerting.custom.defaults": {}},
 					NameRules: map[string][]*ResourceRuleItem{
-						"ca7f09e76954e67c": []*ResourceRuleItem{{
+						"ca7f09e76954e67c": {{
 							ResourceName: "custom-alerting-rule-jqbgn",
 							RuleWithGroup: RuleWithGroup{
 								Group: "alerting.custom.defaults",

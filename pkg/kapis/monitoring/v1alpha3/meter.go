@@ -53,7 +53,7 @@ func (h handler) handleApplicationMetersQuery(meters []string, resp *restful.Res
 	}
 	appWorkloads := h.getAppWorkloads(aso.NamespaceName, aso.Applications)
 
-	for k, _ := range appWorkloads {
+	for k := range appWorkloads {
 		opt := monitoring.ApplicationOption{
 			NamespaceName:         aso.NamespaceName,
 			Application:           k,
@@ -111,7 +111,7 @@ func (h handler) handleServiceMetersQuery(meters []string, resp *restful.Respons
 	}
 	svcPodsMap := h.mo.GetSerivePodsMap(sso.NamespaceName, sso.Services)
 
-	for k, _ := range svcPodsMap {
+	for k := range svcPodsMap {
 		opt := monitoring.ServiceOption{
 			NamespaceName: sso.NamespaceName,
 			ServiceName:   k,
@@ -425,7 +425,7 @@ func (h handler) handleOpenpitrixMetersQuery(meters []string, resp *restful.Resp
 
 	opWorkloads := h.getOpWorkloads(oso.Cluster, oso.NamespaceName, oso.Openpitrixs)
 
-	for k, _ := range opWorkloads {
+	for k := range opWorkloads {
 		opt := monitoring.ApplicationOption{
 			NamespaceName:         oso.NamespaceName,
 			Application:           k,

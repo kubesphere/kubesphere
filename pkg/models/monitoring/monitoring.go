@@ -459,7 +459,7 @@ func (mo monitoringOperator) GetNamedMetersOverTime(meters []string, start, end 
 	ress := mo.prometheus.GetNamedMetersOverTime(meters, start, end, time.Hour, opts)
 	sMap := generateScalingFactorMap(step)
 
-	for i, _ := range ress {
+	for i := range ress {
 		ress[i].MetricData = updateMetricStatData(ress[i], sMap, priceInfo)
 	}
 
@@ -470,7 +470,7 @@ func (mo monitoringOperator) GetNamedMeters(meters []string, time time.Time, opt
 
 	metersPerHour := mo.getNamedMetersWithHourInterval(meters, time, opt)
 
-	for metricIndex, _ := range metersPerHour.Results {
+	for metricIndex := range metersPerHour.Results {
 
 		res := metersPerHour.Results[metricIndex]
 

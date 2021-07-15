@@ -607,7 +607,7 @@ func (t *tenantOperator) processApplicationMetersQuery(meters []string, q QueryO
 	}
 	componentsMap := t.mo.GetAppWorkloads(aso.NamespaceName, aso.Applications)
 
-	for k, _ := range componentsMap {
+	for k := range componentsMap {
 		opt := monitoring.ApplicationOption{
 			NamespaceName:         aso.NamespaceName,
 			Application:           k,
@@ -655,7 +655,7 @@ func (t *tenantOperator) processServiceMetersQuery(meters []string, q QueryOptio
 	}
 	svcPodsMap := t.mo.GetSerivePodsMap(sso.NamespaceName, sso.Services)
 
-	for k, _ := range svcPodsMap {
+	for k := range svcPodsMap {
 		opt := monitoring.ServiceOption{
 			NamespaceName: sso.NamespaceName,
 			ServiceName:   k,

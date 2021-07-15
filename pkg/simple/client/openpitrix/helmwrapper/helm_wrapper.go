@@ -299,8 +299,8 @@ func (c *helmWrapper) setupPostRenderEnvironment() error {
 
 	kustomizationConfig := types.Kustomization{
 		Resources:         []string{"./.local-helm-output.yaml"},
-		CommonAnnotations: c.annotations,                               // add extra annotations to output
-		Labels:            []types.Label{types.Label{Pairs: c.labels}}, // Labels to add to all objects but not selectors.
+		CommonAnnotations: c.annotations,                    // add extra annotations to output
+		Labels:            []types.Label{{Pairs: c.labels}}, // Labels to add to all objects but not selectors.
 	}
 
 	err = yaml.NewEncoder(kustomization).Encode(kustomizationConfig)

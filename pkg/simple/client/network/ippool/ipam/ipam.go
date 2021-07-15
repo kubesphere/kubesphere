@@ -267,7 +267,7 @@ func (c IPAMClient) ReleaseByHandle(handleID string) error {
 		return err
 	}
 
-	for blockStr, _ := range handle.Spec.Block {
+	for blockStr := range handle.Spec.Block {
 		blockName := v1alpha1.ConvertToBlockName(blockStr)
 		if err := c.releaseByHandle(handleID, blockName); err != nil {
 			return err
