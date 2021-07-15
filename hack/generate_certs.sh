@@ -36,15 +36,15 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-[ -z ${service} ] && service=webhook-service
-[ -z ${namespace} ] && namespace=default
+[ -z "${service}" ] && service=webhook-service
+[ -z "${namespace}" ] && namespace=default
 
 if [ ! -x "$(command -v openssl)" ]; then
     echo "openssl not found"
     exit 1
 fi
 
-csrName=${service}.${namespace}
+# csrName=${service}.${namespace}
 CERTSDIR="config/certs"
 
 if [ ! -d ${CERTSDIR} ]; then
