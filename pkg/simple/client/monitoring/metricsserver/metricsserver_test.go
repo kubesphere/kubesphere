@@ -139,7 +139,7 @@ var (
 		Timestamp: metav1.Time{Time: metricsTime},
 		Window:    metav1.Duration{Duration: time.Minute},
 		Containers: []metricsV1beta1.ContainerMetrics{
-			metricsV1beta1.ContainerMetrics{
+			{
 				Name: "containers-1",
 				Usage: v1.ResourceList{
 					v1.ResourceCPU: *resource.NewMilliQuantity(
@@ -163,7 +163,7 @@ var (
 		Timestamp: metav1.Time{Time: metricsTime},
 		Window:    metav1.Duration{Duration: time.Minute},
 		Containers: []metricsV1beta1.ContainerMetrics{
-			metricsV1beta1.ContainerMetrics{
+			{
 				Name: "containers-1",
 				Usage: v1.ResourceList{
 					v1.ResourceCPU: *resource.NewMilliQuantity(
@@ -174,7 +174,7 @@ var (
 						resource.DecimalSI),
 				},
 			},
-			metricsV1beta1.ContainerMetrics{
+			{
 				Name: "containers-2",
 				Usage: v1.ResourceList{
 					v1.ResourceCPU: *resource.NewMilliQuantity(

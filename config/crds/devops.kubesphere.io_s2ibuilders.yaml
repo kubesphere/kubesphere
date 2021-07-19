@@ -51,7 +51,7 @@ spec:
                 description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file'
                 properties:
                   addHost:
-                    description: AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,muliple hosts can be added  by using multiple --add-host
+                    description: AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,multiple hosts can be added  by using multiple --add-host
                     items:
                       type: string
                     type: array

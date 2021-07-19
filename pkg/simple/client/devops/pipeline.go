@@ -102,7 +102,7 @@ type Pipeline struct {
 func UnmarshalPipeline(total int, data []byte) (pipelineList *PipelineList, err error) {
 	pipelineList = &PipelineList{Total: total}
 	pipelineList.Items = make([]Pipeline, total)
-	for i, _ := range pipelineList.Items {
+	for i := range pipelineList.Items {
 		pipelineList.Items[i].WeatherScore = 100
 	}
 	err = json.Unmarshal(data, &pipelineList.Items)

@@ -67,7 +67,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 ### Observability
 
-- [x] Utilizing existing Promethues stack setup. [#3068](https://github.com/kubesphere/kubesphere/issues/3068) [#1164](https://github.com/kubesphere/ks-installer/pull/1164) [Guide](https://kubesphere.io/docs/faq/observability/byop/)
+- [x] Utilizing existing Prometheus stack setup. [#3068](https://github.com/kubesphere/kubesphere/issues/3068) [#1164](https://github.com/kubesphere/ks-installer/pull/1164) [Guide](https://kubesphere.io/docs/faq/observability/byop/)
 
 #### Custom monitoring [#3067](https://github.com/kubesphere/kubesphere/issues/3067)
 

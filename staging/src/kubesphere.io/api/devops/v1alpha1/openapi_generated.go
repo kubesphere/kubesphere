@@ -14823,7 +14823,7 @@ func schema_pkg_apis_devops_v1alpha1_S2iConfig(ref common.ReferenceCallback) com
 					},
 					"addHost": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,muliple hosts can be added  by using multiple --add-host",
+							Description: "AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,multiple hosts can be added  by using multiple --add-host",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

@@ -291,7 +291,7 @@ func (d devopsOperator) ListPipelineObj(projectName string, filterFunc PipelineF
 	}
 
 	var result []interface{}
-	for i, _ := range data {
+	for i := range data {
 		if filterFunc != nil && !filterFunc(data[i]) {
 			continue
 		}

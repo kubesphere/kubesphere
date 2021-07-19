@@ -175,7 +175,7 @@ func (m metricsServer) getPodMetricsFromMetricsAPI(edgePods map[string]bool, opt
 
 	// handle cases with when edgePodName contains namespaceName
 	if opts.NamespacedResourcesFilter != "" {
-		for p, _ := range edgePods {
+		for p := range edgePods {
 			splitedPodName := strings.Split(p, "/")
 			ns, p = strings.ReplaceAll(splitedPodName[0], " ", ""), strings.ReplaceAll(splitedPodName[1], " ", "")
 			pm := mc.PodMetricses(ns)
@@ -344,7 +344,7 @@ func (m metricsServer) GetNodeLevelNamedMetrics(metrics []string, ts time.Time, 
 	}
 
 	status := make(map[string]v1.NodeStatus)
-	for n, _ := range edgeNodeNamesFiltered {
+	for n := range edgeNodeNamesFiltered {
 		status[n] = edgeNodes[n].Status
 	}
 
@@ -579,7 +579,7 @@ func (m metricsServer) GetNodeLevelNamedMetricsOverTime(metrics []string, start,
 	}
 
 	status := make(map[string]v1.NodeStatus)
-	for n, _ := range edgeNodeNamesFiltered {
+	for n := range edgeNodeNamesFiltered {
 		status[n] = edgeNodes[n].Status
 	}
 

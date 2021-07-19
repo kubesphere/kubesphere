@@ -116,7 +116,7 @@ func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restf
 		Items: make([]clientDevOps.Pipeline, len(objs.Items)),
 	}
 	pipelineMap := make(map[string]int, pipelineList.Total)
-	for i, _ := range objs.Items {
+	for i := range objs.Items {
 		if pipeline, ok := objs.Items[i].(v1alpha3.Pipeline); !ok {
 			continue
 		} else {
@@ -139,7 +139,7 @@ func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restf
 	if err != nil {
 		log.Error(err)
 	} else {
-		for i, _ := range res.Items {
+		for i := range res.Items {
 			if index, ok := pipelineMap[res.Items[i].Name]; ok {
 				// keep annotations field of pipelineList
 				annotations := pipelineList.Items[index].Annotations

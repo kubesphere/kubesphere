@@ -24,13 +24,13 @@ KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
 VERBOSE=${VERBOSE:-"0"}
-V=""
+# V=""
 if [[ "${VERBOSE}" == "1" ]];then
-    V="-x"
+    # V="-x"
     set -x
 fi
 
-ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 OUTPUT_DIR=bin
 BUILDPATH=./${1:?"path to build"}
@@ -44,5 +44,5 @@ LDFLAGS=$(kube::version::ldflags)
 time GOOS=${BUILD_GOOS} GOARCH=${BUILD_GOARCH} ${GOBINARY} test \
         -c \
         -ldflags "${LDFLAGS}" \
-        -o ${OUT} \
-        ${BUILDPATH}
+        -o "${OUT}" \
+        "${BUILDPATH}"

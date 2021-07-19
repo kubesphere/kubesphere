@@ -23,13 +23,13 @@ fi
 # supported platforms
 PLATFORMS=linux/amd64,linux/arm64
 
-${CONTAINER_CLI} ${CONTAINER_BUILDER} \
+"${CONTAINER_CLI} ${CONTAINER_BUILDER}" \
   --platform ${PLATFORMS} \
   ${PUSH} \
   -f build/ks-apiserver/Dockerfile \
   -t "${REPO}"/ks-apiserver:"${TAG}" .
 
-${CONTAINER_CLI} ${CONTAINER_BUILDER} \
+"${CONTAINER_CLI} ${CONTAINER_BUILDER}" \
   --platform ${PLATFORMS} \
   ${PUSH} \
   -f build/ks-controller-manager/Dockerfile \

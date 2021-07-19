@@ -392,7 +392,7 @@ type S2iConfig struct {
 	// This url can be a reference within the builder image if the scheme is specified as image://
 	ImageScriptsURL string `json:"imageScriptsUrl,omitempty"`
 
-	// AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,muliple hosts can be added  by using multiple --add-host
+	// AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,multiple hosts can be added  by using multiple --add-host
 	AddHost []string `json:"addHost,omitempty"`
 
 	// Export Push the result image to specify image registry in tag

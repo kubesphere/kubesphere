@@ -446,9 +446,9 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 func exportMetrics(metrics model.Metrics, startTime, endTime time.Time) (*bytes.Buffer, error) {
 	var resBytes []byte
 
-	for i, _ := range metrics.Results {
+	for i := range metrics.Results {
 		ret := metrics.Results[i]
-		for j, _ := range ret.MetricValues {
+		for j := range ret.MetricValues {
 			ret.MetricValues[j].TransferToExportedMetricValue()
 		}
 	}

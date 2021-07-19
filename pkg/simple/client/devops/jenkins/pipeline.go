@@ -115,7 +115,7 @@ func (p *Pipeline) ListPipelines() (*devops.PipelineList, error) {
 			}
 			klog.Errorf("API '%s' request response code is '%d'", p.Path, jErr.Code)
 		} else {
-			err = fmt.Errorf("unknow errors happend when communicate with Jenkins")
+			err = fmt.Errorf("unknow errors happened when communicate with Jenkins")
 		}
 		return nil, err
 	}

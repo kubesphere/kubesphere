@@ -20,7 +20,7 @@ set -o pipefail
 
 function wait_for_installation_finish() {
     echo "waiting for ks-installer pod ready"
-    kubectl -n kubesphere-system wait --timeout=180s --for=condition=Ready $(kubectl -n kubesphere-system get pod -l app=ks-install -oname)
+    kubectl -n kubesphere-system wait --timeout=180s --for=condition=Ready "$(kubectl -n kubesphere-system get pod -l app=ks-install -oname)"
     echo "waiting for KubeSphere ready"
     while IFS= read -r line; do
         if [[ $line =~ "Welcome to KubeSphere" ]]
@@ -45,7 +45,7 @@ fi
 wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 --tries 3 https://raw.githubusercontent.com/kubesphere/ks-installer/master/deploy/kubesphere-installer.yaml
 wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 --tries 3 https://raw.githubusercontent.com/kubesphere/ks-installer/master/deploy/cluster-configuration.yaml
 
-#TODO: override ks-apiserver and ks-controller-manager images with specific tag 
+#TODO: override ks-apiserver and ks-controller-manager images with specific tag
 
 kubectl apply -f kubesphere-installer.yaml
 kubectl apply -f cluster-configuration.yaml
@@ -53,4 +53,4 @@ kubectl apply -f cluster-configuration.yaml
 wait_for_installation_finish
 
 # Expose KubeSphere API Server
-kubectl -n kubesphere-system patch svc ks-apiserver -p '{"spec":{"type":"NodePort","ports":[{"name":"ks-apiserver","port":80,"protocal":"TCP","targetPort":9090,"nodePort":30881}]}}'
+kubectl -n kubesphere-system patch svc ks-apiserver -p '{"spec":{"type":"NodePort","ports":[{"name":"ks-apiserver","port":80,"protocol":"TCP","targetPort":9090,"nodePort":30881}]}}'

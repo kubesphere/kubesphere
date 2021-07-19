@@ -69,6 +69,7 @@ done < <(find . -name "*.sh" \
     -path ./_\*      -o \
     -path ./.git\*   -o \
     -path ./vendor\* -o \
+    -path ./hack/install_kubebuilder.sh -o \
     \( -path ./third_party\* -a -not -path ./third_party/forked\* \) \
   \))
 
