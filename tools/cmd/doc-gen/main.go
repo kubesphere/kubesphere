@@ -133,7 +133,7 @@ func generateSwaggerJson() []byte {
 	urlruntime.Must(resourcesv1alpha3.AddToContainer(container, informerFactory, nil))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(container, informerFactory, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container, clientsets.Kubernetes(), nil, nil))
-	urlruntime.Must(metricsv1alpha2.AddToContainer(container))
+	urlruntime.Must(metricsv1alpha2.AddToContainer(nil, container, clientsets.Kubernetes(), nil))
 	urlruntime.Must(networkv1alpha2.AddToContainer(container, ""))
 	alertingOptions := &alerting.Options{}
 	alertingClient, _ := alerting.NewRuleClient(alertingOptions)
