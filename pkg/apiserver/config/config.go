@@ -141,6 +141,11 @@ func TryLoadFromDisk() (*Config, error) {
 	// Load from current working directory, only used for debugging
 	viper.AddConfigPath(".")
 
+	// Load from Environment variables
+	viper.SetEnvPrefix("kubesphere")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			return nil, err
