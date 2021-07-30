@@ -31,6 +31,8 @@ PATH="${GOBIN}:${PATH}"
 
 # Install tools we need
 pushd "${KUBE_ROOT}/hack/tools" >/dev/null
+  # As GOFLAGS may equal to `-mod=vendor`, we must download the modules to vendor or go install will fail.
+  go mod vendor
   GO111MODULE=on go install github.com/client9/misspell/cmd/misspell
 popd >/dev/null
 
