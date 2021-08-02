@@ -22,10 +22,9 @@ type PageableResponse struct {
 }
 
 type Workspace struct {
-	Group          `json:",inline"`
-	Admin          string   `json:"admin,omitempty"`
-	Namespaces     []string `json:"namespaces"`
-	DevopsProjects []string `json:"devops_projects"`
+	Group      `json:",inline"`
+	Admin      string   `json:"admin,omitempty"`
+	Namespaces []string `json:"namespaces"`
 }
 
 type Group struct {

@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
-	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
 	notificationv2beta1 "kubesphere.io/api/notification/v2beta1"
@@ -49,7 +48,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/daemonset"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/dashboard"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/deployment"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/devops"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedapplication"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedconfigmap"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federateddeployment"
@@ -120,7 +118,6 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 
 	// kubesphere resources
 	namespacedResourceGetters[networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralIPPool)] = ippool.New(factory.KubeSphereSharedInformerFactory(), factory.KubernetesSharedInformerFactory())
-	clusterResourceGetters[devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject)] = devops.New(factory.KubeSphereSharedInformerFactory())
 	clusterResourceGetters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha1.ResourcePluralWorkspace)] = workspace.New(factory.KubeSphereSharedInformerFactory())
 	clusterResourceGetters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha2.ResourcePluralWorkspaceTemplate)] = workspacetemplate.New(factory.KubeSphereSharedInformerFactory())
 	clusterResourceGetters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralGlobalRole)] = globalrole.New(factory.KubeSphereSharedInformerFactory())

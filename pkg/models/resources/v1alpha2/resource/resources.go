@@ -37,9 +37,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/persistentvolumeclaim"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/pod"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/role"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/s2buildertemplate"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/s2ibuilder"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/s2irun"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/secret"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/service"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/statefulset"
@@ -83,9 +80,6 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	resourceGetters[v1alpha2.ClusterRoles] = clusterrole.NewClusterRoleSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.StorageClasses] = storageclass.NewStorageClassesSearcher(factory.KubernetesSharedInformerFactory(), factory.SnapshotSharedInformerFactory())
 	resourceGetters[v1alpha2.HorizontalPodAutoscalers] = hpa.NewHpaSearcher(factory.KubernetesSharedInformerFactory())
-	resourceGetters[v1alpha2.S2iBuilders] = s2ibuilder.NewS2iBuilderSearcher(factory.KubeSphereSharedInformerFactory())
-	resourceGetters[v1alpha2.S2iRuns] = s2irun.NewS2iRunSearcher(factory.KubeSphereSharedInformerFactory())
-	resourceGetters[v1alpha2.S2iBuilderTemplates] = s2buildertemplate.NewS2iBuidlerTemplateSearcher(factory.KubeSphereSharedInformerFactory())
 	resourceGetters[v1alpha2.Workspaces] = workspace.NewWorkspaceSearcher(factory.KubeSphereSharedInformerFactory())
 
 	return &ResourceGetter{resourcesGetters: resourceGetters}

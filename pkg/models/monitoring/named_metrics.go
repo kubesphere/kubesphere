@@ -23,7 +23,6 @@ const (
 	KubeSphereAppTmplCount   = "kubesphere_app_template_count"
 
 	WorkspaceNamespaceCount = "workspace_namespace_count"
-	WorkspaceDevopsCount    = "workspace_devops_project_count"
 	WorkspaceMemberCount    = "workspace_member_count"
 	WorkspaceRoleCount      = "workspace_role_count"
 

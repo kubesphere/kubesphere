@@ -331,25 +331,26 @@ func (mo monitoringOperator) GetWorkspaceStats(workspace string) Metrics {
 		})
 	}
 
-	devopsList, err := mo.ks.Devops().V1alpha3().DevOpsProjects().Lister().List(selector)
-	if err != nil {
-		res.Results = append(res.Results, monitoring.Metric{
-			MetricName: WorkspaceDevopsCount,
-			Error:      err.Error(),
-		})
-	} else {
-		res.Results = append(res.Results, monitoring.Metric{
-			MetricName: WorkspaceDevopsCount,
-			MetricData: monitoring.MetricData{
-				MetricType: monitoring.MetricTypeVector,
-				MetricValues: []monitoring.MetricValue{
-					{
-						Sample: &monitoring.Point{now, float64(len(devopsList))},
-					},
-				},
-			},
-		})
-	}
+	// TODO move the following part into a plugin later
+	//devopsList, err := mo.ks.Devops().V1alpha3().DevOpsProjects().Lister().List(selector)
+	//if err != nil {
+	//	res.Results = append(res.Results, monitoring.Metric{
+	//		MetricName: WorkspaceDevopsCount,
+	//		Error:      err.Error(),
+	//	})
+	//} else {
+	//	res.Results = append(res.Results, monitoring.Metric{
+	//		MetricName: WorkspaceDevopsCount,
+	//		MetricData: monitoring.MetricData{
+	//			MetricType: monitoring.MetricTypeVector,
+	//			MetricValues: []monitoring.MetricValue{
+	//				{
+	//					Sample: &monitoring.Point{now, float64(len(devopsList))},
+	//				},
+	//			},
+	//		},
+	//	})
+	//}
 
 	r, _ := labels.NewRequirement(v1alpha2.UserReferenceLabel, selection.Exists, nil)
 	memberSelector := selector.DeepCopySelector().Add(*r)

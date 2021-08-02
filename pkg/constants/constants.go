@@ -131,5 +131,7 @@ const (
 )
 
 var (
-	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace, PorterNamespace}
+	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, PorterNamespace,
+		// TODO consider to remove the DevOps namespace to a plugin
+		KubesphereDevOpsNamespace}
 )

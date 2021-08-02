@@ -27,8 +27,6 @@ import (
 	applicationv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/auditing/v1alpha1"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
-	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/devops/v1alpha1"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	notificationv2beta1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/notification/v2beta1"
@@ -45,8 +43,6 @@ type Interface interface {
 	ApplicationV1alpha1() applicationv1alpha1.ApplicationV1alpha1Interface
 	AuditingV1alpha1() auditingv1alpha1.AuditingV1alpha1Interface
 	ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface
-	DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface
-	DevopsV1alpha3() devopsv1alpha3.DevopsV1alpha3Interface
 	IamV1alpha2() iamv1alpha2.IamV1alpha2Interface
 	NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface
 	NotificationV2beta1() notificationv2beta1.NotificationV2beta1Interface
@@ -65,8 +61,6 @@ type Clientset struct {
 	applicationV1alpha1 *applicationv1alpha1.ApplicationV1alpha1Client
 	auditingV1alpha1    *auditingv1alpha1.AuditingV1alpha1Client
 	clusterV1alpha1     *clusterv1alpha1.ClusterV1alpha1Client
-	devopsV1alpha1      *devopsv1alpha1.DevopsV1alpha1Client
-	devopsV1alpha3      *devopsv1alpha3.DevopsV1alpha3Client
 	iamV1alpha2         *iamv1alpha2.IamV1alpha2Client
 	networkV1alpha1     *networkv1alpha1.NetworkV1alpha1Client
 	notificationV2beta1 *notificationv2beta1.NotificationV2beta1Client
@@ -91,16 +85,6 @@ func (c *Clientset) AuditingV1alpha1() auditingv1alpha1.AuditingV1alpha1Interfac
 // ClusterV1alpha1 retrieves the ClusterV1alpha1Client
 func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return c.clusterV1alpha1
-}
-
-// DevopsV1alpha1 retrieves the DevopsV1alpha1Client
-func (c *Clientset) DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface {
-	return c.devopsV1alpha1
-}
-
-// DevopsV1alpha3 retrieves the DevopsV1alpha3Client
-func (c *Clientset) DevopsV1alpha3() devopsv1alpha3.DevopsV1alpha3Interface {
-	return c.devopsV1alpha3
 }
 
 // IamV1alpha2 retrieves the IamV1alpha2Client
@@ -181,14 +165,6 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs.devopsV1alpha1, err = devopsv1alpha1.NewForConfig(&configShallowCopy)
-	if err != nil {
-		return nil, err
-	}
-	cs.devopsV1alpha3, err = devopsv1alpha3.NewForConfig(&configShallowCopy)
-	if err != nil {
-		return nil, err
-	}
 	cs.iamV1alpha2, err = iamv1alpha2.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -240,8 +216,6 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 	cs.applicationV1alpha1 = applicationv1alpha1.NewForConfigOrDie(c)
 	cs.auditingV1alpha1 = auditingv1alpha1.NewForConfigOrDie(c)
 	cs.clusterV1alpha1 = clusterv1alpha1.NewForConfigOrDie(c)
-	cs.devopsV1alpha1 = devopsv1alpha1.NewForConfigOrDie(c)
-	cs.devopsV1alpha3 = devopsv1alpha3.NewForConfigOrDie(c)
 	cs.iamV1alpha2 = iamv1alpha2.NewForConfigOrDie(c)
 	cs.networkV1alpha1 = networkv1alpha1.NewForConfigOrDie(c)
 	cs.notificationV2beta1 = notificationv2beta1.NewForConfigOrDie(c)
@@ -262,8 +236,6 @@ func New(c rest.Interface) *Clientset {
 	cs.applicationV1alpha1 = applicationv1alpha1.New(c)
 	cs.auditingV1alpha1 = auditingv1alpha1.New(c)
 	cs.clusterV1alpha1 = clusterv1alpha1.New(c)
-	cs.devopsV1alpha1 = devopsv1alpha1.New(c)
-	cs.devopsV1alpha3 = devopsv1alpha3.New(c)
 	cs.iamV1alpha2 = iamv1alpha2.New(c)
 	cs.networkV1alpha1 = networkv1alpha1.New(c)
 	cs.notificationV2beta1 = notificationv2beta1.New(c)
