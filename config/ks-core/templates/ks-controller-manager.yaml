@@ -52,6 +52,10 @@ spec:
           name: webhook-secret
         - mountPath: /etc/localtime
           name: host-time
+        env:
+        {{- if .Values.env }}
+        {{- toYaml .Values.env | nindent 8 }}
+        {{- end }}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler

@@ -49,6 +49,10 @@ spec:
           name: kubesphere-config
         - mountPath: /etc/localtime
           name: host-time
+        env:
+        {{- if .Values.env }}
+        {{- toYaml .Values.env | nindent 8 }}
+        {{- end }}
         livenessProbe:
           failureThreshold: 8
           httpGet:
