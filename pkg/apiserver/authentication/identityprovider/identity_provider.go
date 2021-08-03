@@ -87,7 +87,7 @@ func GetGenericProvider(providerName string) (GenericProvider, error) {
 	return nil, identityProviderNotFound
 }
 
-// GetGenericProvider returns OAuthProvider with given name
+// GetOAuthProvider returns OAuthProvider with given name
 func GetOAuthProvider(providerName string) (OAuthProvider, error) {
 	if provider, ok := oauthProviders[providerName]; ok {
 		return provider, nil
@@ -100,7 +100,7 @@ func RegisterOAuthProvider(factory OAuthProviderFactory) {
 	oauthProviderFactories[factory.Type()] = factory
 }
 
-// RegisterOAuthProvider register GenericProviderFactory with the specified type
+// RegisterGenericProvider register GenericProviderFactory with the specified type
 func RegisterGenericProvider(factory GenericProviderFactory) {
 	genericProviderFactories[factory.Type()] = factory
 }
