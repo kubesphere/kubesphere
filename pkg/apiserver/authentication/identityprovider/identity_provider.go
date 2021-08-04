@@ -100,7 +100,7 @@ func RegisterOAuthProvider(factory OAuthProviderFactory) {
 	oauthProviderFactories[factory.Type()] = factory
 }
 
-// RegisterGenericProvider register GenericProviderFactory with the specified type
+// RegisterGenericProvider registers GenericProviderFactory with the specified type
 func RegisterGenericProvider(factory GenericProviderFactory) {
 	genericProviderFactories[factory.Type()] = factory
 }
