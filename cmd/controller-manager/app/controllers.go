@@ -46,7 +46,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 	"kubesphere.io/kubesphere/pkg/controller/storage/capability"
-	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -142,15 +141,6 @@ func addControllers(
 		client.Snapshot().SnapshotV1beta1().VolumeSnapshotClasses(),
 		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),
 	)
-
-	volumeExpansionController := expansion.NewVolumeExpansionController(
-		client.Kubernetes(),
-		kubernetesInformer.Core().V1().PersistentVolumeClaims(),
-		kubernetesInformer.Storage().V1().StorageClasses(),
-		kubernetesInformer.Core().V1().Pods(),
-		kubernetesInformer.Apps().V1().Deployments(),
-		kubernetesInformer.Apps().V1().ReplicaSets(),
-		kubernetesInformer.Apps().V1().StatefulSets())
 
 	var fedUserCache, fedGlobalRoleBindingCache, fedGlobalRoleCache cache.Store
 	var fedUserCacheController, fedGlobalRoleBindingCacheController, fedGlobalRoleCacheController cache.Controller
@@ -265,7 +255,6 @@ func addControllers(
 		"s2ibinary-controller":          s2iBinaryController,
 		"s2irun-controller":             s2iRunController,
 		"storagecapability-controller":  storageCapabilityController,
-		"volumeexpansion-controller":    volumeExpansionController,
 		"user-controller":               userController,
 		"loginrecord-controller":        loginRecordController,
 		"cluster-controller":            clusterController,
