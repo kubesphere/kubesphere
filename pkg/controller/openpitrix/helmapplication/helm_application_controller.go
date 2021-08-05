@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
@@ -79,6 +81,11 @@ func (r *ReconcileHelmApplication) Reconcile(request reconcile.Request) (reconci
 		}
 
 		if !inAppStore(app) {
+			// The workspace of this app is being deleting, clean up this app
+			if err := r.cleanupDangingApp(context.TODO(), app); err != nil {
+				return reconcile.Result{}, err
+			}
+
 			if app.Status.State == v1alpha1.StateActive ||
 				app.Status.State == v1alpha1.StateSuspended {
 				if err := r.createAppCopyInAppStore(rootCtx, app); err != nil {
@@ -180,4 +187,83 @@ func (r *ReconcileHelmApplication) SetupWithManager(mgr ctrl.Manager) error {
 
 func inAppStore(app *v1alpha1.HelmApplication) bool {
 	return strings.HasSuffix(app.Name, v1alpha1.HelmApplicationAppStoreSuffix)
+}
+
+// cleanupDangingApp delete the app when it is not active and not suspended,
+// sets the workspace label to empty and remove parts of the appversion when app state are active or suspended
+func (r *ReconcileHelmApplication) cleanupDangingApp(ctx context.Context, app *v1alpha1.HelmApplication) error {
+	if app.Annotations[constants.DangingAppCleanupKey] == constants.CleanupDangingAppOngoing {
+		// Just delete the app when the state is not active or not suspended.
+		if app.Status.State != v1alpha1.StateActive && app.Status.State != v1alpha1.StateSuspended {
+			err := r.Delete(ctx, app)
+			if err != nil {
+				klog.Errorf("delete app: %s, state: %s, error: %s",
+					app.GetHelmApplicationId(), app.Status.State, err)
+				return err
+			}
+			return nil
+		}
+
+		var appVersions v1alpha1.HelmApplicationVersionList
+		err := r.List(ctx, &appVersions, &client.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{
+			constants.ChartApplicationIdLabelKey: app.GetHelmApplicationId()})})
+		if err != nil {
+			klog.Errorf("list app version of %s failed, error: %s", app.GetHelmApplicationId(), err)
+			return err
+		}
+
+		// Delete app version where are not active and not suspended.
+		for _, version := range appVersions.Items {
+			if version.Status.State != v1alpha1.StateActive && version.Status.State != v1alpha1.StateSuspended {
+				err = r.Delete(ctx, &version)
+				if err != nil {
+					klog.Errorf("delete app version: %s, state: %s, error: %s",
+						version.GetHelmApplicationVersionId(), version.Status.State, err)
+					return err
+				}
+			}
+		}
+
+		// Marks the app that the workspace to which it belongs has been deleted.
+		var appInStore v1alpha1.HelmApplication
+		err = r.Get(ctx,
+			types.NamespacedName{Name: fmt.Sprintf("%s%s", app.GetHelmApplicationId(), v1alpha1.HelmApplicationAppStoreSuffix)}, &appInStore)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+		} else {
+			appCopy := appInStore.DeepCopy()
+			if appCopy.Annotations == nil {
+				appCopy.Annotations = map[string]string{}
+			}
+			appCopy.Annotations[constants.DangingAppCleanupKey] = constants.CleanupDangingAppDone
+
+			patchedApp := client.MergeFrom(&appInStore)
+			err = r.Patch(ctx, appCopy, patchedApp)
+			if err != nil {
+				klog.Errorf("patch app: %s failed, error: %s", app.GetHelmApplicationId(), err)
+				return err
+			}
+		}
+
+		appCopy := app.DeepCopy()
+		if appCopy.Annotations == nil {
+			appCopy.Annotations = map[string]string{}
+		}
+		appCopy.Annotations[constants.DangingAppCleanupKey] = constants.CleanupDangingAppDone
+		// Remove the workspace label, or if user creates a workspace with the same name, this app will show in the new workspace.
+		if appCopy.Labels == nil {
+			appCopy.Labels = map[string]string{}
+		}
+		appCopy.Labels[constants.WorkspaceLabelKey] = ""
+		patchedApp := client.MergeFrom(app)
+		err = r.Patch(ctx, appCopy, patchedApp)
+		if err != nil {
+			klog.Errorf("patch app: %s failed, error: %s", app.GetHelmApplicationId(), err)
+			return err
+		}
+	}
+
+	return nil
 }

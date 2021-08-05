@@ -424,11 +424,13 @@ func (r *Reconciler) deleteHelmApps(ctx context.Context, ws string) error {
 	if err != nil {
 		return err
 	}
-	for i := range apps.Items {
-		state := apps.Items[i].Status.State
-		// active and suspended applications belong to app store, they should not be removed here.
-		if !(state == v1alpha1.StateActive || state == v1alpha1.StateSuspended) {
-			err = r.Delete(ctx, &apps.Items[i])
+	for _, app := range apps.Items {
+		if _, exists := app.Annotations[constants.DangingAppCleanupKey]; !exists {
+			// Mark the app, the cleanup is in the application controller.
+			appCopy := app.DeepCopy()
+			appCopy.Annotations[constants.DangingAppCleanupKey] = constants.CleanupDangingAppOngoing
+			appPatch := client.MergeFrom(&app)
+			err = r.Patch(ctx, appCopy, appPatch)
 			if err != nil {
 				return err
 			}

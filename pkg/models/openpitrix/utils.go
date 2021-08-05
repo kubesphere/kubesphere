@@ -338,7 +338,10 @@ func convertApp(app *v1alpha1.HelmApplication, versions []*v1alpha1.HelmApplicat
 	}
 
 	out.AppVersionTypes = "helm"
-	out.Isv = app.GetWorkspace()
+	// If this keys exists, the workspace of this app has been deleted, set the isv to empty.
+	if _, exists := app.Annotations[constants.DangingAppCleanupKey]; !exists {
+		out.Isv = app.GetWorkspace()
+	}
 
 	out.ClusterTotal = &rlsCount
 	out.Owner = app.GetCreator()
