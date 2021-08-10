@@ -82,7 +82,7 @@ func (r *ReconcileHelmApplication) Reconcile(request reconcile.Request) (reconci
 
 		if !inAppStore(app) {
 			// The workspace of this app is being deleting, clean up this app
-			if err := r.cleanupDangingApp(context.TODO(), app); err != nil {
+			if err := r.cleanupDanglingApp(context.TODO(), app); err != nil {
 				return reconcile.Result{}, err
 			}
 
@@ -189,10 +189,19 @@ func inAppStore(app *v1alpha1.HelmApplication) bool {
 	return strings.HasSuffix(app.Name, v1alpha1.HelmApplicationAppStoreSuffix)
 }
 
-// cleanupDangingApp delete the app when it is not active and not suspended,
-// sets the workspace label to empty and remove parts of the appversion when app state are active or suspended
-func (r *ReconcileHelmApplication) cleanupDangingApp(ctx context.Context, app *v1alpha1.HelmApplication) error {
-	if app.Annotations[constants.DangingAppCleanupKey] == constants.CleanupDangingAppOngoing {
+// cleanupDanglingApp deletes the app when it is not active and not suspended,
+// sets the workspace label to empty and remove parts of the appversion when app state is active or suspended.
+//
+// When one workspace is being deleting, we can delete all the app which are not active or suspended of this workspace,
+// but when an app has been promoted to app store, we have to deal with it specially.
+// If we just delete that app, then this app will be deleted from app store too.
+// If we leave it alone, and user creates a workspace with the same name sometime,
+// then this app will appear in this new workspace which confuses the user.
+// So we need to delete all the appversion which are not active or suspended first,
+// then remove the workspace label from the app. And on the console of ks, we will show something
+// like "(workspace deleted)" to user for this app.
+func (r *ReconcileHelmApplication) cleanupDanglingApp(ctx context.Context, app *v1alpha1.HelmApplication) error {
+	if app.Annotations != nil && app.Annotations[constants.DanglingAppCleanupKey] == constants.CleanupDanglingAppOngoing {
 		// Just delete the app when the state is not active or not suspended.
 		if app.Status.State != v1alpha1.StateActive && app.Status.State != v1alpha1.StateSuspended {
 			err := r.Delete(ctx, app)
@@ -224,7 +233,7 @@ func (r *ReconcileHelmApplication) cleanupDangingApp(ctx context.Context, app *v
 			}
 		}
 
-		// Marks the app that the workspace to which it belongs has been deleted.
+		// Mark the app that the workspace to which it belongs has been deleted.
 		var appInStore v1alpha1.HelmApplication
 		err = r.Get(ctx,
 			types.NamespacedName{Name: fmt.Sprintf("%s%s", app.GetHelmApplicationId(), v1alpha1.HelmApplicationAppStoreSuffix)}, &appInStore)
@@ -237,7 +246,7 @@ func (r *ReconcileHelmApplication) cleanupDangingApp(ctx context.Context, app *v
 			if appCopy.Annotations == nil {
 				appCopy.Annotations = map[string]string{}
 			}
-			appCopy.Annotations[constants.DangingAppCleanupKey] = constants.CleanupDangingAppDone
+			appCopy.Annotations[constants.DanglingAppCleanupKey] = constants.CleanupDanglingAppDone
 
 			patchedApp := client.MergeFrom(&appInStore)
 			err = r.Patch(ctx, appCopy, patchedApp)
@@ -248,10 +257,7 @@ func (r *ReconcileHelmApplication) cleanupDangingApp(ctx context.Context, app *v
 		}
 
 		appCopy := app.DeepCopy()
-		if appCopy.Annotations == nil {
-			appCopy.Annotations = map[string]string{}
-		}
-		appCopy.Annotations[constants.DangingAppCleanupKey] = constants.CleanupDangingAppDone
+		appCopy.Annotations[constants.DanglingAppCleanupKey] = constants.CleanupDanglingAppDone
 		// Remove the workspace label, or if user creates a workspace with the same name, this app will show in the new workspace.
 		if appCopy.Labels == nil {
 			appCopy.Labels = map[string]string{}

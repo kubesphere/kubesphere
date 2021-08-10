@@ -41,7 +41,7 @@ const (
 	ChartApplicationIdLabelKey        = "application.kubesphere.io/app-id"
 	ChartApplicationVersionIdLabelKey = "application.kubesphere.io/app-version-id"
 	CategoryIdLabelKey                = "application.kubesphere.io/app-category-id"
-	DangingAppCleanupKey              = "application.kubesphere.io/app-cleanup"
+	DanglingAppCleanupKey             = "application.kubesphere.io/app-cleanup"
 	CreatorAnnotationKey              = "kubesphere.io/creator"
 	UsernameLabelKey                  = "kubesphere.io/username"
 	DevOpsProjectLabelKey             = "kubesphere.io/devopsproject"
@@ -71,8 +71,9 @@ const (
 	OpenpitrixAttachmentTag  = "Attachment"
 	OpenpitrixRepositoryTag  = "Repository"
 	OpenpitrixManagementTag  = "App Management"
-	CleanupDangingAppOngoing = "ongoing"
-	CleanupDangingAppDone    = "done"
+
+	CleanupDanglingAppOngoing = "ongoing"
+	CleanupDanglingAppDone    = "done"
 
 	DevOpsCredentialTag  = "DevOps Credential"
 	DevOpsPipelineTag    = "DevOps Pipeline"

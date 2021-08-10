@@ -425,10 +425,13 @@ func (r *Reconciler) deleteHelmApps(ctx context.Context, ws string) error {
 		return err
 	}
 	for _, app := range apps.Items {
-		if _, exists := app.Annotations[constants.DangingAppCleanupKey]; !exists {
+		if app.Annotations == nil {
+			app.Annotations = map[string]string{}
+		}
+		if _, exists := app.Annotations[constants.DanglingAppCleanupKey]; !exists {
 			// Mark the app, the cleanup is in the application controller.
 			appCopy := app.DeepCopy()
-			appCopy.Annotations[constants.DangingAppCleanupKey] = constants.CleanupDangingAppOngoing
+			appCopy.Annotations[constants.DanglingAppCleanupKey] = constants.CleanupDanglingAppOngoing
 			appPatch := client.MergeFrom(&app)
 			err = r.Patch(ctx, appCopy, appPatch)
 			if err != nil {

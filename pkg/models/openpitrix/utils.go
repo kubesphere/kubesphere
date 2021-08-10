@@ -339,7 +339,7 @@ func convertApp(app *v1alpha1.HelmApplication, versions []*v1alpha1.HelmApplicat
 
 	out.AppVersionTypes = "helm"
 	// If this keys exists, the workspace of this app has been deleted, set the isv to empty.
-	if _, exists := app.Annotations[constants.DangingAppCleanupKey]; !exists {
+	if _, exists := app.Annotations[constants.DanglingAppCleanupKey]; !exists {
 		out.Isv = app.GetWorkspace()
 	}
 

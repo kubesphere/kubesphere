@@ -86,7 +86,7 @@ var _ = Describe("helmApplication", func() {
 				}
 				appCopy := localApp.DeepCopy()
 				appCopy.Annotations = map[string]string{}
-				appCopy.Annotations[constants.DangingAppCleanupKey] = constants.CleanupDangingAppOngoing
+				appCopy.Annotations[constants.DanglingAppCleanupKey] = constants.CleanupDanglingAppOngoing
 				patchData := client.MergeFrom(&localApp)
 				err = k8sClient.Patch(context.Background(), appCopy, patchData)
 				return err == nil
