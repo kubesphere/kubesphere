@@ -194,7 +194,7 @@ type ReconcileHelmCategory struct {
 // and what is in the helmreleases.Spec
 // +kubebuilder:rbac:groups=application.kubesphere.io,resources=helmcategories,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=application.kubesphere.io,resources=helmcategories/status,verbs=get;update;patch
-func (r *ReconcileHelmCategory) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileHelmCategory) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	start := time.Now()
 	klog.V(4).Infof("sync helm category: %s", request.String())
 	defer func() {

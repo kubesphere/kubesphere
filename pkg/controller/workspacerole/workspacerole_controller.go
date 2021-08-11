@@ -84,7 +84,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=iam.kubesphere.io,resources=workspaceroles,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=types.kubefed.io,resources=federatedworkspaceroles,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tenant.kubesphere.io,resources=workspaces,verbs=get;list;watch;
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Logger.WithValues("workspacerole", req.NamespacedName)
 	rootCtx := context.Background()
 	workspaceRole := &iamv1alpha2.WorkspaceRole{}

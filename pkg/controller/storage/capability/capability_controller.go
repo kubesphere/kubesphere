@@ -149,8 +149,8 @@ func NewController(
 	return controller
 }
 
-func (c *StorageCapabilityController) Start(stopCh <-chan struct{}) error {
-	return c.Run(5, stopCh)
+func (c *StorageCapabilityController) Start(ctx context.Context) error {
+	return c.Run(5, ctx.Done())
 }
 
 func (c *StorageCapabilityController) Run(threadCnt int, stopCh <-chan struct{}) error {

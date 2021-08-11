@@ -94,7 +94,7 @@ var _ = Describe("ServiceAccount", func() {
 			Expect(reconciler.Create(ctx, sa)).Should(Succeed())
 			Expect(reconciler.Create(ctx, role)).Should(Succeed())
 
-			_, err := reconciler.Reconcile(req)
+			_, err := reconciler.Reconcile(ctx, req)
 			Expect(err).To(BeNil())
 
 			By("Expecting to bind role successfully")
@@ -116,7 +116,7 @@ var _ = Describe("ServiceAccount", func() {
 			}
 
 			Expect(reconciler.Create(ctx, sa)).Should(Succeed())
-			_, err := reconciler.Reconcile(req)
+			_, err := reconciler.Reconcile(ctx, req)
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		})
 	})

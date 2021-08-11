@@ -332,9 +332,9 @@ func (c *IPPoolController) processIPPool(name string) (*time.Duration, error) {
 	return nil, c.updateIPPoolStatus(pool)
 }
 
-func (c *IPPoolController) Start(stopCh <-chan struct{}) error {
-	go c.provider.SyncStatus(stopCh, c.ippoolQueue)
-	return c.Run(5, stopCh)
+func (c *IPPoolController) Start(ctx context.Context) error {
+	go c.provider.SyncStatus(ctx.Done(), c.ippoolQueue)
+	return c.Run(5, ctx.Done())
 }
 
 func (c *IPPoolController) Run(workers int, stopCh <-chan struct{}) error {

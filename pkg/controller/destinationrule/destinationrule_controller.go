@@ -160,8 +160,8 @@ func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInfor
 
 }
 
-func (v *DestinationRuleController) Start(stopCh <-chan struct{}) error {
-	return v.Run(5, stopCh)
+func (v *DestinationRuleController) Start(ctx context.Context) error {
+	return v.Run(5, ctx.Done())
 }
 
 func (v *DestinationRuleController) Run(workers int, stopCh <-chan struct{}) error {

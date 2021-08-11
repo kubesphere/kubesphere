@@ -692,8 +692,8 @@ func NewNSNetworkPolicyController(
 	return controller
 }
 
-func (c *NSNetworkPolicyController) Start(stopCh <-chan struct{}) error {
-	return c.Run(defaultThread, defaultSync, stopCh)
+func (c *NSNetworkPolicyController) Start(ctx context.Context) error {
+	return c.Run(defaultThread, defaultSync, ctx.Done())
 }
 
 // Run starts the controller.

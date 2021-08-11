@@ -86,7 +86,7 @@ var _ = Describe("WorkspaceTemplate", func() {
 				req := ctrl.Request{
 					NamespacedName: key,
 				}
-				_, err := reconciler.Reconcile(req)
+				_, err := reconciler.Reconcile(context.Background(), req)
 				Expect(err).To(BeNil())
 
 				By("Expecting to create workspace template successfully")
@@ -117,7 +117,7 @@ var _ = Describe("WorkspaceTemplate", func() {
 				updated.Spec.Template.Spec.Manager = "admin"
 				Expect(reconciler.Update(context.Background(), updated)).Should(Succeed())
 
-				_, err = reconciler.Reconcile(req)
+				_, err = reconciler.Reconcile(context.Background(), req)
 				Expect(err).To(BeNil())
 
 				// List workspace role bindings
@@ -138,7 +138,7 @@ var _ = Describe("WorkspaceTemplate", func() {
 					return reconciler.Update(context.Background(), f)
 				}, timeout, interval).Should(Succeed())
 
-				_, err = reconciler.Reconcile(req)
+				_, err = reconciler.Reconcile(context.Background(), req)
 				Expect(err).To(BeNil())
 			})
 		}

@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"k8s.io/api/auditregistration/v1alpha1"
 	v1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/apis/audit"
@@ -53,7 +52,7 @@ func TestGetAuditLevel(t *testing.T) {
 			Name: "kube-auditing-webhook",
 		},
 		Spec: auditingv1alpha1.WebhookSpec{
-			AuditLevel: v1alpha1.LevelRequestResponse,
+			AuditLevel: auditingv1alpha1.LevelRequestResponse,
 		},
 	}
 
@@ -82,7 +81,7 @@ func TestAuditing_Enabled(t *testing.T) {
 			Name: "kube-auditing-webhook",
 		},
 		Spec: auditingv1alpha1.WebhookSpec{
-			AuditLevel: v1alpha1.LevelNone,
+			AuditLevel: auditingv1alpha1.LevelNone,
 		},
 	}
 
@@ -111,7 +110,7 @@ func TestAuditing_K8sAuditingEnabled(t *testing.T) {
 			Name: "kube-auditing-webhook",
 		},
 		Spec: auditingv1alpha1.WebhookSpec{
-			AuditLevel:         v1alpha1.LevelNone,
+			AuditLevel:         auditingv1alpha1.LevelNone,
 			K8sAuditingEnabled: true,
 		},
 	}
@@ -141,7 +140,7 @@ func TestAuditing_LogRequestObject(t *testing.T) {
 			Name: "kube-auditing-webhook",
 		},
 		Spec: auditingv1alpha1.WebhookSpec{
-			AuditLevel:         v1alpha1.LevelRequestResponse,
+			AuditLevel:         auditingv1alpha1.LevelRequestResponse,
 			K8sAuditingEnabled: true,
 		},
 	}
@@ -232,7 +231,7 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 			Name: "kube-auditing-webhook",
 		},
 		Spec: auditingv1alpha1.WebhookSpec{
-			AuditLevel:         v1alpha1.LevelMetadata,
+			AuditLevel:         auditingv1alpha1.LevelMetadata,
 			K8sAuditingEnabled: true,
 		},
 	}

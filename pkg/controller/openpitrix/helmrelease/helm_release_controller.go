@@ -97,7 +97,7 @@ type ReconcileHelmRelease struct {
 // and what is in the helmreleases.Spec
 // +kubebuilder:rbac:groups=application.kubesphere.io,resources=helmreleases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=application.kubesphere.io,resources=helmreleases/status,verbs=get;update;patch
-func (r *ReconcileHelmRelease) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileHelmRelease) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the helmReleases instance
 	instance := &v1alpha1.HelmRelease{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)

@@ -112,7 +112,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, maxConcurrentReconciles 
 		return err
 	}
 
-	resources := []runtime.Object{
+	resources := []client.Object{
 		&corev1.Pod{},
 		&corev1.Service{},
 		&corev1.PersistentVolumeClaim{},
@@ -121,7 +121,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, maxConcurrentReconciles 
 	for _, resource := range resources {
 		err := c.Watch(
 			&source.Kind{Type: resource},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.mapper)},
+			handler.EnqueueRequestsFromMapFunc(r.mapper),
 			predicate.Funcs{
 				GenericFunc: func(e event.GenericEvent) bool {
 					return false
@@ -132,7 +132,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, maxConcurrentReconciles 
 				UpdateFunc: func(e event.UpdateEvent) bool {
 					notifyChange := false
 					// we only want to queue the updates we care about though as too much noise will overwhelm queue.
-					switch e.MetaOld.(type) {
+					switch e.ObjectOld.(type) {
 					case *corev1.Pod:
 						oldPod := e.ObjectOld.(*corev1.Pod)
 						newPod := e.ObjectNew.(*corev1.Pod)
@@ -157,14 +157,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, maxConcurrentReconciles 
 	return nil
 }
 
-func (r *Reconciler) mapper(h handler.MapObject) []reconcile.Request {
+func (r *Reconciler) mapper(h client.Object) []reconcile.Request {
 	// check if the quota controller can evaluate this kind, if not, ignore it altogether...
 	var result []reconcile.Request
 	evaluators := r.registry.List()
 	ctx := context.TODO()
-	resourceQuotaNames, err := resourceQuotaNamesFor(ctx, r.Client, h.Meta.GetNamespace())
+	resourceQuotaNames, err := resourceQuotaNamesFor(ctx, r.Client, h.GetNamespace())
 	if err != nil {
-		klog.Errorf("failed to get resource quota names for: %v %T %v, err: %v", h.Meta.GetNamespace(), h.Object, h.Meta.GetName(), err)
+		klog.Errorf("failed to get resource quota names for: %v %T %v, err: %v", h.GetNamespace(), h, h.GetName(), err)
 		return result
 	}
 	// only queue those quotas that are tracking a resource associated with this kind.
@@ -183,11 +183,11 @@ func (r *Reconciler) mapper(h handler.MapObject) []reconcile.Request {
 			}
 		}
 	}
-	klog.V(6).Infof("resource quota reconcile after resource change: %v %T %v, %+v", h.Meta.GetNamespace(), h.Object, h.Meta.GetName(), result)
+	klog.V(6).Infof("resource quota reconcile after resource change: %v %T %v, %+v", h.GetNamespace(), h, h.GetName(), result)
 	return result
 }
 
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.logger.WithValues("resourcequota", req.NamespacedName)
 	rootCtx := context.TODO()
 	resourceQuota := &quotav1alpha2.ResourceQuota{}

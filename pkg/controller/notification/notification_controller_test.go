@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
@@ -228,19 +227,19 @@ func (f *fakeCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVers
 }
 
 // GetInformer returns the informer for the obj
-func (f *fakeCache) GetInformer(ctx context.Context, obj runtime.Object) (cache.Informer, error) {
+func (f *fakeCache) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
 	fakeInformerFactory := k8sinformers.NewSharedInformerFactory(f.K8sClient, defaultResync)
 	return fakeInformerFactory.Core().V1().Namespaces().Informer(), nil
 }
 
-func (f *fakeCache) IndexField(ctx context.Context, obj runtime.Object, field string, extractValue client.IndexerFunc) error {
+func (f *fakeCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
 	return nil
 }
 
-func (f *fakeCache) Start(stopCh <-chan struct{}) error {
+func (f *fakeCache) Start(ctx context.Context) error {
 	return nil
 }
 
-func (f *fakeCache) WaitForCacheSync(stop <-chan struct{}) bool {
+func (f *fakeCache) WaitForCacheSync(ctx context.Context) bool {
 	return true
 }

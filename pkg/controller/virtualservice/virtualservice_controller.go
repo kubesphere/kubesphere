@@ -155,8 +155,8 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 
 }
 
-func (v *VirtualServiceController) Start(stopCh <-chan struct{}) error {
-	return v.Run(5, stopCh)
+func (v *VirtualServiceController) Start(ctx context.Context) error {
+	return v.Run(5, ctx.Done())
 }
 
 func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) error {

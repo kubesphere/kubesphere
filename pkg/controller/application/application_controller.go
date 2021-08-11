@@ -57,7 +57,7 @@ type ApplicationReconciler struct {
 	ApplicationSelector labels.Selector //
 }
 
-func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var app appv1beta1.Application
 	err := r.Get(context.Background(), req.NamespacedName, &app)
 	if err != nil {
@@ -258,7 +258,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	sources := []runtime.Object{
+	sources := []client.Object{
 		&v1.Deployment{},
 		&corev1.Service{},
 		&v1.StatefulSet{},
@@ -271,21 +271,21 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// Watch for changes to Application
 		err = c.Watch(
 			&source.Kind{Type: s},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(
-				func(h handler.MapObject) []reconcile.Request {
+			handler.EnqueueRequestsFromMapFunc(
+				func(h client.Object) []reconcile.Request {
 					return []reconcile.Request{{NamespacedName: types.NamespacedName{
-						Name:      servicemesh.GetApplictionName(h.Meta.GetLabels()),
-						Namespace: h.Meta.GetNamespace()}}}
-				})},
+						Name:      servicemesh.GetApplictionName(h.GetLabels()),
+						Namespace: h.GetNamespace()}}}
+				}),
 			predicate.Funcs{
 				UpdateFunc: func(e event.UpdateEvent) bool {
-					return isApp(e.MetaOld, e.MetaNew)
+					return isApp(e.ObjectOld, e.ObjectOld)
 				},
 				CreateFunc: func(e event.CreateEvent) bool {
-					return isApp(e.Meta)
+					return isApp(e.Object)
 				},
 				DeleteFunc: func(e event.DeleteEvent) bool {
-					return isApp(e.Meta)
+					return isApp(e.Object)
 				},
 			})
 		if err != nil {
