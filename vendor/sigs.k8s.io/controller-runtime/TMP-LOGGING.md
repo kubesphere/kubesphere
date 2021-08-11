@@ -90,6 +90,9 @@ It's acceptable to log call `log.Error` with a nil error object.  This
 conveys that an error occurred in some capacity, but that no actual
 `error` object was involved.
 
+Errors returned by the `Reconcile` implementation of the `Reconciler` interface are commonly logged as a `Reconciler error`.
+It's a developer choice to create an additional error log in the `Reconcile` implementation so a more specific file name and line for the error are returned. 
+
 ## Logging messages
 
 - Don't put variable content in your messages -- use key-value pairs for

@@ -21,10 +21,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -33,11 +34,11 @@ import (
 	"sigs.k8s.io/kubefed/pkg/client/generic/scheme"
 )
 
-func NewGenericInformer(config *rest.Config, namespace string, obj pkgruntime.Object, resyncPeriod time.Duration, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller, error) {
+func NewGenericInformer(config *rest.Config, namespace string, obj runtimeclient.Object, resyncPeriod time.Duration, triggerFunc func(runtimeclient.Object)) (cache.Store, cache.Controller, error) {
 	return NewGenericInformerWithEventHandler(config, namespace, obj, resyncPeriod, NewTriggerOnAllChanges(triggerFunc))
 }
 
-func NewGenericInformerWithEventHandler(config *rest.Config, namespace string, obj pkgruntime.Object, resyncPeriod time.Duration, resourceEventHandlerFuncs *cache.ResourceEventHandlerFuncs) (cache.Store, cache.Controller, error) {
+func NewGenericInformerWithEventHandler(config *rest.Config, namespace string, obj runtimeclient.Object, resyncPeriod time.Duration, resourceEventHandlerFuncs *cache.ResourceEventHandlerFuncs) (cache.Store, cache.Controller, error) {
 	gvk, err := apiutil.GVKForObject(obj, scheme.Scheme)
 	if err != nil {
 		return nil, nil, err
@@ -53,7 +54,7 @@ func NewGenericInformerWithEventHandler(config *rest.Config, namespace string, o
 		return nil, nil, err
 	}
 
-	client, err := apiutil.RESTClientForGVK(gvk, config, scheme.Codecs)
+	client, err := apiutil.RESTClientForGVK(gvk, false, config, scheme.Codecs)
 	if err != nil {
 		return nil, nil, err
 	}

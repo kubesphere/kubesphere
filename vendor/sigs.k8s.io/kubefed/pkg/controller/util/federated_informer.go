@@ -23,13 +23,13 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	fedcommon "sigs.k8s.io/kubefed/pkg/apis/core/common"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -139,7 +139,7 @@ func NewFederatedInformer(
 	config *ControllerConfig,
 	client generic.Client,
 	apiResource *metav1.APIResource,
-	triggerFunc func(pkgruntime.Object),
+	triggerFunc func(runtimeclient.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) (FederatedInformer, error) {
 	targetInformerFactory := func(cluster *fedv1b1.KubeFedCluster, clusterConfig *restclient.Config) (cache.Store, cache.Controller, error) {
 		resourceClient, err := NewResourceClient(clusterConfig, apiResource)

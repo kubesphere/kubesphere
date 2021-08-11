@@ -73,35 +73,35 @@ func (pr *prowReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summa
 	}
 }
 
-// BeforeSuiteDidRun implements ginkgo.Reporter
+// BeforeSuiteDidRun implements ginkgo.Reporter.
 func (pr *prowReporter) BeforeSuiteDidRun(setupSummary *types.SetupSummary) {
 	if pr.junitReporter != nil {
 		pr.junitReporter.BeforeSuiteDidRun(setupSummary)
 	}
 }
 
-// AfterSuiteDidRun implements ginkgo.Reporter
+// AfterSuiteDidRun implements ginkgo.Reporter.
 func (pr *prowReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {
 	if pr.junitReporter != nil {
 		pr.junitReporter.AfterSuiteDidRun(setupSummary)
 	}
 }
 
-// SpecWillRun implements ginkgo.Reporter
+// SpecWillRun implements ginkgo.Reporter.
 func (pr *prowReporter) SpecWillRun(specSummary *types.SpecSummary) {
 	if pr.junitReporter != nil {
 		pr.junitReporter.SpecWillRun(specSummary)
 	}
 }
 
-// SpecDidComplete implements ginkgo.Reporter
+// SpecDidComplete implements ginkgo.Reporter.
 func (pr *prowReporter) SpecDidComplete(specSummary *types.SpecSummary) {
 	if pr.junitReporter != nil {
 		pr.junitReporter.SpecDidComplete(specSummary)
 	}
 }
 
-// SpecSuiteDidEnd Prints a newline between "35 Passed | 0 Failed | 0 Pending | 0 Skipped" and "--- PASS:"
+// SpecSuiteDidEnd Prints a newline between "35 Passed | 0 Failed | 0 Pending | 0 Skipped" and "--- PASS:".
 func (pr *prowReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
 	if pr.junitReporter != nil {
 		pr.junitReporter.SpecSuiteDidEnd(summary)

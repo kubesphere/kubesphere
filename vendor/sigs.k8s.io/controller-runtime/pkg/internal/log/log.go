@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package log contains utilities for fetching a new logger
-// when one is not already available.
-// Deprecated: use pkg/log
 package log
 
 import (

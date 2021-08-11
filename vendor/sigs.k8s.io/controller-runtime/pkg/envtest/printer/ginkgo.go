@@ -33,21 +33,21 @@ var _ ginkgo.Reporter = NewlineReporter{}
 // See issue https://github.com/jstemmer/go-junit-report/issues/31
 type NewlineReporter struct{}
 
-// SpecSuiteWillBegin implements ginkgo.Reporter
+// SpecSuiteWillBegin implements ginkgo.Reporter.
 func (NewlineReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
 }
 
-// BeforeSuiteDidRun implements ginkgo.Reporter
+// BeforeSuiteDidRun implements ginkgo.Reporter.
 func (NewlineReporter) BeforeSuiteDidRun(setupSummary *types.SetupSummary) {}
 
-// AfterSuiteDidRun implements ginkgo.Reporter
+// AfterSuiteDidRun implements ginkgo.Reporter.
 func (NewlineReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {}
 
-// SpecWillRun implements ginkgo.Reporter
+// SpecWillRun implements ginkgo.Reporter.
 func (NewlineReporter) SpecWillRun(specSummary *types.SpecSummary) {}
 
-// SpecDidComplete implements ginkgo.Reporter
+// SpecDidComplete implements ginkgo.Reporter.
 func (NewlineReporter) SpecDidComplete(specSummary *types.SpecSummary) {}
 
-// SpecSuiteDidEnd Prints a newline between "35 Passed | 0 Failed | 0 Pending | 0 Skipped" and "--- PASS:"
+// SpecSuiteDidEnd Prints a newline between "35 Passed | 0 Failed | 0 Pending | 0 Skipped" and "--- PASS:".
 func (NewlineReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) { fmt.Printf("\n") }

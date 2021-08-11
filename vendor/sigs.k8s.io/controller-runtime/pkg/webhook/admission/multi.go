@@ -22,9 +22,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"gomodules.xyz/jsonpatch/v2"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	jsonpatch "gomodules.xyz/jsonpatch/v2"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
@@ -37,10 +38,10 @@ func (hs multiMutating) Handle(ctx context.Context, req Request) Response {
 		if !resp.Allowed {
 			return resp
 		}
-		if resp.PatchType != nil && *resp.PatchType != admissionv1beta1.PatchTypeJSONPatch {
+		if resp.PatchType != nil && *resp.PatchType != admissionv1.PatchTypeJSONPatch {
 			return Errored(http.StatusInternalServerError,
 				fmt.Errorf("unexpected patch type returned by the handler: %v, only allow: %v",
-					resp.PatchType, admissionv1beta1.PatchTypeJSONPatch))
+					resp.PatchType, admissionv1.PatchTypeJSONPatch))
 		}
 		patches = append(patches, resp.Patches...)
 	}
@@ -50,13 +51,13 @@ func (hs multiMutating) Handle(ctx context.Context, req Request) Response {
 		return Errored(http.StatusBadRequest, fmt.Errorf("error when marshaling the patch: %w", err))
 	}
 	return Response{
-		AdmissionResponse: admissionv1beta1.AdmissionResponse{
+		AdmissionResponse: admissionv1.AdmissionResponse{
 			Allowed: true,
 			Result: &metav1.Status{
 				Code: http.StatusOK,
 			},
 			Patch:     marshaledPatch,
-			PatchType: func() *admissionv1beta1.PatchType { pt := admissionv1beta1.PatchTypeJSONPatch; return &pt }(),
+			PatchType: func() *admissionv1.PatchType { pt := admissionv1.PatchTypeJSONPatch; return &pt }(),
 		},
 	}
 }
@@ -73,6 +74,16 @@ func (hs multiMutating) InjectFunc(f inject.Func) error {
 		}
 	}
 
+	return nil
+}
+
+// InjectDecoder injects the decoder into the handlers.
+func (hs multiMutating) InjectDecoder(d *Decoder) error {
+	for _, handler := range hs {
+		if _, err := InjectDecoderInto(d, handler); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -94,7 +105,7 @@ func (hs multiValidating) Handle(ctx context.Context, req Request) Response {
 		}
 	}
 	return Response{
-		AdmissionResponse: admissionv1beta1.AdmissionResponse{
+		AdmissionResponse: admissionv1.AdmissionResponse{
 			Allowed: true,
 			Result: &metav1.Status{
 				Code: http.StatusOK,
@@ -122,5 +133,15 @@ func (hs multiValidating) InjectFunc(f inject.Func) error {
 		}
 	}
 
+	return nil
+}
+
+// InjectDecoder injects the decoder into the handlers.
+func (hs multiValidating) InjectDecoder(d *Decoder) error {
+	for _, handler := range hs {
+		if _, err := InjectDecoderInto(d, handler); err != nil {
+			return err
+		}
+	}
 	return nil
 }

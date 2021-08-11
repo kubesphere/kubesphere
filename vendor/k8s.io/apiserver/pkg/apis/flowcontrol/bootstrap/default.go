@@ -19,7 +19,7 @@ package bootstrap
 import (
 	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
-	flowcontrol "k8s.io/api/flowcontrol/v1alpha1"
+	flowcontrol "k8s.io/api/flowcontrol/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -32,8 +32,8 @@ import (
 // because that would require importing k8s.io/kubernetes).
 var (
 	MandatoryPriorityLevelConfigurations = []*flowcontrol.PriorityLevelConfiguration{
-		MandatoryPriorityLevelConfigurationExempt,
 		MandatoryPriorityLevelConfigurationCatchAll,
+		MandatoryPriorityLevelConfigurationExempt,
 	}
 	MandatoryFlowSchemas = []*flowcontrol.FlowSchema{
 		MandatoryFlowSchemaExempt,
@@ -64,6 +64,7 @@ var (
 	}
 	SuggestedFlowSchemas = []*flowcontrol.FlowSchema{
 		SuggestedFlowSchemaSystemNodes,               // references "system" priority-level
+		SuggestedFlowSchemaProbes,                    // references "exempt" priority-level
 		SuggestedFlowSchemaSystemLeaderElection,      // references "leader-election" priority-level
 		SuggestedFlowSchemaWorkloadLeaderElection,    // references "leader-election" priority-level
 		SuggestedFlowSchemaKubeControllerManager,     // references "workload-high" priority-level
@@ -83,11 +84,11 @@ var (
 		},
 	)
 	MandatoryPriorityLevelConfigurationCatchAll = newPriorityLevelConfiguration(
-		"catch-all",
+		flowcontrol.PriorityLevelConfigurationNameCatchAll,
 		flowcontrol.PriorityLevelConfigurationSpec{
 			Type: flowcontrol.PriorityLevelEnablementLimited,
 			Limited: &flowcontrol.LimitedPriorityLevelConfiguration{
-				AssuredConcurrencyShares: 1,
+				AssuredConcurrencyShares: 5,
 				LimitResponse: flowcontrol.LimitResponse{
 					Type: flowcontrol.LimitResponseTypeReject,
 				},
@@ -126,8 +127,8 @@ var (
 	// "catch-all" priority-level only gets a minimal positive share of concurrency and won't be reaching
 	// ideally unless you intentionally deleted the suggested "global-default".
 	MandatoryFlowSchemaCatchAll = newFlowSchema(
-		"catch-all",
-		"catch-all",
+		flowcontrol.FlowSchemaNameCatchAll,
+		flowcontrol.PriorityLevelConfigurationNameCatchAll,
 		10000, // matchingPrecedence
 		flowcontrol.FlowDistinguisherMethodByUserType, // distinguisherMethodType
 		flowcontrol.PolicyRulesWithSubjects{
@@ -210,7 +211,7 @@ var (
 		flowcontrol.PriorityLevelConfigurationSpec{
 			Type: flowcontrol.PriorityLevelEnablementLimited,
 			Limited: &flowcontrol.LimitedPriorityLevelConfiguration{
-				AssuredConcurrencyShares: 20,
+				AssuredConcurrencyShares: 100,
 				LimitResponse: flowcontrol.LimitResponse{
 					Type: flowcontrol.LimitResponseTypeQueue,
 					Queuing: &flowcontrol.QueuingConfiguration{
@@ -227,7 +228,7 @@ var (
 		flowcontrol.PriorityLevelConfigurationSpec{
 			Type: flowcontrol.PriorityLevelEnablementLimited,
 			Limited: &flowcontrol.LimitedPriorityLevelConfiguration{
-				AssuredConcurrencyShares: 100,
+				AssuredConcurrencyShares: 20,
 				LimitResponse: flowcontrol.LimitResponse{
 					Type: flowcontrol.LimitResponseTypeQueue,
 					Queuing: &flowcontrol.QueuingConfiguration{
@@ -380,7 +381,7 @@ var (
 		"global-default", "global-default", 9900,
 		flowcontrol.FlowDistinguisherMethodByUserType,
 		flowcontrol.PolicyRulesWithSubjects{
-			Subjects: groups(serviceaccount.AllServiceAccountsGroup),
+			Subjects: groups(user.AllUnauthenticated, user.AllAuthenticated),
 			ResourceRules: []flowcontrol.ResourcePolicyRule{resourceRule(
 				[]string{flowcontrol.VerbAll},
 				[]string{flowcontrol.APIGroupAll},
@@ -391,6 +392,19 @@ var (
 				nonResourceRule(
 					[]string{flowcontrol.VerbAll},
 					[]string{flowcontrol.NonResourceAll}),
+			},
+		},
+	)
+	// the following flow schema exempts probes
+	SuggestedFlowSchemaProbes = newFlowSchema(
+		"probes", "exempt", 2,
+		"", // distinguisherMethodType
+		flowcontrol.PolicyRulesWithSubjects{
+			Subjects: groups(user.AllUnauthenticated, user.AllAuthenticated),
+			NonResourceRules: []flowcontrol.NonResourcePolicyRule{
+				nonResourceRule(
+					[]string{"get"},
+					[]string{"/healthz", "/readyz", "/livez"}),
 			},
 		},
 	)

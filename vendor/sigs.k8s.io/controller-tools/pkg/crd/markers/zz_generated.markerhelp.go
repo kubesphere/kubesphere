@@ -32,8 +32,24 @@ func (Default) Help() *markers.DefinitionHelp {
 			Details: "A default value will be accepted as any value valid for the field. Formatting for common types include: boolean: `true`, string: `Cluster`, numerical: `1.24`, array: `{1,2}`, object: `{policy: \"delete\"}`). Defaults should be defined in pruned form, and only best-effort validation will be performed. Full validation of a default requires submission of the containing CRD to an apiserver.",
 		},
 		FieldHelp: map[string]markers.DetailedHelp{
-			"Value": markers.DetailedHelp{
+			"Value": {
 				Summary: "",
+				Details: "",
+			},
+		},
+	}
+}
+
+func (DeprecatedVersion) Help() *markers.DefinitionHelp {
+	return &markers.DefinitionHelp{
+		Category: "CRD",
+		DetailedHelp: markers.DetailedHelp{
+			Summary: "marks this version as deprecated.",
+			Details: "",
+		},
+		FieldHelp: map[string]markers.DetailedHelp{
+			"Warning": markers.DetailedHelp{
+				Summary: "message to be shown on the deprecated version",
 				Details: "",
 			},
 		},
@@ -246,27 +262,27 @@ func (PrintColumn) Help() *markers.DefinitionHelp {
 			Details: "",
 		},
 		FieldHelp: map[string]markers.DetailedHelp{
-			"Name": markers.DetailedHelp{
+			"Name": {
 				Summary: "specifies the name of the column.",
 				Details: "",
 			},
-			"Type": markers.DetailedHelp{
+			"Type": {
 				Summary: "indicates the type of the column. ",
 				Details: "It may be any OpenAPI data type listed at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types.",
 			},
-			"JSONPath": markers.DetailedHelp{
+			"JSONPath": {
 				Summary: "specifies the jsonpath expression used to extract the value of the column.",
 				Details: "",
 			},
-			"Description": markers.DetailedHelp{
+			"Description": {
 				Summary: "specifies the help/description for this column.",
 				Details: "",
 			},
-			"Format": markers.DetailedHelp{
+			"Format": {
 				Summary: "specifies the format of the column. ",
 				Details: "It may be any OpenAPI data format corresponding to the type, listed at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types.",
 			},
-			"Priority": markers.DetailedHelp{
+			"Priority": {
 				Summary: "indicates how important it is that this column be displayed. ",
 				Details: "Lower priority (*higher* numbered) columns will be hidden if the terminal width is too small.",
 			},
@@ -282,27 +298,38 @@ func (Resource) Help() *markers.DefinitionHelp {
 			Details: "",
 		},
 		FieldHelp: map[string]markers.DetailedHelp{
-			"Path": markers.DetailedHelp{
+			"Path": {
 				Summary: "specifies the plural \"resource\" for this CRD. ",
 				Details: "It generally corresponds to a plural, lower-cased version of the Kind. See https://book.kubebuilder.io/cronjob-tutorial/gvks.html.",
 			},
-			"ShortName": markers.DetailedHelp{
+			"ShortName": {
 				Summary: "specifies aliases for this CRD. ",
 				Details: "Short names are often used when people have work with your resource over and over again.  For instance, \"rs\" for \"replicaset\" or \"crd\" for customresourcedefinition.",
 			},
-			"Categories": markers.DetailedHelp{
+			"Categories": {
 				Summary: "specifies which group aliases this resource is part of. ",
 				Details: "Group aliases are used to work with groups of resources at once. The most common one is \"all\" which covers about a third of the base resources in Kubernetes, and is generally used for \"user-facing\" resources.",
 			},
-			"Singular": markers.DetailedHelp{
+			"Singular": {
 				Summary: "overrides the singular form of your resource. ",
 				Details: "The singular form is otherwise defaulted off the plural (path).",
 			},
-			"Scope": markers.DetailedHelp{
+			"Scope": {
 				Summary: "overrides the scope of the CRD (Cluster vs Namespaced). ",
 				Details: "Scope defaults to \"Namespaced\".  Cluster-scoped (\"Cluster\") resources don't exist in namespaces.",
 			},
 		},
+	}
+}
+
+func (Schemaless) Help() *markers.DefinitionHelp {
+	return &markers.DefinitionHelp{
+		Category: "CRD validation",
+		DetailedHelp: markers.DetailedHelp{
+			Summary: "marks a field as being a schemaless object. ",
+			Details: "Schemaless objects are not introspected, so you must provide any type and validation information yourself. One use for this tag is for embedding fields that hold JSONSchema typed objects. Because this field disables all type checking, it is recommended to be used only as a last resort.",
+		},
+		FieldHelp: map[string]markers.DetailedHelp{},
 	}
 }
 
@@ -347,15 +374,15 @@ func (SubresourceScale) Help() *markers.DefinitionHelp {
 			Details: "",
 		},
 		FieldHelp: map[string]markers.DetailedHelp{
-			"SpecPath": markers.DetailedHelp{
+			"SpecPath": {
 				Summary: "specifies the jsonpath to the replicas field for the scale's spec.",
 				Details: "",
 			},
-			"StatusPath": markers.DetailedHelp{
+			"StatusPath": {
 				Summary: "specifies the jsonpath to the replicas field for the scale's status.",
 				Details: "",
 			},
-			"SelectorPath": markers.DetailedHelp{
+			"SelectorPath": {
 				Summary: "specifies the jsonpath to the pod label selector field for the scale's status. ",
 				Details: "The selector field must be the *string* form (serialized form) of a selector. Setting a pod label selector is necessary for your type to work with the HorizontalPodAutoscaler.",
 			},

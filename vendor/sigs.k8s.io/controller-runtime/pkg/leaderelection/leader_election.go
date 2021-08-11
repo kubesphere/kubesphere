@@ -31,26 +31,36 @@ import (
 
 const inClusterNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
-// Options provides the required configuration to create a new resource lock
+// Options provides the required configuration to create a new resource lock.
 type Options struct {
 	// LeaderElection determines whether or not to use leader election when
 	// starting the manager.
 	LeaderElection bool
 
+	// LeaderElectionResourceLock determines which resource lock to use for leader election,
+	// defaults to "configmapsleases".
+	LeaderElectionResourceLock string
+
 	// LeaderElectionNamespace determines the namespace in which the leader
-	// election configmap will be created.
+	// election resource will be created.
 	LeaderElectionNamespace string
 
-	// LeaderElectionID determines the name of the configmap that leader election
+	// LeaderElectionID determines the name of the resource that leader election
 	// will use for holding the leader lock.
 	LeaderElectionID string
 }
 
-// NewResourceLock creates a new config map resource lock for use in a leader
-// election loop
+// NewResourceLock creates a new resource lock for use in a leader election loop.
 func NewResourceLock(config *rest.Config, recorderProvider recorder.Provider, options Options) (resourcelock.Interface, error) {
 	if !options.LeaderElection {
 		return nil, nil
+	}
+
+	// Default resource lock to "configmapsleases". We must keep this default until we are sure all controller-runtime
+	// users have upgraded from the original default ConfigMap lock to a controller-runtime version that has this new
+	// default. Many users of controller-runtime skip versions, so we should be extremely conservative here.
+	if options.LeaderElectionResourceLock == "" {
+		options.LeaderElectionResourceLock = resourcelock.ConfigMapsLeasesResourceLock
 	}
 
 	// LeaderElectionID must be provided to prevent clashes
@@ -80,8 +90,7 @@ func NewResourceLock(config *rest.Config, recorderProvider recorder.Provider, op
 		return nil, err
 	}
 
-	// TODO(JoelSpeed): switch to leaderelection object in 1.12
-	return resourcelock.New(resourcelock.ConfigMapsResourceLock,
+	return resourcelock.New(options.LeaderElectionResourceLock,
 		options.LeaderElectionNamespace,
 		options.LeaderElectionID,
 		client.CoreV1(),
@@ -95,8 +104,7 @@ func NewResourceLock(config *rest.Config, recorderProvider recorder.Provider, op
 func getInClusterNamespace() (string, error) {
 	// Check whether the namespace file exists.
 	// If not, we are not running in cluster so can't guess the namespace.
-	_, err := os.Stat(inClusterNamespacePath)
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(inClusterNamespacePath); os.IsNotExist(err) {
 		return "", fmt.Errorf("not running in-cluster, please specify LeaderElectionNamespace")
 	} else if err != nil {
 		return "", fmt.Errorf("error checking namespace file: %w", err)

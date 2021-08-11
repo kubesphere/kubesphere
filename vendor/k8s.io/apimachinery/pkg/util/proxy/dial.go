@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
@@ -69,7 +69,7 @@ func dialURL(ctx context.Context, url *url.URL, transport http.RoundTripper) (ne
 			}
 			if tlsConfig == nil {
 				// tls.Client requires non-nil config
-				klog.Warningf("using custom dialer with no TLSClientConfig. Defaulting to InsecureSkipVerify")
+				klog.Warning("using custom dialer with no TLSClientConfig. Defaulting to InsecureSkipVerify")
 				// tls.Handshake() requires ServerName or InsecureSkipVerify
 				tlsConfig = &tls.Config{
 					InsecureSkipVerify: true,

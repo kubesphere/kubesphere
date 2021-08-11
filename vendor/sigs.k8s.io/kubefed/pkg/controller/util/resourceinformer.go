@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -32,18 +33,18 @@ import (
 )
 
 // NewResourceInformer returns an unfiltered informer.
-func NewResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
+func NewResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(runtimeclient.Object)) (cache.Store, cache.Controller) {
 	return newResourceInformer(client, namespace, apiResource, triggerFunc, "")
 }
 
 // NewManagedResourceInformer returns an informer limited to resources
 // managed by KubeFed as indicated by labeling.
-func NewManagedResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
+func NewManagedResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(runtimeclient.Object)) (cache.Store, cache.Controller) {
 	labelSelector := labels.Set(map[string]string{ManagedByKubeFedLabelKey: ManagedByKubeFedLabelValue}).AsSelector().String()
 	return newResourceInformer(client, namespace, apiResource, triggerFunc, labelSelector)
 }
 
-func newResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(pkgruntime.Object), labelSelector string) (cache.Store, cache.Controller) {
+func newResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(runtimeclient.Object), labelSelector string) (cache.Store, cache.Controller) {
 	obj := &unstructured.Unstructured{}
 
 	if apiResource != nil {
@@ -78,7 +79,7 @@ func ObjFromCache(store cache.Store, kind, key string) (*unstructured.Unstructur
 	return obj.(*unstructured.Unstructured), nil
 }
 
-func rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
+func rawObjFromCache(store cache.Store, kind, key string) (runtimeclient.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "Failed to query %s store for %q", kind, key)
@@ -88,5 +89,5 @@ func rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, er
 	if !exist {
 		return nil, nil
 	}
-	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
+	return cachedObj.(runtimeclient.Object).DeepCopyObject().(runtimeclient.Object), nil
 }

@@ -37,6 +37,8 @@ type KubeFedConfigSpec struct {
 	ClusterHealthCheck *ClusterHealthCheckConfig `json:"clusterHealthCheck,omitempty"`
 	// +optional
 	SyncController *SyncControllerConfig `json:"syncController,omitempty"`
+	// +optional
+	StatusController *StatusControllerConfig `json:"statusController,omitempty"`
 }
 
 type DurationConfig struct {
@@ -105,6 +107,10 @@ type ClusterHealthCheckConfig struct {
 }
 
 type SyncControllerConfig struct {
+	// The maximum number of concurrent Reconciles of sync controller which can be run.
+	// Defaults to 1.
+	// +optional
+	MaxConcurrentReconciles *int64 `json:"maxConcurrentReconciles,omitempty"`
 	// Whether to adopt pre-existing resources in member clusters. Defaults to
 	// "Enabled".
 	// +optional
@@ -117,6 +123,13 @@ const (
 	AdoptResourcesEnabled  ResourceAdoption = "Enabled"
 	AdoptResourcesDisabled ResourceAdoption = "Disabled"
 )
+
+type StatusControllerConfig struct {
+	// The maximum number of concurrent Reconciles of status controller which can be run.
+	// Defaults to 1.
+	// +optional
+	MaxConcurrentReconciles *int64 `json:"maxConcurrentReconciles,omitempty"`
+}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubefedconfigs

@@ -26,13 +26,13 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	apiv1 "k8s.io/api/core/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/client/generic"
@@ -41,10 +41,10 @@ import (
 const (
 	DefaultKubeFedSystemNamespace = "kube-federation-system"
 
-	KubeAPIQPS   = 20.0
-	KubeAPIBurst = 30
-	TokenKey     = "token"
-
+	KubeAPIQPS        = 20.0
+	KubeAPIBurst      = 30
+	TokenKey          = "token"
+	CaCrtKey          = "ca.crt"
 	KubeFedConfigName = "kubefed"
 )
 
@@ -84,6 +84,14 @@ func BuildClusterConfig(fedCluster *fedv1b1.KubeFedCluster, client generic.Clien
 	clusterConfig.QPS = KubeAPIQPS
 	clusterConfig.Burst = KubeAPIBurst
 
+	if fedCluster.Spec.ProxyURL != "" {
+		proxyURL, err := url.Parse(fedCluster.Spec.ProxyURL)
+		if err != nil {
+			return nil, errors.Errorf("Failed to parse provided proxy URL %s: %v", fedCluster.Spec.ProxyURL, err)
+		}
+		clusterConfig.Proxy = http.ProxyURL(proxyURL)
+	}
+
 	if len(fedCluster.Spec.DisabledTLSValidations) != 0 {
 		klog.V(1).Infof("Cluster %s will use a custom transport for TLS certificate validation", fedCluster.Name)
 		if err = CustomizeTLSTransport(fedCluster, clusterConfig); err != nil {
@@ -98,7 +106,7 @@ func BuildClusterConfig(fedCluster *fedv1b1.KubeFedCluster, client generic.Clien
 // primary cluster by checking if the UIDs match for both ObjectMetas passed
 // in.
 // TODO (font): Need to revisit this when cluster ID is available.
-func IsPrimaryCluster(obj, clusterObj pkgruntime.Object) bool {
+func IsPrimaryCluster(obj, clusterObj runtimeclient.Object) bool {
 	meta := MetaAccessor(obj)
 	clusterMeta := MetaAccessor(clusterObj)
 	return meta.GetUID() == clusterMeta.GetUID()

@@ -68,12 +68,14 @@ type ClusterHealthCheckConfig struct {
 // controllers.
 type ControllerConfig struct {
 	KubeFedNamespaces
-	KubeConfig                  *restclient.Config
-	ClusterAvailableDelay       time.Duration
-	ClusterUnavailableDelay     time.Duration
-	MinimizeLatency             bool
-	SkipAdoptingResources       bool
-	RawResourceStatusCollection bool
+	KubeConfig                    *restclient.Config
+	ClusterAvailableDelay         time.Duration
+	ClusterUnavailableDelay       time.Duration
+	MinimizeLatency               bool
+	MaxConcurrentSyncReconciles   int64
+	MaxConcurrentStatusReconciles int64
+	SkipAdoptingResources         bool
+	RawResourceStatusCollection   bool
 }
 
 func (c *ControllerConfig) LimitedScope() bool {

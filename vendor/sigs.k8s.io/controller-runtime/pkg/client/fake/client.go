@@ -23,14 +23,17 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/testing"
 
@@ -41,14 +44,16 @@ import (
 
 type versionedTracker struct {
 	testing.ObjectTracker
+	scheme *runtime.Scheme
 }
 
 type fakeClient struct {
-	tracker versionedTracker
-	scheme  *runtime.Scheme
+	tracker         versionedTracker
+	scheme          *runtime.Scheme
+	schemeWriteLock sync.Mutex
 }
 
-var _ client.Client = &fakeClient{}
+var _ client.WithWatch = &fakeClient{}
 
 const (
 	maxNameLength          = 63
@@ -58,33 +63,124 @@ const (
 
 // NewFakeClient creates a new fake client for testing.
 // You can choose to initialize it with a slice of runtime.Object.
-// Deprecated: use NewFakeClientWithScheme.  You should always be
-// passing an explicit Scheme.
-func NewFakeClient(initObjs ...runtime.Object) client.Client {
-	return NewFakeClientWithScheme(scheme.Scheme, initObjs...)
+//
+// Deprecated: Please use NewClientBuilder instead.
+func NewFakeClient(initObjs ...runtime.Object) client.WithWatch {
+	return NewClientBuilder().WithRuntimeObjects(initObjs...).Build()
 }
 
 // NewFakeClientWithScheme creates a new fake client with the given scheme
 // for testing.
 // You can choose to initialize it with a slice of runtime.Object.
-func NewFakeClientWithScheme(clientScheme *runtime.Scheme, initObjs ...runtime.Object) client.Client {
-	tracker := testing.NewObjectTracker(clientScheme, scheme.Codecs.UniversalDecoder())
-	for _, obj := range initObjs {
-		err := tracker.Add(obj)
-		if err != nil {
+//
+// Deprecated: Please use NewClientBuilder instead.
+func NewFakeClientWithScheme(clientScheme *runtime.Scheme, initObjs ...runtime.Object) client.WithWatch {
+	return NewClientBuilder().WithScheme(clientScheme).WithRuntimeObjects(initObjs...).Build()
+}
+
+// NewClientBuilder returns a new builder to create a fake client.
+func NewClientBuilder() *ClientBuilder {
+	return &ClientBuilder{}
+}
+
+// ClientBuilder builds a fake client.
+type ClientBuilder struct {
+	scheme             *runtime.Scheme
+	initObject         []client.Object
+	initLists          []client.ObjectList
+	initRuntimeObjects []runtime.Object
+}
+
+// WithScheme sets this builder's internal scheme.
+// If not set, defaults to client-go's global scheme.Scheme.
+func (f *ClientBuilder) WithScheme(scheme *runtime.Scheme) *ClientBuilder {
+	f.scheme = scheme
+	return f
+}
+
+// WithObjects can be optionally used to initialize this fake client with client.Object(s).
+func (f *ClientBuilder) WithObjects(initObjs ...client.Object) *ClientBuilder {
+	f.initObject = append(f.initObject, initObjs...)
+	return f
+}
+
+// WithLists can be optionally used to initialize this fake client with client.ObjectList(s).
+func (f *ClientBuilder) WithLists(initLists ...client.ObjectList) *ClientBuilder {
+	f.initLists = append(f.initLists, initLists...)
+	return f
+}
+
+// WithRuntimeObjects can be optionally used to initialize this fake client with runtime.Object(s).
+func (f *ClientBuilder) WithRuntimeObjects(initRuntimeObjs ...runtime.Object) *ClientBuilder {
+	f.initRuntimeObjects = append(f.initRuntimeObjects, initRuntimeObjs...)
+	return f
+}
+
+// Build builds and returns a new fake client.
+func (f *ClientBuilder) Build() client.WithWatch {
+	if f.scheme == nil {
+		f.scheme = scheme.Scheme
+	}
+
+	tracker := versionedTracker{ObjectTracker: testing.NewObjectTracker(f.scheme, scheme.Codecs.UniversalDecoder()), scheme: f.scheme}
+	for _, obj := range f.initObject {
+		if err := tracker.Add(obj); err != nil {
 			panic(fmt.Errorf("failed to add object %v to fake client: %w", obj, err))
 		}
 	}
-	return &fakeClient{
-		tracker: versionedTracker{tracker},
-		scheme:  clientScheme,
+	for _, obj := range f.initLists {
+		if err := tracker.Add(obj); err != nil {
+			panic(fmt.Errorf("failed to add list %v to fake client: %w", obj, err))
+		}
 	}
+	for _, obj := range f.initRuntimeObjects {
+		if err := tracker.Add(obj); err != nil {
+			panic(fmt.Errorf("failed to add runtime object %v to fake client: %w", obj, err))
+		}
+	}
+	return &fakeClient{
+		tracker: tracker,
+		scheme:  f.scheme,
+	}
+}
+
+const trackerAddResourceVersion = "999"
+
+func (t versionedTracker) Add(obj runtime.Object) error {
+	var objects []runtime.Object
+	if meta.IsListType(obj) {
+		var err error
+		objects, err = meta.ExtractList(obj)
+		if err != nil {
+			return err
+		}
+	} else {
+		objects = []runtime.Object{obj}
+	}
+	for _, obj := range objects {
+		accessor, err := meta.Accessor(obj)
+		if err != nil {
+			return fmt.Errorf("failed to get accessor for object: %w", err)
+		}
+		if accessor.GetResourceVersion() == "" {
+			// We use a "magic" value of 999 here because this field
+			// is parsed as uint and and 0 is already used in Update.
+			// As we can't go lower, go very high instead so this can
+			// be recognized
+			accessor.SetResourceVersion(trackerAddResourceVersion)
+		}
+		if err := t.ObjectTracker.Add(obj); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (t versionedTracker) Create(gvr schema.GroupVersionResource, obj runtime.Object, ns string) error {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get accessor for object: %v", err)
 	}
 	if accessor.GetName() == "" {
 		return apierrors.NewInvalid(
@@ -108,19 +204,41 @@ func (t versionedTracker) Update(gvr schema.GroupVersionResource, obj runtime.Ob
 	if err != nil {
 		return fmt.Errorf("failed to get accessor for object: %v", err)
 	}
+
 	if accessor.GetName() == "" {
 		return apierrors.NewInvalid(
 			obj.GetObjectKind().GroupVersionKind().GroupKind(),
 			accessor.GetName(),
 			field.ErrorList{field.Required(field.NewPath("metadata.name"), "name is required")})
 	}
+
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	if gvk.Empty() {
+		gvk, err = apiutil.GVKForObject(obj, t.scheme)
+		if err != nil {
+			return err
+		}
+	}
+
 	oldObject, err := t.ObjectTracker.Get(gvr, ns, accessor.GetName())
 	if err != nil {
+		// If the resource is not found and the resource allows create on update, issue a
+		// create instead.
+		if apierrors.IsNotFound(err) && allowsCreateOnUpdate(gvk) {
+			return t.Create(gvr, obj, ns)
+		}
 		return err
 	}
+
 	oldAccessor, err := meta.Accessor(oldObject)
 	if err != nil {
 		return err
+	}
+
+	// If the new object does not have the resource version set and it allows unconditional update,
+	// default it to the resource version of the existing resource
+	if accessor.GetResourceVersion() == "" && allowsUnconditionalUpdate(gvk) {
+		accessor.SetResourceVersion(oldAccessor.GetResourceVersion())
 	}
 	if accessor.GetResourceVersion() != oldAccessor.GetResourceVersion() {
 		return apierrors.NewConflict(gvr.GroupResource(), accessor.GetName(), errors.New("object was modified"))
@@ -134,10 +252,13 @@ func (t versionedTracker) Update(gvr schema.GroupVersionResource, obj runtime.Ob
 	}
 	intResourceVersion++
 	accessor.SetResourceVersion(strconv.FormatUint(intResourceVersion, 10))
+	if !accessor.GetDeletionTimestamp().IsZero() && len(accessor.GetFinalizers()) == 0 {
+		return t.ObjectTracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+	}
 	return t.ObjectTracker.Update(gvr, obj, ns)
 }
 
-func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	gvr, err := getGVRFromObject(obj, c.scheme)
 	if err != nil {
 		return err
@@ -167,19 +288,42 @@ func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj runtime.
 	return err
 }
 
-func (c *fakeClient) List(ctx context.Context, obj runtime.Object, opts ...client.ListOption) error {
+func (c *fakeClient) Watch(ctx context.Context, list client.ObjectList, opts ...client.ListOption) (watch.Interface, error) {
+	gvk, err := apiutil.GVKForObject(list, c.scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.HasSuffix(gvk.Kind, "List") {
+		gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
+	}
+
+	listOpts := client.ListOptions{}
+	listOpts.ApplyOptions(opts)
+
+	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
+	return c.tracker.Watch(gvr, listOpts.Namespace)
+}
+
+func (c *fakeClient) List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error {
 	gvk, err := apiutil.GVKForObject(obj, c.scheme)
 	if err != nil {
 		return err
 	}
 
-	OriginalKind := gvk.Kind
+	originalKind := gvk.Kind
 
-	if !strings.HasSuffix(gvk.Kind, "List") {
-		return fmt.Errorf("non-list type %T (kind %q) passed as output", obj, gvk)
+	if strings.HasSuffix(gvk.Kind, "List") {
+		gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
 	}
-	// we need the non-list GVK, so chop off the "List" from the end of the kind
-	gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
+
+	if _, isUnstructuredList := obj.(*unstructured.UnstructuredList); isUnstructuredList && !c.scheme.Recognizes(gvk) {
+		// We need tor register the ListKind with UnstructuredList:
+		// https://github.com/kubernetes/kubernetes/blob/7b2776b89fb1be28d4e9203bdeec079be903c103/staging/src/k8s.io/client-go/dynamic/fake/simple.go#L44-L51
+		c.schemeWriteLock.Lock()
+		c.scheme.AddKnownTypeWithName(gvk.GroupVersion().WithKind(gvk.Kind+"List"), &unstructured.UnstructuredList{})
+		c.schemeWriteLock.Unlock()
+	}
 
 	listOpts := client.ListOptions{}
 	listOpts.ApplyOptions(opts)
@@ -194,7 +338,7 @@ func (c *fakeClient) List(ctx context.Context, obj runtime.Object, opts ...clien
 	if err != nil {
 		return err
 	}
-	ta.SetKind(OriginalKind)
+	ta.SetKind(originalKind)
 	ta.SetAPIVersion(gvk.GroupVersion().String())
 
 	j, err := json.Marshal(o)
@@ -224,7 +368,16 @@ func (c *fakeClient) List(ctx context.Context, obj runtime.Object, opts ...clien
 	return nil
 }
 
-func (c *fakeClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+func (c *fakeClient) Scheme() *runtime.Scheme {
+	return c.scheme
+}
+
+func (c *fakeClient) RESTMapper() meta.RESTMapper {
+	// TODO: Implement a fake RESTMapper.
+	return nil
+}
+
+func (c *fakeClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	createOptions := &client.CreateOptions{}
 	createOptions.ApplyOptions(opts)
 
@@ -254,7 +407,7 @@ func (c *fakeClient) Create(ctx context.Context, obj runtime.Object, opts ...cli
 	return c.tracker.Create(gvr, obj, accessor.GetNamespace())
 }
 
-func (c *fakeClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
+func (c *fakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	gvr, err := getGVRFromObject(obj, c.scheme)
 	if err != nil {
 		return err
@@ -266,11 +419,10 @@ func (c *fakeClient) Delete(ctx context.Context, obj runtime.Object, opts ...cli
 	delOptions := client.DeleteOptions{}
 	delOptions.ApplyOptions(opts)
 
-	//TODO: implement propagation
-	return c.tracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+	return c.deleteObject(gvr, accessor)
 }
 
-func (c *fakeClient) DeleteAllOf(ctx context.Context, obj runtime.Object, opts ...client.DeleteAllOfOption) error {
+func (c *fakeClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
 	gvk, err := apiutil.GVKForObject(obj, c.scheme)
 	if err != nil {
 		return err
@@ -298,7 +450,7 @@ func (c *fakeClient) DeleteAllOf(ctx context.Context, obj runtime.Object, opts .
 		if err != nil {
 			return err
 		}
-		err = c.tracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+		err = c.deleteObject(gvr, accessor)
 		if err != nil {
 			return err
 		}
@@ -306,7 +458,7 @@ func (c *fakeClient) DeleteAllOf(ctx context.Context, obj runtime.Object, opts .
 	return nil
 }
 
-func (c *fakeClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+func (c *fakeClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	updateOptions := &client.UpdateOptions{}
 	updateOptions.ApplyOptions(opts)
 
@@ -327,7 +479,7 @@ func (c *fakeClient) Update(ctx context.Context, obj runtime.Object, opts ...cli
 	return c.tracker.Update(gvr, obj, accessor.GetNamespace())
 }
 
-func (c *fakeClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (c *fakeClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 	patchOptions := &client.PatchOptions{}
 	patchOptions.ApplyOptions(opts)
 
@@ -383,6 +535,23 @@ func (c *fakeClient) Status() client.StatusWriter {
 	return &fakeStatusWriter{client: c}
 }
 
+func (c *fakeClient) deleteObject(gvr schema.GroupVersionResource, accessor metav1.Object) error {
+	old, err := c.tracker.Get(gvr, accessor.GetNamespace(), accessor.GetName())
+	if err == nil {
+		oldAccessor, err := meta.Accessor(old)
+		if err == nil {
+			if len(oldAccessor.GetFinalizers()) > 0 {
+				now := metav1.Now()
+				oldAccessor.SetDeletionTimestamp(&now)
+				return c.tracker.Update(gvr, old, accessor.GetNamespace())
+			}
+		}
+	}
+
+	//TODO: implement propagation
+	return c.tracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+}
+
 func getGVRFromObject(obj runtime.Object, scheme *runtime.Scheme) (schema.GroupVersionResource, error) {
 	gvk, err := apiutil.GVKForObject(obj, scheme)
 	if err != nil {
@@ -396,14 +565,111 @@ type fakeStatusWriter struct {
 	client *fakeClient
 }
 
-func (sw *fakeStatusWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+func (sw *fakeStatusWriter) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	// TODO(droot): This results in full update of the obj (spec + status). Need
 	// a way to update status field only.
 	return sw.client.Update(ctx, obj, opts...)
 }
 
-func (sw *fakeStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (sw *fakeStatusWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 	// TODO(droot): This results in full update of the obj (spec + status). Need
 	// a way to update status field only.
 	return sw.client.Patch(ctx, obj, patch, opts...)
+}
+
+func allowsUnconditionalUpdate(gvk schema.GroupVersionKind) bool {
+	switch gvk.Group {
+	case "apps":
+		switch gvk.Kind {
+		case "ControllerRevision", "DaemonSet", "Deployment", "ReplicaSet", "StatefulSet":
+			return true
+		}
+	case "autoscaling":
+		switch gvk.Kind {
+		case "HorizontalPodAutoscaler":
+			return true
+		}
+	case "batch":
+		switch gvk.Kind {
+		case "CronJob", "Job":
+			return true
+		}
+	case "certificates":
+		switch gvk.Kind {
+		case "Certificates":
+			return true
+		}
+	case "flowcontrol":
+		switch gvk.Kind {
+		case "FlowSchema", "PriorityLevelConfiguration":
+			return true
+		}
+	case "networking":
+		switch gvk.Kind {
+		case "Ingress", "IngressClass", "NetworkPolicy":
+			return true
+		}
+	case "policy":
+		switch gvk.Kind {
+		case "PodSecurityPolicy":
+			return true
+		}
+	case "rbac":
+		switch gvk.Kind {
+		case "ClusterRole", "ClusterRoleBinding", "Role", "RoleBinding":
+			return true
+		}
+	case "scheduling":
+		switch gvk.Kind {
+		case "PriorityClass":
+			return true
+		}
+	case "settings":
+		switch gvk.Kind {
+		case "PodPreset":
+			return true
+		}
+	case "storage":
+		switch gvk.Kind {
+		case "StorageClass":
+			return true
+		}
+	case "":
+		switch gvk.Kind {
+		case "ConfigMap", "Endpoint", "Event", "LimitRange", "Namespace", "Node",
+			"PersistentVolume", "PersistentVolumeClaim", "Pod", "PodTemplate",
+			"ReplicationController", "ResourceQuota", "Secret", "Service",
+			"ServiceAccount", "EndpointSlice":
+			return true
+		}
+	}
+
+	return false
+}
+
+func allowsCreateOnUpdate(gvk schema.GroupVersionKind) bool {
+	switch gvk.Group {
+	case "coordination":
+		switch gvk.Kind {
+		case "Lease":
+			return true
+		}
+	case "node":
+		switch gvk.Kind {
+		case "RuntimeClass":
+			return true
+		}
+	case "rbac":
+		switch gvk.Kind {
+		case "ClusterRole", "ClusterRoleBinding", "Role", "RoleBinding":
+			return true
+		}
+	case "":
+		switch gvk.Kind {
+		case "Endpoint", "Event", "LimitRange", "Service":
+			return true
+		}
+	}
+
+	return false
 }
