@@ -43,6 +43,7 @@ type HelmCategorySpec struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HelmCategory is the Schema for the helmcategories API
 type HelmCategory struct {
@@ -59,6 +60,7 @@ type HelmCategoryStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HelmCategoryList contains a list of HelmCategory
 type HelmCategoryList struct {

@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"k8s.io/api/auditregistration/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -35,7 +34,7 @@ type Receiver struct {
 	ReceiverType string `json:"type,omitempty" protobuf:"bytes,8,opt,name=type"`
 	// ClientConfig holds the connection parameters for the webhook
 	// +optional
-	ReceiverConfig v1alpha1.WebhookClientConfig `json:"config,omitempty" protobuf:"bytes,8,opt,name=config"`
+	ReceiverConfig *WebhookClientConfig `json:"config,omitempty" protobuf:"bytes,8,opt,name=config"`
 }
 
 type AuditSinkPolicy struct {
@@ -46,10 +45,37 @@ type AuditSinkPolicy struct {
 type DynamicAuditConfig struct {
 	// Throttle holds the options for throttling the webhook
 	// +optional
-	Throttle *v1alpha1.WebhookThrottleConfig `json:"throttle,omitempty" protobuf:"bytes,18,opt,name=throttle"`
+	Throttle *WebhookThrottleConfig `json:"throttle,omitempty" protobuf:"bytes,18,opt,name=throttle"`
 	// Policy defines the policy for selecting which events should be sent to the webhook
 	// +optional
-	Policy *v1alpha1.Policy `json:"policy,omitempty" protobuf:"bytes,18,opt,name=policy"`
+	Policy *Policy `json:"policy,omitempty" protobuf:"bytes,18,opt,name=policy"`
+}
+
+type Policy struct {
+	// The Level that all requests are recorded at.
+	// available options: None, Metadata, Request, RequestResponse
+	// required
+	Level Level `json:"level" protobuf:"bytes,1,opt,name=level"`
+
+	// Stages is a list of stages for which events are created.
+	// +optional
+	Stages []Stage `json:"stages" protobuf:"bytes,2,opt,name=stages"`
+}
+
+type Stage string
+
+type Level string
+
+type WebhookThrottleConfig struct {
+	// ThrottleQPS maximum number of batches per second
+	// default 10 QPS
+	// +optional
+	QPS *int64 `json:"qps,omitempty" protobuf:"bytes,1,opt,name=qps"`
+
+	// ThrottleBurst is the maximum number of events sent at the same moment
+	// default 15 QPS
+	// +optional
+	Burst *int64 `json:"burst,omitempty" protobuf:"bytes,2,opt,name=burst"`
 }
 
 // WebhookSpec defines the desired state of Webhook
@@ -116,9 +142,53 @@ type WebhookSpec struct {
 	// available options: None, Metadata, Request, RequestResponse
 	// default: Metadata
 	// +optional
-	AuditLevel v1alpha1.Level `json:"auditLevel" protobuf:"bytes,1,opt,name=auditLevel"`
+	AuditLevel Level `json:"auditLevel" protobuf:"bytes,1,opt,name=auditLevel"`
 	// K8s auditing is enabled or not.
 	K8sAuditingEnabled bool `json:"k8sAuditingEnabled,omitempty" protobuf:"bytes,8,opt,name=priority"`
+}
+
+type WebhookClientConfig struct {
+	// `url` gives the location of the webhook, in standard URL form
+	// (`scheme://host:port/path`). Exactly one of `url` or `service`
+	// must be specified.
+	//
+	// The `host` should not refer to a service running in the cluster; use
+	// the `service` field instead. The host might be resolved via external
+	// DNS in some apiservers (e.g., `kube-apiserver` cannot resolve
+	// in-cluster DNS as that would be a layering violation). `host` may
+	// also be an IP address.
+	//
+	// Please note that using `localhost` or `127.0.0.1` as a `host` is
+	// risky unless you take great care to run this webhook on all hosts
+	// which run an apiserver which might need to make calls to this
+	// webhook. Such installs are likely to be non-portable, i.e., not easy
+	// to turn up in a new cluster.
+	//
+	// The scheme must be "https"; the URL must begin with "https://".
+	//
+	// A path is optional, and if present may be any string permissible in
+	// a URL. You may use the path to pass an arbitrary string to the
+	// webhook, for example, a cluster identifier.
+	//
+	// Attempting to use a user or basic auth e.g. "user:password@" is not
+	// allowed. Fragments ("#...") and query parameters ("?...") are not
+	// allowed, either.
+	//
+	// +optional
+	URL *string `json:"url,omitempty" protobuf:"bytes,1,opt,name=url"`
+
+	// `service` is a reference to the service for this webhook. Either
+	// `service` or `url` must be specified.
+	//
+	// If the webhook is running within the cluster, then you should use `service`.
+	//
+	// +optional
+	Service *ServiceReference `json:"service,omitempty" protobuf:"bytes,2,opt,name=service"`
+
+	// `caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate.
+	// If unspecified, system trust roots on the apiserver are used.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty" protobuf:"bytes,3,opt,name=caBundle"`
 }
 
 // WebhookStatus defines the observed state of Webhook
@@ -131,6 +201,7 @@ type WebhookStatus struct {
 // +genclient:noStatus
 // +genclient:nonNamespaced
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Webhook is the Schema for the webhooks API
 type Webhook struct {
@@ -142,6 +213,7 @@ type Webhook struct {
 }
 
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // WebhookList contains a list of Webhook
 type WebhookList struct {
@@ -150,6 +222,40 @@ type WebhookList struct {
 	Items           []Webhook `json:"items"`
 }
 
+type ServiceReference struct {
+	// `namespace` is the namespace of the service.
+	// Required
+	Namespace string `json:"namespace" protobuf:"bytes,1,opt,name=namespace"`
+
+	// `name` is the name of the service.
+	// Required
+	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
+
+	// `path` is an optional URL path which will be sent in any request to
+	// this service.
+	// +optional
+	Path *string `json:"path,omitempty" protobuf:"bytes,3,opt,name=path"`
+
+	// If specified, the port on the service that hosting webhook.
+	// Default to 443 for backward compatibility.
+	// `port` should be a valid port number (1-65535, inclusive).
+	// +optional
+	Port *int32 `json:"port,omitempty" protobuf:"varint,4,opt,name=port"`
+}
+
 func init() {
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 }
+
+const (
+	// LevelNone disables auditing
+	LevelNone Level = "None"
+	// LevelMetadata provides the basic level of auditing.
+	LevelMetadata Level = "Metadata"
+	// LevelRequest provides Metadata level of auditing, and additionally
+	// logs the request object (does not apply for non-resource requests).
+	LevelRequest Level = "Request"
+	// LevelRequestResponse provides Request level of auditing, and additionally
+	// logs the response object (does not apply for non-resource requests and watches).
+	LevelRequestResponse Level = "RequestResponse"
+)

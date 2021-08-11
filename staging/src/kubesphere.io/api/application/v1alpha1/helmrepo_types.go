@@ -99,6 +99,7 @@ type HelmRepoStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HelmRepo is the Schema for the helmrepoes API
 type HelmRepo struct {
@@ -110,6 +111,7 @@ type HelmRepo struct {
 }
 
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HelmRepoList contains a list of HelmRepo
 type HelmRepoList struct {

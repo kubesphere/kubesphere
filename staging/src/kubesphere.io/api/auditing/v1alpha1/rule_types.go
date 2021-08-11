@@ -65,6 +65,7 @@ type RuleStatus struct {
 // +genclient:noStatus
 // +genclient:nonNamespaced
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Rule is the Schema for the rules API
 type Rule struct {
@@ -76,6 +77,7 @@ type Rule struct {
 }
 
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // AuditRuleList contains a list of Rule
 type RuleList struct {
