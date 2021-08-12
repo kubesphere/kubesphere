@@ -133,7 +133,9 @@ process_content () {
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
+# use modules, and use module info rather than the vendor dir for computing dependencies
 export GO111MODULE=on
+export GOFLAGS=-mod=mod
 
 # Check bash version
 if (( BASH_VERSINFO[0] < 4 )); then
