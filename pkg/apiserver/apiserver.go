@@ -256,20 +256,8 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.Config.ServiceMeshOptions, s.container, s.KubernetesClient.Kubernetes(), s.CacheClient))
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
-	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container,
-		s.InformerFactory.KubeSphereSharedInformerFactory(),
-		s.DevopsClient,
-		s.SonarClient,
-		s.KubernetesClient.KubeSphere(),
-		s.S3Client,
-		s.Config.DevopsOptions.Host,
-		rbacAuthorizer))
-	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container,
-		s.DevopsClient,
-		s.KubernetesClient.Kubernetes(),
-		s.KubernetesClient.KubeSphere(),
-		s.InformerFactory.KubeSphereSharedInformerFactory(),
-		s.InformerFactory.KubernetesSharedInformerFactory()))
+	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.Config.DevopsOptions.Endpoint))
+	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container, s.Config.DevopsOptions.Endpoint))
 	urlruntime.Must(notificationv1.AddToContainer(s.container, s.Config.NotificationOptions.Endpoint))
 	urlruntime.Must(alertingv1.AddToContainer(s.container, s.Config.AlertingOptions.Endpoint))
 	urlruntime.Must(alertingv2alpha1.AddToContainer(s.container, s.InformerFactory,

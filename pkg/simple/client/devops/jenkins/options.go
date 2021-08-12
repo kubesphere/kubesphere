@@ -29,6 +29,7 @@ type Options struct {
 	Username       string `json:",omitempty" yaml:"username" description:"Jenkins admin username"`
 	Password       string `json:",omitempty" yaml:"password" description:"Jenkins admin password"`
 	MaxConnections int    `json:"maxConnections,omitempty" yaml:"maxConnections" description:"Maximum connections allowed to connect to Jenkins"`
+	Endpoint       string `json:"endpoint,omitempty" yaml:"endpoint" description:"The endpoint of the ks-devops apiserver"`
 }
 
 // NewDevopsOptions returns a `zero` instance
