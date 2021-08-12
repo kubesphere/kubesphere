@@ -23,6 +23,7 @@ import (
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/auth"
 
@@ -40,7 +41,7 @@ type basicAuthenticator struct {
 	loginRecorder auth.LoginRecorder
 }
 
-func NewBasicAuthenticator(authenticator auth.PasswordAuthenticator, loginRecorder auth.LoginRecorder) authenticator.Password {
+func NewBasicAuthenticator(authenticator auth.PasswordAuthenticator, loginRecorder auth.LoginRecorder) basictoken.Password {
 	return &basicAuthenticator{
 		authenticator: authenticator,
 		loginRecorder: loginRecorder,
