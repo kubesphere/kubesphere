@@ -2579,7 +2579,6 @@ sigs.k8s.io/yaml
 # github.com/spf13/pflag => github.com/spf13/pflag v1.0.5
 # github.com/spf13/viper => github.com/spf13/viper v1.4.0
 # github.com/src-d/gcfg => github.com/src-d/gcfg v1.4.0
-# github.com/stoewer/go-strcase => github.com/stoewer/go-strcase v1.2.0
 # github.com/streadway/amqp => github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 # github.com/streadway/handy => github.com/streadway/handy v0.0.0-20190108123426-d5acb3125c2a
 # github.com/stretchr/objx => github.com/stretchr/objx v0.2.0
