@@ -39,7 +39,7 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver ks-controller-manager;$(info $(M)...Begin test and build all of binary) @ ## Test and build all of binary
+all: test ks-apiserver ks-controller-manager;$(info $(M)...Begin to test and build all of binary.) @ ## Test and build all of binary.
 
 help:
 	@grep -hE '^[ a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -47,38 +47,38 @@ help:
 
 .PHONY: binary
 # Build all of binary
-binary: | ks-apiserver ks-controller-manager; $(info $(M)...Build all of binary) @ ## Build all of binary
+binary: | ks-apiserver ks-controller-manager; $(info $(M)...Build all of binary.) @ ## Build all of binary.
 
 # Build ks-apiserver binary
-ks-apiserver: ; $(info $(M)...Begin build ks-apiserver binary.)  @ ## Build ks-apiserver
+ks-apiserver: ; $(info $(M)...Begin to build ks-apiserver binary.)  @ ## Build ks-apiserver.
 	 hack/gobuild.sh cmd/ks-apiserver; 
 
 # Build ks-controller-manager binary
-ks-controller-manager: ; $(info $(M)...Begin build ks-controller-manager binary.)  @ ## Build ks-controller-manager
+ks-controller-manager: ; $(info $(M)...Begin to build ks-controller-manager binary.)  @ ## Build ks-controller-manager.
 	hack/gobuild.sh cmd/controller-manager
 
 # Run all verify scripts hack/verify-*.sh
-verify-all: ; $(info $(M)...Begin run all verify scripts hack/verify-*.sh.)  @ ## Run all verify scripts hack/verify-*.sh
+verify-all: ; $(info $(M)...Begin to run all verify scripts hack/verify-*.sh.)  @ ## Run all verify scripts hack/verify-*.sh.
 	hack/verify-all.sh
 
 # Build e2e binary
-e2e: ;$(info $(M)...Begin build e2e binary.)  @ ## Build e2e binary
+e2e: ;$(info $(M)...Begin to build e2e binary.)  @ ## Build e2e binary.
 	hack/build_e2e.sh test/e2e
 
 # Run go fmt against code 
-fmt: ;$(info $(M)...Begin run go fmt against code .)  @ ## Run go fmt against code 
+fmt: ;$(info $(M)...Begin to run go fmt against code.)  @ ## Run go fmt against code.
 	gofmt -w ./pkg ./cmd ./tools ./api
 
 # Format all import, `goimports` is required.
-goimports: ;$(info $(M)...Begin Format all import.)  @ ## Format all import, `goimports` is required.
+goimports: ;$(info $(M)...Begin to Format all import.)  @ ## Format all import, `goimports` is required.
 	@hack/update-goimports.sh
 
 # Run go vet against code
-vet: ;$(info $(M)...Begin run go vet against code.)  @ ## Run go vet against code
+vet: ;$(info $(M)...Begin to run go vet against code.)  @ ## Run go vet against code.
 	go vet ./pkg/... ./cmd/...
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests: ;$(info $(M)...Begin generate manifests e.g. CRD, RBAC etc..)  @ ## Generate manifests e.g. CRD, RBAC etc.
+manifests: ;$(info $(M)...Begin to generate manifests e.g. CRD, RBAC etc..)  @ ## Generate manifests e.g. CRD, RBAC etc.
 	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/application/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
 	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/cluster/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
 	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/devops/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
@@ -88,17 +88,17 @@ manifests: ;$(info $(M)...Begin generate manifests e.g. CRD, RBAC etc..)  @ ## G
 	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/storage/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
 	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/tenant/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
 
-deploy: manifests ;$(info $(M)...Begin deploy.)  @ ## deploy
+deploy: manifests ;$(info $(M)...Begin to deploy.)  @ ## Deploy.
 	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
 
-mockgen: ;$(info $(M)...Begin mockgen.)  @ ## mockgen
+mockgen: ;$(info $(M)...Begin to mockgen.)  @ ## Mockgen.
 	mockgen -package=openpitrix -source=pkg/simple/client/openpitrix/openpitrix.go -destination=pkg/simple/client/openpitrix/mock.go
 
-deepcopy: ;$(info $(M)...Begin deepcopy.)  @ ## deepcopy
+deepcopy: ;$(info $(M)...Begin to deepcopy.)  @ ## Deepcopy.
 	hack/generate_group.sh "deepcopy" kubesphere.io/api kubesphere.io/api ${GV} --output-base=staging/src/  -h "hack/boilerplate.go.txt"
 
-openapi: ;$(info $(M)...Begin openapi.)  @ ## openapi
+openapi: ;$(info $(M)...Begin to openapi.)  @ ## Openapi.
 	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./staging/src/kubesphere.io/api/tenant/v1alpha1 -p kubesphere.io/api/tenant/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
 	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./staging/src/kubesphere.io/api/servicemesh/v1alpha2 -p kubesphere.io/api/servicemesh/v1alpha2 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
 	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/api/networking/v1,./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./vendor/k8s.io/apimachinery/pkg/util/intstr,./staging/src/kubesphere.io/api/network/v1alpha1 -p kubesphere.io/api/network/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
@@ -108,44 +108,41 @@ openapi: ;$(info $(M)...Begin openapi.)  @ ## openapi
 	go run ./tools/cmd/crd-doc-gen/main.go
 	go run ./tools/cmd/doc-gen/main.go
 
-container: ;$(info $(M)...Begin build the docker image.)  @ ## Build the docker image
+container: ;$(info $(M)...Begin to build the docker image.)  @ ## Build the docker image.
 	DRY_RUN=true hack/docker_build.sh
 
-container-push: ;$(info $(M)...Begin build and push.)  @ ## Build and push
+container-push: ;$(info $(M)...Begin to build and push.)  @ ## Build and Push.
 	hack/docker_build.sh
 
-container-cross: ; $(info $(M)...Begin build container images for multiple platforms.)  @ ## Build container images for multiple platforms. Currently, only linux/amd64,linux/arm64 are supported.
+container-cross: ; $(info $(M)...Begin to build container images for multiple platforms.)  @ ## Build container images for multiple platforms. Currently, only linux/amd64,linux/arm64 are supported.
 	DRY_RUN=true hack/docker_build_multiarch.sh
 
-# Build and push
-container-cross-push: ; $(info $(M)...Begin build and push.)  @ ## Build and push
+container-cross-push: ; $(info $(M)...Begin to build and push.)  @ ## Build and Push.
 	hack/docker_build_multiarch.sh
 
-helm-package: ; $(info $(M)...Begin helm-package.)  @ ## helm-package
+helm-package: ; $(info $(M)...Begin to helm-package.)  @ ## Helm-package.
 	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
 	helm package config/ks-core --app-version=v3.1.0 --version=0.1.0 -d ./bin
 
-helm-deploy: ; $(info $(M)...Begin helm-deploy.)  @ ## helm-deploy
+helm-deploy: ; $(info $(M)...Begin to helm-deploy.)  @ ## Helm-deploy.
 	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
 	- kubectl create ns kubesphere-controls-system
 	helm upgrade --install ks-core ./config/ks-core -n kubesphere-system --create-namespace
 	kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/roles/ks-core/prepare/files/ks-init/role-templates.yaml
 
-helm-uninstall: ; $(info $(M)...Begin helm-uninstall.)  @ ## helm-uninstall
+helm-uninstall: ; $(info $(M)...Begin to helm-uninstall.)  @ ## Helm-uninstall.
 	- kubectl delete ns kubesphere-controls-system
 	helm uninstall ks-core -n kubesphere-system
 	kubectl delete -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/roles/ks-core/prepare/files/ks-init/role-templates.yaml
 
 # Run tests
-test: vet ;$(info $(M)...Begin run tests.)  @ ## Run tests
+test: vet ;$(info $(M)...Begin to run tests.)  @ ## Run tests.
 	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=2m; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
 
 .PHONY: clean
-clean: ;$(info $(M)...Begin clean.)  @ ## clean
+clean: ;$(info $(M)...Begin to clean.)  @ ## Clean.
 	-make -C ./pkg/version clean
 	@echo "ok"
 
-# find or download controller-gen
-# download controller-gen if necessary
-clientset:  ;$(info $(M)...Begin find or download controller-gen.)  @ ## find or download controller-gen,download controller-gen if necessary
+clientset:  ;$(info $(M)...Begin to find or download controller-gen.)  @ ## Find or download controller-gen,download controller-gen if necessary.
 	./hack/generate_client.sh ${GV}
