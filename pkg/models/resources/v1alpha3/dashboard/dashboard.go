@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
+	monitoringdashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -39,7 +39,7 @@ func New(c client.Reader) v1alpha3.Interface {
 }
 
 func (d *dashboardGetter) Get(namespace, name string) (runtime.Object, error) {
-	dashboard := monitoringdashboardv1alpha1.Dashboard{}
+	dashboard := monitoringdashboardv1alpha2.Dashboard{}
 	err := d.c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, &dashboard)
 	if err != nil {
 		klog.Error(err)
@@ -49,7 +49,7 @@ func (d *dashboardGetter) Get(namespace, name string) (runtime.Object, error) {
 }
 
 func (d *dashboardGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	dashboards := monitoringdashboardv1alpha1.DashboardList{}
+	dashboards := monitoringdashboardv1alpha2.DashboardList{}
 	err := d.c.List(context.Background(), &dashboards, &client.ListOptions{Namespace: namespace, LabelSelector: query.Selector()})
 	if err != nil {
 		klog.Error(err)
@@ -65,12 +65,12 @@ func (d *dashboardGetter) List(namespace string, query *query.Query) (*api.ListR
 
 func (d *dashboardGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 
-	leftDashboard, ok := left.(*monitoringdashboardv1alpha1.Dashboard)
+	leftDashboard, ok := left.(*monitoringdashboardv1alpha2.Dashboard)
 	if !ok {
 		return false
 	}
 
-	rightDashboard, ok := right.(*monitoringdashboardv1alpha1.Dashboard)
+	rightDashboard, ok := right.(*monitoringdashboardv1alpha2.Dashboard)
 	if !ok {
 		return false
 	}
@@ -79,7 +79,7 @@ func (d *dashboardGetter) compare(left runtime.Object, right runtime.Object, fie
 }
 
 func (d *dashboardGetter) filter(object runtime.Object, filter query.Filter) bool {
-	dashboard, ok := object.(*monitoringdashboardv1alpha1.Dashboard)
+	dashboard, ok := object.(*monitoringdashboardv1alpha2.Dashboard)
 	if !ok {
 		return false
 	}

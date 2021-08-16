@@ -49,6 +49,12 @@ type MetricData struct {
 	MetricValues `json:"result,omitempty" description:"metric data including labels, time series and values" csv:"metric_values"`
 }
 
+type DashboardEntity struct {
+	GrafanaDashboardName    string `json:"grafanaDashboardName"`
+	GrafanaDashboardUrl     string `json:"grafanaDashboardUrl,omitempty"`
+	GrafanaDashboardContent string `json:"grafanaDashboardContent,omitempty"`
+}
+
 // The first element is the timestamp, the second is the metric value.
 // eg, [1585658599.195, 0.528]
 type Point [2]float64

@@ -5,15 +5,15 @@ package panels
 // Graph visualizes range query results into a linear graph
 type Graph struct {
 	// Name of the graph panel
-	Title string `json:"title,omitempty"`
+	//Title string `json:"title,omitempty"`
 	// Must be `graph`
-	Type string `json:"type"`
+	//Type string `json:"type"`
 	// Panel ID
-	Id int64 `json:"id,omitempty"`
+	//Id int64 `json:"id,omitempty"`
 	// Panel description
 	Description string `json:"description,omitempty"`
 	// A collection of queries
-	Targets []Target `json:"targets,omitempty"`
+	//Targets []Target `json:"targets,omitempty"`
 	// Display as a bar chart
 	Bars bool `json:"bars,omitempty"`
 	// Set series color

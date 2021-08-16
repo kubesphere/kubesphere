@@ -19,11 +19,18 @@
 package v1alpha3
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
 	"k8s.io/klog"
+
+	converter "kubesphere.io/monitoring-dashboard/tools/converter"
 
 	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -32,7 +39,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 
 	"github.com/emicklei/go-restful"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	monitoringdashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -301,4 +311,117 @@ func (h handler) handleAdhocQuery(req *restful.Request, resp *restful.Response) 
 	} else {
 		resp.WriteAsJson(res)
 	}
+}
+
+// handleGrafanaDashboardImport imports Grafana template and converts it to KubeSphere dashboard.
+// The description of the Parameters:
+// grafanaDashboardName: the name of this Grafana template needed to convert.
+// grafanaDashboardUrl: the link to download this Grafana template.
+// grafanaDashboardContent: the whole JSON content needed to convert.
+// Note that the parameter grafanaDashboardName is indispensable,
+// and the requested parameter grafanaDashboardUrl and grafanaDashboardContent cannot be empty at the same time.
+func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restful.Response) {
+	var entity monitoring.DashboardEntity
+	err := req.ReadEntity(&entity)
+	if err != nil {
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	if entity.GrafanaDashboardName == "" {
+		err := errors.New("the requested parameter grafanaDashboardName cannot be empty")
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+	if entity.GrafanaDashboardUrl == "" && entity.GrafanaDashboardContent == "" {
+		err := errors.New("the requested parameter grafanaDashboardUrl and grafanaDashboardContent cannot be empty at the same time")
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	grafanaDashboardContent := []byte(entity.GrafanaDashboardContent)
+	if entity.GrafanaDashboardUrl != "" {
+		c, err := func(u string) ([]byte, error) {
+			_, err := url.ParseRequestURI(u)
+			if err != nil {
+				return nil, err
+			}
+			client := &http.Client{}
+			req, err := http.NewRequest("GET", u, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			r, err := client.Do(req)
+			if err != nil {
+				return nil, err
+			}
+
+			defer r.Body.Close()
+
+			c, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				return nil, err
+			}
+			return c, nil
+		}(entity.GrafanaDashboardUrl)
+
+		if err != nil {
+			api.HandleBadRequest(resp, nil, err)
+			return
+		}
+
+		grafanaDashboardContent = []byte(c)
+	}
+
+	c := converter.NewConverter()
+	convertedDashboard, err := c.ConvertToDashboard(grafanaDashboardContent, true, "", entity.GrafanaDashboardName)
+	if err != nil {
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	dashboard := monitoringdashboardv1alpha2.ClusterDashboard{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: convertedDashboard.APIVersion,
+			Kind:       convertedDashboard.Kind,
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: convertedDashboard.Metadata["name"],
+		},
+		Spec: *convertedDashboard.Spec,
+	}
+
+	jsonDashbaord, err := json.Marshal(dashboard)
+	if err != nil {
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	// a dashboard with the same name cannot post.
+	ctx := context.TODO()
+	_, err = h.k.Discovery().RESTClient().
+		Get().
+		AbsPath("/apis/monitoring.kubesphere.io/v1alpha2/clusterdashboards/" + dashboard.Name).
+		DoRaw(ctx)
+
+	if err == nil {
+		api.HandleBadRequest(resp, nil, errors.New("a dashboard with the same name already exists!"))
+		return
+	}
+
+	// create this dashboard
+	_, err = h.k.Discovery().RESTClient().
+		Post().
+		AbsPath("/apis/monitoring.kubesphere.io/v1alpha2/clusterdashboards").
+		Body(jsonDashbaord).
+		DoRaw(ctx)
+
+	if err != nil {
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	resp.WriteAsJson(dashboard)
+
 }

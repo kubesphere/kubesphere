@@ -23,7 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
+	monitoringdashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -32,8 +32,8 @@ import (
 
 var c client.Client
 
-func compare(actual *monitoringdashboardv1alpha1.ClusterDashboard,
-	expects ...*monitoringdashboardv1alpha1.ClusterDashboard) bool {
+func compare(actual *monitoringdashboardv1alpha2.ClusterDashboard,
+	expects ...*monitoringdashboardv1alpha2.ClusterDashboard) bool {
 	for _, app := range expects {
 		if actual.Name == app.Name && reflect.DeepEqual(actual.Labels, app.Labels) {
 			return true
@@ -44,7 +44,7 @@ func compare(actual *monitoringdashboardv1alpha1.ClusterDashboard,
 
 func TestGetListClusterDashboards(t *testing.T) {
 	sch := scheme.Scheme
-	if err := monitoringdashboardv1alpha1.AddToScheme(sch); err != nil {
+	if err := monitoringdashboardv1alpha2.AddToScheme(sch); err != nil {
 		t.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
@@ -53,7 +53,7 @@ func TestGetListClusterDashboards(t *testing.T) {
 	var labelSet1 = map[string]string{"foo-1": "bar-1"}
 	var labelSet2 = map[string]string{"foo-2": "bar-2"}
 
-	testCases := []*monitoringdashboardv1alpha1.ClusterDashboard{
+	testCases := []*monitoringdashboardv1alpha2.ClusterDashboard{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "clusterdashboard-1",
@@ -92,7 +92,7 @@ func TestGetListClusterDashboards(t *testing.T) {
 	}
 
 	for _, dashboard := range results.Items {
-		dashboard, err := dashboard.(*monitoringdashboardv1alpha1.ClusterDashboard)
+		dashboard, err := dashboard.(*monitoringdashboardv1alpha2.ClusterDashboard)
 		if !err {
 			t.Fatal(err)
 		}
@@ -106,7 +106,7 @@ func TestGetListClusterDashboards(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dashboard := result.(*monitoringdashboardv1alpha1.ClusterDashboard)
+	dashboard := result.(*monitoringdashboardv1alpha2.ClusterDashboard)
 	if !compare(dashboard, testCases...) {
 		t.Errorf("The results %v not match testcases %v", result, testCases)
 	}

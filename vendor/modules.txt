@@ -437,10 +437,14 @@ github.com/gorilla/mux
 # github.com/gorilla/websocket v1.4.2 => github.com/gorilla/websocket v1.4.1
 ## explicit
 github.com/gorilla/websocket
+# github.com/gosimple/slug v1.1.1
+github.com/gosimple/slug
 # github.com/gosuri/uitable v0.0.4 => github.com/gosuri/uitable v0.0.1
 github.com/gosuri/uitable
 github.com/gosuri/uitable/util/strutil
 github.com/gosuri/uitable/util/wordwrap
+# github.com/grafana-tools/sdk v0.0.0-20210625151406-43693eb2f02b
+github.com/grafana-tools/sdk
 # github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f => github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f
 ## explicit
 github.com/gregjones/httpcache
@@ -790,6 +794,8 @@ github.com/prometheus/prometheus/util/stats
 github.com/prometheus/prometheus/util/strutil
 github.com/prometheus/prometheus/util/teststorage
 github.com/prometheus/prometheus/util/testutil
+# github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be
+github.com/rainycape/unidecode
 # github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 github.com/rcrowley/go-metrics
 # github.com/rubenv/sql-migrate v0.0.0-20200616145509-8d140a17f351 => github.com/rubenv/sql-migrate v0.0.0-20200616145509-8d140a17f351
@@ -951,6 +957,7 @@ golang.org/x/crypto/ssh/knownhosts
 golang.org/x/lint
 golang.org/x/lint/golint
 # golang.org/x/net v0.0.0-20210525063256-abc453219eb5 => golang.org/x/net v0.0.0-20210525063256-abc453219eb5
+## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -1006,6 +1013,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
 # golang.org/x/tools v0.1.5 => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
+## explicit
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/passes/inspect
 golang.org/x/tools/go/ast/astutil
@@ -1985,10 +1993,16 @@ kubesphere.io/client-go/client
 kubesphere.io/client-go/client/generic
 kubesphere.io/client-go/restclient
 kubesphere.io/client-go/restclient/versioned/iam/v1alpha2
-# kubesphere.io/monitoring-dashboard v0.1.2 => kubesphere.io/monitoring-dashboard v0.1.2
+# kubesphere.io/monitoring-dashboard v0.2.2 => kubesphere.io/monitoring-dashboard v0.2.2
 ## explicit
 kubesphere.io/monitoring-dashboard/api/v1alpha1
 kubesphere.io/monitoring-dashboard/api/v1alpha1/panels
+kubesphere.io/monitoring-dashboard/api/v1alpha2
+kubesphere.io/monitoring-dashboard/api/v1alpha2/annotations
+kubesphere.io/monitoring-dashboard/api/v1alpha2/panels
+kubesphere.io/monitoring-dashboard/api/v1alpha2/templatings
+kubesphere.io/monitoring-dashboard/api/v1alpha2/time
+kubesphere.io/monitoring-dashboard/tools/converter
 # rsc.io/letsencrypt v0.0.1 => rsc.io/letsencrypt v0.0.1
 ## explicit
 # sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
@@ -2822,7 +2836,7 @@ sigs.k8s.io/yaml
 # k8s.io/utils => k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 # kubesphere.io/api => ./staging/src/kubesphere.io/api
 # kubesphere.io/client-go => ./staging/src/kubesphere.io/client-go
-# kubesphere.io/monitoring-dashboard => kubesphere.io/monitoring-dashboard v0.1.2
+# kubesphere.io/monitoring-dashboard => kubesphere.io/monitoring-dashboard v0.2.2
 # rsc.io/binaryregexp => rsc.io/binaryregexp v0.2.0
 # rsc.io/letsencrypt => rsc.io/letsencrypt v0.0.1
 # rsc.io/pdf => rsc.io/pdf v0.1.1
