@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors.
+Copyright 2021 The Operator-SDK Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,5 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package version provides utilities for version number comparisons
-package version // import "k8s.io/apimachinery/pkg/util/version"
+package manifestutil
+
+import (
+	"strings"
+
+	"helm.sh/helm/v3/pkg/kube"
+)
+
+func HasResourcePolicyKeep(annotations map[string]string) bool {
+	if annotations == nil {
+		return false
+	}
+	resourcePolicyType, ok := annotations[kube.ResourcePolicyAnno]
+	if !ok {
+		return false
+	}
+	resourcePolicyType = strings.ToLower(strings.TrimSpace(resourcePolicyType))
+	return resourcePolicyType == kube.KeepPolicy
+}
