@@ -96,10 +96,9 @@ func addControllers(
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
 
 	storageCapabilityController := capability.NewController(
-		client.KubeSphere().StorageV1alpha1().StorageClassCapabilities(),
-		kubesphereInformer.Storage().V1alpha1(),
 		client.Kubernetes().StorageV1().StorageClasses(),
 		kubernetesInformer.Storage().V1().StorageClasses(),
+		kubernetesInformer.Storage().V1beta1().CSIDrivers(),
 		capability.SnapshotSupported(client.Kubernetes().Discovery()),
 		client.Snapshot().SnapshotV1beta1().VolumeSnapshotClasses(),
 		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),

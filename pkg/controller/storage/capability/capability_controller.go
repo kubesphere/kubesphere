@@ -21,18 +21,18 @@ package capability
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
+	snapinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions/volumesnapshot/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
+	storageinformersv1beta1 "k8s.io/client-go/informers/storage/v1beta1"
+	storagelistersv1beta1 "k8s.io/client-go/listers/storage/v1beta1"
 
 	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/typed/volumesnapshot/v1beta1"
-	snapinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions/volumesnapshot/v1beta1"
 	snapshotlisters "github.com/kubernetes-csi/external-snapshotter/client/v3/listers/volumesnapshot/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -47,46 +47,38 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	ksstorage "kubesphere.io/api/storage/v1alpha1"
-
 	crdscheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
-	ksstorageclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/storage/v1alpha1"
-	ksstorageinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/storage/v1alpha1"
-	ksstoragelisters "kubesphere.io/kubesphere/pkg/client/listers/storage/v1alpha1"
 )
 
 const (
 	minSnapshotSupportedVersion = "v1.17.0"
-	annotationSupportSnapshot   = "storageclass.kubesphere.io/support-snapshot"
+	annotationSupportSnapshot   = "storageclass.kubesphere.io/allow-snapshot"
+	annotationSupportClone      = "storageclass.kubesphere.io/allow-clone"
 )
 
 type StorageCapabilityController struct {
-	storageClassCapabilityClient ksstorageclient.StorageClassCapabilityInterface
-	storageClassCapabilityLister ksstoragelisters.StorageClassCapabilityLister
-	storageClassCapabilitySynced cache.InformerSynced
-
-	provisionerCapabilityLister ksstoragelisters.ProvisionerCapabilityLister
-	provisionerCapabilitySynced cache.InformerSynced
-
 	storageClassClient storageclient.StorageClassInterface
 	storageClassLister storagelistersv1.StorageClassLister
 	storageClassSynced cache.InformerSynced
+
+	csiDriverLister storagelistersv1beta1.CSIDriverLister
+	csiDriverSynced cache.InformerSynced
 
 	snapshotSupported   bool
 	snapshotClassClient snapshotclient.VolumeSnapshotClassInterface
 	snapshotClassLister snapshotlisters.VolumeSnapshotClassLister
 	snapshotClassSynced cache.InformerSynced
 
-	workQueue workqueue.RateLimitingInterface
+	workQueue    workqueue.RateLimitingInterface
+	csiWorkQueue workqueue.RateLimitingInterface
 }
 
 // This controller is responsible to watch StorageClass/ProvisionerCapability.
 // And then update StorageClassCapability CRD resource object to the newest status.
 func NewController(
-	storageClassCapabilityClient ksstorageclient.StorageClassCapabilityInterface,
-	ksStorageInformer ksstorageinformers.Interface,
 	storageClassClient storageclient.StorageClassInterface,
 	storageClassInformer storageinformersv1.StorageClassInformer,
+	csiDriverInformer storageinformersv1beta1.CSIDriverInformer,
 	snapshotSupported bool,
 	snapshotClassClient snapshotclient.VolumeSnapshotClassInterface,
 	snapshotClassInformer snapinformers.VolumeSnapshotClassInformer,
@@ -95,16 +87,14 @@ func NewController(
 	utilruntime.Must(crdscheme.AddToScheme(scheme.Scheme))
 
 	controller := &StorageCapabilityController{
-		storageClassCapabilityClient: storageClassCapabilityClient,
-		storageClassCapabilityLister: ksStorageInformer.StorageClassCapabilities().Lister(),
-		storageClassCapabilitySynced: ksStorageInformer.StorageClassCapabilities().Informer().HasSynced,
-		provisionerCapabilityLister:  ksStorageInformer.ProvisionerCapabilities().Lister(),
-		provisionerCapabilitySynced:  ksStorageInformer.ProvisionerCapabilities().Informer().HasSynced,
-		storageClassClient:           storageClassClient,
-		storageClassLister:           storageClassInformer.Lister(),
-		storageClassSynced:           storageClassInformer.Informer().HasSynced,
-		snapshotSupported:            snapshotSupported,
-		workQueue:                    workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "StorageClasses"),
+		storageClassClient: storageClassClient,
+		storageClassLister: storageClassInformer.Lister(),
+		storageClassSynced: storageClassInformer.Informer().HasSynced,
+		csiDriverLister:    csiDriverInformer.Lister(),
+		csiDriverSynced:    csiDriverInformer.Informer().HasSynced,
+		snapshotSupported:  snapshotSupported,
+		workQueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "StorageClasses"),
+		csiWorkQueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "csiDriver"),
 	}
 
 	if snapshotSupported {
@@ -126,24 +116,10 @@ func NewController(
 		DeleteFunc: controller.enqueueStorageClass,
 	})
 
-	// ProvisionerCapability acts as a value source of its relevant StorageClassCapabilities
-	// so when a PC is created/updated, the corresponding SCCs should be created(if not exists)/updated
-	// we achieve this by simply enqueueing the StorageClasses of the same provisioner
-	// but don't overdo by cascade deleting the SCCs when a PC is deleted
-	// since the role of PCs is more like a template rather than owner to SCCs
-
-	// This is a backward compatible fix to remove the useless auto detection of SCCs
-	// in the future, we will only keep ProvisionerCapability and remove the StorageClassCapability CRD entirely
-	ksStorageInformer.ProvisionerCapabilities().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.handleProvisionerCapability,
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			newPC := newObj.(*ksstorage.ProvisionerCapability)
-			oldPC := oldObj.(*ksstorage.ProvisionerCapability)
-			if newPC.ResourceVersion == oldPC.ResourceVersion {
-				return
-			}
-			controller.handleProvisionerCapability(newObj)
-		},
+	csiDriverInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    controller.enqueueStorageClassByCSI,
+		UpdateFunc: nil,
+		DeleteFunc: controller.enqueueStorageClassByCSI,
 	})
 
 	return controller
@@ -160,13 +136,8 @@ func (c *StorageCapabilityController) Run(threadCnt int, stopCh <-chan struct{})
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
 	cacheSyncs := []cache.InformerSynced{
-		c.storageClassCapabilitySynced,
-		c.provisionerCapabilitySynced,
 		c.storageClassSynced,
-	}
-
-	if c.snapshotAllowed() {
-		cacheSyncs = append(cacheSyncs, c.snapshotClassSynced)
+		c.csiDriverSynced,
 	}
 
 	if ok := cache.WaitForCacheSync(stopCh, cacheSyncs...); !ok {
@@ -182,21 +153,6 @@ func (c *StorageCapabilityController) Run(threadCnt int, stopCh <-chan struct{})
 	return nil
 }
 
-func (c *StorageCapabilityController) handleProvisionerCapability(obj interface{}) {
-	provisionerCapability := obj.(*ksstorage.ProvisionerCapability)
-	storageClasses, err := c.storageClassLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("list StorageClass error when handle provisionerCapability", err)
-		return
-	}
-	for _, storageClass := range storageClasses {
-		if getProvisionerCapabilityName(storageClass.Provisioner) == provisionerCapability.Name {
-			klog.V(4).Infof("enqueue StorageClass %s while handling provisionerCapability", storageClass.Name)
-			c.enqueueStorageClass(storageClass)
-		}
-	}
-}
-
 func (c *StorageCapabilityController) enqueueStorageClass(obj interface{}) {
 	var key string
 	var err error
@@ -205,6 +161,27 @@ func (c *StorageCapabilityController) enqueueStorageClass(obj interface{}) {
 		return
 	}
 	c.workQueue.Add(key)
+}
+
+func (c *StorageCapabilityController) enqueueStorageClassByCSI(csi interface{}) {
+	var objs []*storagev1.StorageClass
+	var key string
+	var err error
+	if key, err = cache.MetaNamespaceKeyFunc(csi); err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
+	objs, err = c.storageClassLister.List(labels.NewSelector())
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
+	for _, obj := range objs {
+		if obj.Provisioner == key {
+			c.workQueue.Add(obj.Name)
+		}
+	}
+	return
 }
 
 func (c *StorageCapabilityController) runWorker() {
@@ -257,40 +234,20 @@ func (c *StorageCapabilityController) syncHandler(key string) error {
 	storageClass, err := c.storageClassLister.Get(name)
 	if err != nil {
 		// StorageClass has been deleted, delete StorageClassCapability and VolumeSnapshotClass
-		if errors.IsNotFound(err) {
-			if c.snapshotAllowed() {
-				err = c.deleteSnapshotClass(name)
-				if err != nil {
-					return err
-				}
+		if errors.IsNotFound(err) && c.snapshotAllowed() {
+			err = c.deleteSnapshotClass(name)
+			if err != nil {
+				return err
 			}
-			return c.deleteStorageCapability(name)
 		}
 		return err
 	}
 
-	// Get capability spec
-	capabilitySpec, err := c.getCapabilitySpec(storageClass)
-	if err != nil {
-		return err
-	}
-	// The corresponding ProvisionerCapability Object does not exist
-	if capabilitySpec == nil {
-		klog.Infof("Can't get StorageClass %s's capability", name)
-		err = c.updateStorageClassSnapshotSupported(storageClass, false)
-		if err != nil {
-			return err
-		}
-		// Don't delete the already created SCC
-		// as it might be created manually by user
-		return nil
-	}
-	klog.Infof("StorageClass %s has capability %v", name, capabilitySpec)
-
+	//Cloning and volumeSnapshot support only available for CSI drivers.
+	withCapability := c.supportCapability(storageClass)
 	// Handle VolumeSnapshotClass with same name of StorageClass
 	// annotate "support-snapshot" of StorageClass
-	withSnapshotCapability := false
-	if c.snapshotAllowed() && capabilitySpec.Features.Snapshot.Create {
+	if c.snapshotAllowed() && withCapability {
 		_, err = c.snapshotClassLister.Get(name)
 		if err != nil {
 			// If VolumeSnapshotClass not exist, create it
@@ -306,63 +263,71 @@ func (c *StorageCapabilityController) syncHandler(key string) error {
 				}
 			}
 		}
-		withSnapshotCapability = true
-	}
-	err = c.updateStorageClassSnapshotSupported(storageClass, withSnapshotCapability)
-	if err != nil {
-		return err
 	}
 
-	// Handle StorageClassCapability with the same name of StorageClass
-	storageClassCapabilityExist, err := c.storageClassCapabilityLister.Get(storageClass.Name)
+	err = c.addStorageClassSnapshotAnnotation(storageClass, withCapability)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			// If StorageClassCapability doesn't exist, create it
-			storageClassCapabilityCreate := &ksstorage.StorageClassCapability{ObjectMeta: metav1.ObjectMeta{Name: storageClass.Name}}
-			storageClassCapabilityCreate.Spec = *capabilitySpec
-			klog.Info("Create StorageClassCapability: ", storageClassCapabilityCreate)
-			_, err = c.storageClassCapabilityClient.Create(context.Background(), storageClassCapabilityCreate, metav1.CreateOptions{})
-			return err
-		}
 		return err
 	}
-	// If StorageClassCapability exist, update it.
-	storageClassCapabilityUpdate := storageClassCapabilityExist.DeepCopy()
-	storageClassCapabilityUpdate.Spec = *capabilitySpec
-	if !reflect.DeepEqual(storageClassCapabilityExist, storageClassCapabilityUpdate) {
-		klog.Info("Update StorageClassCapability: ", storageClassCapabilityUpdate)
-		_, err = c.storageClassCapabilityClient.Update(context.Background(), storageClassCapabilityUpdate, metav1.UpdateOptions{})
+	err = c.addCloneVolumeAnnotation(storageClass, withCapability)
+	if err != nil {
+		return nil
+	}
+	_, err = c.storageClassClient.Update(context.Background(), storageClass, metav1.UpdateOptions{})
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *StorageCapabilityController) updateStorageClassSnapshotSupported(storageClass *storagev1.StorageClass, snapshotSupported bool) error {
-	if storageClass.Annotations == nil {
-		storageClass.Annotations = make(map[string]string)
+func (c *StorageCapabilityController) supportCapability(storageClass *storagev1.StorageClass) bool {
+	driver := storageClass.Provisioner
+	if driver != "" {
+		if _, err := c.csiDriverLister.Get(driver); err != nil {
+			return false
+		}
+		return true
 	}
-	snapshotSupportedAnnotated, err := strconv.ParseBool(storageClass.Annotations[annotationSupportSnapshot])
-	// err != nil means annotationSupportSnapshot is not illegal, include empty
-	if err != nil || snapshotSupported != snapshotSupportedAnnotated {
-		storageClass.Annotations[annotationSupportSnapshot] = strconv.FormatBool(snapshotSupported)
-		_, err = c.storageClassClient.Update(context.Background(), storageClass, metav1.UpdateOptions{})
+	return false
+}
+
+func (c *StorageCapabilityController) addStorageClassSnapshotAnnotation(storageClass *storagev1.StorageClass, snapshotSupported bool) error {
+	if snapshotSupported || !c.snapshotSupported {
+		if storageClass.Annotations == nil {
+			storageClass.Annotations = make(map[string]string)
+		}
+		_, err := strconv.ParseBool(storageClass.Annotations[annotationSupportSnapshot])
+		// err != nil means annotationSupportSnapshot is not illegal, include empty
 		if err != nil {
-			return err
+			storageClass.Annotations[annotationSupportSnapshot] = strconv.FormatBool(c.snapshotSupported)
+		}
+	} else {
+		if storageClass.Annotations != nil && c.snapshotSupported {
+			if _, ok := storageClass.Annotations[annotationSupportSnapshot]; ok {
+				delete(storageClass.Annotations, annotationSupportSnapshot)
+			}
 		}
 	}
 	return nil
 }
 
-func (c *StorageCapabilityController) deleteStorageCapability(name string) error {
-	_, err := c.storageClassCapabilityLister.Get(name)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
+func (c *StorageCapabilityController) addCloneVolumeAnnotation(storageClass *storagev1.StorageClass, cloneSupported bool) error {
+	if cloneSupported {
+		if storageClass.Annotations == nil {
+			storageClass.Annotations = make(map[string]string)
 		}
-		return err
+		_, err := strconv.ParseBool(storageClass.Annotations[annotationSupportClone])
+		if err != nil {
+			storageClass.Annotations[annotationSupportClone] = strconv.FormatBool(cloneSupported)
+		}
+	} else {
+		if storageClass.Annotations != nil {
+			if _, ok := storageClass.Annotations[annotationSupportClone]; ok {
+				delete(storageClass.Annotations, annotationSupportClone)
+			}
+		}
 	}
-	klog.Infof("Delete StorageClassCapability %s", name)
-	return c.storageClassCapabilityClient.Delete(context.Background(), name, metav1.DeleteOptions{})
+	return nil
 }
 
 func (c *StorageCapabilityController) deleteSnapshotClass(name string) error {
@@ -380,42 +345,6 @@ func (c *StorageCapabilityController) deleteSnapshotClass(name string) error {
 	return c.snapshotClassClient.Delete(context.Background(), name, metav1.DeleteOptions{})
 }
 
-func (c *StorageCapabilityController) capabilityFromProvisioner(provisioner string) (*ksstorage.StorageClassCapabilitySpec, error) {
-	provisionerCapability, err := c.provisionerCapabilityLister.Get(getProvisionerCapabilityName(provisioner))
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	klog.V(4).Infof("get provisioner capability:%s %s", provisioner, provisionerCapability.Name)
-	capabilitySpec := &ksstorage.StorageClassCapabilitySpec{
-		Features: provisionerCapability.Spec.Features,
-	}
-	return capabilitySpec, nil
-}
-
-func (c *StorageCapabilityController) getCapabilitySpec(storageClass *storagev1.StorageClass) (*ksstorage.StorageClassCapabilitySpec, error) {
-	// get from provisioner capability first
-	klog.V(4).Info("get cap ", storageClass.Provisioner)
-	capabilitySpec, err := c.capabilityFromProvisioner(storageClass.Provisioner)
-	if err != nil {
-		return nil, err
-	}
-
-	if capabilitySpec != nil {
-		capabilitySpec.Provisioner = storageClass.Provisioner
-		if storageClass.AllowVolumeExpansion == nil || !*storageClass.AllowVolumeExpansion {
-			capabilitySpec.Features.Volume.Expand = ksstorage.ExpandModeUnknown
-		}
-		if !c.snapshotSupported {
-			capabilitySpec.Features.Snapshot.Create = false
-			capabilitySpec.Features.Snapshot.List = false
-		}
-	}
-	return capabilitySpec, nil
-}
-
 func (c *StorageCapabilityController) snapshotAllowed() bool {
 	return c.snapshotSupported && c.snapshotClassClient != nil && c.snapshotClassLister != nil && c.snapshotClassSynced != nil
 }
@@ -431,8 +360,4 @@ func SnapshotSupported(discoveryInterface discovery.DiscoveryInterface) bool {
 		return false
 	}
 	return ver.AtLeast(minVer)
-}
-
-func getProvisionerCapabilityName(provisioner string) string {
-	return strings.NewReplacer(".", "-", "/", "-").Replace(provisioner)
 }
