@@ -19,18 +19,21 @@ package oauth
 import (
 	"net/http"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 )
 
-// ks-apiserver includes a built-in OAuth server. Users obtain OAuth access tokens to authenticate themselves to the API.
+const contentTypeFormData = "application/x-www-form-urlencoded"
+
+// AddToContainer ks-apiserver includes a built-in OAuth server. Users obtain OAuth access tokens to authenticate themselves to the API.
 // The OAuth server supports standard authorization code grant and the implicit grant OAuth authorization flows.
 // All requests for OAuth tokens involve a request to <ks-apiserver>/oauth/authorize.
 // Most authentication integrations place an authenticating proxy in front of this endpoint, or configure ks-apiserver
@@ -41,7 +44,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 	passwordAuthenticator auth.PasswordAuthenticator,
 	oauth2Authenticator auth.OAuthAuthenticator,
 	loginRecorder auth.LoginRecorder,
-	options *authoptions.AuthenticationOptions) error {
+	options *authentication.Options) error {
 
 	ws := &restful.WebService{}
 	ws.Path("/oauth").
@@ -56,36 +59,52 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be "+
 			"cached by the webhook token authenticator plugin in the kube-apiserver.").
 		Reads(TokenReview{}).
-		To(handler.TokenReview).
+		To(handler.tokenReview).
 		Returns(http.StatusOK, api.StatusOK, TokenReview{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
-	// Only support implicit grant flow
-	// https://tools.ietf.org/html/rfc6749#section-4.2
+	// https://datatracker.ietf.org/doc/html/rfc6749#section-3.1
 	ws.Route(ws.GET("/authorize").
-		Doc("All requests for OAuth tokens involve a request to <ks-apiserver>/oauth/authorize.").
+		Doc("The authorization endpoint is used to interact with the resource owner and obtain an authorization grant.").
 		Param(ws.QueryParameter("response_type", "The value MUST be one of \"code\" for requesting an "+
 			"authorization code as described by [RFC6749] Section 4.1.1, \"token\" for requesting an access token (implicit grant)"+
 			" as described by [RFC6749] Section 4.2.2.").Required(true)).
-		Param(ws.QueryParameter("client_id", "The client identifier issued to the client during the "+
-			"registration process described by [RFC6749] Section 2.2.").Required(true)).
-		Param(ws.QueryParameter("redirect_uri", "After completing its interaction with the resource owner, "+
-			"the authorization server directs the resource owner's user-agent back to the client.The redirection endpoint "+
-			"URI MUST be an absolute URI as defined by [RFC3986] Section 4.3.").Required(false)).
-		To(handler.Authorize).
-		Returns(http.StatusFound, http.StatusText(http.StatusFound), "").
+		Param(ws.QueryParameter("client_id", "OAuth 2.0 Client Identifier valid at the Authorization Server.").Required(true)).
+		Param(ws.QueryParameter("redirect_uri", "Redirection URI to which the response will be sent. "+
+			"This URI MUST exactly match one of the Redirection URI values for the Client pre-registered at the OpenID Provider.").Required(true)).
+		Param(ws.QueryParameter("scope", "OpenID Connect requests MUST contain the openid scope value. "+
+			"If the openid scope value is not present, the behavior is entirely unspecified.").Required(false)).
+		Param(ws.QueryParameter("state", "Opaque value used to maintain state between the request and the callback.").Required(false)).
+		To(handler.authorize).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
-	// Resource Owner Password Credentials Grant
+
+	// Authorization Servers MUST support the use of the HTTP GET and POST methods
+	// defined in RFC 2616 [RFC2616] at the Authorization Endpoint.
+	ws.Route(ws.POST("/authorize").
+		Consumes(contentTypeFormData).
+		Doc("The authorization endpoint is used to interact with the resource owner and obtain an authorization grant.").
+		Param(ws.BodyParameter("response_type", "The value MUST be one of \"code\" for requesting an "+
+			"authorization code as described by [RFC6749] Section 4.1.1, \"token\" for requesting an access token (implicit grant)"+
+			" as described by [RFC6749] Section 4.2.2.").Required(true)).
+		Param(ws.BodyParameter("client_id", "OAuth 2.0 Client Identifier valid at the Authorization Server.").Required(true)).
+		Param(ws.BodyParameter("redirect_uri", "Redirection URI to which the response will be sent. "+
+			"This URI MUST exactly match one of the Redirection URI values for the Client pre-registered at the OpenID Provider.").Required(true)).
+		Param(ws.BodyParameter("scope", "OpenID Connect requests MUST contain the openid scope value. "+
+			"If the openid scope value is not present, the behavior is entirely unspecified.").Required(false)).
+		Param(ws.BodyParameter("state", "Opaque value used to maintain state between the request and the callback.").Required(false)).
+		To(handler.authorize).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
+
 	// https://tools.ietf.org/html/rfc6749#section-4.3
 	ws.Route(ws.POST("/token").
-		Consumes("application/x-www-form-urlencoded").
+		Consumes(contentTypeFormData).
 		Doc("The resource owner password credentials grant type is suitable in\n"+
 			"cases where the resource owner has a trust relationship with the\n"+
 			"client, such as the device operating system or a highly privileged application.").
 		Param(ws.FormParameter("grant_type", "Value MUST be set to \"password\".").Required(true)).
 		Param(ws.FormParameter("username", "The resource owner username.").Required(true)).
 		Param(ws.FormParameter("password", "The resource owner password.").Required(true)).
-		To(handler.Token).
+		To(handler.token).
 		Returns(http.StatusOK, http.StatusText(http.StatusOK), &oauth.Token{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
@@ -123,7 +142,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		Param(ws.QueryParameter("state", "Opaque value used by the RP to maintain state between "+
 			"the logout request and the callback to the endpoint specified by the post_logout_redirect_uri parameter.").
 			Required(false)).
-		To(handler.Logout).
+		To(handler.logout).
 		Returns(http.StatusOK, http.StatusText(http.StatusOK), "").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
@@ -135,7 +154,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 	legacy.Route(legacy.POST("").
-		To(handler.Login).
+		To(handler.login).
 		Deprecate().
 		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
 		Reads(LoginRequest{}).

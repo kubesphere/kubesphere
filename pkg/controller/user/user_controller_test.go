@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -33,7 +35,6 @@ import (
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -104,7 +105,7 @@ func (f *fixture) newController() (*userController, ksinformers.SharedInformerFa
 		nil, nil,
 		k8sInformers.Core().V1().ConfigMaps(),
 		ldapClient, nil,
-		options.NewAuthenticateOptions(), false)
+		authentication.NewOptions(), false)
 	c.Synced = []cache.InformerSynced{alwaysReady}
 	c.recorder = &record.FakeRecorder{}
 

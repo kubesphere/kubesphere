@@ -23,6 +23,8 @@ import (
 	"reflect"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -50,7 +52,6 @@ import (
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	kubespherescheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
@@ -86,7 +87,7 @@ type userController struct {
 	fedUserCache          cache.Store
 	ldapClient            ldapclient.Interface
 	devopsClient          devops.Interface
-	authenticationOptions *authoptions.AuthenticationOptions
+	authenticationOptions *authentication.Options
 	multiClusterEnabled   bool
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
@@ -100,7 +101,7 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 	configMapInformer corev1informers.ConfigMapInformer,
 	ldapClient ldapclient.Interface,
 	devopsClient devops.Interface,
-	authenticationOptions *authoptions.AuthenticationOptions,
+	authenticationOptions *authentication.Options,
 	multiClusterEnabled bool) *userController {
 
 	utilruntime.Must(kubespherescheme.AddToScheme(scheme.Scheme))

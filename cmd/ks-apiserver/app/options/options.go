@@ -21,6 +21,8 @@ import (
 	"flag"
 	"fmt"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+
 	"k8s.io/client-go/kubernetes/scheme"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
@@ -236,6 +238,11 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	apiServer.RuntimeClient, err = runtimeclient.New(apiServer.KubernetesClient.Config(), runtimeclient.Options{Scheme: sch})
 	if err != nil {
 		klog.Fatalf("unable to create controller runtime client: %v", err)
+	}
+
+	apiServer.Issuer, err = token.NewIssuer(s.AuthenticationOptions)
+	if err != nil {
+		klog.Fatalf("unable to create issuer: %v", err)
 	}
 
 	apiServer.Server = server

@@ -56,16 +56,16 @@ func TestClientResolveRedirectURL(t *testing.T) {
 		t.Fatal(err)
 	}
 	tests := []struct {
-		Name        string
-		client      Client
-		expectError error
-		expectURL   string
+		Name      string
+		client    Client
+		wantErr   bool
+		expectURL string
 	}{
 		{
-			Name:        "default client test",
-			client:      defaultClient,
-			expectError: nil,
-			expectURL:   "https://localhost:8080/auth/cb",
+			Name:      "default client test",
+			client:    defaultClient,
+			wantErr:   false,
+			expectURL: "https://localhost:8080/auth/cb",
 		},
 		{
 			Name: "custom client test",
@@ -76,8 +76,8 @@ func TestClientResolveRedirectURL(t *testing.T) {
 				GrantMethod:           GrantHandlerAuto,
 				ScopeRestrictions:     []string{"full"},
 			},
-			expectError: ErrorRedirectURLNotAllowed,
-			expectURL:   "https://foo.bar.com/oauth/err",
+			wantErr:   true,
+			expectURL: "https://foo.bar.com/oauth/err",
 		},
 		{
 			Name: "custom client test",
@@ -88,17 +88,18 @@ func TestClientResolveRedirectURL(t *testing.T) {
 				GrantMethod:           GrantHandlerAuto,
 				ScopeRestrictions:     []string{"full"},
 			},
-			expectError: nil,
-			expectURL:   "https://foo.bar.com/oauth/err2",
+			wantErr:   false,
+			expectURL: "https://foo.bar.com/oauth/err2",
 		},
 	}
 
 	for _, test := range tests {
 		redirectURL, err := test.client.ResolveRedirectURL(test.expectURL)
-		if err != test.expectError {
-			t.Errorf("expected error: %s, got: %s", test.expectError, err)
+		if (err != nil) != test.wantErr {
+			t.Errorf("ResolveRedirectURL() error = %+v, wantErr %+v", err, test.wantErr)
+			return
 		}
-		if test.expectError == nil && test.expectURL != redirectURL {
+		if redirectURL != nil && test.expectURL != redirectURL.String() {
 			t.Errorf("expected redirect url: %s, got: %s", test.expectURL, redirectURL)
 		}
 	}

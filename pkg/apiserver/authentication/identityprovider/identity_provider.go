@@ -35,13 +35,13 @@ var (
 
 // Identity represents the account mapped to kubesphere
 type Identity interface {
-	// required
+	// GetUserID required
 	// Identifier for the End-User at the Issuer.
 	GetUserID() string
-	// optional
+	// GetUsername optional
 	// The username which the End-User wishes to be referred to kubesphere.
 	GetUsername() string
-	// optional
+	// GetEmail optional
 	GetEmail() string
 }
 
