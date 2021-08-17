@@ -45,6 +45,14 @@ type ReplicaSchedulingPreferenceSpec struct {
 	// +optional
 	Rebalance bool `json:"rebalance,omitempty"`
 
+	// If set to true, the placement of target kind will be determined using the instersection
+	// of RSP placement scheduling result and the clusterSelector (spec.placement.clusterSelector)
+	// specified on the target kind.
+	// If set to false or not defined, RSP placement scheduling result overwrites the clusters
+	// list in the spec.placement.clusters of the target resource.
+	// +optional
+	IntersectWithClusterSelector bool `json:"intersectWithClusterSelector"`
+
 	// A mapping between cluster names and preferences regarding a local workload object (dep, rs, .. ) in
 	// these clusters.
 	// "*" (if provided) applies to all clusters if an explicit mapping is not provided.

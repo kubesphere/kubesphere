@@ -25,7 +25,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -58,7 +57,7 @@ const (
 type Controller struct {
 	client.Client
 	ksCache        cache.Cache
-	reconciledObjs []runtime.Object
+	reconciledObjs []client.Object
 	informerSynced []toolscache.InformerSynced
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -217,15 +216,8 @@ func (c *Controller) processNextWorkItem() bool {
 // with the current status of the resource.
 func (c *Controller) reconcile(obj interface{}) error {
 
-	runtimeObj, ok := obj.(runtime.Object)
+	runtimeObj, ok := obj.(client.Object)
 	if !ok {
-		utilruntime.HandleError(fmt.Errorf("object does not implement the Object interfaces"))
-		return nil
-	}
-	runtimeObj = runtimeObj.DeepCopyObject()
-
-	accessor, err := meta.Accessor(runtimeObj)
-	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("object does not implement the Object interfaces"))
 		return nil
 	}
@@ -234,17 +226,17 @@ func (c *Controller) reconcile(obj interface{}) error {
 	if secret, ok := obj.(*corev1.Secret); ok {
 		if secret.Namespace != constants.NotificationSecretNamespace ||
 			secret.Labels == nil || secret.Labels[constants.NotificationManagedLabel] != "true" {
-			klog.V(8).Infof("No need to reconcile secret %s/%s", accessor.GetNamespace(), accessor.GetName())
+			klog.V(8).Infof("No need to reconcile secret %s/%s", runtimeObj.GetNamespace(), runtimeObj.GetName())
 			return nil
 		}
 	}
 
-	name := accessor.GetName()
+	name := runtimeObj.GetName()
 
 	// The notification controller should update the annotations of secrets managed by itself
 	// whenever a cluster is added or deleted. This way, the controller will have a chance to override the secret.
 	if _, ok := obj.(*v1alpha1.Cluster); ok {
-		err = c.updateSecret()
+		err := c.updateSecret()
 		if err != nil {
 			klog.Errorf("update secret failed, %s", err)
 			return err
@@ -253,7 +245,7 @@ func (c *Controller) reconcile(obj interface{}) error {
 		return nil
 	}
 
-	err = c.Get(context.Background(), client.ObjectKey{Name: accessor.GetName(), Namespace: accessor.GetNamespace()}, runtimeObj)
+	err := c.Get(context.Background(), client.ObjectKey{Name: runtimeObj.GetName(), Namespace: runtimeObj.GetNamespace()}, runtimeObj)
 	if err != nil {
 		// The user may no longer exist, in which case we stop
 		// processing.
@@ -276,11 +268,11 @@ func (c *Controller) reconcile(obj interface{}) error {
 	return nil
 }
 
-func (c *Controller) Start(stopCh <-chan struct{}) error {
-	return c.Run(4, stopCh)
+func (c *Controller) Start(ctx context.Context) error {
+	return c.Run(4, ctx.Done())
 }
 
-func (c *Controller) multiClusterSync(ctx context.Context, obj runtime.Object) error {
+func (c *Controller) multiClusterSync(ctx context.Context, obj client.Object) error {
 
 	if err := c.ensureNotControlledByKubefed(ctx, obj); err != nil {
 		klog.Error(err)
@@ -546,23 +538,17 @@ func (c *Controller) updateSecret() error {
 	return nil
 }
 
-func (c *Controller) ensureNotControlledByKubefed(ctx context.Context, obj runtime.Object) error {
+func (c *Controller) ensureNotControlledByKubefed(ctx context.Context, obj client.Object) error {
 
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
-
-	labels := accessor.GetLabels()
+	labels := obj.GetLabels()
 	if labels == nil {
 		labels = make(map[string]string, 0)
 	}
 
 	if labels[constants.KubefedManagedLabel] != "false" {
 		labels[constants.KubefedManagedLabel] = "false"
-		accessor.SetLabels(labels)
-		err := c.Update(ctx, accessor.(runtime.Object))
+		obj.SetLabels(labels)
+		err := c.Update(ctx, obj)
 		if err != nil {
 			klog.Error(err)
 		}

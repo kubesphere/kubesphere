@@ -107,7 +107,7 @@ func SetupTest(ctx context.Context) *corev1.Namespace {
 		err := k8sClient.Create(ctx, ns)
 		Expect(err).NotTo(HaveOccurred(), "failed to create a test namespace")
 
-		mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{MetricsBindAddress: "0"})
 		Expect(err).NotTo(HaveOccurred(), "failed to create a manager")
 
 		selector, _ := labels.Parse("app.kubernetes.io/name,!kubesphere.io/creator")
@@ -122,7 +122,7 @@ func SetupTest(ctx context.Context) *corev1.Namespace {
 		Expect(err).NotTo(HaveOccurred(), "failed to setup application reconciler")
 
 		go func() {
-			err = mgr.Start(stopCh)
+			err = mgr.Start(context.Background())
 			Expect(err).NotTo(HaveOccurred(), "failed to start manager")
 		}()
 	})

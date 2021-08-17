@@ -17,17 +17,23 @@ limitations under the License.
 /*
 Package fake provides a fake client for testing.
 
-Deprecated: please use pkg/envtest for testing. This package will be dropped
-before the v1.0.0 release.
-
-An fake client is backed by its simple object store indexed by GroupVersionResource.
+A fake client is backed by its simple object store indexed by GroupVersionResource.
 You can create a fake client with optional objects.
 
-	client := NewFakeClient(initObjs...) // initObjs is a slice of runtime.Object
+	client := NewFakeClientWithScheme(scheme, initObjs...) // initObjs is a slice of runtime.Object
 
 You can invoke the methods defined in the Client interface.
 
-When it doubt, it's almost always better not to use this package and instead use
+When in doubt, it's almost always better not to use this package and instead use
 envtest.Environment with a real client and API server.
+
+WARNING: ⚠️ Current Limitations / Known Issues with the fake Client ⚠️
+- This client does not have a way to inject specific errors to test handled vs. unhandled errors.
+- There is some support for sub resources which can cause issues with tests if you're trying to update
+  e.g. metadata and status in the same reconcile.
+- No OpeanAPI validation is performed when creating or updating objects.
+- ObjectMeta's `Generation` and `ResourceVersion` don't behave properly, Patch or Update
+operations that rely on these fields will fail, or give false positives.
+
 */
 package fake

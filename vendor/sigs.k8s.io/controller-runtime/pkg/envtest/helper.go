@@ -1,3 +1,19 @@
+/*
+Copyright 2021 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package envtest
 
 import (
@@ -5,6 +21,7 @@ import (
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -38,7 +55,7 @@ func mergePaths(s1, s2 []string) []string {
 
 // mergeCRDs merges two CRD slices using their names.
 // This function makes no guarantees about order of the merged slice.
-func mergeCRDs(s1, s2 []runtime.Object) []runtime.Object {
+func mergeCRDs(s1, s2 []client.Object) []client.Object {
 	m := make(map[string]*unstructured.Unstructured)
 	for _, obj := range runtimeCRDListToUnstructured(s1) {
 		m[obj.GetName()] = obj
@@ -46,7 +63,7 @@ func mergeCRDs(s1, s2 []runtime.Object) []runtime.Object {
 	for _, obj := range runtimeCRDListToUnstructured(s2) {
 		m[obj.GetName()] = obj
 	}
-	merged := make([]runtime.Object, len(m))
+	merged := make([]client.Object, len(m))
 	i := 0
 	for _, obj := range m {
 		merged[i] = obj
@@ -55,7 +72,7 @@ func mergeCRDs(s1, s2 []runtime.Object) []runtime.Object {
 	return merged
 }
 
-func runtimeCRDListToUnstructured(l []runtime.Object) []*unstructured.Unstructured {
+func runtimeCRDListToUnstructured(l []client.Object) []*unstructured.Unstructured {
 	res := []*unstructured.Unstructured{}
 	for _, obj := range l {
 		u := &unstructured.Unstructured{}

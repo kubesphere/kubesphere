@@ -86,6 +86,9 @@ type Parser struct {
 	//       because the implementation is too difficult/clunky to promote them to category 3.
 	// TODO: Should we have a more formal mechanism for putting "type patterns" in each of the above categories?
 	AllowDangerousTypes bool
+
+	// GenerateEmbeddedObjectMeta specifies if any embedded ObjectMeta should be generated
+	GenerateEmbeddedObjectMeta bool
 }
 
 func (p *Parser) init() {

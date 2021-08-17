@@ -64,6 +64,7 @@ type HelmApplicationVersionStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HelmApplicationVersion is the Schema for the helmapplicationversions API
 type HelmApplicationVersion struct {
@@ -165,6 +166,7 @@ type Dependency struct {
 }
 
 // +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HelmApplicationVersionList contains a list of HelmApplicationVersion
 type HelmApplicationVersionList struct {

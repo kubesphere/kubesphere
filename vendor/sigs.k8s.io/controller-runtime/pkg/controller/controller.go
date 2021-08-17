@@ -17,7 +17,9 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/util/workqueue"
@@ -30,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Options are the arguments for creating a new Controller
+// Options are the arguments for creating a new Controller.
 type Options struct {
 	// MaxConcurrentReconciles is the maximum number of concurrent Reconciles which can be run. Defaults to 1.
 	MaxConcurrentReconciles int
@@ -43,8 +45,13 @@ type Options struct {
 	// The overall is a token bucket and the per-item is exponential.
 	RateLimiter ratelimiter.RateLimiter
 
-	// Log is the logger used for this controller.
+	// Log is the logger used for this controller and passed to each reconciliation
+	// request via the context field.
 	Log logr.Logger
+
+	// CacheSyncTimeout refers to the time limit set to wait for syncing caches.
+	// Defaults to 2 minutes if not set.
+	CacheSyncTimeout time.Duration
 }
 
 // Controller implements a Kubernetes API.  A Controller manages a work queue fed reconcile.Requests
@@ -63,9 +70,12 @@ type Controller interface {
 	// EventHandler if all provided Predicates evaluate to true.
 	Watch(src source.Source, eventhandler handler.EventHandler, predicates ...predicate.Predicate) error
 
-	// Start starts the controller.  Start blocks until stop is closed or a
+	// Start starts the controller.  Start blocks until the context is closed or a
 	// controller has an error starting.
-	Start(stop <-chan struct{}) error
+	Start(ctx context.Context) error
+
+	// GetLogger returns this controller logger prefilled with basic information.
+	GetLogger() logr.Logger
 }
 
 // New returns a new Controller registered with the Manager.  The Manager will ensure that shared Caches have
@@ -91,16 +101,20 @@ func NewUnmanaged(name string, mgr manager.Manager, options Options) (Controller
 		return nil, fmt.Errorf("must specify Name for Controller")
 	}
 
+	if options.Log == nil {
+		options.Log = mgr.GetLogger()
+	}
+
 	if options.MaxConcurrentReconciles <= 0 {
 		options.MaxConcurrentReconciles = 1
 	}
 
-	if options.RateLimiter == nil {
-		options.RateLimiter = workqueue.DefaultControllerRateLimiter()
+	if options.CacheSyncTimeout == 0 {
+		options.CacheSyncTimeout = 2 * time.Minute
 	}
 
-	if options.Log == nil {
-		options.Log = mgr.GetLogger()
+	if options.RateLimiter == nil {
+		options.RateLimiter = workqueue.DefaultControllerRateLimiter()
 	}
 
 	// Inject dependencies into Reconciler
@@ -115,8 +129,9 @@ func NewUnmanaged(name string, mgr manager.Manager, options Options) (Controller
 			return workqueue.NewNamedRateLimitingQueue(options.RateLimiter, name)
 		},
 		MaxConcurrentReconciles: options.MaxConcurrentReconciles,
+		CacheSyncTimeout:        options.CacheSyncTimeout,
 		SetFields:               mgr.SetFields,
 		Name:                    name,
-		Log:                     options.Log.WithName("controller").WithValues("controller", name),
+		Log:                     options.Log.WithName("controller").WithName(name),
 	}, nil
 }

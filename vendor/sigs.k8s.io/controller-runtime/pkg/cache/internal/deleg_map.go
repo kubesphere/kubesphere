@@ -49,41 +49,43 @@ func NewInformersMap(config *rest.Config,
 	scheme *runtime.Scheme,
 	mapper meta.RESTMapper,
 	resync time.Duration,
-	namespace string) *InformersMap {
-
+	namespace string,
+	selectors SelectorsByGVK,
+) *InformersMap {
 	return &InformersMap{
-		structured:   newStructuredInformersMap(config, scheme, mapper, resync, namespace),
-		unstructured: newUnstructuredInformersMap(config, scheme, mapper, resync, namespace),
-		metadata:     newMetadataInformersMap(config, scheme, mapper, resync, namespace),
+		structured:   newStructuredInformersMap(config, scheme, mapper, resync, namespace, selectors),
+		unstructured: newUnstructuredInformersMap(config, scheme, mapper, resync, namespace, selectors),
+		metadata:     newMetadataInformersMap(config, scheme, mapper, resync, namespace, selectors),
 
 		Scheme: scheme,
 	}
 }
 
-// Start calls Run on each of the informers and sets started to true.  Blocks on the stop channel.
-func (m *InformersMap) Start(stop <-chan struct{}) error {
-	go m.structured.Start(stop)
-	go m.unstructured.Start(stop)
-	go m.metadata.Start(stop)
-	<-stop
+// Start calls Run on each of the informers and sets started to true.  Blocks on the context.
+func (m *InformersMap) Start(ctx context.Context) error {
+	go m.structured.Start(ctx)
+	go m.unstructured.Start(ctx)
+	go m.metadata.Start(ctx)
+	<-ctx.Done()
 	return nil
 }
 
 // WaitForCacheSync waits until all the caches have been started and synced.
-func (m *InformersMap) WaitForCacheSync(stop <-chan struct{}) bool {
+func (m *InformersMap) WaitForCacheSync(ctx context.Context) bool {
 	syncedFuncs := append([]cache.InformerSynced(nil), m.structured.HasSyncedFuncs()...)
 	syncedFuncs = append(syncedFuncs, m.unstructured.HasSyncedFuncs()...)
+	syncedFuncs = append(syncedFuncs, m.metadata.HasSyncedFuncs()...)
 
-	if !m.structured.waitForStarted(stop) {
+	if !m.structured.waitForStarted(ctx) {
 		return false
 	}
-	if !m.unstructured.waitForStarted(stop) {
+	if !m.unstructured.waitForStarted(ctx) {
 		return false
 	}
-	if !m.metadata.waitForStarted(stop) {
+	if !m.metadata.waitForStarted(ctx) {
 		return false
 	}
-	return cache.WaitForCacheSync(stop, syncedFuncs...)
+	return cache.WaitForCacheSync(ctx.Done(), syncedFuncs...)
 }
 
 // Get will create a new Informer and add it to the map of InformersMap if none exists.  Returns
@@ -104,16 +106,19 @@ func (m *InformersMap) Get(ctx context.Context, gvk schema.GroupVersionKind, obj
 }
 
 // newStructuredInformersMap creates a new InformersMap for structured objects.
-func newStructuredInformersMap(config *rest.Config, scheme *runtime.Scheme, mapper meta.RESTMapper, resync time.Duration, namespace string) *specificInformersMap {
-	return newSpecificInformersMap(config, scheme, mapper, resync, namespace, createStructuredListWatch)
+func newStructuredInformersMap(config *rest.Config, scheme *runtime.Scheme, mapper meta.RESTMapper, resync time.Duration,
+	namespace string, selectors SelectorsByGVK) *specificInformersMap {
+	return newSpecificInformersMap(config, scheme, mapper, resync, namespace, selectors, createStructuredListWatch)
 }
 
 // newUnstructuredInformersMap creates a new InformersMap for unstructured objects.
-func newUnstructuredInformersMap(config *rest.Config, scheme *runtime.Scheme, mapper meta.RESTMapper, resync time.Duration, namespace string) *specificInformersMap {
-	return newSpecificInformersMap(config, scheme, mapper, resync, namespace, createUnstructuredListWatch)
+func newUnstructuredInformersMap(config *rest.Config, scheme *runtime.Scheme, mapper meta.RESTMapper, resync time.Duration,
+	namespace string, selectors SelectorsByGVK) *specificInformersMap {
+	return newSpecificInformersMap(config, scheme, mapper, resync, namespace, selectors, createUnstructuredListWatch)
 }
 
 // newMetadataInformersMap creates a new InformersMap for metadata-only objects.
-func newMetadataInformersMap(config *rest.Config, scheme *runtime.Scheme, mapper meta.RESTMapper, resync time.Duration, namespace string) *specificInformersMap {
-	return newSpecificInformersMap(config, scheme, mapper, resync, namespace, createMetadataListWatch)
+func newMetadataInformersMap(config *rest.Config, scheme *runtime.Scheme, mapper meta.RESTMapper, resync time.Duration,
+	namespace string, selectors SelectorsByGVK) *specificInformersMap {
+	return newSpecificInformersMap(config, scheme, mapper, resync, namespace, selectors, createMetadataListWatch)
 }

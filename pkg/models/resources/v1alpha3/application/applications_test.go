@@ -69,11 +69,11 @@ func TestGetListApplications(t *testing.T) {
 		t.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
-	stopCh := make(chan struct{})
+	ctx := context.Background()
 
 	ce, _ := cache.New(cfg, cache.Options{Scheme: sch})
-	go ce.Start(stopCh)
-	ce.WaitForCacheSync(stopCh)
+	go ce.Start(ctx)
+	ce.WaitForCacheSync(ctx)
 
 	c, _ = client.New(cfg, client.Options{Scheme: sch})
 
@@ -98,7 +98,7 @@ func TestGetListApplications(t *testing.T) {
 		},
 	}
 
-	ctx := context.TODO()
+	// ctx := context.TODO()
 	createNamespace(ns, ctx)
 
 	for _, app := range testCases {

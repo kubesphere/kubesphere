@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -332,71 +331,63 @@ func (Generator) Generate(ctx *genall.GenerationContext) error {
 	versionedWebhooks := make(map[string][]interface{}, len(supportedWebhookVersions))
 	for _, version := range supportedWebhookVersions {
 		if cfgs, ok := mutatingCfgs[version]; ok {
-			objRaw := &admissionregv1.MutatingWebhookConfiguration{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "MutatingWebhookConfiguration",
-					APIVersion: admissionregv1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "mutating-webhook-configuration",
-				},
-				Webhooks: cfgs,
-			}
-			if version == defaultWebhookVersion {
+			// All webhook config versions in supportedWebhookVersions have the same general form, with a few
+			// stricter requirements for v1. Since no conversion scheme exists for webhook configs, the v1
+			// type can be used for all versioned types in this context.
+			objRaw := &admissionregv1.MutatingWebhookConfiguration{}
+			objRaw.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   admissionregv1.SchemeGroupVersion.Group,
+				Version: version,
+				Kind:    "MutatingWebhookConfiguration",
+			})
+			objRaw.SetName("mutating-webhook-configuration")
+			objRaw.Webhooks = cfgs
+			switch version {
+			case admissionregv1.SchemeGroupVersion.Version:
 				for i := range objRaw.Webhooks {
 					// SideEffects is required in admissionregistration/v1, if this is not set or set to `Some` or `Known`,
-					// we return an error
+					// return an error
 					if err := checkSideEffectsForV1(objRaw.Webhooks[i].SideEffects); err != nil {
 						return err
 					}
 					// AdmissionReviewVersions is required in admissionregistration/v1, if this is not set,
-					// we return an error
+					// return an error
 					if len(objRaw.Webhooks[i].AdmissionReviewVersions) == 0 {
 						return fmt.Errorf("AdmissionReviewVersions is mandatory for v1 {Mutating,Validating}WebhookConfiguration")
 					}
 				}
-				versionedWebhooks[version] = append(versionedWebhooks[version], objRaw)
-			} else {
-				conv, err := MutatingWebhookConfigurationAsVersion(objRaw, schema.GroupVersion{Group: admissionregv1.SchemeGroupVersion.Group, Version: version})
-				if err != nil {
-					return err
-				}
-				versionedWebhooks[version] = append(versionedWebhooks[version], conv)
 			}
+			versionedWebhooks[version] = append(versionedWebhooks[version], objRaw)
 		}
 
 		if cfgs, ok := validatingCfgs[version]; ok {
-			objRaw := &admissionregv1.ValidatingWebhookConfiguration{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ValidatingWebhookConfiguration",
-					APIVersion: admissionregv1.SchemeGroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "validating-webhook-configuration",
-				},
-				Webhooks: cfgs,
-			}
-			if version == defaultWebhookVersion {
+			// All webhook config versions in supportedWebhookVersions have the same general form, with a few
+			// stricter requirements for v1. Since no conversion scheme exists for webhook configs, the v1
+			// type can be used for all versioned types in this context.
+			objRaw := &admissionregv1.ValidatingWebhookConfiguration{}
+			objRaw.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   admissionregv1.SchemeGroupVersion.Group,
+				Version: version,
+				Kind:    "ValidatingWebhookConfiguration",
+			})
+			objRaw.SetName("validating-webhook-configuration")
+			objRaw.Webhooks = cfgs
+			switch version {
+			case admissionregv1.SchemeGroupVersion.Version:
 				for i := range objRaw.Webhooks {
 					// SideEffects is required in admissionregistration/v1, if this is not set or set to `Some` or `Known`,
-					// we return an error
+					// return an error
 					if err := checkSideEffectsForV1(objRaw.Webhooks[i].SideEffects); err != nil {
 						return err
 					}
 					// AdmissionReviewVersions is required in admissionregistration/v1, if this is not set,
-					// we return an error
+					// return an error
 					if len(objRaw.Webhooks[i].AdmissionReviewVersions) == 0 {
 						return fmt.Errorf("AdmissionReviewVersions is mandatory for v1 {Mutating,Validating}WebhookConfiguration")
 					}
 				}
-				versionedWebhooks[version] = append(versionedWebhooks[version], objRaw)
-			} else {
-				conv, err := ValidatingWebhookConfigurationAsVersion(objRaw, schema.GroupVersion{Group: admissionregv1.SchemeGroupVersion.Group, Version: version})
-				if err != nil {
-					return err
-				}
-				versionedWebhooks[version] = append(versionedWebhooks[version], conv)
 			}
+			versionedWebhooks[version] = append(versionedWebhooks[version], objRaw)
 		}
 	}
 

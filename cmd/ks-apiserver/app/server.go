@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -24,9 +25,10 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
-	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"kubesphere.io/kubesphere/pkg/version"
 )
@@ -86,17 +88,17 @@ cluster's shared state through which all other components interact.`,
 	return cmd
 }
 
-func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
+func Run(s *options.ServerRunOptions, ctx context.Context) error {
 
-	apiserver, err := s.NewAPIServer(stopCh)
+	apiserver, err := s.NewAPIServer(ctx.Done())
 	if err != nil {
 		return err
 	}
 
-	err = apiserver.PrepareRun(stopCh)
+	err = apiserver.PrepareRun(ctx.Done())
 	if err != nil {
 		return nil
 	}
 
-	return apiserver.Run(stopCh)
+	return apiserver.Run(ctx)
 }

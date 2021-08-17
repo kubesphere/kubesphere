@@ -103,7 +103,7 @@ type ReconcileHelmRepo struct {
 // and what is in the helmreleases.Spec
 // +kubebuilder:rbac:groups=application.kubesphere.io,resources=helmrepos,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=application.kubesphere.io,resources=helmrepos/status,verbs=get;update;patch
-func (r *ReconcileHelmRepo) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileHelmRepo) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	start := time.Now()
 	klog.Infof("sync repo: %s", request.Name)
 	defer func() {

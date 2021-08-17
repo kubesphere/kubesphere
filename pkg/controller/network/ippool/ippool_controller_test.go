@@ -77,7 +77,7 @@ var _ = Describe("test ippool", func() {
 	stopCh := make(chan struct{})
 	go ksInformer.Start(stopCh)
 	go k8sInformer.Start(stopCh)
-	go c.Start(stopCh)
+	go c.Start(context.Background())
 
 	It("test create ippool", func() {
 		clone := pool.DeepCopy()

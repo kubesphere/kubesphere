@@ -51,6 +51,10 @@ type KubeFedClusterSpec struct {
 	// If * is specified, it is expected to be the only option in list.
 	// +optional
 	DisabledTLSValidations []TLSValidation `json:"disabledTLSValidations,omitempty"`
+
+	// ProxyURL allows to set proxy URL for the cluster.
+	// +optional
+	ProxyURL string `json:"proxyURL"`
 }
 
 // LocalSecretReference is a reference to a secret within the enclosing

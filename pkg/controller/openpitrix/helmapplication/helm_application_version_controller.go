@@ -49,7 +49,7 @@ type ReconcileHelmApplicationVersion struct {
 
 // Reconcile reads that state of the cluster for a helmapplicationversions object and makes changes based on the state read
 // and what is in the helmapplicationversions.Spec
-func (r *ReconcileHelmApplicationVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileHelmApplicationVersion) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	start := time.Now()
 	klog.V(4).Infof("sync helm application version: %s", request.String())
 	defer func() {

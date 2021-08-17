@@ -87,8 +87,8 @@ func NewJobController(jobInformer batchv1informers.JobInformer, client clientset
 
 }
 
-func (v *JobController) Start(stopCh <-chan struct{}) error {
-	return v.Run(5, stopCh)
+func (v *JobController) Start(ctx context.Context) error {
+	return v.Run(5, ctx.Done())
 }
 
 func (v *JobController) Run(workers int, stopCh <-chan struct{}) error {

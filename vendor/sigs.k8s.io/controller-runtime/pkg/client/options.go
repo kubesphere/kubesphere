@@ -158,7 +158,7 @@ func (o *CreateOptions) ApplyOptions(opts []CreateOption) *CreateOptions {
 	return o
 }
 
-// ApplyToCreate implements CreateOption
+// ApplyToCreate implements CreateOption.
 func (o *CreateOptions) ApplyToCreate(co *CreateOptions) {
 	if o.DryRun != nil {
 		co.DryRun = o.DryRun
@@ -172,11 +172,6 @@ func (o *CreateOptions) ApplyToCreate(co *CreateOptions) {
 }
 
 var _ CreateOption = &CreateOptions{}
-
-// CreateDryRunAll sets the "dry run" option to "all".
-//
-// Deprecated: Use DryRunAll
-var CreateDryRunAll = DryRunAll
 
 // }}}
 
@@ -244,7 +239,7 @@ func (o *DeleteOptions) ApplyOptions(opts []DeleteOption) *DeleteOptions {
 
 var _ DeleteOption = &DeleteOptions{}
 
-// ApplyToDelete implements DeleteOption
+// ApplyToDelete implements DeleteOption.
 func (o *DeleteOptions) ApplyToDelete(do *DeleteOptions) {
 	if o.GracePeriodSeconds != nil {
 		do.GracePeriodSeconds = o.GracePeriodSeconds
@@ -354,7 +349,7 @@ type ListOptions struct {
 
 var _ ListOption = &ListOptions{}
 
-// ApplyToList implements ListOption for ListOptions
+// ApplyToList implements ListOption for ListOptions.
 func (o *ListOptions) ApplyToList(lo *ListOptions) {
 	if o.LabelSelector != nil {
 		lo.LabelSelector = o.LabelSelector
@@ -458,14 +453,6 @@ func (m MatchingLabelsSelector) ApplyToList(opts *ListOptions) {
 // ApplyToDeleteAllOf applies this configuration to the given an List options.
 func (m MatchingLabelsSelector) ApplyToDeleteAllOf(opts *DeleteAllOfOptions) {
 	m.ApplyToList(&opts.ListOptions)
-}
-
-// MatchingField filters the list operation on the given field selector
-// (or index in the case of cached lists).
-//
-// Deprecated: Use MatchingFields
-func MatchingField(name, val string) MatchingFields {
-	return MatchingFields{name: val}
 }
 
 // MatchingFields filters the list/delete operation on the given field Set
@@ -582,7 +569,7 @@ func (o *UpdateOptions) ApplyOptions(opts []UpdateOption) *UpdateOptions {
 
 var _ UpdateOption = &UpdateOptions{}
 
-// ApplyToUpdate implements UpdateOption
+// ApplyToUpdate implements UpdateOption.
 func (o *UpdateOptions) ApplyToUpdate(uo *UpdateOptions) {
 	if o.DryRun != nil {
 		uo.DryRun = o.DryRun
@@ -594,11 +581,6 @@ func (o *UpdateOptions) ApplyToUpdate(uo *UpdateOptions) {
 		uo.Raw = o.Raw
 	}
 }
-
-// UpdateDryRunAll sets the "dry run" option to "all".
-//
-// Deprecated: Use DryRunAll
-var UpdateDryRunAll = DryRunAll
 
 // }}}
 
@@ -654,7 +636,7 @@ func (o *PatchOptions) AsPatchOptions() *metav1.PatchOptions {
 
 var _ PatchOption = &PatchOptions{}
 
-// ApplyToPatch implements PatchOptions
+// ApplyToPatch implements PatchOptions.
 func (o *PatchOptions) ApplyToPatch(po *PatchOptions) {
 	if o.DryRun != nil {
 		po.DryRun = o.DryRun
@@ -682,11 +664,6 @@ func (forceOwnership) ApplyToPatch(opts *PatchOptions) {
 	opts.Force = &definitelyTrue
 }
 
-// PatchDryRunAll sets the "dry run" option to "all".
-//
-// Deprecated: Use DryRunAll
-var PatchDryRunAll = DryRunAll
-
 // }}}
 
 // {{{ DeleteAllOf Options
@@ -711,7 +688,7 @@ func (o *DeleteAllOfOptions) ApplyOptions(opts []DeleteAllOfOption) *DeleteAllOf
 
 var _ DeleteAllOfOption = &DeleteAllOfOptions{}
 
-// ApplyToDeleteAllOf implements DeleteAllOfOption
+// ApplyToDeleteAllOf implements DeleteAllOfOption.
 func (o *DeleteAllOfOptions) ApplyToDeleteAllOf(do *DeleteAllOfOptions) {
 	o.ApplyToList(&do.ListOptions)
 	o.ApplyToDelete(&do.DeleteOptions)

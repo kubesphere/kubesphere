@@ -19,7 +19,6 @@ package apiutil
 import (
 	"errors"
 	"sync"
-	"time"
 
 	"golang.org/x/time/rate"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -29,34 +28,12 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
-// ErrRateLimited is returned by a RESTMapper method if the number of API
-// calls has exceeded a limit within a certain time period.
-type ErrRateLimited struct {
-	// Duration to wait until the next API call can be made.
-	Delay time.Duration
-}
-
-func (e ErrRateLimited) Error() string {
-	return "too many API calls to the RESTMapper within a timeframe"
-}
-
-// DelayIfRateLimited returns the delay time until the next API call is
-// allowed and true if err is of type ErrRateLimited. The zero
-// time.Duration value and false are returned if err is not a ErrRateLimited.
-func DelayIfRateLimited(err error) (time.Duration, bool) {
-	var rlerr ErrRateLimited
-	if errors.As(err, &rlerr) {
-		return rlerr.Delay, true
-	}
-	return 0, false
-}
-
 // dynamicRESTMapper is a RESTMapper that dynamically discovers resource
 // types at runtime.
 type dynamicRESTMapper struct {
 	mu           sync.RWMutex // protects the following fields
 	staticMapper meta.RESTMapper
-	limiter      *dynamicLimiter
+	limiter      *rate.Limiter
 	newMapper    func() (meta.RESTMapper, error)
 
 	lazy bool
@@ -64,13 +41,13 @@ type dynamicRESTMapper struct {
 	initOnce sync.Once
 }
 
-// DynamicRESTMapperOption is a functional option on the dynamicRESTMapper
+// DynamicRESTMapperOption is a functional option on the dynamicRESTMapper.
 type DynamicRESTMapperOption func(*dynamicRESTMapper) error
 
 // WithLimiter sets the RESTMapper's underlying limiter to lim.
 func WithLimiter(lim *rate.Limiter) DynamicRESTMapperOption {
 	return func(drm *dynamicRESTMapper) error {
-		drm.limiter = &dynamicLimiter{lim}
+		drm.limiter = lim
 		return nil
 	}
 }
@@ -103,9 +80,7 @@ func NewDynamicRESTMapper(cfg *rest.Config, opts ...DynamicRESTMapperOption) (me
 		return nil, err
 	}
 	drm := &dynamicRESTMapper{
-		limiter: &dynamicLimiter{
-			rate.NewLimiter(rate.Limit(defaultRefillRate), defaultLimitSize),
-		},
+		limiter: rate.NewLimiter(rate.Limit(defaultRefillRate), defaultLimitSize),
 		newMapper: func() (meta.RESTMapper, error) {
 			groupResources, err := restmapper.GetAPIGroupResources(client)
 			if err != nil {
@@ -161,12 +136,13 @@ func (drm *dynamicRESTMapper) init() (err error) {
 // checkAndReload attempts to call the given callback, which is assumed to be dependent
 // on the data in the restmapper.
 //
-// If the callback returns a NoKindMatchError, it will attempt to reload
+// If the callback returns an error that matches the given error, it will attempt to reload
 // the RESTMapper's data and re-call the callback once that's occurred.
 // If the callback returns any other error, the function will return immediately regardless.
 //
-// It will take care
-// ensuring that reloads are rate-limitted and that extraneous calls aren't made.
+// It will take care of ensuring that reloads are rate-limited and that extraneous calls
+// aren't made. If a reload would exceed the limiters rate, it returns the error return by
+// the callback.
 // It's thread-safe, and worries about thread-safety for the callback (so the callback does
 // not need to attempt to lock the restmapper).
 func (drm *dynamicRESTMapper) checkAndReload(needsReloadErr error, checkNeedsReload func() error) error {
@@ -199,7 +175,9 @@ func (drm *dynamicRESTMapper) checkAndReload(needsReloadErr error, checkNeedsRel
 	}
 
 	// we're still stale, so grab a rate-limit token if we can...
-	if err := drm.limiter.checkRate(); err != nil {
+	if !drm.limiter.Allow() {
+		// return error from static mapper here, we have refreshed often enough (exceeding rate of provided limiter)
+		// so that client's can handle this the same way as a "normal" NoResourceMatchError / NoKindMatchError
 		return err
 	}
 
@@ -304,20 +282,4 @@ func (drm *dynamicRESTMapper) ResourceSingularizer(resource string) (string, err
 		return err
 	})
 	return singular, err
-}
-
-// dynamicLimiter holds a rate limiter used to throttle chatty RESTMapper users.
-type dynamicLimiter struct {
-	*rate.Limiter
-}
-
-// checkRate returns an ErrRateLimited if too many API calls have been made
-// within the set limit.
-func (b *dynamicLimiter) checkRate() error {
-	res := b.Reserve()
-	if res.Delay() == 0 {
-		return nil
-	}
-	res.Cancel()
-	return ErrRateLimited{res.Delay()}
 }

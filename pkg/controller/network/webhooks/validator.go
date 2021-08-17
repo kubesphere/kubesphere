@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"sync"
 
-	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -98,7 +98,7 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) a
 
 	// Get the object in the request
 	obj := validator.Obj.DeepCopyObject()
-	if req.Operation == v1beta1.Create {
+	if req.Operation == v1.Create {
 		err := h.decoder.Decode(req, obj)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
@@ -110,7 +110,7 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) a
 		}
 	}
 
-	if req.Operation == v1beta1.Update {
+	if req.Operation == v1.Update {
 		oldObj := obj.DeepCopyObject()
 
 		err := h.decoder.DecodeRaw(req.Object, obj)
@@ -128,7 +128,7 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) a
 		}
 	}
 
-	if req.Operation == v1beta1.Delete {
+	if req.Operation == v1.Delete {
 		// In reference to PR: https://github.com/kubernetes/kubernetes/pull/76346
 		// OldObject contains the object being deleted
 		err := h.decoder.DecodeRaw(req.OldObject, obj)

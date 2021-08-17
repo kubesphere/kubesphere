@@ -17,6 +17,7 @@ limitations under the License.
 package reconcile
 
 import (
+	"context"
 	"time"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -89,13 +90,13 @@ type Reconciler interface {
 	// Reconciler performs a full reconciliation for the object referred to by the Request.
 	// The Controller will requeue the Request to be processed again if an error is non-nil or
 	// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-	Reconcile(Request) (Result, error)
+	Reconcile(context.Context, Request) (Result, error)
 }
 
 // Func is a function that implements the reconcile interface.
-type Func func(Request) (Result, error)
+type Func func(context.Context, Request) (Result, error)
 
 var _ Reconciler = Func(nil)
 
 // Reconcile implements Reconciler.
-func (r Func) Reconcile(o Request) (Result, error) { return r(o) }
+func (r Func) Reconcile(ctx context.Context, o Request) (Result, error) { return r(ctx, o) }

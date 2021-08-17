@@ -26,7 +26,7 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -43,6 +43,7 @@ import (
 	webhookrequest "k8s.io/apiserver/pkg/admission/plugin/webhook/request"
 	auditinternal "k8s.io/apiserver/pkg/apis/audit"
 	webhookutil "k8s.io/apiserver/pkg/util/webhook"
+	"k8s.io/apiserver/pkg/warning"
 	utiltrace "k8s.io/utils/trace"
 )
 
@@ -56,7 +57,7 @@ const (
 	MutationAuditAnnotationPrefix = "mutation.webhook.admission.k8s.io/"
 )
 
-var encodingjson = json.CaseSensitiveJsonIterator()
+var encodingjson = json.CaseSensitiveJSONIterator()
 
 type mutatingDispatcher struct {
 	cm     *webhookutil.ClientManager
@@ -141,17 +142,17 @@ func (a *mutatingDispatcher) Dispatch(ctx context.Context, attr admission.Attrib
 			case *webhookutil.ErrCallingWebhook:
 				if !ignoreClientCallFailures {
 					rejected = true
-					admissionmetrics.Metrics.ObserveWebhookRejection(hook.Name, "admit", string(versionedAttr.Attributes.GetOperation()), admissionmetrics.WebhookRejectionCallingWebhookError, 0)
+					admissionmetrics.Metrics.ObserveWebhookRejection(ctx, hook.Name, "admit", string(versionedAttr.Attributes.GetOperation()), admissionmetrics.WebhookRejectionCallingWebhookError, 0)
 				}
 			case *webhookutil.ErrWebhookRejection:
 				rejected = true
-				admissionmetrics.Metrics.ObserveWebhookRejection(hook.Name, "admit", string(versionedAttr.Attributes.GetOperation()), admissionmetrics.WebhookRejectionNoError, int(err.Status.ErrStatus.Code))
+				admissionmetrics.Metrics.ObserveWebhookRejection(ctx, hook.Name, "admit", string(versionedAttr.Attributes.GetOperation()), admissionmetrics.WebhookRejectionNoError, int(err.Status.ErrStatus.Code))
 			default:
 				rejected = true
-				admissionmetrics.Metrics.ObserveWebhookRejection(hook.Name, "admit", string(versionedAttr.Attributes.GetOperation()), admissionmetrics.WebhookRejectionAPIServerInternalError, 0)
+				admissionmetrics.Metrics.ObserveWebhookRejection(ctx, hook.Name, "admit", string(versionedAttr.Attributes.GetOperation()), admissionmetrics.WebhookRejectionAPIServerInternalError, 0)
 			}
 		}
-		admissionmetrics.Metrics.ObserveWebhook(time.Since(t), rejected, versionedAttr.Attributes, "admit", hook.Name)
+		admissionmetrics.Metrics.ObserveWebhook(ctx, time.Since(t), rejected, versionedAttr.Attributes, "admit", hook.Name)
 		if changed {
 			// Patch had changed the object. Prepare to reinvoke all previous webhooks that are eligible for re-invocation.
 			webhookReinvokeCtx.RequireReinvokingPreviouslyInvokedPlugins()
@@ -266,6 +267,9 @@ func (a *mutatingDispatcher) callAttrMutatingHook(ctx context.Context, h *admiss
 		if err := attr.Attributes.AddAnnotation(key, v); err != nil {
 			klog.Warningf("Failed to set admission audit annotation %s to %s for mutating webhook %s: %v", key, v, h.Name, err)
 		}
+	}
+	for _, w := range result.Warnings {
+		warning.AddWarning(ctx, "", w)
 	}
 
 	if !result.Allowed {

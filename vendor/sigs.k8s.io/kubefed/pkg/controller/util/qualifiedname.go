@@ -19,8 +19,8 @@ package util
 import (
 	"fmt"
 
-	meta "k8s.io/apimachinery/pkg/api/meta"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/api/meta"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // QualifiedName comprises a resource name with an optional namespace.
@@ -35,7 +35,7 @@ type QualifiedName struct {
 	Name      string
 }
 
-func NewQualifiedName(obj pkgruntime.Object) QualifiedName {
+func NewQualifiedName(obj runtimeclient.Object) QualifiedName {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		// TODO(marun) This should never happen, but if it does, the

@@ -19,15 +19,13 @@ package internal
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -35,31 +33,22 @@ var log = logf.RuntimeLog.WithName("source").WithName("EventHandler")
 
 var _ cache.ResourceEventHandler = EventHandler{}
 
-// EventHandler adapts a handler.EventHandler interface to a cache.ResourceEventHandler interface
+// EventHandler adapts a handler.EventHandler interface to a cache.ResourceEventHandler interface.
 type EventHandler struct {
 	EventHandler handler.EventHandler
 	Queue        workqueue.RateLimitingInterface
 	Predicates   []predicate.Predicate
 }
 
-// OnAdd creates CreateEvent and calls Create on EventHandler
+// OnAdd creates CreateEvent and calls Create on EventHandler.
 func (e EventHandler) OnAdd(obj interface{}) {
 	c := event.CreateEvent{}
 
-	// Pull metav1.Object out of the object
-	if o, err := meta.Accessor(obj); err == nil {
-		c.Meta = o
-	} else {
-		log.Error(err, "OnAdd missing Meta",
-			"object", obj, "type", fmt.Sprintf("%T", obj))
-		return
-	}
-
-	// Pull the runtime.Object out of the object
-	if o, ok := obj.(runtime.Object); ok {
+	// Pull Object out of the object
+	if o, ok := obj.(client.Object); ok {
 		c.Object = o
 	} else {
-		log.Error(nil, "OnAdd missing runtime.Object",
+		log.Error(nil, "OnAdd missing Object",
 			"object", obj, "type", fmt.Sprintf("%T", obj))
 		return
 	}
@@ -74,21 +63,11 @@ func (e EventHandler) OnAdd(obj interface{}) {
 	e.EventHandler.Create(c, e.Queue)
 }
 
-// OnUpdate creates UpdateEvent and calls Update on EventHandler
+// OnUpdate creates UpdateEvent and calls Update on EventHandler.
 func (e EventHandler) OnUpdate(oldObj, newObj interface{}) {
 	u := event.UpdateEvent{}
 
-	// Pull metav1.Object out of the object
-	if o, err := meta.Accessor(oldObj); err == nil {
-		u.MetaOld = o
-	} else {
-		log.Error(err, "OnUpdate missing MetaOld",
-			"object", oldObj, "type", fmt.Sprintf("%T", oldObj))
-		return
-	}
-
-	// Pull the runtime.Object out of the object
-	if o, ok := oldObj.(runtime.Object); ok {
+	if o, ok := oldObj.(client.Object); ok {
 		u.ObjectOld = o
 	} else {
 		log.Error(nil, "OnUpdate missing ObjectOld",
@@ -96,21 +75,12 @@ func (e EventHandler) OnUpdate(oldObj, newObj interface{}) {
 		return
 	}
 
-	// Pull metav1.Object out of the object
-	if o, err := meta.Accessor(newObj); err == nil {
-		u.MetaNew = o
-	} else {
-		log.Error(err, "OnUpdate missing MetaNew",
-			"object", newObj, "type", fmt.Sprintf("%T", newObj))
-		return
-	}
-
-	// Pull the runtime.Object out of the object
-	if o, ok := newObj.(runtime.Object); ok {
+	// Pull Object out of the object
+	if o, ok := newObj.(client.Object); ok {
 		u.ObjectNew = o
 	} else {
 		log.Error(nil, "OnUpdate missing ObjectNew",
-			"object", oldObj, "type", fmt.Sprintf("%T", oldObj))
+			"object", newObj, "type", fmt.Sprintf("%T", newObj))
 		return
 	}
 
@@ -124,7 +94,7 @@ func (e EventHandler) OnUpdate(oldObj, newObj interface{}) {
 	e.EventHandler.Update(u, e.Queue)
 }
 
-// OnDelete creates DeleteEvent and calls Delete on EventHandler
+// OnDelete creates DeleteEvent and calls Delete on EventHandler.
 func (e EventHandler) OnDelete(obj interface{}) {
 	d := event.DeleteEvent{}
 
@@ -134,7 +104,7 @@ func (e EventHandler) OnDelete(obj interface{}) {
 	// This should never happen if we aren't missing events, which we have concluded that we are not
 	// and made decisions off of this belief.  Maybe this shouldn't be here?
 	var ok bool
-	if _, ok = obj.(metav1.Object); !ok {
+	if _, ok = obj.(client.Object); !ok {
 		// If the object doesn't have Metadata, assume it is a tombstone object of type DeletedFinalStateUnknown
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
@@ -148,20 +118,11 @@ func (e EventHandler) OnDelete(obj interface{}) {
 		obj = tombstone.Obj
 	}
 
-	// Pull metav1.Object out of the object
-	if o, err := meta.Accessor(obj); err == nil {
-		d.Meta = o
-	} else {
-		log.Error(err, "OnDelete missing Meta",
-			"object", obj, "type", fmt.Sprintf("%T", obj))
-		return
-	}
-
-	// Pull the runtime.Object out of the object
-	if o, ok := obj.(runtime.Object); ok {
+	// Pull Object out of the object
+	if o, ok := obj.(client.Object); ok {
 		d.Object = o
 	} else {
-		log.Error(nil, "OnDelete missing runtime.Object",
+		log.Error(nil, "OnDelete missing Object",
 			"object", obj, "type", fmt.Sprintf("%T", obj))
 		return
 	}

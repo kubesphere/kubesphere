@@ -54,7 +54,7 @@ const (
 	appFinalizer = "helmapplication.application.kubesphere.io"
 )
 
-func (r *ReconcileHelmApplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileHelmApplication) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	klog.V(4).Infof("sync helm application: %s ", request.String())
 
 	rootCtx := context.Background()

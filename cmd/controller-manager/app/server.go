@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -29,7 +30,7 @@ import (
 	"k8s.io/klog/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
@@ -127,7 +128,7 @@ func NewControllerManagerCommand() *cobra.Command {
 	return cmd
 }
 
-func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {
+func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) error {
 
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
 	if err != nil {
@@ -149,7 +150,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		if s.LdapOptions.Host == ldapclient.FAKE_HOST { // for debug only
 			ldapClient = ldapclient.NewSimpleLdap()
 		} else {
-			ldapClient, err = ldapclient.NewLdapClient(s.LdapOptions, stopCh)
+			ldapClient, err = ldapclient.NewLdapClient(s.LdapOptions, ctx.Done())
 			if err != nil {
 				return fmt.Errorf("failed to connect to ldap service, please check ldap status, error: %v", err)
 			}
@@ -266,7 +267,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		MultiClusterEnable: s.MultiClusterOptions.Enable,
 		WaitTime:           s.OpenPitrixOptions.ReleaseControllerOptions.WaitTime,
 		MaxConcurrent:      s.OpenPitrixOptions.ReleaseControllerOptions.MaxConcurrent,
-		StopChan:           stopCh,
+		StopChan:           ctx.Done(),
 	}).SetupWithManager(mgr)
 
 	if err != nil {
@@ -307,13 +308,13 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		s.MultiClusterOptions,
 		s.NetworkOptions,
 		servicemeshEnabled,
-		s.AuthenticationOptions.KubectlImage, stopCh); err != nil {
+		s.AuthenticationOptions.KubectlImage, ctx.Done()); err != nil {
 		klog.Fatalf("unable to register controllers to the manager: %v", err)
 	}
 
 	// Start cache data after all informer is registered
 	klog.V(0).Info("Starting cache resource from apiserver...")
-	informerFactory.Start(stopCh)
+	informerFactory.Start(ctx.Done())
 
 	// Setup webhooks
 	klog.V(2).Info("setting up webhook server")
@@ -336,7 +337,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	mgr.AddMetricsExtraHandler("/kapis/metrics", metrics.Handler())
 
 	klog.V(0).Info("Starting the controllers.")
-	if err = mgr.Start(stopCh); err != nil {
+	if err = mgr.Start(ctx); err != nil {
 		klog.Fatalf("unable to run the manager: %v", err)
 	}
 

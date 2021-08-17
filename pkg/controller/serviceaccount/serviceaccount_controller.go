@@ -70,9 +70,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.logger.WithValues("serivceaccount", req.NamespacedName)
-	ctx := context.Background()
+	// ctx := context.Background()
 	sa := &corev1.ServiceAccount{}
 	if err := r.Get(ctx, req.NamespacedName, sa); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)

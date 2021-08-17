@@ -268,19 +268,19 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.KubernetesClient.KubeSphere()))
 }
 
-func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
+func (s *APIServer) Run(ctx context.Context) (err error) {
 
-	err = s.waitForResourceSync(stopCh)
+	err = s.waitForResourceSync(ctx)
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	shutdownCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	go func() {
-		<-stopCh
-		_ = s.Server.Shutdown(ctx)
+		<-ctx.Done()
+		_ = s.Server.Shutdown(shutdownCtx)
 	}()
 
 	klog.V(0).Infof("Start listening on %s", s.Server.Addr)
@@ -357,8 +357,10 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	s.Server.Handler = handler
 }
 
-func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
+func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 	klog.V(0).Info("Start cache objects")
+
+	stopCh := ctx.Done()
 
 	discoveryClient := s.KubernetesClient.Kubernetes().Discovery()
 	_, apiResourcesList, err := discoveryClient.ServerGroupsAndResources()
@@ -559,8 +561,8 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	}
 
 	// controller runtime cache for resources
-	go s.RuntimeCache.Start(stopCh)
-	s.RuntimeCache.WaitForCacheSync(stopCh)
+	go s.RuntimeCache.Start(ctx)
+	s.RuntimeCache.WaitForCacheSync(ctx)
 
 	klog.V(0).Info("Finished caching objects")
 

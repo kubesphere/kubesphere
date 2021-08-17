@@ -17,6 +17,7 @@ limitations under the License.
 package nsnetworkpolicy
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -157,7 +158,7 @@ var _ = Describe("Nsnetworkpolicy", func() {
 		c.workspaceInformerSynced = alwaysReady
 		c.informerSynced = alwaysReady
 
-		go c.Start(stopCh)
+		go c.Start(context.Background())
 	})
 
 	It("test func namespaceNetworkIsolateEnabled", func() {

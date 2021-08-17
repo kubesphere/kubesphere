@@ -19,17 +19,22 @@ limitations under the License.
 package basictoken
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 )
 
-type Authenticator struct {
-	auth authenticator.Password
+type Password interface {
+	AuthenticatePassword(ctx context.Context, user, password string) (*authenticator.Response, bool, error)
 }
 
-func New(auth authenticator.Password) *Authenticator {
+type Authenticator struct {
+	auth Password
+}
+
+func New(auth Password) *Authenticator {
 	return &Authenticator{auth}
 }
 

@@ -150,8 +150,8 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 	return ctl
 }
 
-func (c *userController) Start(stopCh <-chan struct{}) error {
-	return c.Run(5, stopCh)
+func (c *userController) Start(ctx context.Context) error {
+	return c.Run(5, ctx.Done())
 }
 
 func (c *userController) reconcile(key string) error {

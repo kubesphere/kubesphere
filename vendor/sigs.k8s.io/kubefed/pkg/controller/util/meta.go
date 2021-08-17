@@ -21,11 +21,10 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Copies cluster-independent, user provided data from the given ObjectMeta struct. If in
@@ -105,7 +104,7 @@ func ObjectMetaObjEquivalent(a, b metav1.Object) bool {
 
 // Checks if cluster-independent, user provided data in ObjectMeta and Spec in two given top
 // level api objects are equivalent.
-func ObjectMetaAndSpecEquivalent(a, b runtime.Object) bool {
+func ObjectMetaAndSpecEquivalent(a, b runtimeclient.Object) bool {
 	objectMetaA := reflect.ValueOf(a).Elem().FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 	objectMetaB := reflect.ValueOf(b).Elem().FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 	specA := reflect.ValueOf(a).Elem().FieldByName("Spec").Interface()
@@ -113,7 +112,7 @@ func ObjectMetaAndSpecEquivalent(a, b runtime.Object) bool {
 	return ObjectMetaEquivalent(objectMetaA, objectMetaB) && reflect.DeepEqual(specA, specB)
 }
 
-func MetaAccessor(obj runtime.Object) metav1.Object {
+func MetaAccessor(obj runtimeclient.Object) metav1.Object {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		// This should always succeed if obj is not nil.  Also,

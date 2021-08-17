@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Matcher decides if a request selected by the ObjectSelector.
@@ -36,7 +36,7 @@ func matchObject(obj runtime.Object, selector labels.Selector) bool {
 	}
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
-		klog.V(5).Infof("cannot access metadata of %v: %v", obj, err)
+		klog.V(5).InfoS("Accessing metadata failed", "object", obj, "err", err)
 		return false
 	}
 	return selector.Matches(labels.Set(accessor.GetLabels()))

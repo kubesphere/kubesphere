@@ -197,8 +197,8 @@ func NewClusterController(
 	return c
 }
 
-func (c *clusterController) Start(stopCh <-chan struct{}) error {
-	return c.Run(3, stopCh)
+func (c *clusterController) Start(ctx context.Context) error {
+	return c.Run(3, ctx.Done())
 }
 
 func (c *clusterController) Run(workers int, stopCh <-chan struct{}) error {

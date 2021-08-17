@@ -104,8 +104,8 @@ func NewLoginRecordController(k8sClient kubernetes.Interface,
 	return ctl
 }
 
-func (c *loginRecordController) Start(stopCh <-chan struct{}) error {
-	return c.Run(5, stopCh)
+func (c *loginRecordController) Start(ctx context.Context) error {
+	return c.Run(5, ctx.Done())
 }
 
 func (c *loginRecordController) reconcile(key string) error {

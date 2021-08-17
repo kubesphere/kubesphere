@@ -249,8 +249,8 @@ func (c *Controller) reconcile(key string) error {
 	return nil
 }
 
-func (c *Controller) Start(stopCh <-chan struct{}) error {
-	return c.Run(4, stopCh)
+func (c *Controller) Start(ctx context.Context) error {
+	return c.Run(4, ctx.Done())
 }
 
 func (c *Controller) multiClusterSync(globalRoleBinding *iamv1alpha2.GlobalRoleBinding) error {

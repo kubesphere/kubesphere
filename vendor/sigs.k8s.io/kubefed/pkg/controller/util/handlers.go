@@ -19,13 +19,13 @@ package util
 import (
 	"reflect"
 
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Returns cache.ResourceEventHandlerFuncs that trigger the given function
 // on all object changes.
-func NewTriggerOnAllChanges(triggerFunc func(pkgruntime.Object)) *cache.ResourceEventHandlerFuncs {
+func NewTriggerOnAllChanges(triggerFunc func(runtimeclient.Object)) *cache.ResourceEventHandlerFuncs {
 	return &cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(old interface{}) {
 			if deleted, ok := old.(cache.DeletedFinalStateUnknown); ok {
@@ -35,15 +35,15 @@ func NewTriggerOnAllChanges(triggerFunc func(pkgruntime.Object)) *cache.Resource
 					return
 				}
 			}
-			oldObj := old.(pkgruntime.Object)
+			oldObj := old.(runtimeclient.Object)
 			triggerFunc(oldObj)
 		},
 		AddFunc: func(cur interface{}) {
-			curObj := cur.(pkgruntime.Object)
+			curObj := cur.(runtimeclient.Object)
 			triggerFunc(curObj)
 		},
 		UpdateFunc: func(old, cur interface{}) {
-			curObj := cur.(pkgruntime.Object)
+			curObj := cur.(runtimeclient.Object)
 			if !reflect.DeepEqual(old, cur) {
 				triggerFunc(curObj)
 			}

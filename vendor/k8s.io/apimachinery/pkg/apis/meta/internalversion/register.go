@@ -52,7 +52,6 @@ func addToGroupVersion(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&ListOptions{},
 		&metav1.GetOptions{},
-		&metav1.ExportOptions{},
 		&metav1.DeleteOptions{},
 		&metav1.CreateOptions{},
 		&metav1.UpdateOptions{},
@@ -76,6 +75,9 @@ func addToGroupVersion(scheme *runtime.Scheme) error {
 		&metav1.UpdateOptions{})
 
 	metav1.AddToGroupVersion(scheme, metav1.SchemeGroupVersion)
+	if err := metav1beta1.RegisterConversions(scheme); err != nil {
+		return err
+	}
 	return nil
 }
 

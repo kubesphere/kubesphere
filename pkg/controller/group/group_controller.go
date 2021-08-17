@@ -113,8 +113,8 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 	return ctl
 }
 
-func (c *Controller) Start(stopCh <-chan struct{}) error {
-	return c.Run(1, stopCh)
+func (c *Controller) Start(ctx context.Context) error {
+	return c.Run(1, ctx.Done())
 }
 
 // reconcile handles Group informer events, clear up related reource when group is being deleted.

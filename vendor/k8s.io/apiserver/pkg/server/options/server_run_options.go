@@ -19,10 +19,12 @@ package options
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/server"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 
@@ -34,6 +36,7 @@ type ServerRunOptions struct {
 	AdvertiseAddress net.IP
 
 	CorsAllowedOriginList       []string
+	HSTSDirectives              []string
 	ExternalHost                string
 	MaxRequestsInFlight         int
 	MaxMutatingRequestsInFlight int
@@ -50,7 +53,6 @@ type ServerRunOptions struct {
 	// We intentionally did not add a flag for this option. Users of the
 	// apiserver library can wire it to a flag.
 	MaxRequestBodyBytes       int64
-	TargetRAMMB               int
 	EnablePriorityAndFairness bool
 }
 
@@ -69,9 +71,10 @@ func NewServerRunOptions() *ServerRunOptions {
 	}
 }
 
-// ApplyOptions applies the run options to the method receiver and returns self
+// ApplyTo applies the run options to the method receiver and returns self
 func (s *ServerRunOptions) ApplyTo(c *server.Config) error {
 	c.CorsAllowedOriginList = s.CorsAllowedOriginList
+	c.HSTSDirectives = s.HSTSDirectives
 	c.ExternalAddress = s.ExternalHost
 	c.MaxRequestsInFlight = s.MaxRequestsInFlight
 	c.MaxMutatingRequestsInFlight = s.MaxMutatingRequestsInFlight
@@ -108,9 +111,6 @@ func (s *ServerRunOptions) DefaultAdvertiseAddress(secure *SecureServingOptions)
 // Validate checks validation of ServerRunOptions
 func (s *ServerRunOptions) Validate() []error {
 	errors := []error{}
-	if s.TargetRAMMB < 0 {
-		errors = append(errors, fmt.Errorf("--target-ram-mb can not be negative value"))
-	}
 
 	if s.LivezGracePeriod < 0 {
 		errors = append(errors, fmt.Errorf("--livez-grace-period can not be a negative value"))
@@ -147,7 +147,29 @@ func (s *ServerRunOptions) Validate() []error {
 		errors = append(errors, fmt.Errorf("--max-resource-write-bytes can not be negative value"))
 	}
 
+	if err := validateHSTSDirectives(s.HSTSDirectives); err != nil {
+		errors = append(errors, err)
+	}
 	return errors
+}
+
+func validateHSTSDirectives(hstsDirectives []string) error {
+	// HSTS Headers format: Strict-Transport-Security:max-age=expireTime [;includeSubDomains] [;preload]
+	// See https://tools.ietf.org/html/rfc6797#section-6.1 for more information
+	allErrors := []error{}
+	for _, hstsDirective := range hstsDirectives {
+		if len(strings.TrimSpace(hstsDirective)) == 0 {
+			allErrors = append(allErrors, fmt.Errorf("empty value in strict-transport-security-directives"))
+			continue
+		}
+		if hstsDirective != "includeSubDomains" && hstsDirective != "preload" {
+			maxAgeDirective := strings.Split(hstsDirective, "=")
+			if len(maxAgeDirective) != 2 || maxAgeDirective[0] != "max-age" {
+				allErrors = append(allErrors, fmt.Errorf("--strict-transport-security-directives invalid, allowed values: max-age=expireTime, includeSubDomains, preload. see https://tools.ietf.org/html/rfc6797#section-6.1 for more information"))
+			}
+		}
+	}
+	return errors.NewAggregate(allErrors)
 }
 
 // AddUniversalFlags adds flags for a specific APIServer to the specified FlagSet
@@ -165,8 +187,14 @@ func (s *ServerRunOptions) AddUniversalFlags(fs *pflag.FlagSet) {
 		"List of allowed origins for CORS, comma separated.  An allowed origin can be a regular "+
 		"expression to support subdomain matching. If this list is empty CORS will not be enabled.")
 
-	fs.IntVar(&s.TargetRAMMB, "target-ram-mb", s.TargetRAMMB,
-		"Memory limit for apiserver in MB (used to configure sizes of caches, etc.)")
+	fs.StringSliceVar(&s.HSTSDirectives, "strict-transport-security-directives", s.HSTSDirectives, ""+
+		"List of directives for HSTS, comma separated. If this list is empty, then HSTS directives will not "+
+		"be added. Example: 'max-age=31536000,includeSubDomains,preload'")
+
+	deprecatedTargetRAMMB := 0
+	fs.IntVar(&deprecatedTargetRAMMB, "target-ram-mb", deprecatedTargetRAMMB,
+		"DEPRECATED: Memory limit for apiserver in MB (used to configure sizes of caches, etc.)")
+	fs.MarkDeprecated("target-ram-mb", "This flag will be removed in v1.23")
 
 	fs.StringVar(&s.ExternalHost, "external-hostname", s.ExternalHost,
 		"The hostname to use when generating externalized URLs for this master (e.g. Swagger API Docs or OpenID Discovery).")
@@ -209,8 +237,8 @@ func (s *ServerRunOptions) AddUniversalFlags(fs *pflag.FlagSet) {
 		"If true and the APIPriorityAndFairness feature gate is enabled, replace the max-in-flight handler with an enhanced one that queues and dispatches with priority and fairness")
 
 	fs.DurationVar(&s.ShutdownDelayDuration, "shutdown-delay-duration", s.ShutdownDelayDuration, ""+
-		"Time to delay the termination. During that time the server keeps serving requests normally and /healthz "+
-		"returns success, but /readyz immediately returns failure. Graceful termination starts after this delay "+
+		"Time to delay the termination. During that time the server keeps serving requests normally. The endpoints /healthz and /livez "+
+		"will return success, but /readyz immediately returns failure. Graceful termination starts after this delay "+
 		"has elapsed. This can be used to allow load balancer to stop sending traffic to this server.")
 
 	utilfeature.DefaultMutableFeatureGate.AddFlag(fs)

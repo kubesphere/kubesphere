@@ -48,6 +48,9 @@ var CRDMarkers = []*definitionWithHelp{
 
 	must(markers.MakeDefinition("kubebuilder:unservedversion", markers.DescribesType, UnservedVersion{})).
 		WithHelp(UnservedVersion{}.Help()),
+
+	must(markers.MakeDefinition("kubebuilder:deprecatedversion", markers.DescribesType, DeprecatedVersion{})).
+		WithHelp(DeprecatedVersion{}.Help()),
 }
 
 // TODO: categories and singular used to be annotations types
@@ -316,3 +319,29 @@ func (s UnservedVersion) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, ve
 }
 
 // NB(directxman12): singular was historically distinct, so we keep it here for backwards compat
+
+// +controllertools:marker:generateHelp:category=CRD
+
+// DeprecatedVersion marks this version as deprecated.
+type DeprecatedVersion struct {
+	// Warning message to be shown on the deprecated version
+	Warning *string `marker:",optional"`
+}
+
+func (s DeprecatedVersion) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version string) error {
+	if version == "" {
+		// single-version, do nothing
+		return nil
+	}
+	// multi-version
+	for i := range crd.Versions {
+		ver := &crd.Versions[i]
+		if ver.Name != version {
+			continue
+		}
+		ver.Deprecated = true
+		ver.DeprecationWarning = s.Warning
+		break
+	}
+	return nil
+}

@@ -24,7 +24,11 @@ import (
 	"strings"
 
 	"k8s.io/kube-openapi/pkg/util/proto"
-	"sigs.k8s.io/structured-merge-diff/v3/schema"
+	"sigs.k8s.io/structured-merge-diff/v4/schema"
+)
+
+const (
+	quantityResource = "io.k8s.apimachinery.pkg.api.resource.Quantity"
 )
 
 // ToSchema converts openapi definitions into a schema suitable for structured
@@ -263,7 +267,7 @@ func makeUnion(extensions map[string]interface{}) (schema.Union, error) {
 				return schema.Union{}, fmt.Errorf(`"fields-to-discriminateBy"/%v: value must be a string, got: %#v`, field, value)
 			}
 			union.Fields = append(union.Fields, schema.UnionField{
-				FieldName:       field,
+				FieldName:          field,
 				DiscriminatorValue: discriminated,
 			})
 
@@ -293,8 +297,9 @@ func (c *convert) VisitKind(k *proto.Kind) {
 		member := k.Fields[name]
 		tr := c.makeRef(member, preserveUnknownFields)
 		a.Map.Fields = append(a.Map.Fields, schema.StructField{
-			Name: name,
-			Type: tr,
+			Name:    name,
+			Type:    tr,
+			Default: member.GetDefault(),
 		})
 	}
 
@@ -310,6 +315,18 @@ func (c *convert) VisitKind(k *proto.Kind) {
 	if preserveUnknownFields {
 		a.Map.ElementType = schema.TypeRef{
 			NamedType: &deducedName,
+		}
+	}
+
+	ext := k.GetExtensions()
+	if val, ok := ext["x-kubernetes-map-type"]; ok {
+		switch val {
+		case "atomic":
+			a.Map.ElementRelationship = schema.Atomic
+		case "granular":
+			a.Map.ElementRelationship = schema.Separable
+		default:
+			c.reportError("unknown map type %v", val)
 		}
 	}
 }
@@ -384,37 +401,50 @@ func (c *convert) VisitMap(m *proto.Map) {
 	a.Map = &schema.Map{}
 	a.Map.ElementType = c.makeRef(m.SubType, c.preserveUnknownFields)
 
-	// TODO: Get element relationship when we start putting it into the
-	// spec.
+	ext := m.GetExtensions()
+	if val, ok := ext["x-kubernetes-map-type"]; ok {
+		switch val {
+		case "atomic":
+			a.Map.ElementRelationship = schema.Atomic
+		case "granular":
+			a.Map.ElementRelationship = schema.Separable
+		default:
+			c.reportError("unknown map type %v", val)
+		}
+	}
 }
 
 func ptr(s schema.Scalar) *schema.Scalar { return &s }
 
 func (c *convert) VisitPrimitive(p *proto.Primitive) {
 	a := c.top()
-	switch p.Type {
-	case proto.Integer:
-		a.Scalar = ptr(schema.Numeric)
-	case proto.Number:
-		a.Scalar = ptr(schema.Numeric)
-	case proto.String:
-		switch p.Format {
-		case "":
-			a.Scalar = ptr(schema.String)
-		case "byte":
-			// byte really means []byte and is encoded as a string.
-			a.Scalar = ptr(schema.String)
-		case "int-or-string":
-			a.Scalar = ptr(schema.Scalar("untyped"))
-		case "date-time":
-			a.Scalar = ptr(schema.Scalar("untyped"))
+	if c.currentName == quantityResource {
+		a.Scalar = ptr(schema.Scalar("untyped"))
+	} else {
+		switch p.Type {
+		case proto.Integer:
+			a.Scalar = ptr(schema.Numeric)
+		case proto.Number:
+			a.Scalar = ptr(schema.Numeric)
+		case proto.String:
+			switch p.Format {
+			case "":
+				a.Scalar = ptr(schema.String)
+			case "byte":
+				// byte really means []byte and is encoded as a string.
+				a.Scalar = ptr(schema.String)
+			case "int-or-string":
+				a.Scalar = ptr(schema.Scalar("untyped"))
+			case "date-time":
+				a.Scalar = ptr(schema.Scalar("untyped"))
+			default:
+				a.Scalar = ptr(schema.Scalar("untyped"))
+			}
+		case proto.Boolean:
+			a.Scalar = ptr(schema.Boolean)
 		default:
 			a.Scalar = ptr(schema.Scalar("untyped"))
 		}
-	case proto.Boolean:
-		a.Scalar = ptr(schema.Boolean)
-	default:
-		a.Scalar = ptr(schema.Scalar("untyped"))
 	}
 }
 
