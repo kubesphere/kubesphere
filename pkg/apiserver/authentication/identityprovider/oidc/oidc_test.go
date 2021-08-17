@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -170,7 +171,7 @@ var _ = Describe("OIDC", func() {
 				"issuer":             oidcServer.URL,
 				"clientID":           "kubesphere",
 				"clientSecret":       "c53e80ab92d48ab12f4e7f1f6976d1bdc996e0d7",
-				"redirectURL":        "http://ks-console/oauth/redirect",
+				"redirectURL":        "https://console.kubesphere.io/oauth/redirect/oidc",
 				"insecureSkipVerify": true,
 			}
 			factory := oidcProviderFactory{}
@@ -180,7 +181,7 @@ var _ = Describe("OIDC", func() {
 				"issuer":             oidcServer.URL,
 				"clientID":           "kubesphere",
 				"clientSecret":       "c53e80ab92d48ab12f4e7f1f6976d1bdc996e0d7",
-				"redirectURL":        "http://ks-console/oauth/redirect",
+				"redirectURL":        "https://console.kubesphere.io/oauth/redirect/oidc",
 				"insecureSkipVerify": true,
 				"endpoint": oauth.DynamicOptions{
 					"authURL":       fmt.Sprintf("%s/authorize", oidcServer.URL),
@@ -193,7 +194,9 @@ var _ = Describe("OIDC", func() {
 			Expect(config).Should(Equal(expected))
 		})
 		It("should login successfully", func() {
-			identity, err := provider.IdentityExchange("3389")
+			url, _ := url.Parse("https://console.kubesphere.io/oauth/redirect/oidc?code=00000")
+			req := &http.Request{URL: url}
+			identity, err := provider.IdentityExchangeCallback(req)
 			Expect(err).Should(BeNil())
 			Expect(identity.GetUserID()).Should(Equal("110169484474386276334"))
 			Expect(identity.GetUsername()).Should(Equal("test"))

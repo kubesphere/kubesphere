@@ -13,20 +13,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package identityprovider
 
 import (
+	"net/http"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 type OAuthProvider interface {
-	// IdentityExchange exchange identity from remote server
-	IdentityExchange(code string) (Identity, error)
+	// IdentityExchangeCallback handle oauth callback, exchange identity from remote server
+	IdentityExchangeCallback(req *http.Request) (Identity, error)
 }
 
 type OAuthProviderFactory interface {
 	// Type unique type of the provider
 	Type() string
-	// Apply the dynamic options from kubesphere-config
+	// Create Apply the dynamic options
 	Create(options oauth.DynamicOptions) (OAuthProvider, error)
 }

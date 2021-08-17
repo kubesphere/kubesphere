@@ -19,13 +19,14 @@ import (
 	"context"
 	"fmt"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
 	"kubesphere.io/kubesphere/pkg/api"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/models/auth"
@@ -43,7 +44,7 @@ type IdentityManagementInterface interface {
 	PasswordVerify(username string, password string) error
 }
 
-func NewOperator(ksClient kubesphere.Interface, userGetter resources.Interface, loginRecordGetter resources.Interface, options *authoptions.AuthenticationOptions) IdentityManagementInterface {
+func NewOperator(ksClient kubesphere.Interface, userGetter resources.Interface, loginRecordGetter resources.Interface, options *authentication.Options) IdentityManagementInterface {
 	im := &imOperator{
 		ksClient:          ksClient,
 		userGetter:        userGetter,
@@ -57,7 +58,7 @@ type imOperator struct {
 	ksClient          kubesphere.Interface
 	userGetter        resources.Interface
 	loginRecordGetter resources.Interface
-	options           *authoptions.AuthenticationOptions
+	options           *authentication.Options
 }
 
 // UpdateUser returns user information after update.

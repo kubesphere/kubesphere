@@ -19,6 +19,7 @@
 package identityprovider
 
 import (
+	"net/http"
 	"testing"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
@@ -50,7 +51,7 @@ func (e emptyIdentity) GetEmail() string {
 	return "test@test.com"
 }
 
-func (e emptyOAuthProvider) IdentityExchange(code string) (Identity, error) {
+func (e emptyOAuthProvider) IdentityExchangeCallback(req *http.Request) (Identity, error) {
 	return emptyIdentity{}, nil
 }
 

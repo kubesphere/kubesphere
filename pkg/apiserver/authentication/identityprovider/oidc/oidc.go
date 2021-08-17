@@ -196,8 +196,10 @@ func (f *oidcProviderFactory) Create(options oauth.DynamicOptions) (identityprov
 	return &oidcProvider, nil
 }
 
-func (o *oidcProvider) IdentityExchange(code string) (identityprovider.Identity, error) {
-	ctx := context.TODO()
+func (o *oidcProvider) IdentityExchangeCallback(req *http.Request) (identityprovider.Identity, error) {
+	//OAuth2 callback, see also https://tools.ietf.org/html/rfc6749#section-4.1.2
+	code := req.URL.Query().Get("code")
+	ctx := req.Context()
 	if o.InsecureSkipVerify {
 		client := &http.Client{
 			Transport: &http.Transport{

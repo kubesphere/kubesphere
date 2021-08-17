@@ -47,6 +47,8 @@ const (
 	// MappingMethodMixed  A user entity can be mapped with multiple identifyProvider.
 	// not supported yet.
 	MappingMethodMixed MappingMethod = "mixed"
+
+	DefaultIssuer string = "kubesphere"
 )
 
 var (
@@ -56,6 +58,16 @@ var (
 )
 
 type Options struct {
+	// An Issuer Identifier is a case-sensitive URL using the https scheme that contains scheme,
+	// host, and optionally, port number and path components and no query or fragment components.
+	Issuer string `json:"issuer,omitempty" yaml:"issuer,omitempty"`
+
+	// RSA private key file used to sign the id token
+	SignKey string `json:"signKey,omitempty" yaml:"signKey"`
+
+	// Raw RSA private key. Base64 encoded PEM file
+	SignKeyData string `json:"-,omitempty" yaml:"signKeyData"`
+
 	// Register identity providers.
 	IdentityProviders []IdentityProviderOptions `json:"identityProviders,omitempty" yaml:"identityProviders,omitempty"`
 
@@ -79,7 +91,7 @@ type Options struct {
 	AccessTokenInactivityTimeout time.Duration `json:"accessTokenInactivityTimeout" yaml:"accessTokenInactivityTimeout"`
 }
 
-// the type of key must be string
+// DynamicOptions accept dynamic configuration, the type of key MUST be string
 type DynamicOptions map[string]interface{}
 
 func (o DynamicOptions) MarshalJSON() ([]byte, error) {
@@ -169,6 +181,9 @@ type Token struct {
 	// if it expires.
 	RefreshToken string `json:"refresh_token,omitempty"`
 
+	// ID Token value associated with the authenticated session.
+	IDToken string `json:"id_token,omitempty"`
+
 	// ExpiresIn is the optional expiration second of the access token.
 	ExpiresIn int `json:"expires_in,omitempty"`
 }
@@ -209,7 +224,7 @@ type Client struct {
 }
 
 var (
-	// Allow any redirect URI if the redirectURI is defined in request
+	// AllowAllRedirectURI Allow any redirect URI if the redirectURI is defined in request
 	AllowAllRedirectURI                 = "*"
 	DefaultTokenMaxAge                  = time.Second * 86400
 	DefaultAccessTokenInactivityTimeout = time.Duration(0)
@@ -259,10 +274,10 @@ func (c Client) anyRedirectAbleURI() []string {
 	return uris
 }
 
-func (c Client) ResolveRedirectURL(expectURL string) (string, error) {
+func (c Client) ResolveRedirectURL(expectURL string) (*url.URL, error) {
 	// RedirectURIs is empty
 	if len(c.RedirectURIs) == 0 {
-		return "", ErrorRedirectURLNotAllowed
+		return nil, ErrorRedirectURLNotAllowed
 	}
 	allowAllRedirectURI := sliceutil.HasString(c.RedirectURIs, AllowAllRedirectURI)
 	redirectAbleURIs := c.anyRedirectAbleURI()
@@ -270,20 +285,21 @@ func (c Client) ResolveRedirectURL(expectURL string) (string, error) {
 	if expectURL == "" {
 		// Need to specify at least one RedirectURI
 		if len(redirectAbleURIs) > 0 {
-			return redirectAbleURIs[0], nil
+			return url.Parse(redirectAbleURIs[0])
 		} else {
-			return "", ErrorRedirectURLNotAllowed
+			return nil, ErrorRedirectURLNotAllowed
 		}
 	}
 	if allowAllRedirectURI || sliceutil.HasString(redirectAbleURIs, expectURL) {
-		return expectURL, nil
+		return url.Parse(expectURL)
 	}
 
-	return "", ErrorRedirectURLNotAllowed
+	return nil, ErrorRedirectURLNotAllowed
 }
 
 func NewOptions() *Options {
 	return &Options{
+		Issuer:                       DefaultIssuer,
 		IdentityProviders:            make([]IdentityProviderOptions, 0),
 		Clients:                      make([]Client, 0),
 		AccessTokenMaxAge:            time.Hour * 2,

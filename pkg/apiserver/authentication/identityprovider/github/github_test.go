@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -86,7 +87,7 @@ var _ = Describe("GitHub", func() {
 			configYAML := `
 clientID: de6ff8bed0304e487b6e
 clientSecret: 2b70536f79ec8d2939863509d05e2a71c268b9af
-redirectURL: "http://ks-console/oauth/redirect"
+redirectURL: "https://console.kubesphere.io/oauth/redirect/github"
 scopes:
 - user
 `
@@ -102,7 +103,7 @@ scopes:
 					TokenURL:    tokenURL,
 					UserInfoURL: userInfoURL,
 				},
-				RedirectURL: "http://ks-console/oauth/redirect",
+				RedirectURL: "https://console.kubesphere.io/oauth/redirect/github",
 				Scopes:      []string{"user"},
 				Config: &oauth2.Config{
 					ClientID:     "de6ff8bed0304e487b6e",
@@ -111,7 +112,7 @@ scopes:
 						AuthURL:  authURL,
 						TokenURL: tokenURL,
 					},
-					RedirectURL: "http://ks-console/oauth/redirect",
+					RedirectURL: "https://console.kubesphere.io/oauth/redirect/github",
 					Scopes:      []string{"user"},
 				},
 			}
@@ -121,7 +122,7 @@ scopes:
 			config := oauth.DynamicOptions{
 				"clientID":           "de6ff8bed0304e487b6e",
 				"clientSecret":       "2b70536f79ec8d2939863509d05e2a71c268b9af",
-				"redirectURL":        "http://ks-console/oauth/redirect",
+				"redirectURL":        "https://console.kubesphere.io/oauth/redirect/github",
 				"insecureSkipVerify": true,
 				"endpoint": oauth.DynamicOptions{
 					"authURL":     fmt.Sprintf("%s/login/oauth/authorize", githubServer.URL),
@@ -135,7 +136,7 @@ scopes:
 			expected := oauth.DynamicOptions{
 				"clientID":           "de6ff8bed0304e487b6e",
 				"clientSecret":       "2b70536f79ec8d2939863509d05e2a71c268b9af",
-				"redirectURL":        "http://ks-console/oauth/redirect",
+				"redirectURL":        "https://console.kubesphere.io/oauth/redirect/github",
 				"insecureSkipVerify": true,
 				"endpoint": oauth.DynamicOptions{
 					"authURL":     fmt.Sprintf("%s/login/oauth/authorize", githubServer.URL),
@@ -146,7 +147,9 @@ scopes:
 			Expect(config).Should(Equal(expected))
 		})
 		It("should login successfully", func() {
-			identity, err := provider.IdentityExchange("3389")
+			url, _ := url.Parse("https://console.kubesphere.io/oauth/redirect/test?code=00000")
+			req := &http.Request{URL: url}
+			identity, err := provider.IdentityExchangeCallback(req)
 			Expect(err).Should(BeNil())
 			Expect(identity.GetUserID()).Should(Equal("test"))
 			Expect(identity.GetUsername()).Should(Equal("test"))

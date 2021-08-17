@@ -1,20 +1,22 @@
 /*
-Copyright 2020 The KubeSphere Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Copyright 2021 The KubeSphere Authors.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
 */
 
-package options
+package authentication
 
 import (
 	"errors"
@@ -31,7 +33,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
-type AuthenticationOptions struct {
+type Options struct {
 	// AuthenticateRateLimiter defines under which circumstances we will block user.
 	// A user will be blocked if his/her failed login attempt reaches AuthenticateRateLimiterMaxTries in
 	// AuthenticateRateLimiterDuration for about AuthenticateRateLimiterDuration. For example,
@@ -40,7 +42,10 @@ type AuthenticationOptions struct {
 	// A user will be blocked for 10m if he/she logins with incorrect credentials for at least 5 times in 10m.
 	AuthenticateRateLimiterMaxTries int           `json:"authenticateRateLimiterMaxTries" yaml:"authenticateRateLimiterMaxTries"`
 	AuthenticateRateLimiterDuration time.Duration `json:"authenticateRateLimiterDuration" yaml:"authenticateRateLimiterDuration"`
-	// Token verification maximum time difference
+	// Token verification maximum time difference, default to 10s.
+	// You should consider allowing a clock skew when checking the time-based values.
+	// This should be values of a few seconds, and we don’t recommend using more than 30 seconds for this purpose,
+	// as this would rather indicate problems with the server, rather than a common clock skew.
 	MaximumClockSkew time.Duration `json:"maximumClockSkew" yaml:"maximumClockSkew"`
 	// retention login history, records beyond this amount will be deleted
 	LoginHistoryRetentionPeriod time.Duration `json:"loginHistoryRetentionPeriod" yaml:"loginHistoryRetentionPeriod"`
@@ -57,8 +62,8 @@ type AuthenticationOptions struct {
 	KubectlImage string `json:"kubectlImage" yaml:"kubectlImage"`
 }
 
-func NewAuthenticateOptions() *AuthenticationOptions {
-	return &AuthenticationOptions{
+func NewOptions() *Options {
+	return &Options{
 		AuthenticateRateLimiterMaxTries: 5,
 		AuthenticateRateLimiterDuration: time.Minute * 30,
 		MaximumClockSkew:                10 * time.Second,
@@ -71,7 +76,7 @@ func NewAuthenticateOptions() *AuthenticationOptions {
 	}
 }
 
-func (options *AuthenticationOptions) Validate() []error {
+func (options *Options) Validate() []error {
 	var errs []error
 	if len(options.JwtSecret) == 0 {
 		errs = append(errs, errors.New("JWT secret MUST not be empty"))
@@ -85,7 +90,7 @@ func (options *AuthenticationOptions) Validate() []error {
 	return errs
 }
 
-func (options *AuthenticationOptions) AddFlags(fs *pflag.FlagSet, s *AuthenticationOptions) {
+func (options *Options) AddFlags(fs *pflag.FlagSet, s *Options) {
 	fs.IntVar(&options.AuthenticateRateLimiterMaxTries, "authenticate-rate-limiter-max-retries", s.AuthenticateRateLimiterMaxTries, "")
 	fs.DurationVar(&options.AuthenticateRateLimiterDuration, "authenticate-rate-limiter-duration", s.AuthenticateRateLimiterDuration, "")
 	fs.BoolVar(&options.MultipleLogin, "multiple-login", s.MultipleLogin, "Allow multiple login with the same account, disable means only one user can login at the same time.")

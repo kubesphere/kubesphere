@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -60,7 +60,7 @@ func newUser(name string) *iamv1alpha2.User {
 }
 
 func TestDoNothing(t *testing.T) {
-	authenticateOptions := options.NewAuthenticateOptions()
+	authenticateOptions := authentication.NewOptions()
 	authenticateOptions.AuthenticateRateLimiterMaxTries = 1
 	authenticateOptions.AuthenticateRateLimiterDuration = 2 * time.Second
 	user := newUser("test")

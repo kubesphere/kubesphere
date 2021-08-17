@@ -49,7 +49,7 @@ func NewBasicAuthenticator(authenticator auth.PasswordAuthenticator, loginRecord
 }
 
 func (t *basicAuthenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
-	authenticated, provider, err := t.authenticator.Authenticate(username, password)
+	authenticated, provider, err := t.authenticator.Authenticate(ctx, username, password)
 	if err != nil {
 		if t.loginRecorder != nil && err == auth.IncorrectPasswordError {
 			var sourceIP, userAgent string
