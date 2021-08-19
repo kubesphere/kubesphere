@@ -47,7 +47,7 @@ var supportedResources = map[string]schema.GroupVersionResource{
 	podsKey:                   {Group: "", Version: "v1", Resource: "pods"},
 	servicesKey:               {Group: "", Version: "v1", Resource: "services"},
 	persistentvolumeclaimsKey: {Group: "", Version: "v1", Resource: "persistentvolumeclaims"},
-	ingressKey:                {Group: "extensions", Version: "v1beta1", Resource: "ingresses"},
+	ingressKey:                {Group: "networking.k8s.io", Version: "v1", Resource: "ingresses"},
 	jobsKey:                   {Group: "batch", Version: "v1", Resource: "jobs"},
 	cronJobsKey:               {Group: "batch", Version: "v1beta1", Resource: "cronjobs"},
 	s2iBuilders:               {Group: "devops.kubesphere.io", Version: "v1alpha1", Resource: "s2ibuilders"},

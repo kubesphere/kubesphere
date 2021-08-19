@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,7 +45,7 @@ type FederatedIngressSpec struct {
 }
 
 type IngressTemplate struct {
-	Spec extensionsv1beta1.IngressSpec `json:"spec,omitempty"`
+	Spec networkingv1.IngressSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
