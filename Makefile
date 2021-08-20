@@ -139,6 +139,8 @@ helm-uninstall: ; $(info $(M)...Begin to helm-uninstall.)  @ ## Helm-uninstall.
 # Run tests
 test: vet ;$(info $(M)...Begin to run tests.)  @ ## Run tests.
 	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=2m; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
+	cd staging/src/kubesphere.io/api ; GOFLAGS="" go test ./...
+	cd staging/src/kubesphere.io/client-go ; GOFLAGS="" go test ./...
 
 .PHONY: clean
 clean: ;$(info $(M)...Begin to clean.)  @ ## Clean.
