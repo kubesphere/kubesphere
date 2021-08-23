@@ -237,28 +237,24 @@ func (c *StorageCapabilityController) hasCSIDriver(storageClass *storagev1.Stora
 }
 
 func (c *StorageCapabilityController) addStorageClassSnapshotAnnotation(storageClass *storagev1.StorageClass, snapshotAllow bool) error {
-	if snapshotAllow {
-		if storageClass.Annotations == nil {
-			storageClass.Annotations = make(map[string]string)
-		}
-		_, err := strconv.ParseBool(storageClass.Annotations[annotationAllowSnapshot])
-		// err != nil means annotationAllowSnapshot is not illegal, include empty
-		if err != nil {
-			storageClass.Annotations[annotationAllowSnapshot] = strconv.FormatBool(snapshotAllow)
-		}
+	if storageClass.Annotations == nil {
+		storageClass.Annotations = make(map[string]string)
+	}
+	_, err := strconv.ParseBool(storageClass.Annotations[annotationAllowSnapshot])
+	// err != nil means annotationAllowSnapshot is not illegal, include empty
+	if err != nil {
+		storageClass.Annotations[annotationAllowSnapshot] = strconv.FormatBool(snapshotAllow)
 	}
 	return nil
 }
 
 func (c *StorageCapabilityController) addCloneVolumeAnnotation(storageClass *storagev1.StorageClass, cloneAllow bool) error {
-	if cloneAllow {
-		if storageClass.Annotations == nil {
-			storageClass.Annotations = make(map[string]string)
-		}
-		_, err := strconv.ParseBool(storageClass.Annotations[annotationAllowClone])
-		if err != nil {
-			storageClass.Annotations[annotationAllowClone] = strconv.FormatBool(cloneAllow)
-		}
+	if storageClass.Annotations == nil {
+		storageClass.Annotations = make(map[string]string)
+	}
+	_, err := strconv.ParseBool(storageClass.Annotations[annotationAllowClone])
+	if err != nil {
+		storageClass.Annotations[annotationAllowClone] = strconv.FormatBool(cloneAllow)
 	}
 	return nil
 }

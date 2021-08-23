@@ -21,7 +21,10 @@ package snapshot
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
+
+	storagev1 "k8s.io/api/storage/v1"
 
 	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/typed/volumesnapshot/v1beta1"
@@ -40,6 +43,8 @@ import (
 
 	crdscheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 )
+
+const annotationAllowSnapshot = "storageclass.kubesphere.io/allow-snapshot"
 
 type VolumeSnapshotClassController struct {
 	storageClassLister  storagelistersv1.StorageClassLister
@@ -71,7 +76,15 @@ func NewController(
 	}
 
 	storageClassInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    controller.enqueueStorageClass,
+		AddFunc: controller.enqueueStorageClass,
+		UpdateFunc: func(old, new interface{}) {
+			newStorageClass := new.(*storagev1.StorageClass)
+			oldStorageClass := old.(*storagev1.StorageClass)
+			if newStorageClass.ResourceVersion == oldStorageClass.ResourceVersion {
+				return
+			}
+			controller.enqueueStorageClass(newStorageClass)
+		},
 		DeleteFunc: controller.enqueueStorageClass,
 	})
 
@@ -167,19 +180,27 @@ func (c *VolumeSnapshotClassController) syncHandler(key string) error {
 		return err
 	}
 
-	// If VolumeSnapshotClass not exist, create it
-	_, err = c.snapshotClassLister.Get(name)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			volumeSnapshotClassCreate := &snapshotv1beta1.VolumeSnapshotClass{
-				ObjectMeta:     metav1.ObjectMeta{Name: name},
-				Driver:         storageClass.Provisioner,
-				DeletionPolicy: snapshotv1beta1.VolumeSnapshotContentDelete,
+	if storageClass.Annotations != nil {
+		if annotationSnap, ok := storageClass.Annotations[annotationAllowSnapshot]; ok {
+			allowSnapshot, err := strconv.ParseBool(annotationSnap)
+			if err == nil && allowSnapshot {
+				// If VolumeSnapshotClass not exist, create it
+				_, err = c.snapshotClassLister.Get(name)
+				if err != nil {
+					if errors.IsNotFound(err) {
+						volumeSnapshotClassCreate := &snapshotv1beta1.VolumeSnapshotClass{
+							ObjectMeta:     metav1.ObjectMeta{Name: name},
+							Driver:         storageClass.Provisioner,
+							DeletionPolicy: snapshotv1beta1.VolumeSnapshotContentDelete,
+						}
+						_, err = c.snapshotClassClient.Create(context.Background(), volumeSnapshotClassCreate, metav1.CreateOptions{})
+					}
+				}
 			}
-			_, err = c.snapshotClassClient.Create(context.Background(), volumeSnapshotClassCreate, metav1.CreateOptions{})
+			return err
 		}
 	}
-	return err
+	return nil
 }
 
 func (c *VolumeSnapshotClassController) deleteSnapshotClass(name string) error {

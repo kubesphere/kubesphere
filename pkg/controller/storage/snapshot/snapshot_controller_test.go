@@ -227,6 +227,7 @@ func getKey(sc *storagev1.StorageClass, t *testing.T) string {
 func TestCreateStorageClass(t *testing.T) {
 	fixture := newFixture(t)
 	storageClass := newStorageClass("csi-example")
+	storageClass.Annotations = map[string]string{annotationAllowSnapshot: "true"}
 	snapshotClass := newSnapshotClass(storageClass)
 
 	// Objects exist
