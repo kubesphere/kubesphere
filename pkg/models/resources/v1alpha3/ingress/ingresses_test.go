@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -81,20 +81,20 @@ func TestListIngresses(t *testing.T) {
 }
 
 var (
-	foo1 = &v1beta1.Ingress{
+	foo1 = &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo1",
 			Namespace: "bar",
 		},
 	}
 
-	foo2 = &v1beta1.Ingress{
+	foo2 = &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo2",
 			Namespace: "bar",
 		},
 	}
-	bar1 = &v1beta1.Ingress{
+	bar1 = &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bar1",
 			Namespace: "bar",
@@ -109,7 +109,7 @@ func prepare() v1alpha3.Interface {
 	informer := informers.NewSharedInformerFactory(client, 0)
 
 	for _, ingress := range ingresses {
-		informer.Extensions().V1beta1().Ingresses().Informer().GetIndexer().Add(ingress)
+		informer.Networking().V1().Ingresses().Informer().GetIndexer().Add(ingress)
 	}
 
 	return New(informer)

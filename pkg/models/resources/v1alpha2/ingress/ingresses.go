@@ -19,7 +19,7 @@ package ingress
 import (
 	"sort"
 
-	"k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/informers"
 
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
@@ -37,10 +37,10 @@ func NewIngressSearcher(informers informers.SharedInformerFactory) v1alpha2.Inte
 }
 
 func (s *ingressSearcher) Get(namespace, name string) (interface{}, error) {
-	return s.informers.Extensions().V1beta1().Ingresses().Lister().Ingresses(namespace).Get(name)
+	return s.informers.Networking().V1().Ingresses().Lister().Ingresses(namespace).Get(name)
 }
 
-func (*ingressSearcher) match(match map[string]string, item *v1beta1.Ingress) bool {
+func (*ingressSearcher) match(match map[string]string, item *v1.Ingress) bool {
 	for k, v := range match {
 		if !v1alpha2.ObjectMetaExactlyMath(k, v, item.ObjectMeta) {
 			return false
@@ -49,7 +49,7 @@ func (*ingressSearcher) match(match map[string]string, item *v1beta1.Ingress) bo
 	return true
 }
 
-func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.Ingress) bool {
+func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *v1.Ingress) bool {
 	for k, v := range fuzzy {
 		if !v1alpha2.ObjectMetaFuzzyMath(k, v, item.ObjectMeta) {
 			return false
@@ -59,13 +59,13 @@ func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.Ingress) bo
 }
 
 func (s *ingressSearcher) Search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	ingresses, err := s.informers.Extensions().V1beta1().Ingresses().Lister().Ingresses(namespace).List(labels.Everything())
+	ingresses, err := s.informers.Networking().V1().Ingresses().Lister().Ingresses(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]*v1beta1.Ingress, 0)
+	result := make([]*v1.Ingress, 0)
 
 	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = ingresses

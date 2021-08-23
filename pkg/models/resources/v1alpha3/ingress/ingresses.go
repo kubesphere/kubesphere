@@ -17,7 +17,7 @@ limitations under the License.
 package ingress
 
 import (
-	"k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 
@@ -35,12 +35,12 @@ func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
 }
 
 func (g *ingressGetter) Get(namespace, name string) (runtime.Object, error) {
-	return g.sharedInformers.Extensions().V1beta1().Ingresses().Lister().Ingresses(namespace).Get(name)
+	return g.sharedInformers.Networking().V1().Ingresses().Lister().Ingresses(namespace).Get(name)
 }
 
 func (g *ingressGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
 	// first retrieves all deployments within given namespace
-	ingresses, err := g.sharedInformers.Extensions().V1beta1().Ingresses().Lister().Ingresses(namespace).List(query.Selector())
+	ingresses, err := g.sharedInformers.Networking().V1().Ingresses().Lister().Ingresses(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -55,12 +55,12 @@ func (g *ingressGetter) List(namespace string, query *query.Query) (*api.ListRes
 
 func (g *ingressGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 
-	leftIngress, ok := left.(*v1beta1.Ingress)
+	leftIngress, ok := left.(*v1.Ingress)
 	if !ok {
 		return false
 	}
 
-	rightIngress, ok := right.(*v1beta1.Ingress)
+	rightIngress, ok := right.(*v1.Ingress)
 	if !ok {
 		return false
 	}
@@ -74,7 +74,7 @@ func (g *ingressGetter) compare(left runtime.Object, right runtime.Object, field
 }
 
 func (g *ingressGetter) filter(object runtime.Object, filter query.Filter) bool {
-	deployment, ok := object.(*v1beta1.Ingress)
+	deployment, ok := object.(*v1.Ingress)
 	if !ok {
 		return false
 	}
