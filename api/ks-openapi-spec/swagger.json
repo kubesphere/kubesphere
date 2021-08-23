@@ -10011,6 +10011,7 @@
         ],
         "summary": "Retrieve the blob from the registry identified",
         "operationId": "handleGetRegistryEntry",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -10062,6 +10063,7 @@
         ],
         "summary": "verify if a user has access to the docker registry",
         "operationId": "handleVerifyRegistryCredential",
+        "deprecated": true,
         "parameters": [
           {
             "name": "body",
@@ -10265,6 +10267,140 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/v1alpha2.ComponentStatus"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/resources.kubesphere.io/v1alpha3/namespaces/{namespace}/imageconfig": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Namespaced Resource"
+        ],
+        "summary": "Get image config.",
+        "operationId": "handleGetImageConfig",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Namespace of the image repository secret.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Secret name of the image repository credential, left empty means anonymous fetch.",
+            "name": "secret",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Image name to query, e.g. kubesphere/ks-apiserver:v3.1.1",
+            "name": "image",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v2.ImageConfig"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/resources.kubesphere.io/v1alpha3/namespaces/{namespace}/registrysecrets/{secret}": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Namespaced Resource"
+        ],
+        "summary": "Verify image repostiry secret.",
+        "operationId": "handleVerifyImageRepositorySecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Namespace of the image repository secret to create.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Secret name of the image repository credential to create",
+            "name": "secret",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Secret specification, definition in k8s.io/api/core/v1/types.Secret",
+            "name": "secretSpec",
+            "in": "body",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/resources.kubesphere.io/v1alpha3/namespaces/{namespace}/repositorytags": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Namespaced Resource"
+        ],
+        "summary": "List repository tags, this is an experimental API, use it by your own caution.",
+        "operationId": "handleGetRepositoryTags",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Namespace of the image repository secret.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Repository to query, e.g. calico/cni.",
+            "name": "repository",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Secret name of the image repository credential, left empty means anonymous fetch.",
+            "name": "secret",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v2.RepositoryTags"
             }
           }
         }
@@ -13384,14 +13520,14 @@
     },
     "metering.OpenPitrixStatistic": {
       "required": [
+        "deployments",
         "statefulsets",
         "daemonsets",
         "cpu_usage",
         "memory_usage_wo_cache",
         "net_bytes_transmitted",
         "net_bytes_received",
-        "pvc_bytes_total",
-        "deployments"
+        "pvc_bytes_total"
       ],
       "properties": {
         "cpu_usage": {
@@ -15486,6 +15622,151 @@
         }
       }
     },
+    "v1.Config": {
+      "properties": {
+        "ArgsEscaped": {
+          "type": "boolean"
+        },
+        "AttachStderr": {
+          "type": "boolean"
+        },
+        "AttachStdin": {
+          "type": "boolean"
+        },
+        "AttachStdout": {
+          "type": "boolean"
+        },
+        "Cmd": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Domainname": {
+          "type": "string"
+        },
+        "Entrypoint": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Env": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ExposedPorts": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.Config.ExposedPorts"
+          }
+        },
+        "Healthcheck": {
+          "$ref": "#/definitions/v1.HealthConfig"
+        },
+        "Hostname": {
+          "type": "string"
+        },
+        "Image": {
+          "type": "string"
+        },
+        "Labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "MacAddress": {
+          "type": "string"
+        },
+        "NetworkDisabled": {
+          "type": "boolean"
+        },
+        "OnBuild": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "OpenStdin": {
+          "type": "boolean"
+        },
+        "Shell": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "StdinOnce": {
+          "type": "boolean"
+        },
+        "StopSignal": {
+          "type": "string"
+        },
+        "Tty": {
+          "type": "boolean"
+        },
+        "User": {
+          "type": "string"
+        },
+        "Volumes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.Config.Volumes"
+          }
+        },
+        "WorkingDir": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.Config.ExposedPorts": {},
+    "v1.Config.Volumes": {},
+    "v1.ConfigFile": {
+      "required": [
+        "architecture",
+        "os",
+        "rootfs",
+        "config"
+      ],
+      "properties": {
+        "architecture": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "config": {
+          "$ref": "#/definitions/v1.Config"
+        },
+        "container": {
+          "type": "string"
+        },
+        "created": {
+          "type": "string"
+        },
+        "docker_version": {
+          "type": "string"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.History"
+          }
+        },
+        "os": {
+          "type": "string"
+        },
+        "os.version": {
+          "type": "string"
+        },
+        "rootfs": {
+          "$ref": "#/definitions/v1.RootFS"
+        }
+      }
+    },
     "v1.ConfigMapEnvSource": {
       "description": "ConfigMapEnvSource selects a ConfigMap to populate the environment variables with.\n\nThe contents of the target ConfigMap's Data field will represent the key-value pairs as environment variables.",
       "properties": {
@@ -16343,6 +16624,65 @@
         "tcpSocket": {
           "description": "TCPSocket specifies an action involving a TCP port. TCP hooks not yet supported",
           "$ref": "#/definitions/v1.TCPSocketAction"
+        }
+      }
+    },
+    "v1.Hash": {
+      "required": [
+        "Algorithm",
+        "Hex"
+      ],
+      "properties": {
+        "Algorithm": {
+          "type": "string"
+        },
+        "Hex": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.HealthConfig": {
+      "properties": {
+        "Interval": {
+          "type": "integer",
+          "format": "integer"
+        },
+        "Retries": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "StartPeriod": {
+          "type": "integer",
+          "format": "integer"
+        },
+        "Test": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Timeout": {
+          "type": "integer",
+          "format": "integer"
+        }
+      }
+    },
+    "v1.History": {
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "created": {
+          "type": "string"
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "empty_layer": {
+          "type": "boolean"
         }
       }
     },
@@ -17981,6 +18321,23 @@
         }
       }
     },
+    "v1.RootFS": {
+      "required": [
+        "type",
+        "diff_ids"
+      ],
+      "properties": {
+        "diff_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.Hash"
+          }
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
     "v1.SELinuxOptions": {
       "description": "SELinuxOptions are the labels to be applied to the container",
       "properties": {
@@ -18100,6 +18457,45 @@
         },
         "type": {
           "description": "type indicates which kind of seccomp profile will be applied. Valid options are:\n\nLocalhost - a profile defined in a file on the node should be used. RuntimeDefault - the container runtime default profile should be used. Unconfined - no profile should be applied.",
+          "type": "string"
+        }
+      }
+    },
+    "v1.Secret": {
+      "description": "Secret holds secret data of a certain type. The total bytes of the values in the Data field must be less than MaxSecretSize bytes.",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "data": {
+          "description": "Data contains the secret data. Each key must consist of alphanumeric characters, '-', '_' or '.'. The serialized form of the secret data is a base64 encoded string, representing the arbitrary (possibly non-string) data value here. Described in https://tools.ietf.org/html/rfc4648#section-4",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "immutable": {
+          "description": "Immutable, if set to true, ensures that data stored in the Secret cannot be updated (only object metadata can be modified). If not set to true, the field can be modified at any time. Defaulted to nil.",
+          "type": "boolean"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "stringData": {
+          "description": "stringData allows specifying non-binary secret data in string form. It is provided as a write-only input field for convenience. All keys and values are merged into the data field on write, overwriting any existing values. The stringData field is never output when reading from the API.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "description": "Used to facilitate programmatic handling of secret data.",
           "type": "string"
         }
       }
@@ -19784,9 +20180,9 @@
     },
     "v1alpha2.Node": {
       "required": [
+        "id",
         "labelMinor",
         "rank",
-        "id",
         "label",
         "controls"
       ],
@@ -20421,6 +20817,37 @@
         },
         "spec": {
           "$ref": "#/definitions/v1alpha1.WorkspaceSpec"
+        }
+      }
+    },
+    "v2.ImageConfig": {
+      "required": [
+        "ConfigFile"
+      ],
+      "properties": {
+        "ConfigFile": {
+          "$ref": "#/definitions/v1.ConfigFile"
+        }
+      }
+    },
+    "v2.RepositoryTags": {
+      "required": [
+        "registry",
+        "repository",
+        "tags"
+      ],
+      "properties": {
+        "registry": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
