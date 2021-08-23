@@ -27,7 +27,7 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         name: ks-console
         resources:
-          {{- toYaml .Values.consoleResources | nindent 12 }}
+          {{- toYaml .Values.console.resources | nindent 12 }}
         volumeMounts:
         - mountPath: /opt/kubesphere/console/server/local_config.yaml
           name: ks-console-config
@@ -36,6 +36,9 @@ spec:
           name: sample-bookinfo
         - mountPath: /etc/localtime
           name: host-time
+        {{- if .Values.console.extraVolumeMounts }}
+          {{- toYaml .Values.console.extraVolumeMounts | nindent 8 }}
+        {{- end }}
         livenessProbe:
           tcpSocket:
             port: 8000
@@ -89,7 +92,10 @@ spec:
           path: /etc/localtime
           type: ""
         name: host-time
-        
+      {{- if .Values.console.extraVolumes }}
+        {{ toYaml .Values.console.extraVolumes | nindent 6 }}
+      {{- end }}
+
 ---
 
 apiVersion: v1

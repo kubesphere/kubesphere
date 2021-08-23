@@ -44,10 +44,6 @@ config:
   multicluster: {}
   monitoring: {}
 
-console:
-  port: 30880
-  type: NodePort
-
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -74,30 +70,6 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
-apiserverResources:
-  limits:
-    cpu: 1
-    memory: 1024Mi
-  requests:
-    cpu: 20m
-    memory: 100Mi
-
-consoleResources:
-  limits:
-    cpu: 1
-    memory: 1024Mi
-  requests:
-    cpu: 20m
-    memory: 100Mi
-
-controllerManagerResources:
-  limits:
-    cpu: 1
-    memory: 1000Mi
-  requests:
-    cpu: 30m
-    memory: 50Mi
-
 # Kubernetes Version shows in KubeSphere console
 kube_version: "v1.19.4"
 
@@ -117,3 +89,65 @@ tolerations:
 
 affinity: {}
 env: []
+
+## deployment specific configuration
+
+apiserver:
+  resources:
+    limits:
+      cpu: 1
+      memory: 1024Mi
+    requests:
+      cpu: 20m
+      memory: 100Mi
+
+  extraVolumeMounts: []
+  ## Additional volumeMounts to the apiserver container.
+  #  - name: example-config
+  #   mountPath: /etc/kubesphere/example
+
+  extraVolumes: []
+  ## Additional volumes to the apiserver pod.
+  #  - name: example-config
+  #    emptyDir: {}
+
+console:
+  port: 30880
+  type: NodePort
+  resources:
+    limits:
+      cpu: 1
+      memory: 1024Mi
+    requests:
+      cpu: 20m
+      memory: 100Mi
+
+  extraVolumeMounts: []
+  ## Additional volumeMounts to the console container.
+  #  - name: example-config
+  #   mountPath: /etc/kubesphere/example
+
+  extraVolumes: []
+  ## Additional volumes to the console pod.
+  #  - name: example-config
+  #    emptyDir: {}
+
+controller:
+  resources:
+    limits:
+      cpu: 1
+      memory: 1000Mi
+    requests:
+      cpu: 30m
+      memory: 50Mi
+
+  extraVolumeMounts: []
+  ## Additional volumeMounts to the controller container.
+  #  - name: example-config
+  #   mountPath: /etc/kubesphere/example
+
+  extraVolumes: []
+  ## Additional volumes to the controller pod.
+  #  - name: example-config
+  #    emptyDir: {}
+
