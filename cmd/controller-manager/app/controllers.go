@@ -23,6 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 
+	"kubesphere.io/kubesphere/pkg/controller/storage/snapshot"
+
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
@@ -99,7 +101,10 @@ func addControllers(
 		client.Kubernetes().StorageV1().StorageClasses(),
 		kubernetesInformer.Storage().V1().StorageClasses(),
 		kubernetesInformer.Storage().V1beta1().CSIDrivers(),
-		capability.SnapshotSupported(client.Kubernetes().Discovery()),
+	)
+
+	volumeSnapshotController := snapshot.NewController(
+		kubernetesInformer.Storage().V1().StorageClasses(),
 		client.Snapshot().SnapshotV1beta1().VolumeSnapshotClasses(),
 		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),
 	)
@@ -215,6 +220,7 @@ func addControllers(
 		"destinationrule-controller":    drController,
 		"job-controller":                jobController,
 		"storagecapability-controller":  storageCapabilityController,
+		"volumesnapshot-controller":     volumeSnapshotController,
 		"user-controller":               userController,
 		"loginrecord-controller":        loginRecordController,
 		"cluster-controller":            clusterController,

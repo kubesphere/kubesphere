@@ -1,6 +1,6 @@
 /*
 
- Copyright 2020 The KubeSphere Authors.
+ Copyright 2021 The KubeSphere Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -16,16 +16,17 @@
 
 */
 
-package capability
+package snapshot
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"k8s.io/api/storage/v1beta1"
-
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	snapbeta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
+	snapfake "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
+	snapinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
 	storagev1 "k8s.io/api/storage/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,53 +48,54 @@ type fixture struct {
 	t                 *testing.T
 	snapshotSupported bool
 	// Clients
-	k8sClient *k8sfake.Clientset
-	ksClient  *ksfake.Clientset
+	k8sClient           *k8sfake.Clientset
+	snapshotClassClient *snapfake.Clientset
+	ksClient            *ksfake.Clientset
 	// Objects from here preload into NewSimpleFake.
-	storageObjects []runtime.Object // include StorageClass
+	storageObjects       []runtime.Object // include StorageClass
+	snapshotClassObjects []runtime.Object
 	// Objects to put in the store.
-	storageClassLister []*storagev1.StorageClass
-	csiDriverLister    []*v1beta1.CSIDriver
+	storageClassLister  []*storagev1.StorageClass
+	snapshotClassLister []*snapbeta1.VolumeSnapshotClass
 	// Actions expected to happen on the client.
 	actions []core.Action
 }
 
-func newFixture(t *testing.T, snapshotSupported bool) *fixture {
-	return &fixture{
-		t:                 t,
-		snapshotSupported: snapshotSupported,
-	}
+func newFixture(t *testing.T) *fixture {
+	return &fixture{t: t}
 }
 
-func (f *fixture) newController() (*StorageCapabilityController,
-	k8sinformers.SharedInformerFactory) {
-
+func (f *fixture) newController() (*VolumeSnapshotClassController, k8sinformers.SharedInformerFactory, snapinformers.SharedInformerFactory) {
 	f.k8sClient = k8sfake.NewSimpleClientset(f.storageObjects...)
+	f.snapshotClassClient = snapfake.NewSimpleClientset(f.snapshotClassObjects...)
 
 	k8sInformers := k8sinformers.NewSharedInformerFactory(f.k8sClient, noReSyncPeriodFunc())
+	snapshotInformers := snapinformers.NewSharedInformerFactory(f.snapshotClassClient, noReSyncPeriodFunc())
+
 	c := NewController(
-		f.k8sClient.StorageV1().StorageClasses(),
 		k8sInformers.Storage().V1().StorageClasses(),
-		k8sInformers.Storage().V1beta1().CSIDrivers(),
+		f.snapshotClassClient.SnapshotV1beta1().VolumeSnapshotClasses(),
+		snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses(),
 	)
 
 	for _, storageClass := range f.storageClassLister {
 		_ = k8sInformers.Storage().V1().StorageClasses().Informer().GetIndexer().Add(storageClass)
 	}
-	for _, csiDriver := range f.csiDriverLister {
-		_ = k8sInformers.Storage().V1beta1().CSIDrivers().Informer().GetIndexer().Add(csiDriver)
+	for _, snapshotClass := range f.snapshotClassLister {
+		_ = snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses().Informer().GetIndexer().Add(snapshotClass)
 	}
 
-	return c, k8sInformers
+	return c, k8sInformers, snapshotInformers
 }
 
 func (f *fixture) runController(scName string, startInformers bool, expectError bool) {
-	c, k8sI := f.newController()
+	c, k8sI, snapI := f.newController()
 
 	if startInformers {
 		stopCh := make(chan struct{})
 		defer close(stopCh)
 		k8sI.Start(stopCh)
+		snapI.Start(stopCh)
 	}
 
 	err := c.syncHandler(scName)
@@ -104,6 +106,7 @@ func (f *fixture) runController(scName string, startInformers bool, expectError 
 	}
 
 	var actions []core.Action
+	actions = append(actions, f.snapshotClassClient.Actions()...)
 	actions = append(actions, f.k8sClient.Actions()...)
 	//actions = append(actions, f.ksClient.Actions()...)
 	filerActions := filterInformerActions(actions)
@@ -121,9 +124,14 @@ func (f *fixture) run(scName string) {
 	f.runController(scName, true, false)
 }
 
-func (f *fixture) expectUpdateStorageClassAction(storageClass *storagev1.StorageClass) {
-	f.actions = append(f.actions, core.NewUpdateAction(
-		schema.GroupVersionResource{Resource: "storageclasses"}, storageClass.Namespace, storageClass))
+func (f *fixture) expectCreateSnapshotClassAction(snapshotClass *snapbeta1.VolumeSnapshotClass) {
+	f.actions = append(f.actions, core.NewCreateAction(
+		schema.GroupVersionResource{Resource: "volumesnapshotclasses"}, snapshotClass.Namespace, snapshotClass))
+}
+
+func (f *fixture) expectDeleteSnapshotClassAction(snapshotClass *snapbeta1.VolumeSnapshotClass) {
+	f.actions = append(f.actions, core.NewDeleteAction(
+		schema.GroupVersionResource{Resource: "volumesnapshotclasses"}, snapshotClass.Namespace, snapshotClass.Name))
 }
 
 // filterInformerActions filters list and watch actions for testing resources.
@@ -187,22 +195,23 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 	}
 }
 
-func newStorageClass(name string, provisioner string) *storagev1.StorageClass {
+func newStorageClass(name string) *storagev1.StorageClass {
 	isExpansion := true
 	return &storagev1.StorageClass{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,
 		},
-		Provisioner:          provisioner,
 		AllowVolumeExpansion: &isExpansion,
 	}
 }
 
-func newCSIDriver(name string) *v1beta1.CSIDriver {
-	return &v1beta1.CSIDriver{
+func newSnapshotClass(storageClass *storagev1.StorageClass) *snapbeta1.VolumeSnapshotClass {
+	return &snapbeta1.VolumeSnapshotClass{
 		ObjectMeta: v1.ObjectMeta{
-			Name: name,
+			Name: storageClass.Name,
 		},
+		Driver:         storageClass.Provisioner,
+		DeletionPolicy: snapbeta1.VolumeSnapshotContentDelete,
 	}
 }
 
@@ -216,59 +225,34 @@ func getKey(sc *storagev1.StorageClass, t *testing.T) string {
 }
 
 func TestCreateStorageClass(t *testing.T) {
-	fixture := newFixture(t, true)
-	storageClass := newStorageClass("csi-example", "csi.example.com")
-	storageClassUpdate := storageClass.DeepCopy()
-	storageClassUpdate.Annotations = map[string]string{annotationAllowSnapshot: "true", annotationAllowClone: "true"}
-	csiDriver := newCSIDriver("csi.example.com")
+	fixture := newFixture(t)
+	storageClass := newStorageClass("csi-example")
+	snapshotClass := newSnapshotClass(storageClass)
 
 	// Objects exist
 	fixture.storageObjects = append(fixture.storageObjects, storageClass)
 	fixture.storageClassLister = append(fixture.storageClassLister, storageClass)
-	fixture.csiDriverLister = append(fixture.csiDriverLister, csiDriver)
 
 	// Action expected
-	fixture.expectUpdateStorageClassAction(storageClassUpdate)
+	fixture.expectCreateSnapshotClassAction(snapshotClass)
 
 	// Run test
 	fixture.run(getKey(storageClass, t))
 }
 
-func TestStorageClassHadAnnotation(t *testing.T) {
-	fixture := newFixture(t, true)
-	storageClass := newStorageClass("csi-example", "csi.example.com")
-	storageClass.Annotations = map[string]string{annotationAllowSnapshot: "false", annotationAllowClone: "false"}
-	storageClassUpdate := storageClass.DeepCopy()
-	csiDriver := newCSIDriver("csi.example.com")
+func TestDeleteStorageClass(t *testing.T) {
+	storageClass := newStorageClass("csi-example")
+	snapshotClass := newSnapshotClass(storageClass)
 
-	//Object exist
+	fixture := newFixture(t)
+	// Object exist
 	fixture.storageObjects = append(fixture.storageObjects, storageClass)
-	fixture.storageClassLister = append(fixture.storageClassLister, storageClass)
-	fixture.csiDriverLister = append(fixture.csiDriverLister, csiDriver)
+	fixture.snapshotClassObjects = append(fixture.snapshotClassObjects, snapshotClass)
+	fixture.snapshotClassLister = append(fixture.snapshotClassLister, snapshotClass)
 
-	//Action expected
-	fixture.expectUpdateStorageClassAction(storageClassUpdate)
+	// Action expected
+	fixture.expectDeleteSnapshotClassAction(snapshotClass)
 
-	//Run test
-	fixture.run(getKey(storageClass, t))
-}
-
-func TestStorageClassHadOneAnnotation(t *testing.T) {
-	fixture := newFixture(t, true)
-	storageClass := newStorageClass("csi-example", "csi.example.com")
-	storageClass.Annotations = map[string]string{annotationAllowSnapshot: "false"}
-	storageClassUpdate := storageClass.DeepCopy()
-	storageClassUpdate.Annotations[annotationAllowClone] = "true"
-	csiDriver := newCSIDriver("csi.example.com")
-
-	//Object exist
-	fixture.storageObjects = append(fixture.storageObjects, storageClass)
-	fixture.storageClassLister = append(fixture.storageClassLister, storageClass)
-	fixture.csiDriverLister = append(fixture.csiDriverLister, csiDriver)
-
-	//Action expected
-	fixture.expectUpdateStorageClassAction(storageClassUpdate)
-
-	//Run test
+	// Run test
 	fixture.run(getKey(storageClass, t))
 }
