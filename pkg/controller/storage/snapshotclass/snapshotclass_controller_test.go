@@ -16,7 +16,7 @@
 
 */
 
-package snapshot
+package snapshotclass
 
 import (
 	"reflect"
@@ -108,7 +108,6 @@ func (f *fixture) runController(scName string, startInformers bool, expectError 
 	var actions []core.Action
 	actions = append(actions, f.snapshotClassClient.Actions()...)
 	actions = append(actions, f.k8sClient.Actions()...)
-	//actions = append(actions, f.ksClient.Actions()...)
 	filerActions := filterInformerActions(actions)
 	if len(filerActions) != len(f.actions) {
 		f.t.Errorf("count of actions: differ (-got, +want): %s", cmp.Diff(filerActions, f.actions))

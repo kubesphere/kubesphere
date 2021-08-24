@@ -16,7 +16,7 @@
 
 */
 
-package snapshot
+package snapshotclass
 
 import (
 	"context"
@@ -56,8 +56,8 @@ type VolumeSnapshotClassController struct {
 	snapshotClassWorkQueue workqueue.RateLimitingInterface
 }
 
-//This controller is responseible to watch StorageClass
-//When storageClass has created ,create snapshot class
+// This controller is responsible to watch StorageClass
+// When storageClass has created ,create snapshot class
 func NewController(
 	storageClassInformer storageinformersv1.StorageClassInformer,
 	snapshotClassClient snapshotclient.VolumeSnapshotClassInterface,

@@ -105,7 +105,6 @@ func (f *fixture) runController(scName string, startInformers bool, expectError 
 
 	var actions []core.Action
 	actions = append(actions, f.k8sClient.Actions()...)
-	//actions = append(actions, f.ksClient.Actions()...)
 	filerActions := filterInformerActions(actions)
 	if len(filerActions) != len(f.actions) {
 		f.t.Errorf("count of actions: differ (-got, +want): %s", cmp.Diff(filerActions, f.actions))
@@ -241,15 +240,15 @@ func TestStorageClassHadAnnotation(t *testing.T) {
 	storageClassUpdate := storageClass.DeepCopy()
 	csiDriver := newCSIDriver("csi.example.com")
 
-	//Object exist
+	// Object exist
 	fixture.storageObjects = append(fixture.storageObjects, storageClass)
 	fixture.storageClassLister = append(fixture.storageClassLister, storageClass)
 	fixture.csiDriverLister = append(fixture.csiDriverLister, csiDriver)
 
-	//Action expected
+	// Action expected
 	fixture.expectUpdateStorageClassAction(storageClassUpdate)
 
-	//Run test
+	// Run test
 	fixture.run(getKey(storageClass, t))
 }
 
@@ -261,14 +260,14 @@ func TestStorageClassHadOneAnnotation(t *testing.T) {
 	storageClassUpdate.Annotations[annotationAllowClone] = "true"
 	csiDriver := newCSIDriver("csi.example.com")
 
-	//Object exist
+	// Object exist
 	fixture.storageObjects = append(fixture.storageObjects, storageClass)
 	fixture.storageClassLister = append(fixture.storageClassLister, storageClass)
 	fixture.csiDriverLister = append(fixture.csiDriverLister, csiDriver)
 
-	//Action expected
+	// Action expected
 	fixture.expectUpdateStorageClassAction(storageClassUpdate)
 
-	//Run test
+	// Run test
 	fixture.run(getKey(storageClass, t))
 }

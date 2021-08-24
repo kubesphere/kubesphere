@@ -205,10 +205,10 @@ func (c *StorageCapabilityController) syncHandler(key string) error {
 	// Get StorageClass
 	storageClass, err := c.storageClassLister.Get(name)
 
-	//Cloning and volumeSnapshot support only available for CSI drivers.
+	// Cloning and volumeSnapshot support only available for CSI drivers.
 	isCSIStorage := c.hasCSIDriver(storageClass)
 
-	//Annotate storageClass
+	// Annotate storageClass
 	storageClassUpdated := storageClass.DeepCopy()
 	err = c.addStorageClassSnapshotAnnotation(storageClassUpdated, isCSIStorage)
 	if err != nil {

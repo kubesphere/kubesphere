@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 
-	"kubesphere.io/kubesphere/pkg/controller/storage/snapshot"
+	"kubesphere.io/kubesphere/pkg/controller/storage/snapshotclass"
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
@@ -103,7 +103,7 @@ func addControllers(
 		kubernetesInformer.Storage().V1beta1().CSIDrivers(),
 	)
 
-	volumeSnapshotController := snapshot.NewController(
+	volumeSnapshotController := snapshotclass.NewController(
 		kubernetesInformer.Storage().V1().StorageClasses(),
 		client.Snapshot().SnapshotV1beta1().VolumeSnapshotClasses(),
 		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),
