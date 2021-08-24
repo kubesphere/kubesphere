@@ -390,6 +390,7 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 		{Group: "", Version: "v1", Resource: "pods"},
 		{Group: "", Version: "v1", Resource: "services"},
 		{Group: "", Version: "v1", Resource: "persistentvolumeclaims"},
+		{Group: "", Version: "v1", Resource: "persistentvolumes"},
 		{Group: "", Version: "v1", Resource: "secrets"},
 		{Group: "", Version: "v1", Resource: "configmaps"},
 		{Group: "", Version: "v1", Resource: "serviceaccounts"},
