@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -122,15 +124,18 @@ func NewReadOnlyOperator(factory informers.InformerFactory) AccessManagementInte
 		workspaceRoleGetter:        workspacerole.New(factory.KubeSphereSharedInformerFactory()),
 		clusterRoleGetter:          clusterrole.New(factory.KubernetesSharedInformerFactory()),
 		roleGetter:                 role.New(factory.KubernetesSharedInformerFactory()),
-		devopsProjectLister:        factory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects().Lister(),
 		namespaceLister:            factory.KubernetesSharedInformerFactory().Core().V1().Namespaces().Lister(),
 	}
 }
 
-func NewOperator(ksClient kubesphere.Interface, k8sClient kubernetes.Interface, factory informers.InformerFactory) AccessManagementInterface {
+func NewOperator(ksClient kubesphere.Interface, k8sClient kubernetes.Interface, factory informers.InformerFactory, devopsClient devops.Interface) AccessManagementInterface {
 	amOperator := NewReadOnlyOperator(factory).(*amOperator)
 	amOperator.ksclient = ksClient
 	amOperator.k8sclient = k8sClient
+	// no more CRDs of devopsprojects if the DevOps module was disabled
+	if devopsClient != nil {
+		amOperator.devopsProjectLister = factory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects().Lister()
+	}
 	return amOperator
 }
 
