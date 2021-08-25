@@ -19,9 +19,11 @@ package v6
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v6"
@@ -46,6 +48,11 @@ func New(address string, basicAuth bool, username, password, index string) (*Ela
 		Addresses: []string{address},
 		Username:  username,
 		Password:  password,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
 	})
 
 	return &Elastic{Client: client, index: index}, err
