@@ -310,7 +310,8 @@ func (c *routerOperator) createOrUpdateRouterWorkload(namespace string, publishS
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			deployment = obj.(*v1.Deployment)
+			deploymentOri := obj.(*v1.Deployment)
+			deployment = deploymentOri.DeepCopy()
 
 			deployment.Name = ingressControllerPrefix + namespace
 
