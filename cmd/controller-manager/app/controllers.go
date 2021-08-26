@@ -23,6 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 
+	"kubesphere.io/kubesphere/pkg/controller/storage/snapshotclass"
+
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
@@ -96,11 +98,13 @@ func addControllers(
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
 
 	storageCapabilityController := capability.NewController(
-		client.KubeSphere().StorageV1alpha1().StorageClassCapabilities(),
-		kubesphereInformer.Storage().V1alpha1(),
 		client.Kubernetes().StorageV1().StorageClasses(),
 		kubernetesInformer.Storage().V1().StorageClasses(),
-		capability.SnapshotSupported(client.Kubernetes().Discovery()),
+		kubernetesInformer.Storage().V1beta1().CSIDrivers(),
+	)
+
+	volumeSnapshotController := snapshotclass.NewController(
+		kubernetesInformer.Storage().V1().StorageClasses(),
 		client.Snapshot().SnapshotV1beta1().VolumeSnapshotClasses(),
 		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),
 	)
@@ -216,6 +220,7 @@ func addControllers(
 		"destinationrule-controller":    drController,
 		"job-controller":                jobController,
 		"storagecapability-controller":  storageCapabilityController,
+		"volumesnapshot-controller":     volumeSnapshotController,
 		"user-controller":               userController,
 		"loginrecord-controller":        loginRecordController,
 		"cluster-controller":            clusterController,

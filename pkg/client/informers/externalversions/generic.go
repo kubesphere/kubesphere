@@ -33,7 +33,6 @@ import (
 	v2beta1 "kubesphere.io/api/notification/v2beta1"
 	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
 	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
-	storagev1alpha1 "kubesphere.io/api/storage/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 	v1beta1 "kubesphere.io/api/types/v1beta1"
@@ -148,12 +147,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Servicemesh().V1alpha2().ServicePolicies().Informer()}, nil
 	case servicemeshv1alpha2.SchemeGroupVersion.WithResource("strategies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Servicemesh().V1alpha2().Strategies().Informer()}, nil
-
-		// Group=storage.kubesphere.io, Version=v1alpha1
-	case storagev1alpha1.SchemeGroupVersion.WithResource("provisionercapabilities"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Storage().V1alpha1().ProvisionerCapabilities().Informer()}, nil
-	case storagev1alpha1.SchemeGroupVersion.WithResource("storageclasscapabilities"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Storage().V1alpha1().StorageClassCapabilities().Informer()}, nil
 
 		// Group=tenant.kubesphere.io, Version=v1alpha1
 	case tenantv1alpha1.SchemeGroupVersion.WithResource("workspaces"):
