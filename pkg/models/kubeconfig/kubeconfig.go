@@ -26,7 +26,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
+	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,7 +63,7 @@ const (
 type Interface interface {
 	GetKubeConfig(username string) (string, error)
 	CreateKubeConfig(user *iamv1alpha2.User) error
-	UpdateKubeconfig(username string, csr *certificatesv1beta1.CertificateSigningRequest) error
+	UpdateKubeconfig(username string, csr *certificatesv1.CertificateSigningRequest) error
 }
 
 type operator struct {
@@ -236,7 +236,7 @@ func (o *operator) createCSR(username string) error {
 	csr := csrBuffer.Bytes()
 	key := keyBuffer.Bytes()
 	csrName := fmt.Sprintf("%s-csr-%d", username, time.Now().Unix())
-	k8sCSR := &certificatesv1beta1.CertificateSigningRequest{
+	k8sCSR := &certificatesv1.CertificateSigningRequest{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CertificateSigningRequest",
 			APIVersion: "certificates.k8s.io/v1beta1",
@@ -246,16 +246,16 @@ func (o *operator) createCSR(username string) error {
 			Labels:      map[string]string{constants.UsernameLabelKey: username},
 			Annotations: map[string]string{privateKeyAnnotation: string(key)},
 		},
-		Spec: certificatesv1beta1.CertificateSigningRequestSpec{
+		Spec: certificatesv1.CertificateSigningRequestSpec{
 			Request:  csr,
-			Usages:   []certificatesv1beta1.KeyUsage{certificatesv1beta1.UsageKeyEncipherment, certificatesv1beta1.UsageClientAuth, certificatesv1beta1.UsageDigitalSignature},
+			Usages:   []certificatesv1.KeyUsage{certificatesv1.UsageKeyEncipherment, certificatesv1.UsageClientAuth, certificatesv1.UsageDigitalSignature},
 			Username: username,
 			Groups:   []string{user.AllAuthenticated},
 		},
 	}
 
 	// create csr
-	if _, err = o.k8sClient.CertificatesV1beta1().CertificateSigningRequests().Create(context.Background(), k8sCSR, metav1.CreateOptions{}); err != nil {
+	if _, err = o.k8sClient.CertificatesV1().CertificateSigningRequests().Create(context.Background(), k8sCSR, metav1.CreateOptions{}); err != nil {
 		klog.Errorln(err)
 		return err
 	}
@@ -264,7 +264,7 @@ func (o *operator) createCSR(username string) error {
 }
 
 // Update client key and client certificate after CertificateSigningRequest has been approved
-func (o *operator) UpdateKubeconfig(username string, csr *certificatesv1beta1.CertificateSigningRequest) error {
+func (o *operator) UpdateKubeconfig(username string, csr *certificatesv1.CertificateSigningRequest) error {
 	configName := fmt.Sprintf(kubeconfigNameFormat, username)
 	configMap, err := o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(context.Background(), configName, metav1.GetOptions{})
 	if err != nil {
@@ -281,7 +281,7 @@ func (o *operator) UpdateKubeconfig(username string, csr *certificatesv1beta1.Ce
 	return nil
 }
 
-func applyCert(cm *corev1.ConfigMap, csr *certificatesv1beta1.CertificateSigningRequest) *corev1.ConfigMap {
+func applyCert(cm *corev1.ConfigMap, csr *certificatesv1.CertificateSigningRequest) *corev1.ConfigMap {
 	data := []byte(cm.Data[kubeconfigFileName])
 	kubeconfig, err := clientcmd.Load(data)
 	if err != nil {
