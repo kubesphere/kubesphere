@@ -116,10 +116,10 @@ func AddToContainer(c *restful.Container, informerFactory informers.InformerFact
 		Doc("Get the health status of system components.").
 		Returns(http.StatusOK, ok, v1alpha2.HealthStatus{}))
 
-	webservice.Route(webservice.POST("/namespaces/{namespace}/registrysecrets/{secret}").
+	webservice.Route(webservice.POST("/namespaces/{namespace}/registrysecrets/{secret}/verify").
 		To(handler.handleVerifyImageRepositorySecret).
 		Param(webservice.PathParameter("namespace", "Namespace of the image repository secret to create.").Required(true)).
-		Param(webservice.PathParameter("secret", "Secret name of the image repository credential to create").Required(true)).
+		Param(webservice.PathParameter("secret", "Name of the secret name").Required(true)).
 		Param(webservice.BodyParameter("secretSpec", "Secret specification, definition in k8s.io/api/core/v1/types.Secret")).
 		Reads(v1.Secret{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{tagNamespacedResource}).
