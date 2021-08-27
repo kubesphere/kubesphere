@@ -12,8 +12,7 @@ github.com/MakeNowJust/heredoc
 # github.com/Masterminds/semver/v3 v3.1.1 => github.com/Masterminds/semver/v3 v3.0.1
 ## explicit
 github.com/Masterminds/semver/v3
-# github.com/Microsoft/go-winio v0.4.12 => github.com/Microsoft/go-winio v0.4.12
-## explicit
+# github.com/Microsoft/go-winio v0.5.0 => github.com/Microsoft/go-winio v0.4.12
 github.com/Microsoft/go-winio
 # github.com/Microsoft/hcsshim v0.8.7 => github.com/Microsoft/hcsshim v0.8.6
 github.com/Microsoft/hcsshim
@@ -117,7 +116,7 @@ github.com/blang/semver
 github.com/cespare/xxhash
 # github.com/cespare/xxhash/v2 v2.1.1 => github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/containerd/containerd v1.3.4 => github.com/containerd/containerd v1.3.0
+# github.com/containerd/containerd v1.5.2 => github.com/containerd/containerd v1.3.0
 github.com/containerd/containerd/archive/compression
 github.com/containerd/containerd/content
 github.com/containerd/containerd/content/local
@@ -162,7 +161,7 @@ github.com/deislabs/oras/pkg/auth/docker
 github.com/deislabs/oras/pkg/content
 github.com/deislabs/oras/pkg/context
 github.com/deislabs/oras/pkg/oras
-# github.com/docker/cli v0.0.0-20200130152716-5d0cf8839492 => github.com/docker/cli v0.0.0-20190506213505-d88565df0c2d
+# github.com/docker/cli v20.10.7+incompatible => github.com/docker/cli v0.0.0-20190506213505-d88565df0c2d
 github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
 github.com/docker/cli/cli/config/credentials
@@ -183,7 +182,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce => github.com/docker/engine v1.4.2-0.20200203170920-46ec8731fbce
+# github.com/docker/docker v20.10.7+incompatible => github.com/docker/engine v1.4.2-0.20200203170920-46ec8731fbce
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -394,6 +393,24 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
+# github.com/google/go-containerregistry v0.6.0 => github.com/google/go-containerregistry v0.6.0
+## explicit
+github.com/google/go-containerregistry/internal/and
+github.com/google/go-containerregistry/internal/gzip
+github.com/google/go-containerregistry/internal/redact
+github.com/google/go-containerregistry/internal/retry
+github.com/google/go-containerregistry/internal/retry/wait
+github.com/google/go-containerregistry/internal/verify
+github.com/google/go-containerregistry/pkg/authn
+github.com/google/go-containerregistry/pkg/logs
+github.com/google/go-containerregistry/pkg/name
+github.com/google/go-containerregistry/pkg/v1
+github.com/google/go-containerregistry/pkg/v1/match
+github.com/google/go-containerregistry/pkg/v1/partial
+github.com/google/go-containerregistry/pkg/v1/remote
+github.com/google/go-containerregistry/pkg/v1/remote/transport
+github.com/google/go-containerregistry/pkg/v1/stream
+github.com/google/go-containerregistry/pkg/v1/types
 # github.com/google/go-querystring v1.0.0 => github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
 # github.com/google/gofuzz v1.1.0 => github.com/google/gofuzz v1.1.0
@@ -739,7 +756,7 @@ github.com/rcrowley/go-metrics
 github.com/russross/blackfriday
 # github.com/sergi/go-diff v1.1.0 => github.com/sergi/go-diff v1.0.0
 github.com/sergi/go-diff/diffmatchpatch
-# github.com/sirupsen/logrus v1.7.0 => github.com/sirupsen/logrus v1.4.2
+# github.com/sirupsen/logrus v1.8.1 => github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009 => github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 ## explicit
@@ -890,7 +907,6 @@ golang.org/x/crypto/ssh/knownhosts
 golang.org/x/lint
 golang.org/x/lint/golint
 # golang.org/x/net v0.0.0-20210525063256-abc453219eb5 => golang.org/x/net v0.0.0-20210525063256-abc453219eb5
-## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -906,11 +922,11 @@ golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
+# golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 => golang.org/x/sync v0.0.0-20190423024810-112230192c58
+# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
@@ -2184,6 +2200,7 @@ sigs.k8s.io/yaml
 # github.com/codahale/hdrhistogram => github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd
 # github.com/containerd/containerd => github.com/containerd/containerd v1.3.0
 # github.com/containerd/continuity => github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
+# github.com/containerd/stargz-snapshotter/estargz => github.com/containerd/stargz-snapshotter/estargz v0.7.0
 # github.com/containernetworking/cni => github.com/containernetworking/cni v0.8.0
 # github.com/coreos/bbolt => github.com/coreos/bbolt v1.3.3
 # github.com/coreos/etcd => github.com/coreos/etcd v3.3.17+incompatible
@@ -2330,6 +2347,7 @@ sigs.k8s.io/yaml
 # github.com/google/btree => github.com/google/btree v1.0.0
 # github.com/google/flatbuffers => github.com/google/flatbuffers v1.11.0
 # github.com/google/go-cmp => github.com/google/go-cmp v0.4.0
+# github.com/google/go-containerregistry => github.com/google/go-containerregistry v0.6.0
 # github.com/google/go-github => github.com/google/go-github v17.0.0+incompatible
 # github.com/google/go-querystring => github.com/google/go-querystring v1.0.0
 # github.com/google/gofuzz => github.com/google/gofuzz v1.1.0
@@ -2550,6 +2568,7 @@ sigs.k8s.io/yaml
 # github.com/rs/cors => github.com/rs/cors v1.6.0
 # github.com/rubenv/sql-migrate => github.com/rubenv/sql-migrate v0.0.0-20200616145509-8d140a17f351
 # github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
+# github.com/russross/blackfriday/v2 => github.com/russross/blackfriday/v2 v2.1.0
 # github.com/ryanuber/columnize => github.com/ryanuber/columnize v2.1.0+incompatible
 # github.com/samuel/go-zookeeper => github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
 # github.com/santhosh-tekuri/jsonschema => github.com/santhosh-tekuri/jsonschema v1.2.4

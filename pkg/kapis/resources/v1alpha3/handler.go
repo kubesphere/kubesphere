@@ -17,14 +17,19 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/emicklei/go-restful"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/components"
+	v2 "kubesphere.io/kubesphere/pkg/models/registries/v2"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
@@ -35,6 +40,7 @@ type Handler struct {
 	resourceGetterV1alpha3  *resourcev1alpha3.ResourceGetter
 	resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter
 	componentsGetter        components.ComponentsGetter
+	registryHelper          v2.RegistryHelper
 }
 
 func New(resourceGetterV1alpha3 *resourcev1alpha3.ResourceGetter, resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter, componentsGetter components.ComponentsGetter) *Handler {
@@ -42,6 +48,7 @@ func New(resourceGetterV1alpha3 *resourcev1alpha3.ResourceGetter, resourcesGette
 		resourceGetterV1alpha3:  resourceGetterV1alpha3,
 		resourcesGetterV1alpha2: resourcesGetterV1alpha2,
 		componentsGetter:        componentsGetter,
+		registryHelper:          v2.NewRegistryHelper(),
 	}
 }
 
@@ -202,4 +209,87 @@ func (h *Handler) handleGetComponents(request *restful.Request, response *restfu
 	}
 
 	response.WriteEntity(result)
+}
+
+// handleVerifyImageRepositorySecret verifies image secret against registry, it takes k8s.io/api/core/v1/types.Secret
+// as input, and authenticate registry with credential specified. Returns http.StatusOK if authenticate successfully,
+// returns http.StatusUnauthorized if failed.
+func (h *Handler) handleVerifyImageRepositorySecret(request *restful.Request, response *restful.Response) {
+	secret := &v1.Secret{}
+	err := request.ReadEntity(secret)
+	if err != nil {
+		api.HandleBadRequest(response, request, err)
+	}
+
+	ok, err := h.registryHelper.Auth(secret)
+	if !ok {
+		klog.Error(err)
+		api.HandleUnauthorized(response, request, err)
+	} else {
+		response.WriteHeaderAndJson(http.StatusOK, secret, restful.MIME_JSON)
+	}
+}
+
+// handleGetImageConfig fetches container image spec described in https://github.com/opencontainers/image-spec/blob/main/manifest.md
+func (h *Handler) handleGetImageConfig(request *restful.Request, response *restful.Response) {
+	secretName := request.QueryParameter("secret")
+	namespace := request.PathParameter("namespace")
+	image := request.QueryParameter("image")
+	var secret *v1.Secret
+
+	// empty secret means anoymous fetching
+	if len(secretName) != 0 {
+		object, err := h.resourceGetterV1alpha3.Get("secrets", namespace, secretName)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+		}
+		secret = object.(*v1.Secret)
+	}
+
+	config, err := h.registryHelper.Config(secret, image)
+	if err != nil {
+		canonicalizeRegistryError(request, response, err)
+		return
+	}
+
+	response.WriteHeaderAndJson(http.StatusOK, config, restful.MIME_JSON)
+}
+
+// handleGetRepositoryTags fetchs all tags of given repository, no paging.
+func (h *Handler) handleGetRepositoryTags(request *restful.Request, response *restful.Response) {
+	secretName := request.QueryParameter("secret")
+	namespace := request.PathParameter("namespace")
+	repository := request.QueryParameter("repository")
+	var secret *v1.Secret
+
+	if len(repository) == 0 {
+		api.HandleBadRequest(response, request, fmt.Errorf("empty repository name"))
+		return
+	}
+
+	if len(secretName) != 0 {
+		object, err := h.resourceGetterV1alpha3.Get("secrets", namespace, secretName)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+		}
+		secret = object.(*v1.Secret)
+	}
+
+	tags, err := h.registryHelper.ListRepositoryTags(secret, repository)
+	if err != nil {
+		canonicalizeRegistryError(request, response, err)
+		return
+	}
+
+	response.WriteHeaderAndJson(http.StatusOK, tags, restful.MIME_JSON)
+}
+
+func canonicalizeRegistryError(request *restful.Request, response *restful.Response, err error) {
+	if strings.Contains(err.Error(), "Unauthorized") {
+		api.HandleUnauthorized(response, request, err)
+	} else if strings.Contains(err.Error(), "MANIFEST_UNKNOWN") {
+		api.HandleNotFound(response, request, err)
+	} else {
+		api.HandleBadRequest(response, request, err)
+	}
 }

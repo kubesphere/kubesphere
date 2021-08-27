@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 
@@ -28,6 +29,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/components"
+	v2 "kubesphere.io/kubesphere/pkg/models/registries/v2"
 	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 
@@ -113,6 +115,34 @@ func AddToContainer(c *restful.Container, informerFactory informers.InformerFact
 		Metadata(restfulspec.KeyOpenAPITags, []string{tagComponentStatus}).
 		Doc("Get the health status of system components.").
 		Returns(http.StatusOK, ok, v1alpha2.HealthStatus{}))
+
+	webservice.Route(webservice.POST("/namespaces/{namespace}/registrysecrets/{secret}/verify").
+		To(handler.handleVerifyImageRepositorySecret).
+		Param(webservice.PathParameter("namespace", "Namespace of the image repository secret to create.").Required(true)).
+		Param(webservice.PathParameter("secret", "Name of the secret name").Required(true)).
+		Param(webservice.BodyParameter("secretSpec", "Secret specification, definition in k8s.io/api/core/v1/types.Secret")).
+		Reads(v1.Secret{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{tagNamespacedResource}).
+		Doc("Verify image repostiry secret.").
+		Returns(http.StatusOK, ok, v1.Secret{}))
+
+	webservice.Route(webservice.GET("/namespaces/{namespace}/imageconfig").
+		To(handler.handleGetImageConfig).
+		Param(webservice.PathParameter("namespace", "Namespace of the image repository secret.").Required(true)).
+		Param(webservice.QueryParameter("secret", "Secret name of the image repository credential, left empty means anonymous fetch.").Required(false)).
+		Param(webservice.QueryParameter("image", "Image name to query, e.g. kubesphere/ks-apiserver:v3.1.1").Required(true)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{tagNamespacedResource}).
+		Doc("Get image config.").
+		Returns(http.StatusOK, ok, v2.ImageConfig{}))
+
+	webservice.Route(webservice.GET("/namespaces/{namespace}/repositorytags").
+		To(handler.handleGetRepositoryTags).
+		Param(webservice.PathParameter("namespace", "Namespace of the image repository secret.").Required(true)).
+		Param(webservice.QueryParameter("repository", "Repository to query, e.g. calico/cni.").Required(true)).
+		Param(webservice.QueryParameter("secret", "Secret name of the image repository credential, left empty means anonymous fetch.").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{tagNamespacedResource}).
+		Doc("List repository tags, this is an experimental API, use it by your own caution.").
+		Returns(http.StatusOK, ok, v2.RepositoryTags{}))
 
 	c.Add(webservice)
 

@@ -131,12 +131,14 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 		To(handler.handleGetNamespaceQuotas))
 
 	webservice.Route(webservice.POST("registry/verify").
+		Deprecate().
 		To(handler.handleVerifyRegistryCredential).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.RegistryTag}).
 		Doc("verify if a user has access to the docker registry").
 		Reads(api.RegistryCredential{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}))
 	webservice.Route(webservice.GET("/registry/blob").
+		Deprecate().
 		To(handler.handleGetRegistryEntry).
 		Param(webservice.QueryParameter("image", "query image, condition for filtering.").
 			Required(true).
