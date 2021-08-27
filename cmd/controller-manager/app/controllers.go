@@ -155,7 +155,7 @@ func addControllers(
 		authenticationOptions.LoginHistoryMaximumEntries)
 
 	csrController := certificatesigningrequest.NewController(client.Kubernetes(),
-		kubernetesInformer.Certificates().V1beta1().CertificateSigningRequests(),
+		kubernetesInformer.Certificates().V1().CertificateSigningRequests(),
 		kubernetesInformer.Core().V1().ConfigMaps(), client.Config())
 
 	clusterRoleBindingController := clusterrolebinding.NewController(client.Kubernetes(),

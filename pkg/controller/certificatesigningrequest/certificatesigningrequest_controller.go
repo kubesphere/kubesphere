@@ -21,18 +21,18 @@ import (
 	"fmt"
 	"time"
 
-	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
+	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	certificatesinformers "k8s.io/client-go/informers/certificates/v1beta1"
+	certificatesinformers "k8s.io/client-go/informers/certificates/v1"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	certificateslisters "k8s.io/client-go/listers/certificates/v1beta1"
+	certificateslisters "k8s.io/client-go/listers/certificates/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
@@ -244,13 +244,13 @@ func (c *Controller) Start(ctx context.Context) error {
 	return c.Run(4, ctx.Done())
 }
 
-func (c *Controller) Approve(csr *certificatesv1beta1.CertificateSigningRequest) error {
+func (c *Controller) Approve(csr *certificatesv1.CertificateSigningRequest) error {
 	// is approved
 	if len(csr.Status.Certificate) > 0 {
 		return nil
 	}
-	csr.Status = certificatesv1beta1.CertificateSigningRequestStatus{
-		Conditions: []certificatesv1beta1.CertificateSigningRequestCondition{{
+	csr.Status = certificatesv1.CertificateSigningRequestStatus{
+		Conditions: []certificatesv1.CertificateSigningRequestCondition{{
 			Type:    "Approved",
 			Reason:  "KubeSphereApprove",
 			Message: "This CSR was approved by KubeSphere",
@@ -261,7 +261,7 @@ func (c *Controller) Approve(csr *certificatesv1beta1.CertificateSigningRequest)
 	}
 
 	// approve csr
-	csr, err := c.k8sclient.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(context.Background(), csr, metav1.UpdateOptions{})
+	csr, err := c.k8sclient.CertificatesV1().CertificateSigningRequests().UpdateApproval(context.Background(), csr.Name, csr, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err
@@ -270,7 +270,7 @@ func (c *Controller) Approve(csr *certificatesv1beta1.CertificateSigningRequest)
 	return nil
 }
 
-func (c *Controller) UpdateKubeconfig(csr *certificatesv1beta1.CertificateSigningRequest) error {
+func (c *Controller) UpdateKubeconfig(csr *certificatesv1.CertificateSigningRequest) error {
 	username := csr.Labels[constants.UsernameLabelKey]
 	err := c.kubeconfigOperator.UpdateKubeconfig(username, csr)
 	if err != nil {
