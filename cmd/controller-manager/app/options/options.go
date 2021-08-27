@@ -30,6 +30,7 @@ import (
 
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
@@ -49,6 +50,7 @@ type KubeSphereControllerManagerOptions struct {
 	NetworkOptions        *network.Options
 	MultiClusterOptions   *multicluster.Options
 	ServiceMeshOptions    *servicemesh.Options
+	GatewayOptions        *gateway.Options
 	LeaderElect           bool
 	LeaderElection        *leaderelection.LeaderElectionConfig
 	WebhookCertDir        string
@@ -74,6 +76,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		MultiClusterOptions:   multicluster.NewOptions(),
 		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
 		AuthenticationOptions: authoptions.NewAuthenticateOptions(),
+		GatewayOptions:        gateway.NewGatewayOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,
@@ -99,7 +102,7 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	s.NetworkOptions.AddFlags(fss.FlagSet("network"), s.NetworkOptions)
 	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
-
+	s.GatewayOptions.AddFlags(fss.FlagSet("gateway"), s.GatewayOptions)
 	fs := fss.FlagSet("leaderelection")
 	s.bindLeaderElectionFlags(s.LeaderElection, fs)
 

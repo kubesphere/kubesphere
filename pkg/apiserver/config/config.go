@@ -32,6 +32,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
+	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubeedge"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -104,6 +105,7 @@ type Config struct {
 	NotificationOptions   *notification.Options                      `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
 	KubeEdgeOptions       *kubeedge.Options                          `json:"kubeedge,omitempty" yaml:"kubeedge,omitempty" mapstructure:"kubeedge"`
 	MeteringOptions       *metering.Options                          `json:"metering,omitempty" yaml:"metering,omitempty" mapstructure:"metering"`
+	GatewayOptions        *gateway.Options                           `json:"gateway,omitempty" yaml:"router,omitempty" mapstructure:"router"`
 }
 
 // newConfig creates a default non-empty Config
@@ -129,6 +131,7 @@ func New() *Config {
 		AuditingOptions:       auditing.NewAuditingOptions(),
 		KubeEdgeOptions:       kubeedge.NewKubeEdgeOptions(),
 		MeteringOptions:       metering.NewMeteringOptions(),
+		GatewayOptions:        gateway.NewGatewayOptions(),
 	}
 }
 
