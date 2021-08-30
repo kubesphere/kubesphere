@@ -1,11 +1,20 @@
-# KubeSphere Container Platform
+<p align="center">
+<img src="docs/images/kubesphere-logo.png" alt="banner" width="200px">
+</p>
 
-[![License](http://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/KubeSphere/KubeSphere/blob/master/LICENSE)
-[![Build Status](https://travis-ci.org/kubesphere/kubesphere.svg?branch=master)](https://travis-ci.org/kubesphere/kubesphere)
-[![Go Report Card](https://goreportcard.com/badge/github.com/kubesphere/kubesphere)](https://goreportcard.com/report/github.com/kubesphere/kubesphere)
-[![KubeSphere release](https://img.shields.io/github/release/kubesphere/kubesphere.svg?color=release&label=release&logo=release&logoColor=release)](https://github.com/kubesphere/kubesphere/releases/tag/v3.1.0)
+<p align="center">
+<b>The container platform tailored for <i>Kubernetes multi-cloud, datacenter, and edge</i> management</b>
+</p>
 
-![logo](docs/images/kubesphere-logo.png)
+<p align=center>
+<a href="https://goreportcard.com/report/github.com/kubesphere/kubesphere"><img src="https://goreportcard.com/badge/github.com/kubesphere/kubesphere" alt="A+"></a>
+<a href="https://hub.docker.com/r/kubesphere/ks-installer"><img src="https://img.shields.io/docker/pulls/kubesphere/ks-installer"></a>
+<a href="https://github.com/search?q=user%3Akubesphere+user%3Akubesphere-sigs+label%3A%22good+first+issue%22+state%3Aopen&type=Issues&ref=advsearch&l=&l="><img src="https://img.shields.io/github/issues/badges/shields/good%20first%20issue" alt="good first"></a>
+<a href="https://twitter.com/intent/follow?screen_name=KubeSphere"><img src="https://img.shields.io/twitter/follow/KubeSphere?style=social" alt="follow on Twitter"></a>
+<a href="https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE"><img src="https://img.shields.io/badge/Slack-600%2B-blueviolet?logo=slack&amp;logoColor=white"></a>
+<a href="https://www.youtube.com/channel/UCyTdUQUYjf7XLjxECx63Hpw"><img src="https://img.shields.io/youtube/channel/subscribers/UCyTdUQUYjf7XLjxECx63Hpw?style=social"></a>
+</p>
+
 
 ----
 
@@ -13,7 +22,7 @@
 
 > English | [中文](README_zh.md)
 
-[KubeSphere](https://kubesphere.io/) is a **distributed operating system providing cloud native stack** with [Kubernetes](https://kubernetes.io) as its kernel, and aims to be plug-and-play architecture for third-party applications seamless integration to boost its ecosystem. KubeSphere is also a multi-tenant enterprise-grade container platform with full-stack automated IT operation and streamlined DevOps workflows. It provides developer-friendly wizard web UI, helping enterprises to build out a more robust and feature-rich platform, which includes most common functionalities needed for enterprise Kubernetes strategy, see [Feature List](#features) for details.
+[KubeSphere](https://kubesphere.io/) is a **distributed operating system for cloud-native application management**, using [Kubernetes](https://kubernetes.io) as its kernel. It provides a plug-and-play architecture, allowing third-party applications to be seamlessly integrated into its ecosystem. KubeSphere is also a multi-tenant container platform with full-stack automated IT operation and streamlined DevOps workflows. It provides developer-friendly wizard web UI, helping enterprises to build out a more robust and feature-rich platform, which includes most common functionalities needed for enterprise Kubernetes strategy, see [Feature List](#features) for details.
 
 The following screenshots give a close insight into KubeSphere. Please check [What is KubeSphere](https://kubesphere.io/docs/introduction/what-is-kubesphere/) for further information.
 
@@ -38,61 +47,108 @@ The following screenshots give a close insight into KubeSphere. Please check [Wh
 
 ## Demo Environment
 
-Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted view access. You can also have a quick view of [KubeSphere Demo Video](https://youtu.be/u5lQvhi_Xlc).
+🎮 Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted view access. 
 
-## Architecture
-
-KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from the [backend](https://github.com/kubesphere/kubesphere). External systems can access the components of the backend which are delivered as Docker containers through the REST APIs. See [Architecture](https://kubesphere.io/docs/introduction/architecture/) for details.
-
-![Architecture](docs/images/architecture.png)
+🖥 You can also have a quick view of [Demo video](https://youtu.be/YxZ1YUv0CYs).
 
 ## Features
 
-|Feature|Description|
-|---|---|
-| Provisioning Kubernetes Cluster|Support deploy Kubernetes on your infrastructure out of box, including online and air gapped installation|
-| Multi-cluster Management | Provide a centralized control plane to manage multiple Kubernetes Clusters, support application distribution across multiple clusters and cloud providers|
-| Kubernetes Resource Management | Provide web console for creating and managing Kubernetes resources, with powerful observability including monitoring, logging, events, alerting and notification |
-| DevOps System | Provide out-of-box CI/CD based on Jenkins, and offers automated workflow tools including binary-to-image (B2I) and source-to-image (S2I) |
-| Application Store | Provide application store for Helm-based applications, and offers application lifecycle management |
-| Service Mesh (Istio-based) | Provide fine-grained traffic management, observability and tracing for distributed microservice applications, provides visualization for traffic topology |
-| Rich Observability | Provide multi-dimensional monitoring metrics, and provides multi-tenant logging, events and [auditing](https://kubernetes.io/docs/tasks/debug-application-cluster/audit/) management, support alerting and notification for both application and infrastructure |
-| Multi-tenant Management | Provide unified authentication with fine-grained roles and three-tier authorization system, supports AD/LDAP authentication |
-| Infrastructure Management | Support node management and monitoring, and supports adding new nodes for Kubernetes cluster |
-| Storage Support | Support GlusterFS, CephRBD, NFS, LocalPV (default), etc. open source storage solutions, provides CSI plugins to consume storage from cloud providers |
-| Network Support | Support Calico, Flannel, etc., provides [Network Policy](https://kubernetes.io/docs/concepts/services-networking/network-policies/) management, and load balancer plug-in [Porter](https://github.com/kubesphere/porter) for bare metal.|
-| GPU Support | Support add GPU node, support vGPU, enables running ML applications on Kubernetes, e.g. TensorFlow |
+<details>
+  <summary><b>🕸 Provisioning Kubernetes Cluster</b></summary>
+  Support deploy Kubernetes on any infrastructure, support online and air-gapped installation, <a href="https://kubesphere.io/docs/installing-on-linux/introduction/intro/">learn more</a>.
+  </details>
 
-Please see the [Feature and Benefits](https://kubesphere.io/docs/introduction/features/) for further information.
+<details>
+  <summary><b>🔗 Kubernetes Multi-cluster Management</b></summary>
+  Provide a centralized control plane to manage multiple Kubernetes clusters, support propagate an app to multiple K8s clusters across different cloud providers.
+  </details>
+
+<details>
+  <summary><b>🤖 Kubernetes DevOps</b></summary>
+  Provide out-of-box CI/CD based on Jenkins, and offers automated workflow tools including binary-to-image (B2I) and source-to-image (S2I), <a href="https://kubesphere.io/devops/">learn more</a>.
+  </details>
+
+<details>
+  <summary><b>🔎 Cloud Native Observability</b></summary>
+  Multi-dimensional monitoring, events and auditing logs are supported; multi-tenant log query and collection, alerting and notification are built-in, <a href="https://kubesphere.io/observability/">learn more</a>.
+  </details>
+
+<details>
+  <summary><b>🧩 Service Mesh (Istio-based)</b></summary>
+  Provide fine-grained traffic management, observability and tracing for distributed microservice applications, provides visualization for traffic topology, <a href="https://kubesphere.io/service-mesh/">learn more</a>.
+  </details>
+
+<details>
+  <summary><b>💻 App Store</b></summary>
+  Provide an App Store for Helm-based applications, and offer application lifecycle management on Kubernetes platform, <a href="https://kubesphere.io/docs/pluggable-components/app-store/">learn more</a>.
+  </details>
+
+<details>
+  <summary><b>💡 Edge Computing Platform</b></summary>
+  KubeSphere integrates <a href="https://kubeedge.io/en/">KubeEdge</a> to enable users to deploy applications on the edge devices and view logs and monitoring metrics of them on the console, <a href="https://kubesphere.io/docs/pluggable-components/kubeedge/">learn more</a>.
+  </details>
+
+<details>
+  <summary><b>📊 Metering and Billing</b></summary>
+  Track resource consumption at different levels on a unified dashboard, which helps you make better-informed decisions on planning and reduce the cost, <a href="https://kubesphere.io/docs/toolbox/metering-and-billing/view-resource-consumption/">learn more</a>.
+  </details>
+
+<details>
+  <summary><b>🗃 Support Multiple Storage and Networking Solutions</b></summary>
+  <li>Support GlusterFS, CephRBD, NFS, LocalPV solutions, and provide CSI plugins to consume storage from multiple cloud providers.</li><li>Provide Load Balancer Implementation <a href="https://github.com/kubesphere/openelb">OpenELB</a> for Kubernetes in bare-metal, edge, and virtualization.</li><li> Provides network policy and Pod IP pools management, support Calico, Flannel, Kube-OVN</li>.</li>.
+  </details>
+
+<details>
+  <summary><b>🏘 Multi-tenancy</b></summary>
+  Provide unified authentication with fine-grained roles and three-tier authorization system, and support AD/LDAP authentication.
+  </details>
+
+## Architecture
+
+KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from the [backend](https://github.com/kubesphere/kubesphere). External systems can access the components of the backend through the REST APIs. 
+
+![Architecture](docs/images/architecture.png)
 
 ----
 
 ## Latest Release
 
-KubeSphere 3.1.0 is now generally available! See the [Release Notes For 3.1.0](https://kubesphere.io/docs/release/release-v310/) for the updates.
+🎉 KubeSphere 3.1.1 is now available! See the [Release Notes For 3.1.1](https://kubesphere.io/docs/release/release-v311/) for the updates.
 
 ## Installation
 
-KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible running Kubernetes cluster.
+KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster.
 
-### QuickStarts
+### Quick Start
 
-[Quickstarts](https://kubesphere.io/docs/quick-start/) include six hands-on lab exercises that help you quickly get started with KubeSphere.
+1. Run the following commands to install KubeSphere on an exiting Kubernetes cluster:
 
-### Installing on Existing Kubernetes Cluster
+```yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.1.1/kubesphere-installer.yaml
+   
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.1.1/cluster-configuration.yaml
+```
 
-- [Installing KubeSphere on Amazon EKS](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-eks/)
-- [Installing KubeSphere on Azure AKS](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-aks/)
-- [Installing KubeSphere on Google GKE](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-gke/)
-- [Installing KubeSphere on DigitalOcean Kubernetes](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-do/)
-- [Installing KubeSphere on Oracle OKE](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-oke/)
-- [Installing KubeSphere on Huaweicloud CCE](https://kubesphere.io/docs/installing-on-kubernetes/hosted-kubernetes/install-kubesphere-on-huaweicloud-cce/)
+2. You can run the following command to view the installation logs. After KubeSphere is successfully installed, you can use `http://IP:30880` to access the KubeSphere Console with the default account and password (admin/P@88w0rd).
 
-### Installing on Linux
+```yaml
+kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
+```
 
-- [Installing KubeSphere on Azure VM](https://kubesphere.io/docs/installing-on-linux/public-cloud/install-kubesphere-on-azure-vms/)
-- [Installing KubeSphere on VMware vSphere](https://kubesphere.io/docs/installing-on-linux/on-premises/install-kubesphere-on-vmware-vsphere/)
-- [Installing KubeSphere on QingCloud Instance](https://kubesphere.io/docs/installing-on-linux/public-cloud/install-kubesphere-on-qingcloud-vms/)
+> 👨‍💻 No Kubernetes cluster? Try [All-in-one](https://kubesphere.io/docs/quick-start/all-in-one-on-linux/) to install a single-node Kubernetes and KubeSphere on your Linux machine. 
+
+### KubeSphere for hosted Kubernetes services
+
+KubeSphere is hosted on the following cloud providers, you can try KubeSphere by one-click installation on their hosted Kubernetes services. 
+
+- [KubeSphere for Amazon EKS](https://aws.amazon.com/quickstart/architecture/qingcloud-kubesphere/)
+- [KubeSphere for Azure AKS](https://market.azure.cn/marketplace/apps/qingcloud.kubesphere)
+- [KubeSphere for DigitalOcean Kubernetes](https://marketplace.digitalocean.com/apps/kubesphere)
+- [KubeSphere on QingCloud AppCenter(QKE)](https://www.qingcloud.com/products/kubesphereqke)
+
+You can also install KubeSphere on other hosted Kubernetes services within minutes, see the [step-by-step guides](https://kubesphere.io/docs/installing-on-kubernetes/) to get started.
+
+> 👨‍💻 No internet access? Refer to the [Air-gapped Installation on Kubernetes](https://kubesphere.io/docs/installing-on-kubernetes/on-prem-kubernetes/install-ks-on-linux-airgapped/) or [Air-gapped Installation on Linux](https://kubesphere.io/docs/installing-on-linux/introduction/air-gapped-installation/) for instructions on how to use private registry to install KubeSphere.
 
 ## Contributing, Support, Discussion, and Community
 
@@ -106,13 +162,13 @@ Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere G
 
 ## Who are using KubeSphere
 
-The [user case studies](https://kubesphere.io/case/) page includes the user list of the project. You can [submit a PR](https://github.com/kubesphere/kubesphere/blob/master/docs/powered-by-kubesphere.md) to add your institution name and homepage if you are using KubeSphere.
+The [user case studies](https://kubesphere.io/case/) page includes the user list of the project. You can [leave a comment](https://github.com/kubesphere/kubesphere/issues/4123) to let us know your use case.
 
 ## Landscapes
 
 <p align="center">
 <br/><br/>
-<img src="https://landscape.cncf.io/images/left-logo.svg" width="150"/>&nbsp;&nbsp;<img src="https://landscape.cncf.io/images/right-logo.svg" width="200"/>&nbsp;&nbsp;<img src="https://www.cncf.io/wp-content/uploads/2017/11/certified_kubernetes_color.png" height="40" width="30"/>
+<img src="https://landscape.cncf.io/images/left-logo.svg" width="150"/>&nbsp;&nbsp;<img src="https://landscape.cncf.io/images/right-logo.svg" width="200"/>&nbsp;&nbsp;
 <br/><br/>
 KubeSphere is a member of CNCF and a <a href="https://www.cncf.io/certification/software-conformance/#logos">Kubernetes Conformance Certified platform
 </a>, which enriches the <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.
