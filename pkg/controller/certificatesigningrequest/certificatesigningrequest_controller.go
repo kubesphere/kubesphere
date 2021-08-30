@@ -228,7 +228,7 @@ func (c *Controller) reconcile(key string) error {
 				return err
 			}
 			// release
-			err := c.k8sclient.CertificatesV1beta1().CertificateSigningRequests().Delete(context.Background(), csr.Name, *metav1.NewDeleteOptions(0))
+			err := c.k8sclient.CertificatesV1().CertificateSigningRequests().Delete(context.Background(), csr.Name, *metav1.NewDeleteOptions(0))
 			if err != nil {
 				klog.Error(err)
 				return err

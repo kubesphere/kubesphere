@@ -239,7 +239,7 @@ func (o *operator) createCSR(username string) error {
 	k8sCSR := &certificatesv1.CertificateSigningRequest{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CertificateSigningRequest",
-			APIVersion: "certificates.k8s.io/v1beta1",
+			APIVersion: "certificates.k8s.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        csrName,
