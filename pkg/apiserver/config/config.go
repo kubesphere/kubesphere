@@ -105,7 +105,7 @@ type Config struct {
 	NotificationOptions   *notification.Options                      `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
 	KubeEdgeOptions       *kubeedge.Options                          `json:"kubeedge,omitempty" yaml:"kubeedge,omitempty" mapstructure:"kubeedge"`
 	MeteringOptions       *metering.Options                          `json:"metering,omitempty" yaml:"metering,omitempty" mapstructure:"metering"`
-	GatewayOptions        *gateway.Options                           `json:"gateway,omitempty" yaml:"router,omitempty" mapstructure:"router"`
+	GatewayOptions        *gateway.Options                           `json:"gateway,omitempty" yaml:"gateway,omitempty" mapstructure:"gateway"`
 }
 
 // newConfig creates a default non-empty Config

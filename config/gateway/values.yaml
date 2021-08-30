@@ -23,3 +23,4 @@ service:
 deployment:
   annotations: {}
   replicas: 1
+  
