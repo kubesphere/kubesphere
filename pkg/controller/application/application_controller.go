@@ -22,7 +22,7 @@ import (
 
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1beta12 "k8s.io/api/networking/v1beta1"
+	networkv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -262,7 +262,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		&v1.Deployment{},
 		&corev1.Service{},
 		&v1.StatefulSet{},
-		&v1beta12.Ingress{},
+		&networkv1.Ingress{},
 		&servicemeshv1alpha2.ServicePolicy{},
 		&servicemeshv1alpha2.Strategy{},
 	}
