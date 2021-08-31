@@ -77,7 +77,6 @@ spec:
             type: object
           status:
             type: object
-            x-kubernetes-embedded-resource: true
             x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true
