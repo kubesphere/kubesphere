@@ -91,9 +91,7 @@ require (
 	github.com/yvasiyarov/gorelic v0.0.6 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
-	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
-	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.30.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/cas.v2 v2.2.0
@@ -251,6 +249,7 @@ replace (
 	github.com/containernetworking/cni => github.com/containernetworking/cni v0.8.0
 	github.com/coreos/bbolt => github.com/coreos/bbolt v1.3.3
 	github.com/coreos/etcd => github.com/coreos/etcd v3.3.17+incompatible
+	github.com/coreos/go-etcd => github.com/coreos/go-etcd v2.0.0+incompatible
 	github.com/coreos/go-oidc => github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/coreos/go-semver => github.com/coreos/go-semver v0.3.0
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
@@ -288,6 +287,7 @@ replace (
 	github.com/docker/go-metrics => github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82
 	github.com/docker/go-units => github.com/docker/go-units v0.4.0
 	github.com/docker/libtrust => github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7
+	github.com/docker/spdystream => github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96
 	github.com/docopt/docopt-go => github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/dustin/go-humanize => github.com/dustin/go-humanize v1.0.0
 	github.com/eapache/go-resiliency => github.com/eapache/go-resiliency v1.1.0
@@ -416,7 +416,9 @@ replace (
 	github.com/gorilla/handlers => github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux => github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.4.1
+	github.com/gosimple/slug => github.com/gosimple/slug v1.1.1
 	github.com/gosuri/uitable => github.com/gosuri/uitable v0.0.1
+	github.com/grafana-tools/sdk => github.com/grafana-tools/sdk v0.0.0-20210625151406-43693eb2f02b
 	github.com/gregjones/httpcache => github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f
 	github.com/grpc-ecosystem/go-grpc-middleware => github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/go-grpc-prometheus => github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -626,6 +628,7 @@ replace (
 	github.com/prometheus/procfs => github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20200507164740-ecee9c8abfd1
 	github.com/rafaeljusto/redigomock => github.com/rafaeljusto/redigomock v0.0.0-20190202135759-257e089e14a1
+	github.com/rainycape/unidecode => github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be
 	github.com/rcrowley/go-metrics => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 	github.com/retailnext/hllpp => github.com/retailnext/hllpp v1.0.1-0.20180308014038-101a6d2f8b52
 	github.com/rogpeppe/fastuuid => github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af
@@ -676,6 +679,7 @@ replace (
 	github.com/uber/jaeger-client-go => github.com/uber/jaeger-client-go v2.23.0+incompatible
 	github.com/uber/jaeger-lib => github.com/uber/jaeger-lib v2.2.0+incompatible
 	github.com/ugorji/go => github.com/ugorji/go v1.1.4
+	github.com/ugorji/go/codec => github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8
 	github.com/urfave/cli => github.com/urfave/cli v1.20.0
 	github.com/valyala/bytebufferpool => github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.0.1
@@ -816,6 +820,8 @@ replace (
 	sigs.k8s.io/kustomize/cmd/config => sigs.k8s.io/kustomize/cmd/config v0.9.10
 	sigs.k8s.io/kustomize/kustomize/v4 => sigs.k8s.io/kustomize/kustomize/v4 v4.1.2
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.10.17
+	sigs.k8s.io/structured-merge-diff => sigs.k8s.io/structured-merge-diff v1.0.1-0.20191108220359-b1b620dd3f06
+	sigs.k8s.io/structured-merge-diff/v3 => sigs.k8s.io/structured-merge-diff/v3 v3.0.0
 	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.1.0
 	sigs.k8s.io/yaml => sigs.k8s.io/yaml v1.2.0
 	sourcegraph.com/sourcegraph/appdash => sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0
