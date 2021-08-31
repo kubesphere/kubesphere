@@ -1,0 +1,26 @@
+# Default values for gateway.
+
+controller:
+  replicas: 1
+  annotations: {}
+  ## Limit the scope of the controller
+  ##
+  scope:
+    enabled: false
+    namespace: ""  # defaults to .Release.Namespace
+  image:
+    repository: kubesphere/ingress-nginx-controller
+    tag: "v0.48.1"
+    pullPolicy: IfNotPresent
+
+
+service:
+  ## annotations for Services, used for config Cloud LoadBalancer
+  annotations: {}
+  type: LoadBalancer
+
+## for nginx controller, same with controller
+deployment:
+  annotations: {}
+  replicas: 1
+  

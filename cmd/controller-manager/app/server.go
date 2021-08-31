@@ -37,6 +37,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/controller/application"
+	"kubesphere.io/kubesphere/pkg/controller/helm"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmapplication"
@@ -76,6 +77,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			NetworkOptions:        conf.NetworkOptions,
 			MultiClusterOptions:   conf.MultiClusterOptions,
 			ServiceMeshOptions:    conf.ServiceMeshOptions,
+			GatewayOptions:        conf.GatewayOptions,
 			LeaderElection:        s.LeaderElection,
 			LeaderElect:           s.LeaderElect,
 			WebhookCertDir:        s.WebhookCertDir,
@@ -293,6 +295,14 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 	resourceQuotaReconciler := quota.Reconciler{}
 	if err := resourceQuotaReconciler.SetupWithManager(mgr, quota.DefaultMaxConcurrentReconciles, quota.DefaultResyncPeriod, informerFactory.KubernetesSharedInformerFactory()); err != nil {
 		klog.Fatalf("Unable to create ResourceQuota controller: %v", err)
+	}
+
+	helmReconciler := helm.Reconciler{}
+	if !s.GatewayOptions.IsEmpty() {
+		helmReconciler.WatchFiles = append(helmReconciler.WatchFiles, s.GatewayOptions.WatchesPath)
+	}
+	if err := helmReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatalf("Unable to create helm controller: %v", err)
 	}
 
 	// TODO(jeff): refactor config with CRD

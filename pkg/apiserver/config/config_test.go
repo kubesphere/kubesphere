@@ -36,6 +36,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
+	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubeedge"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -178,6 +179,10 @@ func newTestConfig() (*Config, error) {
 		},
 		MeteringOptions: &metering.Options{
 			RetentionDay: "7d",
+		},
+		GatewayOptions: &gateway.Options{
+			WatchesPath: "/etc/kubesphere/watches.yaml",
+			Namespace:   "kubesphere-controls-system",
 		},
 	}
 	return conf, nil
