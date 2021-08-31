@@ -111,7 +111,7 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
 	var kubeconfigOperator kubeconfig.Interface
 	if config != nil {
-		kubeconfigOperator = kubeconfig.NewOperator(k8sClient, configMapInformer, config)
+		kubeconfigOperator = kubeconfig.NewOperator(k8sClient, configMapInformer.Lister(), config)
 	}
 	ctl := &userController{
 		BaseController: controller.BaseController{
