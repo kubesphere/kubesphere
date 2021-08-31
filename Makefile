@@ -2,6 +2,7 @@
 # Use of this source code is governed by a Apache license
 # that can be found in the LICENSE file.
 
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -137,10 +138,15 @@ helm-uninstall: ; $(info $(M)...Begin to helm-uninstall.)  @ ## Helm-uninstall.
 	kubectl delete -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/roles/ks-core/prepare/files/ks-init/role-templates.yaml
 
 # Run tests
-test: vet ;$(info $(M)...Begin to run tests.)  @ ## Run tests.
-	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=2m; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
+ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+test: vet test-env ;$(info $(M)...Begin to run tests.)  @ ## Run tests.
+	export KUBEBUILDER_ASSETS=$(shell pwd)/testbin/bin; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
 	cd staging/src/kubesphere.io/api ; GOFLAGS="" go test ./...
 	cd staging/src/kubesphere.io/client-go ; GOFLAGS="" go test ./...
+
+.PHONY: test-env
+test-env: ;$(info $(M)...Begin to setup test env) @ ## Download unit test libraries e.g. kube-apiserver etcd.
+	@hack/setup-kubebuilder-env.sh
 
 .PHONY: clean
 clean: ;$(info $(M)...Begin to clean.)  @ ## Clean.

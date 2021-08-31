@@ -32,3 +32,4 @@ kustomize/network/etcd
 apiserver.local.config
 tmp/
 kubesphere.yaml
+testbin/
