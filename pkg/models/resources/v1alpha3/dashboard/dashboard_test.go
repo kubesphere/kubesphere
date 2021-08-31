@@ -23,7 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
+	monitoringdashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -32,7 +32,7 @@ import (
 
 var c client.Client
 
-func compare(actual *monitoringdashboardv1alpha1.Dashboard, expects ...*monitoringdashboardv1alpha1.Dashboard) bool {
+func compare(actual *monitoringdashboardv1alpha2.Dashboard, expects ...*monitoringdashboardv1alpha2.Dashboard) bool {
 	for _, app := range expects {
 		if actual.Name == app.Name && actual.Namespace == app.Namespace && reflect.DeepEqual(actual.Labels, app.Labels) {
 			return true
@@ -43,7 +43,7 @@ func compare(actual *monitoringdashboardv1alpha1.Dashboard, expects ...*monitori
 
 func TestGetListDashboards(t *testing.T) {
 	sch := scheme.Scheme
-	if err := monitoringdashboardv1alpha1.AddToScheme(sch); err != nil {
+	if err := monitoringdashboardv1alpha2.AddToScheme(sch); err != nil {
 		t.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
@@ -53,7 +53,7 @@ func TestGetListDashboards(t *testing.T) {
 	var labelSet2 = map[string]string{"foo-2": "bar-2"}
 
 	var ns = "ns-1"
-	testCases := []*monitoringdashboardv1alpha1.Dashboard{
+	testCases := []*monitoringdashboardv1alpha2.Dashboard{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "dashboard-1",
@@ -94,7 +94,7 @@ func TestGetListDashboards(t *testing.T) {
 	}
 
 	for _, dashboard := range results.Items {
-		dashboard, err := dashboard.(*monitoringdashboardv1alpha1.Dashboard)
+		dashboard, err := dashboard.(*monitoringdashboardv1alpha2.Dashboard)
 		if !err {
 			t.Fatal(err)
 		}
@@ -108,7 +108,7 @@ func TestGetListDashboards(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dashboard := result.(*monitoringdashboardv1alpha1.Dashboard)
+	dashboard := result.(*monitoringdashboardv1alpha2.Dashboard)
 	if !compare(dashboard, testCases...) {
 		t.Errorf("The results %v not match testcases %v", result, testCases)
 	}

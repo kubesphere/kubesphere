@@ -20,6 +20,8 @@ package v1alpha3
 import (
 	"net/http"
 
+	monitoringdashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
+
 	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
@@ -502,6 +504,14 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMetricsTag}).
 		Writes(monitoring.Metric{}).
 		Returns(http.StatusOK, respOK, monitoring.Metric{})).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.POST("/dashboard/template").
+		To(h.handleGrafanaDashboardImport).
+		Doc("Convert Grafana templates to KubeSphere dashboards.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DashboardTag}).
+		Writes(monitoringdashboardv1alpha2.ClusterDashboard{}).
+		Returns(http.StatusOK, respOK, monitoringdashboardv1alpha2.ClusterDashboard{})).
 		Produces(restful.MIME_JSON)
 
 	c.Add(ws)

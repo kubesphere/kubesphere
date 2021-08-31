@@ -91,7 +91,9 @@ require (
 	github.com/yvasiyarov/gorelic v0.0.6 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
+	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.30.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/cas.v2 v2.2.0
@@ -122,7 +124,7 @@ require (
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 	kubesphere.io/api v0.0.0
 	kubesphere.io/client-go v0.0.0
-	kubesphere.io/monitoring-dashboard v0.1.2
+	kubesphere.io/monitoring-dashboard v0.2.2
 	rsc.io/letsencrypt v0.0.1 // indirect
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 	sigs.k8s.io/controller-runtime v0.9.3
@@ -797,7 +799,7 @@ replace (
 	k8s.io/utils => k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	kubesphere.io/api => ./staging/src/kubesphere.io/api
 	kubesphere.io/client-go => ./staging/src/kubesphere.io/client-go
-	kubesphere.io/monitoring-dashboard => kubesphere.io/monitoring-dashboard v0.1.2
+	kubesphere.io/monitoring-dashboard => kubesphere.io/monitoring-dashboard v0.2.2
 	rsc.io/binaryregexp => rsc.io/binaryregexp v0.2.0
 	rsc.io/letsencrypt => rsc.io/letsencrypt v0.0.1
 	rsc.io/pdf => rsc.io/pdf v0.1.1

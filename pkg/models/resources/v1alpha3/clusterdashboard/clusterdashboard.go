@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	monitoringdashboardv1alpha1 "kubesphere.io/monitoring-dashboard/api/v1alpha1"
+	monitoringdashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -39,7 +39,7 @@ func New(c client.Reader) v1alpha3.Interface {
 }
 
 func (d *dashboardGetter) Get(_, name string) (runtime.Object, error) {
-	dashboard := monitoringdashboardv1alpha1.ClusterDashboard{}
+	dashboard := monitoringdashboardv1alpha2.ClusterDashboard{}
 	err := d.c.Get(context.Background(), types.NamespacedName{Name: name}, &dashboard)
 	if err != nil {
 		klog.Error(err)
@@ -49,7 +49,7 @@ func (d *dashboardGetter) Get(_, name string) (runtime.Object, error) {
 }
 
 func (d *dashboardGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	dashboards := monitoringdashboardv1alpha1.ClusterDashboardList{}
+	dashboards := monitoringdashboardv1alpha2.ClusterDashboardList{}
 	err := d.c.List(context.Background(), &dashboards, &client.ListOptions{LabelSelector: query.Selector()})
 	if err != nil {
 		klog.Error(err)
@@ -65,12 +65,12 @@ func (d *dashboardGetter) List(_ string, query *query.Query) (*api.ListResult, e
 
 func (d *dashboardGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 
-	leftClusterDashboard, ok := left.(*monitoringdashboardv1alpha1.ClusterDashboard)
+	leftClusterDashboard, ok := left.(*monitoringdashboardv1alpha2.ClusterDashboard)
 	if !ok {
 		return false
 	}
 
-	rightClusterDashboard, ok := right.(*monitoringdashboardv1alpha1.ClusterDashboard)
+	rightClusterDashboard, ok := right.(*monitoringdashboardv1alpha2.ClusterDashboard)
 	if !ok {
 		return false
 	}
@@ -79,7 +79,7 @@ func (d *dashboardGetter) compare(left runtime.Object, right runtime.Object, fie
 }
 
 func (d *dashboardGetter) filter(object runtime.Object, filter query.Filter) bool {
-	dashboard, ok := object.(*monitoringdashboardv1alpha1.ClusterDashboard)
+	dashboard, ok := object.(*monitoringdashboardv1alpha2.ClusterDashboard)
 	if !ok {
 		return false
 	}
