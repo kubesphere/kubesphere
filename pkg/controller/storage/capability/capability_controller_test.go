@@ -19,6 +19,10 @@
 package capability
 
 import (
+<<<<<<< HEAD
+=======
+	"github.com/google/go-cmp/cmp"
+>>>>>>> update csiDriver apiVersion
 	"reflect"
 	"testing"
 	"time"
