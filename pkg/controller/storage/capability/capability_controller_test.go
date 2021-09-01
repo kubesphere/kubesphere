@@ -19,12 +19,11 @@
 package capability
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"k8s.io/api/storage/v1beta1"
-
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 
 	storagev1 "k8s.io/api/storage/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +52,7 @@ type fixture struct {
 	storageObjects []runtime.Object // include StorageClass
 	// Objects to put in the store.
 	storageClassLister []*storagev1.StorageClass
-	csiDriverLister    []*v1beta1.CSIDriver
+	csiDriverLister    []*storagev1.CSIDriver
 	// Actions expected to happen on the client.
 	actions []core.Action
 }
@@ -74,14 +73,14 @@ func (f *fixture) newController() (*StorageCapabilityController,
 	c := NewController(
 		f.k8sClient.StorageV1().StorageClasses(),
 		k8sInformers.Storage().V1().StorageClasses(),
-		k8sInformers.Storage().V1beta1().CSIDrivers(),
+		k8sInformers.Storage().V1().CSIDrivers(),
 	)
 
 	for _, storageClass := range f.storageClassLister {
 		_ = k8sInformers.Storage().V1().StorageClasses().Informer().GetIndexer().Add(storageClass)
 	}
 	for _, csiDriver := range f.csiDriverLister {
-		_ = k8sInformers.Storage().V1beta1().CSIDrivers().Informer().GetIndexer().Add(csiDriver)
+		_ = k8sInformers.Storage().V1().CSIDrivers().Informer().GetIndexer().Add(csiDriver)
 	}
 
 	return c, k8sInformers
@@ -197,8 +196,8 @@ func newStorageClass(name string, provisioner string) *storagev1.StorageClass {
 	}
 }
 
-func newCSIDriver(name string) *v1beta1.CSIDriver {
-	return &v1beta1.CSIDriver{
+func newCSIDriver(name string) *storagev1.CSIDriver {
+	return &storagev1.CSIDriver{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,
 		},

@@ -100,7 +100,7 @@ func addControllers(
 	storageCapabilityController := capability.NewController(
 		client.Kubernetes().StorageV1().StorageClasses(),
 		kubernetesInformer.Storage().V1().StorageClasses(),
-		kubernetesInformer.Storage().V1beta1().CSIDrivers(),
+		kubernetesInformer.Storage().V1().CSIDrivers(),
 	)
 
 	volumeSnapshotController := snapshotclass.NewController(
