@@ -39,9 +39,6 @@ jobs:
       - name: Downloading go dependencies
         run: go mod vendor
 
-      - name: Install kubebuilder
-        run: bash hack/install_kubebuilder.sh
-
       - name: Build
         run: make all
 
