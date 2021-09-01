@@ -50,7 +50,6 @@ type MetricData struct {
 }
 
 type DashboardEntity struct {
-	GrafanaDashboardName    string `json:"grafanaDashboardName"`
 	GrafanaDashboardUrl     string `json:"grafanaDashboardUrl,omitempty"`
 	GrafanaDashboardContent string `json:"grafanaDashboardContent,omitempty"`
 }
