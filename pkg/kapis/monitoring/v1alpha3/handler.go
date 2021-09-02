@@ -328,7 +328,9 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 		return
 	}
 
-	if entity.GrafanaDashboardName == "" {
+	grafanaDashboardName := req.PathParameter("grafanaDashboardName")
+
+	if grafanaDashboardName == "" {
 		err := errors.New("the requested parameter grafanaDashboardName cannot be empty")
 		api.HandleBadRequest(resp, nil, err)
 		return
@@ -375,11 +377,13 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 	}
 
 	c := converter.NewConverter()
-	convertedDashboard, err := c.ConvertToDashboard(grafanaDashboardContent, true, "", entity.GrafanaDashboardName)
+	convertedDashboard, err := c.ConvertToDashboard(grafanaDashboardContent, true, "", grafanaDashboardName)
 	if err != nil {
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
+
+	annotation := map[string]string{"kubesphere.io/description": entity.Description}
 
 	dashboard := monitoringdashboardv1alpha2.ClusterDashboard{
 		TypeMeta: v1.TypeMeta{
@@ -387,7 +391,8 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 			Kind:       convertedDashboard.Kind,
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: convertedDashboard.Metadata["name"],
+			Name:        convertedDashboard.Metadata["name"],
+			Annotations: annotation,
 		},
 		Spec: *convertedDashboard.Spec,
 	}
@@ -406,7 +411,7 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 		DoRaw(ctx)
 
 	if err == nil {
-		api.HandleBadRequest(resp, nil, errors.New("a dashboard with the same name already exists!"))
+		api.HandleBadRequest(resp, nil, errors.New("a dashboard with the same name already exists."))
 		return
 	}
 

@@ -50,9 +50,9 @@ type MetricData struct {
 }
 
 type DashboardEntity struct {
-	GrafanaDashboardName    string `json:"grafanaDashboardName"`
 	GrafanaDashboardUrl     string `json:"grafanaDashboardUrl,omitempty"`
 	GrafanaDashboardContent string `json:"grafanaDashboardContent,omitempty"`
+	Description             string `json:"description,omitempty"`
 }
 
 // The first element is the timestamp, the second is the metric value.
