@@ -506,7 +506,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Returns(http.StatusOK, respOK, monitoring.Metric{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST("/clusterdashboard/{grafanaDashboardName}/template").
+	ws.Route(ws.POST("/clusterdashboards/{grafanaDashboardName}/template").
 		To(h.handleGrafanaDashboardImport).
 		Doc("Convert Grafana templates to KubeSphere clusterdashboards.").
 		Param(ws.PathParameter("grafanaDashboardName", "The name of the Grafana template to be converted").DataType("string").Required(true)).
