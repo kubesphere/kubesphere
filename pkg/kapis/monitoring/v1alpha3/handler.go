@@ -383,13 +383,16 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 		return
 	}
 
+	annotation := map[string]string{"kubesphere.io/description": entity.Description}
+
 	dashboard := monitoringdashboardv1alpha2.ClusterDashboard{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: convertedDashboard.APIVersion,
 			Kind:       convertedDashboard.Kind,
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: convertedDashboard.Metadata["name"],
+			Name:        convertedDashboard.Metadata["name"],
+			Annotations: annotation,
 		},
 		Spec: *convertedDashboard.Spec,
 	}
