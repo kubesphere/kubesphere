@@ -491,19 +491,24 @@ github.com/jszwec/csvutil
 github.com/kevinburke/ssh_config
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2 => github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0 => github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0
+# github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 ## explicit
-github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1
-github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned
-github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake
-github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/scheme
-github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/typed/volumesnapshot/v1beta1
-github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/typed/volumesnapshot/v1beta1/fake
-github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions
-github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions/internalinterfaces
-github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions/volumesnapshot
-github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions/volumesnapshot/v1beta1
-github.com/kubernetes-csi/external-snapshotter/client/v3/listers/volumesnapshot/v1beta1
+github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1
+github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1beta1
+github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned
+github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/fake
+github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/scheme
+github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/typed/volumesnapshot/v1
+github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/typed/volumesnapshot/v1/fake
+github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/typed/volumesnapshot/v1beta1
+github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/typed/volumesnapshot/v1beta1/fake
+github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions
+github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions/internalinterfaces
+github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions/volumesnapshot
+github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions/volumesnapshot/v1
+github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions/volumesnapshot/v1beta1
+github.com/kubernetes-csi/external-snapshotter/client/v4/listers/volumesnapshot/v1
+github.com/kubernetes-csi/external-snapshotter/client/v4/listers/volumesnapshot/v1beta1
 # github.com/kubesphere/sonargo v0.0.2 => github.com/kubesphere/sonargo v0.0.2
 ## explicit
 github.com/kubesphere/sonargo/sonar

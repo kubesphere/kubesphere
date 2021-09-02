@@ -105,8 +105,8 @@ func addControllers(
 
 	volumeSnapshotController := snapshotclass.NewController(
 		kubernetesInformer.Storage().V1().StorageClasses(),
-		client.Snapshot().SnapshotV1beta1().VolumeSnapshotClasses(),
-		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),
+		client.Snapshot().SnapshotV1().VolumeSnapshotClasses(),
+		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1().VolumeSnapshotClasses(),
 	)
 
 	var fedUserCache, fedGlobalRoleBindingCache, fedGlobalRoleCache cache.Store

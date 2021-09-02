@@ -19,7 +19,7 @@ package k8s
 import (
 	"strings"
 
-	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
+	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"

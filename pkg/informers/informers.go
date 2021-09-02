@@ -19,8 +19,8 @@ package informers
 import (
 	"time"
 
-	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
-	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
+	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned"
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
 	prominformers "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"

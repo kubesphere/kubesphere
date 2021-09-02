@@ -17,8 +17,8 @@ limitations under the License.
 package volumesnapshot
 
 import (
-	"github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
-	"github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
+	v1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	"github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -44,11 +44,11 @@ func New(informer externalversions.SharedInformerFactory) v1alpha3.Interface {
 }
 
 func (v *volumeSnapshotGetter) Get(namespace, name string) (runtime.Object, error) {
-	return v.informers.Snapshot().V1beta1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).Get(name)
+	return v.informers.Snapshot().V1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).Get(name)
 }
 
 func (v *volumeSnapshotGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := v.informers.Snapshot().V1beta1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).List(query.Selector())
+	all, err := v.informers.Snapshot().V1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -62,11 +62,11 @@ func (v *volumeSnapshotGetter) List(namespace string, query *query.Query) (*api.
 }
 
 func (v *volumeSnapshotGetter) compare(left, right runtime.Object, field query.Field) bool {
-	leftSnapshot, ok := left.(*v1beta1.VolumeSnapshot)
+	leftSnapshot, ok := left.(*v1.VolumeSnapshot)
 	if !ok {
 		return false
 	}
-	rightSnapshot, ok := right.(*v1beta1.VolumeSnapshot)
+	rightSnapshot, ok := right.(*v1.VolumeSnapshot)
 	if !ok {
 		return false
 	}
@@ -74,7 +74,7 @@ func (v *volumeSnapshotGetter) compare(left, right runtime.Object, field query.F
 }
 
 func (v *volumeSnapshotGetter) filter(object runtime.Object, filter query.Filter) bool {
-	snapshot, ok := object.(*v1beta1.VolumeSnapshot)
+	snapshot, ok := object.(*v1.VolumeSnapshot)
 	if !ok {
 		return false
 	}
@@ -93,7 +93,7 @@ func (v *volumeSnapshotGetter) filter(object runtime.Object, filter query.Filter
 	}
 }
 
-func snapshotStatus(item *v1beta1.VolumeSnapshot) string {
+func snapshotStatus(item *v1.VolumeSnapshot) string {
 	status := statusCreating
 	if item != nil && item.Status != nil && item.Status.ReadyToUse != nil && *item.Status.ReadyToUse {
 		status = statusReady

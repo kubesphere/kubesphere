@@ -20,9 +20,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	snapshot "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
-	snapshotefakeclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
-	snapshotinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
+	snapshot "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	snapshotefakeclient "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/fake"
+	snapshotinformers "github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
@@ -245,7 +245,7 @@ func prepare() v1alpha3.Interface {
 		_ = informer.Core().V1().Pods().Informer().GetIndexer().Add(pod)
 	}
 	for _, volumeSnapshotClass := range volumeSnapshotClasses {
-		_ = snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses().Informer().GetIndexer().Add(volumeSnapshotClass)
+		_ = snapshotInformers.Snapshot().V1().VolumeSnapshotClasses().Informer().GetIndexer().Add(volumeSnapshotClass)
 	}
 
 	return New(informer, snapshotInformers)

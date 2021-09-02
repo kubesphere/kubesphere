@@ -82,7 +82,7 @@ func (f *fixture) newController() (*VolumeSnapshotClassController, k8sInformers.
 		_ = k8sInformers.Storage().V1().StorageClasses().Informer().GetIndexer().Add(storageClass)
 	}
 	for _, snapshotClass := range f.snapshotClassLister {
-		_ = snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses().Informer().GetIndexer().Add(snapshotClass)
+		_ = snapshotInformers.Snapshot().V1().VolumeSnapshotClasses().Informer().GetIndexer().Add(snapshotClass)
 	}
 
 	return c, k8sInformers, snapshotInformers

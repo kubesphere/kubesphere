@@ -19,7 +19,7 @@ package persistentvolumeclaim
 import (
 	"strconv"
 
-	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
 	"k8s.io/client-go/informers"
 
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
