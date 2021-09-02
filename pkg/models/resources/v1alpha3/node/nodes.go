@@ -173,6 +173,7 @@ func (c *nodesGetter) annotateNode(node *v1.Node, pods []*v1.Pod) {
 	if lastAnnotatedAt, ok := node.Annotations[nodeAnnotatedAt]; ok {
 		if lastAnnotationTimeStamp, err := time.Parse(time.RFC3339, lastAnnotatedAt); err != nil {
 			if lastAnnotationTimeStamp.Add(30 * time.Second).After(time.Now()) {
+				c.mutex.Unlock()
 				return
 			}
 		}
