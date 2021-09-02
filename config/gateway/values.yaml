@@ -3,13 +3,15 @@
 controller:
   replicas: 1
   annotations: {}
+  # add custom configuration options
+  config: {}
   ## Limit the scope of the controller
   ##
   scope:
     enabled: false
     namespace: ""  # defaults to .Release.Namespace
   image:
-    repository: kubesphere/ingress-nginx-controller
+    repository: kubesphere/nginx-ingress-controller
     tag: "v0.48.1"
     pullPolicy: IfNotPresent
 

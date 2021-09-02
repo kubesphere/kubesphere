@@ -42,6 +42,10 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  config:
+                    additionalProperties:
+                      type: string
+                    type: object
                   replicas:
                     format: int32
                     type: integer

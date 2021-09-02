@@ -35,6 +35,8 @@ type ControllerSpec struct {
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +optional
+	Config map[string]string `json:"config,omitempty"`
+	// +optional
 	Scope Scope `json:"scope,omitempty"`
 }
 
