@@ -32,7 +32,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 )
 
-// there are no versions specified cause we want to proxy all versions of requests to backend service
 var GroupVersion = schema.GroupVersion{Group: "gateway.kubesphere.io", Version: "v1alpha1"}
 
 func AddToContainer(container *restful.Container, options *gateway.Options, client client.Client) error {
@@ -40,7 +39,7 @@ func AddToContainer(container *restful.Container, options *gateway.Options, clie
 
 	handler := newHandler(options, client)
 
-	// gateways
+	// register gateway apis
 	ws.Route(ws.POST("/namespaces/{namespace}/gateways").
 		To(handler.Create).
 		Doc("Create a gateway for a specified namespace.").
