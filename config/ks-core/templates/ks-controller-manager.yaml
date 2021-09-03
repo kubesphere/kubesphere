@@ -44,7 +44,7 @@ spec:
         - containerPort: 8443
           protocol: TCP
         resources:
-          {{- toYaml .Values.controllerManagerResources | nindent 12 }}
+          {{- toYaml .Values.controller.resources | nindent 12 }}
         volumeMounts:
         - mountPath: /etc/kubesphere/
           name: kubesphere-config
@@ -52,6 +52,9 @@ spec:
           name: webhook-secret
         - mountPath: /etc/localtime
           name: host-time
+        {{- if .Values.controller.extraVolumeMounts }}
+          {{- toYaml .Values.controller.extraVolumeMounts | nindent 8 }}
+        {{- end }}
         env:
         {{- if .Values.env }}
         {{- toYaml .Values.env | nindent 8 }}
@@ -62,18 +65,21 @@ spec:
       serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
       terminationGracePeriodSeconds: 30
       volumes:
-        - name: kubesphere-config
-          configMap:
-            name: kubesphere-config
-            defaultMode: 420
-        - name: webhook-secret
-          secret:
-            defaultMode: 420
-            secretName: ks-controller-manager-webhook-cert
-        - hostPath:
-            path: /etc/localtime
-            type: ""
-          name: host-time
+      - name: kubesphere-config
+        configMap:
+          name: kubesphere-config
+          defaultMode: 420
+      - name: webhook-secret
+        secret:
+          defaultMode: 420
+          secretName: ks-controller-manager-webhook-cert
+      - hostPath:
+          path: /etc/localtime
+          type: ""
+        name: host-time
+      {{- if .Values.controller.extraVolumes }}
+        {{ toYaml .Values.controller.extraVolumes | nindent 6 }}
+      {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
