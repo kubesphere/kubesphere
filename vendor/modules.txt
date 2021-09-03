@@ -1972,6 +1972,7 @@ kubesphere.io/api/constants
 kubesphere.io/api/devops/crdinstall
 kubesphere.io/api/devops/v1alpha1
 kubesphere.io/api/devops/v1alpha3
+kubesphere.io/api/gateway/v1alpha1
 kubesphere.io/api/iam/v1alpha2
 kubesphere.io/api/network/calicov3
 kubesphere.io/api/network/crdinstall
