@@ -19,9 +19,10 @@ package persistentvolume
 import (
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
@@ -60,11 +61,11 @@ func (p *persistentVolumeGetter) List(namespace string, query *query.Query) (*ap
 }
 
 func (p *persistentVolumeGetter) compare(obj1, obj2 runtime.Object, field query.Field) bool {
-	pv1, ok := obj1.(*v1.PersistentVolume)
+	pv1, ok := obj1.(*corev1.PersistentVolume)
 	if !ok {
 		return false
 	}
-	pv2, ok := obj2.(*v1.PersistentVolume)
+	pv2, ok := obj2.(*corev1.PersistentVolume)
 	if !ok {
 		return false
 	}
@@ -72,7 +73,7 @@ func (p *persistentVolumeGetter) compare(obj1, obj2 runtime.Object, field query.
 }
 
 func (p *persistentVolumeGetter) filter(object runtime.Object, filter query.Filter) bool {
-	pv, ok := object.(*v1.PersistentVolume)
+	pv, ok := object.(*corev1.PersistentVolume)
 	if !ok {
 		return false
 	}
