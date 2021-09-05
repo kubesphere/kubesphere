@@ -155,6 +155,8 @@ type clusterController struct {
 	clusterMap map[string]*clusterData
 
 	resyncPeriod time.Duration
+
+	hostClusterNmae string
 }
 
 func NewClusterController(
@@ -163,6 +165,7 @@ func NewClusterController(
 	clusterInformer clusterinformer.ClusterInformer,
 	clusterClient clusterclient.ClusterInterface,
 	resyncPeriod time.Duration,
+	hostClusterName string,
 ) *clusterController {
 
 	broadcaster := record.NewBroadcaster()
@@ -182,6 +185,7 @@ func NewClusterController(
 		workerLoopPeriod: time.Second,
 		clusterMap:       make(map[string]*clusterData),
 		resyncPeriod:     resyncPeriod,
+		hostClusterNmae:  hostClusterName,
 	}
 	c.clusterLister = clusterInformer.Lister()
 	c.clusterHasSynced = clusterInformer.Informer().HasSynced
@@ -317,6 +321,7 @@ func (c *clusterController) reconcileHostCluster() error {
 	// no host cluster, create one
 	if len(clusters) == 0 {
 		hostCluster.Spec.Connection.KubeConfig = hostKubeConfig
+		hostCluster.Name = c.hostClusterNmae
 		_, err = c.clusterClient.Create(context.TODO(), hostCluster, metav1.CreateOptions{})
 		return err
 	} else if len(clusters) > 1 {

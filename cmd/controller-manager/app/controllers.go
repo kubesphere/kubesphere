@@ -190,7 +190,8 @@ func addControllers(
 			client.Config(),
 			kubesphereInformer.Cluster().V1alpha1().Clusters(),
 			client.KubeSphere().ClusterV1alpha1().Clusters(),
-			multiClusterOptions.ClusterControllerResyncSecond)
+			multiClusterOptions.ClusterControllerResyncPeriod,
+			multiClusterOptions.HostClusterName)
 	}
 
 	var nsnpController manager.Runnable
