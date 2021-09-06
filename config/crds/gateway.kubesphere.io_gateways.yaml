@@ -42,6 +42,10 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  config:
+                    additionalProperties:
+                      type: string
+                    type: object
                   replicas:
                     format: int32
                     type: integer
@@ -77,7 +81,6 @@ spec:
             type: object
           status:
             type: object
-            x-kubernetes-embedded-resource: true
             x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true

@@ -191,6 +191,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 		Returns(http.StatusOK, api.StatusOK, appsv1.StatefulSet{}))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/router").
+		Deprecate().
 		To(handler.handleGetRouter).
 		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
@@ -198,6 +199,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/router").
+		Deprecate().
 		To(handler.handleDeleteRouter).
 		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
@@ -205,6 +207,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/router").
+		Deprecate().
 		To(handler.handleCreateRouter).
 		Doc("Create a router for a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
@@ -212,6 +215,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.PUT("/namespaces/{namespace}/router").
+		Deprecate().
 		To(handler.handleUpdateRouter).
 		Doc("Update a router for a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).

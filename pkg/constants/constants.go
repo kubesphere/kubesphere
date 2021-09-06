@@ -93,6 +93,8 @@ const (
 	ClusterResourcesTag   = "Cluster Resources"
 	ComponentStatusTag    = "Component Status"
 
+	GatewayTag = "Gateway"
+
 	NetworkTopologyTag = "Network Topology"
 
 	KubeSphereMetricsTag = "KubeSphere Metrics"
