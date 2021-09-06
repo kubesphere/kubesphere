@@ -22,7 +22,10 @@ import (
 	"github.com/spf13/pflag"
 )
 
-const DefaultResyncPeriod = 120 * time.Second
+const (
+	DefaultResyncPeriod    = 120 * time.Second
+	DefaultHostClusterName = "host"
+)
 
 type Options struct {
 	// Enable
@@ -43,11 +46,14 @@ type Options struct {
 	// AgentImage is the image used when generating deployment for all cluster agents.
 	AgentImage string `json:"agentImage,omitempty"`
 
-	// ClusterControllerResyncSecond is the resync period used by cluster controller.
-	ClusterControllerResyncSecond time.Duration `json:"clusterControllerResyncSecond,omitempty" yaml:"clusterControllerResyncSecond"`
+	// ClusterControllerResyncPeriod is the resync period used by cluster controller.
+	ClusterControllerResyncPeriod time.Duration `json:"clusterControllerResyncPeriod,omitempty" yaml:"clusterControllerResyncPeriod"`
+
+	// HostClusterName is the name of the control plane cluster, default set to host.
+	HostClusterName string `json:"hostClusterName,omitempty" yaml:"hostClusterName"`
 }
 
-// NewOptions() returns a default nil options
+// NewOptions returns a default nil options
 func NewOptions() *Options {
 	return &Options{
 		Enable:                        false,
@@ -55,7 +61,8 @@ func NewOptions() *Options {
 		ProxyPublishAddress:           "",
 		ProxyPublishService:           "",
 		AgentImage:                    "kubesphere/tower:v1.0",
-		ClusterControllerResyncSecond: DefaultResyncPeriod,
+		ClusterControllerResyncPeriod: DefaultResyncPeriod,
+		HostClusterName:               DefaultHostClusterName,
 	}
 }
 
@@ -78,6 +85,9 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, s *Options) {
 	fs.StringVar(&o.AgentImage, "agent-image", s.AgentImage, ""+
 		"This field is used when generating deployment yaml for agent.")
 
-	fs.DurationVar(&o.ClusterControllerResyncSecond, "cluster-controller-resync-second", s.ClusterControllerResyncSecond,
-		"Cluster controller resync second to sync cluster resource. e.g. 2m 5m 10m ... default set to 2m")
+	fs.DurationVar(&o.ClusterControllerResyncPeriod, "cluster-controller-resync-period", s.ClusterControllerResyncPeriod,
+		"Cluster controller resync period to sync cluster resource. e.g. 2m 5m 10m ... default set to 2m")
+
+	fs.StringVar(&o.HostClusterName, "host-cluster-name", s.HostClusterName, "the name of the control plane"+
+		" cluster, default set to host")
 }
