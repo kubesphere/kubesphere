@@ -19,9 +19,11 @@ package v1alpha1
 import (
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/api/gateway/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	operator "kubesphere.io/kubesphere/pkg/models/gateway"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
@@ -33,12 +35,12 @@ type handler struct {
 }
 
 //newHandler create an instance of the handler
-func newHandler(options *gateway.Options, client client.Client) *handler {
+func newHandler(options *gateway.Options, cache cache.Cache, client client.Client) *handler {
 	// Do not register Gateway scheme globally. Which will cause conflict in ks-controller-manager.
 	v1alpha1.AddToScheme(client.Scheme())
 	return &handler{
 		options: options,
-		gw:      operator.NewGatewayOperator(client, options),
+		gw:      operator.NewGatewayOperator(client, cache, options),
 	}
 }
 
@@ -114,5 +116,13 @@ func (h *handler) Upgrade(request *restful.Request, response *restful.Response) 
 }
 
 func (h *handler) List(request *restful.Request, response *restful.Response) {
-	//TODO
+	queryParam := query.ParseQueryParameter(request)
+
+	result, err := h.gw.ListGateways(queryParam)
+	if err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(result)
 }

@@ -19,16 +19,23 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"kubesphere.io/api/gateway/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 )
 
@@ -45,16 +52,19 @@ type GatewayOperator interface {
 	DeleteGateway(namespace string) error
 	UpdateGateway(namespace string, obj *v1alpha1.Gateway) (*v1alpha1.Gateway, error)
 	UpgradeGateway(namespace string) (*v1alpha1.Gateway, error)
+	ListGateways(query *query.Query) (*api.ListResult, error)
 }
 
 type gatewayOperator struct {
 	client  client.Client
+	cache   cache.Cache
 	options *gateway.Options
 }
 
-func NewGatewayOperator(client client.Client, options *gateway.Options) GatewayOperator {
+func NewGatewayOperator(client client.Client, cache cache.Cache, options *gateway.Options) GatewayOperator {
 	return &gatewayOperator{
 		client:  client,
+		cache:   cache,
 		options: options,
 	}
 }
@@ -96,8 +106,6 @@ func (c *gatewayOperator) getGlobalGateway() *v1alpha1.Gateway {
 // getLegacyGateway returns gateway created by the router api.
 // Should always prompt user to upgrade the gateway.
 func (c *gatewayOperator) getLegacyGateway(namespace string) *v1alpha1.Gateway {
-	var legacy v1alpha1.Gateway
-
 	s := &corev1.ServiceList{}
 
 	// filter legacy service by labels
@@ -113,32 +121,35 @@ func (c *gatewayOperator) getLegacyGateway(namespace string) *v1alpha1.Gateway {
 
 	// create a fake Gateway object when legacy service exists
 	if len(s.Items) > 0 {
-		svc := s.Items[0]
-		legacy = v1alpha1.Gateway{
-			TypeMeta: v1.TypeMeta{
-				Kind:       "",
-				APIVersion: "",
-			},
-			ObjectMeta: v1.ObjectMeta{
-				Name:      svc.Name,
-				Namespace: svc.Namespace,
-			},
-			Spec: v1alpha1.GatewaySpec{
-				Conroller: v1alpha1.ControllerSpec{
-					Scope: v1alpha1.Scope{
-						Enabled:   true,
-						Namespace: namespace,
-					},
-				},
-				Service: v1alpha1.ServiceSpec{
-					Annotations: svc.Annotations,
-					Type:        svc.Spec.Type,
-				},
-			},
-		}
-		return &legacy
+		return c.convert(namespace, &s.Items[0])
 	}
 	return nil
+}
+
+func (c *gatewayOperator) convert(namespace string, svc *corev1.Service) *v1alpha1.Gateway {
+	legacy := v1alpha1.Gateway{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "",
+			APIVersion: "",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      svc.Name,
+			Namespace: svc.Namespace,
+		},
+		Spec: v1alpha1.GatewaySpec{
+			Conroller: v1alpha1.ControllerSpec{
+				Scope: v1alpha1.Scope{
+					Enabled:   true,
+					Namespace: namespace,
+				},
+			},
+			Service: v1alpha1.ServiceSpec{
+				Annotations: svc.Annotations,
+				Type:        svc.Spec.Type,
+			},
+		},
+	}
+	return &legacy
 }
 
 // GetGateways returns all Gateways from the project. There are at most 2 gatways exists in a project,
@@ -245,4 +256,64 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 	c.overideDefaultValue(l, namespace)
 	err = c.client.Create(context.TODO(), l)
 	return l, err
+}
+
+func (c *gatewayOperator) ListGateways(query *query.Query) (*api.ListResult, error) {
+	applications := v1alpha1.GatewayList{}
+	err := c.cache.List(context.TODO(), &applications, &client.ListOptions{LabelSelector: query.Selector()})
+	if err != nil {
+		return nil, err
+	}
+	var result []runtime.Object
+	for i := range applications.Items {
+		result = append(result, &applications.Items[i])
+	}
+
+	services := &corev1.ServiceList{}
+
+	// filter legacy service by labels
+	_ = c.client.List(context.TODO(), services, &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(
+			labels.Set{
+				"app":       "kubesphere",
+				"component": "ks-router",
+				"tier":      "backend",
+			}),
+	})
+
+	for _, s := range services.Items {
+		g := c.convert(s.Labels["project"], &s)
+		result = append(result, g)
+	}
+
+	return v1alpha3.DefaultList(result, query, c.compare, c.filter), nil
+}
+
+func (d *gatewayOperator) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+
+	leftApplication, ok := left.(*v1alpha1.Gateway)
+	if !ok {
+		return false
+	}
+
+	rightApplication, ok := right.(*v1alpha1.Gateway)
+	if !ok {
+		return false
+	}
+
+	return v1alpha3.DefaultObjectMetaCompare(leftApplication.ObjectMeta, rightApplication.ObjectMeta, field)
+}
+
+func (d *gatewayOperator) filter(object runtime.Object, filter query.Filter) bool {
+	gateway, ok := object.(*v1alpha1.Gateway)
+	if !ok {
+		return false
+	}
+
+	switch filter.Field {
+	case query.FieldNamespace:
+		return strings.Compare(gateway.Spec.Conroller.Scope.Namespace, string(filter.Value)) == 0
+	default:
+		return v1alpha3.DefaultObjectMetaFilter(gateway.ObjectMeta, filter)
+	}
 }

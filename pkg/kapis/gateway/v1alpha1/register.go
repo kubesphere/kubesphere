@@ -23,6 +23,7 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/api/gateway/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -34,10 +35,10 @@ import (
 
 var GroupVersion = schema.GroupVersion{Group: "gateway.kubesphere.io", Version: "v1alpha1"}
 
-func AddToContainer(container *restful.Container, options *gateway.Options, client client.Client) error {
+func AddToContainer(container *restful.Container, options *gateway.Options, cache cache.Cache, client client.Client) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	handler := newHandler(options, client)
+	handler := newHandler(options, cache, client)
 
 	// register gateway apis
 	ws.Route(ws.POST("/namespaces/{namespace}/gateways").
