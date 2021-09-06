@@ -42,10 +42,7 @@ func New(informer informers.SharedInformerFactory) v1alpha3.Interface {
 
 func (p *persistentVolumeGetter) Get(namespace, name string) (runtime.Object, error) {
 	pv, err := p.informers.Core().V1().PersistentVolumes().Lister().Get(name)
-	if err != nil {
-		return pv, err
-	}
-	return pv, nil
+	return pv, err
 }
 
 func (p *persistentVolumeGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
