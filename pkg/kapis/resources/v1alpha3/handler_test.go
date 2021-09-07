@@ -49,7 +49,7 @@ func TestResourceV1alpha2Fallback(t *testing.T) {
 	}{
 		{
 			description: "list namespaces",
-			namespace:   "default",
+			namespace:   "",
 			resource:    "namespaces",
 			query: &query.Query{
 				Pagination: &query.Pagination{
