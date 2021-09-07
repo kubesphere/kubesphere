@@ -18,6 +18,7 @@ package resource
 
 import (
 	"errors"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/manifest"
 
 	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -149,6 +150,9 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	namespacedResourceGetters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedStatefulSet)] = federatedstatefulset.New(factory.KubeSphereSharedInformerFactory())
 	namespacedResourceGetters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedIngress)] = federatedingress.New(factory.KubeSphereSharedInformerFactory())
 	namespacedResourceGetters[monitoringdashboardv1alpha2.GroupVersion.WithResource("dashboards")] = dashboard.New(cache)
+
+	// DMP custom resources
+	namespacedResourceGetters[schema.GroupVersionResource{Group: "application", Version: "v1alpha1", Resource: "manifests"}] = manifest.New(factory.KubeSphereSharedInformerFactory())
 
 	return &ResourceGetter{
 		namespacedResourceGetters: namespacedResourceGetters,

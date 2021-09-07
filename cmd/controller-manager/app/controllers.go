@@ -183,6 +183,8 @@ func addControllers(
 		kubesphereInformer.Types().V1beta1().FederatedGroups(),
 		multiClusterEnabled)
 
+	// DMP custom resource controller
+
 	var clusterController manager.Runnable
 	if multiClusterEnabled {
 		clusterController = cluster.NewClusterController(

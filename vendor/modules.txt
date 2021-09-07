@@ -534,6 +534,8 @@ github.com/mattn/go-isatty
 github.com/mattn/go-runewidth
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 => github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/mgw2168/customResource v0.0.0-20210906060059-6baa60aac9d9
+## explicit
 # github.com/mitchellh/copystructure v1.1.1 => github.com/mitchellh/copystructure v1.0.0
 github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v1.1.0 => github.com/mitchellh/go-homedir v1.1.0
@@ -592,7 +594,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.15.0 => github.com/onsi/gomega v1.10.1
+# github.com/onsi/gomega v1.16.0 => github.com/onsi/gomega v1.10.1
 ## explicit
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -1323,7 +1325,7 @@ istio.io/client-go/pkg/listers/security/v1beta1
 ## explicit
 istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
-# k8s.io/api v0.21.3 => k8s.io/api v0.21.2
+# k8s.io/api v0.22.1 => k8s.io/api v0.21.2
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1390,7 +1392,7 @@ k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensio
 k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/internalinterfaces
 k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/v1
 k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/v1beta1
-# k8s.io/apimachinery v0.21.3 => k8s.io/apimachinery v0.21.2
+# k8s.io/apimachinery v0.22.1 => k8s.io/apimachinery v0.21.2
 ## explicit
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -1419,6 +1421,7 @@ k8s.io/apimachinery/pkg/runtime/serializer/protobuf
 k8s.io/apimachinery/pkg/runtime/serializer/recognizer
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/runtime/serializer/versioning
+k8s.io/apimachinery/pkg/runtime/serializer/yaml
 k8s.io/apimachinery/pkg/selection
 k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/util/cache
@@ -1865,7 +1868,7 @@ k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/code-generator v0.21.2 => k8s.io/code-generator v0.21.2
+# k8s.io/code-generator v0.22.1 => k8s.io/code-generator v0.21.2
 ## explicit
 k8s.io/code-generator/cmd/client-gen
 k8s.io/code-generator/cmd/client-gen/args
@@ -1973,6 +1976,7 @@ kubesphere.io/api/devops/crdinstall
 kubesphere.io/api/devops/v1alpha1
 kubesphere.io/api/devops/v1alpha3
 kubesphere.io/api/iam/v1alpha2
+kubesphere.io/api/manifest/v1alpha1
 kubesphere.io/api/network/calicov3
 kubesphere.io/api/network/crdinstall
 kubesphere.io/api/network/v1alpha1
@@ -2009,7 +2013,7 @@ sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
 # sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0 => sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 ## explicit
 sigs.k8s.io/application/api/v1beta1
-# sigs.k8s.io/controller-runtime v0.9.3 => sigs.k8s.io/controller-runtime v0.9.3
+# sigs.k8s.io/controller-runtime v0.9.6 => sigs.k8s.io/controller-runtime v0.9.3
 ## explicit
 sigs.k8s.io/controller-runtime
 sigs.k8s.io/controller-runtime/pkg/builder

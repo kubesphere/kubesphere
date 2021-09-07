@@ -63,9 +63,10 @@ require (
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
+	github.com/mgw2168/customResource v0.0.0-20210906060059-6baa60aac9d9 // indirect
 	github.com/mitchellh/mapstructure v1.2.2
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.15.0
+	github.com/onsi/gomega v1.16.0
 	github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/operator-framework/helm-operator-plugins v0.0.8-0.20210810182245-240cc447b3de
@@ -106,13 +107,13 @@ require (
 	istio.io/api v0.0.0-20201113182140-d4b7e3fc2b44
 	istio.io/client-go v0.0.0-20201113183938-0734e976e785
 	istio.io/gogo-genproto v0.0.0-20201113182723-5b8563d8a012 // indirect
-	k8s.io/api v0.21.3
+	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.21.3
-	k8s.io/apimachinery v0.21.3
+	k8s.io/apimachinery v0.22.1
 	k8s.io/apiserver v0.21.2
 	k8s.io/cli-runtime v0.21.2
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/code-generator v0.21.2
+	k8s.io/code-generator v0.22.1
 	k8s.io/component-base v0.21.2
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
@@ -125,7 +126,7 @@ require (
 	kubesphere.io/monitoring-dashboard v0.2.2
 	rsc.io/letsencrypt v0.0.1 // indirect
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
-	sigs.k8s.io/controller-runtime v0.9.3
+	sigs.k8s.io/controller-runtime v0.9.6
 	sigs.k8s.io/controller-tools v0.6.2
 	sigs.k8s.io/kubefed v0.8.1
 	sigs.k8s.io/kustomize/api v0.8.8

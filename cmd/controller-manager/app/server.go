@@ -38,6 +38,7 @@ import (
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/helm"
+	manifest "kubesphere.io/kubesphere/pkg/controller/manifest"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmapplication"
@@ -303,6 +304,12 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 	}
 	if err := helmReconciler.SetupWithManager(mgr); err != nil {
 		klog.Fatalf("Unable to create helm controller: %v", err)
+	}
+
+	// DMP custom resource Reconciler
+	customResourceReconciler := manifest.ManifestReconciler{}
+	if err := customResourceReconciler.SetupWithManager(mgr); err != nil {
+		klog.Fatalf("Unable to create Manifest controller: %v", err)
 	}
 
 	// TODO(jeff): refactor config with CRD
