@@ -511,9 +511,9 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 
 	snapshotInformerFactory := s.InformerFactory.SnapshotSharedInformerFactory()
 	snapshotGVRs := []schema.GroupVersionResource{
-		{Group: "snapshot.storage.k8s.io", Version: "v1beta1", Resource: "volumesnapshotclasses"},
-		{Group: "snapshot.storage.k8s.io", Version: "v1beta1", Resource: "volumesnapshots"},
-		{Group: "snapshot.storage.k8s.io", Version: "v1beta1", Resource: "volumesnapshotcontents"},
+		{Group: "snapshot.storage.k8s.io", Version: "v1", Resource: "volumesnapshotclasses"},
+		{Group: "snapshot.storage.k8s.io", Version: "v1", Resource: "volumesnapshots"},
+		{Group: "snapshot.storage.k8s.io", Version: "v1", Resource: "volumesnapshotcontents"},
 	}
 	for _, gvr := range snapshotGVRs {
 		if !isResourceExists(gvr) {
