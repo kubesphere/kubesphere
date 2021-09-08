@@ -209,6 +209,7 @@ var promQLTemplates = map[string]string{
 	"etcd_server_total":                          `count(up{job="etcd"})`,
 	"etcd_server_up_total":                       `etcd:up:sum`,
 	"etcd_server_has_leader":                     `label_replace(etcd_server_has_leader, "node_ip", "$1", "instance", "(.*):.*")`,
+	"etcd_server_is_leader":                      `label_replace(etcd_server_is_leader, "node_ip", "$1", "instance", "(.*):.*")`,
 	"etcd_server_leader_changes":                 `label_replace(etcd:etcd_server_leader_changes_seen:sum_changes, "node_ip", "$1", "node", "(.*)")`,
 	"etcd_server_proposals_failed_rate":          `avg(etcd:etcd_server_proposals_failed:sum_irate)`,
 	"etcd_server_proposals_applied_rate":         `avg(etcd:etcd_server_proposals_applied:sum_irate)`,
