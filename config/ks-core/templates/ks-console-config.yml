@@ -22,6 +22,7 @@ data:
         kubernetes: {{ .Values.kube_version }}
         openpitrix: {{ .Chart.AppVersion }}
       enableKubeConfig: true
+    defaultClusterName: {{ .Values.console.defaultClusterName }}
 kind: ConfigMap
 metadata:
   name: ks-console-config

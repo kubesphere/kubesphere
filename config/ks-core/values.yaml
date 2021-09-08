@@ -114,6 +114,7 @@ apiserver:
 console:
   port: 30880
   type: NodePort
+  defaultClusterName: "default"
   resources:
     limits:
       cpu: 1
