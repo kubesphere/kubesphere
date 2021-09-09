@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	snapshotinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
+	snapshotinformers "github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -128,7 +128,7 @@ func (p *persistentVolumeClaimGetter) isSnapshotAllowed(provisioner string) bool
 	if len(provisioner) == 0 {
 		return false
 	}
-	volumeSnapshotClasses, err := p.snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses().Lister().List(labels.Everything())
+	volumeSnapshotClasses, err := p.snapshotInformers.Snapshot().V1().VolumeSnapshotClasses().Lister().List(labels.Everything())
 	if err != nil {
 		return false
 	}

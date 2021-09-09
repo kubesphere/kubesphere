@@ -25,8 +25,6 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
-	storageinformersv1beta1 "k8s.io/client-go/informers/storage/v1beta1"
-	storagelistersv1beta1 "k8s.io/client-go/listers/storage/v1beta1"
 
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +51,7 @@ type StorageCapabilityController struct {
 	storageClassLister storagelistersv1.StorageClassLister
 	storageClassSynced cache.InformerSynced
 
-	csiDriverLister storagelistersv1beta1.CSIDriverLister
+	csiDriverLister storagelistersv1.CSIDriverLister
 	csiDriverSynced cache.InformerSynced
 
 	storageClassWorkQueue workqueue.RateLimitingInterface
@@ -64,7 +62,7 @@ type StorageCapabilityController struct {
 func NewController(
 	storageClassClient storageclient.StorageClassInterface,
 	storageClassInformer storageinformersv1.StorageClassInformer,
-	csiDriverInformer storageinformersv1beta1.CSIDriverInformer,
+	csiDriverInformer storageinformersv1.CSIDriverInformer,
 ) *StorageCapabilityController {
 
 	utilruntime.Must(crdscheme.AddToScheme(scheme.Scheme))

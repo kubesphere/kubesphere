@@ -19,7 +19,7 @@ package informers
 import (
 	"time"
 
-	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
 	prominformers "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions"
 	promfake "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/fake"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"

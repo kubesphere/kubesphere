@@ -24,16 +24,16 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	snapbeta1 "github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
-	snapfake "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
-	snapinformers "github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
-	storagev1 "k8s.io/api/storage/v1"
+	snapshotV1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	snapFake "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/fake"
+	snapInformersV1 "github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
+	storageV1 "k8s.io/api/storage/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
-	k8sinformers "k8s.io/client-go/informers"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
+	k8sInformers "k8s.io/client-go/informers"
+	k8sFake "k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 
@@ -48,15 +48,15 @@ type fixture struct {
 	t                 *testing.T
 	snapshotSupported bool
 	// Clients
-	k8sClient           *k8sfake.Clientset
-	snapshotClassClient *snapfake.Clientset
+	k8sClient           *k8sFake.Clientset
+	snapshotClassClient *snapFake.Clientset
 	ksClient            *ksfake.Clientset
 	// Objects from here preload into NewSimpleFake.
 	storageObjects       []runtime.Object // include StorageClass
 	snapshotClassObjects []runtime.Object
 	// Objects to put in the store.
-	storageClassLister  []*storagev1.StorageClass
-	snapshotClassLister []*snapbeta1.VolumeSnapshotClass
+	storageClassLister  []*storageV1.StorageClass
+	snapshotClassLister []*snapshotV1.VolumeSnapshotClass
 	// Actions expected to happen on the client.
 	actions []core.Action
 }
@@ -65,24 +65,24 @@ func newFixture(t *testing.T) *fixture {
 	return &fixture{t: t}
 }
 
-func (f *fixture) newController() (*VolumeSnapshotClassController, k8sinformers.SharedInformerFactory, snapinformers.SharedInformerFactory) {
-	f.k8sClient = k8sfake.NewSimpleClientset(f.storageObjects...)
-	f.snapshotClassClient = snapfake.NewSimpleClientset(f.snapshotClassObjects...)
+func (f *fixture) newController() (*VolumeSnapshotClassController, k8sInformers.SharedInformerFactory, snapInformersV1.SharedInformerFactory) {
+	f.k8sClient = k8sFake.NewSimpleClientset(f.storageObjects...)
+	f.snapshotClassClient = snapFake.NewSimpleClientset(f.snapshotClassObjects...)
 
-	k8sInformers := k8sinformers.NewSharedInformerFactory(f.k8sClient, noReSyncPeriodFunc())
-	snapshotInformers := snapinformers.NewSharedInformerFactory(f.snapshotClassClient, noReSyncPeriodFunc())
+	k8sInformers := k8sInformers.NewSharedInformerFactory(f.k8sClient, noReSyncPeriodFunc())
+	snapshotInformers := snapInformersV1.NewSharedInformerFactory(f.snapshotClassClient, noReSyncPeriodFunc())
 
 	c := NewController(
 		k8sInformers.Storage().V1().StorageClasses(),
-		f.snapshotClassClient.SnapshotV1beta1().VolumeSnapshotClasses(),
-		snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses(),
+		f.snapshotClassClient.SnapshotV1().VolumeSnapshotClasses(),
+		snapshotInformers.Snapshot().V1().VolumeSnapshotClasses(),
 	)
 
 	for _, storageClass := range f.storageClassLister {
 		_ = k8sInformers.Storage().V1().StorageClasses().Informer().GetIndexer().Add(storageClass)
 	}
 	for _, snapshotClass := range f.snapshotClassLister {
-		_ = snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses().Informer().GetIndexer().Add(snapshotClass)
+		_ = snapshotInformers.Snapshot().V1().VolumeSnapshotClasses().Informer().GetIndexer().Add(snapshotClass)
 	}
 
 	return c, k8sInformers, snapshotInformers
@@ -123,12 +123,12 @@ func (f *fixture) run(scName string) {
 	f.runController(scName, true, false)
 }
 
-func (f *fixture) expectCreateSnapshotClassAction(snapshotClass *snapbeta1.VolumeSnapshotClass) {
+func (f *fixture) expectCreateSnapshotClassAction(snapshotClass *snapshotV1.VolumeSnapshotClass) {
 	f.actions = append(f.actions, core.NewCreateAction(
 		schema.GroupVersionResource{Resource: "volumesnapshotclasses"}, snapshotClass.Namespace, snapshotClass))
 }
 
-func (f *fixture) expectDeleteSnapshotClassAction(snapshotClass *snapbeta1.VolumeSnapshotClass) {
+func (f *fixture) expectDeleteSnapshotClassAction(snapshotClass *snapshotV1.VolumeSnapshotClass) {
 	f.actions = append(f.actions, core.NewDeleteAction(
 		schema.GroupVersionResource{Resource: "volumesnapshotclasses"}, snapshotClass.Namespace, snapshotClass.Name))
 }
@@ -194,9 +194,9 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 	}
 }
 
-func newStorageClass(name string) *storagev1.StorageClass {
+func newStorageClass(name string) *storageV1.StorageClass {
 	isExpansion := true
-	return &storagev1.StorageClass{
+	return &storageV1.StorageClass{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,
 		},
@@ -204,17 +204,17 @@ func newStorageClass(name string) *storagev1.StorageClass {
 	}
 }
 
-func newSnapshotClass(storageClass *storagev1.StorageClass) *snapbeta1.VolumeSnapshotClass {
-	return &snapbeta1.VolumeSnapshotClass{
+func newSnapshotClass(storageClass *storageV1.StorageClass) *snapshotV1.VolumeSnapshotClass {
+	return &snapshotV1.VolumeSnapshotClass{
 		ObjectMeta: v1.ObjectMeta{
 			Name: storageClass.Name,
 		},
 		Driver:         storageClass.Provisioner,
-		DeletionPolicy: snapbeta1.VolumeSnapshotContentDelete,
+		DeletionPolicy: snapshotV1.VolumeSnapshotContentDelete,
 	}
 }
 
-func getKey(sc *storagev1.StorageClass, t *testing.T) string {
+func getKey(sc *storageV1.StorageClass, t *testing.T) string {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(sc)
 	if err != nil {
 		t.Errorf("Unexpected error getting key for %v: %v", sc.Name, err)

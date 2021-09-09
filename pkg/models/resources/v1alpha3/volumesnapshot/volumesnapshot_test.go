@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubernetes-csi/external-snapshotter/client/v3/apis/volumesnapshot/v1beta1"
-	"github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned/fake"
-	"github.com/kubernetes-csi/external-snapshotter/client/v3/informers/externalversions"
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	"github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/fake"
+	"github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +33,7 @@ import (
 
 const (
 	baseVolumeSnapshot = `{
-    "apiVersion": "snapshot.storage.k8s.io/v1beta1",
+    "apiVersion": "snapshot.storage.k8s.io/v1",
     "kind": "VolumeSnapshot",
     "metadata": {
         "creationTimestamp": "2020-04-29T06:52:06Z",
@@ -45,7 +45,7 @@ const (
         "name": "snap-1",
         "namespace": "default",
         "resourceVersion": "5027277",
-        "selfLink": "/apis/snapshot.storage.k8s.io/v1beta1/namespaces/default/volumesnapshots/snap-1",
+        "selfLink": "/apis/snapshot.storage.k8s.io/v1/namespaces/default/volumesnapshots/snap-1",
         "uid": "dc66842d-17bf-4087-a8e8-7592d129a956"
     },
     "spec": {
@@ -64,8 +64,8 @@ const (
 	defaultNamespace = "default"
 )
 
-func newVolumeSnapshot(name string) *v1beta1.VolumeSnapshot {
-	volumeSnapshot := &v1beta1.VolumeSnapshot{}
+func newVolumeSnapshot(name string) *snapshotv1.VolumeSnapshot {
+	volumeSnapshot := &snapshotv1.VolumeSnapshot{}
 	err := json.Unmarshal([]byte(baseVolumeSnapshot), volumeSnapshot)
 	if err != nil {
 		return nil
@@ -100,7 +100,7 @@ func TestListVolumeSnapshot(t *testing.T) {
 	volumeSnapshots := []interface{}{snapshot1, snapshot2, snapshot3}
 
 	for _, s := range volumeSnapshots {
-		_ = informer.Snapshot().V1beta1().VolumeSnapshots().Informer().GetIndexer().Add(s)
+		_ = informer.Snapshot().V1().VolumeSnapshots().Informer().GetIndexer().Add(s)
 	}
 	getter := New(informer)
 
@@ -151,9 +151,9 @@ func TestListVolumeSnapshot(t *testing.T) {
 			snapshotList, err := getter.List(defaultNamespace, query1)
 			Expect(err).To(BeNil())
 			Expect(snapshotList.TotalItems).To(Equal(3))
-			Expect(snapshotList.Items[0].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot3.Name))
-			Expect(snapshotList.Items[1].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot2.Name))
-			Expect(snapshotList.Items[2].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot1.Name))
+			Expect(snapshotList.Items[0].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot3.Name))
+			Expect(snapshotList.Items[1].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot2.Name))
+			Expect(snapshotList.Items[2].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot1.Name))
 		})
 
 		It("by name", func() {
@@ -163,9 +163,9 @@ func TestListVolumeSnapshot(t *testing.T) {
 			snapshotList, err := getter.List(defaultNamespace, query1)
 			Expect(err).To(BeNil())
 			Expect(snapshotList.TotalItems).To(Equal(3))
-			Expect(snapshotList.Items[0].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot1.Name))
-			Expect(snapshotList.Items[1].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot2.Name))
-			Expect(snapshotList.Items[2].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot3.Name))
+			Expect(snapshotList.Items[0].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot1.Name))
+			Expect(snapshotList.Items[1].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot2.Name))
+			Expect(snapshotList.Items[2].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot3.Name))
 		})
 		It("by name and reverse", func() {
 			query1 := query.New()
@@ -174,9 +174,9 @@ func TestListVolumeSnapshot(t *testing.T) {
 			snapshotList, err := getter.List(defaultNamespace, query1)
 			Expect(err).To(BeNil())
 			Expect(snapshotList.TotalItems).To(Equal(3))
-			Expect(snapshotList.Items[0].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot3.Name))
-			Expect(snapshotList.Items[1].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot2.Name))
-			Expect(snapshotList.Items[2].(*v1beta1.VolumeSnapshot).Name).To(Equal(snapshot1.Name))
+			Expect(snapshotList.Items[0].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot3.Name))
+			Expect(snapshotList.Items[1].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot2.Name))
+			Expect(snapshotList.Items[2].(*snapshotv1.VolumeSnapshot).Name).To(Equal(snapshot1.Name))
 		})
 	})
 
@@ -190,14 +190,14 @@ func TestListVolumeSnapshot(t *testing.T) {
 			Expect(snapshotStatus(snapshot)).To(Equal(statusCreating))
 		})
 		It("snapshot.Status.ReadyToUse == nil", func() {
-			snapshot.Status = &v1beta1.VolumeSnapshotStatus{
+			snapshot.Status = &snapshotv1.VolumeSnapshotStatus{
 				ReadyToUse: nil,
 			}
 			Expect(snapshotStatus(snapshot)).To(Equal(statusCreating))
 		})
 		It("snapshot.Status.ReadyToUse == false", func() {
 			readyToUse := false
-			snapshot.Status = &v1beta1.VolumeSnapshotStatus{
+			snapshot.Status = &snapshotv1.VolumeSnapshotStatus{
 				ReadyToUse: &readyToUse,
 			}
 			Expect(snapshotStatus(snapshot)).To(Equal(statusCreating))
@@ -205,7 +205,7 @@ func TestListVolumeSnapshot(t *testing.T) {
 
 		It("snapshot.Status.ReadyToUse == true", func() {
 			readyToUse := true
-			snapshot.Status = &v1beta1.VolumeSnapshotStatus{
+			snapshot.Status = &snapshotv1.VolumeSnapshotStatus{
 				ReadyToUse: &readyToUse,
 			}
 			Expect(snapshotStatus(snapshot)).To(Equal(statusReady))

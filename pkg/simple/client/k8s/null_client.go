@@ -17,7 +17,7 @@ limitations under the License.
 package k8s
 
 import (
-	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
+	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
