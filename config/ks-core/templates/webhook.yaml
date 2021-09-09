@@ -14,7 +14,7 @@ metadata:
   name: ks-controller-manager-webhook-cert
 type: Opaque
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: users.iam.kubesphere.io
