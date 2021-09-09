@@ -43,7 +43,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	"kubesphere.io/kubesphere/pkg/controller/notification"
 	"kubesphere.io/kubesphere/pkg/controller/storage/capability"
-	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
@@ -109,15 +108,10 @@ func addControllers(
 		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),
 	)
 
-	var fedUserCache, fedGlobalRoleBindingCache, fedGlobalRoleCache cache.Store
-	var fedUserCacheController, fedGlobalRoleBindingCacheController, fedGlobalRoleCacheController cache.Controller
+	var fedGlobalRoleBindingCache, fedGlobalRoleCache cache.Store
+	var fedGlobalRoleBindingCacheController, fedGlobalRoleCacheController cache.Controller
 
 	if multiClusterEnabled {
-		fedUserClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedUserResource)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
 		fedGlobalRoleClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedGlobalRoleResource)
 		if err != nil {
 			klog.Error(err)
@@ -129,22 +123,12 @@ func addControllers(
 			return err
 		}
 
-		fedUserCache, fedUserCacheController = util.NewResourceInformer(fedUserClient, "", &iamv1alpha2.FedUserResource, func(object runtimeclient.Object) {})
 		fedGlobalRoleCache, fedGlobalRoleCacheController = util.NewResourceInformer(fedGlobalRoleClient, "", &iamv1alpha2.FedGlobalRoleResource, func(object runtimeclient.Object) {})
 		fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController = util.NewResourceInformer(fedGlobalRoleBindingClient, "", &iamv1alpha2.FedGlobalRoleBindingResource, func(object runtimeclient.Object) {})
 
-		go fedUserCacheController.Run(stopCh)
 		go fedGlobalRoleCacheController.Run(stopCh)
 		go fedGlobalRoleBindingCacheController.Run(stopCh)
 	}
-
-	userController := user.NewUserController(client.Kubernetes(), client.KubeSphere(), client.Config(),
-		kubesphereInformer.Iam().V1alpha2().Users(),
-		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
-		fedUserCache, fedUserCacheController,
-		kubernetesInformer.Core().V1().ConfigMaps(),
-		ldapClient, devopsClient,
-		authenticationOptions, multiClusterEnabled)
 
 	loginRecordController := loginrecord.NewLoginRecordController(
 		client.Kubernetes(),
@@ -222,7 +206,6 @@ func addControllers(
 		"job-controller":                jobController,
 		"storagecapability-controller":  storageCapabilityController,
 		"volumesnapshot-controller":     volumeSnapshotController,
-		"user-controller":               userController,
 		"loginrecord-controller":        loginRecordController,
 		"cluster-controller":            clusterController,
 		"nsnp-controller":               nsnpController,

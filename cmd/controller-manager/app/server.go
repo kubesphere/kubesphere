@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"os"
 
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
+
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -209,6 +211,22 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 
 	// register common meta types into schemas.
 	metav1.AddToGroupVersion(mgr.GetScheme(), metav1.SchemeGroupVersion)
+
+	kubeconfigClient := kubeconfig.NewOperator(kubernetesClient.Kubernetes(),
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().ConfigMaps().Lister(),
+		kubernetesClient.Config())
+	userController := user.Reconciler{
+		MultiClusterEnabled:     s.MultiClusterOptions.Enable,
+		MaxConcurrentReconciles: 4,
+		LdapClient:              ldapClient,
+		DevopsClient:            devopsClient,
+		KubeconfigClient:        kubeconfigClient,
+		AuthenticationOptions:   s.AuthenticationOptions,
+	}
+
+	if err = userController.SetupWithManager(mgr); err != nil {
+		klog.Fatalf("Unable to create user controller: %v", err)
+	}
 
 	workspaceTemplateReconciler := &workspacetemplate.Reconciler{MultiClusterEnabled: s.MultiClusterOptions.Enable}
 	if err = workspaceTemplateReconciler.SetupWithManager(mgr); err != nil {
