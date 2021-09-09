@@ -139,6 +139,7 @@ func (s *KubeSphereControllerManagerOptions) Validate() []error {
 	errs = append(errs, s.OpenPitrixOptions.Validate()...)
 	errs = append(errs, s.NetworkOptions.Validate()...)
 	errs = append(errs, s.LdapOptions.Validate()...)
+	errs = append(errs, s.MultiClusterOptions.Validate()...)
 
 	if len(s.ApplicationSelector) != 0 {
 		_, err := labels.Parse(s.ApplicationSelector)

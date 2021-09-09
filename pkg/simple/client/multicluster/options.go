@@ -17,9 +17,11 @@ limitations under the License.
 package multicluster
 
 import (
+	"errors"
 	"time"
 
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 const (
@@ -67,7 +69,18 @@ func NewOptions() *Options {
 }
 
 func (o *Options) Validate() []error {
-	return nil
+	var err []error
+
+	res := validation.IsQualifiedName(o.HostClusterName)
+	if len(res) == 0 {
+		return err
+	}
+
+	err = append(err, errors.New("failed to create the host cluster because of invalid cluster name"))
+	for _, str := range res {
+		err = append(err, errors.New(str))
+	}
+	return err
 }
 
 func (o *Options) AddFlags(fs *pflag.FlagSet, s *Options) {
