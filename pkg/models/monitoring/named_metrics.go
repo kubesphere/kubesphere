@@ -279,6 +279,7 @@ var EtcdMetrics = []string{
 	"etcd_server_total",
 	"etcd_server_up_total",
 	"etcd_server_has_leader",
+	"etcd_server_is_leader",
 	"etcd_server_leader_changes",
 	"etcd_server_proposals_failed_rate",
 	"etcd_server_proposals_applied_rate",
