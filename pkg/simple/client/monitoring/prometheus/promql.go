@@ -165,6 +165,21 @@ var promQLTemplates = map[string]string{
 	"namespace_ingresses_extensions_count": `sum by (namespace) (kube_ingress_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
 	"namespace_s2ibuilder_count":           `sum by (namespace) (s2i_s2ibuilder_created{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
 
+	// ingress
+	"ingress_request_count":                 `round(sum(increase(nginx_ingress_controller_requests{$1,$2}[$3])))`,
+	"ingress_request_4xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status="[4].*"}[$3])))`,
+	"ingress_request_5xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status="[5].*"}[$3])))`,
+	"ingress_active_connections":            `sum(avg_over_time(nginx_ingress_controller_nginx_process_connections{$2,state="active"}[$3]))`,
+	"ingress_success_rate":                  `sum(rate(nginx_ingress_controller_requests{$1,$2,status!~"[4-5].*"}[$3])) / sum(rate(nginx_ingress_controller_requests{$1,$2}[$3]))`,
+	"ingress_request_duration_average":      `sum_over_time(nginx_ingress_controller_request_duration_seconds_sum{$1,$2}[$3])/sum_over_time(nginx_ingress_controller_request_duration_seconds_count{$1,$2}[$3])`,
+	"ingress_request_duration_50percentage": `histogram_quantile(0.50, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{$1,$2}[$3])))`,
+	"ingress_request_duration_95percentage": `histogram_quantile(0.90, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{$1,$2}[$3])))`,
+	"ingress_request_duration_99percentage": `histogram_quantile(0.99, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{$1,$2}[$3])))`,
+	"ingress_request_volume":                `round(sum(irate(nginx_ingress_controller_requests{$1,$2}[$3])), 0.001)`,
+	"ingress_request_volume_by_ingress":     `round(sum(irate(nginx_ingress_controller_requests{$1,$2}[$3])) by (ingress), 0.001)`,
+	"ingress_request_network_sent":          `sum(irate(nginx_ingress_controller_response_size_sum{$1,$2}[$3]))`,
+	"ingress_request_network_received":      `sum(irate(nginx_ingress_controller_request_size_sum{$1,$2}[$3]))`,
+
 	// workload
 	"workload_cpu_usage":             `round(namespace:workload_cpu_usage:sum{$1}, 0.001)`,
 	"workload_memory_usage":          `namespace:workload_memory_usage:sum{$1}`,
@@ -258,6 +273,8 @@ func makeExpr(metric string, opts monitoring.QueryOptions) string {
 		return makeContainerMetricExpr(tmpl, opts)
 	case monitoring.LevelPVC:
 		return makePVCMetricExpr(tmpl, opts)
+	case monitoring.LevelIngress:
+		return makeIngressMetricExpr(tmpl, opts)
 	case monitoring.LevelComponent:
 		return tmpl
 	default:
@@ -447,4 +464,38 @@ func makePVCMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 		pvcSelector = fmt.Sprintf(`storageclass="%s", persistentvolumeclaim=~"%s"`, o.StorageClassName, o.ResourceFilter)
 	}
 	return strings.Replace(tmpl, "$1", pvcSelector, -1)
+}
+
+func makeIngressMetricExpr(tmpl string, o monitoring.QueryOptions) string {
+	var ingressSelector string
+	var jobSelector string
+	duration := "5m"
+
+	// parse Range Vector Selectors metric{key=value}[duration]
+	if o.MeterOptions != nil {
+		duration = o.MeterOptions.Step.String()
+	}
+
+	// For monitoring ingress in the specific namespace
+	// GET /namespaces/{namespace}/ingress/{ingress} or
+	// GET /namespaces/{namespace}/ingress
+	if o.NamespaceName != "" {
+		if o.Ingress != "" {
+			ingressSelector = fmt.Sprintf(`exported_namespace="%s", ingress="%s"`, o.NamespaceName, o.Ingress)
+		} else {
+			ingressSelector = fmt.Sprintf(`exported_namespace="%s", ingress=~"%s"`, o.NamespaceName, o.ResourceFilter)
+		}
+	}
+	// job is a reqiuried filter
+	// GET /namespaces/{namespace}/ingress?job=xxx&pod=xxx
+	if o.Job != "" {
+		jobSelector = fmt.Sprintf(`job="%s"`, o.Job)
+		if o.PodName != "" {
+			jobSelector = fmt.Sprintf(`%s,controller_pod="%s"`, jobSelector, o.PodName)
+		}
+	}
+
+	tmpl = strings.Replace(tmpl, "$1", ingressSelector, -1)
+	tmpl = strings.Replace(tmpl, "$2", jobSelector, -1)
+	return strings.Replace(tmpl, "$3", duration, -1)
 }

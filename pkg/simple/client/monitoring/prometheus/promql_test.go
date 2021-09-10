@@ -187,6 +187,16 @@ func TestMakeExpr(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress_request_count",
+			opts: monitoring.QueryOptions{
+				Level:         monitoring.LevelIngress,
+				NamespaceName: "default",
+				Ingress:       "ingress-1",
+				Job:           "job-1",
+				PodName:       "pod-1",
+			},
+		},
+		{
 			name: "etcd_server_list",
 			opts: monitoring.QueryOptions{
 				Level: monitoring.LevelComponent,

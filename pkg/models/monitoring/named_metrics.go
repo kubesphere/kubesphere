@@ -274,6 +274,22 @@ var PVCMetrics = []string{
 	"pvc_bytes_utilisation",
 }
 
+var IngressMetrics = []string{
+	"ingress_request_count",
+	"ingress_request_5xx_count",
+	"ingress_request_4xx_count",
+	"ingress_active_connections",
+	"ingress_success_rate",
+	"ingress_request_duration_average",
+	"ingress_request_duration_50percentage",
+	"ingress_request_duration_95percentage",
+	"ingress_request_duration_99percentage",
+	"ingress_request_volume",
+	"ingress_request_volume_by_ingress",
+	"ingress_request_network_sent",
+	"ingress_request_network_received",
+}
+
 var EtcdMetrics = []string{
 	"etcd_server_list",
 	"etcd_server_total",

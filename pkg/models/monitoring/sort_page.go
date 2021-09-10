@@ -33,6 +33,7 @@ const (
 	IdentifierPVC         = "persistentvolumeclaim"
 	IdentifierService     = "service"
 	IdentifierApplication = "application"
+	IdentifierIngress     = "ingress"
 
 	OrderAscending  = "asc"
 	OrderDescending = "desc"

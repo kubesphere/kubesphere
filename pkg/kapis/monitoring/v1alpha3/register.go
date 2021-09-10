@@ -425,6 +425,44 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET("/namespaces/{namespace}/ingresses").
+		To(h.handleIngressMetricsQuery).
+		Doc("Get Ingress-level metric data of the specific namespace's Ingresses.").
+		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("job", "The job name filter. Ingress could be served by multi Ingress controllers, The job filters metric from a specific controller.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("pod", "The pod name filter.").DataType("string")).
+		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("resources_filter", "The PVC filter consists of a regexp pattern. It specifies which PVC data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
+		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_metric", "Sort PVCs by the specified metric. Not applicable if **start** and **end** are provided.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_type", "Sort order. One of asc, desc.").DefaultValue("desc.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
+		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IngressMetricsTag}).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/namespaces/{namespace}/ingresses/{ingress}").
+		To(h.handleIngressMetricsQuery).
+		Doc("Get Ingress-level metric data of a specific Ingress. Navigate to the Ingress by the Ingress's namespace.").
+		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
+		Param(ws.PathParameter("ingress", "ingress name.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("job", "The job name filter. Ingress could be served by multi Ingress controllers, The job filters metric from a specific controller.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("pod", "The pod filter.").DataType("string")).
+		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
+		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
+		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IngressMetricsTag}).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
+		Produces(restful.MIME_JSON)
+
 	ws.Route(ws.GET("/components/{component}").
 		To(h.handleComponentMetricsQuery).
 		Doc("Get component-level metric data of the specific system component.").
