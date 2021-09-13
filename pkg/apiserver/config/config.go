@@ -33,6 +33,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
+	"kubesphere.io/kubesphere/pkg/simple/client/gpu"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubeedge"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -106,6 +107,7 @@ type Config struct {
 	KubeEdgeOptions       *kubeedge.Options                          `json:"kubeedge,omitempty" yaml:"kubeedge,omitempty" mapstructure:"kubeedge"`
 	MeteringOptions       *metering.Options                          `json:"metering,omitempty" yaml:"metering,omitempty" mapstructure:"metering"`
 	GatewayOptions        *gateway.Options                           `json:"gateway,omitempty" yaml:"gateway,omitempty" mapstructure:"gateway"`
+	GPUOptions            *gpu.Options                               `json:"gpu,omitempty" yaml:"gpu,omitempty" mapstructure:"gpu"`
 }
 
 // newConfig creates a default non-empty Config
@@ -132,6 +134,7 @@ func New() *Config {
 		KubeEdgeOptions:       kubeedge.NewKubeEdgeOptions(),
 		MeteringOptions:       metering.NewMeteringOptions(),
 		GatewayOptions:        gateway.NewGatewayOptions(),
+		GPUOptions:            gpu.NewGPUOptions(),
 	}
 }
 
