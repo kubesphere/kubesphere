@@ -87,11 +87,19 @@ func TestNewIssuer(t *testing.T) {
 		name:             options.OAuthOptions.Issuer,
 		secret:           []byte(options.JwtSecret),
 		maximumClockSkew: options.MaximumClockSkew,
-		signKey: &jose.JSONWebKey{
-			Key:       signKey,
-			KeyID:     keyID,
-			Algorithm: jwt.SigningMethodRS256.Alg(),
-			Use:       "sig",
+		signKey: &Keys{
+			SigningKey: &jose.JSONWebKey{
+				Key:       signKey,
+				KeyID:     keyID,
+				Algorithm: jwt.SigningMethodRS256.Alg(),
+				Use:       "sig",
+			},
+			SigningKeyPub: &jose.JSONWebKey{
+				Key:       signKey.Public(),
+				KeyID:     keyID,
+				Algorithm: jwt.SigningMethodRS256.Alg(),
+				Use:       "sig",
+			},
 		},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -116,8 +124,10 @@ func TestNewIssuerGenerateSignKey(t *testing.T) {
 
 	iss := got.(*issuer)
 	assert.NotNil(t, iss.signKey)
-	assert.NotNil(t, iss.signKey.Key)
-	assert.NotNil(t, iss.signKey.KeyID)
+	assert.NotNil(t, iss.signKey.SigningKey)
+	assert.NotNil(t, iss.signKey.SigningKeyPub)
+	assert.NotNil(t, iss.signKey.SigningKey.KeyID)
+	assert.NotNil(t, iss.signKey.SigningKeyPub.KeyID)
 }
 
 func Test_issuer_IssueTo(t *testing.T) {

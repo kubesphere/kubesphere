@@ -18,6 +18,8 @@ package oauth
 
 import (
 	"fmt"
+	"gopkg.in/square/go-jose.v2"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -82,6 +84,40 @@ func (request *TokenReview) Validate() error {
 	return nil
 }
 
+// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+type discovery struct {
+	// URL using the https scheme with no query or fragment component that the OP
+	// asserts as its Issuer Identifier.
+	Issuer string `json:"issuer"`
+	// URL of the OP's OAuth 2.0 Authorization Endpoint.
+	Auth string `json:"authorization_endpoint"`
+	// URL of the OP's OAuth 2.0 Token Endpoint.
+	Token string `json:"token_endpoint"`
+	// URL of the OP's UserInfo Endpoint
+	UserInfo string `json:"userinfo_endpoint"`
+	// URL of the OP's JSON Web Key Set [JWK] document.
+	Keys string `json:"jwks_uri"`
+	// JSON array containing a list of the OAuth 2.0 Grant Type values that this OP supports.
+	GrantTypes []string `json:"grant_types_supported"`
+	// JSON array containing a list of the OAuth 2.0 response_type values that this OP supports.
+	ResponseTypes []string `json:"response_types_supported"`
+	// JSON array containing a list of the Subject Identifier types that this OP supports.
+	Subjects []string `json:"subject_types_supported"`
+	// JSON array containing a list of the JWS signing algorithms (alg values) supported by
+	// the OP for the ID Token to encode the Claims in a JWT [JWT].
+	IDTokenAlgs []string `json:"id_token_signing_alg_values_supported"`
+	// JSON array containing a list of Proof Key for Code
+	// Exchange (PKCE) [RFC7636] code challenge methods supported by this authorization server.
+	CodeChallengeAlgs []string `json:"code_challenge_methods_supported"`
+	// JSON array containing a list of the OAuth 2.0 [RFC6749] scope values that this server supports.
+	Scopes []string `json:"scopes_supported"`
+	// JSON array containing a list of Client Authentication methods supported by this Token Endpoint.
+	AuthMethods []string `json:"token_endpoint_auth_methods_supported"`
+	// JSON array containing a list of the Claim Names of the Claims that the OpenID Provider
+	// MAY be able to supply values for.
+	Claims []string `json:"claims_supported"`
+}
+
 type handler struct {
 	im                    im.IdentityManagementInterface
 	options               *authentication.Options
@@ -137,6 +173,39 @@ func (h *handler) tokenReview(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.WriteEntity(success)
+}
+
+func (h *handler) discovery(req *restful.Request, response *restful.Response) {
+	result := discovery{
+		Issuer:            h.options.OAuthOptions.Issuer,
+		Auth:              h.options.OAuthOptions.Issuer + "/authorize",
+		Token:             h.options.OAuthOptions.Issuer + "/token",
+		Keys:              h.options.OAuthOptions.Issuer + "/keys",
+		UserInfo:          h.options.OAuthOptions.Issuer + "/userinfo",
+		Subjects:          []string{"public"},
+		GrantTypes:        []string{"authorization_code", "refresh_token"},
+		IDTokenAlgs:       []string{string(jose.RS256)},
+		CodeChallengeAlgs: []string{"S256", "plain"},
+		Scopes:            []string{"openid", "email", "profile", "offline_access"},
+		// TODO(hongming) support client_secret_jwt
+		AuthMethods: []string{"client_secret_basic", "client_secret_post"},
+		Claims: []string{
+			"iss", "sub", "aud", "iat", "exp", "email", "locale", "preferred_username",
+		},
+		ResponseTypes: []string{
+			"code",
+			"token",
+		},
+	}
+
+	response.WriteEntity(result)
+}
+
+func (h *handler) keys(req *restful.Request, response *restful.Response) {
+	jwks := jose.JSONWebKeySet{
+		Keys: []jose.JSONWebKey{*h.tokenOperator.Keys().SigningKeyPub},
+	}
+	response.WriteEntity(jwks)
 }
 
 // The Authorization Endpoint performs Authentication of the End-User.
@@ -207,7 +276,6 @@ func (h *handler) authorize(req *restful.Request, response *restful.Response) {
 		}
 		redirectURL.RawQuery = values.Encode()
 		http.Redirect(response.ResponseWriter, req.Request, redirectURL.String(), http.StatusFound)
-		return
 	}
 
 	// Other scope values MAY be present.
@@ -233,12 +301,14 @@ func (h *handler) authorize(req *restful.Request, response *restful.Response) {
 				},
 				TokenType: token.AuthorizationCode,
 				Nonce:     nonce,
+				Scopes:    scopes,
 			},
 			// A maximum authorization code lifetime of 10 minutes is
 			ExpiresIn: 10 * time.Minute,
 		})
 		if err != nil {
 			response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+			return
 		}
 		values := redirectURL.Query()
 		values.Add("code", code)
@@ -255,6 +325,7 @@ func (h *handler) authorize(req *restful.Request, response *restful.Response) {
 	result, err := h.issueTokenTo(authenticated)
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		return
 	}
 
 	values := make(url.Values, 0)
@@ -277,6 +348,7 @@ func (h *handler) oauthCallback(req *restful.Request, response *restful.Response
 	result, err := h.issueTokenTo(authenticated)
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		return
 	}
 
 	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
@@ -382,6 +454,7 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 	result, err := h.issueTokenTo(authenticated)
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		return
 	}
 
 	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
@@ -392,9 +465,9 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 	response.WriteEntity(result)
 }
 
-func (h *handler) issueTokenTo(authenticated user.Info) (*oauth.Token, error) {
+func (h *handler) issueTokenTo(user user.Info) (*oauth.Token, error) {
 	accessToken, err := h.tokenOperator.IssueTo(&token.IssueRequest{
-		User:      authenticated,
+		User:      user,
 		Claims:    token.Claims{TokenType: token.AccessToken},
 		ExpiresIn: h.options.OAuthOptions.AccessTokenMaxAge,
 	})
@@ -402,7 +475,7 @@ func (h *handler) issueTokenTo(authenticated user.Info) (*oauth.Token, error) {
 		return nil, err
 	}
 	refreshToken, err := h.tokenOperator.IssueTo(&token.IssueRequest{
-		User:      authenticated,
+		User:      user,
 		Claims:    token.Claims{TokenType: token.RefreshToken},
 		ExpiresIn: h.options.OAuthOptions.AccessTokenMaxAge + h.options.OAuthOptions.AccessTokenInactivityTimeout,
 	})
@@ -469,6 +542,7 @@ func (h *handler) refreshTokenGrant(req *restful.Request, response *restful.Resp
 	result, err := h.issueTokenTo(authenticated)
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		return
 	}
 
 	response.WriteEntity(result)
@@ -486,26 +560,42 @@ func (h *handler) codeGrant(req *restful.Request, response *restful.Response) {
 		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
 		return
 	}
+
 	if authorizeContext.TokenType != token.AuthorizationCode {
 		err = fmt.Errorf("ivalid token type %v want %v", authorizeContext.TokenType, token.AuthorizationCode)
 		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
 		return
 	}
 
-	// The client MUST NOT use the authorization code more than once.
-	err = h.tokenOperator.Revoke(code)
-	if err != nil {
-		klog.Warningf("grant: failed to revoke authorization code: %v", err)
-	}
+	defer func() {
+		// The client MUST NOT use the authorization code more than once.
+		err = h.tokenOperator.Revoke(code)
+		if err != nil {
+			klog.Warningf("grant: failed to revoke authorization code: %v", err)
+		}
+	}()
 
-	authenticated := authorizeContext.User
-	result, err := h.issueTokenTo(authenticated)
+	result, err := h.issueTokenTo(authorizeContext.User)
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		return
 	}
 
-	idToken, err := h.tokenOperator.IssueTo(&token.IssueRequest{
-		User: authenticated,
+	// If no openid scope value is present, the request may still be a valid OAuth 2.0 request,
+	// but is not an OpenID Connect request.
+	if !sliceutil.HasString(authorizeContext.Scopes, oauth.ScopeOpenID) {
+		response.WriteEntity(result)
+		return
+	}
+
+	authenticated, err := h.im.DescribeUser(authorizeContext.User.GetName())
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		return
+	}
+
+	idTokenRequest := &token.IssueRequest{
+		User: authorizeContext.User,
 		Claims: token.Claims{
 			StandardClaims: jwt.StandardClaims{
 				Audience: authorizeContext.Audience,
@@ -514,8 +604,25 @@ func (h *handler) codeGrant(req *restful.Request, response *restful.Response) {
 			TokenType: token.IDToken,
 		},
 		ExpiresIn: h.options.OAuthOptions.AccessTokenMaxAge + h.options.OAuthOptions.AccessTokenInactivityTimeout,
-	})
+	}
+
+	if sliceutil.HasString(authorizeContext.Scopes, oauth.ScopeProfile) {
+		idTokenRequest.PreferredUsername = authenticated.Name
+		idTokenRequest.Locale = authenticated.Spec.Lang
+	}
+
+	if sliceutil.HasString(authorizeContext.Scopes, oauth.ScopeEmail) {
+		idTokenRequest.Email = authenticated.Spec.Email
+	}
+
+	idToken, err := h.tokenOperator.IssueTo(idTokenRequest)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		return
+	}
+
 	result.IDToken = idToken
+
 	response.WriteEntity(result)
 }
 

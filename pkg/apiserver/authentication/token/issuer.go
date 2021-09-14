@@ -61,6 +61,12 @@ type VerifiedResponse struct {
 	Claims
 }
 
+// Keys hold encryption and signing keys.
+type Keys struct {
+	SigningKey    *jose.JSONWebKey
+	SigningKeyPub *jose.JSONWebKey
+}
+
 // Issuer issues token to user, tokens are required to perform mutating requests to resources
 type Issuer interface {
 	// IssueTo issues a token a User, return error if issuing process failed
@@ -68,6 +74,9 @@ type Issuer interface {
 
 	// Verify verifies a token, and return a user info if it's a valid token, otherwise return error
 	Verify(string) (*VerifiedResponse, error)
+
+	// Keys hold encryption and signing keys.
+	Keys() *Keys
 }
 
 type Claims struct {
@@ -80,6 +89,14 @@ type Claims struct {
 	// String value used to associate a Client session with an ID Token, and to mitigate replay attacks.
 	// The value is passed through unmodified from the Authentication Request to the ID Token.
 	Nonce string `json:"nonce,omitempty"`
+	// Scopes can be used to request that specific sets of information be made available as Claim Values.
+	Scopes []string `json:"scopes,omitempty"`
+	// End-User's preferred e-mail address.
+	Email string `json:"email,omitempty"`
+	// End-User's locale, represented as a BCP47 [RFC5646] language tag.
+	Locale string `json:"locale,omitempty"`
+	// Shorthand name by which the End-User wishes to be referred to at the RP,
+	PreferredUsername string `json:"preferred_username,omitempty"`
 	// Extra contains the additional information
 	Extra map[string][]string `json:"extra,omitempty"`
 }
@@ -90,7 +107,7 @@ type issuer struct {
 	// signing access_token and refresh_token
 	secret []byte
 	// signing id_token
-	signKey *jose.JSONWebKey
+	signKey *Keys
 	// Token verification maximum time difference
 	maximumClockSkew time.Duration
 }
@@ -114,6 +131,18 @@ func (s *issuer) IssueTo(request *IssueRequest) (string, error) {
 	if request.Nonce != "" {
 		claims.Nonce = request.Nonce
 	}
+	if request.Email != "" {
+		claims.Email = request.Email
+	}
+	if request.PreferredUsername != "" {
+		claims.PreferredUsername = request.PreferredUsername
+	}
+	if request.Locale != "" {
+		claims.Locale = request.Locale
+	}
+	if len(request.Scopes) > 0 {
+		claims.Scopes = request.Scopes
+	}
 	if request.ExpiresIn > 0 {
 		claims.ExpiresAt = claims.IssuedAt + int64(request.ExpiresIn.Seconds())
 	}
@@ -122,8 +151,8 @@ func (s *issuer) IssueTo(request *IssueRequest) (string, error) {
 	var err error
 	if request.TokenType == IDToken {
 		t := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-		t.Header[headerKeyID] = s.signKey.KeyID
-		token, err = t.SignedString(s.signKey.Key)
+		t.Header[headerKeyID] = s.signKey.SigningKey.KeyID
+		token, err = t.SignedString(s.signKey.SigningKey.Key)
 	} else {
 		token, err = jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 	}
@@ -175,13 +204,17 @@ func (s *issuer) Verify(token string) (*VerifiedResponse, error) {
 	return verified, nil
 }
 
+func (s *issuer) Keys() *Keys {
+	return s.signKey
+}
+
 func (s *issuer) keyFunc(token *jwt.Token) (i interface{}, err error) {
 	alg, _ := token.Header[headerAlgorithm].(string)
 	switch alg {
 	case jwt.SigningMethodHS256.Alg():
 		return s.secret, nil
 	case jwt.SigningMethodRS256.Alg():
-		return s.signKey.Key, nil
+		return s.signKey.SigningKey.Key, nil
 	default:
 		return nil, fmt.Errorf("unexpect signature algorithm %v", token.Header[headerAlgorithm])
 	}
@@ -263,11 +296,19 @@ func NewIssuer(options *authentication.Options) (Issuer, error) {
 		name:             options.OAuthOptions.Issuer,
 		secret:           []byte(options.JwtSecret),
 		maximumClockSkew: options.MaximumClockSkew,
-		signKey: &jose.JSONWebKey{
-			Key:       signKey,
-			KeyID:     keyID,
-			Algorithm: jwt.SigningMethodRS256.Alg(),
-			Use:       "sig",
+		signKey: &Keys{
+			SigningKey: &jose.JSONWebKey{
+				Key:       signKey,
+				KeyID:     keyID,
+				Algorithm: jwt.SigningMethodRS256.Alg(),
+				Use:       "sig",
+			},
+			SigningKeyPub: &jose.JSONWebKey{
+				Key:       signKey.Public(),
+				KeyID:     keyID,
+				Algorithm: jwt.SigningMethodRS256.Alg(),
+				Use:       "sig",
+			},
 		},
 	}, nil
 }

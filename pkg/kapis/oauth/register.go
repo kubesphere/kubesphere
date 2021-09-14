@@ -53,6 +53,11 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 
 	handler := newHandler(im, tokenOperator, passwordAuthenticator, oauth2Authenticator, loginRecorder, options)
 
+	ws.Route(ws.GET("/.well-known/openid-configuration").To(handler.discovery).
+		Doc("The OpenID Provider's configuration information can be retrieved."))
+	ws.Route(ws.GET("/keys").To(handler.keys).
+		Doc("OP's JSON Web Key Set [JWK] document."))
+
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
 	ws.Route(ws.POST("/authenticate").

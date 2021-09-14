@@ -41,6 +41,8 @@ type TokenManagementInterface interface {
 	Revoke(token string) error
 	// RevokeAllUserTokens revoke all user tokens
 	RevokeAllUserTokens(username string) error
+	// Keys hold encryption and signing keys.
+	Keys() *token.Keys
 }
 
 type tokenOperator struct {
@@ -115,6 +117,10 @@ func (t *tokenOperator) RevokeAllUserTokens(username string) error {
 		}
 	}
 	return nil
+}
+
+func (t *tokenOperator) Keys() *token.Keys {
+	return t.issuer.Keys()
 }
 
 // tokenCacheValidate verify that the token is in the cache
