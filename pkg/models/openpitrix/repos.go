@@ -20,6 +20,8 @@ import (
 	"sort"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/utils/mathutil"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -160,6 +162,15 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 	repoCopy := repo.DeepCopy()
 	if request.Description != nil {
 		repoCopy.Spec.Description = stringutils.ShortenString(*request.Description, DescriptionLen)
+	}
+
+	if request.SyncPeriod != nil {
+		if *request.SyncPeriod > 0 {
+			repoCopy.Spec.SyncPeriod = mathutil.Max(*request.SyncPeriod, constants.OpenpitrixMinSyncPeriod)
+		} else {
+			// disable auto sync
+			repoCopy.Spec.SyncPeriod = 0
+		}
 	}
 
 	// modify name of the repo

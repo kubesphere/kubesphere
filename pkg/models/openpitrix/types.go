@@ -585,6 +585,9 @@ type CreateRepoRequest struct {
 	// required, runtime provider eg.[qingcloud|aliyun|aws|kubernetes]
 	Providers []string `json:"providers"`
 
+	// min sync period in seconds to sync helm repo
+	SyncPeriod int `json:"sync_period"`
+
 	// repository type
 	Type string `json:"type,omitempty"`
 
@@ -612,6 +615,8 @@ type ModifyRepoRequest struct {
 
 	Workspace *string `json:"workspace,omitempty"`
 
+	// min sync period in seconds to sync helm repo
+	SyncPeriod *int `json:"sync_period"`
 	// repository name
 	Name *string `json:"name,omitempty"`
 

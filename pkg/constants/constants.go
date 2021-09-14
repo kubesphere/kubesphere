@@ -71,6 +71,7 @@ const (
 	OpenpitrixAttachmentTag  = "Attachment"
 	OpenpitrixRepositoryTag  = "Repository"
 	OpenpitrixManagementTag  = "App Management"
+	OpenpitrixMinSyncPeriod  = 180
 
 	CleanupDanglingAppOngoing = "ongoing"
 	CleanupDanglingAppDone    = "done"

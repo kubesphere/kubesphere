@@ -21,6 +21,9 @@ import (
 	"math"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/utils/mathutil"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,7 +46,6 @@ import (
 
 const (
 	// min sync period in seconds
-	MinSyncPeriod = 180
 
 	MinRetryDuration     = 60
 	MaxRetryDuration     = 600
@@ -156,8 +158,8 @@ func (r *ReconcileHelmRepo) Reconcile(ctx context.Context, request reconcile.Req
 
 	copyInstance := instance.DeepCopy()
 
-	if copyInstance.Spec.SyncPeriod != 0 && copyInstance.Spec.SyncPeriod < MinSyncPeriod {
-		copyInstance.Spec.SyncPeriod = MinSyncPeriod
+	if copyInstance.Spec.SyncPeriod != 0 {
+		copyInstance.Spec.SyncPeriod = mathutil.Max(copyInstance.Spec.SyncPeriod, constants.OpenpitrixMinSyncPeriod)
 	}
 
 	retryAfter := 0
@@ -197,7 +199,7 @@ func (r *ReconcileHelmRepo) Reconcile(ctx context.Context, request reconcile.Req
 				RequeueAfter: MinRetryDuration * time.Second,
 			}, err
 		} else {
-			retryAfter = MinSyncPeriod
+			retryAfter = constants.OpenpitrixMinSyncPeriod
 			if syncErr == nil {
 				retryAfter = copyInstance.Spec.SyncPeriod
 			}
@@ -256,9 +258,7 @@ func needReSyncNow(instance *v1alpha1.HelmRepo) (syncNow bool, after int) {
 	} else {
 		period = instance.Spec.SyncPeriod
 		if period != 0 {
-			if period < MinSyncPeriod {
-				period = MinSyncPeriod
-			}
+			period = mathutil.Max(instance.Spec.SyncPeriod, constants.OpenpitrixMinSyncPeriod)
 			if now.After(state.SyncTime.Add(time.Duration(period) * time.Second)) {
 				return true, 0
 			}

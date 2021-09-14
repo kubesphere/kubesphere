@@ -21,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/utils/mathutil"
+
 	restful "github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -90,6 +92,12 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 	// trim credential from url
 	parsedUrl.User = nil
 
+	syncPeriod := 0
+	// SyncPeriod must be greater than zero, or it will just be ignored.
+	if createRepoRequest.SyncPeriod > 0 {
+		syncPeriod = mathutil.Max(createRepoRequest.SyncPeriod, constants.OpenpitrixMinSyncPeriod)
+	}
+
 	repo := v1alpha1.HelmRepo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: idutils.GetUuid36(v1alpha1.HelmRepoIdPrefix),
@@ -103,7 +111,7 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 		Spec: v1alpha1.HelmRepoSpec{
 			Name:        createRepoRequest.Name,
 			Url:         parsedUrl.String(),
-			SyncPeriod:  0,
+			SyncPeriod:  syncPeriod,
 			Description: stringutils.ShortenString(createRepoRequest.Description, 512),
 		},
 	}
