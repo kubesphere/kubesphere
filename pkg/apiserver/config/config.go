@@ -302,4 +302,8 @@ func (conf *Config) stripEmptyOptions() {
 	if conf.KubeEdgeOptions != nil && conf.KubeEdgeOptions.Endpoint == "" {
 		conf.KubeEdgeOptions = nil
 	}
+
+	if conf.GPUOptions != nil && len(conf.GPUOptions.Kinds) == 0 {
+		conf.GPUOptions = nil
+	}
 }
