@@ -15,11 +15,11 @@ const (
 // AddToContainer helps proxy DevOps APIs.
 func AddToContainer(container *restful.Container, endpoint string) {
 	// Deprecated: It will be replaced by alpha4 in the future
-	utilruntime.Must(addToContainer(container, endpoint, schema.GroupVersion{Group: GroupName, Version: "alpha2"}))
+	utilruntime.Must(addToContainer(container, endpoint, schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}))
 	// Deprecated: It will be replaced by alpha4 in the future
-	utilruntime.Must(addToContainer(container, endpoint, schema.GroupVersion{Group: GroupName, Version: "alpha3"}))
+	utilruntime.Must(addToContainer(container, endpoint, schema.GroupVersion{Group: GroupName, Version: "v1alpha3"}))
 
-	utilruntime.Must(addToContainer(container, endpoint, schema.GroupVersion{Group: GroupName, Version: "alpha4"}))
+	utilruntime.Must(addToContainer(container, endpoint, schema.GroupVersion{Group: GroupName, Version: "v1alpha4"}))
 }
 
 func addToContainer(container *restful.Container, endpoint string, gv schema.GroupVersion) error {
