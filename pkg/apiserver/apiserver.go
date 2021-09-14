@@ -67,9 +67,7 @@ import (
 	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2alpha1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
-	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
-	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
-	devopsv1alpha4 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha4"
+	kapisdevops "kubesphere.io/kubesphere/pkg/kapis/devops"
 	gatewayv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/gateway/v1alpha1"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	kubeedgev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/kubeedge/v1alpha1"
@@ -262,9 +260,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.Config.ServiceMeshOptions, s.container, s.KubernetesClient.Kubernetes(), s.CacheClient))
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
-	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.Config.DevopsOptions.Endpoint))
-	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container, s.Config.DevopsOptions.Endpoint))
-	urlruntime.Must(devopsv1alpha4.AddToContainer(s.container, s.Config.DevopsOptions.Endpoint))
+	kapisdevops.AddToContainer(s.container, s.Config.DevopsOptions.Endpoint)
 	urlruntime.Must(notificationv1.AddToContainer(s.container, s.Config.NotificationOptions.Endpoint))
 	urlruntime.Must(alertingv1.AddToContainer(s.container, s.Config.AlertingOptions.Endpoint))
 	urlruntime.Must(alertingv2alpha1.AddToContainer(s.container, s.InformerFactory,
