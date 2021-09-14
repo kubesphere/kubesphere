@@ -59,5 +59,6 @@ const (
 
 	ApplicationInstance = "app.kubesphere.io/instance"
 
+	RepoSyncPeriod          = "app.kubesphere.io/sync-period"
 	OriginWorkspaceLabelKey = "kubesphere.io/workspace-origin"
 )

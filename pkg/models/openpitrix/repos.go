@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 
@@ -160,6 +161,32 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 	repoCopy := repo.DeepCopy()
 	if request.Description != nil {
 		repoCopy.Spec.Description = stringutils.ShortenString(*request.Description, DescriptionLen)
+	}
+
+	if repoCopy.Annotations == nil {
+		repoCopy.Annotations = map[string]string{}
+	}
+
+	if request.SyncPeriod != nil {
+		syncPeriod := 0
+		if *request.SyncPeriod == "" {
+			// disable auto sync
+			syncPeriod = 0
+		} else {
+			if duration, err := time.ParseDuration(*request.SyncPeriod); err != nil {
+				return err
+			} else {
+				syncPeriod = int(duration / time.Second)
+			}
+		}
+		if syncPeriod == 0 {
+			// disable auto sync
+			repoCopy.Spec.SyncPeriod = 0
+			delete(repoCopy.Annotations, v1alpha1.RepoSyncPeriod)
+		} else {
+			repoCopy.Spec.SyncPeriod = syncPeriod
+			repoCopy.Annotations[v1alpha1.RepoSyncPeriod] = *request.SyncPeriod
+		}
 	}
 
 	// modify name of the repo

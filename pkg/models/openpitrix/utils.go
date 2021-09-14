@@ -427,6 +427,7 @@ func convertRepo(in *v1alpha1.HelmRepo) *Repo {
 
 	cred, _ := json.Marshal(in.Spec.Credential)
 	out.Credential = string(cred)
+	out.SyncPeriod = in.Annotations[v1alpha1.RepoSyncPeriod]
 
 	out.URL = in.Spec.Url
 	return &out

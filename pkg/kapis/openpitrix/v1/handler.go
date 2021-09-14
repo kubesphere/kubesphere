@@ -20,6 +20,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
+
+	"kubesphere.io/kubesphere/pkg/utils/mathutil"
 
 	restful "github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
@@ -90,6 +93,18 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 	// trim credential from url
 	parsedUrl.User = nil
 
+	syncPeriod := 0
+	// If SyncPeriod is empty, ignore it.
+	if createRepoRequest.SyncPeriod != "" {
+		duration, err := time.ParseDuration(createRepoRequest.SyncPeriod)
+		if err != nil {
+			api.HandleBadRequest(resp, nil, err)
+			return
+		} else if duration > 0 {
+			syncPeriod = mathutil.Max(int(duration/time.Second), constants.HelmRepoMinSyncPeriod)
+		}
+	}
+
 	repo := v1alpha1.HelmRepo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: idutils.GetUuid36(v1alpha1.HelmRepoIdPrefix),
@@ -103,9 +118,13 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 		Spec: v1alpha1.HelmRepoSpec{
 			Name:        createRepoRequest.Name,
 			Url:         parsedUrl.String(),
-			SyncPeriod:  0,
+			SyncPeriod:  syncPeriod,
 			Description: stringutils.ShortenString(createRepoRequest.Description, 512),
 		},
+	}
+
+	if syncPeriod > 0 {
+		repo.Annotations[v1alpha1.RepoSyncPeriod] = createRepoRequest.SyncPeriod
 	}
 
 	if strings.HasPrefix(createRepoRequest.URL, "https://") || strings.HasPrefix(createRepoRequest.URL, "http://") {

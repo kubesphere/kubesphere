@@ -71,6 +71,8 @@ const (
 	OpenpitrixAttachmentTag  = "Attachment"
 	OpenpitrixRepositoryTag  = "Repository"
 	OpenpitrixManagementTag  = "App Management"
+	// HelmRepoMinSyncPeriod min sync period in seconds
+	HelmRepoMinSyncPeriod = 180
 
 	CleanupDanglingAppOngoing = "ongoing"
 	CleanupDanglingAppDone    = "done"
