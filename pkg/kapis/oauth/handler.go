@@ -18,12 +18,14 @@ package oauth
 
 import (
 	"fmt"
-	"gopkg.in/square/go-jose.v2"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"gopkg.in/square/go-jose.v2"
+
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 
 	"github.com/form3tech-oss/jwt-go"
 
@@ -443,7 +445,7 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 			response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
 			return
 		case auth.RateLimitExceededError:
-			response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
+			response.WriteHeaderAndEntity(http.StatusTooManyRequests, oauth.NewInvalidGrant(err))
 			return
 		default:
 			response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
@@ -602,6 +604,7 @@ func (h *handler) codeGrant(req *restful.Request, response *restful.Response) {
 			},
 			Nonce:     authorizeContext.Nonce,
 			TokenType: token.IDToken,
+			Name:      authorizeContext.User.GetName(),
 		},
 		ExpiresIn: h.options.OAuthOptions.AccessTokenMaxAge + h.options.OAuthOptions.AccessTokenInactivityTimeout,
 	}
@@ -654,4 +657,29 @@ func (h *handler) logout(req *restful.Request, resp *restful.Response) {
 
 	resp.Header().Set("Content-Type", "text/plain")
 	http.Redirect(resp, req.Request, redirectURL.String(), http.StatusFound)
+}
+
+// userinfo Endpoint is an OAuth 2.0 Protected Resource that returns Claims about the authenticated End-User.
+func (h *handler) userinfo(req *restful.Request, response *restful.Response) {
+	authenticated, _ := request.UserFrom(req.Request.Context())
+	if authenticated == nil || authenticated.GetName() == user.Anonymous {
+		response.WriteHeaderAndEntity(http.StatusUnauthorized, oauth.ErrorLoginRequired)
+		return
+	}
+	detail, err := h.im.DescribeUser(authenticated.GetName())
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		return
+	}
+
+	result := token.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: detail.Name,
+		},
+		Name:              detail.Name,
+		Email:             detail.Spec.Email,
+		Locale:            detail.Spec.Lang,
+		PreferredUsername: detail.Name,
+	}
+	response.WriteEntity(result)
 }

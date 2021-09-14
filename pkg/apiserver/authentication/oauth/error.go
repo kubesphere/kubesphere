@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright 2021 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package oauth
 
 import "fmt"
 
+// The following error type is defined in https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
 var (
 	// ErrorInvalidClient
 	// Client authentication failed (e.g., unknown client, no

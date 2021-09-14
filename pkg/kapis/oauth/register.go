@@ -57,6 +57,8 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		Doc("The OpenID Provider's configuration information can be retrieved."))
 	ws.Route(ws.GET("/keys").To(handler.keys).
 		Doc("OP's JSON Web Key Set [JWK] document."))
+	ws.Route(ws.GET("/userinfo").To(handler.userinfo).
+		Doc("UserInfo Endpoint is an OAuth 2.0 Protected Resource that returns Claims about the authenticated End-User."))
 
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
@@ -100,15 +102,20 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		To(handler.authorize).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
-	// https://tools.ietf.org/html/rfc6749#section-4.3
+	// https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
 	ws.Route(ws.POST("/token").
 		Consumes(contentTypeFormData).
 		Doc("The resource owner password credentials grant type is suitable in\n"+
 			"cases where the resource owner has a trust relationship with the\n"+
 			"client, such as the device operating system or a highly privileged application.").
-		Param(ws.FormParameter("grant_type", "Value MUST be set to \"password\".").Required(true)).
-		Param(ws.FormParameter("username", "The resource owner username.").Required(true)).
-		Param(ws.FormParameter("password", "The resource owner password.").Required(true)).
+		Param(ws.FormParameter("grant_type", "OAuth defines four grant types: "+
+			"authorization code, implicit, resource owner password credentials, and client credentials.").
+			Required(true)).
+		Param(ws.FormParameter("client_id", "Valid client credential.").Required(true)).
+		Param(ws.FormParameter("client_secret", "Valid client credential.").Required(true)).
+		Param(ws.FormParameter("username", "The resource owner username.").Required(false)).
+		Param(ws.FormParameter("password", "The resource owner password.").Required(false)).
+		Param(ws.FormParameter("code", "Valid authorization code.").Required(false)).
 		To(handler.token).
 		Returns(http.StatusOK, http.StatusText(http.StatusOK), &oauth.Token{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))

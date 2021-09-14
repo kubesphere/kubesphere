@@ -23,6 +23,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
+	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -65,6 +68,21 @@ func preRegistrationUser(idp string, identity identityprovider.Identity) authuse
 			iamv1alpha2.ExtraUsername:         {identity.GetUsername()},
 			iamv1alpha2.ExtraEmail:            {identity.GetEmail()},
 		},
+	}
+}
+
+func mappedUser(idp string, identity identityprovider.Identity) *iamv1alpha2.User {
+	// username convert
+	username := strings.ToLower(identity.GetUsername())
+	return &iamv1alpha2.User{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: username,
+			Labels: map[string]string{
+				iamv1alpha2.IdentifyProviderLabel: idp,
+				iamv1alpha2.OriginUIDLabel:        identity.GetUserID(),
+			},
+		},
+		Spec: iamv1alpha2.UserSpec{Email: identity.GetEmail()},
 	}
 }
 

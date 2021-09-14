@@ -19,42 +19,12 @@ package oauth
 import (
 	"encoding/json"
 	"testing"
-	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v3"
 )
 
-func TestDefaultAuthOptions(t *testing.T) {
-	oneDay := time.Second * 86400
-	zero := time.Duration(0)
-	expect := Client{
-		Name:                         "default",
-		RespondWithChallenges:        true,
-		Secret:                       "kubesphere",
-		RedirectURIs:                 []string{AllowAllRedirectURI},
-		GrantMethod:                  GrantHandlerAuto,
-		ScopeRestrictions:            []string{"full"},
-		AccessTokenMaxAge:            &oneDay,
-		AccessTokenInactivityTimeout: &zero,
-	}
-
-	options := NewOptions()
-	client, err := options.OAuthClient("default")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(expect, client); len(diff) != 0 {
-		t.Errorf("%T differ (-got, +expected), %s", expect, diff)
-	}
-}
-
 func TestClientResolveRedirectURL(t *testing.T) {
-	options := NewOptions()
-	defaultClient, err := options.OAuthClient("default")
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	tests := []struct {
 		Name      string
 		client    Client
@@ -62,34 +32,26 @@ func TestClientResolveRedirectURL(t *testing.T) {
 		expectURL string
 	}{
 		{
-			Name:      "default client test",
-			client:    defaultClient,
-			wantErr:   false,
-			expectURL: "https://localhost:8080/auth/cb",
-		},
-		{
 			Name: "custom client test",
 			client: Client{
-				Name:                  "default",
-				RespondWithChallenges: true,
-				RedirectURIs:          []string{"https://foo.bar.com/oauth/cb"},
-				GrantMethod:           GrantHandlerAuto,
-				ScopeRestrictions:     []string{"full"},
-			},
-			wantErr:   true,
-			expectURL: "https://foo.bar.com/oauth/err",
-		},
-		{
-			Name: "custom client test",
-			client: Client{
-				Name:                  "default",
+				Name:                  "custom",
 				RespondWithChallenges: true,
 				RedirectURIs:          []string{AllowAllRedirectURI, "https://foo.bar.com/oauth/cb"},
 				GrantMethod:           GrantHandlerAuto,
-				ScopeRestrictions:     []string{"full"},
 			},
 			wantErr:   false,
-			expectURL: "https://foo.bar.com/oauth/err2",
+			expectURL: "https://foo.bar.com/oauth/cb",
+		},
+		{
+			Name: "custom client test",
+			client: Client{
+				Name:                  "custom",
+				RespondWithChallenges: true,
+				RedirectURIs:          []string{"https://foo.bar.com/oauth/cb"},
+				GrantMethod:           GrantHandlerAuto,
+			},
+			wantErr:   true,
+			expectURL: "https://foo.bar.com/oauth/cb2",
 		},
 	}
 

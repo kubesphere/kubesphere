@@ -22,6 +22,10 @@ import (
 	"context"
 	"net/http"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -35,49 +39,60 @@ import (
 )
 
 type oauthAuthenticator struct {
-	*userGetter
-	options *authentication.Options
+	ksClient   kubesphere.Interface
+	userGetter *userGetter
+	options    *authentication.Options
 }
 
-func NewOAuthAuthenticator(userLister iamv1alpha2listers.UserLister,
+func NewOAuthAuthenticator(ksClient kubesphere.Interface,
+	userLister iamv1alpha2listers.UserLister,
 	options *authentication.Options) OAuthAuthenticator {
 	authenticator := &oauthAuthenticator{
+		ksClient:   ksClient,
 		userGetter: &userGetter{userLister: userLister},
 		options:    options,
 	}
 	return authenticator
 }
 
-func (o oauthAuthenticator) Authenticate(ctx context.Context, provider string, req *http.Request) (authuser.Info, string, error) {
-	options, err := o.options.OAuthOptions.IdentityProviderOptions(provider)
+func (o *oauthAuthenticator) Authenticate(_ context.Context, provider string, req *http.Request) (authuser.Info, string, error) {
+	providerOptions, err := o.options.OAuthOptions.IdentityProviderOptions(provider)
 	// identity provider not registered
 	if err != nil {
 		klog.Error(err)
 		return nil, "", err
 	}
-	identityProvider, err := identityprovider.GetOAuthProvider(options.Name)
+	oauthIdentityProvider, err := identityprovider.GetOAuthProvider(providerOptions.Name)
 	if err != nil {
 		klog.Error(err)
 		return nil, "", err
 	}
-	identity, err := identityProvider.IdentityExchangeCallback(req)
+	authenticated, err := oauthIdentityProvider.IdentityExchangeCallback(req)
 	if err != nil {
 		klog.Error(err)
 		return nil, "", err
 	}
 
-	mappedUser, err := o.findMappedUser(options.Name, identity.GetUserID())
-	if mappedUser == nil && options.MappingMethod == oauth.MappingMethodLookup {
+	user, err := o.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
+	if user == nil && providerOptions.MappingMethod == oauth.MappingMethodLookup {
 		klog.Error(err)
 		return nil, "", err
 	}
+
 	// the user will automatically create and mapping when login successful.
-	if mappedUser == nil && options.MappingMethod == oauth.MappingMethodAuto {
-		return preRegistrationUser(options.Name, identity), options.Name, nil
-	}
-	if mappedUser != nil {
-		return &authuser.DefaultInfo{Name: mappedUser.GetName()}, options.Name, nil
+	if user == nil && providerOptions.MappingMethod == oauth.MappingMethodAuto {
+		if !providerOptions.DisableLoginConfirmation {
+			return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
+		}
+		user, err = o.ksClient.IamV1alpha2().Users().Create(context.Background(), mappedUser(providerOptions.Name, authenticated), metav1.CreateOptions{})
+		if err != nil {
+			return nil, providerOptions.Name, err
+		}
 	}
 
-	return nil, "", errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularUser), identity.GetUsername())
+	if user != nil {
+		return &authuser.DefaultInfo{Name: user.GetName()}, providerOptions.Name, nil
+	}
+
+	return nil, "", errors.NewNotFound(iamv1alpha2.Resource("user"), authenticated.GetUsername())
 }

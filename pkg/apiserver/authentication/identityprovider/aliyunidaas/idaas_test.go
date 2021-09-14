@@ -53,7 +53,7 @@ endpoint:
   userInfoUrl: "https://xxxxx.login.aliyunidaas.com/api/bff/v1.2/oauth2/userinfo"
   authURL: "https://xxxx.login.aliyunidaas.com/oauth/authorize"
   tokenURL: "https://xxxx.login.aliyunidaas.com/oauth/token"
-redirectURL: "https://console.kubesphere.io/oauth/redirect/idaas"
+redirectURL: "https://ks-console.kubesphere-system.svc/oauth/redirect/idaas"
 scopes:
 - read
 `)},
@@ -65,7 +65,7 @@ scopes:
 					TokenURL:    "https://xxxx.login.aliyunidaas.com/oauth/token",
 					UserInfoURL: "https://xxxxx.login.aliyunidaas.com/api/bff/v1.2/oauth2/userinfo",
 				},
-				RedirectURL: "https://console.kubesphere.io/oauth/redirect/idaas",
+				RedirectURL: "https://ks-console.kubesphere-system.svc/oauth/redirect/idaas",
 				Scopes:      []string{"read"},
 				Config: &oauth2.Config{
 					ClientID:     "xxxx",
@@ -75,7 +75,7 @@ scopes:
 						TokenURL:  "https://xxxx.login.aliyunidaas.com/oauth/token",
 						AuthStyle: oauth2.AuthStyleAutoDetect,
 					},
-					RedirectURL: "https://console.kubesphere.io/oauth/redirect/idaas",
+					RedirectURL: "https://ks-console.kubesphere-system.svc/oauth/redirect/idaas",
 					Scopes:      []string{"read"},
 				},
 			},

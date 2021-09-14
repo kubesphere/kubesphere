@@ -21,6 +21,10 @@ package auth
 import (
 	"context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 
 	"golang.org/x/crypto/bcrypt"
@@ -36,20 +40,23 @@ import (
 )
 
 type passwordAuthenticator struct {
+	ksClient    kubesphere.Interface
 	userGetter  *userGetter
 	authOptions *authentication.Options
 }
 
-func NewPasswordAuthenticator(userLister iamv1alpha2listers.UserLister,
+func NewPasswordAuthenticator(ksClient kubesphere.Interface,
+	userLister iamv1alpha2listers.UserLister,
 	options *authentication.Options) PasswordAuthenticator {
 	passwordAuthenticator := &passwordAuthenticator{
+		ksClient:    ksClient,
 		userGetter:  &userGetter{userLister: userLister},
 		authOptions: options,
 	}
 	return passwordAuthenticator
 }
 
-func (p *passwordAuthenticator) Authenticate(ctx context.Context, username, password string) (authuser.Info, string, error) {
+func (p *passwordAuthenticator) Authenticate(_ context.Context, username, password string) (authuser.Info, string, error) {
 	// empty username or password are not allowed
 	if username == "" || password == "" {
 		return nil, "", IncorrectPasswordError
@@ -69,16 +76,26 @@ func (p *passwordAuthenticator) Authenticate(ctx context.Context, username, pass
 				return nil, providerOptions.Name, err
 			}
 			linkedAccount, err := p.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
+			if err != nil {
+				return nil, providerOptions.Name, err
+			}
 			// using this method requires you to manually provision users.
 			if providerOptions.MappingMethod == oauth.MappingMethodLookup && linkedAccount == nil {
 				continue
 			}
+			// the user will automatically create and mapping when login successful.
+			if linkedAccount == nil && providerOptions.MappingMethod == oauth.MappingMethodAuto {
+				if !providerOptions.DisableLoginConfirmation {
+					return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
+				}
+
+				linkedAccount, err = p.ksClient.IamV1alpha2().Users().Create(context.Background(), mappedUser(providerOptions.Name, authenticated), metav1.CreateOptions{})
+				if err != nil {
+					return nil, providerOptions.Name, err
+				}
+			}
 			if linkedAccount != nil {
 				return &authuser.DefaultInfo{Name: linkedAccount.GetName()}, providerOptions.Name, nil
-			}
-			// the user will automatically create and mapping when login successful.
-			if providerOptions.MappingMethod == oauth.MappingMethodAuto {
-				return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
 			}
 		}
 	}

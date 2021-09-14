@@ -88,6 +88,7 @@ func Test_oauthAuthenticator_Authenticate(t *testing.T) {
 		{
 			name: "Should successfully",
 			oauthAuthenticator: NewOAuthAuthenticator(
+				nil,
 				ksInformerFactory.Iam().V1alpha2().Users().Lister(),
 				oauthOptions,
 			),
@@ -105,6 +106,7 @@ func Test_oauthAuthenticator_Authenticate(t *testing.T) {
 		{
 			name: "Should successfully",
 			oauthAuthenticator: NewOAuthAuthenticator(
+				nil,
 				ksInformerFactory.Iam().V1alpha2().Users().Lister(),
 				oauthOptions,
 			),

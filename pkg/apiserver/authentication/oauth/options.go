@@ -191,7 +191,7 @@ type Token struct {
 type Client struct {
 	// The name of the OAuth client is used as the client_id parameter when making requests to <master>/oauth/authorize
 	// and <master>/oauth/token.
-	Name string
+	Name string `json:"name" yaml:"name,omitempty"`
 
 	// Secret is the unique secret associated with a client
 	Secret string `json:"-" yaml:"secret,omitempty"`
@@ -225,30 +225,13 @@ type Client struct {
 
 var (
 	// AllowAllRedirectURI Allow any redirect URI if the redirectURI is defined in request
-	AllowAllRedirectURI                 = "*"
-	DefaultTokenMaxAge                  = time.Second * 86400
-	DefaultAccessTokenInactivityTimeout = time.Duration(0)
-	DefaultClients                      = []Client{{
-		Name:                         "default",
-		Secret:                       "kubesphere",
-		RespondWithChallenges:        true,
-		RedirectURIs:                 []string{AllowAllRedirectURI},
-		GrantMethod:                  GrantHandlerAuto,
-		ScopeRestrictions:            []string{"full"},
-		AccessTokenMaxAge:            &DefaultTokenMaxAge,
-		AccessTokenInactivityTimeout: &DefaultAccessTokenInactivityTimeout,
-	}}
+	AllowAllRedirectURI = "*"
 )
 
 func (o *Options) OAuthClient(name string) (Client, error) {
 	for _, found := range o.Clients {
 		if found.Name == name {
 			return found, nil
-		}
-	}
-	for _, defaultClient := range DefaultClients {
-		if defaultClient.Name == name {
-			return defaultClient, nil
 		}
 	}
 	return Client{}, ErrorClientNotFound
