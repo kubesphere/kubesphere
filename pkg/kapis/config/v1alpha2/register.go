@@ -45,6 +45,12 @@ func AddToContainer(c *restful.Container, config *kubesphereconfig.Config) error
 			response.WriteAsJson(config.ToMap())
 		}))
 
+	webservice.Route(webservice.GET("/configs/gpu/kinds").
+		Doc("Get all supported GPU kinds.").
+		To(func(request *restful.Request, response *restful.Response) {
+			response.WriteAsJson(config.GPUOptions.Kinds)
+		}))
+
 	c.Add(webservice)
 	return nil
 }
