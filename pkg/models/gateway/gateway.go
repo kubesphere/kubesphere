@@ -25,8 +25,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"kubesphere.io/api/gateway/v1alpha1"
@@ -40,6 +43,7 @@ import (
 )
 
 const (
+	MasterLabel       = "node-role.kubernetes.io/master"
 	SidecarInject     = "sidecar.istio.io/inject"
 	gatewayPrefix     = "kubesphere-router-"
 	workingNamespace  = "kubesphere-controls-system"
@@ -163,6 +167,69 @@ func (c *gatewayOperator) convert(namespace string, svc *corev1.Service, deploy 
 	return &legacy
 }
 
+func (c *gatewayOperator) getMasterNodeIp() []string {
+	internalIps := []string{}
+	masters := &corev1.NodeList{}
+	err := c.cache.List(context.TODO(), masters, &client.ListOptions{LabelSelector: labels.SelectorFromSet(
+		labels.Set{
+			MasterLabel: "",
+		})})
+
+	if err != nil {
+		klog.Info(err)
+		return internalIps
+	}
+
+	for _, node := range masters.Items {
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				internalIps = append(internalIps, address.Address)
+			}
+		}
+	}
+	return internalIps
+}
+
+func (c *gatewayOperator) updateStatus(gateway *v1alpha1.Gateway, svc *corev1.Service) (*v1alpha1.Gateway, error) {
+	// append selected node ip as loadbalancer ingress ip
+	if svc.Spec.Type != corev1.ServiceTypeLoadBalancer && len(svc.Status.LoadBalancer.Ingress) == 0 {
+		rips := c.getMasterNodeIp()
+		for _, rip := range rips {
+			gIngress := corev1.LoadBalancerIngress{
+				IP: rip,
+			}
+			svc.Status.LoadBalancer.Ingress = append(svc.Status.LoadBalancer.Ingress, gIngress)
+		}
+	}
+
+	status := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"loadBalancer": svc.Status.LoadBalancer,
+			"service":      svc.Spec.Ports,
+		},
+	}
+
+	target, err := status.MarshalJSON()
+	if err != nil {
+		return gateway, err
+	}
+	if gateway.Status.Raw != nil {
+		//merge with origin status
+		patch, err := jsonpatch.CreateMergePatch([]byte(`{}`), target)
+		if err != nil {
+			return gateway, err
+		}
+		modified, err := jsonpatch.MergePatch(gateway.Status.Raw, patch)
+		if err != nil {
+			return gateway, err
+		}
+		gateway.Status.Raw = modified
+		return gateway, err
+	}
+	gateway.Status.Raw = target
+	return gateway, nil
+}
+
 // GetGateways returns all Gateways from the project. There are at most 2 gatways exists in a project,
 // a Glabal Gateway and a Project Gateway or a Legacy Project Gateway.
 func (c *gatewayOperator) GetGateways(namespace string) ([]*v1alpha1.Gateway, error) {
@@ -188,6 +255,22 @@ func (c *gatewayOperator) GetGateways(namespace string) ([]*v1alpha1.Gateway, er
 		return nil, err
 	}
 	gateways = append(gateways, obj)
+
+	for _, g := range gateways {
+		s := &corev1.Service{}
+		// We supports the Service name always as same as gateway name.
+		// TODO: We need a mapping relation between the service and the gateway. Label Selector should be a good option.
+		err := c.client.Get(context.TODO(), client.ObjectKeyFromObject(g), s)
+		if err != nil {
+			klog.Info(err)
+			continue
+		}
+		_, err = c.updateStatus(g, s)
+		if err != nil {
+			klog.Info(err)
+		}
+	}
+
 	return gateways, err
 }
 
@@ -312,12 +395,28 @@ func (c *gatewayOperator) ListGateways(query *query.Query) (*api.ListResult, err
 
 func (c *gatewayOperator) transform(obj runtime.Object) runtime.Object {
 	if g, ok := obj.(*v1alpha1.Gateway); ok {
+		svc := &corev1.Service{}
+		// We supports the Service name always same as gateway name.
+		err := c.client.Get(context.TODO(), client.ObjectKeyFromObject(g), svc)
+		if err != nil {
+			klog.Info(err)
+			return g
+		}
+		g, err := c.updateStatus(g, svc)
+		if err != nil {
+			klog.Info(err)
+		}
 		return g
+
 	}
-	if s, ok := obj.(*corev1.Service); ok {
+	if svc, ok := obj.(*corev1.Service); ok {
 		d := &appsv1.Deployment{}
-		c.client.Get(context.TODO(), client.ObjectKeyFromObject(s), d)
-		return c.convert(s.Labels["project"], s, d)
+		c.client.Get(context.TODO(), client.ObjectKeyFromObject(svc), d)
+		g, err := c.updateStatus(c.convert(svc.Labels["project"], svc, d), svc)
+		if err != nil {
+			klog.Info(err)
+		}
+		return g
 	}
 	return nil
 }
