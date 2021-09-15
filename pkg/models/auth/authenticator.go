@@ -19,8 +19,12 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"net/mail"
+	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -113,16 +117,26 @@ func (p *passwordAuthenticator) Authenticate(username, password string) (authuse
 				return nil, providerOptions.Name, err
 			}
 			linkedAccount, err := p.userGetter.findLinkedAccount(providerOptions.Name, authenticated.GetUserID())
+			if err != nil {
+				return nil, providerOptions.Name, err
+			}
 			// using this method requires you to manually provision users.
 			if providerOptions.MappingMethod == oauth.MappingMethodLookup && linkedAccount == nil {
 				continue
 			}
+			// the user will automatically create and mapping when login successful.
+			if linkedAccount == nil && providerOptions.MappingMethod == oauth.MappingMethodAuto {
+				if !providerOptions.DisableLoginConfirmation {
+					return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
+				}
+
+				linkedAccount, err = p.ksClient.IamV1alpha2().Users().Create(context.Background(), mappedUser(providerOptions.Name, authenticated), metav1.CreateOptions{})
+				if err != nil {
+					return nil, providerOptions.Name, err
+				}
+			}
 			if linkedAccount != nil {
 				return &authuser.DefaultInfo{Name: linkedAccount.GetName()}, providerOptions.Name, nil
-			}
-			// the user will automatically create and mapping when login successful.
-			if providerOptions.MappingMethod == oauth.MappingMethodAuto {
-				return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
 			}
 		}
 	}
@@ -183,7 +197,22 @@ func preRegistrationUser(idp string, identity identityprovider.Identity) authuse
 	}
 }
 
-func (o oauth2Authenticator) Authenticate(provider, code string) (authuser.Info, string, error) {
+func mappedUser(idp string, identity identityprovider.Identity) *iamv1alpha2.User {
+	// username convert
+	username := strings.ToLower(identity.GetUsername())
+	return &iamv1alpha2.User{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: username,
+			Labels: map[string]string{
+				iamv1alpha2.IdentifyProviderLabel: idp,
+				iamv1alpha2.OriginUIDLabel:        identity.GetUserID(),
+			},
+		},
+		Spec: iamv1alpha2.UserSpec{Email: identity.GetEmail()},
+	}
+}
+
+func (o *oauth2Authenticator) Authenticate(provider, code string) (authuser.Info, string, error) {
 	providerOptions, err := o.authOptions.OAuthOptions.IdentityProviderOptions(provider)
 	// identity provider not registered
 	if err != nil {
@@ -206,10 +235,18 @@ func (o oauth2Authenticator) Authenticate(provider, code string) (authuser.Info,
 		klog.Error(err)
 		return nil, "", err
 	}
+
 	// the user will automatically create and mapping when login successful.
 	if user == nil && providerOptions.MappingMethod == oauth.MappingMethodAuto {
-		return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
+		if !providerOptions.DisableLoginConfirmation {
+			return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
+		}
+		user, err = o.ksClient.IamV1alpha2().Users().Create(context.Background(), mappedUser(providerOptions.Name, authenticated), metav1.CreateOptions{})
+		if err != nil {
+			return nil, providerOptions.Name, err
+		}
 	}
+
 	if user != nil {
 		return &authuser.DefaultInfo{Name: user.GetName()}, providerOptions.Name, nil
 	}

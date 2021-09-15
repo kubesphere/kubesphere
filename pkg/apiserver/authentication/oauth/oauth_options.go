@@ -37,7 +37,8 @@ const (
 	GrantHandlerPrompt GrantHandlerType = "prompt"
 	// GrantHandlerDeny auto-denies client authorization grant requests
 	GrantHandlerDeny GrantHandlerType = "deny"
-	// MappingMethodAuto  The default value.The user will automatically create and mapping when login successful.
+	// MappingMethodAuto  The default value.
+	// The user will automatically create and mapping when login successful.
 	// Fails if a user with that username is already mapped to another identity.
 	MappingMethodAuto MappingMethod = "auto"
 	// MappingMethodLookup Looks up an existing identity, user identity mapping, and user, but does not automatically
@@ -140,6 +141,11 @@ type IdentityProviderOptions struct {
 	//            provision users or identities. Using this method requires you to manually provision users.
 	//  - mixed:  A user entity can be mapped with multiple identifyProvider.
 	MappingMethod MappingMethod `json:"mappingMethod" yaml:"mappingMethod"`
+
+	// DisableLoginConfirmation means that when the user login successfully,
+	// reconfirm the account information is not required.
+	// Username from IDP must math [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*
+	DisableLoginConfirmation bool `json:"disableLoginConfirmation" yaml:"disableLoginConfirmation"`
 
 	// The type of identify provider
 	// OpenIDIdentityProvider LDAPIdentityProvider GitHubIdentityProvider
