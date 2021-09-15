@@ -431,6 +431,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("job", "The job name filter. Ingress could be served by multi Ingress controllers, The job filters metric from a specific controller.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("pod", "The pod name filter.").DataType("string")).
+		Param(ws.QueryParameter("duration", "The duration is the time window of Range Vector. The format is [0-9]+[smhdwy]. Defaults to 5m (i.e. 5 min).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "The PVC filter consists of a regexp pattern. It specifies which PVC data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
@@ -453,6 +454,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.PathParameter("ingress", "ingress name.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("job", "The job name filter. Ingress could be served by multi Ingress controllers, The job filters metric from a specific controller.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("pod", "The pod filter.").DataType("string")).
+		Param(ws.QueryParameter("duration", "The duration is the time window of Range Vector. The format is [0-9]+[smhdwy]. Defaults to 5m (i.e. 5 min).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).

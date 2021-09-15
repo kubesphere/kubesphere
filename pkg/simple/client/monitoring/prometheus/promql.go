@@ -472,8 +472,8 @@ func makeIngressMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	duration := "5m"
 
 	// parse Range Vector Selectors metric{key=value}[duration]
-	if o.MeterOptions != nil {
-		duration = o.MeterOptions.Step.String()
+	if o.Duration != nil {
+		duration = o.Duration.String()
 	}
 
 	// For monitoring ingress in the specific namespace

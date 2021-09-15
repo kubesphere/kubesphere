@@ -84,6 +84,7 @@ type QueryOptions struct {
 	ServiceName               string
 	Ingress                   string
 	Job                       string
+	Duration                  *time.Duration
 	MeterOptions              *Meteroptions
 }
 
@@ -296,7 +297,7 @@ type IngressOption struct {
 	Ingress        string
 	Job            string
 	Pod            string
-	Step           *time.Duration
+	Duration       *time.Duration
 }
 
 func (no IngressOption) Apply(o *QueryOptions) {
@@ -306,11 +307,7 @@ func (no IngressOption) Apply(o *QueryOptions) {
 	o.Ingress = no.Ingress
 	o.Job = no.Job
 	o.PodName = no.Pod
-	if no.Step != nil {
-		o.MeterOptions = &Meteroptions{
-			Step: *no.Step,
-		}
-	}
+	o.Duration = no.Duration
 }
 
 type ComponentOption struct{}

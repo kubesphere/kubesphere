@@ -91,6 +91,7 @@ type reqParams struct {
 	ingress                   string
 	job                       string
 	services                  string
+	duration                  string
 	pvcFilter                 string
 	queryType                 string
 }
@@ -152,6 +153,7 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.componentType = req.PathParameter("component")
 	r.ingress = req.PathParameter("ingress")
 	r.job = req.QueryParameter("job")
+	r.duration = req.QueryParameter("duration")
 	r.expression = req.QueryParameter("expr")
 	r.metric = req.QueryParameter("metric")
 	r.queryType = req.QueryParameter("type")
@@ -345,12 +347,12 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 
 	case monitoring.LevelIngress:
 		q.identifier = model.IdentifierIngress
-		var step *time.Duration
-		// step param is reused in none Range Query to pass vector's time duration.
+		var du *time.Duration
+		// duration param is used in none Range Query to pass vector's time duration.
 		if r.time != "" {
-			s, err := time.ParseDuration(r.step)
+			s, err := time.ParseDuration(r.duration)
 			if err == nil {
-				step = &s
+				du = &s
 			}
 		}
 		q.option = monitoring.IngressOption{
@@ -359,7 +361,7 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 			Ingress:        r.ingress,
 			Job:            r.job,
 			Pod:            r.podName,
-			Step:           step,
+			Duration:       du,
 		}
 		q.namedMetrics = model.IngressMetrics
 
