@@ -40,10 +40,11 @@ import (
 )
 
 const (
+	SidecarInject     = "sidecar.istio.io/inject"
 	gatewayPrefix     = "kubesphere-router-"
 	workingNamespace  = "kubesphere-controls-system"
 	globalGatewayname = gatewayPrefix + "kubesphere-system"
-	helmPatch         = `{"metadata":{"annotations":{"meta.helm.sh/release-name":"%s-ingress","meta.helm.sh/release-namespace":"%s"},"labels":{"helm.sh/chart":"ingress-nginx-3.35.0","app.kubernetes.io/managed-by":"Helm","app":null,"component":null,"tier":null}}}`
+	helmPatch         = `{"metadata":{"annotations":{"meta.helm.sh/release-name":"%s-ingress","meta.helm.sh/release-namespace":"%s"},"labels":{"helm.sh/chart":"ingress-nginx-3.35.0","app.kubernetes.io/managed-by":"Helm","app":null,"component":null,"tier":null}},"spec":{"selector":null}}`
 )
 
 type GatewayOperator interface {
@@ -121,12 +122,15 @@ func (c *gatewayOperator) getLegacyGateway(namespace string) *v1alpha1.Gateway {
 
 	// create a fake Gateway object when legacy service exists
 	if len(s.Items) > 0 {
-		return c.convert(namespace, &s.Items[0])
+		d := &appsv1.Deployment{}
+		c.client.Get(context.TODO(), client.ObjectKeyFromObject(&s.Items[0]), d)
+
+		return c.convert(namespace, &s.Items[0], d)
 	}
 	return nil
 }
 
-func (c *gatewayOperator) convert(namespace string, svc *corev1.Service) *v1alpha1.Gateway {
+func (c *gatewayOperator) convert(namespace string, svc *corev1.Service, deploy *appsv1.Deployment) *v1alpha1.Gateway {
 	legacy := v1alpha1.Gateway{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "",
@@ -147,7 +151,14 @@ func (c *gatewayOperator) convert(namespace string, svc *corev1.Service) *v1alph
 				Annotations: svc.Annotations,
 				Type:        svc.Spec.Type,
 			},
+			Deployment: v1alpha1.DeploymentSpec{
+				Replicas: deploy.Spec.Replicas,
+			},
 		},
+	}
+	if an, ok := deploy.Annotations[SidecarInject]; ok {
+		legacy.Spec.Deployment.Annotations = make(map[string]string)
+		legacy.Spec.Deployment.Annotations[SidecarInject] = an
 	}
 	return &legacy
 }
@@ -228,14 +239,25 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 		return nil, fmt.Errorf("invalid operation, can't upgrade legacy gateway when working namespace changed")
 	}
 
+	// Get legency gateway's config from configmap
+	cm := &corev1.ConfigMap{}
+	err := c.client.Get(context.TODO(), client.ObjectKey{Namespace: l.Namespace, Name: fmt.Sprintf("%s-nginx", l.Name)}, cm)
+	if err == nil {
+		l.Spec.Conroller.Config = cm.Data
+		defer func() {
+			c.client.Delete(context.TODO(), cm)
+		}()
+	}
+
 	// Delete old deployment, because it's not compatile with the deployment in the helm chart.
+	// We can't defer here, there's a potential race condition causing gateway operator fails.
 	d := &appsv1.Deployment{
 		ObjectMeta: v1.ObjectMeta{
 			Namespace: l.Namespace,
 			Name:      l.Name,
 		},
 	}
-	err := c.client.Delete(context.TODO(), d)
+	err = c.client.Delete(context.TODO(), d)
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
@@ -259,14 +281,14 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 }
 
 func (c *gatewayOperator) ListGateways(query *query.Query) (*api.ListResult, error) {
-	applications := v1alpha1.GatewayList{}
-	err := c.cache.List(context.TODO(), &applications, &client.ListOptions{LabelSelector: query.Selector()})
+	gateways := v1alpha1.GatewayList{}
+	err := c.cache.List(context.TODO(), &gateways, &client.ListOptions{LabelSelector: query.Selector()})
 	if err != nil {
 		return nil, err
 	}
 	var result []runtime.Object
-	for i := range applications.Items {
-		result = append(result, &applications.Items[i])
+	for i := range gateways.Items {
+		result = append(result, &gateways.Items[i])
 	}
 
 	services := &corev1.ServiceList{}
@@ -282,29 +304,40 @@ func (c *gatewayOperator) ListGateways(query *query.Query) (*api.ListResult, err
 	})
 
 	for _, s := range services.Items {
-		g := c.convert(s.Labels["project"], &s)
-		result = append(result, g)
+		result = append(result, &s)
 	}
 
-	return v1alpha3.DefaultList(result, query, c.compare, c.filter), nil
+	return v1alpha3.DefaultList(result, query, c.compare, c.filter, c.transform), nil
 }
 
-func (d *gatewayOperator) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+func (c *gatewayOperator) transform(obj runtime.Object) runtime.Object {
+	if g, ok := obj.(*v1alpha1.Gateway); ok {
+		return g
+	}
+	if s, ok := obj.(*corev1.Service); ok {
+		d := &appsv1.Deployment{}
+		c.client.Get(context.TODO(), client.ObjectKeyFromObject(s), d)
+		return c.convert(s.Labels["project"], s, d)
+	}
+	return nil
+}
 
-	leftApplication, ok := left.(*v1alpha1.Gateway)
+func (c *gatewayOperator) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+
+	leftGateway, ok := left.(*v1alpha1.Gateway)
 	if !ok {
 		return false
 	}
 
-	rightApplication, ok := right.(*v1alpha1.Gateway)
+	rightGateway, ok := right.(*v1alpha1.Gateway)
 	if !ok {
 		return false
 	}
 
-	return v1alpha3.DefaultObjectMetaCompare(leftApplication.ObjectMeta, rightApplication.ObjectMeta, field)
+	return v1alpha3.DefaultObjectMetaCompare(leftGateway.ObjectMeta, rightGateway.ObjectMeta, field)
 }
 
-func (d *gatewayOperator) filter(object runtime.Object, filter query.Filter) bool {
+func (c *gatewayOperator) filter(object runtime.Object, filter query.Filter) bool {
 	gateway, ok := object.(*v1alpha1.Gateway)
 	if !ok {
 		return false

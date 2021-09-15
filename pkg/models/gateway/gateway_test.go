@@ -26,11 +26,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"kubesphere.io/api/gateway/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 )
 
@@ -236,6 +240,45 @@ func create_LegacyGateway(c client.Client, namespace string) {
 		},
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceTypeNodePort,
+		},
+	}
+	c.Create(context.TODO(), s)
+
+	d := &appsv1.Deployment{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      fmt.Sprint(gatewayPrefix, namespace),
+			Namespace: workingNamespace,
+			Annotations: map[string]string{
+				SidecarInject: "true",
+			},
+			Labels: map[string]string{
+				"app":       "kubesphere",
+				"component": "ks-router",
+				"tier":      "backend",
+				"project":   namespace,
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &[]int32{1}[0],
+		},
+	}
+	c.Create(context.TODO(), d)
+}
+
+func create_LegacyGatewayConfigMap(c client.Client, namespace string) {
+	s := &corev1.ConfigMap{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      fmt.Sprint(gatewayPrefix, namespace, "-nginx"),
+			Namespace: workingNamespace,
+			Labels: map[string]string{
+				"app":       "kubesphere",
+				"component": "ks-router",
+				"tier":      "backend",
+				"project":   namespace,
+			},
+		},
+		Data: map[string]string{
+			"fake": "true",
 		},
 	}
 	c.Create(context.TODO(), s)
@@ -508,6 +551,7 @@ func Test_gatewayOperator_UpgradeGateway(t *testing.T) {
 	appsv1.AddToScheme(Scheme)
 	client2 := fake.NewFakeClientWithScheme(Scheme)
 	create_LegacyGateway(client2, "project2")
+	create_LegacyGatewayConfigMap(client2, "project2")
 
 	tests := []struct {
 		name    string
@@ -552,12 +596,21 @@ func Test_gatewayOperator_UpgradeGateway(t *testing.T) {
 							Enabled:   true,
 							Namespace: "project2",
 						},
+						Config: map[string]string{
+							"fake": "true",
+						},
 					},
 					Service: v1alpha1.ServiceSpec{
 						Annotations: map[string]string{
 							"fake": "true",
 						},
 						Type: corev1.ServiceTypeNodePort,
+					},
+					Deployment: v1alpha1.DeploymentSpec{
+						Replicas: &[]int32{1}[0],
+						Annotations: map[string]string{
+							"sidecar.istio.io/inject": "true",
+						},
 					},
 				},
 			},
@@ -579,4 +632,161 @@ func Test_gatewayOperator_UpgradeGateway(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_gatewayOperator_ListGateways(t *testing.T) {
+	type fields struct {
+		client  client.Client
+		cache   cache.Cache
+		options *gateway.Options
+	}
+	type args struct {
+		query *query.Query
+	}
+
+	var Scheme = runtime.NewScheme()
+	v1alpha1.AddToScheme(Scheme)
+	corev1.AddToScheme(Scheme)
+	appsv1.AddToScheme(Scheme)
+
+	client := fake.NewFakeClientWithScheme(Scheme)
+
+	create_LegacyGateway(client, "project2")
+
+	client.Create(context.TODO(), &v1alpha1.Gateway{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "kubesphere-router-project1",
+			Namespace: "project1",
+		},
+	})
+
+	gates := []*v1alpha1.Gateway{
+		{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      fmt.Sprint(gatewayPrefix, "project2"),
+				Namespace: "kubesphere-controls-system",
+			},
+			Spec: v1alpha1.GatewaySpec{
+				Conroller: v1alpha1.ControllerSpec{
+					Scope: v1alpha1.Scope{
+						Enabled:   true,
+						Namespace: "project2",
+					},
+				},
+				Service: v1alpha1.ServiceSpec{
+					Annotations: map[string]string{
+						"fake": "true",
+					},
+					Type: corev1.ServiceTypeNodePort,
+				},
+				Deployment: v1alpha1.DeploymentSpec{
+					Replicas: &[]int32{1}[0],
+					Annotations: map[string]string{
+						SidecarInject: "true",
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: v1.ObjectMeta{
+				Name:            fmt.Sprint(gatewayPrefix, "project1"),
+				Namespace:       "project1",
+				ResourceVersion: "1",
+			},
+		},
+	}
+
+	items := make([]interface{}, 0)
+	for _, obj := range gates {
+		items = append(items, obj)
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *api.ListResult
+		wantErr bool
+	}{
+		{
+			name: "list all gateways",
+			fields: fields{
+				client: client,
+				cache:  &fakeClient{Client: client},
+				options: &gateway.Options{
+					Namespace: "kubesphere-controls-system",
+				},
+			},
+			args: args{
+				query: &query.Query{},
+			},
+			want: &api.ListResult{
+				TotalItems: 2,
+				Items:      items,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &gatewayOperator{
+				client:  tt.fields.client,
+				cache:   tt.fields.cache,
+				options: tt.fields.options,
+			}
+			got, err := c.ListGateways(tt.args.query)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("gatewayOperator.ListGateways() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("gatewayOperator.ListGateways() has wrong object\nDiff:\n %s", diff.ObjectGoPrintSideBySide(tt.want, got))
+			}
+		})
+	}
+}
+
+type fakeClient struct {
+	Client client.Client
+}
+
+// Get retrieves an obj for the given object key from the Kubernetes Cluster.
+// obj must be a struct pointer so that obj can be updated with the response
+// returned by the Server.
+func (f *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+	return f.Client.Get(ctx, key, obj)
+}
+
+// List retrieves list of objects for a given namespace and list options. On a
+// successful call, Items field in the list will be populated with the
+// result returned from the server.
+func (f *fakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	return f.Client.List(ctx, list, opts...)
+}
+
+// GetInformer fetches or constructs an informer for the given object that corresponds to a single
+// API kind and resource.
+func (f *fakeClient) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
+	return nil, nil
+}
+
+// GetInformerForKind is similar to GetInformer, except that it takes a group-version-kind, instead
+// of the underlying object.
+func (f *fakeClient) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (cache.Informer, error) {
+	return nil, nil
+}
+
+// Start runs all the informers known to this cache until the context is closed.
+// It blocks.
+func (f *fakeClient) Start(ctx context.Context) error {
+	return nil
+}
+
+// WaitForCacheSync waits for all the caches to sync.  Returns false if it could not sync a cache.
+func (f *fakeClient) WaitForCacheSync(ctx context.Context) bool {
+	return false
+}
+
+func (f *fakeClient) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
+	return nil
 }
