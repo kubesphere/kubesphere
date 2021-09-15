@@ -179,6 +179,8 @@ var promQLTemplates = map[string]string{
 	"ingress_request_volume_by_ingress":     `round(sum(irate(nginx_ingress_controller_requests{$1,$2}[$3])) by (ingress), 0.001)`,
 	"ingress_request_network_sent":          `sum(irate(nginx_ingress_controller_response_size_sum{$1,$2}[$3]))`,
 	"ingress_request_network_received":      `sum(irate(nginx_ingress_controller_request_size_sum{$1,$2}[$3]))`,
+	"ingress_request_memory_bytes":          `avg(nginx_ingress_controller_nginx_process_resident_memory_bytes{$2})`,
+	"ingress_request_cpu_usage":             `avg(rate(nginx_ingress_controller_nginx_process_cpu_seconds_total{$2}[5m]))`,
 
 	// workload
 	"workload_cpu_usage":             `round(namespace:workload_cpu_usage:sum{$1}, 0.001)`,

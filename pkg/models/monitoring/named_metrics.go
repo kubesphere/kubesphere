@@ -288,6 +288,8 @@ var IngressMetrics = []string{
 	"ingress_request_volume_by_ingress",
 	"ingress_request_network_sent",
 	"ingress_request_network_received",
+	"ingress_request_memory_bytes",
+	"ingress_request_cpu_usage",
 }
 
 var EtcdMetrics = []string{
