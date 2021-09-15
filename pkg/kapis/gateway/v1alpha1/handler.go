@@ -17,30 +17,44 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/api/gateway/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiserver/pkg/util/flushwriter"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"kubesphere.io/api/gateway/v1alpha1"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	"kubesphere.io/kubesphere/pkg/informers"
 	operator "kubesphere.io/kubesphere/pkg/models/gateway"
+
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
+	conversionsv1 "kubesphere.io/kubesphere/pkg/utils/conversions/core/v1"
 )
 
 type handler struct {
 	options *gateway.Options
 	gw      operator.GatewayOperator
+	factory informers.InformerFactory
 }
 
 //newHandler create an instance of the handler
-func newHandler(options *gateway.Options, cache cache.Cache, client client.Client) *handler {
+func newHandler(options *gateway.Options, cache cache.Cache, client client.Client, factory informers.InformerFactory, k8sClient kubernetes.Interface) *handler {
+	conversionsv1.RegisterConversions(scheme.Scheme)
 	// Do not register Gateway scheme globally. Which will cause conflict in ks-controller-manager.
 	v1alpha1.AddToScheme(client.Scheme())
 	return &handler{
 		options: options,
-		gw:      operator.NewGatewayOperator(client, cache, options),
+		factory: factory,
+		gw:      operator.NewGatewayOperator(client, cache, options, factory, k8sClient),
 	}
 }
 
@@ -125,4 +139,37 @@ func (h *handler) List(request *restful.Request, response *restful.Response) {
 	}
 
 	response.WriteEntity(result)
+}
+
+func (h *handler) ListPods(request *restful.Request, response *restful.Response) {
+	queryParam := query.ParseQueryParameter(request)
+	ns := request.PathParameter("namespace")
+
+	result, err := h.gw.GetPods(ns, queryParam)
+	if err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(result)
+}
+
+func (h *handler) PodLog(request *restful.Request, response *restful.Response) {
+
+	podNamespace := request.PathParameter("namespace")
+	podID := request.PathParameter("pod")
+
+	query := request.Request.URL.Query()
+	logOptions := &corev1.PodLogOptions{}
+	if err := scheme.ParameterCodec.DecodeParameters(query, corev1.SchemeGroupVersion, logOptions); err != nil {
+		api.HandleError(response, request, fmt.Errorf("unable to decode query"))
+		return
+	}
+
+	fw := flushwriter.Wrap(response.ResponseWriter)
+	err := h.gw.GetPodLogs(context.TODO(), podNamespace, podID, logOptions, fw)
+	if err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
 }

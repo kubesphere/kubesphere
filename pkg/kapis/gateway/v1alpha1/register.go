@@ -22,6 +22,7 @@ import (
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/api/gateway/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,16 +30,17 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 )
 
 var GroupVersion = schema.GroupVersion{Group: "gateway.kubesphere.io", Version: "v1alpha1"}
 
-func AddToContainer(container *restful.Container, options *gateway.Options, cache cache.Cache, client client.Client) error {
+func AddToContainer(container *restful.Container, options *gateway.Options, cache cache.Cache, client client.Client, factory informers.InformerFactory, k8sClient kubernetes.Interface) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	handler := newHandler(options, cache, client)
+	handler := newHandler(options, cache, client, factory, k8sClient)
 
 	// register gateway apis
 	ws.Route(ws.POST("/namespaces/{namespace}/gateways").
@@ -82,6 +84,21 @@ func AddToContainer(container *restful.Container, options *gateway.Options, cach
 	ws.Route(ws.GET("/gateways/").
 		To(handler.List).
 		Doc("List Gateway details.").
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.Gateway{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GatewayTag}))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/gateways/{gateway}/pods").
+		To(handler.ListPods).
+		Doc("Retrieve gateways workload pods.").
+		Param(ws.PathParameter("namespace", "the watching namespace of the gateway")).
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.Gateway{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GatewayTag}))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/gateways/{gateway}/pods/{pod}/log").
+		To(handler.PodLog).
+		Doc("Retrieve log of the gateway's pod").
+		Param(ws.PathParameter("namespace", "the watching namespace of the gateway")).
+		Param(ws.PathParameter("pod", "the pod name of the gateway")).
 		Returns(http.StatusOK, api.StatusOK, v1alpha1.Gateway{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GatewayTag}))
 
