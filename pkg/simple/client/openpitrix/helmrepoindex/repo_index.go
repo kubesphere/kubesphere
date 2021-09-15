@@ -78,8 +78,8 @@ func loadIndex(data []byte) (*helmrepo.IndexFile, error) {
 
 var empty = struct{}{}
 
-// merge new index with index from crd
-func MergeRepoIndex(index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *SavedIndex {
+// MergeRepoIndex merge new index with index from crd
+func MergeRepoIndex(repo *v1alpha1.HelmRepo, index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *SavedIndex {
 	saved := &SavedIndex{}
 	if index == nil {
 		return existsSavedIndex
@@ -102,20 +102,37 @@ func MergeRepoIndex(index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *Sa
 		// add new applications
 		if application, exists := saved.Applications[name]; !exists {
 			application = &Application{
-				Name:          name,
-				ApplicationId: idutils.GetUuid36(v1alpha1.HelmApplicationIdPrefix),
-				Description:   versions[0].Description,
-				Icon:          versions[0].Icon,
+				Name:        name,
+				Description: versions[0].Description,
+				Icon:        versions[0].Icon,
+				Created:     time.Now(),
+			}
+
+			// The app version will be added to the labels of the helm release.
+			// But the apps in the repos which are created by the user may contain malformed text, so we generate a random name for them.
+			// The apps in the system repo have been audited by the admin, so the name of the charts should not include malformed text.
+			// Then we can add the name string to the labels of the k8s object.
+			if IsBuiltInRepo(repo.Name) {
+				application.ApplicationId = fmt.Sprintf("%s%s-%s", v1alpha1.HelmApplicationIdPrefix, repo.Name, name)
+			} else {
+				application.ApplicationId = idutils.GetUuid36(v1alpha1.HelmApplicationIdPrefix)
 			}
 
 			charts := make([]*ChartVersion, 0, len(versions))
+
 			for ind := range versions {
 				chart := &ChartVersion{
-					ApplicationId:        application.ApplicationId,
-					ApplicationVersionId: idutils.GetUuid36(v1alpha1.HelmApplicationVersionIdPrefix),
-					ChartVersion:         *versions[ind],
+					ApplicationId: application.ApplicationId,
+					ChartVersion:  *versions[ind],
 				}
+
+				chart.ApplicationVersionId = generateAppVersionId(repo, versions[ind].Name, versions[ind].Version)
 				charts = append(charts, chart)
+
+				// Use the creation time of the oldest chart as the creation time of the app.
+				if versions[ind].Created.Before(application.Created) {
+					application.Created = versions[ind].Created
+				}
 			}
 
 			application.Charts = charts
@@ -132,10 +149,11 @@ func MergeRepoIndex(index *helmrepo.IndexFile, existsSavedIndex *SavedIndex) *Sa
 				// add new chart version
 				if _, exists := savedChartVersion[ver.Version]; !exists {
 					chart := &ChartVersion{
-						ApplicationId:        application.ApplicationId,
-						ApplicationVersionId: idutils.GetUuid36(v1alpha1.HelmApplicationVersionIdPrefix),
-						ChartVersion:         *ver,
+						ApplicationId: application.ApplicationId,
+						ChartVersion:  *ver,
 					}
+
+					chart.ApplicationVersionId = generateAppVersionId(repo, ver.Name, ver.Version)
 					charts = append(charts, chart)
 				}
 				newVersion[ver.Version] = empty
@@ -202,6 +220,26 @@ func (i *SavedIndex) GetApplicationVersion(appId, versionId string) *v1alpha1.He
 		}
 	}
 	return nil
+}
+
+// The app version name will be added to the labels of the helm release.
+// But the apps in the repos which are created by the user may contain malformed text, so we generate a random name for them.
+// The apps in the system repo have been audited by the admin, so the name of the charts should not include malformed text.
+// Then we can add the name string to the labels of the k8s object.
+func generateAppVersionId(repo *v1alpha1.HelmRepo, chartName, version string) string {
+	if IsBuiltInRepo(repo.Name) {
+		return fmt.Sprintf("%s%s-%s-%s", v1alpha1.HelmApplicationIdPrefix, repo.Name, chartName, version)
+	} else {
+		return idutils.GetUuid36(v1alpha1.HelmApplicationVersionIdPrefix)
+	}
+
+}
+
+// IsBuiltInRepo checks whether a repo is a built-in repo.
+// All the built-in repos are located in the workspace system-workspace and the name starts with 'built-in'
+// to differentiate from the repos created by the user
+func IsBuiltInRepo(repoName string) bool {
+	return strings.HasPrefix(repoName, v1alpha1.BuiltinRepoPrefix)
 }
 
 type SavedIndex struct {
@@ -290,7 +328,7 @@ type Application struct {
 	// application status
 	Status string `json:"status"`
 	// The URL to an icon file.
-	Icon string `json:"icon,omitempty"`
-
-	Charts []*ChartVersion `json:"charts"`
+	Icon    string          `json:"icon,omitempty"`
+	Created time.Time       `json:"created"`
+	Charts  []*ChartVersion `json:"charts"`
 }

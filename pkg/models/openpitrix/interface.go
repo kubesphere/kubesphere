@@ -66,10 +66,9 @@ func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient ve
 				cachedReposData.AddRepo(r)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				oldR := oldObj.(*v1alpha1.HelmRepo)
-				cachedReposData.DeleteRepo(oldR)
-				r := newObj.(*v1alpha1.HelmRepo)
-				cachedReposData.AddRepo(r)
+				oldRepo := oldObj.(*v1alpha1.HelmRepo)
+				newRepo := newObj.(*v1alpha1.HelmRepo)
+				cachedReposData.UpdateRepo(oldRepo, newRepo)
 			},
 			DeleteFunc: func(obj interface{}) {
 				r := obj.(*v1alpha1.HelmRepo)

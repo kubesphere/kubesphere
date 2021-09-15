@@ -49,6 +49,7 @@ const (
 	HelmApplicationAppStoreSuffix  = "-store"
 	HelmApplicationIdPrefix        = "app-"
 	HelmRepoIdPrefix               = "repo-"
+	BuiltinRepoPrefix              = "builtin-"
 	HelmApplicationVersionIdPrefix = "appv-"
 	HelmCategoryIdPrefix           = "ctg-"
 	HelmAttachmentPrefix           = "att-"

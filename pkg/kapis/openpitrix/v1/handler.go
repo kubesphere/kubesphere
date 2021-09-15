@@ -341,7 +341,7 @@ func (h *openpitrixHandler) DoAppAction(req *restful.Request, resp *restful.Resp
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		api.HandleError(resp, nil, err)
 		return
 	}
 
@@ -407,7 +407,7 @@ func (h *openpitrixHandler) ModifyApp(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		api.HandleError(resp, nil, err)
 		return
 	}
 
@@ -589,7 +589,7 @@ func (h *openpitrixHandler) ModifyAppVersion(req *restful.Request, resp *restful
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		api.HandleError(resp, nil, err)
 		return
 	}
 
@@ -684,7 +684,7 @@ func (h *openpitrixHandler) DoAppVersionAction(req *restful.Request, resp *restf
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		api.HandleError(resp, nil, err)
 		return
 	}
 

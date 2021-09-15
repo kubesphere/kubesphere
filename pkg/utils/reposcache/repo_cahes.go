@@ -19,7 +19,6 @@ package reposcache
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -28,7 +27,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Masterminds/semver/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
 
 	"kubesphere.io/api/application/v1alpha1"
@@ -52,13 +53,15 @@ func NewReposCache() ReposCache {
 type ReposCache interface {
 	AddRepo(repo *v1alpha1.HelmRepo) error
 	DeleteRepo(repo *v1alpha1.HelmRepo) error
+	UpdateRepo(old, new *v1alpha1.HelmRepo) error
 
 	GetApplication(string) (*v1alpha1.HelmApplication, bool)
 	GetAppVersion(string) (*v1alpha1.HelmApplicationVersion, bool, error)
 	GetAppVersionWithData(string) (*v1alpha1.HelmApplicationVersion, bool, error)
 
 	ListAppVersionsByAppId(appId string) (ret []*v1alpha1.HelmApplicationVersion, exists bool)
-	ListApplicationsByRepoId(repoId string) (ret []*v1alpha1.HelmApplication, exists bool)
+	ListApplicationsInRepo(repoId string) (ret []*v1alpha1.HelmApplication, exists bool)
+	ListApplicationsInBuiltinRepo(selector labels.Selector) (ret []*v1alpha1.HelmApplication, exists bool)
 }
 
 type workspace string
@@ -84,8 +87,7 @@ func (c *cachedRepos) deleteRepo(repo *v1alpha1.HelmRepo) {
 	}
 
 	klog.V(4).Infof("delete repo %s from cache", repo.Name)
-	c.Lock()
-	defer c.Unlock()
+
 	repoId := repo.GetHelmRepoId()
 	ws := workspace(repo.GetWorkspace())
 	if _, exists := c.chartsInRepo[ws]; exists {
@@ -118,6 +120,9 @@ func loadBuiltinChartData(name, version string) ([]byte, error) {
 }
 
 func (c *cachedRepos) DeleteRepo(repo *v1alpha1.HelmRepo) error {
+	c.Lock()
+	defer c.Unlock()
+
 	c.deleteRepo(repo)
 	return nil
 }
@@ -131,7 +136,20 @@ func (c *cachedRepos) GetApplication(appId string) (app *v1alpha1.HelmApplicatio
 	return
 }
 
+func (c *cachedRepos) UpdateRepo(old, new *v1alpha1.HelmRepo) error {
+	if old.Status.Data == new.Status.Data {
+		return nil
+	}
+	c.Lock()
+	defer c.Unlock()
+
+	c.deleteRepo(old)
+	return c.addRepo(new, false)
+}
+
 func (c *cachedRepos) AddRepo(repo *v1alpha1.HelmRepo) error {
+	c.Lock()
+	defer c.Unlock()
 	return c.addRepo(repo, false)
 }
 
@@ -146,10 +164,7 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 		return err
 	}
 
-	klog.V(4).Infof("add repo %s to cache", repo.Name)
-
-	c.Lock()
-	defer c.Unlock()
+	klog.V(2).Infof("add repo %s to cache", repo.Name)
 
 	ws := workspace(repo.GetWorkspace())
 	if _, exists := c.chartsInRepo[ws]; !exists {
@@ -158,7 +173,6 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 
 	repoId := repo.GetHelmRepoId()
 	c.repos[repoId] = repo
-	//c.repoCtgCounts[repo.GetHelmRepoId()] = make(map[string]int)
 	if _, exists := c.repoCtgCounts[repoId]; !exists {
 		c.repoCtgCounts[repoId] = map[string]int{}
 	}
@@ -166,11 +180,14 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 
 	chartsCount := 0
 	for key, app := range index.Applications {
-		if builtin {
-			appName = v1alpha1.HelmApplicationIdPrefix + app.Name
-		} else {
-			appName = app.ApplicationId
+		appName = app.ApplicationId
+
+		appLabels := make(map[string]string)
+		if helmrepoindex.IsBuiltInRepo(repo.Name) {
+			appLabels[constants.WorkspaceLabelKey] = "system-workspace"
 		}
+
+		appLabels[constants.ChartRepoIdLabelKey] = repoId
 
 		HelmApp := v1alpha1.HelmApplication{
 			ObjectMeta: metav1.ObjectMeta{
@@ -178,9 +195,8 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 				Annotations: map[string]string{
 					constants.CreatorAnnotationKey: repo.GetCreator(),
 				},
-				Labels: map[string]string{
-					constants.ChartRepoIdLabelKey: repo.GetHelmRepoId(),
-				},
+				Labels:            appLabels,
+				CreationTimestamp: metav1.Time{Time: app.Created},
 			},
 			Spec: v1alpha1.HelmApplicationSpec{
 				Name:        key,
@@ -195,21 +211,15 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 
 		var ctg, appVerName string
 		var chartData []byte
+		var latestVersionName string
+		var latestSemver *semver.Version
+
+		// build all the versions of this app
 		for _, ver := range app.Charts {
 			chartsCount += 1
-			if ver.Annotations != nil && ver.Annotations["category"] != "" {
-				ctg = ver.Annotations["category"]
-			}
-			if builtin {
-				appVerName = base64.StdEncoding.EncodeToString([]byte(ver.Name + ver.Version))
-				chartData, err = loadBuiltinChartData(ver.Name, ver.Version)
-				if err != nil {
-					return err
-				}
-			} else {
-				appVerName = ver.ApplicationVersionId
-			}
+			ctg = ver.Annotations["category"]
 
+			appVerName = ver.ApplicationVersionId
 			version := &v1alpha1.HelmApplicationVersion{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        appVerName,
@@ -235,7 +245,26 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 				},
 			}
 			c.versions[ver.ApplicationVersionId] = version
+
+			// Find the latest version.
+			currSemver, err := semver.NewVersion(version.GetSemver())
+			if err == nil {
+				if latestSemver == nil {
+					// the first valid semver
+					latestSemver = currSemver
+					latestVersionName = version.GetVersionName()
+				} else if latestSemver.LessThan(currSemver) {
+					// find a newer valid semver
+					latestSemver = currSemver
+					latestVersionName = version.GetVersionName()
+				}
+			} else {
+				// If the semver is invalid, just ignore it.
+				klog.V(2).Infof("parse version failed, id: %s, err: %s", version.Name, err)
+			}
 		}
+
+		HelmApp.Status.LatestVersion = latestVersionName
 
 		//modify application category
 		ctgId := ""
@@ -262,7 +291,7 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 	return nil
 }
 
-func (c *cachedRepos) ListApplicationsByRepoId(repoId string) (ret []*v1alpha1.HelmApplication, exists bool) {
+func (c *cachedRepos) ListApplicationsInRepo(repoId string) (ret []*v1alpha1.HelmApplication, exists bool) {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -274,6 +303,23 @@ func (c *cachedRepos) ListApplicationsByRepoId(repoId string) (ret []*v1alpha1.H
 			if app.GetHelmRepoId() == repo.Name {
 				ret = append(ret, app)
 			}
+		}
+	}
+	return ret, true
+}
+
+func (c *cachedRepos) ListApplicationsInBuiltinRepo(selector labels.Selector) (ret []*v1alpha1.HelmApplication, exists bool) {
+	c.RLock()
+	defer c.RUnlock()
+
+	ret = make([]*v1alpha1.HelmApplication, 0, 20)
+	for _, app := range c.apps {
+		if strings.HasPrefix(app.GetHelmRepoId(), v1alpha1.BuiltinRepoPrefix) {
+			if selector != nil && !selector.Empty() &&
+				(app.Labels == nil || !selector.Matches(labels.Set(app.Labels))) { // If the selector is not empty, we must check whether the labels of the app match the selector.
+				continue
+			}
+			ret = append(ret, app)
 		}
 	}
 	return ret, true

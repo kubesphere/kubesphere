@@ -294,7 +294,7 @@ func (r *ReconcileHelmRepo) syncRepo(instance *v1alpha1.HelmRepo) error {
 	}
 
 	// 2. merge new index with old index which is stored in crd
-	savedIndex := helmrepoindex.MergeRepoIndex(index, existsSavedIndex)
+	savedIndex := helmrepoindex.MergeRepoIndex(instance, index, existsSavedIndex)
 
 	// 3. save index in crd
 	data, err := savedIndex.Bytes()
