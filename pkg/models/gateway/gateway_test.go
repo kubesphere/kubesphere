@@ -42,6 +42,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 
 	type fields struct {
 		client  client.Client
+		cache   cache.Cache
 		options *gateway.Options
 	}
 	type args struct {
@@ -50,6 +51,8 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 
 	var Scheme = runtime.NewScheme()
 	v1alpha1.AddToScheme(Scheme)
+	corev1.AddToScheme(Scheme)
+
 	client := fake.NewFakeClientWithScheme(Scheme)
 
 	client.Create(context.TODO(), &v1alpha1.Gateway{
@@ -69,7 +72,6 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 	client2 := fake.NewFakeClientWithScheme(Scheme)
 	create_GlobalGateway(client2)
 
-	corev1.AddToScheme(Scheme)
 	client3 := fake.NewFakeClientWithScheme(Scheme)
 	create_LegacyGateway(client3, "project6")
 
@@ -84,6 +86,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 			name: "return empty gateway list from watching namespace",
 			fields: fields{
 				client: client,
+				cache:  &fakeClient{Client: client},
 				options: &gateway.Options{
 					Namespace: "",
 				},
@@ -96,6 +99,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 			name: "return empty gateway list from working namespace",
 			fields: fields{
 				client: client,
+				cache:  &fakeClient{Client: client},
 				options: &gateway.Options{
 					Namespace: "kubesphere-controls-system",
 				},
@@ -108,6 +112,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 			name: "get gateway from watching namespace",
 			fields: fields{
 				client: client,
+				cache:  &fakeClient{Client: client},
 				options: &gateway.Options{
 					Namespace: "",
 				},
@@ -121,6 +126,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 			name: "get gateway from working namespace",
 			fields: fields{
 				client: client,
+				cache:  &fakeClient{Client: client},
 				options: &gateway.Options{
 					Namespace: "kubesphere-controls-system",
 				},
@@ -134,6 +140,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 			name: "get global gateway",
 			fields: fields{
 				client: client2,
+				cache:  &fakeClient{Client: client2},
 				options: &gateway.Options{
 					Namespace: "",
 				},
@@ -147,6 +154,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 			name: "get Legacy gateway",
 			fields: fields{
 				client: client3,
+				cache:  &fakeClient{Client: client3},
 				options: &gateway.Options{
 					Namespace: "kubesphere-controls-system",
 				},
@@ -182,6 +190,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &gatewayOperator{
 				client:  tt.fields.client,
+				cache:   tt.fields.cache,
 				options: tt.fields.options,
 			}
 			got, err := c.GetGateways(tt.args.namespace)
@@ -239,6 +248,11 @@ func create_LegacyGateway(c client.Client, namespace string) {
 			},
 		},
 		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "http", Protocol: corev1.ProtocolTCP, Port: 80,
+				},
+			},
 			Type: corev1.ServiceTypeNodePort,
 		},
 	}
@@ -288,6 +302,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 	type fields struct {
 		client  client.Client
 		options *gateway.Options
+		cache   cache.Cache
 	}
 	type args struct {
 		namespace string
@@ -296,6 +311,9 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 
 	var Scheme = runtime.NewScheme()
 	v1alpha1.AddToScheme(Scheme)
+	corev1.AddToScheme(Scheme)
+	appsv1.AddToScheme(Scheme)
+
 	client := fake.NewFakeClientWithScheme(Scheme)
 
 	tests := []struct {
@@ -309,6 +327,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 			name: "creates gateway in watching namespace",
 			fields: fields{
 				client: client,
+				cache:  &fakeClient{Client: client},
 				options: &gateway.Options{
 					Namespace: "",
 				},
@@ -339,6 +358,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 			name: "creates gateway in working namespace",
 			fields: fields{
 				client: client,
+				cache:  &fakeClient{Client: client},
 				options: &gateway.Options{
 					Namespace: "kubesphere-controls-system",
 				},
@@ -370,6 +390,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &gatewayOperator{
 				client:  tt.fields.client,
+				cache:   tt.fields.cache,
 				options: tt.fields.options,
 			}
 			got, err := c.CreateGateway(tt.args.namespace, tt.args.obj)
@@ -686,6 +707,9 @@ func Test_gatewayOperator_ListGateways(t *testing.T) {
 					},
 				},
 			},
+			Status: runtime.RawExtension{
+				Raw: []byte("{\"loadBalancer\":{},\"service\":[{\"name\":\"http\",\"protocol\":\"TCP\",\"port\":80,\"targetPort\":0}]}\n"),
+			},
 		},
 		{
 			ObjectMeta: v1.ObjectMeta{
@@ -789,4 +813,154 @@ func (f *fakeClient) WaitForCacheSync(ctx context.Context) bool {
 
 func (f *fakeClient) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
 	return nil
+}
+
+func Test_gatewayOperator_status(t *testing.T) {
+	type fields struct {
+		client  client.Client
+		cache   cache.Cache
+		options *gateway.Options
+	}
+
+	var Scheme = runtime.NewScheme()
+	v1alpha1.AddToScheme(Scheme)
+	corev1.AddToScheme(Scheme)
+	appsv1.AddToScheme(Scheme)
+
+	client := fake.NewFakeClientWithScheme(Scheme)
+	client2 := fake.NewFakeClientWithScheme(Scheme)
+
+	fake := &corev1.Node{
+		ObjectMeta: v1.ObjectMeta{
+			Name: "fake-node",
+			Labels: map[string]string{
+				MasterLabel: "",
+			},
+		},
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
+					Address: "192.168.1.1",
+				},
+			},
+		},
+	}
+
+	client2.Create(context.TODO(), fake)
+
+	type args struct {
+		gateway *v1alpha1.Gateway
+		svc     *corev1.Service
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *v1alpha1.Gateway
+		wantErr bool
+	}{
+		{
+			name: "default",
+			fields: fields{
+				client: client,
+				cache:  &fakeClient{Client: client},
+				options: &gateway.Options{
+					Namespace: "kubesphere-controls-system",
+				},
+			},
+			args: args{
+				gateway: &v1alpha1.Gateway{},
+				svc: &corev1.Service{
+					Spec: corev1.ServiceSpec{
+						Ports: []corev1.ServicePort{
+							{
+								Name: "http", Protocol: corev1.ProtocolTCP, Port: 80,
+							},
+						},
+					},
+				},
+			},
+			want: &v1alpha1.Gateway{
+				Status: runtime.RawExtension{
+					Raw: []byte("{\"loadBalancer\":{},\"service\":[{\"name\":\"http\",\"protocol\":\"TCP\",\"port\":80,\"targetPort\":0}]}\n"),
+				},
+			},
+		},
+		{
+			name: "default",
+			fields: fields{
+				client: client,
+				cache:  &fakeClient{Client: client},
+				options: &gateway.Options{
+					Namespace: "kubesphere-controls-system",
+				},
+			},
+			args: args{
+				gateway: &v1alpha1.Gateway{
+					Status: runtime.RawExtension{
+						Raw: []byte("{\"fake\":{}}"),
+					},
+				},
+				svc: &corev1.Service{
+					Spec: corev1.ServiceSpec{
+						Ports: []corev1.ServicePort{
+							{
+								Name: "http", Protocol: corev1.ProtocolTCP, Port: 80,
+							},
+						},
+					},
+				},
+			},
+			want: &v1alpha1.Gateway{
+				Status: runtime.RawExtension{
+					Raw: []byte("{\"fake\":{},\"loadBalancer\":{},\"service\":[{\"name\":\"http\",\"port\":80,\"protocol\":\"TCP\",\"targetPort\":0}]}"),
+				},
+			},
+		},
+		{
+			name: "Master Node IP",
+			fields: fields{
+				client: client2,
+				cache:  &fakeClient{Client: client2},
+				options: &gateway.Options{
+					Namespace: "kubesphere-controls-system",
+				},
+			},
+			args: args{
+				gateway: &v1alpha1.Gateway{},
+				svc: &corev1.Service{
+					Spec: corev1.ServiceSpec{
+						Ports: []corev1.ServicePort{
+							{
+								Name: "http", Protocol: corev1.ProtocolTCP, Port: 80,
+							},
+						},
+					},
+				},
+			},
+			want: &v1alpha1.Gateway{
+				Status: runtime.RawExtension{
+					Raw: []byte("{\"loadBalancer\":{\"ingress\":[{\"ip\":\"192.168.1.1\"}]},\"service\":[{\"name\":\"http\",\"protocol\":\"TCP\",\"port\":80,\"targetPort\":0}]}\n"),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &gatewayOperator{
+				client:  tt.fields.client,
+				cache:   tt.fields.cache,
+				options: tt.fields.options,
+			}
+			got, err := c.updateStatus(tt.args.gateway, tt.args.svc)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("gatewayOperator.status() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("gatewayOperator.status() has wrong object\nDiff:\n %s", diff.ObjectGoPrintSideBySide(tt.want, got))
+			}
+		})
+	}
 }
