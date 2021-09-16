@@ -43,6 +43,7 @@ config:
   jwtSecret: ""
   multicluster: {}
   monitoring: {}
+  notification: {}
 
 imagePullSecrets: []
 nameOverride: ""
