@@ -88,7 +88,10 @@ type reqParams struct {
 	applications              string
 	openpitrixs               string
 	cluster                   string
+	ingress                   string
+	job                       string
 	services                  string
+	duration                  string
 	pvcFilter                 string
 	queryType                 string
 }
@@ -141,11 +144,16 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.workloadKind = req.PathParameter("kind")
 	r.nodeName = req.PathParameter("node")
 	r.workloadName = req.PathParameter("workload")
+	//will be overide if "pod" in the path parameter.
+	r.podName = req.QueryParameter("pod")
 	r.podName = req.PathParameter("pod")
 	r.containerName = req.PathParameter("container")
 	r.pvcName = req.PathParameter("pvc")
 	r.storageClassName = req.PathParameter("storageclass")
 	r.componentType = req.PathParameter("component")
+	r.ingress = req.PathParameter("ingress")
+	r.job = req.QueryParameter("job")
+	r.duration = req.QueryParameter("duration")
 	r.expression = req.QueryParameter("expr")
 	r.metric = req.QueryParameter("metric")
 	r.queryType = req.QueryParameter("type")
@@ -336,6 +344,26 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 			PersistentVolumeClaimName: r.pvcName,
 		}
 		q.namedMetrics = model.PVCMetrics
+
+	case monitoring.LevelIngress:
+		q.identifier = model.IdentifierIngress
+		var du *time.Duration
+		// duration param is used in none Range Query to pass vector's time duration.
+		if r.time != "" {
+			s, err := time.ParseDuration(r.duration)
+			if err == nil {
+				du = &s
+			}
+		}
+		q.option = monitoring.IngressOption{
+			ResourceFilter: r.resourceFilter,
+			NamespaceName:  r.namespaceName,
+			Ingress:        r.ingress,
+			Job:            r.job,
+			Pod:            r.podName,
+			Duration:       du,
+		}
+		q.namedMetrics = model.IngressMetrics
 
 	case monitoring.LevelComponent:
 		q.option = monitoring.ComponentOption{}

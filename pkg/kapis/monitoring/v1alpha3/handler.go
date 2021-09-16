@@ -205,6 +205,22 @@ func (h handler) handlePVCMetricsQuery(req *restful.Request, resp *restful.Respo
 	h.handleNamedMetricsQuery(resp, opt)
 }
 
+func (h handler) handleIngressMetricsQuery(req *restful.Request, resp *restful.Response) {
+	params := parseRequestParams(req)
+	opt, err := h.makeQueryOptions(params, monitoring.LevelIngress)
+	if err != nil {
+		if err.Error() == ErrNoHit {
+			res := handleNoHit(opt.namedMetrics)
+			resp.WriteAsJson(res)
+			return
+		}
+
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+	h.handleNamedMetricsQuery(resp, opt)
+}
+
 func (h handler) handleComponentMetricsQuery(req *restful.Request, resp *restful.Response) {
 	params := parseRequestParams(req)
 	opt, err := h.makeQueryOptions(params, monitoring.LevelComponent)

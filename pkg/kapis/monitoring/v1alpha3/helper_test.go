@@ -222,6 +222,48 @@ func TestParseRequestParams(t *testing.T) {
 			expectedErr: false,
 		},
 		{
+			namespace: corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					CreationTimestamp: metav1.Time{
+						Time: time.Unix(1585836666, 0),
+					},
+				},
+			},
+			params: reqParams{
+				time:          "1585839999",
+				metricFilter:  "ingress_request_count",
+				page:          "1",
+				limit:         "10",
+				order:         "desc",
+				target:        "ingress_request_count",
+				job:           "job-1",
+				podName:       "pod-1",
+				namespaceName: "default",
+				ingress:       "ingress-1",
+			},
+			lvl: monitoring.LevelIngress,
+			expected: queryOptions{
+				time:         time.Unix(1585839999, 0),
+				metricFilter: "ingress_request_count",
+				namedMetrics: model.IngressMetrics,
+				option: monitoring.IngressOption{
+					ResourceFilter: ".*",
+					NamespaceName:  "default",
+					Ingress:        "ingress-1",
+					Job:            "job-1",
+					Pod:            "pod-1",
+				},
+				target:     "ingress_request_count",
+				identifier: "ingress",
+				order:      "desc",
+				page:       1,
+				limit:      10,
+				Operation:  OperationQuery,
+			},
+			expectedErr: false,
+		},
+		{
 			params: reqParams{
 				time:      "1585830000",
 				operation: OperationQuery,

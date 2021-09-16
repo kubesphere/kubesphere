@@ -37,6 +37,7 @@ const (
 	LevelContainer
 	LevelPVC
 	LevelComponent
+	LevelIngress
 )
 
 var MeteringLevelMap = map[string]int{
@@ -81,6 +82,9 @@ type QueryOptions struct {
 	PVCFilter                 string
 	ApplicationName           string
 	ServiceName               string
+	Ingress                   string
+	Job                       string
+	Duration                  *time.Duration
 	MeterOptions              *Meteroptions
 }
 
@@ -285,6 +289,25 @@ func (po PVCOption) Apply(o *QueryOptions) {
 
 	// for meter
 	o.PVCFilter = po.PersistentVolumeClaimName
+}
+
+type IngressOption struct {
+	ResourceFilter string
+	NamespaceName  string
+	Ingress        string
+	Job            string
+	Pod            string
+	Duration       *time.Duration
+}
+
+func (no IngressOption) Apply(o *QueryOptions) {
+	o.Level = LevelIngress
+	o.ResourceFilter = no.ResourceFilter
+	o.NamespaceName = no.NamespaceName
+	o.Ingress = no.Ingress
+	o.Job = no.Job
+	o.PodName = no.Pod
+	o.Duration = no.Duration
 }
 
 type ComponentOption struct{}

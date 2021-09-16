@@ -37,5 +37,6 @@ var PromQLs = map[string]string{
 	"pvc_inodes_available":                  `max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_inodes_free) * on (namespace, persistentvolumeclaim) group_left (storageclass) kube_persistentvolumeclaim_info{namespace="default", persistentvolumeclaim="db-123"}`,
 	"pvc_inodes_used":                       `max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_inodes_used) * on (namespace, persistentvolumeclaim) group_left (storageclass) kube_persistentvolumeclaim_info{namespace="default", persistentvolumeclaim=~"db-123"}`,
 	"pvc_inodes_total":                      `max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_inodes) * on (namespace, persistentvolumeclaim) group_left (storageclass) kube_persistentvolumeclaim_info{storageclass="default", persistentvolumeclaim=~"db-123"}`,
+	"ingress_request_count":                 `round(sum(increase(nginx_ingress_controller_requests{exported_namespace="default", ingress="ingress-1",job="job-1",controller_pod="pod-1"}[5m])))`,
 	"etcd_server_list":                      `label_replace(up{job="etcd"}, "node_ip", "$1", "instance", "(.*):.*")`,
 }
