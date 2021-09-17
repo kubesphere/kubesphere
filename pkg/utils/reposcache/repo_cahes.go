@@ -27,6 +27,8 @@ import (
 	"strings"
 	"sync"
 
+	"k8s.io/client-go/tools/cache"
+
 	"github.com/Masterminds/semver/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -38,15 +40,20 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
 )
 
+const (
+	CategoryIndexer       = "category_indexer"
+	CategoryAnnotationKey = "app.kubesphere.io/category"
+)
+
 var WorkDir string
 
 func NewReposCache() ReposCache {
 	return &cachedRepos{
-		chartsInRepo:  map[workspace]map[string]int{},
-		repos:         map[string]*v1alpha1.HelmRepo{},
-		apps:          map[string]*v1alpha1.HelmApplication{},
-		versions:      map[string]*v1alpha1.HelmApplicationVersion{},
-		repoCtgCounts: map[string]map[string]int{},
+		chartsInRepo:          map[workspace]map[string]int{},
+		repos:                 map[string]*v1alpha1.HelmRepo{},
+		apps:                  map[string]*v1alpha1.HelmApplication{},
+		versions:              map[string]*v1alpha1.HelmApplicationVersion{},
+		builtinCategoryCounts: map[string]int{},
 	}
 }
 
@@ -62,31 +69,40 @@ type ReposCache interface {
 	ListAppVersionsByAppId(appId string) (ret []*v1alpha1.HelmApplicationVersion, exists bool)
 	ListApplicationsInRepo(repoId string) (ret []*v1alpha1.HelmApplication, exists bool)
 	ListApplicationsInBuiltinRepo(selector labels.Selector) (ret []*v1alpha1.HelmApplication, exists bool)
+
+	SetCategoryIndexer(indexer cache.Indexer)
+	CopyCategoryCount() map[string]int
 }
 
 type workspace string
 type cachedRepos struct {
 	sync.RWMutex
 
-	chartsInRepo  map[workspace]map[string]int
-	repoCtgCounts map[string]map[string]int
+	chartsInRepo map[workspace]map[string]int
+
+	// builtinCategoryCounts saves the count of every category in the built-in repo.
+	builtinCategoryCounts map[string]int
 
 	repos    map[string]*v1alpha1.HelmRepo
 	apps     map[string]*v1alpha1.HelmApplication
 	versions map[string]*v1alpha1.HelmApplicationVersion
+
+	// indexerOfHelmCtg is the indexer of HelmCategory, used to query the category id from category name.
+	indexerOfHelmCtg cache.Indexer
 }
 
 func (c *cachedRepos) deleteRepo(repo *v1alpha1.HelmRepo) {
 	if len(repo.Status.Data) == 0 {
 		return
 	}
+
 	index, err := helmrepoindex.ByteArrayToSavedIndex([]byte(repo.Status.Data))
 	if err != nil {
 		klog.Errorf("json unmarshal repo %s failed, error: %s", repo.Name, err)
 		return
 	}
 
-	klog.V(4).Infof("delete repo %s from cache", repo.Name)
+	klog.V(2).Infof("delete repo %s from cache", repo.Name)
 
 	repoId := repo.GetHelmRepoId()
 	ws := workspace(repo.GetWorkspace())
@@ -94,10 +110,19 @@ func (c *cachedRepos) deleteRepo(repo *v1alpha1.HelmRepo) {
 		delete(c.chartsInRepo[ws], repoId)
 	}
 
-	delete(c.repoCtgCounts, repoId)
 	delete(c.repos, repoId)
 
 	for _, app := range index.Applications {
+		if _, exists := c.apps[app.ApplicationId]; !exists {
+			continue
+		}
+		if helmrepoindex.IsBuiltInRepo(repo.Name) {
+			ctgId := c.apps[app.ApplicationId].Labels[constants.CategoryIdLabelKey]
+			if ctgId != "" {
+				c.builtinCategoryCounts[ctgId] -= 1
+			}
+		}
+
 		delete(c.apps, app.ApplicationId)
 		for _, ver := range app.Charts {
 			delete(c.versions, ver.ApplicationVersionId)
@@ -127,6 +152,40 @@ func (c *cachedRepos) DeleteRepo(repo *v1alpha1.HelmRepo) error {
 	return nil
 }
 
+// CopyCategoryCount copies the internal map to avoid `concurrent map iteration and map write`.
+func (c *cachedRepos) CopyCategoryCount() map[string]int {
+	c.RLock()
+	defer c.RUnlock()
+
+	ret := make(map[string]int, len(c.builtinCategoryCounts))
+	for k, v := range c.builtinCategoryCounts {
+		ret[k] = v
+	}
+
+	return ret
+}
+
+func (c *cachedRepos) SetCategoryIndexer(indexer cache.Indexer) {
+	c.Lock()
+	c.indexerOfHelmCtg = indexer
+	c.Unlock()
+}
+
+// translateCategoryNameToId translate a category-name to a category-id.
+// The caller should hold the lock
+func (c *cachedRepos) translateCategoryNameToId(ctgName string) string {
+	if c.indexerOfHelmCtg == nil || ctgName == "" {
+		return v1alpha1.UncategorizedId
+	}
+
+	if items, err := c.indexerOfHelmCtg.ByIndex(CategoryIndexer, ctgName); len(items) == 0 || err != nil {
+		return v1alpha1.UncategorizedId
+	} else {
+		obj, _ := items[0].(*v1alpha1.HelmCategory)
+		return obj.Name
+	}
+}
+
 func (c *cachedRepos) GetApplication(appId string) (app *v1alpha1.HelmApplication, exists bool) {
 	c.RLock()
 	defer c.RUnlock()
@@ -153,7 +212,7 @@ func (c *cachedRepos) AddRepo(repo *v1alpha1.HelmRepo) error {
 	return c.addRepo(repo, false)
 }
 
-//Add new Repo to cachedRepos
+// Add a new Repo to cachedRepos
 func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 	if len(repo.Status.Data) == 0 {
 		return nil
@@ -173,9 +232,6 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 
 	repoId := repo.GetHelmRepoId()
 	c.repos[repoId] = repo
-	if _, exists := c.repoCtgCounts[repoId]; !exists {
-		c.repoCtgCounts[repoId] = map[string]int{}
-	}
 	var appName string
 
 	chartsCount := 0
@@ -189,7 +245,7 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 
 		appLabels[constants.ChartRepoIdLabelKey] = repoId
 
-		HelmApp := v1alpha1.HelmApplication{
+		helmApp := v1alpha1.HelmApplication{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: appName,
 				Annotations: map[string]string{
@@ -207,7 +263,7 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 				State: v1alpha1.StateActive,
 			},
 		}
-		c.apps[app.ApplicationId] = &HelmApp
+		c.apps[app.ApplicationId] = &helmApp
 
 		var ctg, appVerName string
 		var chartData []byte
@@ -215,11 +271,10 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 		var latestSemver *semver.Version
 
 		// build all the versions of this app
-		for _, ver := range app.Charts {
+		for _, chartVersion := range app.Charts {
 			chartsCount += 1
-			ctg = ver.Annotations["category"]
 
-			appVerName = ver.ApplicationVersionId
+			appVerName = chartVersion.ApplicationVersionId
 			version := &v1alpha1.HelmApplicationVersion{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        appVerName,
@@ -228,23 +283,23 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 						constants.ChartApplicationIdLabelKey: appName,
 						constants.ChartRepoIdLabelKey:        repo.GetHelmRepoId(),
 					},
-					CreationTimestamp: metav1.Time{Time: ver.Created},
+					CreationTimestamp: metav1.Time{Time: chartVersion.Created},
 				},
 				Spec: v1alpha1.HelmApplicationVersionSpec{
 					Metadata: &v1alpha1.Metadata{
-						Name:       ver.Name,
-						AppVersion: ver.AppVersion,
-						Version:    ver.Version,
+						Name:       chartVersion.Name,
+						AppVersion: chartVersion.AppVersion,
+						Version:    chartVersion.Version,
 					},
-					URLs:   ver.URLs,
-					Digest: ver.Digest,
+					URLs:   chartVersion.URLs,
+					Digest: chartVersion.Digest,
 					Data:   chartData,
 				},
 				Status: v1alpha1.HelmApplicationVersionStatus{
 					State: v1alpha1.StateActive,
 				},
 			}
-			c.versions[ver.ApplicationVersionId] = version
+			c.versions[chartVersion.ApplicationVersionId] = version
 
 			// Find the latest version.
 			currSemver, err := semver.NewVersion(version.GetSemver())
@@ -253,10 +308,14 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 					// the first valid semver
 					latestSemver = currSemver
 					latestVersionName = version.GetVersionName()
+
+					// Use the category of the latest version as the category of the app.
+					ctg = chartVersion.Annotations[CategoryAnnotationKey]
 				} else if latestSemver.LessThan(currSemver) {
 					// find a newer valid semver
 					latestSemver = currSemver
 					latestVersionName = version.GetVersionName()
+					ctg = chartVersion.Annotations[CategoryAnnotationKey]
 				}
 			} else {
 				// If the semver is invalid, just ignore it.
@@ -264,25 +323,17 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 			}
 		}
 
-		HelmApp.Status.LatestVersion = latestVersionName
+		helmApp.Status.LatestVersion = latestVersionName
 
-		//modify application category
-		ctgId := ""
-		if ctg != "" {
-			if c.apps[app.ApplicationId].Annotations == nil {
-				c.apps[app.ApplicationId].Annotations = map[string]string{constants.CategoryIdLabelKey: ctg}
-			} else {
-				c.apps[app.ApplicationId].Annotations[constants.CategoryIdLabelKey] = ctg
+		if helmrepoindex.IsBuiltInRepo(repo.Name) {
+			// Add category id to the apps in the built-in repo
+			ctgId := c.translateCategoryNameToId(ctg)
+			if helmApp.Labels == nil {
+				helmApp.Labels = map[string]string{}
 			}
-			ctgId = ctg
-		} else {
-			ctgId = v1alpha1.UncategorizedId
-		}
+			helmApp.Labels[constants.CategoryIdLabelKey] = ctgId
 
-		if _, exists := c.repoCtgCounts[repoId][ctgId]; !exists {
-			c.repoCtgCounts[repoId][ctgId] = 1
-		} else {
-			c.repoCtgCounts[repoId][ctgId] += 1
+			c.builtinCategoryCounts[ctgId] += 1
 		}
 	}
 

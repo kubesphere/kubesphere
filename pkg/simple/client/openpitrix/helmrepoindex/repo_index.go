@@ -108,7 +108,7 @@ func MergeRepoIndex(repo *v1alpha1.HelmRepo, index *helmrepo.IndexFile, existsSa
 				Created:     time.Now(),
 			}
 
-			// The app version will be added to the labels of the helm release.
+			// The app id will be added to the labels of the helm release.
 			// But the apps in the repos which are created by the user may contain malformed text, so we generate a random name for them.
 			// The apps in the system repo have been audited by the admin, so the name of the charts should not include malformed text.
 			// Then we can add the name string to the labels of the k8s object.
@@ -222,7 +222,7 @@ func (i *SavedIndex) GetApplicationVersion(appId, versionId string) *v1alpha1.He
 	return nil
 }
 
-// The app version name will be added to the labels of the helm release.
+// The app version id will be added to the labels of the helm release.
 // But the apps in the repos which are created by the user may contain malformed text, so we generate a random name for them.
 // The apps in the system repo have been audited by the admin, so the name of the charts should not include malformed text.
 // Then we can add the name string to the labels of the k8s object.
@@ -237,7 +237,7 @@ func generateAppVersionId(repo *v1alpha1.HelmRepo, chartName, version string) st
 
 // IsBuiltInRepo checks whether a repo is a built-in repo.
 // All the built-in repos are located in the workspace system-workspace and the name starts with 'built-in'
-// to differentiate from the repos created by the user
+// to differentiate from the repos created by the user.
 func IsBuiltInRepo(repoName string) bool {
 	return strings.HasPrefix(repoName, v1alpha1.BuiltinRepoPrefix)
 }
