@@ -136,7 +136,7 @@ identityProviders:
 	if err := yaml.Unmarshal([]byte(config), &options); err != nil {
 		t.Error(err)
 	}
-	expected := `{"identityProviders":[{"name":"ldap","mappingMethod":"auto","type":"LDAPIdentityProvider","provider":{"host":"xxxx.sn.mynetname.net:389","loginAttribute":"uid","mailAttribute":"mail","managerDN":"uid=root,cn=users,dc=xxxx,dc=sn,dc=mynetname,dc=net","userSearchBase":"dc=xxxx,dc=sn,dc=mynetname,dc=net"}},{"name":"github","mappingMethod":"mixed","type":"GitHubIdentityProvider","provider":{"clientID":"xxxxxx","endpoint":{"authURL":"https://github.com/login/oauth/authorize","tokenURL":"https://github.com/login/oauth/access_token"},"redirectURL":"https://ks-console/oauth/redirect","scopes":["user"]}}],"accessTokenMaxAge":3600000000000,"accessTokenInactivityTimeout":1800000000000}`
+	expected := `{"identityProviders":[{"name":"ldap","mappingMethod":"auto","disableLoginConfirmation":false,"type":"LDAPIdentityProvider","provider":{"host":"xxxx.sn.mynetname.net:389","loginAttribute":"uid","mailAttribute":"mail","managerDN":"uid=root,cn=users,dc=xxxx,dc=sn,dc=mynetname,dc=net","userSearchBase":"dc=xxxx,dc=sn,dc=mynetname,dc=net"}},{"name":"github","mappingMethod":"mixed","disableLoginConfirmation":false,"type":"GitHubIdentityProvider","provider":{"clientID":"xxxxxx","endpoint":{"authURL":"https://github.com/login/oauth/authorize","tokenURL":"https://github.com/login/oauth/access_token"},"redirectURL":"https://ks-console/oauth/redirect","scopes":["user"]}}],"accessTokenMaxAge":3600000000000,"accessTokenInactivityTimeout":1800000000000}`
 	output, _ := json.Marshal(options)
 	if expected != string(output) {
 		t.Errorf("expected: %s, but got: %s", expected, output)
