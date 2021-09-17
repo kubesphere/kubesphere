@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package jwttoken
+package jwt
 
 import (
 	"context"
@@ -48,31 +48,27 @@ func NewTokenAuthenticator(tokenOperator auth.TokenManagementInterface, userList
 }
 
 func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
-	providedUser, err := t.tokenOperator.Verify(token)
+	verified, err := t.tokenOperator.Verify(token)
 	if err != nil {
 		klog.Warning(err)
 		return nil, false, err
 	}
 
-	if providedUser.GetName() == iamv1alpha2.PreRegistrationUser {
+	if verified.User.GetName() == iamv1alpha2.PreRegistrationUser {
 		return &authenticator.Response{
-			User: &user.DefaultInfo{
-				Name:   providedUser.GetName(),
-				Extra:  providedUser.GetExtra(),
-				Groups: providedUser.GetGroups(),
-			},
+			User: verified.User,
 		}, true, nil
 	}
 
-	dbUser, err := t.userLister.Get(providedUser.GetName())
+	u, err := t.userLister.Get(verified.User.GetName())
 	if err != nil {
 		return nil, false, err
 	}
 
 	return &authenticator.Response{
 		User: &user.DefaultInfo{
-			Name:   dbUser.GetName(),
-			Groups: append(dbUser.Spec.Groups, user.AllAuthenticated),
+			Name:   u.GetName(),
+			Groups: append(u.Spec.Groups, user.AllAuthenticated),
 		},
 	}, true, nil
 }

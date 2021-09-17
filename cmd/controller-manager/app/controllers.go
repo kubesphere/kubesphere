@@ -25,9 +25,10 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/controller/storage/snapshotclass"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
@@ -62,7 +63,7 @@ func addControllers(
 	s3Client s3.Interface,
 	ldapClient ldapclient.Interface,
 	options *k8s.KubernetesOptions,
-	authenticationOptions *authoptions.AuthenticationOptions,
+	authenticationOptions *authentication.Options,
 	multiClusterOptions *multicluster.Options,
 	networkOptions *network.Options,
 	serviceMeshEnabled bool,

@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 
 	"k8s.io/apimachinery/pkg/util/validation"
 
@@ -78,7 +78,7 @@ type Reconciler struct {
 	MultiClusterEnabled     bool
 	DevopsClient            devops.Interface
 	LdapClient              ldapclient.Interface
-	AuthenticationOptions   *authoptions.AuthenticationOptions
+	AuthenticationOptions   *authentication.Options
 	Logger                  logr.Logger
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder

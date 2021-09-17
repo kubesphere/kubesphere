@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/spf13/pflag"
@@ -28,7 +30,6 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -44,7 +45,7 @@ type KubeSphereControllerManagerOptions struct {
 	KubernetesOptions     *k8s.KubernetesOptions
 	DevopsOptions         *jenkins.Options
 	S3Options             *s3.Options
-	AuthenticationOptions *authoptions.AuthenticationOptions
+	AuthenticationOptions *authentication.Options
 	LdapOptions           *ldapclient.Options
 	OpenPitrixOptions     *openpitrix.Options
 	NetworkOptions        *network.Options
@@ -75,7 +76,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		NetworkOptions:        network.NewNetworkOptions(),
 		MultiClusterOptions:   multicluster.NewOptions(),
 		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
-		AuthenticationOptions: authoptions.NewAuthenticateOptions(),
+		AuthenticationOptions: authentication.NewOptions(),
 		GatewayOptions:        gateway.NewGatewayOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,

@@ -167,8 +167,10 @@ func (g githubIdentity) GetEmail() string {
 	return g.Email
 }
 
-func (g *github) IdentityExchange(code string) (identityprovider.Identity, error) {
-	ctx := context.TODO()
+func (g *github) IdentityExchangeCallback(req *http.Request) (identityprovider.Identity, error) {
+	// OAuth2 callback, see also https://tools.ietf.org/html/rfc6749#section-4.1.2
+	code := req.URL.Query().Get("code")
+	ctx := req.Context()
 	if g.InsecureSkipVerify {
 		client := &http.Client{
 			Transport: &http.Transport{

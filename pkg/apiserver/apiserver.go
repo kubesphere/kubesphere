@@ -24,6 +24,10 @@ import (
 	rt "runtime"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization"
+
 	"kubesphere.io/api/notification/v2beta1"
 
 	openpitrixv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v2alpha1"
@@ -48,13 +52,12 @@ import (
 
 	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwt"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/bearertoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
-	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/rbac"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
@@ -107,23 +110,10 @@ import (
 	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
 )
 
-const (
-	// ApiRootPath defines the root path of all KubeSphere apis.
-	ApiRootPath = "/kapis"
-
-	// MimeMergePatchJson is the mime header used in merge request
-	MimeMergePatchJson = "application/merge-patch+json"
-
-	//
-	MimeJsonPatchJson = "application/json-patch+json"
-)
-
 type APIServer struct {
-
 	// number of kubesphere apiserver
 	ServerCount int
 
-	//
 	Server *http.Server
 
 	Config *apiserverconfig.Config
@@ -146,13 +136,10 @@ type APIServer struct {
 
 	MetricsClient monitoring.Interface
 
-	//
 	LoggingClient logging.Client
 
-	//
 	DevopsClient devops.Interface
 
-	//
 	S3Client s3.Interface
 
 	SonarClient sonarqube.SonarInterface
@@ -165,6 +152,10 @@ type APIServer struct {
 
 	// controller-runtime cache
 	RuntimeCache runtimecache.Cache
+
+	// entity that issues tokens
+	Issuer token.Issuer
+
 	// controller-runtime client
 	RuntimeClient runtimeclient.Client
 }
@@ -178,7 +169,6 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	})
 
 	s.installKubeSphereAPIs()
-
 	s.installMetricsAPI()
 	s.container.Filter(monitorRequest)
 
@@ -246,19 +236,12 @@ func (s *APIServer) installKubeSphereAPIs() {
 		group.New(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
 		rbacAuthorizer))
 
+	userLister := s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister()
 	urlruntime.Must(oauth.AddToContainer(s.container, imOperator,
-		auth.NewTokenOperator(
-			s.CacheClient,
-			s.Config.AuthenticationOptions),
-		auth.NewPasswordAuthenticator(
-			s.KubernetesClient.KubeSphere(),
-			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
-			s.Config.AuthenticationOptions),
-		auth.NewOAuthAuthenticator(s.KubernetesClient.KubeSphere(),
-			s.InformerFactory.KubeSphereSharedInformerFactory(),
-			s.Config.AuthenticationOptions),
-		auth.NewLoginRecorder(s.KubernetesClient.KubeSphere(),
-			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister()),
+		auth.NewTokenOperator(s.CacheClient, s.Issuer, s.Config.AuthenticationOptions),
+		auth.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(), userLister, s.Config.AuthenticationOptions),
+		auth.NewOAuthAuthenticator(s.KubernetesClient.KubeSphere(), userLister, s.Config.AuthenticationOptions),
+		auth.NewLoginRecorder(s.KubernetesClient.KubeSphere(), userLister),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.Config.ServiceMeshOptions, s.container, s.KubernetesClient.Kubernetes(), s.CacheClient))
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
@@ -330,13 +313,13 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	var authorizers authorizer.Authorizer
 
 	switch s.Config.AuthorizationOptions.Mode {
-	case authorizationoptions.AlwaysAllow:
+	case authorization.AlwaysAllow:
 		authorizers = authorizerfactory.NewAlwaysAllowAuthorizer()
-	case authorizationoptions.AlwaysDeny:
+	case authorization.AlwaysDeny:
 		authorizers = authorizerfactory.NewAlwaysDenyAuthorizer()
 	default:
 		fallthrough
-	case authorizationoptions.RBAC:
+	case authorization.RBAC:
 		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
@@ -349,16 +332,19 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
 	}
 
-	loginRecorder := auth.NewLoginRecorder(s.KubernetesClient.KubeSphere(),
-		s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister())
+	userLister := s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister()
+	loginRecorder := auth.NewLoginRecorder(s.KubernetesClient.KubeSphere(), userLister)
+
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(auth.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(),
-			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
-			s.Config.AuthenticationOptions), loginRecorder)),
-		bearertoken.New(jwttoken.NewTokenAuthenticator(auth.NewTokenOperator(s.CacheClient,
+		basictoken.New(basic.NewBasicAuthenticator(auth.NewPasswordAuthenticator(
+			s.KubernetesClient.KubeSphere(),
+			userLister,
 			s.Config.AuthenticationOptions),
-			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister())))
+			loginRecorder)),
+		bearertoken.New(jwt.NewTokenAuthenticator(
+			auth.NewTokenOperator(s.CacheClient, s.Issuer, s.Config.AuthenticationOptions),
+			userLister)))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 

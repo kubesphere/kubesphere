@@ -17,10 +17,10 @@ limitations under the License.
 package aliyunidaas
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/mitchellh/mapstructure"
 
@@ -120,13 +120,16 @@ func (a idaasIdentity) GetEmail() string {
 	return a.Email
 }
 
-func (a *aliyunIDaaS) IdentityExchange(code string) (identityprovider.Identity, error) {
-	token, err := a.Config.Exchange(context.TODO(), code)
+func (a *aliyunIDaaS) IdentityExchangeCallback(req *http.Request) (identityprovider.Identity, error) {
+	// OAuth2 callback, see also https://tools.ietf.org/html/rfc6749#section-4.1.2
+	code := req.URL.Query().Get("code")
+	ctx := req.Context()
+	token, err := a.Config.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := oauth2.NewClient(context.TODO(), oauth2.StaticTokenSource(token)).Get(a.Endpoint.UserInfoURL)
+	resp, err := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token)).Get(a.Endpoint.UserInfoURL)
 	if err != nil {
 		return nil, err
 	}
