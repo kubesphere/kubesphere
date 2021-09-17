@@ -45,7 +45,10 @@ type FederatedUserSpec struct {
 }
 
 type UserTemplate struct {
-	Spec v1alpha2.UserSpec `json:"spec,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              v1alpha2.UserSpec `json:"spec"`
+	// +optional
+	Status v1alpha2.UserStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

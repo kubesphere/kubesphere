@@ -17,57 +17,32 @@ limitations under the License.
 package user
 
 import (
+	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/diff"
-	kubeinformers "k8s.io/client-go/informers"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	core "k8s.io/client-go/testing"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
-
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	"k8s.io/apimachinery/pkg/watch"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+	runtimefakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"kubesphere.io/kubesphere/pkg/apis"
+
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-var (
-	alwaysReady        = func() bool { return true }
-	noResyncPeriodFunc = func() time.Duration { return 0 }
-)
-
-type fixture struct {
-	t *testing.T
-
-	ksclient  *fake.Clientset
-	k8sclient *k8sfake.Clientset
-	// Objects to put in the store.
-	userLister []*iamv1alpha2.User
-	// Actions expected to happen on the client.
-	kubeactions []core.Action
-	actions     []core.Action
-	// Objects from here preloaded into NewSimpleFake.
-	kubeobjects []runtime.Object
-	objects     []runtime.Object
-}
-
-func newFixture(t *testing.T) *fixture {
-	f := &fixture{}
-	f.t = t
-	f.objects = []runtime.Object{}
-	f.kubeobjects = []runtime.Object{}
-	return f
-}
 
 func newUser(name string) *iamv1alpha2.User {
 	return &iamv1alpha2.User{
@@ -76,193 +51,105 @@ func newUser(name string) *iamv1alpha2.User {
 			Name: name,
 		},
 		Spec: iamv1alpha2.UserSpec{
-			Email:       fmt.Sprintf("%s@kubesphere.io", name),
-			Lang:        "zh-CN",
-			Description: "fake user",
+			Email:             fmt.Sprintf("%s@kubesphere.io", name),
+			Lang:              "zh-CN",
+			Description:       "fake user",
+			EncryptedPassword: "test",
 		},
 	}
 }
 
-func (f *fixture) newController() (*userController, ksinformers.SharedInformerFactory, kubeinformers.SharedInformerFactory) {
-	f.ksclient = fake.NewSimpleClientset(f.objects...)
-	f.k8sclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
-	ldapClient := ldapclient.NewSimpleLdap()
-
-	ksInformers := ksinformers.NewSharedInformerFactory(f.ksclient, noResyncPeriodFunc())
-	k8sInformers := kubeinformers.NewSharedInformerFactory(f.k8sclient, noResyncPeriodFunc())
-
-	for _, user := range f.userLister {
-		err := ksInformers.Iam().V1alpha2().Users().Informer().GetIndexer().Add(user)
-		if err != nil {
-			f.t.Errorf("add user:%s", err)
-		}
-	}
-
-	c := NewUserController(f.k8sclient, f.ksclient, nil,
-		ksInformers.Iam().V1alpha2().Users(),
-		ksInformers.Iam().V1alpha2().LoginRecords(),
-		nil, nil,
-		k8sInformers.Core().V1().ConfigMaps(),
-		ldapClient, nil,
-		options.NewAuthenticateOptions(), false)
-	c.Synced = []cache.InformerSynced{alwaysReady}
-	c.recorder = &record.FakeRecorder{}
-
-	return c, ksInformers, k8sInformers
-}
-
-func (f *fixture) run(userName string) {
-	f.runController(userName, true, false)
-}
-
-func (f *fixture) runExpectError(userName string) {
-	f.runController(userName, true, true)
-}
-
-func (f *fixture) runController(user string, startInformers bool, expectError bool) {
-	c, i, k8sI := f.newController()
-	if startInformers {
-		stopCh := make(chan struct{})
-		defer close(stopCh)
-		i.Start(stopCh)
-		k8sI.Start(stopCh)
-	}
-
-	err := c.reconcile(user)
-	if !expectError && err != nil {
-		f.t.Errorf("error syncing user: %v", err)
-	} else if expectError && err == nil {
-		f.t.Error("expected error syncing user, got nil")
-	}
-
-	actions := filterInformerActions(f.ksclient.Actions())
-	for i, action := range actions {
-		if len(f.actions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[i:])
-			break
-		}
-
-		expectedAction := f.actions[i]
-		checkAction(expectedAction, action, f.t)
-	}
-
-	if len(f.actions) > len(actions) {
-		f.t.Errorf("%d additional expected actions:%+v", len(f.actions)-len(actions), f.actions[len(actions):])
-	}
-
-	k8sActions := filterInformerActions(f.k8sclient.Actions())
-	for i, action := range k8sActions {
-		if len(f.kubeactions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.kubeactions), k8sActions[i:])
-			break
-		}
-
-		expectedAction := f.kubeactions[i]
-		checkAction(expectedAction, action, f.t)
-	}
-
-	if len(f.kubeactions) > len(k8sActions) {
-		f.t.Errorf("%d additional expected actions:%+v", len(f.kubeactions)-len(k8sActions), f.kubeactions[len(k8sActions):])
-	}
-}
-
-// checkAction verifies that expected and actual actions are equal and both have
-// same attached resources
-func checkAction(expected, actual core.Action, t *testing.T) {
-	if !(expected.Matches(actual.GetVerb(), actual.GetResource().Resource) && actual.GetSubresource() == expected.GetSubresource()) {
-		t.Errorf("Expected\n\t%#v\ngot\n\t%#v", expected, actual)
-		return
-	}
-
-	if reflect.TypeOf(actual) != reflect.TypeOf(expected) {
-		t.Errorf("Action has wrong type. Expected: %t. Got: %t", expected, actual)
-		return
-	}
-
-	switch a := actual.(type) {
-	case core.CreateActionImpl:
-		e, _ := expected.(core.CreateActionImpl)
-		expObject := e.GetObject()
-		object := a.GetObject()
-
-		if !reflect.DeepEqual(expObject, object) {
-			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
-				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
-		}
-	case core.UpdateActionImpl:
-		e, _ := expected.(core.UpdateActionImpl)
-		expObject := e.GetObject()
-		object := a.GetObject()
-		expUser := expObject.(*iamv1alpha2.User)
-		user := object.(*iamv1alpha2.User)
-		expUser.Status.LastTransitionTime = nil
-		user.Status.LastTransitionTime = nil
-		if user.Status.State != nil {
-			disabled := iamv1alpha2.UserDisabled
-			expUser.Status.State = &disabled
-		}
-		if !reflect.DeepEqual(expUser, user) {
-			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
-				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
-		}
-	case core.PatchActionImpl:
-		e, _ := expected.(core.PatchActionImpl)
-		expPatch := e.GetPatch()
-		patch := a.GetPatch()
-
-		if !reflect.DeepEqual(expPatch, patch) {
-			t.Errorf("Action %s %s has wrong patch\nDiff:\n %s",
-				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expPatch, patch))
-		}
-	default:
-		t.Errorf("Uncaptured Action %s %s, you should explicitly add a case to capture it",
-			actual.GetVerb(), actual.GetResource().Resource)
-	}
-}
-
-// filterInformerActions filters list and watch actions for testing resources.
-// Since list and watch don't change resource state we can filter it to lower
-// nose level in our tests.
-func filterInformerActions(actions []core.Action) []core.Action {
-	var ret []core.Action
-	for _, action := range actions {
-		if !action.Matches("update", "users") {
-			continue
-		}
-		ret = append(ret, action)
-	}
-
-	return ret
-}
-
-func (f *fixture) expectUpdateUserStatusAction(user *iamv1alpha2.User) {
-	expect := user.DeepCopy()
-	//expect.Status.State = iamv1alpha2.UserActive
-	expect.Finalizers = []string{"finalizers.kubesphere.io/users"}
-	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
-	f.actions = append(f.actions, action)
-
-	expect = expect.DeepCopy()
-	action = core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
-	f.actions = append(f.actions, action)
-}
-
-func getKey(user *iamv1alpha2.User, t *testing.T) string {
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(user)
-	if err != nil {
-		t.Errorf("Unexpected error getting key for user %v: %v", user.Name, err)
-		return ""
-	}
-	return key
-}
-
 func TestDoNothing(t *testing.T) {
-	f := newFixture(t)
+	authenticateOptions := options.NewAuthenticateOptions()
+	authenticateOptions.AuthenticateRateLimiterMaxTries = 1
+	authenticateOptions.AuthenticateRateLimiterDuration = 2 * time.Second
 	user := newUser("test")
+	loginRecords := make([]runtime.Object, 0)
+	for i := 0; i < authenticateOptions.AuthenticateRateLimiterMaxTries+1; i++ {
+		loginRecord := iamv1alpha2.LoginRecord{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              fmt.Sprintf("%s-%d", user.Name, i),
+				Labels:            map[string]string{iamv1alpha2.UserReferenceLabel: user.Name},
+				CreationTimestamp: metav1.Now(),
+			},
+			Spec: iamv1alpha2.LoginRecordSpec{
+				Success: false,
+			},
+		}
+		loginRecords = append(loginRecords, &loginRecord)
+	}
+	sch := scheme.Scheme
+	if err := apis.AddToScheme(sch); err != nil {
+		t.Fatalf("unable add APIs to scheme: %v", err)
+	}
 
-	f.userLister = append(f.userLister, user)
-	f.objects = append(f.objects, user)
+	client := runtimefakeclient.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(user).WithRuntimeObjects(loginRecords...).Build()
+	ldap := ldapclient.NewSimpleLdap()
+	c := &Reconciler{
+		Recorder:              &record.FakeRecorder{},
+		LdapClient:            ldap,
+		Logger:                ctrl.Log.WithName("controllers").WithName(controllerName),
+		Client:                client,
+		AuthenticationOptions: authenticateOptions,
+	}
 
-	f.expectUpdateUserStatusAction(user)
-	f.run(getKey(user, t))
+	users := &iamv1alpha2.UserList{}
+	w, err := client.Watch(context.Background(), users, &runtimeclient.ListOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: user.Name},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// append finalizer
+	updateEvent := <-w.ResultChan()
+	assert.Equal(t, updateEvent.Type, watch.Modified)
+	assert.NotNil(t, updateEvent.Object)
+	user = updateEvent.Object.(*iamv1alpha2.User)
+	assert.NotNil(t, user)
+	assert.NotEmpty(t, user.Finalizers)
+
+	result, err := c.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: user.Name},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updateEvent = <-w.ResultChan()
+	// encrypt password
+	assert.Equal(t, updateEvent.Type, watch.Modified)
+	assert.NotNil(t, updateEvent.Object)
+	user = updateEvent.Object.(*iamv1alpha2.User)
+	assert.NotNil(t, user)
+	assert.True(t, isEncrypted(user.Spec.EncryptedPassword))
+
+	// becomes active after password encrypted
+	updateEvent = <-w.ResultChan()
+	user = updateEvent.Object.(*iamv1alpha2.User)
+	assert.Equal(t, *user.Status.State, iamv1alpha2.UserActive)
+
+	// block user
+	updateEvent = <-w.ResultChan()
+	user = updateEvent.Object.(*iamv1alpha2.User)
+	assert.Equal(t, *user.Status.State, iamv1alpha2.UserAuthLimitExceeded)
+	assert.True(t, result.Requeue)
+
+	time.Sleep(result.RequeueAfter + time.Second)
+	_, err = c.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: user.Name},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// unblock user
+	updateEvent = <-w.ResultChan()
+	user = updateEvent.Object.(*iamv1alpha2.User)
+	assert.Equal(t, *user.Status.State, iamv1alpha2.UserActive)
 }
