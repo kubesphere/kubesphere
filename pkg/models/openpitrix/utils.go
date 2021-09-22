@@ -401,6 +401,18 @@ func convertAppVersion(in *v1alpha1.HelmApplicationVersion) *AppVersion {
 		out.Icon = in.Spec.Icon
 	}
 
+	// The field Maintainers and Sources were a string field, so I encode the helm field's maintainers and sources,
+	// which are array, to string.
+	if len(in.Spec.Maintainers) > 0 {
+		maintainers, _ := json.Marshal(in.Spec.Maintainers)
+		out.Maintainers = string(maintainers)
+	}
+
+	if len(in.Spec.Sources) > 0 {
+		source, _ := json.Marshal(in.Spec.Sources)
+		out.Sources = string(source)
+	}
+
 	out.Status = in.State()
 	out.Owner = in.GetCreator()
 	out.Name = in.GetVersionName()
@@ -565,6 +577,8 @@ func buildApplicationVersion(app *v1alpha1.HelmApplication, chrt helmrepoindex.V
 				Icon:        chrt.GetIcon(),
 				Home:        chrt.GetHome(),
 				Description: stringutils.ShortenString(chrt.GetDescription(), v1alpha1.MsgLen),
+				Sources:     chrt.GetRawSources(),
+				Maintainers: chrt.GetRawMaintainers(),
 			},
 			Created: &t,
 			// set data to nil before save app version to etcd

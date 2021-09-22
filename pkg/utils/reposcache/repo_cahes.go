@@ -273,7 +273,7 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 		// build all the versions of this app
 		for _, chartVersion := range app.Charts {
 			chartsCount += 1
-
+			hvw := helmrepoindex.HelmVersionWrapper{ChartVersion: &chartVersion.ChartVersion}
 			appVerName = chartVersion.ApplicationVersionId
 			version := &v1alpha1.HelmApplicationVersion{
 				ObjectMeta: metav1.ObjectMeta{
@@ -287,9 +287,9 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 				},
 				Spec: v1alpha1.HelmApplicationVersionSpec{
 					Metadata: &v1alpha1.Metadata{
-						Name:       chartVersion.Name,
-						AppVersion: chartVersion.AppVersion,
-						Version:    chartVersion.Version,
+						Name:       hvw.GetName(),
+						AppVersion: hvw.GetAppVersion(),
+						Version:    hvw.GetVersion(),
 					},
 					URLs:   chartVersion.URLs,
 					Digest: chartVersion.Digest,
@@ -298,6 +298,13 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 				Status: v1alpha1.HelmApplicationVersionStatus{
 					State: v1alpha1.StateActive,
 				},
+			}
+
+			// It is not necessary to store these pieces of information when this is not a built-in repo.
+			if helmrepoindex.IsBuiltInRepo(repo.Name) {
+				version.Spec.Sources = hvw.GetRawSources()
+				version.Spec.Maintainers = hvw.GetRawMaintainers()
+				version.Spec.Home = hvw.GetHome()
 			}
 			c.versions[chartVersion.ApplicationVersionId] = version
 

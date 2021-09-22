@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/api/application/v1alpha1"
+
 	"helm.sh/helm/v3/pkg/repo"
 	"k8s.io/klog"
 
@@ -64,8 +66,25 @@ func (h HelmVersionWrapper) GetSources() string {
 	return string(s)
 }
 
+func (h HelmVersionWrapper) GetRawSources() []string {
+	return h.Sources
+}
+
 func (h HelmVersionWrapper) GetKeywords() string {
 	return strings.Join(h.ChartVersion.Keywords, ",")
+}
+
+func (h HelmVersionWrapper) GetRawMaintainers() []*v1alpha1.Maintainer {
+	mt := make([]*v1alpha1.Maintainer, 0, len(h.Maintainers))
+	for _, value := range h.Maintainers {
+		mt = append(mt, &v1alpha1.Maintainer{
+			URL:   value.URL,
+			Name:  value.Name,
+			Email: value.Email,
+		})
+
+	}
+	return mt
 }
 
 func (h HelmVersionWrapper) GetMaintainers() string {
