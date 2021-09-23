@@ -322,7 +322,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	case authorization.RBAC:
 		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
-		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
+		amOperator := am.NewReadOnlyOperator(s.InformerFactory, s.DevopsClient)
 		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))
 	}
 

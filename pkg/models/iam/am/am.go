@@ -114,8 +114,8 @@ type amOperator struct {
 	k8sclient                  kubernetes.Interface
 }
 
-func NewReadOnlyOperator(factory informers.InformerFactory) AccessManagementInterface {
-	return &amOperator{
+func NewReadOnlyOperator(factory informers.InformerFactory, devopsClient devops.Interface) AccessManagementInterface {
+	operator := &amOperator{
 		globalRoleBindingGetter:    globalrolebinding.New(factory.KubeSphereSharedInformerFactory()),
 		workspaceRoleBindingGetter: workspacerolebinding.New(factory.KubeSphereSharedInformerFactory()),
 		clusterRoleBindingGetter:   clusterrolebinding.New(factory.KubernetesSharedInformerFactory()),
@@ -126,16 +126,17 @@ func NewReadOnlyOperator(factory informers.InformerFactory) AccessManagementInte
 		roleGetter:                 role.New(factory.KubernetesSharedInformerFactory()),
 		namespaceLister:            factory.KubernetesSharedInformerFactory().Core().V1().Namespaces().Lister(),
 	}
+	// no more CRDs of devopsprojects if the DevOps module was disabled
+	if devopsClient != nil {
+		operator.devopsProjectLister = factory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects().Lister()
+	}
+	return operator
 }
 
 func NewOperator(ksClient kubesphere.Interface, k8sClient kubernetes.Interface, factory informers.InformerFactory, devopsClient devops.Interface) AccessManagementInterface {
-	amOperator := NewReadOnlyOperator(factory).(*amOperator)
+	amOperator := NewReadOnlyOperator(factory, devopsClient).(*amOperator)
 	amOperator.ksclient = ksClient
 	amOperator.k8sclient = k8sClient
-	// no more CRDs of devopsprojects if the DevOps module was disabled
-	if devopsClient != nil {
-		amOperator.devopsProjectLister = factory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects().Lister()
-	}
 	return amOperator
 }
 
