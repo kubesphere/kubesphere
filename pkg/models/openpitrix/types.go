@@ -383,6 +383,9 @@ type AppVersion struct {
 	VersionId string `json:"version_id,omitempty"`
 
 	ClusterTotal *int `json:"cluster_total,omitempty"`
+	
+	// change log of the app
+	ChangeLog string `json:"change_log,omitempty"`
 }
 
 type CreateAppVersionResponse struct {
@@ -911,4 +914,6 @@ const (
 	ActionRelease   = "release"
 	Ascending       = "ascending"
 	ActionIndex     = "index"
+
+	OperatorAppSuffix = "-operator"
 )

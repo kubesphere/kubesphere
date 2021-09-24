@@ -207,7 +207,7 @@ func AddToContainer(c *restful.Container, ksInfomrers informers.InformerFactory,
 		Reads(openpitrix.ModifyAppVersionRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("app", "app template id")))
-
+	// todo operator apps list
 	webservice.Route(webservice.GET("/apps").
 		Deprecate().
 		To(handler.ListApps).
@@ -310,6 +310,7 @@ func AddToContainer(c *restful.Container, ksInfomrers informers.InformerFactory,
 		Returns(http.StatusOK, api.StatusOK, openpitrix.AppVersion{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
+	// todo 增加version
 	webservice.Route(webservice.GET("/apps/{app}/versions").
 		Deprecate().
 		To(handler.ListAppVersions).

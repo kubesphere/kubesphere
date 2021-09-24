@@ -26,10 +26,13 @@ import (
 )
 
 // WorkspaceLister helps list Workspaces.
+// All objects returned here must be treated as read-only.
 type WorkspaceLister interface {
 	// List lists all Workspaces in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.Workspace, err error)
 	// Get retrieves the Workspace from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.Workspace, error)
 	WorkspaceListerExpansion
 }

@@ -18,7 +18,7 @@ package manifest
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	"kubesphere.io/api/manifest/v1alpha1"
+	"kubesphere.io/api/application/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
@@ -35,24 +35,23 @@ func New(informers externalversions.SharedInformerFactory) v1alpha3.Interface {
 	}
 }
 
-func (c manifestGetter) Get(_, name string) (runtime.Object, error) {
-	manifest, err := c.informers.
-	cluster, err := c.informers.Cluster().V1alpha1().Clusters().Lister().Get(name)
+func (c manifestGetter) Get(namespace, name string) (runtime.Object, error) {
+	manifest, err := c.informers.Application().V1alpha1().Manifests().Lister().Manifests(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
-	return c.transform(cluster), nil
+	return c.transform(manifest), nil
 }
 
 func (c manifestGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	clusters, err := c.informers.Cluster().V1alpha1().Clusters().Lister().List(query.Selector())
+	manifests, err := c.informers.Application().V1alpha1().Manifests().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
 
 	var result []runtime.Object
-	for _, cluster := range clusters {
-		result = append(result, cluster)
+	for _, manifest := range manifests {
+		result = append(result, manifest)
 	}
 
 	return v1alpha3.DefaultList(result, query, c.compare, c.filter, c.transform), nil

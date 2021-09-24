@@ -31,6 +31,9 @@ type ApplicationV1alpha1Interface interface {
 	HelmCategoriesGetter
 	HelmReleasesGetter
 	HelmReposGetter
+	ManifestsGetter
+	OperatorApplicationsGetter
+	OperatorApplicationVersionsGetter
 }
 
 // ApplicationV1alpha1Client is used to interact with features provided by the application.kubesphere.io group.
@@ -56,6 +59,18 @@ func (c *ApplicationV1alpha1Client) HelmReleases() HelmReleaseInterface {
 
 func (c *ApplicationV1alpha1Client) HelmRepos() HelmRepoInterface {
 	return newHelmRepos(c)
+}
+
+func (c *ApplicationV1alpha1Client) Manifests(namespace string) ManifestInterface {
+	return newManifests(c, namespace)
+}
+
+func (c *ApplicationV1alpha1Client) OperatorApplications() OperatorApplicationInterface {
+	return newOperatorApplications(c)
+}
+
+func (c *ApplicationV1alpha1Client) OperatorApplicationVersions() OperatorApplicationVersionInterface {
+	return newOperatorApplicationVersions(c)
 }
 
 // NewForConfig creates a new ApplicationV1alpha1Client for the given config.

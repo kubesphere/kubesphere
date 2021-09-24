@@ -26,10 +26,13 @@ import (
 )
 
 // StorageClassCapabilityLister helps list StorageClassCapabilities.
+// All objects returned here must be treated as read-only.
 type StorageClassCapabilityLister interface {
 	// List lists all StorageClassCapabilities in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.StorageClassCapability, err error)
 	// Get retrieves the StorageClassCapability from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.StorageClassCapability, error)
 	StorageClassCapabilityListerExpansion
 }

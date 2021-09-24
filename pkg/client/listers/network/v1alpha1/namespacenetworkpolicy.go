@@ -26,8 +26,10 @@ import (
 )
 
 // NamespaceNetworkPolicyLister helps list NamespaceNetworkPolicies.
+// All objects returned here must be treated as read-only.
 type NamespaceNetworkPolicyLister interface {
 	// List lists all NamespaceNetworkPolicies in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.NamespaceNetworkPolicy, err error)
 	// NamespaceNetworkPolicies returns an object that can list and get NamespaceNetworkPolicies.
 	NamespaceNetworkPolicies(namespace string) NamespaceNetworkPolicyNamespaceLister
@@ -58,10 +60,13 @@ func (s *namespaceNetworkPolicyLister) NamespaceNetworkPolicies(namespace string
 }
 
 // NamespaceNetworkPolicyNamespaceLister helps list and get NamespaceNetworkPolicies.
+// All objects returned here must be treated as read-only.
 type NamespaceNetworkPolicyNamespaceLister interface {
 	// List lists all NamespaceNetworkPolicies in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.NamespaceNetworkPolicy, err error)
 	// Get retrieves the NamespaceNetworkPolicy from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.NamespaceNetworkPolicy, error)
 	NamespaceNetworkPolicyNamespaceListerExpansion
 }

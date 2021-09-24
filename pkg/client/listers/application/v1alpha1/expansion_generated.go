@@ -37,3 +37,19 @@ type HelmReleaseListerExpansion interface{}
 // HelmRepoListerExpansion allows custom methods to be added to
 // HelmRepoLister.
 type HelmRepoListerExpansion interface{}
+
+// ManifestListerExpansion allows custom methods to be added to
+// ManifestLister.
+type ManifestListerExpansion interface{}
+
+// ManifestNamespaceListerExpansion allows custom methods to be added to
+// ManifestNamespaceLister.
+type ManifestNamespaceListerExpansion interface{}
+
+// OperatorApplicationListerExpansion allows custom methods to be added to
+// OperatorApplicationLister.
+type OperatorApplicationListerExpansion interface{}
+
+// OperatorApplicationVersionListerExpansion allows custom methods to be added to
+// OperatorApplicationVersionLister.
+type OperatorApplicationVersionListerExpansion interface{}

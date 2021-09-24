@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedApplicationLister helps list FederatedApplications.
+// All objects returned here must be treated as read-only.
 type FederatedApplicationLister interface {
 	// List lists all FederatedApplications in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedApplication, err error)
 	// FederatedApplications returns an object that can list and get FederatedApplications.
 	FederatedApplications(namespace string) FederatedApplicationNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedApplicationLister) FederatedApplications(namespace string) Fed
 }
 
 // FederatedApplicationNamespaceLister helps list and get FederatedApplications.
+// All objects returned here must be treated as read-only.
 type FederatedApplicationNamespaceLister interface {
 	// List lists all FederatedApplications in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedApplication, err error)
 	// Get retrieves the FederatedApplication from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedApplication, error)
 	FederatedApplicationNamespaceListerExpansion
 }

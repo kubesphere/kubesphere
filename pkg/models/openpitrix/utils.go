@@ -346,6 +346,40 @@ func convertApp(app *v1alpha1.HelmApplication, versions []*v1alpha1.HelmApplicat
 	return out
 }
 
+func convertOperatorApp(app *v1alpha1.OperatorApplication, versions []*v1alpha1.OperatorApplicationVersion) *App {
+	if app == nil {
+		return nil
+	}
+	out := &App{}
+
+	out.AppId = "app-" + app.Spec.AppName
+	out.Name = app.Spec.AppName
+	out.Abstraction = app.Spec.Abstraction
+	out.Description = app.Spec.Description
+	date := strfmt.DateTime(app.CreationTimestamp.Time)
+	out.CreateTime = &date
+	out.Status = app.Status.State
+
+	out.Description = app.Spec.Description
+	out.Icon = app.Spec.Icon
+	ct := strfmt.DateTime(app.CreationTimestamp.Time)
+	rc := ResourceCategory{
+		CategoryId: "radondb",
+		Name:       "RadonDB",
+		CreateTime: &ct,
+	}
+	out.CategorySet = AppCategorySet{&rc}
+	for _, version := range versions {
+		out.LatestAppVersion = convertOperatorAppVersion(version)
+		break
+	}
+	if out.LatestAppVersion == nil {
+		out.LatestAppVersion = &AppVersion{}
+	}
+	out.Owner = app.Spec.Owner
+	out.AppVersionTypes = "operator"
+	return out
+}
 func filterAppVersionByState(versions []*v1alpha1.HelmApplicationVersion, states []string) []*v1alpha1.HelmApplicationVersion {
 	if len(states) == 0 {
 		return versions
@@ -406,6 +440,27 @@ func convertAppVersion(in *v1alpha1.HelmApplicationVersion) *AppVersion {
 	return &out
 }
 
+func convertOperatorAppVersion(in *v1alpha1.OperatorApplicationVersion) *AppVersion {
+	if in == nil {
+		return nil
+	}
+	out := &AppVersion{}
+	out.AppId = "app-" + in.Spec.AppName
+	out.Active = true
+	out.Description = in.Spec.Description
+	out.VersionId = in.Spec.AppVersion
+	out.Screenshots = in.Spec.Screenshots
+	t := in.CreationTimestamp.Time
+	date := strfmt.DateTime(t)
+	out.CreateTime = &date
+	out.Status = in.Status.State
+	out.Owner = in.Spec.AppName
+	out.Name = in.GetVersionName()
+	out.Icon = in.Spec.Icon
+	out.Owner = in.Spec.Owner
+	out.VersionId = in.Spec.AppName
+	return out
+}
 func convertRepo(in *v1alpha1.HelmRepo) *Repo {
 	if in == nil {
 		return nil
@@ -716,6 +771,26 @@ func filterApps(apps []*v1alpha1.HelmApplication, conditions *params.Conditions)
 	return apps[:curr:curr]
 }
 
+func filterOperatorApps(operatorApps []*v1alpha1.OperatorApplication, conditions *params.Conditions) []*v1alpha1.OperatorApplication {
+	if conditions == nil || len(conditions.Match) == 0 || len(operatorApps) == 0 {
+		return operatorApps
+	}
+	//var newOperatorApps []*v1alpha1.OperatorApplication
+	key := conditions.Match[Keyword]
+	curr := 0
+	for i := range operatorApps {
+		if key != "" {
+			if !strings.Contains(strings.ToLower(operatorApps[i].Name), key) {
+				continue
+			}
+		}
+		if curr != i {
+			operatorApps[curr] = operatorApps[i]
+		}
+		curr++
+	}
+	return operatorApps[:curr:curr]
+}
 func filterReleaseByStates(rls *v1alpha1.HelmRelease, state []string) bool {
 	if len(state) == 0 {
 		return true

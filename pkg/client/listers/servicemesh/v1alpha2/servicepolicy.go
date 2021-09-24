@@ -26,8 +26,10 @@ import (
 )
 
 // ServicePolicyLister helps list ServicePolicies.
+// All objects returned here must be treated as read-only.
 type ServicePolicyLister interface {
 	// List lists all ServicePolicies in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.ServicePolicy, err error)
 	// ServicePolicies returns an object that can list and get ServicePolicies.
 	ServicePolicies(namespace string) ServicePolicyNamespaceLister
@@ -58,10 +60,13 @@ func (s *servicePolicyLister) ServicePolicies(namespace string) ServicePolicyNam
 }
 
 // ServicePolicyNamespaceLister helps list and get ServicePolicies.
+// All objects returned here must be treated as read-only.
 type ServicePolicyNamespaceLister interface {
 	// List lists all ServicePolicies in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.ServicePolicy, err error)
 	// Get retrieves the ServicePolicy from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.ServicePolicy, error)
 	ServicePolicyNamespaceListerExpansion
 }

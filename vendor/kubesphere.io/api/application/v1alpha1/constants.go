@@ -60,4 +60,26 @@ const (
 	ApplicationInstance = "app.kubesphere.io/instance"
 
 	OriginWorkspaceLabelKey = "kubesphere.io/workspace-origin"
+
+	// operator app
+	OperatorApplicationSuffix = "-operator"
+
+	// DMP
+	Creating = "creating"
+	Failed   = "failed"
+	Created  = "created"
+
+	// kind of operator cr
+	DBTypeClickHouse = "ClickHouseInstallation"
+	DBTypePostgreSQL = "Pgcluster"
+	DBTypeMysql      = "MySQL"
+
+	// type of the cluster application
+	ClusterAppTypeClickHouse = "ClickHouse"
+	ClusterAPPTypePostgreSQL = "PostgreSQL"
+	ClusterAPPTypeMySQL      = "MySQL"
+
+	// cluster status
+	ClusterStatusUnknown = "unknown"
+	// 状态更新异常
 )

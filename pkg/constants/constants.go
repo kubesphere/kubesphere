@@ -46,6 +46,8 @@ const (
 	DevOpsProjectLabelKey             = "kubesphere.io/devopsproject"
 	KubefedManagedLabel               = "kubefed.io/managed"
 
+	OperatorAppLabelKey = "application.kubesphere.io/operator-app"
+
 	UserNameHeader = "X-Token-Username"
 
 	AuthenticationTag = "Authentication"

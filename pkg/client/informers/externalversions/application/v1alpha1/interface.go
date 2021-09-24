@@ -34,6 +34,12 @@ type Interface interface {
 	HelmReleases() HelmReleaseInformer
 	// HelmRepos returns a HelmRepoInformer.
 	HelmRepos() HelmRepoInformer
+	// Manifests returns a ManifestInformer.
+	Manifests() ManifestInformer
+	// OperatorApplications returns a OperatorApplicationInformer.
+	OperatorApplications() OperatorApplicationInformer
+	// OperatorApplicationVersions returns a OperatorApplicationVersionInformer.
+	OperatorApplicationVersions() OperatorApplicationVersionInformer
 }
 
 type version struct {
@@ -70,4 +76,19 @@ func (v *version) HelmReleases() HelmReleaseInformer {
 // HelmRepos returns a HelmRepoInformer.
 func (v *version) HelmRepos() HelmRepoInformer {
 	return &helmRepoInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Manifests returns a ManifestInformer.
+func (v *version) Manifests() ManifestInformer {
+	return &manifestInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// OperatorApplications returns a OperatorApplicationInformer.
+func (v *version) OperatorApplications() OperatorApplicationInformer {
+	return &operatorApplicationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// OperatorApplicationVersions returns a OperatorApplicationVersionInformer.
+func (v *version) OperatorApplicationVersions() OperatorApplicationVersionInformer {
+	return &operatorApplicationVersionInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

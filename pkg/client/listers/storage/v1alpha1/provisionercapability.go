@@ -26,10 +26,13 @@ import (
 )
 
 // ProvisionerCapabilityLister helps list ProvisionerCapabilities.
+// All objects returned here must be treated as read-only.
 type ProvisionerCapabilityLister interface {
 	// List lists all ProvisionerCapabilities in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.ProvisionerCapability, err error)
 	// Get retrieves the ProvisionerCapability from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.ProvisionerCapability, error)
 	ProvisionerCapabilityListerExpansion
 }

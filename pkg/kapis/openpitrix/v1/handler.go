@@ -395,6 +395,7 @@ func (h *openpitrixHandler) ModifyApp(req *restful.Request, resp *restful.Respon
 	resp.WriteEntity(errors.None)
 }
 
+// todo operator apps
 func (h *openpitrixHandler) ListApps(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)

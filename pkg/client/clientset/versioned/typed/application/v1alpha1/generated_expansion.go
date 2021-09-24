@@ -27,3 +27,9 @@ type HelmCategoryExpansion interface{}
 type HelmReleaseExpansion interface{}
 
 type HelmRepoExpansion interface{}
+
+type ManifestExpansion interface{}
+
+type OperatorApplicationExpansion interface{}
+
+type OperatorApplicationVersionExpansion interface{}

@@ -26,10 +26,13 @@ import (
 )
 
 // RoleBaseLister helps list RoleBases.
+// All objects returned here must be treated as read-only.
 type RoleBaseLister interface {
 	// List lists all RoleBases in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.RoleBase, err error)
 	// Get retrieves the RoleBase from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.RoleBase, error)
 	RoleBaseListerExpansion
 }

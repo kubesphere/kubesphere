@@ -26,8 +26,10 @@ import (
 )
 
 // S2iRunLister helps list S2iRuns.
+// All objects returned here must be treated as read-only.
 type S2iRunLister interface {
 	// List lists all S2iRuns in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.S2iRun, err error)
 	// S2iRuns returns an object that can list and get S2iRuns.
 	S2iRuns(namespace string) S2iRunNamespaceLister
@@ -58,10 +60,13 @@ func (s *s2iRunLister) S2iRuns(namespace string) S2iRunNamespaceLister {
 }
 
 // S2iRunNamespaceLister helps list and get S2iRuns.
+// All objects returned here must be treated as read-only.
 type S2iRunNamespaceLister interface {
 	// List lists all S2iRuns in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.S2iRun, err error)
 	// Get retrieves the S2iRun from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.S2iRun, error)
 	S2iRunNamespaceListerExpansion
 }

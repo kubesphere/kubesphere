@@ -22,10 +22,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"reflect"
 	"sort"
-
-	"helm.sh/helm/v3/pkg/chart/loader"
+	"strings"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 
@@ -264,12 +264,33 @@ func (c *applicationOperator) ListAppVersions(conditions *params.Conditions, ord
 
 	totalCount := len(versions)
 	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	operatorVersions, err := c.listOperatorAppVersions()
+	items := make([]interface{}, 0)
+	operatorMap := map[string]bool{
+		"clickhouse": true,
+		"postgresql": true,
+		"mysql": true,
+	}
+	oAppId := strings.ToLower(strings.TrimPrefix(conditions.Match[AppId], v1alpha1.HelmApplicationIdPrefix))
+	_, ok := operatorMap[oAppId]
+	if ok {
+		for i := range operatorVersions {
+			if operatorVersions[i].Name == oAppId {
+				items = append(items,  convertOperatorAppVersion(operatorVersions[i]))
+			}
+		}
+		return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
+	}
 	versions = versions[start:end]
-	items := make([]interface{}, 0, len(versions))
 	for i := range versions {
 		items = append(items, convertAppVersion(versions[i]))
 	}
 	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
+}
+
+func (c *applicationOperator) listOperatorAppVersions() (ret []*v1alpha1.OperatorApplicationVersion, err error) {
+	ret, err = c.operatorAppVersionLister.List(labels.Everything())
+	return
 }
 
 func (c *applicationOperator) ListAppVersionReviews(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
@@ -586,5 +607,14 @@ func (c *applicationOperator) getAppVersionsByAppId(appId string) (ret []*v1alph
 		return nil, err
 	}
 
+	return
+}
+
+func (c *applicationOperator) getAppVersionByAppLabel(appLabel string) (ret []*v1alpha1.OperatorApplicationVersion, err error) {
+	ret, err = c.operatorAppVersionLister.List(labels.SelectorFromSet(map[string]string{constants.OperatorAppLabelKey: appLabel}))
+	if err != nil && !apierrors.IsNotFound(err) {
+		klog.Error(err)
+		return nil, err
+	}
 	return
 }

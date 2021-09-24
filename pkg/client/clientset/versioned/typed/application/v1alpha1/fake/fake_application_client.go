@@ -48,6 +48,18 @@ func (c *FakeApplicationV1alpha1) HelmRepos() v1alpha1.HelmRepoInterface {
 	return &FakeHelmRepos{c}
 }
 
+func (c *FakeApplicationV1alpha1) Manifests(namespace string) v1alpha1.ManifestInterface {
+	return &FakeManifests{c, namespace}
+}
+
+func (c *FakeApplicationV1alpha1) OperatorApplications() v1alpha1.OperatorApplicationInterface {
+	return &FakeOperatorApplications{c}
+}
+
+func (c *FakeApplicationV1alpha1) OperatorApplicationVersions() v1alpha1.OperatorApplicationVersionInterface {
+	return &FakeOperatorApplicationVersions{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeApplicationV1alpha1) RESTClient() rest.Interface {

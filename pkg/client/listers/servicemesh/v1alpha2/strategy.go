@@ -26,8 +26,10 @@ import (
 )
 
 // StrategyLister helps list Strategies.
+// All objects returned here must be treated as read-only.
 type StrategyLister interface {
 	// List lists all Strategies in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.Strategy, err error)
 	// Strategies returns an object that can list and get Strategies.
 	Strategies(namespace string) StrategyNamespaceLister
@@ -58,10 +60,13 @@ func (s *strategyLister) Strategies(namespace string) StrategyNamespaceLister {
 }
 
 // StrategyNamespaceLister helps list and get Strategies.
+// All objects returned here must be treated as read-only.
 type StrategyNamespaceLister interface {
 	// List lists all Strategies in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.Strategy, err error)
 	// Get retrieves the Strategy from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.Strategy, error)
 	StrategyNamespaceListerExpansion
 }

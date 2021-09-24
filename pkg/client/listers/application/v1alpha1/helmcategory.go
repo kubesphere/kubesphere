@@ -26,10 +26,13 @@ import (
 )
 
 // HelmCategoryLister helps list HelmCategories.
+// All objects returned here must be treated as read-only.
 type HelmCategoryLister interface {
 	// List lists all HelmCategories in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.HelmCategory, err error)
 	// Get retrieves the HelmCategory from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.HelmCategory, error)
 	HelmCategoryListerExpansion
 }

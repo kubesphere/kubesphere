@@ -26,10 +26,13 @@ import (
 )
 
 // GlobalRoleLister helps list GlobalRoles.
+// All objects returned here must be treated as read-only.
 type GlobalRoleLister interface {
 	// List lists all GlobalRoles in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.GlobalRole, err error)
 	// Get retrieves the GlobalRole from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.GlobalRole, error)
 	GlobalRoleListerExpansion
 }

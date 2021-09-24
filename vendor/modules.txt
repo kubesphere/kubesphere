@@ -534,8 +534,6 @@ github.com/mattn/go-isatty
 github.com/mattn/go-runewidth
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 => github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mgw2168/customResource v0.0.0-20210906060059-6baa60aac9d9
-## explicit
 # github.com/mitchellh/copystructure v1.1.1 => github.com/mitchellh/copystructure v1.0.0
 github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v1.1.0 => github.com/mitchellh/go-homedir v1.1.0
@@ -1976,7 +1974,6 @@ kubesphere.io/api/devops/crdinstall
 kubesphere.io/api/devops/v1alpha1
 kubesphere.io/api/devops/v1alpha3
 kubesphere.io/api/iam/v1alpha2
-kubesphere.io/api/manifest/v1alpha1
 kubesphere.io/api/network/calicov3
 kubesphere.io/api/network/crdinstall
 kubesphere.io/api/network/v1alpha1

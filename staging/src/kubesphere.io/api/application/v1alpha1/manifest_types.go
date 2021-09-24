@@ -25,31 +25,35 @@ import (
 
 // ManifestSpec defines the desired state of Manifest
 type ManifestSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	Kind        string `json:"kind"`
-	Application string `json:"application,omitempty"`
-	AppVersion  string `json:"appVersion"`
+	// kind of the database cluster
+	Kind string `json:"kind"`
+	// info from frontend
+	Description    string `json:"description,omitempty"`
+	AppName        string `json:"app"`
+	AppVersion     string `json:"appVersion"`
 	CustomResource string `json:"customResource" yaml:"customResource"`
+	// expected release version, when this version is not equal status.version, the release need upgrade
+	// this filed should be modified when any filed of the spec modified.
+	Version int `json:"version"`
 }
 
 // ManifestStatus defines the observed state of Manifest
 type ManifestStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 	Status     string      `json:"status,omitempty"`
+	// current manifest version
+	Version    int         `json:"version,omitempty"`
 	LastUpdate metav1.Time `json:"lastUpdate,omitempty"`
 }
 
-//+genclient
-//+kubebuilder:printcolumn:name="Kind",type="string",JSONPath=".spec.kind"
-//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
-//+kubebuilder:printcolumn:name="Application",type="string",JSONPath=".spec.application"
-//+kubebuilder:printcolumn:name="AppVersion",type="string",JSONPath=".spec.appVersion"
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +genclient
+// +kubebuilder:printcolumn:name="Kind",type="string",JSONPath=".spec.kind"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
+// +kubebuilder:printcolumn:name="Application",type="string",JSONPath=".spec.application"
+// +kubebuilder:printcolumn:name="AppVersion",type="string",JSONPath=".spec.appVersion"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Manifest is the Schema for the manifests API
 type Manifest struct {
@@ -60,7 +64,8 @@ type Manifest struct {
 	Status ManifestStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ManifestList contains a list of Manifest
 type ManifestList struct {
