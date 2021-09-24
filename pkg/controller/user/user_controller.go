@@ -288,6 +288,9 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, user *iamv1alpha2.Use
 	federatedUser := &typesv1beta1.FederatedUser{}
 	err := r.Get(ctx, types.NamespacedName{Name: user.Name}, federatedUser)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return r.createFederatedUser(ctx, user)
+		}
 		return err
 	}
 
@@ -306,10 +309,6 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, user *iamv1alpha2.Use
 
 func (r *Reconciler) createFederatedUser(ctx context.Context, user *iamv1alpha2.User) error {
 	federatedUser := &typesv1beta1.FederatedUser{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       iamv1alpha2.FedUserKind,
-			APIVersion: iamv1alpha2.FedUserResource.Group + "/" + iamv1alpha2.FedUserResource.Version,
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: user.Name,
 		},
