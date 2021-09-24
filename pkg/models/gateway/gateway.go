@@ -396,8 +396,8 @@ func (c *gatewayOperator) ListGateways(query *query.Query) (*api.ListResult, err
 			}),
 	})
 
-	for _, s := range services.Items {
-		result = append(result, &s)
+	for i := range services.Items {
+		result = append(result, &services.Items[i])
 	}
 
 	return v1alpha3.DefaultList(result, query, c.compare, c.filter, c.transform), nil
@@ -447,16 +447,25 @@ func (c *gatewayOperator) compare(left runtime.Object, right runtime.Object, fie
 }
 
 func (c *gatewayOperator) filter(object runtime.Object, filter query.Filter) bool {
+	var objMeta v1.ObjectMeta
+	var namesapce string
+
 	gateway, ok := object.(*v1alpha1.Gateway)
 	if !ok {
-		return false
+		svc, ok := object.(*corev1.Service)
+		if !ok {
+			return false
+		}
+		namesapce = svc.Labels["project"]
+	} else {
+		namesapce = gateway.Spec.Conroller.Scope.Namespace
 	}
 
 	switch filter.Field {
 	case query.FieldNamespace:
-		return strings.Compare(gateway.Spec.Conroller.Scope.Namespace, string(filter.Value)) == 0
+		return strings.Compare(namesapce, string(filter.Value)) == 0
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(gateway.ObjectMeta, filter)
+		return v1alpha3.DefaultObjectMetaFilter(objMeta, filter)
 	}
 }
 
