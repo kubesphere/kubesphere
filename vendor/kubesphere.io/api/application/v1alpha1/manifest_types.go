@@ -29,7 +29,7 @@ type ManifestSpec struct {
 	Kind string `json:"kind"`
 	// info from frontend
 	Description    string `json:"description,omitempty"`
-	AppName        string `json:"app"`
+	AppName        string `json:"app,omitempty"`
 	AppVersion     string `json:"appVersion"`
 	CustomResource string `json:"customResource" yaml:"customResource"`
 	// expected release version, when this version is not equal status.version, the release need upgrade

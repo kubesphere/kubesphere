@@ -141,6 +141,7 @@ func (r *ManifestReconciler) deleteCluster(ctx context.Context, resource *v1alph
 
 	obj, err := getUnstructuredObj(resource)
 	if err != nil {
+		klog.Errorf("get unstructured object error: %s", err.Error())
 		return err
 	}
 	err = r.Delete(ctx, obj)
@@ -240,6 +241,12 @@ func getUnstructuredObjStatus(obj *unstructured.Unstructured) string {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if r.Client == nil {
+		r.Client = mgr.GetClient()
+	}
+	if r.Scheme == nil {
+		r.Scheme = mgr.GetScheme()
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Manifest{}).
 		Complete(r)

@@ -72,7 +72,7 @@ const (
 	// kind of operator cr
 	DBTypeClickHouse = "ClickHouseInstallation"
 	DBTypePostgreSQL = "Pgcluster"
-	DBTypeMysql      = "MySQL"
+	DBTypeMysql      = "Cluster"
 
 	// type of the cluster application
 	ClusterAppTypeClickHouse = "ClickHouse"
