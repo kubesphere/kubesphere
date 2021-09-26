@@ -43,12 +43,14 @@ spec:
         volumeMounts:
         - mountPath: /var/run/docker.sock
           name: docker-sock
+          readOnly: true
         - mountPath: /etc/kubesphere/ingress-controller
           name: ks-router-config
         - mountPath: /etc/kubesphere/
           name: kubesphere-config
         - mountPath: /etc/localtime
           name: host-time
+          readOnly: true
         {{- if .Values.apiserver.extraVolumeMounts }}
           {{- toYaml .Values.apiserver.extraVolumeMounts | nindent 8 }}
         {{- end }}
