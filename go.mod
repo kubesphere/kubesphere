@@ -12,7 +12,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect
-	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
+	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/aws/aws-sdk-go v1.33.12
 	github.com/beevik/etree v1.1.0
 	github.com/bshuster-repo/logrus-logstash-hook v0.4.1 // indirect
@@ -33,6 +33,7 @@ require (
 	github.com/emicklei/go-restful v2.14.3+incompatible
 	github.com/emicklei/go-restful-openapi v1.4.1
 	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible
 	github.com/garyburd/redigo v1.6.0 // indirect
@@ -40,7 +41,7 @@ require (
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr v0.4.0
 	github.com/go-openapi/loads v0.19.5
-	github.com/go-openapi/spec v0.19.7
+	github.com/go-openapi/spec v0.20.3
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/validate v0.19.8
 	github.com/go-redis/redis v6.15.2+incompatible
@@ -63,10 +64,12 @@ require (
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
-	github.com/mitchellh/mapstructure v1.2.2
+	github.com/mitchellh/mapstructure v1.4.1
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.15.0
-	github.com/open-policy-agent/opa v0.18.0
+	github.com/open-policy-agent/frameworks/constraint v0.0.0-20211007145240-5ce1a9baabd5
+	github.com/open-policy-agent/gatekeeper v0.0.0-20210830214345-9503ef230722
+	github.com/open-policy-agent/opa v0.29.4
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/operator-framework/helm-operator-plugins v0.0.8-0.20210810182245-240cc447b3de
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -77,7 +80,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator v0.42.2-0.20200928114327-fbd01683839a
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.42.1
 	github.com/prometheus/client_golang v1.11.0
-	github.com/prometheus/common v0.26.0
+	github.com/prometheus/common v0.30.0
 	github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
@@ -115,8 +118,8 @@ require (
 	k8s.io/code-generator v0.21.2
 	k8s.io/component-base v0.21.2
 	k8s.io/klog v1.0.0
-	k8s.io/klog/v2 v2.8.0
-	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e
+	k8s.io/klog/v2 v2.9.0
+	k8s.io/kube-openapi v0.0.0-20210527164424-3c818078ee3d
 	k8s.io/kubectl v0.21.2
 	k8s.io/metrics v0.21.2
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
@@ -142,6 +145,7 @@ replace (
 	cloud.google.com/go/storage => cloud.google.com/go/storage v1.6.0
 	code.cloudfoundry.org/bytefmt => code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
 	collectd.org => collectd.org v0.3.0
+	contrib.go.opencensus.io/exporter/prometheus => contrib.go.opencensus.io/exporter/prometheus v0.3.0
 	github.com/Azure/azure-pipeline-go => github.com/Azure/azure-pipeline-go v0.2.2
 	github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v41.3.0+incompatible
 	github.com/Azure/azure-storage-blob-go => github.com/Azure/azure-storage-blob-go v0.8.0
@@ -335,6 +339,7 @@ replace (
 	github.com/go-bindata/go-bindata/v3 => github.com/go-bindata/go-bindata/v3 v3.1.3
 	github.com/go-errors/errors => github.com/go-errors/errors v1.0.1
 	github.com/go-kit/kit => github.com/go-kit/kit v0.10.0
+	github.com/go-kit/log => github.com/go-kit/log v0.1.0
 	github.com/go-ldap/ldap => github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logfmt/logfmt => github.com/go-logfmt/logfmt v0.5.0
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
@@ -500,6 +505,7 @@ replace (
 	github.com/kr/text => github.com/kr/text v0.1.0
 	github.com/kshvakov/clickhouse => github.com/kshvakov/clickhouse v1.3.5
 	github.com/kubernetes-csi/external-snapshotter/client/v3 => github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0
+	github.com/kubernetes-csi/external-snapshotter/client/v4 => github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 	github.com/kubesphere/sonargo => github.com/kubesphere/sonargo v0.0.2
 	github.com/kylelemons/go-gypsy => github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28
 	github.com/kylelemons/godebug => github.com/kylelemons/godebug v0.0.0-20160406211939-eadb3ce320cb
@@ -579,6 +585,9 @@ replace (
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.10.1
 	github.com/op/go-logging => github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
+	github.com/open-policy-agent/cert-controller => github.com/open-policy-agent/cert-controller v0.2.0
+	github.com/open-policy-agent/frameworks/constraint => github.com/open-policy-agent/frameworks/constraint v0.0.0-20211007145240-5ce1a9baabd5
+	github.com/open-policy-agent/gatekeeper => github.com/open-policy-agent/gatekeeper v0.0.0-20210830214345-9503ef230722
 	github.com/open-policy-agent/opa => github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest => github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
@@ -627,6 +636,7 @@ replace (
 	github.com/prometheus/node_exporter => github.com/prometheus/node_exporter v1.0.0-rc.0.0.20200428091818-01054558c289
 	github.com/prometheus/procfs => github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20200507164740-ecee9c8abfd1
+	github.com/prometheus/statsd_exporter => github.com/prometheus/statsd_exporter v0.21.0
 	github.com/rafaeljusto/redigomock => github.com/rafaeljusto/redigomock v0.0.0-20190202135759-257e089e14a1
 	github.com/rainycape/unidecode => github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be
 	github.com/rcrowley/go-metrics => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a

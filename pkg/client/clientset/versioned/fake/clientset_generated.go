@@ -25,6 +25,8 @@ import (
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
 	clientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	admissionv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/admission/v1alpha1"
+	fakeadmissionv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/admission/v1alpha1/fake"
 	applicationv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
 	fakeapplicationv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1/fake"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/auditing/v1alpha1"
@@ -101,6 +103,11 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 }
 
 var _ clientset.Interface = &Clientset{}
+
+// AdmissionV1alpha1 retrieves the AdmissionV1alpha1Client
+func (c *Clientset) AdmissionV1alpha1() admissionv1alpha1.AdmissionV1alpha1Interface {
+	return &fakeadmissionv1alpha1.FakeAdmissionV1alpha1{Fake: &c.Fake}
+}
 
 // ApplicationV1alpha1 retrieves the ApplicationV1alpha1Client
 func (c *Clientset) ApplicationV1alpha1() applicationv1alpha1.ApplicationV1alpha1Interface {

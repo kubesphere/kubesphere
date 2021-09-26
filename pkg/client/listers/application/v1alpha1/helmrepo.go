@@ -26,10 +26,13 @@ import (
 )
 
 // HelmRepoLister helps list HelmRepos.
+// All objects returned here must be treated as read-only.
 type HelmRepoLister interface {
 	// List lists all HelmRepos in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.HelmRepo, err error)
 	// Get retrieves the HelmRepo from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.HelmRepo, error)
 	HelmRepoListerExpansion
 }

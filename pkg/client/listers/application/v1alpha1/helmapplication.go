@@ -26,10 +26,13 @@ import (
 )
 
 // HelmApplicationLister helps list HelmApplications.
+// All objects returned here must be treated as read-only.
 type HelmApplicationLister interface {
 	// List lists all HelmApplications in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.HelmApplication, err error)
 	// Get retrieves the HelmApplication from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.HelmApplication, error)
 	HelmApplicationListerExpansion
 }

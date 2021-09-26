@@ -25,6 +25,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: PolicyTemplate is the Schema for the policy templates API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -48,13 +49,13 @@ spec:
                     description: spec of policy content
                     properties:
                       names:
-                        description: policy name
+                        description: policy rule CRD name spec
                         properties:
                           name:
-                            description: policy name
+                            description: policy rule CRD name
                             type: string
                           short_names:
-                            description: short names
+                            description: policy rule CRD short names
                             items:
                               type: string
                             type: array

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere Authors.
+Copyright 2021 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,13 +32,14 @@ const (
 // +genclient:nonNamespaced
 // +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
-
-// PolicyTemplate is the Schema for the rules API
-// +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".spec.name"
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state"
-// +kubebuilder:resource:categories="admission",scope="Cluster"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:resource:categories="admission",scope="Cluster"
+// +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".spec.name"
+// +kubebuilder:printcolumn:name="Policy",type="string",JSONPath=".spec.policy"
+// +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".spec.provider"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
 
+// Rule is the Schema for the rules API
 type Rule struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -55,13 +56,14 @@ type RuleSpec struct {
 	Name string `json:"name"`
 	// Name of the policy.
 	// +optional
-	Policy string `json:"templateName,omitempty"`
+	Policy string `json:"policy,omitempty"`
 	// Name of the admission provider.
 	Provider string `json:"provider,omitempty"`
 	// Description of the rule.
 	// +optional
 	Description string `json:"description,omitempty"`
 	// Match
+	// +optional
 	Match Match `json:"match,omitempty"`
 	// Parameters
 	// +kubebuilder:pruning:PreserveUnknownFields

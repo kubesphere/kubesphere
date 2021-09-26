@@ -66,6 +66,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
+	admissionv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/admission/v1alpha1"
 	alertingv1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v1"
 	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2alpha1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
@@ -248,6 +249,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.Config.DevopsOptions.Endpoint))
 	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container, s.Config.DevopsOptions.Endpoint))
 	urlruntime.Must(notificationv1.AddToContainer(s.container, s.Config.NotificationOptions.Endpoint))
+	urlruntime.Must(admissionv1alpha1.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.KubeSphere(), s.Config.AdmissionOptions))
 	urlruntime.Must(alertingv1.AddToContainer(s.container, s.Config.AlertingOptions.Endpoint))
 	urlruntime.Must(alertingv2alpha1.AddToContainer(s.container, s.InformerFactory,
 		s.KubernetesClient.Prometheus(), s.AlertingClient, s.Config.AlertingOptions))

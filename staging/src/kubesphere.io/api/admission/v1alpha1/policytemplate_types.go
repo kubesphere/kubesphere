@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere Authors.
+Copyright 2021 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,14 +29,14 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
+// +genclient:noStatus
 // +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
-
-// PolicyTemplate is the Schema for the rules API
-// +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".spec.name"
-// +kubebuilder:resource:categories="admission",scope="Cluster"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:resource:categories="admission",scope="Cluster"
+// +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".spec.name"
 
+// PolicyTemplate is the Schema for the policy templates API
 type PolicyTemplate struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -87,7 +87,7 @@ type Validation struct {
 	// +kubebuilder:validation:Schemaless
 	// +kubebuilder:validation:Type=object
 	// +kubebuilder:pruning:PreserveUnknownFields
-	OpenAPIV3Schema *apiextensionsv1.JSONSchemaProps `json:"openAPIV3Schema,omitempty"`
+	OpenAPIV3Schema *apiextensions.JSONSchemaProps `json:"openAPIV3Schema,omitempty"`
 	// +kubebuilder:default=false
 	LegacySchema bool `json:"legacySchema,omitempty"`
 }

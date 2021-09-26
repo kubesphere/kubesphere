@@ -82,6 +82,10 @@ const (
 	DevOpsScmTag         = "DevOps Scm"
 	DevOpsJenkinsTag     = "Jenkins"
 
+	AdmissionPolicyTemplateTag = "Admission Policy Template"
+	AdmissionPolicyTag         = "Admission Policy"
+	AdmissionRuleTag           = "Admission Rule"
+
 	ToolboxTag      = "Toolbox"
 	RegistryTag     = "Docker Registry"
 	GitTag          = "Git"

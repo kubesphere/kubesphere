@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedServiceLister helps list FederatedServices.
+// All objects returned here must be treated as read-only.
 type FederatedServiceLister interface {
 	// List lists all FederatedServices in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedService, err error)
 	// FederatedServices returns an object that can list and get FederatedServices.
 	FederatedServices(namespace string) FederatedServiceNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedServiceLister) FederatedServices(namespace string) FederatedSe
 }
 
 // FederatedServiceNamespaceLister helps list and get FederatedServices.
+// All objects returned here must be treated as read-only.
 type FederatedServiceNamespaceLister interface {
 	// List lists all FederatedServices in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedService, err error)
 	// Get retrieves the FederatedService from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedService, error)
 	FederatedServiceNamespaceListerExpansion
 }

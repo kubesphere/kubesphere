@@ -26,8 +26,10 @@ import (
 )
 
 // S2iBuilderLister helps list S2iBuilders.
+// All objects returned here must be treated as read-only.
 type S2iBuilderLister interface {
 	// List lists all S2iBuilders in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.S2iBuilder, err error)
 	// S2iBuilders returns an object that can list and get S2iBuilders.
 	S2iBuilders(namespace string) S2iBuilderNamespaceLister
@@ -58,10 +60,13 @@ func (s *s2iBuilderLister) S2iBuilders(namespace string) S2iBuilderNamespaceList
 }
 
 // S2iBuilderNamespaceLister helps list and get S2iBuilders.
+// All objects returned here must be treated as read-only.
 type S2iBuilderNamespaceLister interface {
 	// List lists all S2iBuilders in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.S2iBuilder, err error)
 	// Get retrieves the S2iBuilder from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.S2iBuilder, error)
 	S2iBuilderNamespaceListerExpansion
 }

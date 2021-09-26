@@ -26,10 +26,13 @@ import (
 )
 
 // DevOpsProjectLister helps list DevOpsProjects.
+// All objects returned here must be treated as read-only.
 type DevOpsProjectLister interface {
 	// List lists all DevOpsProjects in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha3.DevOpsProject, err error)
 	// Get retrieves the DevOpsProject from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha3.DevOpsProject, error)
 	DevOpsProjectListerExpansion
 }

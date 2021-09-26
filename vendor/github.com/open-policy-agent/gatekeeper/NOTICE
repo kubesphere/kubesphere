@@ -1,0 +1,10 @@
+Gatekeeper
+Copyright 2018-2020 The Gatekeeper Authors
+
+This product includes modified code from the following projects,
+as denoted by notifications in the source code headers:
+
+controller-runtime
+https://sigs.k8s.io/controller-runtime
+Copyright 2018 The Kubernetes Authors.
+Licensed under the Apache License, Version 2.0

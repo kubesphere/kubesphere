@@ -19,12 +19,19 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.name
-      name: Name
-      type: string
+      - jsonPath: .spec.name
+        name: Name
+        type: string
+      - jsonPath: .spec.provider
+        name: Provider
+        type: string
+      - jsonPath: .status.status
+        name: Status
+        type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: Policy is the Schema for the policies API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -48,13 +55,13 @@ spec:
                     description: spec of policy content
                     properties:
                       names:
-                        description: policy name
+                        description: policy rule CRD name spec
                         properties:
                           name:
-                            description: policy name
+                            description: policy rule CRD name
                             type: string
                           short_names:
-                            description: short names
+                            description: policy rule CRD short names
                             items:
                               type: string
                             type: array
@@ -100,13 +107,16 @@ spec:
                       type: object
                     type: array
                 required:
-                - spec
-                - targets
+                  - spec
+                  - targets
                 type: object
               description:
                 type: string
               name:
-                description: Name of policy template
+                description: Name of policy
+                type: string
+              policyTemplate:
+                description: Name of the policy template.
                 type: string
               provider:
                 type: string

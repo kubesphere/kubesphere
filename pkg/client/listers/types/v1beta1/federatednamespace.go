@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedNamespaceLister helps list FederatedNamespaces.
+// All objects returned here must be treated as read-only.
 type FederatedNamespaceLister interface {
 	// List lists all FederatedNamespaces in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedNamespace, err error)
 	// FederatedNamespaces returns an object that can list and get FederatedNamespaces.
 	FederatedNamespaces(namespace string) FederatedNamespaceNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedNamespaceLister) FederatedNamespaces(namespace string) Federat
 }
 
 // FederatedNamespaceNamespaceLister helps list and get FederatedNamespaces.
+// All objects returned here must be treated as read-only.
 type FederatedNamespaceNamespaceLister interface {
 	// List lists all FederatedNamespaces in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedNamespace, err error)
 	// Get retrieves the FederatedNamespace from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedNamespace, error)
 	FederatedNamespaceNamespaceListerExpansion
 }

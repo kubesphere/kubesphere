@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/simple/client/admission"
 	"reflect"
 	"strings"
 
@@ -109,6 +110,7 @@ type Config struct {
 	MeteringOptions       *metering.Options       `json:"metering,omitempty" yaml:"metering,omitempty" mapstructure:"metering"`
 	GatewayOptions        *gateway.Options        `json:"gateway,omitempty" yaml:"gateway,omitempty" mapstructure:"gateway"`
 	GPUOptions            *gpu.Options            `json:"gpu,omitempty" yaml:"gpu,omitempty" mapstructure:"gpu"`
+	AdmissionOptions      *admission.Options      `json:"admission,omitempty" yaml:"admission,omitempty" mapstructure:"admission"`
 }
 
 // newConfig creates a default non-empty Config
@@ -136,6 +138,7 @@ func New() *Config {
 		MeteringOptions:       metering.NewMeteringOptions(),
 		GatewayOptions:        gateway.NewGatewayOptions(),
 		GPUOptions:            gpu.NewGPUOptions(),
+		AdmissionOptions:      admission.NewAdmissionOptions(),
 	}
 }
 

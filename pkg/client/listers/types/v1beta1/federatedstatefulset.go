@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedStatefulSetLister helps list FederatedStatefulSets.
+// All objects returned here must be treated as read-only.
 type FederatedStatefulSetLister interface {
 	// List lists all FederatedStatefulSets in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedStatefulSet, err error)
 	// FederatedStatefulSets returns an object that can list and get FederatedStatefulSets.
 	FederatedStatefulSets(namespace string) FederatedStatefulSetNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedStatefulSetLister) FederatedStatefulSets(namespace string) Fed
 }
 
 // FederatedStatefulSetNamespaceLister helps list and get FederatedStatefulSets.
+// All objects returned here must be treated as read-only.
 type FederatedStatefulSetNamespaceLister interface {
 	// List lists all FederatedStatefulSets in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedStatefulSet, err error)
 	// Get retrieves the FederatedStatefulSet from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedStatefulSet, error)
 	FederatedStatefulSetNamespaceListerExpansion
 }

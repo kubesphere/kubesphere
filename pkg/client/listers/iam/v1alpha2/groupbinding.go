@@ -26,10 +26,13 @@ import (
 )
 
 // GroupBindingLister helps list GroupBindings.
+// All objects returned here must be treated as read-only.
 type GroupBindingLister interface {
 	// List lists all GroupBindings in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.GroupBinding, err error)
 	// Get retrieves the GroupBinding from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.GroupBinding, error)
 	GroupBindingListerExpansion
 }

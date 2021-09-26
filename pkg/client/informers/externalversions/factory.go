@@ -28,6 +28,7 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	admission "kubesphere.io/kubesphere/pkg/client/informers/externalversions/admission"
 	application "kubesphere.io/kubesphere/pkg/client/informers/externalversions/application"
 	auditing "kubesphere.io/kubesphere/pkg/client/informers/externalversions/auditing"
 	cluster "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster"
@@ -183,6 +184,7 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
+	Admission() admission.Interface
 	Application() application.Interface
 	Auditing() auditing.Interface
 	Cluster() cluster.Interface
@@ -195,6 +197,10 @@ type SharedInformerFactory interface {
 	Storage() storage.Interface
 	Tenant() tenant.Interface
 	Types() types.Interface
+}
+
+func (f *sharedInformerFactory) Admission() admission.Interface {
+	return admission.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Application() application.Interface {

@@ -26,10 +26,13 @@ import (
 )
 
 // LoginRecordLister helps list LoginRecords.
+// All objects returned here must be treated as read-only.
 type LoginRecordLister interface {
 	// List lists all LoginRecords in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.LoginRecord, err error)
 	// Get retrieves the LoginRecord from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.LoginRecord, error)
 	LoginRecordListerExpansion
 }

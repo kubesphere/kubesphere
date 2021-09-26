@@ -19,15 +19,22 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.name
-      name: Name
-      type: string
-    - jsonPath: .status.state
-      name: Status
-      type: string
+      - jsonPath: .spec.name
+        name: Name
+        type: string
+      - jsonPath: .spec.policy
+        name: Policy
+        type: string
+      - jsonPath: .spec.provider
+        name: Provider
+        type: string
+      - jsonPath: .status.status
+        name: Status
+        type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: Rule is the Schema for the rules API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -181,11 +188,11 @@ spec:
                 type: object
                 x-kubernetes-embedded-resource: true
                 x-kubernetes-preserve-unknown-fields: true
+              policy:
+                description: Name of the policy.
+                type: string
               provider:
                 description: Name of the admission provider.
-                type: string
-              templateName:
-                description: Name of the policy.
                 type: string
             required:
             - name

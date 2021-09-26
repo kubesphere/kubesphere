@@ -24,6 +24,7 @@ import (
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
+	admissionv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/admission/v1alpha1"
 	applicationv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/auditing/v1alpha1"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
@@ -42,6 +43,7 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	AdmissionV1alpha1() admissionv1alpha1.AdmissionV1alpha1Interface
 	ApplicationV1alpha1() applicationv1alpha1.ApplicationV1alpha1Interface
 	AuditingV1alpha1() auditingv1alpha1.AuditingV1alpha1Interface
 	ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface
@@ -62,6 +64,7 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	admissionV1alpha1   *admissionv1alpha1.AdmissionV1alpha1Client
 	applicationV1alpha1 *applicationv1alpha1.ApplicationV1alpha1Client
 	auditingV1alpha1    *auditingv1alpha1.AuditingV1alpha1Client
 	clusterV1alpha1     *clusterv1alpha1.ClusterV1alpha1Client
@@ -76,6 +79,11 @@ type Clientset struct {
 	tenantV1alpha1      *tenantv1alpha1.TenantV1alpha1Client
 	tenantV1alpha2      *tenantv1alpha2.TenantV1alpha2Client
 	typesV1beta1        *typesv1beta1.TypesV1beta1Client
+}
+
+// AdmissionV1alpha1 retrieves the AdmissionV1alpha1Client
+func (c *Clientset) AdmissionV1alpha1() admissionv1alpha1.AdmissionV1alpha1Interface {
+	return c.admissionV1alpha1
 }
 
 // ApplicationV1alpha1 retrieves the ApplicationV1alpha1Client
@@ -169,6 +177,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
+	cs.admissionV1alpha1, err = admissionv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.applicationV1alpha1, err = applicationv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -237,6 +249,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
+	cs.admissionV1alpha1 = admissionv1alpha1.NewForConfigOrDie(c)
 	cs.applicationV1alpha1 = applicationv1alpha1.NewForConfigOrDie(c)
 	cs.auditingV1alpha1 = auditingv1alpha1.NewForConfigOrDie(c)
 	cs.clusterV1alpha1 = clusterv1alpha1.NewForConfigOrDie(c)
@@ -259,6 +272,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.admissionV1alpha1 = admissionv1alpha1.New(c)
 	cs.applicationV1alpha1 = applicationv1alpha1.New(c)
 	cs.auditingV1alpha1 = auditingv1alpha1.New(c)
 	cs.clusterV1alpha1 = clusterv1alpha1.New(c)

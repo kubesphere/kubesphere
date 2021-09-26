@@ -26,10 +26,13 @@ import (
 )
 
 // S2iBuilderTemplateLister helps list S2iBuilderTemplates.
+// All objects returned here must be treated as read-only.
 type S2iBuilderTemplateLister interface {
 	// List lists all S2iBuilderTemplates in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.S2iBuilderTemplate, err error)
 	// Get retrieves the S2iBuilderTemplate from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.S2iBuilderTemplate, error)
 	S2iBuilderTemplateListerExpansion
 }

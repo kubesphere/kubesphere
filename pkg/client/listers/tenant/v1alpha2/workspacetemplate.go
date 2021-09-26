@@ -26,10 +26,13 @@ import (
 )
 
 // WorkspaceTemplateLister helps list WorkspaceTemplates.
+// All objects returned here must be treated as read-only.
 type WorkspaceTemplateLister interface {
 	// List lists all WorkspaceTemplates in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.WorkspaceTemplate, err error)
 	// Get retrieves the WorkspaceTemplate from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.WorkspaceTemplate, error)
 	WorkspaceTemplateListerExpansion
 }

@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedLimitRangeLister helps list FederatedLimitRanges.
+// All objects returned here must be treated as read-only.
 type FederatedLimitRangeLister interface {
 	// List lists all FederatedLimitRanges in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedLimitRange, err error)
 	// FederatedLimitRanges returns an object that can list and get FederatedLimitRanges.
 	FederatedLimitRanges(namespace string) FederatedLimitRangeNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedLimitRangeLister) FederatedLimitRanges(namespace string) Feder
 }
 
 // FederatedLimitRangeNamespaceLister helps list and get FederatedLimitRanges.
+// All objects returned here must be treated as read-only.
 type FederatedLimitRangeNamespaceLister interface {
 	// List lists all FederatedLimitRanges in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedLimitRange, err error)
 	// Get retrieves the FederatedLimitRange from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedLimitRange, error)
 	FederatedLimitRangeNamespaceListerExpansion
 }
