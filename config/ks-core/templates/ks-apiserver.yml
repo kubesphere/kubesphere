@@ -41,9 +41,6 @@ spec:
         resources:
           {{- toYaml .Values.apiserver.resources | nindent 12 }}
         volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-sock
-          readOnly: true
         - mountPath: /etc/kubesphere/ingress-controller
           name: ks-router-config
         - mountPath: /etc/kubesphere/
@@ -95,10 +92,6 @@ spec:
             - {{ .Release.Namespace }}
 {{- end }}
       volumes:
-      - hostPath:
-          path: /var/run/docker.sock
-          type: ""
-        name: docker-sock
       - configMap:
           defaultMode: 420
           name: ks-router-config
