@@ -270,3 +270,22 @@ func TestStorageClassHadOneAnnotation(t *testing.T) {
 	// Run test
 	fixture.run(getKey(storageClass, t))
 }
+
+func TestStorageClassHadNoCSIDriver(t *testing.T) {
+	fixture := newFixture(t, true)
+	storageClass := newStorageClass("csi-example", "csi.example.com")
+	storageClass.Annotations = map[string]string{}
+	storageClassUpdate := storageClass.DeepCopy()
+	storageClass.Annotations = map[string]string{annotationAllowSnapshot: "false"}
+	storageClass.Annotations = map[string]string{annotationAllowClone: "false"}
+
+	// Object exist
+	fixture.storageObjects = append(fixture.storageObjects, storageClass)
+	fixture.storageClassLister = append(fixture.storageClassLister, storageClass)
+
+	// Action expected
+	fixture.expectUpdateStorageClassAction(storageClassUpdate)
+
+	// Run test
+	fixture.run(getKey(storageClass, t))
+}

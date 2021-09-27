@@ -208,13 +208,17 @@ func (c *StorageCapabilityController) syncHandler(key string) error {
 
 	// Annotate storageClass
 	storageClassUpdated := storageClass.DeepCopy()
-	err = c.addStorageClassSnapshotAnnotation(storageClassUpdated, isCSIStorage)
-	if err != nil {
-		return err
-	}
-	err = c.addCloneVolumeAnnotation(storageClassUpdated, isCSIStorage)
-	if err != nil {
-		return err
+	if !isCSIStorage {
+		c.removeAnnotations(storageClassUpdated)
+	} else {
+		err = c.updateStorageClassSnapshotAnnotation(storageClassUpdated, isCSIStorage)
+		if err != nil {
+			return err
+		}
+		err = c.updateCloneVolumeAnnotation(storageClassUpdated, isCSIStorage)
+		if err != nil {
+			return err
+		}
 	}
 	_, err = c.storageClassClient.Update(context.Background(), storageClassUpdated, metav1.UpdateOptions{})
 	if err != nil {
@@ -234,7 +238,7 @@ func (c *StorageCapabilityController) hasCSIDriver(storageClass *storagev1.Stora
 	return false
 }
 
-func (c *StorageCapabilityController) addStorageClassSnapshotAnnotation(storageClass *storagev1.StorageClass, snapshotAllow bool) error {
+func (c *StorageCapabilityController) updateStorageClassSnapshotAnnotation(storageClass *storagev1.StorageClass, snapshotAllow bool) error {
 	if storageClass.Annotations == nil {
 		storageClass.Annotations = make(map[string]string)
 	}
@@ -246,7 +250,7 @@ func (c *StorageCapabilityController) addStorageClassSnapshotAnnotation(storageC
 	return nil
 }
 
-func (c *StorageCapabilityController) addCloneVolumeAnnotation(storageClass *storagev1.StorageClass, cloneAllow bool) error {
+func (c *StorageCapabilityController) updateCloneVolumeAnnotation(storageClass *storagev1.StorageClass, cloneAllow bool) error {
 	if storageClass.Annotations == nil {
 		storageClass.Annotations = make(map[string]string)
 	}
@@ -255,4 +259,9 @@ func (c *StorageCapabilityController) addCloneVolumeAnnotation(storageClass *sto
 		storageClass.Annotations[annotationAllowClone] = strconv.FormatBool(cloneAllow)
 	}
 	return nil
+}
+
+func (c *StorageCapabilityController) removeAnnotations(storageClass *storagev1.StorageClass) {
+	delete(storageClass.Annotations, annotationAllowClone)
+	delete(storageClass.Annotations, annotationAllowSnapshot)
 }
