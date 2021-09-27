@@ -52,6 +52,7 @@ spec:
           name: webhook-secret
         - mountPath: /etc/localtime
           name: host-time
+          readOnly: true
         {{- if .Values.controller.extraVolumeMounts }}
           {{- toYaml .Values.controller.extraVolumeMounts | nindent 8 }}
         {{- end }}

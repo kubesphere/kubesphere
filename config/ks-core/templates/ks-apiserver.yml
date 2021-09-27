@@ -41,14 +41,13 @@ spec:
         resources:
           {{- toYaml .Values.apiserver.resources | nindent 12 }}
         volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-sock
         - mountPath: /etc/kubesphere/ingress-controller
           name: ks-router-config
         - mountPath: /etc/kubesphere/
           name: kubesphere-config
         - mountPath: /etc/localtime
           name: host-time
+          readOnly: true
         {{- if .Values.apiserver.extraVolumeMounts }}
           {{- toYaml .Values.apiserver.extraVolumeMounts | nindent 8 }}
         {{- end }}
@@ -93,10 +92,6 @@ spec:
             - {{ .Release.Namespace }}
 {{- end }}
       volumes:
-      - hostPath:
-          path: /var/run/docker.sock
-          type: ""
-        name: docker-sock
       - configMap:
           defaultMode: 420
           name: ks-router-config
