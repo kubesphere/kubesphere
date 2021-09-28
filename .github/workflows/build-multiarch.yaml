@@ -1,4 +1,4 @@
-name: BuildMultiArch
+name: BuildContainerImage
 
 on:
   push:
@@ -13,6 +13,7 @@ on:
       - 'release*'
 
 jobs:
+  if: github.event_name == 'push'
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -36,7 +37,6 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        if: github.event_name == 'push'
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
           REPO=kubespheredev TAG="${GITHUB_REF#refs/*/}" make container-cross-push
