@@ -74,6 +74,8 @@ securityContext: {}
 # Kubernetes Version shows in KubeSphere console
 kube_version: "v1.19.4"
 
+env: []
+
 tolerations: 
   - key: node-role.kubernetes.io/master
     effect: NoSchedule
@@ -89,7 +91,8 @@ tolerations:
     tolerationSeconds: 60
 
 affinity: {}
-env: []
+
+nodeSelector: {}
 
 ## deployment specific configuration
 

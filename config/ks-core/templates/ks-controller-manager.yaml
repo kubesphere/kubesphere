@@ -85,29 +85,14 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
       affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-              - key: node-role.kubernetes.io/master
-                operator: In
-                values:
-                - ""
-{{- if gt .Values.replicaCount 1.0 }}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: kubernetes.io/hostname
-            labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - ks-controller-manager
-            namespaces:
-            - {{ .Release.Namespace }}
-{{- end }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
 
 ---
 
