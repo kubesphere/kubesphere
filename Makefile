@@ -66,6 +66,9 @@ verify-all: ; $(info $(M)...Begin to run all verify scripts hack/verify-*.sh.)  
 e2e: ;$(info $(M)...Begin to build e2e binary.)  @ ## Build e2e binary.
 	hack/build_e2e.sh test/e2e
 
+kind-e2e: ;$(info $(M)...Run e2e test.) @ ## Run e2e test in kind.
+	hack/kind_e2e.sh
+
 # Run go fmt against code 
 fmt: ;$(info $(M)...Begin to run go fmt against code.)  @ ## Run go fmt against code.
 	gofmt -w ./pkg ./cmd ./tools ./api

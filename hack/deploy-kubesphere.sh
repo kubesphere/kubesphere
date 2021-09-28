@@ -41,14 +41,10 @@ if [[ "${KIND_LOAD_IMAGE:-}" == "y" ]]; then
     kind load docker-image "$REPO/ks-controller-manager:$TAG" --name="${KIND_CLUSTER_NAME:-kind}"
 fi
 
-# Download the latest ks-install to deploy KubeSphere
-wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 --tries 3 https://raw.githubusercontent.com/kubesphere/ks-installer/master/deploy/kubesphere-installer.yaml
-wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 --tries 3 https://raw.githubusercontent.com/kubesphere/ks-installer/master/deploy/cluster-configuration.yaml
-
 #TODO: override ks-apiserver and ks-controller-manager images with specific tag
+kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/deploy/kubesphere-installer.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/deploy/cluster-configuration.yaml
 
-kubectl apply -f kubesphere-installer.yaml
-kubectl apply -f cluster-configuration.yaml
 
 wait_for_installation_finish
 
