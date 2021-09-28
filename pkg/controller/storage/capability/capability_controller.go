@@ -21,13 +21,15 @@ package capability
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/labels"
 
 	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	storageinformersv1 "k8s.io/client-go/informers/storage/v1"
@@ -89,7 +91,8 @@ func NewController(
 	})
 
 	csiDriverInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.enqueueStorageClassByCSI,
+		AddFunc:    controller.enqueueStorageClassByCSI,
+		DeleteFunc: controller.enqueueStorageClassByCSI,
 	})
 
 	return controller
@@ -202,27 +205,25 @@ func (c *StorageCapabilityController) syncHandler(key string) error {
 
 	// Get StorageClass
 	storageClass, err := c.storageClassLister.Get(name)
+	if err != nil {
+		return err
+	}
 
 	// Cloning and volumeSnapshot support only available for CSI drivers.
 	isCSIStorage := c.hasCSIDriver(storageClass)
-
 	// Annotate storageClass
 	storageClassUpdated := storageClass.DeepCopy()
-	if !isCSIStorage {
-		c.removeAnnotations(storageClassUpdated)
+	if isCSIStorage {
+		c.updateSnapshotAnnotation(storageClassUpdated, isCSIStorage)
+		c.updateCloneVolumeAnnotation(storageClassUpdated, isCSIStorage)
 	} else {
-		err = c.updateStorageClassSnapshotAnnotation(storageClassUpdated, isCSIStorage)
-		if err != nil {
-			return err
-		}
-		err = c.updateCloneVolumeAnnotation(storageClassUpdated, isCSIStorage)
-		if err != nil {
-			return err
-		}
+		c.removeAnnotations(storageClassUpdated)
 	}
-	_, err = c.storageClassClient.Update(context.Background(), storageClassUpdated, metav1.UpdateOptions{})
-	if err != nil {
-		return err
+	if !reflect.DeepEqual(storageClass, storageClassUpdated) {
+		_, err = c.storageClassClient.Update(context.Background(), storageClassUpdated, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -238,27 +239,24 @@ func (c *StorageCapabilityController) hasCSIDriver(storageClass *storagev1.Stora
 	return false
 }
 
-func (c *StorageCapabilityController) updateStorageClassSnapshotAnnotation(storageClass *storagev1.StorageClass, snapshotAllow bool) error {
+func (c *StorageCapabilityController) updateSnapshotAnnotation(storageClass *storagev1.StorageClass, snapshotAllow bool) {
 	if storageClass.Annotations == nil {
 		storageClass.Annotations = make(map[string]string)
 	}
-	_, err := strconv.ParseBool(storageClass.Annotations[annotationAllowSnapshot])
-	// err != nil means annotationAllowSnapshot is not illegal, include empty
-	if err != nil {
+	if _, err := strconv.ParseBool(storageClass.Annotations[annotationAllowSnapshot]); err != nil {
 		storageClass.Annotations[annotationAllowSnapshot] = strconv.FormatBool(snapshotAllow)
 	}
-	return nil
+	return
 }
 
-func (c *StorageCapabilityController) updateCloneVolumeAnnotation(storageClass *storagev1.StorageClass, cloneAllow bool) error {
+func (c *StorageCapabilityController) updateCloneVolumeAnnotation(storageClass *storagev1.StorageClass, cloneAllow bool) {
 	if storageClass.Annotations == nil {
 		storageClass.Annotations = make(map[string]string)
 	}
-	_, err := strconv.ParseBool(storageClass.Annotations[annotationAllowClone])
-	if err != nil {
+	if _, err := strconv.ParseBool(storageClass.Annotations[annotationAllowClone]); err != nil {
 		storageClass.Annotations[annotationAllowClone] = strconv.FormatBool(cloneAllow)
 	}
-	return nil
+	return
 }
 
 func (c *StorageCapabilityController) removeAnnotations(storageClass *storagev1.StorageClass) {
