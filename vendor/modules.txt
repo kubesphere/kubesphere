@@ -272,6 +272,7 @@ github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
 # github.com/evanphx/json-patch v4.11.0+incompatible => github.com/evanphx/json-patch v4.9.0+incompatible
+## explicit
 github.com/evanphx/json-patch
 # github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d => github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d
 github.com/exponent-io/jsonpath
@@ -491,7 +492,7 @@ github.com/jszwec/csvutil
 github.com/kevinburke/ssh_config
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2 => github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
+# github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0 => github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 ## explicit
 github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1
 github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1beta1
@@ -1983,6 +1984,7 @@ kubesphere.io/api/network/calicov3
 kubesphere.io/api/network/crdinstall
 kubesphere.io/api/network/v1alpha1
 kubesphere.io/api/notification/v2beta1
+kubesphere.io/api/notification/v2beta2
 kubesphere.io/api/quota/v1alpha2
 kubesphere.io/api/servicemesh/crdinstall
 kubesphere.io/api/servicemesh/v1alpha2
@@ -2544,6 +2546,7 @@ sigs.k8s.io/yaml
 # github.com/kr/text => github.com/kr/text v0.1.0
 # github.com/kshvakov/clickhouse => github.com/kshvakov/clickhouse v1.3.5
 # github.com/kubernetes-csi/external-snapshotter/client/v3 => github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0
+# github.com/kubernetes-csi/external-snapshotter/client/v4 => github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 # github.com/kubesphere/sonargo => github.com/kubesphere/sonargo v0.0.2
 # github.com/kylelemons/go-gypsy => github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28
 # github.com/kylelemons/godebug => github.com/kylelemons/godebug v0.0.0-20160406211939-eadb3ce320cb
