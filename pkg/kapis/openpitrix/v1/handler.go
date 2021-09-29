@@ -17,12 +17,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-
-	"kubesphere.io/kubesphere/pkg/utils/mathutil"
 
 	restful "github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
@@ -101,7 +100,7 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 			api.HandleBadRequest(resp, nil, err)
 			return
 		} else if duration > 0 {
-			syncPeriod = mathutil.Max(int(duration/time.Second), constants.HelmRepoMinSyncPeriod)
+			syncPeriod = int(math.Max(float64(duration/time.Second), constants.HelmRepoMinSyncPeriod))
 		}
 	}
 

@@ -21,9 +21,6 @@ import (
 	"math"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/utils/mathutil"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 
 	"kubesphere.io/api/application/v1alpha1"
 
@@ -157,7 +156,7 @@ func (r *ReconcileHelmRepo) Reconcile(ctx context.Context, request reconcile.Req
 	copyInstance := instance.DeepCopy()
 
 	if copyInstance.Spec.SyncPeriod != 0 {
-		copyInstance.Spec.SyncPeriod = mathutil.Max(copyInstance.Spec.SyncPeriod, constants.HelmRepoMinSyncPeriod)
+		copyInstance.Spec.SyncPeriod = int(math.Max(float64(copyInstance.Spec.SyncPeriod), constants.HelmRepoMinSyncPeriod))
 	}
 
 	retryAfter := 0
@@ -256,7 +255,7 @@ func needReSyncNow(instance *v1alpha1.HelmRepo) (syncNow bool, after int) {
 	} else {
 		period = instance.Spec.SyncPeriod
 		if period != 0 {
-			period = mathutil.Max(instance.Spec.SyncPeriod, constants.HelmRepoMinSyncPeriod)
+			period = int(math.Max(float64(instance.Spec.SyncPeriod), constants.HelmRepoMinSyncPeriod))
 			if now.After(state.SyncTime.Add(time.Duration(period) * time.Second)) {
 				return true, 0
 			}
