@@ -33,7 +33,7 @@ jobs:
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
           tag=nightly-$(date '+%Y%m%d')
-          REPO=kubespheredev TAG=${tag} make container-push
+          REPO=kubespheredev TAG=${tag} make container-cross-push
 
       - name: slack
         uses: 8398a7/action-slack@v3
