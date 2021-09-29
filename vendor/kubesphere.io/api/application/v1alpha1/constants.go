@@ -49,6 +49,7 @@ const (
 	HelmApplicationAppStoreSuffix  = "-store"
 	HelmApplicationIdPrefix        = "app-"
 	HelmRepoIdPrefix               = "repo-"
+	BuiltinRepoPrefix              = "builtin-"
 	HelmApplicationVersionIdPrefix = "appv-"
 	HelmCategoryIdPrefix           = "ctg-"
 	HelmAttachmentPrefix           = "att-"
@@ -59,5 +60,6 @@ const (
 
 	ApplicationInstance = "app.kubesphere.io/instance"
 
+	RepoSyncPeriod          = "app.kubesphere.io/sync-period"
 	OriginWorkspaceLabelKey = "kubesphere.io/workspace-origin"
 )
