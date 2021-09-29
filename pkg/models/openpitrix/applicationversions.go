@@ -141,7 +141,7 @@ func (c *applicationOperator) DeleteAppVersion(id string) error {
 }
 
 func (c *applicationOperator) DescribeAppVersion(id string) (*AppVersion, error) {
-	version, err := c.versionLister.Get(id)
+	version, err := c.getAppVersion(id)
 	if err != nil {
 		klog.Errorf("get app version [%s] failed, error: %s", id, err)
 		return nil, err
@@ -152,10 +152,15 @@ func (c *applicationOperator) DescribeAppVersion(id string) (*AppVersion, error)
 
 func (c *applicationOperator) ModifyAppVersion(id string, request *ModifyAppVersionRequest) error {
 
-	version, err := c.versionLister.Get(id)
+	version, err := c.getAppVersion(id)
 	if err != nil {
 		klog.Errorf("get app version [%s] failed, error: %s", id, err)
 		return err
+	}
+
+	// All the app versions belonging to a built-in repo have a label `application.kubesphere.io/repo-id`, and the value should be `builtin-stable` or else.
+	if repoId, exists := version.Labels[constants.ChartRepoIdLabelKey]; exists && repoId != v1alpha1.AppStoreRepoId {
+		return apierrors.NewForbidden(v1alpha1.Resource(v1alpha1.ResourcePluralHelmApplicationVersion), version.Name, errors.New("version is immutable"))
 	}
 
 	versionCopy := version.DeepCopy()
@@ -355,10 +360,15 @@ func (c *applicationOperator) DoAppVersionAction(versionId string, request *Acti
 	}
 	state := v1alpha1.StateDraft
 
-	version, err := c.versionLister.Get(versionId)
+	version, err := c.getAppVersion(versionId)
 	if err != nil {
 		klog.Errorf("get app version %s failed, error: %s", versionId, err)
 		return err
+	}
+
+	// All the app versions belonging to a built-in repo have a label `application.kubesphere.io/repo-id`, and the value should be `builtin-stable` or else.
+	if repoId, exists := version.Labels[constants.ChartRepoIdLabelKey]; exists && repoId != v1alpha1.AppStoreRepoId {
+		return apierrors.NewForbidden(v1alpha1.Resource(v1alpha1.ResourcePluralHelmApplicationVersion), version.Name, errors.New("version is immutable"))
 	}
 
 	switch request.Action {
@@ -586,5 +596,15 @@ func (c *applicationOperator) getAppVersionsByAppId(appId string) (ret []*v1alph
 		return nil, err
 	}
 
+	return
+}
+
+// get app version from repo and helm application
+func (c *applicationOperator) getAppVersion(id string) (ret *v1alpha1.HelmApplicationVersion, err error) {
+	if ver, exists, _ := c.cachedRepos.GetAppVersion(id); exists {
+		return ver, nil
+	}
+
+	ret, err = c.versionLister.Get(id)
 	return
 }

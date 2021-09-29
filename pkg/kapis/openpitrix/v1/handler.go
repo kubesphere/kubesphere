@@ -17,9 +17,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	restful "github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
@@ -90,6 +92,18 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 	// trim credential from url
 	parsedUrl.User = nil
 
+	syncPeriod := 0
+	// If SyncPeriod is empty, ignore it.
+	if createRepoRequest.SyncPeriod != "" {
+		duration, err := time.ParseDuration(createRepoRequest.SyncPeriod)
+		if err != nil {
+			api.HandleBadRequest(resp, nil, err)
+			return
+		} else if duration > 0 {
+			syncPeriod = int(math.Max(float64(duration/time.Second), constants.HelmRepoMinSyncPeriod))
+		}
+	}
+
 	repo := v1alpha1.HelmRepo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: idutils.GetUuid36(v1alpha1.HelmRepoIdPrefix),
@@ -103,9 +117,13 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 		Spec: v1alpha1.HelmRepoSpec{
 			Name:        createRepoRequest.Name,
 			Url:         parsedUrl.String(),
-			SyncPeriod:  0,
+			SyncPeriod:  syncPeriod,
 			Description: stringutils.ShortenString(createRepoRequest.Description, 512),
 		},
+	}
+
+	if syncPeriod > 0 {
+		repo.Annotations[v1alpha1.RepoSyncPeriod] = createRepoRequest.SyncPeriod
 	}
 
 	if strings.HasPrefix(createRepoRequest.URL, "https://") || strings.HasPrefix(createRepoRequest.URL, "http://") {
@@ -322,7 +340,7 @@ func (h *openpitrixHandler) DoAppAction(req *restful.Request, resp *restful.Resp
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		api.HandleError(resp, nil, err)
 		return
 	}
 
@@ -388,7 +406,7 @@ func (h *openpitrixHandler) ModifyApp(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		api.HandleError(resp, nil, err)
 		return
 	}
 
@@ -570,7 +588,7 @@ func (h *openpitrixHandler) ModifyAppVersion(req *restful.Request, resp *restful
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		api.HandleError(resp, nil, err)
 		return
 	}
 
@@ -665,7 +683,7 @@ func (h *openpitrixHandler) DoAppVersionAction(req *restful.Request, resp *restf
 
 	if err != nil {
 		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
+		api.HandleError(resp, nil, err)
 		return
 	}
 

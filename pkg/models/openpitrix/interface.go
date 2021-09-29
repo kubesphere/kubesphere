@@ -56,7 +56,6 @@ func init() {
 }
 
 func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient versioned.Interface, s3Client s3.Interface) Interface {
-
 	once.Do(func() {
 		klog.Infof("start helm repo informer")
 		helmReposInformer = ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmRepos().Informer()
@@ -66,16 +65,28 @@ func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient ve
 				cachedReposData.AddRepo(r)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				oldR := oldObj.(*v1alpha1.HelmRepo)
-				cachedReposData.DeleteRepo(oldR)
-				r := newObj.(*v1alpha1.HelmRepo)
-				cachedReposData.AddRepo(r)
+				oldRepo := oldObj.(*v1alpha1.HelmRepo)
+				newRepo := newObj.(*v1alpha1.HelmRepo)
+				cachedReposData.UpdateRepo(oldRepo, newRepo)
 			},
 			DeleteFunc: func(obj interface{}) {
 				r := obj.(*v1alpha1.HelmRepo)
 				cachedReposData.DeleteRepo(r)
 			},
 		})
+
+		ctgInformer := ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmCategories().Informer()
+		ctgInformer.AddIndexers(map[string]cache.IndexFunc{
+			reposcache.CategoryIndexer: func(obj interface{}) ([]string, error) {
+				ctg, _ := obj.(*v1alpha1.HelmCategory)
+				return []string{ctg.Spec.Name}, nil
+			},
+		})
+		indexer := ctgInformer.GetIndexer()
+
+		cachedReposData.SetCategoryIndexer(indexer)
+
+		go ctgInformer.Run(wait.NeverStop)
 		go helmReposInformer.Run(wait.NeverStop)
 	})
 
@@ -84,6 +95,6 @@ func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient ve
 		ApplicationInterface: newApplicationOperator(cachedReposData, ksInformers.KubeSphereSharedInformerFactory(), ksClient, s3Client),
 		RepoInterface:        newRepoOperator(cachedReposData, ksInformers.KubeSphereSharedInformerFactory(), ksClient),
 		ReleaseInterface:     newReleaseOperator(cachedReposData, ksInformers.KubernetesSharedInformerFactory(), ksInformers.KubeSphereSharedInformerFactory(), ksClient),
-		CategoryInterface:    newCategoryOperator(ksInformers.KubeSphereSharedInformerFactory(), ksClient),
+		CategoryInterface:    newCategoryOperator(cachedReposData, ksInformers.KubeSphereSharedInformerFactory(), ksClient),
 	}
 }
