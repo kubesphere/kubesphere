@@ -25,6 +25,8 @@ import (
 	"net/http"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/utils/iputil"
+
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metainternalversionscheme "k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
@@ -36,7 +38,6 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/constants"
-	netutils "kubesphere.io/kubesphere/pkg/utils/net"
 )
 
 type RequestInfoResolver interface {
@@ -127,7 +128,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		},
 		Workspace: api.WorkspaceNone,
 		Cluster:   api.ClusterNone,
-		SourceIP:  netutils.GetRequestIP(req),
+		SourceIP:  iputil.RemoteIp(req),
 		UserAgent: req.UserAgent(),
 	}
 
