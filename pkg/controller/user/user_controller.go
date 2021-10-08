@@ -112,9 +112,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	logger := r.Logger.WithValues("user", req.NamespacedName)
-	rootCtx := context.Background()
 	user := &iamv1alpha2.User{}
-	err := r.Get(rootCtx, req.NamespacedName, user)
+	err := r.Get(ctx, req.NamespacedName, user)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -124,7 +123,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		// then lets add the finalizer and update the object.
 		if !sliceutil.HasString(user.Finalizers, finalizer) {
 			user.ObjectMeta.Finalizers = append(user.ObjectMeta.Finalizers, finalizer)
-			if err = r.Update(context.Background(), user, &client.UpdateOptions{}); err != nil {
+			if err = r.Update(ctx, user, &client.UpdateOptions{}); err != nil {
 				logger.Error(err, "failed to update user")
 				return ctrl.Result{}, err
 			}
@@ -168,7 +167,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 				return item == finalizer
 			})
 
-			if err = r.Update(context.Background(), user, &client.UpdateOptions{}); err != nil {
+			if err = r.Update(ctx, user, &client.UpdateOptions{}); err != nil {
 				klog.Error(err)
 				r.Recorder.Event(user, corev1.EventTypeWarning, failedSynced, fmt.Sprintf(syncFailMessage, err))
 				return ctrl.Result{}, err
@@ -199,7 +198,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	// update user status if not managed by kubefed
 	managedByKubefed := user.Labels[constants.KubefedManagedLabel] == "true"
 	if !managedByKubefed {
-		if user, err = r.encryptPassword(user); err != nil {
+		if user, err = r.encryptPassword(ctx, user); err != nil {
 			klog.Error(err)
 			r.Recorder.Event(user, corev1.EventTypeWarning, failedSynced, fmt.Sprintf(syncFailMessage, err))
 			return ctrl.Result{}, err
@@ -239,7 +238,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) encryptPassword(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+func (r *Reconciler) encryptPassword(ctx context.Context, user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
 	// password is not empty and not encrypted
 	if user.Spec.EncryptedPassword != "" && !isEncrypted(user.Spec.EncryptedPassword) {
 		password, err := encrypt(user.Spec.EncryptedPassword)
@@ -255,7 +254,7 @@ func (r *Reconciler) encryptPassword(user *iamv1alpha2.User) (*iamv1alpha2.User,
 		user.Annotations[iamv1alpha2.LastPasswordChangeTimeAnnotation] = time.Now().UTC().Format(time.RFC3339)
 		// ensure plain text password won't be kept anywhere
 		delete(user.Annotations, corev1.LastAppliedConfigAnnotation)
-		err = r.Update(context.Background(), user, &client.UpdateOptions{})
+		err = r.Update(ctx, user, &client.UpdateOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -264,14 +263,14 @@ func (r *Reconciler) encryptPassword(user *iamv1alpha2.User) (*iamv1alpha2.User,
 	return user, nil
 }
 
-func (r *Reconciler) ensureNotControlledByKubefed(user *iamv1alpha2.User) error {
+func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, user *iamv1alpha2.User) error {
 	if user.Labels[constants.KubefedManagedLabel] != "false" {
 		if user.Labels == nil {
 			user.Labels = make(map[string]string, 0)
 		}
 		user = user.DeepCopy()
 		user.Labels[constants.KubefedManagedLabel] = "false"
-		err := r.Update(context.Background(), user, &client.UpdateOptions{})
+		err := r.Update(ctx, user, &client.UpdateOptions{})
 		if err != nil {
 			klog.Error(err)
 		}
@@ -280,7 +279,7 @@ func (r *Reconciler) ensureNotControlledByKubefed(user *iamv1alpha2.User) error 
 }
 
 func (r *Reconciler) multiClusterSync(ctx context.Context, user *iamv1alpha2.User) error {
-	if err := r.ensureNotControlledByKubefed(user); err != nil {
+	if err := r.ensureNotControlledByKubefed(ctx, user); err != nil {
 		klog.Error(err)
 		return err
 	}
@@ -434,12 +433,18 @@ func (r *Reconciler) deleteRoleBindings(ctx context.Context, user *iamv1alpha2.U
 		return err
 	}
 
-	roleBinding := &rbacv1.RoleBinding{}
-	err = r.Client.DeleteAllOf(ctx, roleBinding, client.MatchingLabels{iamv1alpha2.UserReferenceLabel: user.Name})
+	roleBindingList := &rbacv1.RoleBindingList{}
+	err = r.Client.List(ctx, roleBindingList, client.MatchingLabels{iamv1alpha2.UserReferenceLabel: user.Name})
 	if err != nil {
 		return err
 	}
 
+	for _, roleBinding := range roleBindingList.Items {
+		err = r.Client.Delete(ctx, &roleBinding)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -549,7 +554,7 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 			LastTransitionTime: &metav1.Time{Time: time.Now()},
 		}
 
-		err = r.Update(context.Background(), expected, &client.UpdateOptions{})
+		err = r.Update(ctx, expected, &client.UpdateOptions{})
 		if err != nil {
 			return nil, err
 		}
