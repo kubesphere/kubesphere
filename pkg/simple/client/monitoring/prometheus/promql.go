@@ -167,8 +167,8 @@ var promQLTemplates = map[string]string{
 
 	// ingress
 	"ingress_request_count":                 `round(sum(increase(nginx_ingress_controller_requests{$1,$2}[$3])))`,
-	"ingress_request_4xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status="[4].*"}[$3])))`,
-	"ingress_request_5xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status="[5].*"}[$3])))`,
+	"ingress_request_4xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status=~"[4].*"}[$3])))`,
+	"ingress_request_5xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status=~"[5].*"}[$3])))`,
 	"ingress_active_connections":            `sum(avg_over_time(nginx_ingress_controller_nginx_process_connections{$2,state="active"}[$3]))`,
 	"ingress_success_rate":                  `sum(rate(nginx_ingress_controller_requests{$1,$2,status!~"[4-5].*"}[$3])) / sum(rate(nginx_ingress_controller_requests{$1,$2}[$3]))`,
 	"ingress_request_duration_average":      `sum_over_time(nginx_ingress_controller_request_duration_seconds_sum{$1,$2}[$3])/sum_over_time(nginx_ingress_controller_request_duration_seconds_count{$1,$2}[$3])`,
