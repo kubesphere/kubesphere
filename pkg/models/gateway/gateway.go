@@ -457,8 +457,10 @@ func (c *gatewayOperator) filter(object runtime.Object, filter query.Filter) boo
 			return false
 		}
 		namesapce = svc.Labels["project"]
+		objMeta = svc.ObjectMeta
 	} else {
 		namesapce = gateway.Spec.Conroller.Scope.Namespace
+		objMeta = gateway.ObjectMeta
 	}
 
 	switch filter.Field {
