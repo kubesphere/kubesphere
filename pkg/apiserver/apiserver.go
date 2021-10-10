@@ -24,6 +24,8 @@ import (
 	rt "runtime"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/utils/iputil"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization"
@@ -107,7 +109,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
-	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
 )
 
 type APIServer struct {
@@ -596,7 +597,7 @@ func logRequestAndResponse(req *restful.Request, resp *restful.Response, chain *
 	}
 
 	logWithVerbose.Infof("%s - \"%s %s %s\" %d %d %dms",
-		utilnet.GetRequestIP(req.Request),
+		iputil.RemoteIp(req.Request),
 		req.Request.Method,
 		req.Request.URL,
 		req.Request.Proto,
