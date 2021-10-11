@@ -122,7 +122,6 @@ func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, work
 		return client.IgnoreNotFound(err)
 	}
 	if !metav1.IsControlledBy(workspaceRole, &workspace) {
-		workspaceRole = workspaceRole.DeepCopy()
 		workspaceRole.OwnerReferences = k8sutil.RemoveWorkspaceOwnerReference(workspaceRole.OwnerReferences)
 		if err := controllerutil.SetControllerReference(&workspace, workspaceRole, r.Scheme); err != nil {
 			logger.Error(err, "set controller reference failed")
@@ -151,6 +150,7 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, w
 					logger.Error(err, "create federated workspace role failed")
 					return err
 				}
+				return nil
 			}
 		}
 		logger.Error(err, "get federated workspace role failed")
@@ -174,10 +174,6 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, w
 
 func newFederatedWorkspaceRole(workspaceRole *iamv1alpha2.WorkspaceRole) (*typesv1beta1.FederatedWorkspaceRole, error) {
 	federatedWorkspaceRole := &typesv1beta1.FederatedWorkspaceRole{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       typesv1beta1.FederatedWorkspaceRoleKind,
-			APIVersion: typesv1beta1.SchemeGroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: workspaceRole.Name,
 		},
@@ -206,7 +202,6 @@ func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, logger lo
 		if workspaceRole.Labels == nil {
 			workspaceRole.Labels = make(map[string]string)
 		}
-		workspaceRole = workspaceRole.DeepCopy()
 		workspaceRole.Labels[constants.KubefedManagedLabel] = "false"
 		if err := r.Update(ctx, workspaceRole); err != nil {
 			logger.Error(err, "update kubefed managed label failed")
