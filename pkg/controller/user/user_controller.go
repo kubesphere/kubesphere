@@ -465,7 +465,7 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 					State:              &active,
 					LastTransitionTime: &metav1.Time{Time: time.Now()},
 				}
-				err := r.Update(ctx, expected, &client.UpdateOptions{})
+				err := r.Status().Update(ctx, expected, &client.UpdateOptions{})
 				if err != nil {
 					return nil, err
 				}
@@ -480,7 +480,7 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 					State:              &disabled,
 					LastTransitionTime: &metav1.Time{Time: time.Now()},
 				}
-				err := r.Update(ctx, expected, &client.UpdateOptions{})
+				err := r.Status().Update(ctx, expected, &client.UpdateOptions{})
 				if err != nil {
 					return nil, err
 				}
@@ -499,7 +499,7 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 				State:              &active,
 				LastTransitionTime: &metav1.Time{Time: time.Now()},
 			}
-			err := r.Update(ctx, expected, &client.UpdateOptions{})
+			err := r.Status().Update(ctx, expected, &client.UpdateOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -518,7 +518,7 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 				State:              &active,
 				LastTransitionTime: &metav1.Time{Time: time.Now()},
 			}
-			err := r.Update(ctx, expected, &client.UpdateOptions{})
+			err := r.Status().Update(ctx, expected, &client.UpdateOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -554,7 +554,7 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 			LastTransitionTime: &metav1.Time{Time: time.Now()},
 		}
 
-		err = r.Update(ctx, expected, &client.UpdateOptions{})
+		err = r.Status().Update(ctx, expected, &client.UpdateOptions{})
 		if err != nil {
 			return nil, err
 		}
