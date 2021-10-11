@@ -23,6 +23,8 @@ import (
 	"github.com/open-policy-agent/gatekeeper/pkg/target"
 	"k8s.io/klog"
 	ksapi "kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/api/admission/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	admissionmodel "kubesphere.io/kubesphere/pkg/models/admission"
@@ -83,7 +85,8 @@ func newAdmissionHandler(informers informers.InformerFactory, ksClient kubespher
 // List
 
 func (h admissionHandler) handleListPolicyTemplates(req *restful.Request, resp *restful.Response) {
-	templateList, err := h.Operator.ListPolicyTemplates(req.Request.Context())
+	q := query.ParseQueryParameter(req)
+	templateList, err := h.Operator.ListPolicyTemplates(req.Request.Context(), q)
 	if err != nil {
 		klog.Error(err)
 		ksapi.HandleInternalError(resp, nil, err)
@@ -93,23 +96,25 @@ func (h admissionHandler) handleListPolicyTemplates(req *restful.Request, resp *
 }
 
 func (h admissionHandler) handleListPolicies(req *restful.Request, resp *restful.Response) {
-	namespace := req.PathParameter("namespace")
-	policyList, err := h.Operator.ListPolicies(req.Request.Context(), namespace)
+	q := query.ParseQueryParameter(req)
+	policyList, err := h.Operator.ListPolicies(req.Request.Context(), q)
 	if err != nil {
 		klog.Error(err)
-		ksapi.HandleInternalError(resp, nil, err)
+		ksapi.HandleInternalError(resp, req, err)
 		return
 	}
 	_ = resp.WriteEntity(policyList)
 }
 
 func (h admissionHandler) handleListRules(req *restful.Request, resp *restful.Response) {
-	namespace := req.PathParameter("namespace")
+	q := query.ParseQueryParameter(req)
 	policyName := req.PathParameter("policy_name")
-	ruleList, err := h.Operator.ListRules(req.Request.Context(), namespace, policyName)
+	ruleList, err := h.Operator.ListRules(req.Request.Context(), policyName, q)
 	if err != nil {
-		klog.Error(err)
-		ksapi.HandleInternalError(resp, nil, err)
+		if err == v1alpha1.ErrPolicyNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
 		return
 	}
 	_ = resp.WriteEntity(ruleList)
@@ -118,43 +123,188 @@ func (h admissionHandler) handleListRules(req *restful.Request, resp *restful.Re
 // Get
 
 func (h admissionHandler) handleGetPolicyTemplate(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	templateName := req.PathParameter("template_name")
+	ruleList, err := h.Operator.GetPolicyTemplate(req.Request.Context(), templateName)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyTemplateNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
+	_ = resp.WriteEntity(ruleList)
 }
 
 func (h admissionHandler) handleGetPolicy(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	policyName := req.PathParameter("policy_name")
+	policy, err := h.Operator.GetPolicy(req.Request.Context(), policyName)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
+	_ = resp.WriteEntity(policy)
 }
 
 func (h admissionHandler) handleGetRule(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	policyName := req.PathParameter("policy_name")
+	ruleName := req.PathParameter("rule_name")
+	rule, err := h.Operator.GetRule(req.Request.Context(), policyName, ruleName)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		if err == v1alpha1.ErrRuleNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
+	_ = resp.WriteEntity(rule)
 }
 
 // Create
 
 func (h admissionHandler) handleCreatePolicy(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	var policy v1alpha1.PostPolicy
+	if err := req.ReadEntity(&policy); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, req, err)
+		return
+	}
+	if err := policy.Validate(); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, req, err)
+		return
+	}
+	err := h.Operator.CreatePolicy(req.Request.Context(), &policy)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyTemplateNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		if err == v1alpha1.ErrTemplateOfProviderNotSupport {
+			ksapi.HandleBadRequest(resp, req, err)
+		}
+		if err == v1alpha1.ErrPolicyAlreadyExists {
+			ksapi.HandleBadRequest(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
 }
 
 func (h admissionHandler) handleCreateRule(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	policyName := req.PathParameter("policy_name")
+	var rule v1alpha1.PostRule
+	if err := req.ReadEntity(&rule); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, req, err)
+		return
+	}
+	if err := rule.Validate(); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, req, err)
+		return
+	}
+	err := h.Operator.CreateRule(req.Request.Context(), policyName, &rule)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		if err == v1alpha1.ErrRuleAlreadyExists {
+			ksapi.HandleBadRequest(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
 }
 
 // Update
 
 func (h admissionHandler) handleUpdatePolicy(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	policyName := req.PathParameter("policy_name")
+	var policy v1alpha1.PostPolicy
+	if err := req.ReadEntity(&policy); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, req, err)
+		return
+	}
+	if err := policy.Validate(); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, req, err)
+		return
+	}
+	err := h.Operator.UpdatePolicy(req.Request.Context(), policyName, &policy)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		if err == v1alpha1.ErrPolicyAlreadyExists {
+			ksapi.HandleBadRequest(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
 }
 
 func (h admissionHandler) handleUpdateRule(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	policyName := req.PathParameter("policy_name")
+	ruleName := req.PathParameter("rule_name")
+	var rule v1alpha1.PostRule
+	if err := req.ReadEntity(&rule); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, req, err)
+		return
+	}
+	if err := rule.Validate(); err != nil {
+		klog.Error(err)
+		ksapi.HandleBadRequest(resp, req, err)
+		return
+	}
+	err := h.Operator.UpdateRule(req.Request.Context(), policyName, ruleName, &rule)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		if err == v1alpha1.ErrRuleNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		if err == v1alpha1.ErrRuleAlreadyExists {
+			ksapi.HandleBadRequest(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
 }
 
 // Delete
 
 func (h admissionHandler) handleDeletePolicy(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	policyName := req.PathParameter("policy_name")
+	err := h.Operator.DeletePolicy(req.Request.Context(), policyName)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
 }
 
 func (h admissionHandler) handleDeleteRule(req *restful.Request, resp *restful.Response) {
-	panic("implement me")
+	policyName := req.PathParameter("policy_name")
+	ruleName := req.PathParameter("rule_name")
+	err := h.Operator.DeleteRule(req.Request.Context(), policyName, ruleName)
+	if err != nil {
+		if err == v1alpha1.ErrPolicyNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		if err == v1alpha1.ErrRuleNotFound {
+			ksapi.HandleNotFound(resp, req, err)
+		}
+		ksapi.HandleInternalError(resp, req, err)
+		return
+	}
 }

@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	ResourceKindRule      = "PolicyTemplate"
+	ResourceKindRule      = "Rule"
 	ResourcesSingularRule = "rule"
 	ResourcesPluralRule   = "rules"
 )

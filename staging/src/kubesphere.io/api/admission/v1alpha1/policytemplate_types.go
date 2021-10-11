@@ -23,8 +23,10 @@ import (
 
 const (
 	ResourceKindPolicyTemplate      = "PolicyTemplate"
-	ResourcesSingularPolicyTemplate = "policyTemplate"
-	ResourcesPluralPolicyTemplate   = "policyTemplates"
+	ResourcesSingularPolicyTemplate = "policytemplate"
+	ResourcesPluralPolicyTemplate   = "policytemplates"
+
+	AdmissionPolicyTemplateLabel = "kubesphere.io/admission/policytemplate"
 )
 
 // +genclient

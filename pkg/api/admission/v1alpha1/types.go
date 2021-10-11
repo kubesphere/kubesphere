@@ -18,12 +18,15 @@ package v1alpha1
 
 import (
 	"errors"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"regexp"
 )
 
 var (
+	ErrProviderNotFound             = errors.New("the provide of policy was not found")
+	ErrTemplateOfProviderNotSupport = errors.New("the template not support the specific provider")
+
 	ErrPolicyTemplateNotFound = errors.New("the policy template was not found")
 
 	ErrPolicyNotFound      = errors.New("the policy was not found")
@@ -37,27 +40,28 @@ var (
 )
 
 type PolicyTemplate struct {
-	Name        string                  `json:"name"`
-	Description string                  `json:"description,omitempty"`
-	Targets     []*PolicyTemplateTarget `json:"targets"`
-	Parameters  Parameters              `json:"parameters,omitempty"  description:"policy rule parameters"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Targets     []PolicyTemplateTarget `json:"targets"`
+	Parameters  Parameters             `json:"parameters,omitempty"  description:"policy rule parameters"`
 }
 
 type Policy struct {
-	Name           string          `json:"name"`
-	PolicyTemplate string          `json:"templateName,omitempty"`
-	Provider       string          `json:"provider,omitempty"`
-	Description    string          `json:"description,omitempty"`
-	Targets        []*PolicyTarget `json:"targets"`
-	Parameters     Parameters      `json:"parameters,omitempty"  description:"policy rule parameters"`
+	Name           string         `json:"name"`
+	PolicyTemplate string         `json:"templateName,omitempty"`
+	Provider       string         `json:"provider,omitempty"`
+	Description    string         `json:"description,omitempty"`
+	Targets        []PolicyTarget `json:"targets"`
+	Parameters     Parameters     `json:"parameters,omitempty"  description:"policy rule parameters"`
 }
 
 type Rule struct {
-	Name        string `json:"name"`
-	Policy      string `json:"templateName,omitempty"`
-	Provider    string `json:"provider,omitempty"`
-	Description string `json:"description,omitempty"`
-	Parameters  string `json:"parameters,omitempty"`
+	Name        string                 `json:"name"`
+	Policy      string                 `json:"templateName,omitempty"`
+	Provider    string                 `json:"provider,omitempty"`
+	Description string                 `json:"description,omitempty"`
+	Match       Match                  `json:"match,omitempty"`
+	Parameters  map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // List
@@ -124,8 +128,14 @@ type Parameters struct {
 }
 
 type Validation struct {
-	OpenAPIV3Schema *apiextensionsv1.JSONSchemaProps `json:"openAPIV3Schema,omitempty"`
-	LegacySchema    bool                             `json:"legacySchema,omitempty"`
+	OpenAPIV3Schema *apiextensions.JSONSchemaProps `json:"openAPIV3Schema,omitempty"`
+	LegacySchema    bool                           `json:"legacySchema,omitempty"`
+}
+
+// Match selects objects to apply mutations to.
+type Match struct {
+	Namespaces         []string `json:"namespaces,omitempty"`
+	ExcludedNamespaces []string `json:"excludedNamespaces,omitempty"`
 }
 
 func (r *PostPolicy) Validate() error {

@@ -12,7 +12,14 @@ import (
 	"strings"
 )
 
-const GateKeeperProviderName = "gatekeeper"
+const (
+	GateKeeperProviderName = "gatekeeper"
+)
+
+var (
+	ConstraintsGroup   = "constraints.gatekeeper.sh"
+	ConstraintsVersion = "v1alpha1"
+)
 
 type GateKeeperProvider struct {
 	*client.Client
@@ -111,12 +118,7 @@ func Template(policy *v1alpha1.Policy) (*templates.ConstraintTemplate, error) {
 
 func Constraint(rule *v1alpha1.Rule) (*unstructured.Unstructured, error) {
 	c := &unstructured.Unstructured{}
-	c.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "constraints.gatekeeper.sh",
-		Version: "v1alpha1",
-		Kind:    rule.Name,
-	})
-
+	c.SetGroupVersionKind(ConstraintGvk(rule.Name))
 	paramMap := map[string]interface{}{}
 	err := json.Unmarshal(rule.Spec.Parameters.Raw, &paramMap)
 	if err := unstructured.SetNestedMap(c.Object, paramMap, "spec", "parameters"); err != nil {
@@ -126,4 +128,12 @@ func Constraint(rule *v1alpha1.Rule) (*unstructured.Unstructured, error) {
 		return nil, err
 	}
 	return c, nil
+}
+
+func ConstraintGvk(kind string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   ConstraintsGroup,
+		Version: ConstraintsVersion,
+		Kind:    kind,
+	}
 }

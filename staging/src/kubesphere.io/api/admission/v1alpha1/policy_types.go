@@ -24,6 +24,9 @@ const (
 	ResourceKindPolicy      = "Policy"
 	ResourcesSingularPolicy = "policy"
 	ResourcesPluralPolicy   = "policies"
+
+	AdmissionPolicyLabel   = "kubesphere.io/admission/policy"
+	AdmissionProviderLabel = "kubesphere.io/admission/provider"
 )
 
 // +genclient

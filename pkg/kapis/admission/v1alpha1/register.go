@@ -38,7 +38,7 @@ var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 
 func AddToContainer(container *restful.Container, informers informers.InformerFactory, ksClient kubesphere.Interface, option *admission.Options) error {
 	ws := runtime.NewWebService(GroupVersion)
-	handler := newAdmissionHandler(informers, ksClient, option)
+	var handler admissionHandlerInterface = newAdmissionHandler(informers, ksClient, option)
 
 	// List
 	ws.Route(ws.GET("/policytemplates").
@@ -88,18 +88,6 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Returns(http.StatusOK, ksapi.StatusOK, v1alpha1.RuleDetail{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionRuleTag}))
 
-	ws.Route(ws.GET("/policies/{policy_name}").
-		To(handler.handleGetPolicy).
-		Doc("get the policy template with the specified name in the specified namespace").
-		Returns(http.StatusOK, ksapi.StatusOK, v1alpha1.PolicyDetail{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionPolicyTag}))
-
-	ws.Route(ws.GET("/policies/{policy_name}/rules/{rule_name}").
-		To(handler.handleGetRule).
-		Doc("get the policy template with the specified name in the specified namespace").
-		Returns(http.StatusOK, ksapi.StatusOK, v1alpha1.RuleDetail{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionRuleTag}))
-
 	// Create
 	ws.Route(ws.POST("/policies/{policy_name}").
 		To(handler.handleCreatePolicy).
@@ -111,21 +99,6 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 	ws.Route(ws.POST("/policies/{policy_name}/rules/{rule_name}").
 		To(handler.handleCreateRule).
 		Doc("create the cluster-level rule for the policy").
-		Reads(v1alpha1.PostRule{}).
-		Returns(http.StatusOK, ksapi.StatusOK, nil).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionRuleTag}))
-
-	// TODO: namespaced policy
-	//ws.Route(ws.POST("/namespaces/{namespace}/policies/{policy_name}").
-	//	To(handler.handleCreatePolicy).
-	//	Doc("create the policy in the specified namespace").
-	//	Reads(v1alpha1.PostPolicy{}).
-	//	Returns(http.StatusOK, ksapi.StatusOK, nil).
-	//	Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionPolicyTag}))
-
-	ws.Route(ws.POST("/namespaces/{namespace}/policies/{policy_name}/rules/{rule_name}").
-		To(handler.handleCreateRule).
-		Doc("create the rule for the policy in the specified namespace").
 		Reads(v1alpha1.PostRule{}).
 		Returns(http.StatusOK, ksapi.StatusOK, nil).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionRuleTag}))
@@ -145,21 +118,6 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Returns(http.StatusOK, ksapi.StatusOK, nil).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionRuleTag}))
 
-	// TODO: namespaced policy
-	//ws.Route(ws.PUT("/namespaces/{namespace}/policies/{policy_name}").
-	//	To(handler.handleUpdatePolicy).
-	//	Doc("update the policy in the specified namespace").
-	//	Reads(v1alpha1.PostPolicy{}).
-	//	Returns(http.StatusOK, ksapi.StatusOK, nil).
-	//	Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionPolicyTag}))
-
-	ws.Route(ws.PUT("/namespaces/{namespace}/policies/{policy_name}/rules/{rule_name}").
-		To(handler.handleUpdateRule).
-		Doc("update the rule for the policy in the specified namespace").
-		Reads(v1alpha1.PostRule{}).
-		Returns(http.StatusOK, ksapi.StatusOK, nil).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionRuleTag}))
-
 	// delete
 	ws.Route(ws.DELETE("/policies").
 		To(handler.handleDeletePolicy).
@@ -171,21 +129,6 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 	ws.Route(ws.DELETE("/policies/{policy_name}/rules").
 		To(handler.handleDeleteRule).
 		Doc("delete the cluster-level rule for the policy").
-		Param(ws.QueryParameter("name", "rule name").CollectionFormat(restful.CollectionFormatMulti).AllowMultiple(true)).
-		Returns(http.StatusOK, ksapi.StatusOK, nil).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionRuleTag}))
-
-	// TODO: namespaced policy
-	//ws.Route(ws.DELETE("/namespaces/{namespace}/policies").
-	//	To(handler.handleDeletePolicy).
-	//	Doc("delete the policy in the specified namespace").
-	//	Param(ws.QueryParameter("name", "policy name").CollectionFormat(restful.CollectionFormatMulti).AllowMultiple(true)).
-	//	Returns(http.StatusOK, ksapi.StatusOK, nil).
-	//	Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionPolicyTag}))
-
-	ws.Route(ws.DELETE("/namespaces/{namespace}/policies/{policy_name}/rules").
-		To(handler.handleDeleteRule).
-		Doc("delete the rule for the policy in the specified namespace").
 		Param(ws.QueryParameter("name", "rule name").CollectionFormat(restful.CollectionFormatMulti).AllowMultiple(true)).
 		Returns(http.StatusOK, ksapi.StatusOK, nil).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AdmissionRuleTag}))
