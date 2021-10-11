@@ -182,6 +182,9 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 							Type: corev1.ServiceTypeNodePort,
 						},
 					},
+					Status: runtime.RawExtension{
+						Raw: []byte("{\"loadBalancer\":{},\"service\":[{\"name\":\"http\",\"protocol\":\"TCP\",\"port\":80,\"targetPort\":0}]}\n"),
+					},
 				},
 			},
 		},

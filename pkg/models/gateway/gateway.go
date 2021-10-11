@@ -259,12 +259,12 @@ func (c *gatewayOperator) GetGateways(namespace string) ([]*v1alpha1.Gateway, er
 	}
 	obj := &v1alpha1.Gateway{}
 	err := c.client.Get(context.TODO(), key, obj)
-	if errors.IsNotFound(err) {
-		return gateways, nil
-	} else if err != nil {
+
+	if err == nil {
+		gateways = append(gateways, obj)
+	} else if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
-	gateways = append(gateways, obj)
 
 	for _, g := range gateways {
 		s := &corev1.Service{}
@@ -281,7 +281,7 @@ func (c *gatewayOperator) GetGateways(namespace string) ([]*v1alpha1.Gateway, er
 		}
 	}
 
-	return gateways, err
+	return gateways, nil
 }
 
 // Create a Gateway in a namespace
@@ -457,8 +457,10 @@ func (c *gatewayOperator) filter(object runtime.Object, filter query.Filter) boo
 			return false
 		}
 		namesapce = svc.Labels["project"]
+		objMeta = svc.ObjectMeta
 	} else {
 		namesapce = gateway.Spec.Conroller.Scope.Namespace
+		objMeta = gateway.ObjectMeta
 	}
 
 	switch filter.Field {
