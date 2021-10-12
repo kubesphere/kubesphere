@@ -308,6 +308,14 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, user *iamv1alpha2.Use
 
 func (r *Reconciler) createFederatedUser(ctx context.Context, user *iamv1alpha2.User) error {
 	federatedUser := &typesv1beta1.FederatedUser{
+		// Normally we don't need to set TypeMeta manually, this is to solve the following occasional problem:
+		// FederatedUser in version "v1beta1" cannot be handled as a FederatedUser: unmarshalerDecoder: Object 'Kind' is missing in '{"metadata":{"name":"wx","creationTimestamp":null,"ownerReferences":[{"apiVersion":"iam.kubesphere.io/v1alpha2","kind":"User","name":"wx","uid":"3532aa75-1a8d-4e23-bb44-068e18142752","controller":true,"blockOwnerDeletion":true}]},"spec":{"template":{"metadata":{"creationTimestamp":null,"labels":{"kubefed.io/managed":"false"}},"spec":{"email":"wx@qq.com","password":"xxx"},"status":{}},"placement":{"clusterSelector":{}}}}', error found in #10 byte of ...|tor":{}}}}|..., bigger context ...|,"status":{}},"placement":{"clusterSelector":{}}}}
+		// Something wrong when creating the FederatedUser object, the object data not containing the TypeMeta part.
+		// This is a strange problem, I can't reproduce it locally so I can't debug to find the root of the problem.
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: typesv1beta1.SchemeGroupVersion.String(),
+			Kind:       typesv1beta1.FederatedUserKind,
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: user.Name,
 		},
