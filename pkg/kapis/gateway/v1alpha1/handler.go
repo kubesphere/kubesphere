@@ -227,15 +227,30 @@ func (h *handler) PodLogSearch(request *restful.Request, response *restful.Respo
 	}
 
 	noHit := len(namespaceCreateTimeMap) == 0 || len(podfilter) == 0
-	if noHit {
-		ar.Logs = &loggingclient.Logs{}
+
+	if logQuery.Operation == loggingv1alpha2.OperationExport {
+		response.Header().Set(restful.HEADER_ContentType, "text/plain")
+		response.Header().Set("Content-Disposition", "attachment")
+		if noHit {
+			return
+		}
+
+		err = h.lo.ExportLogs(sf, response)
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
 	} else {
+		if noHit {
+			ar.Logs = &loggingclient.Logs{}
+		}
+
 		ar, err = h.lo.SearchLogs(sf, logQuery.From, logQuery.Size, logQuery.Sort)
 		if err != nil {
 			api.HandleError(response, request, err)
 			return
 		}
+		response.WriteEntity(ar)
 	}
 
-	response.WriteEntity(ar)
 }
