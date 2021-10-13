@@ -198,12 +198,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	// update user status if not managed by kubefed
 	managedByKubefed := user.Labels[constants.KubefedManagedLabel] == "true"
 	if !managedByKubefed {
-		if user, err = r.encryptPassword(ctx, user); err != nil {
+		if err = r.encryptPassword(ctx, user); err != nil {
 			klog.Error(err)
 			r.Recorder.Event(user, corev1.EventTypeWarning, failedSynced, fmt.Sprintf(syncFailMessage, err))
 			return ctrl.Result{}, err
 		}
-		if user, err = r.syncUserStatus(ctx, user); err != nil {
+		if err = r.syncUserStatus(ctx, user); err != nil {
 			klog.Error(err)
 			r.Recorder.Event(user, corev1.EventTypeWarning, failedSynced, fmt.Sprintf(syncFailMessage, err))
 			return ctrl.Result{}, err
@@ -238,15 +238,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) encryptPassword(ctx context.Context, user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+// encryptPassword Encrypt and update the user password
+func (r *Reconciler) encryptPassword(ctx context.Context, user *iamv1alpha2.User) error {
 	// password is not empty and not encrypted
 	if user.Spec.EncryptedPassword != "" && !isEncrypted(user.Spec.EncryptedPassword) {
 		password, err := encrypt(user.Spec.EncryptedPassword)
 		if err != nil {
 			klog.Error(err)
-			return nil, err
+			return err
 		}
-		user = user.DeepCopy()
 		user.Spec.EncryptedPassword = password
 		if user.Annotations == nil {
 			user.Annotations = make(map[string]string)
@@ -256,11 +256,10 @@ func (r *Reconciler) encryptPassword(ctx context.Context, user *iamv1alpha2.User
 		delete(user.Annotations, corev1.LastAppliedConfigAnnotation)
 		err = r.Update(ctx, user, &client.UpdateOptions{})
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return user, nil
 	}
-	return user, nil
+	return nil
 }
 
 func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, user *iamv1alpha2.User) error {
@@ -268,11 +267,11 @@ func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, user *iam
 		if user.Labels == nil {
 			user.Labels = make(map[string]string, 0)
 		}
-		user = user.DeepCopy()
 		user.Labels[constants.KubefedManagedLabel] = "false"
 		err := r.Update(ctx, user, &client.UpdateOptions{})
 		if err != nil {
 			klog.Error(err)
+			return err
 		}
 	}
 	return nil
@@ -453,57 +452,51 @@ func (r *Reconciler) deleteLoginRecords(ctx context.Context, user *iamv1alpha2.U
 	return r.Client.DeleteAllOf(ctx, loginRecord, client.MatchingLabels{iamv1alpha2.UserReferenceLabel: user.Name})
 }
 
-// syncUserStatus will reconcile user state based on user login records
-func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+// syncUserStatus Update the user status
+func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User) error {
 	if user.Spec.EncryptedPassword == "" {
 		if user.Labels[iamv1alpha2.IdentifyProviderLabel] != "" {
 			// mapped user from other identity provider always active until disabled
 			if user.Status.State == nil || *user.Status.State != iamv1alpha2.UserActive {
-				expected := user.DeepCopy()
 				active := iamv1alpha2.UserActive
-				expected.Status = iamv1alpha2.UserStatus{
+				user.Status = iamv1alpha2.UserStatus{
 					State:              &active,
 					LastTransitionTime: &metav1.Time{Time: time.Now()},
 				}
-				err := r.Update(ctx, expected, &client.UpdateOptions{})
+				err := r.Update(ctx, user, &client.UpdateOptions{})
 				if err != nil {
-					return nil, err
+					return err
 				}
-				return expected, nil
 			}
 		} else {
 			// becomes disabled after setting a blank password
 			if user.Status.State == nil || *user.Status.State != iamv1alpha2.UserDisabled {
-				expected := user.DeepCopy()
 				disabled := iamv1alpha2.UserDisabled
-				expected.Status = iamv1alpha2.UserStatus{
+				user.Status = iamv1alpha2.UserStatus{
 					State:              &disabled,
 					LastTransitionTime: &metav1.Time{Time: time.Now()},
 				}
-				err := r.Update(ctx, expected, &client.UpdateOptions{})
+				err := r.Update(ctx, user, &client.UpdateOptions{})
 				if err != nil {
-					return nil, err
+					return err
 				}
-				return expected, nil
 			}
 		}
-		return user, nil
+		return nil
 	}
 
 	// becomes active after password encrypted
 	if isEncrypted(user.Spec.EncryptedPassword) {
 		if user.Status.State == nil || *user.Status.State == iamv1alpha2.UserDisabled {
-			expected := user.DeepCopy()
 			active := iamv1alpha2.UserActive
-			expected.Status = iamv1alpha2.UserStatus{
+			user.Status = iamv1alpha2.UserStatus{
 				State:              &active,
 				LastTransitionTime: &metav1.Time{Time: time.Now()},
 			}
-			err := r.Update(ctx, expected, &client.UpdateOptions{})
+			err := r.Update(ctx, user, &client.UpdateOptions{})
 			if err != nil {
-				return nil, err
+				return err
 			}
-			return expected, nil
 		}
 	}
 
@@ -511,18 +504,17 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 	if user.Status.State != nil && *user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
 		if user.Status.LastTransitionTime != nil &&
 			user.Status.LastTransitionTime.Add(r.AuthenticationOptions.AuthenticateRateLimiterDuration).Before(time.Now()) {
-			expected := user.DeepCopy()
 			// unblock user
 			active := iamv1alpha2.UserActive
-			expected.Status = iamv1alpha2.UserStatus{
+			user.Status = iamv1alpha2.UserStatus{
 				State:              &active,
 				LastTransitionTime: &metav1.Time{Time: time.Now()},
 			}
-			err := r.Update(ctx, expected, &client.UpdateOptions{})
+			err := r.Update(ctx, user, &client.UpdateOptions{})
 			if err != nil {
-				return nil, err
+				return err
 			}
-			return expected, nil
+			return nil
 		}
 	}
 
@@ -531,7 +523,7 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 	err := r.List(ctx, records, client.MatchingLabels{iamv1alpha2.UserReferenceLabel: user.Name})
 	if err != nil {
 		klog.Error(err)
-		return nil, err
+		return err
 	}
 
 	// count failed login attempts during last AuthenticateRateLimiterDuration
@@ -546,22 +538,20 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 
 	// block user if failed login attempts exceeds maximum tries setting
 	if failedLoginAttempts >= r.AuthenticationOptions.AuthenticateRateLimiterMaxTries {
-		expected := user.DeepCopy()
 		limitExceed := iamv1alpha2.UserAuthLimitExceeded
-		expected.Status = iamv1alpha2.UserStatus{
+		user.Status = iamv1alpha2.UserStatus{
 			State:              &limitExceed,
 			Reason:             fmt.Sprintf("Failed login attempts exceed %d in last %s", failedLoginAttempts, r.AuthenticationOptions.AuthenticateRateLimiterDuration),
 			LastTransitionTime: &metav1.Time{Time: time.Now()},
 		}
 
-		err = r.Update(ctx, expected, &client.UpdateOptions{})
+		err = r.Update(ctx, user, &client.UpdateOptions{})
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return expected, nil
 	}
 
-	return user, nil
+	return nil
 }
 
 func encrypt(password string) (string, error) {

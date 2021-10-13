@@ -230,10 +230,6 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, w
 
 func newFederatedWorkspace(template *tenantv1alpha2.WorkspaceTemplate) (*typesv1beta1.FederatedWorkspace, error) {
 	federatedWorkspace := &typesv1beta1.FederatedWorkspace{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       typesv1beta1.FederatedWorkspaceRoleKind,
-			APIVersion: typesv1beta1.SchemeGroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   template.Name,
 			Labels: template.Labels,
@@ -301,7 +297,6 @@ func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, logger lo
 		if workspaceTemplate.Labels == nil {
 			workspaceTemplate.Labels = make(map[string]string)
 		}
-		workspaceTemplate = workspaceTemplate.DeepCopy()
 		workspaceTemplate.Labels[constants.KubefedManagedLabel] = "false"
 		logger.V(4).Info("update kubefed managed label")
 		if err := r.Update(ctx, workspaceTemplate); err != nil {
@@ -326,8 +321,8 @@ func (r *Reconciler) initWorkspaceRoles(ctx context.Context, logger logr.Logger,
 				expected.Labels = make(map[string]string)
 			}
 			expected.Labels[tenantv1alpha1.WorkspaceLabel] = workspace.Name
-			var existed iamv1alpha2.WorkspaceRole
-			if err := r.Get(ctx, types.NamespacedName{Name: expected.Name}, &existed); err != nil {
+			workspaceRole := &iamv1alpha2.WorkspaceRole{}
+			if err := r.Get(ctx, types.NamespacedName{Name: expected.Name}, workspaceRole); err != nil {
 				if errors.IsNotFound(err) {
 					logger.V(4).Info("create workspace role", "workspacerole", expected.Name)
 					if err := r.Create(ctx, &expected); err != nil {
@@ -340,15 +335,14 @@ func (r *Reconciler) initWorkspaceRoles(ctx context.Context, logger logr.Logger,
 					return err
 				}
 			}
-			if !reflect.DeepEqual(expected.Labels, existed.Labels) ||
-				!reflect.DeepEqual(expected.Annotations, existed.Annotations) ||
-				!reflect.DeepEqual(expected.Rules, existed.Rules) {
-				updated := existed.DeepCopy()
-				updated.Labels = expected.Labels
-				updated.Annotations = expected.Annotations
-				updated.Rules = expected.Rules
-				logger.V(4).Info("update workspace role", "workspacerole", updated.Name)
-				if err := r.Update(ctx, updated); err != nil {
+			if !reflect.DeepEqual(expected.Labels, workspaceRole.Labels) ||
+				!reflect.DeepEqual(expected.Annotations, workspaceRole.Annotations) ||
+				!reflect.DeepEqual(expected.Rules, workspaceRole.Rules) {
+				workspaceRole.Labels = expected.Labels
+				workspaceRole.Annotations = expected.Annotations
+				workspaceRole.Rules = expected.Rules
+				logger.V(4).Info("update workspace role", "workspacerole", workspaceRole.Name)
+				if err := r.Update(ctx, workspaceRole); err != nil {
 					logger.Error(err, "update workspace role failed")
 					return err
 				}

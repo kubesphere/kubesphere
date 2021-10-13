@@ -123,7 +123,6 @@ func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, work
 	}
 	// owner reference not match workspace label
 	if !metav1.IsControlledBy(workspaceRoleBinding, workspace) {
-		workspaceRoleBinding := workspaceRoleBinding.DeepCopy()
 		workspaceRoleBinding.OwnerReferences = k8sutil.RemoveWorkspaceOwnerReference(workspaceRoleBinding.OwnerReferences)
 		if err := controllerutil.SetControllerReference(workspace, workspaceRoleBinding, r.Scheme); err != nil {
 			logger.Error(err, "set controller reference failed")
@@ -145,7 +144,7 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, w
 	federatedWorkspaceRoleBinding := &typesv1beta1.FederatedWorkspaceRoleBinding{}
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: workspaceRoleBinding.Name}, federatedWorkspaceRoleBinding); err != nil {
 		if errors.IsNotFound(err) {
-			if federatedWorkspaceRoleBinding, err := newFederatedWorkspaceRole(workspaceRoleBinding); err != nil {
+			if federatedWorkspaceRoleBinding, err := newFederatedWorkspaceRoleBinding(workspaceRoleBinding); err != nil {
 				logger.Error(err, "generate federated workspace role binding failed")
 				return err
 			} else {
@@ -153,6 +152,7 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, w
 					logger.Error(err, "create federated workspace role binding failed")
 					return err
 				}
+				return nil
 			}
 		}
 		logger.Error(err, "get federated workspace role binding failed")
@@ -176,12 +176,8 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, w
 	return nil
 }
 
-func newFederatedWorkspaceRole(workspaceRoleBinding *iamv1alpha2.WorkspaceRoleBinding) (*typesv1beta1.FederatedWorkspaceRoleBinding, error) {
-	federatedWorkspaceRole := &typesv1beta1.FederatedWorkspaceRoleBinding{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       typesv1beta1.FederatedWorkspaceRoleBindingKind,
-			APIVersion: typesv1beta1.SchemeGroupVersion.String(),
-		},
+func newFederatedWorkspaceRoleBinding(workspaceRoleBinding *iamv1alpha2.WorkspaceRoleBinding) (*typesv1beta1.FederatedWorkspaceRoleBinding, error) {
+	federatedWorkspaceRoleBinding := &typesv1beta1.FederatedWorkspaceRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: workspaceRoleBinding.Name,
 		},
@@ -198,10 +194,10 @@ func newFederatedWorkspaceRole(workspaceRoleBinding *iamv1alpha2.WorkspaceRoleBi
 			},
 		},
 	}
-	if err := controllerutil.SetControllerReference(workspaceRoleBinding, federatedWorkspaceRole, scheme.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(workspaceRoleBinding, federatedWorkspaceRoleBinding, scheme.Scheme); err != nil {
 		return nil, err
 	}
-	return federatedWorkspaceRole, nil
+	return federatedWorkspaceRoleBinding, nil
 }
 
 func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, logger logr.Logger, workspaceRoleBinding *iamv1alpha2.WorkspaceRoleBinding) error {
@@ -209,7 +205,6 @@ func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, logger lo
 		if workspaceRoleBinding.Labels == nil {
 			workspaceRoleBinding.Labels = make(map[string]string)
 		}
-		workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 		workspaceRoleBinding.Labels[constants.KubefedManagedLabel] = "false"
 		logger.V(4).Info("update kubefed managed label")
 		if err := r.Update(ctx, workspaceRoleBinding); err != nil {
