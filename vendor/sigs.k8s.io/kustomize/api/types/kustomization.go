@@ -74,6 +74,10 @@ type Kustomization struct {
 	// patch, but this operator is simpler to specify.
 	Images []Image `json:"images,omitempty" yaml:"images,omitempty"`
 
+	// Replacements is a list of replacements, which will copy nodes from a
+	// specified source to N specified targets.
+	Replacements []ReplacementField `json:"replacements,omitempty" yaml:"replacements,omitempty"`
+
 	// Replicas is a list of {resourcename, count} that allows for simpler replica
 	// specification. This can also be done with a patch.
 	Replicas []Replica `json:"replicas,omitempty" yaml:"replicas,omitempty"`
@@ -157,6 +161,9 @@ type Kustomization struct {
 	// Inventory appends an object that contains the record
 	// of all other objects, which can be used in apply, prune and delete
 	Inventory *Inventory `json:"inventory,omitempty" yaml:"inventory,omitempty"`
+
+	// BuildMetadata is a list of strings used to toggle different build options
+	BuildMetadata []string `json:"buildMetadata,omitempty" yaml:"buildMetadata,omitempty"`
 }
 
 // FixKustomizationPostUnmarshalling fixes things

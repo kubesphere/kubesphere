@@ -18,13 +18,31 @@ type AnnotationKey = string
 
 const (
 	// IndexAnnotation records the index of a specific resource in a file or input stream.
-	IndexAnnotation AnnotationKey = "config.kubernetes.io/index"
+	IndexAnnotation AnnotationKey = "internal.config.kubernetes.io/index"
 
 	// PathAnnotation records the path to the file the Resource was read from
-	PathAnnotation AnnotationKey = "config.kubernetes.io/path"
+	PathAnnotation AnnotationKey = "internal.config.kubernetes.io/path"
+
+	// SeqIndentAnnotation records the sequence nodes indentation of the input resource
+	SeqIndentAnnotation AnnotationKey = "internal.config.kubernetes.io/seqindent"
+
+	// IdAnnotation records the id of the resource to map inputs to outputs
+	IdAnnotation = "internal.config.kubernetes.io/id"
+
+	// LegacyIndexAnnotation is the deprecated annotation key for resource index
+	LegacyIndexAnnotation AnnotationKey = "config.kubernetes.io/index"
+
+	// LegacyPathAnnotation is the deprecated annotation key for resource path
+	LegacyPathAnnotation AnnotationKey = "config.kubernetes.io/path"
+
+	// LegacyIdAnnotation is the deprecated annotation key for resource ids
+	LegacyIdAnnotation = "config.k8s.io/id"
 )
 
 func GetFileAnnotations(rn *yaml.RNode) (string, string, error) {
+	if err := CopyLegacyAnnotations(rn); err != nil {
+		return "", "", err
+	}
 	meta, err := rn.GetMeta()
 	if err != nil {
 		return "", "", err
@@ -32,6 +50,40 @@ func GetFileAnnotations(rn *yaml.RNode) (string, string, error) {
 	path := meta.Annotations[PathAnnotation]
 	index := meta.Annotations[IndexAnnotation]
 	return path, index, nil
+}
+
+func CopyLegacyAnnotations(rn *yaml.RNode) error {
+	meta, err := rn.GetMeta()
+	if err != nil {
+		return err
+	}
+	if err := copyAnnotations(meta, rn, LegacyPathAnnotation, PathAnnotation); err != nil {
+		return err
+	}
+	if err := copyAnnotations(meta, rn, LegacyIndexAnnotation, IndexAnnotation); err != nil {
+		return err
+	}
+	if err := copyAnnotations(meta, rn, LegacyIdAnnotation, IdAnnotation); err != nil {
+		return err
+	}
+	return nil
+}
+
+func copyAnnotations(meta yaml.ResourceMeta, rn *yaml.RNode, legacyKey string, newKey string) error {
+	newValue := meta.Annotations[newKey]
+	if newValue != "" {
+		if err := rn.PipeE(yaml.SetAnnotation(legacyKey, newValue)); err != nil {
+			return err
+		}
+	} else {
+		legacyValue := meta.Annotations[legacyKey]
+		if legacyValue != "" {
+			if err := rn.PipeE(yaml.SetAnnotation(newKey, legacyValue)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // ErrorIfMissingAnnotation validates the provided annotations are present on the given resources
@@ -64,6 +116,9 @@ func DefaultPathAndIndexAnnotation(dir string, nodes []*yaml.RNode) error {
 
 	// check each node for the path annotation
 	for i := range nodes {
+		if err := CopyLegacyAnnotations(nodes[i]); err != nil {
+			return err
+		}
 		m, err := nodes[i].GetMeta()
 		if err != nil {
 			return err
@@ -88,6 +143,9 @@ func DefaultPathAndIndexAnnotation(dir string, nodes []*yaml.RNode) error {
 		if err := nodes[i].PipeE(yaml.SetAnnotation(PathAnnotation, path)); err != nil {
 			return err
 		}
+		if err := nodes[i].PipeE(yaml.SetAnnotation(LegacyPathAnnotation, path)); err != nil {
+			return err
+		}
 	}
 
 	// set the index annotations
@@ -110,6 +168,10 @@ func DefaultPathAndIndexAnnotation(dir string, nodes []*yaml.RNode) error {
 			yaml.SetAnnotation(IndexAnnotation, fmt.Sprintf("%d", c))); err != nil {
 			return err
 		}
+		if err := nodes[i].PipeE(
+			yaml.SetAnnotation(LegacyIndexAnnotation, fmt.Sprintf("%d", c))); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -119,6 +181,9 @@ func DefaultPathAndIndexAnnotation(dir string, nodes []*yaml.RNode) error {
 func DefaultPathAnnotation(dir string, nodes []*yaml.RNode) error {
 	// check each node for the path annotation
 	for i := range nodes {
+		if err := CopyLegacyAnnotations(nodes[i]); err != nil {
+			return err
+		}
 		m, err := nodes[i].GetMeta()
 		if err != nil {
 			return err
@@ -132,6 +197,9 @@ func DefaultPathAnnotation(dir string, nodes []*yaml.RNode) error {
 		// set a path annotation on the Resource
 		path := CreatePathAnnotationValue(dir, m)
 		if err := nodes[i].PipeE(yaml.SetAnnotation(PathAnnotation, path)); err != nil {
+			return err
+		}
+		if err := nodes[i].PipeE(yaml.SetAnnotation(LegacyPathAnnotation, path)); err != nil {
 			return err
 		}
 	}
@@ -180,6 +248,12 @@ func SortNodes(nodes []*yaml.RNode) error {
 	// use stable sort to keep ordering of equal elements
 	sort.SliceStable(nodes, func(i, j int) bool {
 		if err != nil {
+			return false
+		}
+		if err := CopyLegacyAnnotations(nodes[i]); err != nil {
+			return false
+		}
+		if err := CopyLegacyAnnotations(nodes[j]); err != nil {
 			return false
 		}
 		var iMeta, jMeta yaml.ResourceMeta
