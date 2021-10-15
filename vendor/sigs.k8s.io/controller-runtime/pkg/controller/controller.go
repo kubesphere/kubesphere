@@ -52,6 +52,9 @@ type Options struct {
 	// CacheSyncTimeout refers to the time limit set to wait for syncing caches.
 	// Defaults to 2 minutes if not set.
 	CacheSyncTimeout time.Duration
+
+	// RecoverPanic indicates whether the panic caused by reconcile should be recovered.
+	RecoverPanic bool
 }
 
 // Controller implements a Kubernetes API.  A Controller manages a work queue fed reconcile.Requests
@@ -133,5 +136,6 @@ func NewUnmanaged(name string, mgr manager.Manager, options Options) (Controller
 		SetFields:               mgr.SetFields,
 		Name:                    name,
 		Log:                     options.Log.WithName("controller").WithName(name),
+		RecoverPanic:            options.RecoverPanic,
 	}, nil
 }

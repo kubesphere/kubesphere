@@ -85,6 +85,9 @@ type Controller struct {
 
 	// Log is used to log messages to users during reconciliation, or for example when a watch is started.
 	Log logr.Logger
+
+	// RecoverPanic indicates whether the panic caused by reconcile should be recovered.
+	RecoverPanic bool
 }
 
 // watchDescription contains all the information necessary to start a watch.
@@ -95,7 +98,17 @@ type watchDescription struct {
 }
 
 // Reconcile implements reconcile.Reconciler.
-func (c *Controller) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+func (c *Controller) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, err error) {
+	if c.RecoverPanic {
+		defer func() {
+			if r := recover(); r != nil {
+				for _, fn := range utilruntime.PanicHandlers {
+					fn(r)
+				}
+				err = fmt.Errorf("panic: %v [recovered]", r)
+			}
+		}()
+	}
 	log := c.Log.WithValues("name", req.Name, "namespace", req.Namespace)
 	ctx = logf.IntoContext(ctx, log)
 	return c.Do.Reconcile(ctx, req)
@@ -295,7 +308,7 @@ func (c *Controller) reconcileHandler(ctx context.Context, obj interface{}) {
 
 	// RunInformersAndControllers the syncHandler, passing it the Namespace/Name string of the
 	// resource to be synced.
-	result, err := c.Do.Reconcile(ctx, req)
+	result, err := c.Reconcile(ctx, req)
 	switch {
 	case err != nil:
 		c.Queue.AddRateLimited(req)

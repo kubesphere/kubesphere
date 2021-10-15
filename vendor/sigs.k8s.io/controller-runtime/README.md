@@ -1,4 +1,5 @@
 [![Go Report Card](https://goreportcard.com/badge/sigs.k8s.io/controller-runtime)](https://goreportcard.com/report/sigs.k8s.io/controller-runtime)
+[![godoc](https://godoc.org/sigs.k8s.io/controller-runtime?status.svg)](https://godoc.org/sigs.k8s.io/controller-runtime)
 
 # Kubernetes controller-runtime Project
 

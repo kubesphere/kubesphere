@@ -84,6 +84,10 @@ type Etcd struct {
 	// args contains the structured arguments to use for running etcd.
 	// Lazily initialized by .Configure(), Defaulted eventually with .defaultArgs()
 	args *process.Arguments
+
+	// listenPeerURL is the address the Etcd should listen on for peer connections.
+	// It's automatically generated and a random port is picked during execution.
+	listenPeerURL *url.URL
 }
 
 // Start starts the etcd, waits for it to come up, and returns an error, if one
@@ -111,12 +115,25 @@ func (e *Etcd) setProcessState() error {
 		return err
 	}
 
+	// Set the listen url.
 	if e.URL == nil {
 		port, host, err := addr.Suggest("")
 		if err != nil {
 			return err
 		}
 		e.URL = &url.URL{
+			Scheme: "http",
+			Host:   net.JoinHostPort(host, strconv.Itoa(port)),
+		}
+	}
+
+	// Set the listen peer URL.
+	{
+		port, host, err := addr.Suggest("")
+		if err != nil {
+			return err
+		}
+		e.listenPeerURL = &url.URL{
 			Scheme: "http",
 			Host:   net.JoinHostPort(host, strconv.Itoa(port)),
 		}
@@ -150,12 +167,17 @@ func (e *Etcd) Stop() error {
 
 func (e *Etcd) defaultArgs() map[string][]string {
 	args := map[string][]string{
-		"listen-peer-urls": {"http://localhost:0"},
+		"listen-peer-urls": {e.listenPeerURL.String()},
 		"data-dir":         {e.DataDir},
 	}
 	if e.URL != nil {
 		args["advertise-client-urls"] = []string{e.URL.String()}
 		args["listen-client-urls"] = []string{e.URL.String()}
+	}
+
+	// Add unsafe no fsync, available from etcd 3.5
+	if ok, _ := e.processState.CheckFlag("unsafe-no-fsync"); ok {
+		args["unsafe-no-fsync"] = []string{"true"}
 	}
 	return args
 }

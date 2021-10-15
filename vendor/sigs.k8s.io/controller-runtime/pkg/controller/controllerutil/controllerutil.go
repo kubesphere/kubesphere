@@ -207,7 +207,7 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object, f M
 		return OperationResultCreated, nil
 	}
 
-	existing := obj.DeepCopyObject() //nolint:ifshort
+	existing := obj.DeepCopyObject() //nolint
 	if err := mutate(f, key, obj); err != nil {
 		return OperationResultNone, err
 	}

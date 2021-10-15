@@ -58,7 +58,7 @@ limitations under the License.
 //
 // Controllers
 //
-// Controllers (pkg/controller) use events (pkg/events) to eventually trigger
+// Controllers (pkg/controller) use events (pkg/event) to eventually trigger
 // reconcile requests.  They may be constructed manually, but are often
 // constructed with a Builder (pkg/builder), which eases the wiring of event
 // sources (pkg/source), like Kubernetes API object changes, to event handlers

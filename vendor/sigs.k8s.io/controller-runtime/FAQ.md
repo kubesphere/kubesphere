@@ -55,7 +55,7 @@ to test against a real API server.  In our experience, tests using fake
 clients gradually re-implement poorly-written impressions of a real API
 server, which leads to hard-to-maintain, complex test code.
 
-### Q: How should I write tests?  Any suggestions for getting started? 
+### Q: How should I write tests?  Any suggestions for getting started?
 
 - Use the aforementioned
   [envtest.Environment](https://godoc.org/sigs.k8s.io/controller-runtime/pkg/envtest#Environment)

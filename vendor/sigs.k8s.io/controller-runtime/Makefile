@@ -40,6 +40,7 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+ENVTEST_DIR := $(abspath tools/setup-envtest)
 
 # The help will print out all targets with their descriptions organized bellow their categories. The categories are represented by `##@` and the target descriptions by `##`.
 # The awk commands is responsible to read the entire set of makefiles included in this invocation, looking for lines of the file as xyz: ## something, and then pretty-format the target and help. Then, if there's a line with ##@ something, that gets pretty-printed as a category.
@@ -97,6 +98,7 @@ lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported
 modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
+	cd $(ENVTEST_DIR); go mod tidy
 
 .PHONY: generate
 generate: $(CONTROLLER_GEN) ## Runs controller-gen for internal types for config file

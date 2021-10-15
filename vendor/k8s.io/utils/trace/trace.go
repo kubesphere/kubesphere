@@ -26,6 +26,10 @@ import (
 	"k8s.io/klog/v2"
 )
 
+var klogV = func(lvl klog.Level) bool {
+	return klog.V(lvl).Enabled()
+}
+
 // Field is a key value pair that provides additional details about the trace.
 type Field struct {
 	Key   string
@@ -52,7 +56,7 @@ func writeTraceItemSummary(b *bytes.Buffer, msg string, totalTime time.Duration,
 		b.WriteString(" ")
 	}
 
-	b.WriteString(fmt.Sprintf("%vms (%v)", durationToMilliseconds(totalTime), startTime.Format("15:04:00.000")))
+	b.WriteString(fmt.Sprintf("%vms (%v)", durationToMilliseconds(totalTime), startTime.Format("15:04:05.000")))
 }
 
 func durationToMilliseconds(timeDuration time.Duration) int64 {
@@ -80,7 +84,7 @@ func (s traceStep) time() time.Time {
 
 func (s traceStep) writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration) {
 	stepDuration := s.stepTime.Sub(startTime)
-	if stepThreshold == nil || *stepThreshold == 0 || stepDuration >= *stepThreshold {
+	if stepThreshold == nil || *stepThreshold == 0 || stepDuration >= *stepThreshold || klogV(4) {
 		b.WriteString(fmt.Sprintf("%s---", formatter))
 		writeTraceItemSummary(b, s.msg, stepDuration, s.stepTime, s.fields)
 	}
@@ -106,7 +110,7 @@ func (t *Trace) time() time.Time {
 }
 
 func (t *Trace) writeItem(b *bytes.Buffer, formatter string, startTime time.Time, stepThreshold *time.Duration) {
-	if t.durationIsWithinThreshold() {
+	if t.durationIsWithinThreshold() || klogV(4) {
 		b.WriteString(fmt.Sprintf("%v[", formatter))
 		writeTraceItemSummary(b, t.name, t.TotalTime(), t.startTime, t.fields)
 		if st := t.calculateStepThreshold(); st != nil {
@@ -168,13 +172,13 @@ func (t *Trace) Log() {
 
 // LogIfLong only logs the trace if the duration of the trace exceeds the threshold.
 // Only steps that took longer than their share or the given threshold are logged.
-// If klog is at verbosity level 4 or higher, the trace and its steps are logged regardless of threshold.
-// If the Trace is nested it is not immediately logged. Instead, it is logged when the trace it is nested within
-// is logged.
+// If klog is at verbosity level 4 or higher and the trace took longer than the threshold,
+// all substeps and subtraces are logged. Otherwise, only those which took longer than
+// their own threshold.
+// If the Trace is nested it is not immediately logged. Instead, it is logged when the trace it
+// is nested within is logged.
 func (t *Trace) LogIfLong(threshold time.Duration) {
-	if !klog.V(4).Enabled() { // don't set threshold if verbosity is level 4 of higher
-		t.threshold = &threshold
-	}
+	t.threshold = &threshold
 	t.Log()
 }
 
@@ -193,7 +197,7 @@ func (t *Trace) logTrace() {
 		}
 
 		// if any step took more than it's share of the total allowed time, it deserves a higher log level
-		buffer.WriteString(fmt.Sprintf("(%v) (total time: %vms):", t.startTime.Format("02-Jan-2006 15:04:00.000"), totalTime.Milliseconds()))
+		buffer.WriteString(fmt.Sprintf("(%v) (total time: %vms):", t.startTime.Format("02-Jan-2006 15:04:05.000"), totalTime.Milliseconds()))
 		stepThreshold := t.calculateStepThreshold()
 		t.writeTraceSteps(&buffer, fmt.Sprintf("\nTrace[%d]: ", traceNum), stepThreshold)
 		buffer.WriteString(fmt.Sprintf("\nTrace[%d]: [%v] [%v] END\n", traceNum, t.endTime.Sub(t.startTime), totalTime))
