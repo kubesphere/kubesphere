@@ -33,11 +33,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/version"
 	"kubesphere.io/kubesphere/tools/lib"
 
-	"github.com/go-openapi/spec"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 
 	applicationinstall "kubesphere.io/api/application/crdinstall"
 	devopsinstall "kubesphere.io/api/devops/crdinstall"
@@ -150,17 +150,13 @@ func main() {
 			Title:   "KubeSphere",
 			Version: version.Get().GitVersion,
 			Contact: &spec.ContactInfo{
-				ContactInfoProps: spec.ContactInfoProps{
-					Name:  "KubeSphere",
-					URL:   "https://kubesphere.io/",
-					Email: "kubesphere@yunify.com",
-				},
+				Name:  "KubeSphere",
+				URL:   "https://kubesphere.io/",
+				Email: "kubesphere@yunify.com",
 			},
 			License: &spec.License{
-				LicenseProps: spec.LicenseProps{
-					Name: "Apache 2.0",
-					URL:  "https://www.apache.org/licenses/LICENSE-2.0.html",
-				},
+				Name: "Apache 2.0",
+				URL:  "https://www.apache.org/licenses/LICENSE-2.0.html",
 			},
 		},
 		OpenAPIDefinitions: []common.GetOpenAPIDefinitions{

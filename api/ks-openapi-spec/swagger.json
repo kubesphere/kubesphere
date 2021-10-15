@@ -2017,7 +2017,7 @@
           "Authentication"
         ],
         "summary": "KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.",
-        "operationId": "Login",
+        "operationId": "login",
         "deprecated": true,
         "parameters": [
           {
@@ -3754,6 +3754,35 @@
         }
       }
     },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/clusterdashboards/{grafanaDashboardName}/template": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Convert Grafana templates to KubeSphere clusterdashboards.",
+        "operationId": "handleGrafanaDashboardImport",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the Grafana template to be converted",
+            "name": "grafanaDashboardName",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.ClusterDashboard"
+            }
+          }
+        }
+      }
+    },
     "/kapis/monitoring.kubesphere.io/v1alpha3/components/{component}": {
       "get": {
         "produces": [
@@ -3940,6 +3969,203 @@
           {
             "type": "string",
             "description": "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both namespace CPU usage and memory usage: `namespace_cpu_usage|namespace_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).",
+            "name": "metrics_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ",
+            "name": "start",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ",
+            "name": "end",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "10m",
+            "description": "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).",
+            "name": "step",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.",
+            "name": "time",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metrics"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/ingresses": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Ingress Metrics"
+        ],
+        "summary": "Get Ingress-level metric data of the specific namespace's Ingresses.",
+        "operationId": "handleIngressMetricsQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the namespace.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The job name filter. Ingress could be served by multi Ingress controllers, The job filters metric from a specific controller.",
+            "name": "job",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The pod name filter.",
+            "name": "pod",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The duration is the time window of Range Vector. The format is [0-9]+[smhdwy]. Defaults to 5m (i.e. 5 min).",
+            "name": "duration",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).",
+            "name": "metrics_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The PVC filter consists of a regexp pattern. It specifies which PVC data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.",
+            "name": "resources_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ",
+            "name": "start",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ",
+            "name": "end",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "10m",
+            "description": "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).",
+            "name": "step",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.",
+            "name": "time",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Sort PVCs by the specified metric. Not applicable if **start** and **end** are provided.",
+            "name": "sort_metric",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "desc.",
+            "description": "Sort order. One of asc, desc.",
+            "name": "sort_type",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 5,
+            "description": "Page size, the maximum number of results in a single page. Defaults to 5.",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metrics"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/ingresses/{ingress}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Ingress Metrics"
+        ],
+        "summary": "Get Ingress-level metric data of a specific Ingress. Navigate to the Ingress by the Ingress's namespace.",
+        "operationId": "handleIngressMetricsQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the namespace.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "ingress name.",
+            "name": "ingress",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The job name filter. Ingress could be served by multi Ingress controllers, The job filters metric from a specific controller.",
+            "name": "job",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The pod filter.",
+            "name": "pod",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The duration is the time window of Range Vector. The format is [0-9]+[smhdwy]. Defaults to 5m (i.e. 5 min).",
+            "name": "duration",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).",
             "name": "metrics_filter",
             "in": "query"
           },
@@ -9774,6 +10000,7 @@
         ],
         "summary": "List router of a specified project",
         "operationId": "handleGetRouter",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -9801,6 +10028,7 @@
         ],
         "summary": "Update a router for a specified project",
         "operationId": "handleUpdateRouter",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -9828,6 +10056,7 @@
         ],
         "summary": "Create a router for a specified project",
         "operationId": "handleCreateRouter",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -9855,6 +10084,7 @@
         ],
         "summary": "List router of a specified project",
         "operationId": "handleDeleteRouter",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -10314,7 +10544,7 @@
         }
       }
     },
-    "/kapis/resources.kubesphere.io/v1alpha3/namespaces/{namespace}/registrysecrets/{secret}": {
+    "/kapis/resources.kubesphere.io/v1alpha3/namespaces/{namespace}/registrysecrets/{secret}/verify": {
       "post": {
         "produces": [
           "application/json"
@@ -10334,7 +10564,7 @@
           },
           {
             "type": "string",
-            "description": "Secret name of the image repository credential to create",
+            "description": "Name of the secret name",
             "name": "secret",
             "in": "path",
             "required": true
@@ -10358,7 +10588,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "type": "string"
+              "$ref": "#/definitions/v1.Secret"
             }
           }
         }
@@ -12831,6 +13061,23 @@
         }
       }
     },
+    "/oauth/.well-known/openid-configuration": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "The OpenID Provider's configuration information can be retrieved.",
+        "operationId": "discovery",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/oauth/authenticate": {
       "post": {
         "consumes": [
@@ -12843,7 +13090,7 @@
           "Authentication"
         ],
         "summary": "TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be cached by the webhook token authenticator plugin in the kube-apiserver.",
-        "operationId": "TokenReview",
+        "operationId": "tokenReview",
         "parameters": [
           {
             "name": "body",
@@ -12875,8 +13122,8 @@
         "tags": [
           "Authentication"
         ],
-        "summary": "All requests for OAuth tokens involve a request to /oauth/authorize.",
-        "operationId": "Authorize",
+        "summary": "The authorization endpoint is used to interact with the resource owner and obtain an authorization grant.",
+        "operationId": "authorize",
         "parameters": [
           {
             "type": "string",
@@ -12887,24 +13134,82 @@
           },
           {
             "type": "string",
-            "description": "The client identifier issued to the client during the registration process described by [RFC6749] Section 2.2.",
+            "description": "OAuth 2.0 Client Identifier valid at the Authorization Server.",
             "name": "client_id",
             "in": "query",
             "required": true
           },
           {
             "type": "string",
-            "description": "After completing its interaction with the resource owner, the authorization server directs the resource owner's user-agent back to the client.The redirection endpoint URI MUST be an absolute URI as defined by [RFC3986] Section 4.3.",
+            "description": "Redirection URI to which the response will be sent. This URI MUST exactly match one of the Redirection URI values for the Client pre-registered at the OpenID Provider.",
             "name": "redirect_uri",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OpenID Connect requests MUST contain the openid scope value. If the openid scope value is not present, the behavior is entirely unspecified.",
+            "name": "scope",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Opaque value used to maintain state between the request and the callback.",
+            "name": "state",
             "in": "query"
           }
         ],
         "responses": {
-          "302": {
-            "description": "Found",
-            "schema": {
-              "type": "string"
-            }
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "The authorization endpoint is used to interact with the resource owner and obtain an authorization grant.",
+        "operationId": "authorize",
+        "parameters": [
+          {
+            "description": "The value MUST be one of \"code\" for requesting an authorization code as described by [RFC6749] Section 4.1.1, \"token\" for requesting an access token (implicit grant) as described by [RFC6749] Section 4.2.2.",
+            "name": "response_type",
+            "in": "body",
+            "required": true
+          },
+          {
+            "description": "OAuth 2.0 Client Identifier valid at the Authorization Server.",
+            "name": "client_id",
+            "in": "body",
+            "required": true
+          },
+          {
+            "description": "Redirection URI to which the response will be sent. This URI MUST exactly match one of the Redirection URI values for the Client pre-registered at the OpenID Provider.",
+            "name": "redirect_uri",
+            "in": "body",
+            "required": true
+          },
+          {
+            "description": "OpenID Connect requests MUST contain the openid scope value. If the openid scope value is not present, the behavior is entirely unspecified.",
+            "name": "scope",
+            "in": "body"
+          },
+          {
+            "description": "Opaque value used to maintain state between the request and the callback.",
+            "name": "state",
+            "in": "body"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -12967,6 +13272,23 @@
         }
       }
     },
+    "/oauth/keys": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "OP's JSON Web Key Set [JWK] document.",
+        "operationId": "keys",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/oauth/logout": {
       "get": {
         "consumes": [
@@ -12979,7 +13301,7 @@
           "Authentication"
         ],
         "summary": "This endpoint takes an ID token and logs the user out of KubeSphere if the subject matches the current session.",
-        "operationId": "Logout",
+        "operationId": "logout",
         "parameters": [
           {
             "type": "string",
@@ -13022,12 +13344,26 @@
           "Authentication"
         ],
         "summary": "The resource owner password credentials grant type is suitable in\ncases where the resource owner has a trust relationship with the\nclient, such as the device operating system or a highly privileged application.",
-        "operationId": "Token",
+        "operationId": "token",
         "parameters": [
           {
             "type": "string",
-            "description": "Value MUST be set to \"password\".",
+            "description": "OAuth defines four grant types: authorization code, implicit, resource owner password credentials, and client credentials.",
             "name": "grant_type",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Valid client credential.",
+            "name": "client_id",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Valid client credential.",
+            "name": "client_secret",
             "in": "formData",
             "required": true
           },
@@ -13035,15 +13371,19 @@
             "type": "string",
             "description": "The resource owner username.",
             "name": "username",
-            "in": "formData",
-            "required": true
+            "in": "formData"
           },
           {
             "type": "string",
             "description": "The resource owner password.",
             "name": "password",
-            "in": "formData",
-            "required": true
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "description": "Valid authorization code.",
+            "name": "code",
+            "in": "formData"
           }
         ],
         "responses": {
@@ -13055,9 +13395,85 @@
           }
         }
       }
+    },
+    "/oauth/userinfo": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "UserInfo Endpoint is an OAuth 2.0 Protected Resource that returns Claims about the authenticated End-User.",
+        "operationId": "userinfo",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "anotations.Annotation": {
+      "properties": {
+        "datasource": {
+          "type": "string"
+        },
+        "enable": {
+          "type": "boolean"
+        },
+        "expr": {
+          "type": "string"
+        },
+        "iconColor": {
+          "type": "string"
+        },
+        "iconSize": {
+          "type": "integer",
+          "format": "integer"
+        },
+        "lineColor": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "showLine": {
+          "type": "boolean"
+        },
+        "step": {
+          "type": "string"
+        },
+        "tagKeys": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tagsField": {
+          "type": "string"
+        },
+        "textField": {
+          "type": "string"
+        },
+        "textFormat": {
+          "type": "string"
+        },
+        "titleFormat": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
     "api.ListResult": {
       "required": [
         "items",
@@ -13999,6 +14415,9 @@
           "type": "integer",
           "format": "int32"
         },
+        "id_token": {
+          "type": "string"
+        },
         "refresh_token": {
           "type": "string"
         },
@@ -14573,7 +14992,8 @@
     },
     "openpitrix.CreateRepoRequest": {
       "required": [
-        "providers"
+        "providers",
+        "sync_period"
       ],
       "properties": {
         "app_default_status": {
@@ -14596,6 +15016,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "sync_period": {
+          "type": "string"
         },
         "type": {
           "type": "string"
@@ -14706,6 +15129,7 @@
     },
     "openpitrix.ModifyRepoRequest": {
       "required": [
+        "sync_period",
         "providers"
       ],
       "properties": {
@@ -14729,6 +15153,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "sync_period": {
+          "type": "string"
         },
         "type": {
           "type": "string"
@@ -14809,6 +15236,9 @@
           "type": "string"
         },
         "status_time": {
+          "type": "string"
+        },
+        "sync_period": {
           "type": "string"
         },
         "type": {
@@ -14913,6 +15343,226 @@
           "type": "string"
         },
         "version_id": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.Axis": {
+      "properties": {
+        "decimals": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "format": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.BarGaugeOptions": {
+      "properties": {
+        "colorMode": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "displayMode": {
+          "type": "string"
+        },
+        "graphMode": {
+          "type": "string"
+        },
+        "justifyMode": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "orientation": {
+          "type": "string"
+        },
+        "textMode": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.BarGaugePanel": {
+      "properties": {
+        "options": {
+          "$ref": "#/definitions/panels.BarGaugeOptions"
+        }
+      }
+    },
+    "panels.Gauge": {
+      "properties": {
+        "maxValue": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "minValue": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "show": {
+          "type": "boolean"
+        },
+        "thresholdLabels": {
+          "type": "boolean"
+        },
+        "thresholdMarkers": {
+          "type": "boolean"
+        }
+      }
+    },
+    "panels.GraphPanel": {
+      "properties": {
+        "bars": {
+          "type": "boolean"
+        },
+        "lines": {
+          "type": "boolean"
+        },
+        "stack": {
+          "type": "boolean"
+        },
+        "xaxis": {
+          "$ref": "#/definitions/panels.Axis"
+        },
+        "yaxes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/panels.Axis"
+          }
+        }
+      }
+    },
+    "panels.Panel": {
+      "required": [
+        "GraphPanel",
+        "SinglestatPanel",
+        "TablePanel",
+        "TextPanel",
+        "BarGaugePanel"
+      ],
+      "properties": {
+        "BarGaugePanel": {
+          "$ref": "#/definitions/panels.BarGaugePanel"
+        },
+        "GraphPanel": {
+          "$ref": "#/definitions/panels.GraphPanel"
+        },
+        "SinglestatPanel": {
+          "$ref": "#/definitions/panels.SinglestatPanel"
+        },
+        "TablePanel": {
+          "$ref": "#/definitions/panels.TablePanel"
+        },
+        "TextPanel": {
+          "$ref": "#/definitions/panels.TextPanel"
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "datasource": {
+          "type": "string"
+        },
+        "decimals": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "description": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "height": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "legend": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/panels.Target"
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.SinglestatPanel": {
+      "properties": {
+        "gauge": {
+          "$ref": "#/definitions/panels.Gauge"
+        },
+        "sparkline": {
+          "type": "string"
+        },
+        "valueName": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.Sort": {
+      "properties": {
+        "col": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "desc": {
+          "type": "boolean"
+        }
+      }
+    },
+    "panels.TablePanel": {
+      "properties": {
+        "scroll": {
+          "type": "boolean"
+        },
+        "sort": {
+          "$ref": "#/definitions/panels.Sort"
+        }
+      }
+    },
+    "panels.Target": {
+      "properties": {
+        "expr": {
+          "type": "string"
+        },
+        "legendFormat": {
+          "type": "string"
+        },
+        "refId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "step": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.TextPanel": {
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "mode": {
           "type": "string"
         }
       }
@@ -15327,6 +15977,77 @@
       }
     },
     "runtime.Object": {},
+    "templatings.Option": {
+      "properties": {
+        "selected": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "templatings.TemplateVar": {
+      "properties": {
+        "allFormat": {
+          "type": "string"
+        },
+        "allValue": {
+          "type": "string"
+        },
+        "auto": {
+          "type": "boolean"
+        },
+        "auto_count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "datasource": {
+          "type": "string"
+        },
+        "hide": {
+          "type": "integer",
+          "format": "byte"
+        },
+        "includeAll": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "multi": {
+          "type": "boolean"
+        },
+        "multiFormat": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/templatings.Option"
+          }
+        },
+        "query": {
+          "type": "string"
+        },
+        "regex": {
+          "type": "string"
+        },
+        "sort": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
     "v1.AWSElasticBlockStoreVolumeSource": {
       "description": "Represents a Persistent Disk resource in AWS.\n\nAn AWS EBS disk must exist before mounting to a container. The disk must also be in the same AWS zone as the kubelet. An AWS EBS disk can only be mounted as read/write once. AWS EBS volumes support ownership management and SELinux relabeling.",
       "required": [
@@ -15852,14 +16573,14 @@
       ],
       "properties": {
         "args": {
-          "description": "Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell",
+          "description": "Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. \"$$(VAR_NAME)\" will produce the string literal \"$(VAR_NAME)\". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "command": {
-          "description": "Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell",
+          "description": "Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. \"$$(VAR_NAME)\" will produce the string literal \"$(VAR_NAME)\". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell",
           "type": "array",
           "items": {
             "type": "string"
@@ -15915,7 +16636,7 @@
           "$ref": "#/definitions/v1.ResourceRequirements"
         },
         "securityContext": {
-          "description": "Security options the pod should run with. More info: https://kubernetes.io/docs/concepts/policy/security-context/ More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/",
+          "description": "SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/",
           "$ref": "#/definitions/v1.SecurityContext"
         },
         "startupProbe": {
@@ -16248,7 +16969,7 @@
           "type": "string"
         },
         "value": {
-          "description": "Variable references $(VAR_NAME) are expanded using the previous defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to \"\".",
+          "description": "Variable references $(VAR_NAME) are expanded using the previously defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. \"$$(VAR_NAME)\" will produce the string literal \"$(VAR_NAME)\". Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to \"\".",
           "type": "string"
         },
         "valueFrom": {
@@ -16285,14 +17006,14 @@
       ],
       "properties": {
         "args": {
-          "description": "Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell",
+          "description": "Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. \"$$(VAR_NAME)\" will produce the string literal \"$(VAR_NAME)\". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "command": {
-          "description": "Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell",
+          "description": "Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. Double $$ are reduced to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e. \"$$(VAR_NAME)\" will produce the string literal \"$(VAR_NAME)\". Escaped references will never be expanded, regardless of whether the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell",
           "type": "array",
           "items": {
             "type": "string"
@@ -16348,7 +17069,7 @@
           "$ref": "#/definitions/v1.ResourceRequirements"
         },
         "securityContext": {
-          "description": "SecurityContext is not allowed for ephemeral containers.",
+          "description": "Optional: SecurityContext defines the security options the ephemeral container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext.",
           "$ref": "#/definitions/v1.SecurityContext"
         },
         "startupProbe": {
@@ -16918,6 +17639,10 @@
           "description": "Operation is the type of operation which lead to this ManagedFieldsEntry being created. The only valid values for this field are 'Apply' and 'Update'.",
           "type": "string"
         },
+        "subresource": {
+          "description": "Subresource is the name of the subresource used to update that object, or empty string if the object was updated through the main resource. The value of this field is used to distinguish between managers, even if they share the same name. For example, a status update will be distinct from a regular update using the same manager name. Note that the APIVersion field is not related to the Subresource field and it always corresponds to the version of the main resource.",
+          "type": "string"
+        },
         "time": {
           "description": "Time is timestamp of when these fields were set. It should always be empty if Operation is 'Apply'",
           "type": "string"
@@ -17302,7 +18027,11 @@
           }
         },
         "dataSource": {
-          "description": "This field can be used to specify either: * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot) * An existing PVC (PersistentVolumeClaim) * An existing custom resource that implements data population (Alpha) In order to use custom resource types that implement data population, the AnyVolumeDataSource feature gate must be enabled. If the provisioner or an external controller can support the specified data source, it will create a new volume based on the contents of the specified data source.",
+          "description": "This field can be used to specify either: * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot) * An existing PVC (PersistentVolumeClaim) If the provisioner or an external controller can support the specified data source, it will create a new volume based on the contents of the specified data source. If the AnyVolumeDataSource feature gate is enabled, this field will always have the same contents as the DataSourceRef field.",
+          "$ref": "#/definitions/v1.TypedLocalObjectReference"
+        },
+        "dataSourceRef": {
+          "description": "Specifies the object from which to populate the volume with data, if a non-empty volume is desired. This may be any local object from a non-empty API group (non core object) or a PersistentVolumeClaim object. When this field is specified, volume binding will only succeed if the type of the specified object matches some installed volume populator or dynamic provisioner. This field will replace the functionality of the DataSource field and as such if both fields are non-empty, they must have the same value. For backwards compatibility, both fields (DataSource and DataSourceRef) will be set to the same value automatically if one of them is empty and the other is non-empty. There are two important differences between DataSource and DataSourceRef: * While DataSource only allows two specific types of objects, DataSourceRef\n  allows any non-core object, as well as PersistentVolumeClaim objects.\n* While DataSource ignores disallowed values (dropping them), DataSourceRef\n  preserves all values, and generates an error if a disallowed value is\n  specified.\n(Alpha) Using this field requires the AnyVolumeDataSource feature gate to be enabled.",
           "$ref": "#/definitions/v1.TypedLocalObjectReference"
         },
         "resources": {
@@ -17435,7 +18164,7 @@
           "$ref": "#/definitions/v1.LabelSelector"
         },
         "namespaceSelector": {
-          "description": "A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means \"this pod's namespace\". An empty selector ({}) matches all namespaces. This field is alpha-level and is only honored when PodAffinityNamespaceSelector feature is enabled.",
+          "description": "A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means \"this pod's namespace\". An empty selector ({}) matches all namespaces. This field is beta-level and is only honored when PodAffinityNamespaceSelector feature is enabled.",
           "$ref": "#/definitions/v1.LabelSelector"
         },
         "namespaces": {
@@ -17668,7 +18397,7 @@
           }
         },
         "overhead": {
-          "description": "Overhead represents the resource overhead associated with running a pod for a given RuntimeClass. This field will be autopopulated at admission time by the RuntimeClass admission controller. If the RuntimeClass admission controller is enabled, overhead must not be set in Pod create requests. The RuntimeClass admission controller will reject Pod create requests which have the overhead already set. If RuntimeClass is configured and selected in the PodSpec, Overhead will be set to the value defined in the corresponding RuntimeClass, otherwise it will remain unset and treated as zero. More info: https://git.k8s.io/enhancements/keps/sig-node/20190226-pod-overhead.md This field is alpha-level as of Kubernetes v1.16, and is only honored by servers that enable the PodOverhead feature.",
+          "description": "Overhead represents the resource overhead associated with running a pod for a given RuntimeClass. This field will be autopopulated at admission time by the RuntimeClass admission controller. If the RuntimeClass admission controller is enabled, overhead must not be set in Pod create requests. The RuntimeClass admission controller will reject Pod create requests which have the overhead already set. If RuntimeClass is configured and selected in the PodSpec, Overhead will be set to the value defined in the corresponding RuntimeClass, otherwise it will remain unset and treated as zero. More info: https://git.k8s.io/enhancements/keps/sig-node/688-pod-overhead/README.md This field is beta-level as of Kubernetes v1.18, and is only honored by servers that enable the PodOverhead feature.",
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/resource.Quantity"
@@ -17688,7 +18417,7 @@
           "type": "string"
         },
         "readinessGates": {
-          "description": "If specified, all readiness gates will be evaluated for pod readiness. A pod is ready when all its containers are ready AND all conditions specified in the readiness gates have status equal to \"True\" More info: https://git.k8s.io/enhancements/keps/sig-network/0007-pod-ready%2B%2B.md",
+          "description": "If specified, all readiness gates will be evaluated for pod readiness. A pod is ready when all its containers are ready AND all conditions specified in the readiness gates have status equal to \"True\" More info: https://git.k8s.io/enhancements/keps/sig-network/580-pod-readiness-gates",
           "type": "array",
           "items": {
             "$ref": "#/definitions/v1.PodReadinessGate"
@@ -17699,7 +18428,7 @@
           "type": "string"
         },
         "runtimeClassName": {
-          "description": "RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this pod.  If no RuntimeClass resource matches the named class, the pod will not be run. If unset or empty, the \"legacy\" RuntimeClass will be used, which is an implicit class with an empty definition that uses the default runtime handler. More info: https://git.k8s.io/enhancements/keps/sig-node/runtime-class.md This is a beta feature as of Kubernetes v1.14.",
+          "description": "RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this pod.  If no RuntimeClass resource matches the named class, the pod will not be run. If unset or empty, the \"legacy\" RuntimeClass will be used, which is an implicit class with an empty definition that uses the default runtime handler. More info: https://git.k8s.io/enhancements/keps/sig-node/585-runtime-class This is a beta feature as of Kubernetes v1.14.",
           "type": "string"
         },
         "schedulerName": {
@@ -17799,14 +18528,14 @@
           }
         },
         "resources": {
-          "description": "Resources is a list of resources this rule applies to.  ResourceAll represents all resources.",
+          "description": "Resources is a list of resources this rule applies to. '*' represents all resources.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "verbs": {
-          "description": "Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.",
+          "description": "Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule. '*' represents all verbs.",
           "type": "array",
           "items": {
             "type": "string"
@@ -17909,7 +18638,7 @@
           "$ref": "#/definitions/v1.TCPSocketAction"
         },
         "terminationGracePeriodSeconds": {
-          "description": "Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is an alpha field and requires enabling ProbeTerminationGracePeriod feature gate.",
+          "description": "Optional duration in seconds the pod needs to terminate gracefully upon probe failure. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. If this value is nil, the pod's terminationGracePeriodSeconds will be used. Otherwise, this value overrides the value provided by the pod spec. Value must be non-negative integer. The value zero indicates stop immediately via the kill signal (no opportunity to shut down). This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds is used if unset.",
           "type": "integer",
           "format": "int64"
         },
@@ -18302,11 +19031,11 @@
       "description": "Spec to control the desired behavior of daemon set rolling update.",
       "properties": {
         "maxSurge": {
-          "description": "The maximum number of nodes with an existing available DaemonSet pod that can have an updated DaemonSet pod during during an update. Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up to a minimum of 1. Default value is 0. Example: when this is set to 30%, at most 30% of the total number of nodes that should be running the daemon pod (i.e. status.desiredNumberScheduled) can have their a new pod created before the old pod is marked as deleted. The update starts by launching new pods on 30% of nodes. Once an updated pod is available (Ready for at least minReadySeconds) the old DaemonSet pod on that node is marked deleted. If the old pod becomes unavailable for any reason (Ready transitions to false, is evicted, or is drained) an updated pod is immediatedly created on that node without considering surge limits. Allowing surge implies the possibility that the resources consumed by the daemonset on any given node can double if the readiness check fails, and so resource intensive daemonsets should take into account that they may cause evictions during disruption. This is an alpha field and requires enabling DaemonSetUpdateSurge feature gate.",
+          "description": "The maximum number of nodes with an existing available DaemonSet pod that can have an updated DaemonSet pod during during an update. Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up to a minimum of 1. Default value is 0. Example: when this is set to 30%, at most 30% of the total number of nodes that should be running the daemon pod (i.e. status.desiredNumberScheduled) can have their a new pod created before the old pod is marked as deleted. The update starts by launching new pods on 30% of nodes. Once an updated pod is available (Ready for at least minReadySeconds) the old DaemonSet pod on that node is marked deleted. If the old pod becomes unavailable for any reason (Ready transitions to false, is evicted, or is drained) an updated pod is immediatedly created on that node without considering surge limits. Allowing surge implies the possibility that the resources consumed by the daemonset on any given node can double if the readiness check fails, and so resource intensive daemonsets should take into account that they may cause evictions during disruption. This is beta field and enabled/disabled by DaemonSetUpdateSurge feature gate.",
           "type": "string"
         },
         "maxUnavailable": {
-          "description": "The maximum number of DaemonSet pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total number of DaemonSet pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding down to a minimum of one. This cannot be 0 if MaxSurge is 0 Default value is 1. Example: when this is set to 30%, at most 30% of the total number of nodes that should be running the daemon pod (i.e. status.desiredNumberScheduled) can have their pods stopped for an update at any given time. The update starts by stopping at most 30% of those DaemonSet pods and then brings up new DaemonSet pods in their place. Once the new pods are available, it then proceeds onto other DaemonSet pods, thus ensuring that at least 70% of original number of DaemonSet pods are available at all times during the update.",
+          "description": "The maximum number of DaemonSet pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total number of DaemonSet pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up. This cannot be 0 if MaxSurge is 0 Default value is 1. Example: when this is set to 30%, at most 30% of the total number of nodes that should be running the daemon pod (i.e. status.desiredNumberScheduled) can have their pods stopped for an update at any given time. The update starts by stopping at most 30% of those DaemonSet pods and then brings up new DaemonSet pods in their place. Once the new pods are available, it then proceeds onto other DaemonSet pods, thus ensuring that at least 70% of original number of DaemonSet pods are available at all times during the update.",
           "type": "string"
         }
       }
@@ -18695,7 +19424,7 @@
       ],
       "properties": {
         "appProtocol": {
-          "description": "The application protocol for this port. This field follows standard Kubernetes label syntax. Un-prefixed names are reserved for IANA standard service names (as per RFC-6335 and http://www.iana.org/assignments/service-names). Non-standard protocols should use prefixed names such as mycompany.com/my-custom-protocol. This is a beta field that is guarded by the ServiceAppProtocol feature gate and enabled by default.",
+          "description": "The application protocol for this port. This field follows standard Kubernetes label syntax. Un-prefixed names are reserved for IANA standard service names (as per RFC-6335 and http://www.iana.org/assignments/service-names). Non-standard protocols should use prefixed names such as mycompany.com/my-custom-protocol.",
           "type": "string"
         },
         "name": {
@@ -18726,7 +19455,7 @@
       "description": "ServiceSpec describes the attributes that a user creates on a service.",
       "properties": {
         "allocateLoadBalancerNodePorts": {
-          "description": "allocateLoadBalancerNodePorts defines if NodePorts will be automatically allocated for services with type LoadBalancer.  Default is \"true\". It may be set to \"false\" if the cluster load-balancer does not rely on NodePorts. allocateLoadBalancerNodePorts may only be set for services with type LoadBalancer and will be cleared if the type is changed to any other type. This field is alpha-level and is only honored by servers that enable the ServiceLBNodePortControl feature.",
+          "description": "allocateLoadBalancerNodePorts defines if NodePorts will be automatically allocated for services with type LoadBalancer.  Default is \"true\". It may be set to \"false\" if the cluster load-balancer does not rely on NodePorts.  If the caller requests specific NodePorts (by specifying a value), those requests will be respected, regardless of this field. This field may only be set for services with type LoadBalancer and will be cleared if the type is changed to any other type. This field is beta-level and is only honored by servers that enable the ServiceLBNodePortControl feature.",
           "type": "boolean"
         },
         "clusterIP": {
@@ -18784,7 +19513,7 @@
           "type": "string"
         },
         "loadBalancerSourceRanges": {
-          "description": "If specified and supported by the platform, this will restrict traffic through the cloud-provider load-balancer will be restricted to the specified client IPs. This field will be ignored if the cloud-provider does not support the feature.\" More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/",
+          "description": "If specified and supported by the platform, this will restrict traffic through the cloud-provider load-balancer will be restricted to the specified client IPs. This field will be ignored if the cloud-provider does not support the feature.\" More info: https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/",
           "type": "array",
           "items": {
             "type": "string"
@@ -18815,13 +19544,6 @@
         "sessionAffinityConfig": {
           "description": "sessionAffinityConfig contains the configurations of session affinity.",
           "$ref": "#/definitions/v1.SessionAffinityConfig"
-        },
-        "topologyKeys": {
-          "description": "topologyKeys is a preference-order list of topology keys which implementations of services should use to preferentially sort endpoints when accessing this Service, it can not be used at the same time as externalTrafficPolicy=Local. Topology keys must be valid label keys and at most 16 keys may be specified. Endpoints are chosen based on the first topology key with available backends. If this field is specified and all entries have no backends that match the topology of the client, the service has no backends for that client and connections should fail. The special value \"*\" may be used to mean \"any topology\". This catch-all value, if used, only makes sense as the last value in the list. If this is not specified or empty, no topology constraints will be applied. This field is alpha-level and is only honored by servers that enable the ServiceTopology feature. This field is deprecated and will be removed in a future version.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         },
         "type": {
           "description": "type determines how the Service is exposed. Defaults to ClusterIP. Valid options are ExternalName, ClusterIP, NodePort, and LoadBalancer. \"ClusterIP\" allocates a cluster-internal IP address for load-balancing to endpoints. Endpoints are determined by the selector or if that is not specified, by manual construction of an Endpoints object or EndpointSlice objects. If clusterIP is \"None\", no virtual IP is allocated and the endpoints are published as a set of endpoints rather than a virtual IP. \"NodePort\" builds on ClusterIP and allocates a port on every node which routes to the same endpoints as the clusterIP. \"LoadBalancer\" builds on NodePort and creates an external load-balancer (if supported in the current cloud) which routes to the same endpoints as the clusterIP. \"ExternalName\" aliases this service to the specified externalName. Several other fields do not apply to ExternalName services. More info: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types",
@@ -18866,6 +19588,7 @@
           "type": "string"
         },
         "metadata": {
+          "description": "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
           "$ref": "#/definitions/v1.ObjectMeta"
         },
         "spec": {
@@ -18915,6 +19638,11 @@
         "serviceName"
       ],
       "properties": {
+        "minReadySeconds": {
+          "description": "Minimum number of seconds for which a newly created pod should be ready without any of its container crashing for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready) This is an alpha field and requires enabling StatefulSetMinReadySeconds feature gate.",
+          "type": "integer",
+          "format": "int32"
+        },
         "podManagementPolicy": {
           "description": "podManagementPolicy controls how pods are created during initial scale up, when replacing pods on nodes, or when scaling down. The default policy is `OrderedReady`, where pods are created in increasing order (pod-0, then pod-1, etc) and the controller will wait until each pod is ready before continuing. When scaling down, the pods are removed in the opposite order. The alternative policy is `Parallel` which will create pods in parallel to match the desired scale without waiting, and on scale down will delete all pods at once.",
           "type": "string"
@@ -18960,6 +19688,11 @@
         "replicas"
       ],
       "properties": {
+        "availableReplicas": {
+          "description": "Total number of available pods (ready for at least minReadySeconds) targeted by this statefulset. This is an alpha field and requires enabling StatefulSetMinReadySeconds feature gate. Remove omitempty when graduating to beta",
+          "type": "integer",
+          "format": "int32"
+        },
         "collisionCount": {
           "description": "collisionCount is the count of hash collisions for the StatefulSet. The StatefulSet controller uses this field as a collision avoidance mechanism when it needs to create the name for the newest ControllerRevision.",
           "type": "integer",
@@ -19430,6 +20163,10 @@
           "description": "GMSACredentialSpecName is the name of the GMSA credential spec to use.",
           "type": "string"
         },
+        "hostProcess": {
+          "description": "HostProcess determines if a container should be run as a 'Host Process' container. This field is alpha-level and will only be honored by components that enable the WindowsHostProcessContainers feature flag. Setting this field without the feature flag will result in errors when validating the Pod. All of a Pod's containers must have the same effective HostProcess value (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).  In addition, if HostProcess is true then HostNetwork must also be set to true.",
+          "type": "boolean"
+        },
         "runAsUserName": {
           "description": "The UserName in Windows to run the entrypoint of the container process. Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext. If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.",
           "type": "string"
@@ -19786,6 +20523,24 @@
         }
       }
     },
+    "v1alpha2.ClusterDashboard": {
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/v1alpha2.DashboardSpec"
+        }
+      }
+    },
     "v1alpha2.Column": {
       "required": [
         "id",
@@ -19948,6 +20703,62 @@
           "type": "string"
         },
         "ProbeID": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.DashboardSpec": {
+      "properties": {
+        "annotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/anotations.Annotation"
+          }
+        },
+        "auto_refresh": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "editable": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "integer",
+          "format": "integer"
+        },
+        "panels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/panels.Panel"
+          }
+        },
+        "shared_crosshair": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "templatings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/templatings.TemplateVar"
+          }
+        },
+        "time": {
+          "$ref": "#/definitions/time.Time"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "uid": {
           "type": "string"
         }
       }
@@ -20181,9 +20992,9 @@
     "v1alpha2.Node": {
       "required": [
         "id",
-        "labelMinor",
-        "rank",
         "label",
+        "rank",
+        "labelMinor",
         "controls"
       ],
       "properties": {

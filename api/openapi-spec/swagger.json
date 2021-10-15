@@ -128,7 +128,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -627,6 +627,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.cluster.v1alpha1.Cluster"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.cluster.v1alpha1.Cluster"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -806,6 +812,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.cluster.v1alpha1.Cluster"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.cluster.v1alpha1.Cluster"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -872,7 +884,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -980,7 +992,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -1141,7 +1153,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -1640,6 +1652,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBinary"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBinary"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -1819,6 +1837,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBinary"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBinary"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -1870,7 +1894,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -2369,6 +2393,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBuilder"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBuilder"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -2548,6 +2578,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBuilder"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBuilder"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -2599,7 +2635,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -3098,6 +3134,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBuilderTemplate"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBuilderTemplate"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -3277,6 +3319,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBuilderTemplate"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iBuilderTemplate"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -3328,7 +3376,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -3827,6 +3875,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iRun"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iRun"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -4006,6 +4060,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iRun"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha1.S2iRun"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -4072,7 +4132,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -4180,7 +4240,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -4296,7 +4356,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -4404,7 +4464,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -4520,7 +4580,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -4628,7 +4688,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -4744,7 +4804,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -4852,7 +4912,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -4983,7 +5043,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -5482,6 +5542,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha3.DevOpsProject"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha3.DevOpsProject"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -5661,6 +5727,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha3.DevOpsProject"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha3.DevOpsProject"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -5712,7 +5784,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -6211,6 +6283,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha3.Pipeline"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha3.Pipeline"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -6390,6 +6468,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha3.Pipeline"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.devops.v1alpha3.Pipeline"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -6456,7 +6540,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -6564,7 +6648,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -6680,7 +6764,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -6788,7 +6872,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -6949,7 +7033,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -7448,6 +7532,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.network.v1alpha1.IPPool"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.network.v1alpha1.IPPool"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -7627,6 +7717,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.network.v1alpha1.IPPool"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.network.v1alpha1.IPPool"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -7678,7 +7774,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -8177,6 +8273,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.network.v1alpha1.NamespaceNetworkPolicy"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.network.v1alpha1.NamespaceNetworkPolicy"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -8356,6 +8458,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.network.v1alpha1.NamespaceNetworkPolicy"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.network.v1alpha1.NamespaceNetworkPolicy"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -8422,7 +8530,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -8530,7 +8638,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -8646,7 +8754,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -8754,7 +8862,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -8930,7 +9038,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -9038,7 +9146,7 @@
         {
           "uniqueItems": true,
           "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
           "name": "allowWatchBookmarks",
           "in": "query"
         },
@@ -9139,7 +9247,7 @@
           {
             "uniqueItems": true,
             "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.",
+            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored.",
             "name": "allowWatchBookmarks",
             "in": "query"
           },
@@ -9638,6 +9746,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.tenant.v1alpha1.Workspace"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.tenant.v1alpha1.Workspace"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -9817,6 +9931,12 @@
             "schema": {
               "$ref": "#/definitions/io.kubesphere.api.tenant.v1alpha1.Workspace"
             }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.api.tenant.v1alpha1.Workspace"
+            }
           }
         },
         "x-kubernetes-action": "patch",
@@ -9854,7 +9974,8 @@
           "description": "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
           "type": "string"
         }
-      }
+      },
+      "x-kubernetes-map-type": "atomic"
     },
     "io.k8s.api.networking.v1.IPBlock": {
       "description": "IPBlock describes a particular CIDR (Ex. \"192.168.1.1/24\",\"2001:db9::/64\") that is allowed to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs that should not be included within this rule.",
@@ -9883,7 +10004,7 @@
       "type": "object",
       "properties": {
         "endPort": {
-          "description": "If set, indicates that the range of ports from port to endPort, inclusive, should be allowed by the policy. This field cannot be defined if the port field is not defined or if the port field is defined as a named (string) port. The endPort must be equal or greater than port. This feature is in Alpha state and should be enabled using the Feature Gate \"NetworkPolicyEndPort\".",
+          "description": "If set, indicates that the range of ports from port to endPort, inclusive, should be allowed by the policy. This field cannot be defined if the port field is not defined or if the port field is defined as a named (string) port. The endPort must be equal or greater than port. This feature is in Beta state and is enabled by default. It can be disabled using the Feature Gate \"NetworkPolicyEndPort\".",
           "type": "integer",
           "format": "int32"
         },
@@ -10244,6 +10365,10 @@
           "description": "Operation is the type of operation which lead to this ManagedFieldsEntry being created. The only valid values for this field are 'Apply' and 'Update'.",
           "type": "string"
         },
+        "subresource": {
+          "description": "Subresource is the name of the subresource used to update that object, or empty string if the object was updated through the main resource. The value of this field is used to distinguish between managers, even if they share the same name. For example, a status update will be distinct from a regular update using the same manager name. Note that the APIVersion field is not related to the Subresource field and it always corresponds to the version of the main resource.",
+          "type": "string"
+        },
         "time": {
           "description": "Time is timestamp of when these fields were set. It should always be empty if Operation is 'Apply'",
           "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
@@ -10384,7 +10509,8 @@
           "type": "string",
           "default": ""
         }
-      }
+      },
+      "x-kubernetes-map-type": "atomic"
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.Patch": {
       "description": "Patch is provided to give a concrete name and type to the Kubernetes PATCH request body.",
