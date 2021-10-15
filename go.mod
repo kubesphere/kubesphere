@@ -94,7 +94,8 @@ require (
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
-	google.golang.org/grpc v1.38.0
+	golang.org/x/sys v0.0.0-20211013075003-97ac67df715c // indirect
+	google.golang.org/grpc v1.41.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/cas.v2 v2.2.0
 	gopkg.in/square/go-jose.v1 v1.1.2 // indirect
@@ -126,11 +127,12 @@ require (
 	kubesphere.io/client-go v0.0.0
 	kubesphere.io/monitoring-dashboard v0.2.2
 	rsc.io/letsencrypt v0.0.1 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24 // indirect
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 	sigs.k8s.io/controller-runtime v0.10.2
 	sigs.k8s.io/controller-tools v0.6.2
 	sigs.k8s.io/kubefed v0.8.1
-	sigs.k8s.io/kustomize/api v0.8.8
+	sigs.k8s.io/kustomize/api v0.10.0
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -242,6 +244,7 @@ replace (
 	github.com/cloudflare/cfssl => github.com/cloudflare/cfssl v1.5.0
 	github.com/cloudflare/go-metrics => github.com/cloudflare/go-metrics v0.0.0-20151117154305-6a9aea36fb41
 	github.com/cloudflare/redoctober => github.com/cloudflare/redoctober v0.0.0-20171127175943-746a508df14c
+	github.com/cncf/udpa/go => github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403
 	github.com/cockroachdb/apd => github.com/cockroachdb/apd v1.1.0
 	github.com/cockroachdb/cockroach-go => github.com/cockroachdb/cockroach-go v0.0.0-20181001143604-e0a95dfd547c
 	github.com/cockroachdb/datadriven => github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa
@@ -414,7 +417,7 @@ replace (
 	github.com/google/uuid => github.com/google/uuid v1.1.1
 	github.com/googleapis/gax-go => github.com/googleapis/gax-go v2.0.2+incompatible
 	github.com/googleapis/gax-go/v2 => github.com/googleapis/gax-go/v2 v2.0.5
-	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
+	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.5.5
 	github.com/gophercloud/gophercloud => github.com/gophercloud/gophercloud v0.10.0
 	github.com/gopherjs/gopherjs => github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1
 	github.com/gorilla/context => github.com/gorilla/context v1.1.1
@@ -427,7 +430,7 @@ replace (
 	github.com/gregjones/httpcache => github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f
 	github.com/grpc-ecosystem/go-grpc-middleware => github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/go-grpc-prometheus => github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.14.4
+	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/hailocab/go-hostpool => github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 	github.com/hashicorp/consul/api => github.com/hashicorp/consul/api v1.4.0
 	github.com/hashicorp/consul/sdk => github.com/hashicorp/consul/sdk v0.4.0
@@ -673,6 +676,7 @@ replace (
 	github.com/spf13/pflag => github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper => github.com/spf13/viper v1.4.0
 	github.com/src-d/gcfg => github.com/src-d/gcfg v1.4.0
+	github.com/stoewer/go-strcase => github.com/stoewer/go-strcase v1.2.0
 	github.com/streadway/amqp => github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/streadway/handy => github.com/streadway/handy v0.0.0-20190108123426-d5acb3125c2a
 	github.com/stretchr/objx => github.com/stretchr/objx v0.2.0
@@ -757,7 +761,7 @@ replace (
 	golang.org/x/net => golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20211013075003-97ac67df715c
 	golang.org/x/term => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	golang.org/x/text => golang.org/x/text v0.3.0
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
@@ -770,7 +774,7 @@ replace (
 	google.golang.org/api => google.golang.org/api v0.22.0
 	google.golang.org/appengine => google.golang.org/appengine v1.6.6
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200420144010-e5e8543f8aeb
-	google.golang.org/grpc => google.golang.org/grpc v1.27.1
+	google.golang.org/grpc => google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf => google.golang.org/protobuf v1.23.0
 	gopkg.in/airbrake/gobrake.v2 => gopkg.in/airbrake/gobrake.v2 v2.0.9
 	gopkg.in/alecthomas/kingpin.v2 => gopkg.in/alecthomas/kingpin.v2 v2.2.6
@@ -814,7 +818,7 @@ replace (
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.22.2
 	k8s.io/apiserver => k8s.io/apiserver v0.22.2
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.21.2
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.22.2
 	k8s.io/client-go => k8s.io/client-go v0.22.2
 	k8s.io/code-generator => k8s.io/code-generator v0.22.2
 	k8s.io/component-base => k8s.io/component-base v0.22.2
@@ -822,7 +826,7 @@ replace (
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20200114144118-36b2048a9120
 	k8s.io/klog => k8s.io/klog v1.0.0
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.8.0
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e
 	k8s.io/kubectl => k8s.io/kubectl v0.22.2
 	k8s.io/metrics => k8s.io/metrics v0.22.2
 	k8s.io/utils => k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
@@ -834,17 +838,17 @@ replace (
 	rsc.io/pdf => rsc.io/pdf v0.1.1
 	rsc.io/quote/v3 => rsc.io/quote/v3 v3.1.0
 	rsc.io/sampler => rsc.io/sampler v1.3.0
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24
 	sigs.k8s.io/application => sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.10.2
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.6.2
 	sigs.k8s.io/kind => sigs.k8s.io/kind v0.8.1
 	sigs.k8s.io/kubebuilder/v3 => sigs.k8s.io/kubebuilder/v3 v3.0.0-alpha.0.0.20210716121009-fde793f20067
 	sigs.k8s.io/kubefed => sigs.k8s.io/kubefed v0.8.1
-	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.8.8
+	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.10.0
 	sigs.k8s.io/kustomize/cmd/config => sigs.k8s.io/kustomize/cmd/config v0.9.10
 	sigs.k8s.io/kustomize/kustomize/v4 => sigs.k8s.io/kustomize/kustomize/v4 v4.1.2
-	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.10.17
+	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.12.0
 	sigs.k8s.io/structured-merge-diff => sigs.k8s.io/structured-merge-diff v1.0.1-0.20191108220359-b1b620dd3f06
 	sigs.k8s.io/structured-merge-diff/v3 => sigs.k8s.io/structured-merge-diff/v3 v3.0.0
 	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.1.0
