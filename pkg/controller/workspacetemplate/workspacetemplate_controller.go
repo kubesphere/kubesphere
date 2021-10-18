@@ -91,9 +91,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=tenant.kubesphere.io,resources=workspaces,verbs=get;list;watch;
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Logger.WithValues("workspacetemplate", req.NamespacedName)
-	rootCtx := context.Background()
 	workspaceTemplate := &tenantv1alpha2.WorkspaceTemplate{}
-	if err := r.Get(rootCtx, req.NamespacedName, workspaceTemplate); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, workspaceTemplate); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -102,7 +101,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// then lets add the finalizer and update the object.
 		if !sliceutil.HasString(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer) {
 			workspaceTemplate.ObjectMeta.Finalizers = append(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer)
-			if err := r.Update(rootCtx, workspaceTemplate); err != nil {
+			if err := r.Update(ctx, workspaceTemplate); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -110,16 +109,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// The object is being deleted
 		if sliceutil.HasString(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer) ||
 			sliceutil.HasString(workspaceTemplate.ObjectMeta.Finalizers, orphanFinalizer) {
-			if err := r.deleteOpenPitrixResourcesInWorkspace(rootCtx, workspaceTemplate.Name); err != nil {
-				logger.Error(err, "delete resource in workspace template failed")
+			if err := r.deleteOpenPitrixResourcesInWorkspace(ctx, workspaceTemplate.Name); err != nil {
+				logger.Error(err, "failed to delete related openpitrix resource")
 				return ctrl.Result{}, err
 			}
 
-			if err := r.deleteWorkspace(rootCtx, workspaceTemplate); err != nil {
+			if err := r.deleteWorkspace(ctx, workspaceTemplate); err != nil {
 				if errors.IsNotFound(err) {
-					logger.V(4).Info("workspace not found", "workspacerole", workspaceTemplate.Name)
+					logger.V(4).Info("related workspace not found")
 				} else {
-					logger.Error(err, "failed delete workspaces")
+					logger.Error(err, "failed to delete related workspace")
 					return ctrl.Result{}, nil
 				}
 			}
@@ -130,7 +129,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			})
 
 			logger.V(4).Info("update workspace template")
-			if err := r.Update(rootCtx, workspaceTemplate); err != nil {
+			if err := r.Update(ctx, workspaceTemplate); err != nil {
 				logger.Error(err, "update workspace template failed")
 				return ctrl.Result{}, err
 			}
@@ -140,18 +139,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if r.MultiClusterEnabled {
-		if err := r.multiClusterSync(rootCtx, logger, workspaceTemplate); err != nil {
+		if err := r.multiClusterSync(ctx, logger, workspaceTemplate); err != nil {
 			return ctrl.Result{}, err
 		}
 	} else {
-		if err := r.singleClusterSync(rootCtx, logger, workspaceTemplate); err != nil {
+		if err := r.singleClusterSync(ctx, logger, workspaceTemplate); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
-	if err := r.initWorkspaceRoles(rootCtx, logger, workspaceTemplate); err != nil {
+	if err := r.initWorkspaceRoles(ctx, logger, workspaceTemplate); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.initManagerRoleBinding(rootCtx, logger, workspaceTemplate); err != nil {
+	if err := r.initManagerRoleBinding(ctx, logger, workspaceTemplate); err != nil {
 		return ctrl.Result{}, err
 	}
 	r.Recorder.Event(workspaceTemplate, corev1.EventTypeNormal, controllerutils.SuccessSynced, controllerutils.MessageResourceSynced)
@@ -257,6 +256,7 @@ func (r *Reconciler) deleteWorkspace(ctx context.Context, template *tenantv1alph
 		if err := r.Client.Get(ctx, types.NamespacedName{Name: template.Name}, federatedWorkspace); err != nil {
 			return err
 		}
+
 		// Workspace will be deleted with Orphan Option when it has a orphan finalizer.
 		// Reousrces that owned by the Workspace will not be deleted.
 		if sliceutil.HasString(template.ObjectMeta.Finalizers, orphanFinalizer) {
@@ -267,7 +267,17 @@ func (r *Reconciler) deleteWorkspace(ctx context.Context, template *tenantv1alph
 			if err := r.Update(ctx, federatedWorkspace); err != nil {
 				return err
 			}
+		} else {
+			// Usually namespace will bind the lifecycle of workspace with ownerReference,
+			// in multi-cluster environment workspace will not be created in host cluster
+			// if the cluster is not be granted or kubefed-controller-manager is unavailable,
+			// this will cause the federated namespace left an orphan object in host cluster.
+			// After workspaceTemplate deleted we need to deleted orphan namespace in host cluster directly.
+			if err := r.deleteNamespacesInWorkspace(ctx, template); err != nil {
+				return err
+			}
 		}
+
 		if err := r.Delete(ctx, federatedWorkspace); err != nil {
 			return err
 		}
@@ -463,6 +473,12 @@ func (r *Reconciler) deleteHelmRepos(ctx context.Context, ws string) error {
 		}})
 
 	return err
+}
+
+// deleteNamespacesInWorkspace Deletes the namespace associated with the workspace, which match the workspace label selector
+func (r *Reconciler) deleteNamespacesInWorkspace(ctx context.Context, template *tenantv1alpha2.WorkspaceTemplate) error {
+	namespace := &corev1.Namespace{}
+	return r.DeleteAllOf(ctx, namespace, client.MatchingLabels{tenantv1alpha1.WorkspaceLabel: template.Name})
 }
 
 func workspaceRoleBindingChanger(workspaceRoleBinding *iamv1alpha2.WorkspaceRoleBinding, workspace, username, workspaceRoleName string) controllerutil.MutateFn {
