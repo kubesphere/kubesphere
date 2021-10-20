@@ -157,6 +157,11 @@ func (e *Etcd) defaultArgs() map[string][]string {
 		args["advertise-client-urls"] = []string{e.URL.String()}
 		args["listen-client-urls"] = []string{e.URL.String()}
 	}
+
+	// Add unsafe no fsync, available from etcd 3.5
+	if ok, _ := e.processState.CheckFlag("unsafe-no-fsync"); ok {
+		args["unsafe-no-fsync"] = []string{"true"}
+	}
 	return args
 }
 
