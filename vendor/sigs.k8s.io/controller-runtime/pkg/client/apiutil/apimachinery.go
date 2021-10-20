@@ -157,14 +157,12 @@ func createRestConfig(gvk schema.GroupVersionKind, isUnstructured bool, baseConf
 		protobufSchemeLock.RUnlock()
 	}
 
-	if cfg.NegotiatedSerializer == nil {
-		if isUnstructured {
-			// If the object is unstructured, we need to preserve the GVK information.
-			// Use our own custom serializer.
-			cfg.NegotiatedSerializer = serializerWithDecodedGVK{serializer.WithoutConversionCodecFactory{CodecFactory: codecs}}
-		} else {
-			cfg.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: codecs}
-		}
+	if isUnstructured {
+		// If the object is unstructured, we need to preserve the GVK information.
+		// Use our own custom serializer.
+		cfg.NegotiatedSerializer = serializerWithDecodedGVK{serializer.WithoutConversionCodecFactory{CodecFactory: codecs}}
+	} else {
+		cfg.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: codecs}
 	}
 
 	return cfg

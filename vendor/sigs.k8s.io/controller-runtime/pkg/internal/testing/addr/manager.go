@@ -17,6 +17,7 @@ limitations under the License.
 package addr
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"net"
@@ -31,7 +32,7 @@ import (
 // TODO(directxman12): interface / release functionality for external port managers
 
 const (
-	portReserveTime   = 10 * time.Minute
+	portReserveTime   = 2 * time.Minute
 	portConflictRetry = 100
 	portFilePrefix    = "port-"
 )
@@ -76,7 +77,8 @@ func (c *portCache) add(port int) (bool, error) {
 		return false, err
 	}
 	// Try allocating new port, by acquiring a file.
-	if err := flock.Acquire(fmt.Sprintf("%s/%s%d", cacheDir, portFilePrefix, port)); os.IsExist(err) {
+	path := fmt.Sprintf("%s/%s%d", cacheDir, portFilePrefix, port)
+	if err := flock.Acquire(path); errors.Is(err, flock.ErrAlreadyLocked) {
 		return false, nil
 	} else if err != nil {
 		return false, err
@@ -86,22 +88,19 @@ func (c *portCache) add(port int) (bool, error) {
 
 var cache = &portCache{}
 
-func suggest(listenHost string) (int, string, error) {
+func suggest(listenHost string) (*net.TCPListener, int, string, error) {
 	if listenHost == "" {
 		listenHost = "localhost"
 	}
 	addr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort(listenHost, "0"))
 	if err != nil {
-		return -1, "", err
+		return nil, -1, "", err
 	}
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		return -1, "", err
+		return nil, -1, "", err
 	}
-	if err := l.Close(); err != nil {
-		return -1, "", err
-	}
-	return l.Addr().(*net.TCPAddr).Port,
+	return l, l.Addr().(*net.TCPAddr).Port,
 		addr.IP.String(),
 		nil
 }
@@ -112,10 +111,11 @@ func suggest(listenHost string) (int, string, error) {
 // allocated within 1 minute.
 func Suggest(listenHost string) (int, string, error) {
 	for i := 0; i < portConflictRetry; i++ {
-		port, resolvedHost, err := suggest(listenHost)
+		listener, port, resolvedHost, err := suggest(listenHost)
 		if err != nil {
 			return -1, "", err
 		}
+		defer listener.Close()
 		if ok, err := cache.add(port); ok {
 			return port, resolvedHost, nil
 		} else if err != nil {

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=kubesphere.io/api/types
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=types.kubefed.io
-package v1beta1
+package flock
+
+import "errors"
+
+var (
+	// ErrAlreadyLocked is returned when the file is already locked.
+	ErrAlreadyLocked = errors.New("the file is already locked")
+)

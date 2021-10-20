@@ -292,6 +292,9 @@ func (s *Server) Start(ctx context.Context) error {
 // StartedChecker returns an healthz.Checker which is healthy after the
 // server has been started.
 func (s *Server) StartedChecker() healthz.Checker {
+	config := &tls.Config{
+		InsecureSkipVerify: true, // nolint:gosec // config is used to connect to our own webhook port.
+	}
 	return func(req *http.Request) error {
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -300,11 +303,15 @@ func (s *Server) StartedChecker() healthz.Checker {
 			return fmt.Errorf("webhook server has not been started yet")
 		}
 
-		conn, err := net.DialTimeout("tcp", net.JoinHostPort(s.Host, strconv.Itoa(s.Port)), 10*time.Second)
+		d := &net.Dialer{Timeout: 10 * time.Second}
+		conn, err := tls.DialWithDialer(d, "tcp", net.JoinHostPort(s.Host, strconv.Itoa(s.Port)), config)
 		if err != nil {
 			return fmt.Errorf("webhook server is not reachable: %v", err)
 		}
-		conn.Close()
+
+		if err := conn.Close(); err != nil {
+			return fmt.Errorf("webhook server is not reachable: closing connection: %v", err)
+		}
 
 		return nil
 	}
