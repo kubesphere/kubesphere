@@ -477,8 +477,19 @@ func (r *Reconciler) deleteHelmRepos(ctx context.Context, ws string) error {
 
 // deleteNamespacesInWorkspace Deletes the namespace associated with the workspace, which match the workspace label selector
 func (r *Reconciler) deleteNamespacesInWorkspace(ctx context.Context, template *tenantv1alpha2.WorkspaceTemplate) error {
-	namespace := &corev1.Namespace{}
-	return r.DeleteAllOf(ctx, namespace, client.MatchingLabels{tenantv1alpha1.WorkspaceLabel: template.Name})
+	namespaceList := &corev1.NamespaceList{}
+	err := r.Client.List(ctx, namespaceList, client.MatchingLabels{tenantv1alpha1.WorkspaceLabel: template.Name})
+	if err != nil {
+		return err
+	}
+
+	for _, namespace := range namespaceList.Items {
+		err = r.Client.Delete(ctx, &namespace)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func workspaceRoleBindingChanger(workspaceRoleBinding *iamv1alpha2.WorkspaceRoleBinding, workspace, username, workspaceRoleName string) controllerutil.MutateFn {
