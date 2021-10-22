@@ -129,7 +129,8 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, username, passwo
 			return nil, "", err
 		}
 		u := &authuser.DefaultInfo{
-			Name: user.Name,
+			Name:   user.Name,
+			Groups: user.Spec.Groups,
 		}
 		// check if the password is initialized
 		if uninitialized := user.Annotations[iamv1alpha2.UninitializedAnnotation]; uninitialized != "" {

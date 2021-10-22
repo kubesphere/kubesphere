@@ -155,6 +155,9 @@ func (f *Framework) GenericClient(userAgent string) client.Client {
 		Host:     ctx.Host,
 		Username: ctx.Username,
 		Password: ctx.Password,
+		ContentConfig: rest.ContentConfig{
+			ContentType: runtime.ContentTypeJSON,
+		},
 	}
 
 	rest.AddUserAgent(config, userAgent)
