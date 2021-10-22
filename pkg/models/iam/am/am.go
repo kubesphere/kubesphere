@@ -1091,19 +1091,21 @@ func (am *amOperator) ListGroupRoleBindings(workspace string, query *query.Query
 			result = append(result, roleBinding)
 		}
 	}
-	devOpsProjects, err := am.devopsProjectLister.List(labels.SelectorFromSet(labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}))
-	if err != nil {
-		return nil, err
-	}
-	for _, devOpsProject := range devOpsProjects {
-		roleBindings, err := am.roleBindingGetter.List(devOpsProject.Name, query)
+	if am.devopsProjectLister != nil {
+		devOpsProjects, err := am.devopsProjectLister.List(labels.SelectorFromSet(labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}))
 		if err != nil {
-			klog.Error(err)
 			return nil, err
 		}
-		for _, obj := range roleBindings.Items {
-			roleBinding := obj.(*rbacv1.RoleBinding)
-			result = append(result, roleBinding)
+		for _, devOpsProject := range devOpsProjects {
+			roleBindings, err := am.roleBindingGetter.List(devOpsProject.Name, query)
+			if err != nil {
+				klog.Error(err)
+				return nil, err
+			}
+			for _, obj := range roleBindings.Items {
+				roleBinding := obj.(*rbacv1.RoleBinding)
+				result = append(result, roleBinding)
+			}
 		}
 	}
 	return result, nil
