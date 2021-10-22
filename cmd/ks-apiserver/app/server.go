@@ -97,7 +97,7 @@ func Run(s *options.ServerRunOptions, ctx context.Context) error {
 
 	err = apiserver.PrepareRun(ctx.Done())
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return apiserver.Run(ctx)
