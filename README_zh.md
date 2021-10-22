@@ -105,7 +105,7 @@
 
 ## 架构说明
 
-KubeSphere 使用松散耦合的架构，将 [前端](https://github.com/kubesphere/console) 与 [后端](https://github.com/kubesphere/kubesphere) 分开。后端的各个功能组件可通过 REST API 对接外部系统。
+KubeSphere 使用前后端分离的架构，将 [前端](https://github.com/kubesphere/console) 与 [后端](https://github.com/kubesphere/kubesphere) 分开。后端的各个功能组件可通过 REST API 对接外部系统。
 
 ![Architecture](docs/images/architecture.png)
 
@@ -146,7 +146,7 @@ KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kuber
 - [在 DigitalOcean 上部署 KubeSphere](https://marketplace.digitalocean.com/apps/kubesphere)
 - [在青云QingCloud QKE 上部署 KubeSphere](https://www.qingcloud.com/products/kubesphereqke)
 
-您还可以在几分钟内在其他托管的 Kubernetes 服务上安装 KubeSphere，请参阅 [分步指南](https://kubesphere.io/zh/docs/installing-on-kubernetes/) 以开始使用。
+您还可以在几分钟内在其他托管的 Kubernetes 服务上安装 KubeSphere，请参阅 [官方文档](https://kubesphere.io/zh/docs/installing-on-kubernetes/) 以开始使用。
 
 > 👨‍💻 不能访问网络？参考 [在Kubernetes上离线安装](https://kubesphere.io/zh/docs/installing-on-kubernetes/on-prem-kubernetes/install-ks-on-linux-airgapped/) 或者 [在 Linux 上离线安装](https://kubesphere.io/zh/docs/installing-on-linux/introduction/air-gapped-installation/) 了解如何使用私有仓库来安装 KubeSphere。
 
@@ -154,6 +154,8 @@ KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kuber
 
 我们 :heart: 您的贡献。[社区](https://github.com/kubesphere/community) 将引导您了解如何开始贡献 KubeSphere。[开发指南](https://github.com/kubesphere/community/tree/master/developer-guide/development) 说明了如何安装开发环境。
 
+- [中文论坛](https://kubesphere.com.cn/forum/)
+- [社区微信群（见官网底部）](https://kubesphere.com.cn/)
 - [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
 - [Youtube](https://www.youtube.com/channel/UCyTdUQUYjf7XLjxECx63Hpw)
 - [在推特上关注我们](https://twitter.com/KubeSphere)
