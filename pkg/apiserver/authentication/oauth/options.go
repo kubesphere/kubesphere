@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/klog/v2"
+
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
@@ -288,4 +290,34 @@ func NewOptions() *Options {
 		AccessTokenMaxAge:            time.Hour * 2,
 		AccessTokenInactivityTimeout: time.Hour * 2,
 	}
+}
+
+// CheckDefaultOAuthClient OAuthClient with {client_id:kubesphere} must be config,if not, use DefaultIssuer
+func (o *Options) CheckDefaultOAuthClient() error{
+	if len(o.Clients) !=0 {
+		for _ , authclient := range o.Clients {
+			if authclient.Name == DefaultIssuer {
+				if authclient.Secret == "" {
+					klog.Errorln("The authclient Secret is not config, client_id :" +authclient.Name )
+					return errors.New("The authclient Secret is not config, client_id :" +authclient.Name)
+				}
+
+				if authclient.Secret != DefaultIssuer {
+					klog.Warningln("DefaultOAuthClient Secret is not use DefaultIssuer,this may cause some problem, {client_id :"+authclient.Name+" ,client_secret:"+authclient.Secret+"}")
+				}
+				return nil
+			}
+		}
+	}
+	o.Clients = append(o.Clients,
+		Client{
+			Name:                         DefaultIssuer,  //use DefaultIssuer as default DefaultOAuthClient name
+			Secret:                       DefaultIssuer,  //use DefaultIssuer as default DefaultOAuthClient Secret
+			RespondWithChallenges:        true,
+			RedirectURIs:                 []string{AllowAllRedirectURI},
+			GrantMethod:                  GrantHandlerAuto,
+			ScopeRestrictions:            []string{"full"},
+		})
+	klog.Infoln("The authclient id is not config, use DefaultIssuer as client_id，client_id :" +DefaultIssuer )
+	return nil
 }

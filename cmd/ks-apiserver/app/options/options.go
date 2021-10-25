@@ -245,6 +245,11 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		klog.Fatalf("unable to create issuer: %v", err)
 	}
 
+	err = s.AuthenticationOptions.OAuthOptions.CheckDefaultOAuthClient()
+	if err != nil {
+		return nil, fmt.Errorf("Check default OAuth client error: %v", err)
+	}
+
 	apiServer.Server = server
 
 	return apiServer, nil
