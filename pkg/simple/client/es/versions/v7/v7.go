@@ -62,6 +62,7 @@ func (e *Elastic) Search(indices string, body []byte, scroll bool) ([]byte, erro
 	opts := []func(*esapi.SearchRequest){
 		e.client.Search.WithContext(context.Background()),
 		e.client.Search.WithIndex(indices),
+		e.client.Search.WithTrackTotalHits(true),
 		e.client.Search.WithIgnoreUnavailable(true),
 		e.client.Search.WithBody(bytes.NewBuffer(body)),
 	}
