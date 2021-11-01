@@ -220,10 +220,6 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 			if userInfo != nil {
 				cred.Password, _ = userInfo.Password()
 				cred.Username = userInfo.Username()
-			} else {
-				// trim the old credential
-				cred.Password, _ = userInfo.Password()
-				cred.Username = userInfo.Username()
 			}
 		} else if strings.HasPrefix(*request.URL, "s3://") {
 			cfg := v1alpha1.S3Config{}
