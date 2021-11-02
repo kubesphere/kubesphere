@@ -73,9 +73,5 @@ func (g *fedIngressGetter) filter(object runtime.Object, filter query.Filter) bo
 	if !ok {
 		return false
 	}
-
-	switch filter.Field {
-	default:
-		return v1alpha3.DefaultObjectMetaFilter(deployment.ObjectMeta, filter)
-	}
+	return v1alpha3.DefaultObjectMetaFilter(deployment.ObjectMeta, filter)
 }

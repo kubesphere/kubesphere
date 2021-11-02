@@ -78,9 +78,5 @@ func (g *ingressGetter) filter(object runtime.Object, filter query.Filter) bool 
 	if !ok {
 		return false
 	}
-
-	switch filter.Field {
-	default:
-		return v1alpha3.DefaultObjectMetaFilter(deployment.ObjectMeta, filter)
-	}
+	return v1alpha3.DefaultObjectMetaFilter(deployment.ObjectMeta, filter)
 }
