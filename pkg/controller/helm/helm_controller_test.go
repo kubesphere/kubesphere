@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -79,8 +81,7 @@ var _ = Context("Helm reconcier", func() {
 			mgr, err := ctrl.NewManager(cfg, ctrl.Options{MetricsBindAddress: "0"})
 			Expect(err).NotTo(HaveOccurred(), "failed to create a manager")
 
-			reconciler := &Reconciler{}
-			reconciler.WatchFiles = append(reconciler.WatchFiles, f.Name())
+			reconciler := &Reconciler{GatewayOptions: &gateway.Options{WatchesPath: f.Name()}}
 			err = reconciler.SetupWithManager(mgr)
 			Expect(err).NotTo(HaveOccurred(), "failed to setup helm reconciler")
 
