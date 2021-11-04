@@ -242,16 +242,9 @@ func (t *tenantOperator) makeQueryOptions(user user.Info, q meteringv1alpha1.Que
 			return
 		}
 		if decision != authorizer.DecisionAllow {
-			if q.WorkspaceName != "" {
-				// specified by WorkspaceName & NamespaceName and not allowed
-				if q.NamespaceName != "" {
-					return qo, errors.New(fmt.Sprintf(meteringv1alpha1.ErrScopeNotAllowed, nsScope))
-				}
-			} else {
-				// specified by NamespaceName & NamespaceName and not allowed
-				if q.NamespaceName != "" {
-					return qo, errors.New(fmt.Sprintf(meteringv1alpha1.ErrScopeNotAllowed, nsScope))
-				}
+			// specified by WorkspaceName & NamespaceName and not allowed
+			if q.NamespaceName != "" {
+				return qo, errors.New(fmt.Sprintf(meteringv1alpha1.ErrScopeNotAllowed, nsScope))
 			}
 
 			if q.ResourceFilter == "" {
