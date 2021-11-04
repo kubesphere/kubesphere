@@ -1,5 +1,5 @@
 <p align="center">
-<img src="docs/images/kubesphere-logo.png" alt="banner" width="200px">
+<a href="https://kubesphere.io/"><img src="docs/images/kubesphere-icon.gif" alt="banner" width="200px"></a>
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ The following screenshots give a close insight into KubeSphere. Please check [Wh
   </tr>
 </table>
 
-## Demo Environment
+## Demo environment
 
 🎮 Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted view access. 
 
@@ -111,7 +111,7 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 ----
 
-## Latest Release
+## Latest release
 
 🎉 KubeSphere 3.1.1 is now available! See the [Release Notes For 3.1.1](https://kubesphere.io/docs/release/release-v311/) for the updates.
 
@@ -119,7 +119,7 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster.
 
-### Quick Start
+### Quick start
 
 1. Run the following commands to install KubeSphere on an exiting Kubernetes cluster:
 
@@ -137,6 +137,9 @@ kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=
 
 > 👨‍💻 No Kubernetes cluster? Try [All-in-one](https://kubesphere.io/docs/quick-start/all-in-one-on-linux/) to install a single-node Kubernetes and KubeSphere on your Linux machine. 
 
+### 🐯 Katacoda for quick learning
+
+[Katacoda](https://www.katacoda.com/) allows you to explore how to install KubeSphere on an existing Kubernetes cluster in a browser. You can start the [Katacoda scenario with KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes) in minutes.
 ### KubeSphere for hosted Kubernetes services
 
 KubeSphere is hosted on the following cloud providers, you can try KubeSphere by one-click installation on their hosted Kubernetes services. 
@@ -150,7 +153,7 @@ You can also install KubeSphere on other hosted Kubernetes services within minut
 
 > 👨‍💻 No internet access? Refer to the [Air-gapped Installation on Kubernetes](https://kubesphere.io/docs/installing-on-kubernetes/on-prem-kubernetes/install-ks-on-linux-airgapped/) or [Air-gapped Installation on Linux](https://kubesphere.io/docs/installing-on-linux/introduction/air-gapped-installation/) for instructions on how to use private registry to install KubeSphere.
 
-## Contributing, Support, Discussion, and Community
+## Contributing, support, discussion, and community
 
 We :heart: your contribution. The [community](https://github.com/kubesphere/community) walks you through how to get started contributing KubeSphere. The [development guide](https://github.com/kubesphere/community/tree/master/developer-guide/development) explains how to set up development environment.
 

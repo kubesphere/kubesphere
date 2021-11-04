@@ -1,9 +1,9 @@
 <p align="center">
-<img src="docs/images/kubesphere-logo.png" alt="banner" width="200px">
+<a href="https://kubesphere.com.cn/"><img src="docs/images/kubesphere-icon.gif" alt="banner" width="200px"></a>
 </p>
 
 <p align="center">
-<b>为<i> Kubernetes 多云、数据中心和边缘 </i>管理而定制的容器平台</b>
+<b>适用于<i> Kubernetes 多云、数据中心和边缘 </i>管理的容器平台</b>
 </p>
 
 <p align=center>
@@ -137,6 +137,9 @@ kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=
 
 > 👨‍💻 没有 Kubernetes 集群? 可以尝试在 Linux 上以[All-in-one](https://kubesphere.io/zh/docs/quick-start/all-in-one-on-linux/) 模式来安装单节点 Kubernetes 和 KubeSphere。
 
+### 🐯 使用 Katacoda 在线安装体验 KubeSphere
+
+[Katacoda](https://www.katacoda.com/) 是一个在线的云原生技术学习实验平台，你可以使用它在浏览器中快速 [安装体验 KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes)。
 ### 在托管 Kubernetes 上部署 KubeSphere
 
 KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kubernetes 服务上一键安装来部署 KubeSphere。
@@ -157,10 +160,10 @@ KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kuber
 - [中文论坛](https://kubesphere.com.cn/forum/)
 - [社区微信群（见官网底部）](https://kubesphere.com.cn/)
 - [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
-- [Youtube](https://www.youtube.com/channel/UCyTdUQUYjf7XLjxECx63Hpw)
+- [Bilibili](https://space.bilibili.com/438908638)
 - [在推特上关注我们](https://twitter.com/KubeSphere)
 
-请将任何 KubeSphere 错误、问题和功能请求提交到 [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues) 。
+请将任何 KubeSphere 的 Bug、问题和需求提交到 [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues) 。
 
 ## 谁在使用 KubeSphere
 
