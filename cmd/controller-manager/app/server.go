@@ -315,12 +315,11 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 		klog.Fatalf("Unable to create ResourceQuota controller: %v", err)
 	}
 
-	helmReconciler := helm.Reconciler{}
 	if !s.GatewayOptions.IsEmpty() {
-		helmReconciler.WatchFiles = append(helmReconciler.WatchFiles, s.GatewayOptions.WatchesPath)
-	}
-	if err := helmReconciler.SetupWithManager(mgr); err != nil {
-		klog.Fatalf("Unable to create helm controller: %v", err)
+		helmReconciler := helm.Reconciler{GatewayOptions: s.GatewayOptions}
+		if err := helmReconciler.SetupWithManager(mgr); err != nil {
+			klog.Fatalf("Unable to create helm controller: %v", err)
+		}
 	}
 
 	// TODO(jeff): refactor config with CRD

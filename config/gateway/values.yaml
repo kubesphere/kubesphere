@@ -14,6 +14,7 @@ controller:
     repository: kubesphere/nginx-ingress-controller
     tag: "v0.48.1"
     pullPolicy: IfNotPresent
+    digest: ""
 
 
 service:
