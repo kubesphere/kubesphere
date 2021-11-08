@@ -113,7 +113,7 @@ KubeSphere 使用前后端分离的架构，将 [前端](https://github.com/kube
 
 ## 最新版本
 
-🎉 KubeSphere 3.1.1 全新发布！相关更新信息，请参阅 [Release Notes For 3.1.1](https://kubesphere.io/zh/docs/release/release-v311/) 。
+🎉 KubeSphere 3.2.0 全新发布！相关更新信息，请参阅 [3.2.0 GA 详细解读](https://kubesphere.com.cn/blogs/kubesphere-3.2.0-ga-announcement/) 。
 
 ## 安装
 
@@ -124,9 +124,9 @@ KubeSphere 支持在任意平台运行，从本地数据中心到混合多云再
 1. 运行以下命令以在现有 Kubernetes 集群上安装 KubeSphere：
 
 ```yaml
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.1.1/kubesphere-installer.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.0/kubesphere-installer.yaml
    
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.1.1/cluster-configuration.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.0/cluster-configuration.yaml
 ```
 
 2. 您可以运行以下命令查看安装日志。 KubeSphere 安装成功后，您可以使用`http://IP:30880` 以默认账号和密码（admin/P@88w0rd）访问KubeSphere 控制台。

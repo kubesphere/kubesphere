@@ -113,7 +113,7 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 ## Latest release
 
-🎉 KubeSphere 3.1.1 is now available! See the [Release Notes For 3.1.1](https://kubesphere.io/docs/release/release-v311/) for the updates.
+🎉 KubeSphere 3.2.0 is now available! See the [Release Notes For 3.2.0](https://kubesphere.io/docs/release/release-v320/) for the updates.
 
 ## Installation
 
@@ -124,9 +124,9 @@ KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In 
 1. Run the following commands to install KubeSphere on an exiting Kubernetes cluster:
 
 ```yaml
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.1.1/kubesphere-installer.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.0/kubesphere-installer.yaml
    
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.1.1/cluster-configuration.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.0/cluster-configuration.yaml
 ```
 
 2. You can run the following command to view the installation logs. After KubeSphere is successfully installed, you can use `http://IP:30880` to access the KubeSphere Console with the default account and password (admin/P@88w0rd).
