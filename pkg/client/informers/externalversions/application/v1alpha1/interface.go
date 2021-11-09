@@ -80,7 +80,7 @@ func (v *version) HelmRepos() HelmRepoInformer {
 
 // Manifests returns a ManifestInformer.
 func (v *version) Manifests() ManifestInformer {
-	return &manifestInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &manifestInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // OperatorApplications returns a OperatorApplicationInformer.

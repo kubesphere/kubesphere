@@ -820,6 +820,123 @@ func (h *openpitrixHandler) CreateApplication(req *restful.Request, resp *restfu
 	resp.WriteEntity(errors.None)
 }
 
+func (h *openpitrixHandler) CreateManifest(req *restful.Request, resp *restful.Response) {
+	clusterName := req.PathParameter("cluster")
+	namespace := req.PathParameter("namespace")
+	workspace := req.PathParameter("workspace")
+	var createManifestRequest openpitrix.CreateManifestRequest
+	err := req.ReadEntity(&createManifestRequest)
+	createManifestRequest.Workspace = workspace
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+	user, _ := request.UserFrom(req.Request.Context())
+	if user != nil {
+		createManifestRequest.Username = user.GetName()
+	}
+
+	err = h.openpitrix.CreateManifest(workspace, clusterName, namespace, createManifestRequest)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	resp.WriteEntity(errors.None)
+}
+
+func (h *openpitrixHandler) DeleteManifest(req *restful.Request, resp *restful.Response) {
+	clusterName := req.PathParameter("cluster")
+	workspace := req.PathParameter("workspace")
+	manifestName := req.PathParameter("manifest")
+	namespace := req.PathParameter("namespace")
+
+	err := h.openpitrix.DeleteManifest(workspace, clusterName, namespace, manifestName)
+
+	if err != nil {
+		klog.Errorln(err)
+		handleOpenpitrixError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(errors.None)
+}
+
+func (h *openpitrixHandler) ModifyManifest(req *restful.Request, resp *restful.Response) {
+	var modifyManifestRequest openpitrix.ModifyManifestRequest
+	manifestName := req.PathParameter("manifest")
+	namespace := req.PathParameter("namespace")
+	err := req.ReadEntity(&modifyManifestRequest)
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	modifyManifestRequest.Namespace = namespace
+	modifyManifestRequest.Name = manifestName
+
+	err = h.openpitrix.ModifyManifest(modifyManifestRequest)
+
+	if err != nil {
+		klog.Errorln(err)
+		handleOpenpitrixError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(errors.None)
+}
+
+func (h *openpitrixHandler) ListManifests(req *restful.Request, resp *restful.Response) {
+	limit, offset := params.ParsePaging(req)
+	clusterName := req.PathParameter("cluster")
+	namespace := req.PathParameter("namespace")
+	workspace := req.PathParameter("workspace")
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.StatusTime)
+	conditions, err := params.ParseConditions(req)
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	reverse := false
+	if conditions.Match[openpitrix.Ascending] == "true" {
+		reverse = true
+	}
+
+	result, err := h.openpitrix.ListManifests(workspace, clusterName, namespace, conditions, limit, offset, orderBy, reverse)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	resp.WriteAsJson(result)
+}
+
+func (h *openpitrixHandler) DescribeManifest(req *restful.Request, resp *restful.Response) {
+	clusterName := req.PathParameter("cluster")
+	workspace := req.PathParameter("workspace")
+	manifestName := req.PathParameter("manifest")
+	namespace := req.PathParameter("namespace")
+
+	app, err := h.openpitrix.DescribeManifest(workspace, clusterName, namespace, manifestName)
+
+	if err != nil {
+		klog.Errorln(err)
+		handleOpenpitrixError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(app)
+	return
+}
+
 func (h *openpitrixHandler) CreateCategory(req *restful.Request, resp *restful.Response) {
 	createCategoryRequest := &openpitrix.CreateCategoryRequest{}
 	err := req.ReadEntity(createCategoryRequest)

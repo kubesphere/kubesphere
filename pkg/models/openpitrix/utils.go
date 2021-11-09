@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -123,6 +124,33 @@ func (l AppVersionAuditList) Less(i, j int) bool {
 		n1 := l[i].VersionName
 		n2 := l[j].VersionName
 		return n1 < n2
+	}
+}
+
+type ManifestList []*v1alpha1.Manifest
+
+func (l ManifestList) Len() int      { return len(l) }
+func (l ManifestList) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+func (l ManifestList) Less(i, j int) bool {
+	var t1, t2 time.Time
+	if l[i].Status.LastUpdate == nil {
+		t1 = l[i].CreationTimestamp.Time
+	} else {
+		t1 = l[i].Status.LastUpdate.Time
+	}
+
+	if l[j].Status.LastUpdate == nil {
+		t2 = l[j].CreationTimestamp.Time
+	} else {
+		t2 = l[j].Status.LastUpdate.Time
+	}
+
+	if t1.After(t2) {
+		return true
+	} else if t1.Before(t2) {
+		return false
+	} else {
+		return l[i].Name > l[j].Name
 	}
 }
 
@@ -355,7 +383,9 @@ func convertOperatorApp(app *v1alpha1.OperatorApplication, versions []*v1alpha1.
 	out.AppId = "app-" + app.Spec.AppName
 	out.Name = app.Spec.AppName
 	out.Abstraction = app.Spec.Abstraction
+	out.AbstractionEn = app.Spec.AbstractionEn
 	out.Description = app.Spec.Description
+	out.DescriptionEn = app.Spec.DescriptionEn
 	date := strfmt.DateTime(app.CreationTimestamp.Time)
 	out.CreateTime = &date
 	out.Status = app.Status.State
@@ -369,6 +399,9 @@ func convertOperatorApp(app *v1alpha1.OperatorApplication, versions []*v1alpha1.
 		CreateTime: &ct,
 	}
 	out.CategorySet = AppCategorySet{&rc}
+	sort.Slice(versions, func(i, j int) bool {
+		return versions[i].CreationTimestamp.After(versions[j].CreationTimestamp.Time)
+	})
 	for _, version := range versions {
 		out.LatestAppVersion = convertOperatorAppVersion(version)
 		break
@@ -380,6 +413,7 @@ func convertOperatorApp(app *v1alpha1.OperatorApplication, versions []*v1alpha1.
 	out.AppVersionTypes = "operator"
 	return out
 }
+
 func filterAppVersionByState(versions []*v1alpha1.HelmApplicationVersion, states []string) []*v1alpha1.HelmApplicationVersion {
 	if len(states) == 0 {
 		return versions
@@ -447,20 +481,36 @@ func convertOperatorAppVersion(in *v1alpha1.OperatorApplicationVersion) *AppVers
 	out := &AppVersion{}
 	out.AppId = "app-" + in.Spec.AppName
 	out.Active = true
-	out.Description = in.Spec.Description
 	out.VersionId = in.Spec.AppVersion
 	out.Screenshots = in.Spec.Screenshots
+	out.ScreenshotsEn = in.Spec.ScreenshotsEn
 	t := in.CreationTimestamp.Time
 	date := strfmt.DateTime(t)
 	out.CreateTime = &date
 	out.Status = in.Status.State
 	out.Owner = in.Spec.AppName
 	out.Name = in.GetVersionName()
-	out.Icon = in.Spec.Icon
 	out.Owner = in.Spec.Owner
 	out.VersionId = in.Spec.AppName
+	// operator APP version
+	out.Description = in.Spec.ChangeLog
+	out.DescriptionEn = in.Spec.ChangeLogEn
 	return out
 }
+
+func convertManifest(mft *v1alpha1.Manifest) *Manifest {
+	manifest := &Manifest{}
+	manifest.Name = mft.Name
+	manifest.Kind = mft.Spec.Kind
+	manifest.Namespace = mft.Spec.Namespace
+	manifest.Cluster = mft.Spec.Cluster
+	manifest.AppVersion = mft.Spec.AppVersion
+	manifest.Description = mft.Spec.Description
+	manifest.Version = mft.Spec.Version
+	manifest.CustomResource = mft.Spec.CustomResource
+	return manifest
+}
+
 func convertRepo(in *v1alpha1.HelmRepo) *Repo {
 	if in == nil {
 		return nil
@@ -805,6 +855,20 @@ func filterReleaseByStates(rls *v1alpha1.HelmRelease, state []string) bool {
 	return false
 }
 
+func filterManifestByStates(rls *v1alpha1.Manifest, state []string) bool {
+	if len(state) == 0 {
+		return true
+	}
+	st := rls.Status.State
+	if st == "" {
+		st = v1alpha1.FrontCreating
+	}
+	if sliceutil.HasString(state, st) {
+		return true
+	}
+	return false
+}
+
 func filterReleasesWithAppVersions(releases []*v1alpha1.HelmRelease, appVersions map[string]*v1alpha1.HelmApplicationVersion) []*v1alpha1.HelmRelease {
 	if appVersions == nil || len(appVersions) == 0 || len(releases) == 0 {
 		return []*v1alpha1.HelmRelease{}
@@ -854,6 +918,38 @@ func filterReleases(releases []*v1alpha1.HelmRelease, conditions *params.Conditi
 	}
 
 	return releases[:curr:curr]
+}
+
+func filterManifests(manifests []*v1alpha1.Manifest, conditions *params.Conditions) []*v1alpha1.Manifest {
+	if conditions == nil || len(conditions.Match) == 0 || len(manifests) == 0 {
+		return manifests
+	}
+
+	curr := 0
+	for i := 0; i < len(manifests); i++ {
+		keyword := strings.ToLower(conditions.Match[Keyword])
+		if keyword != "" {
+			fv := strings.Contains(strings.ToLower(manifests[i].GetManifestCluster()), keyword) ||
+				strings.Contains(strings.ToLower(manifests[i].Spec.AppVersion), keyword)
+			if !fv {
+				continue
+			}
+		}
+
+		if conditions.Match[Status] != "" {
+			states := strings.Split(conditions.Match[Status], "|")
+			fv := filterManifestByStates(manifests[i], states)
+			if !fv {
+				continue
+			}
+		}
+		if curr != i {
+			manifests[curr] = manifests[i]
+		}
+		curr++
+	}
+
+	return manifests[:curr:curr]
 }
 
 func dataKeyInStorage(workspace, id string) string {

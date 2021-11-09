@@ -956,6 +956,8 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/lint v0.0.0-20200302205851-738671d3881b => golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
 golang.org/x/lint
 golang.org/x/lint/golint
+# golang.org/x/mobile v0.0.0-20211103151657-e68c98865fb2
+## explicit
 # golang.org/x/net v0.0.0-20210525063256-abc453219eb5 => golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -1011,7 +1013,7 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.1.5 => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
+# golang.org/x/tools v0.1.8-0.20211022200916-316ba0b74098 => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/passes/inspect
 golang.org/x/tools/go/ast/astutil

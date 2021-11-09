@@ -48,8 +48,8 @@ func (c *FakeApplicationV1alpha1) HelmRepos() v1alpha1.HelmRepoInterface {
 	return &FakeHelmRepos{c}
 }
 
-func (c *FakeApplicationV1alpha1) Manifests(namespace string) v1alpha1.ManifestInterface {
-	return &FakeManifests{c, namespace}
+func (c *FakeApplicationV1alpha1) Manifests() v1alpha1.ManifestInterface {
+	return &FakeManifests{c}
 }
 
 func (c *FakeApplicationV1alpha1) OperatorApplications() v1alpha1.OperatorApplicationInterface {

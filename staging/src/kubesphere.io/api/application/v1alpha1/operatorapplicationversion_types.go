@@ -27,14 +27,13 @@ import (
 // OperatorApplicationVersionSpec defines the desired state of OperatorApplicationVersion
 type OperatorApplicationVersionSpec struct {
 	// the name of the operator
-	AppName string `json:"name"`
-	// name of the manifest
-	Description     string `json:"description"`
+	AppName         string `json:"name"`
 	Screenshots     string `json:"screenshots,omitempty"`
+	ScreenshotsEn   string `json:"screenshots_en,omitempty"`
 	ChangeLog       string `json:"changeLog"`
+	ChangeLogEn     string `json:"changeLog_en,omitempty"`
 	OperatorVersion string `json:"operatorVersion"`
 	AppVersion      string `json:"appVersion"`
-	Icon            string `json:"icon,omitempty"`
 	Owner           string `json:"owner,omitempty"`
 }
 
@@ -46,6 +45,7 @@ type OperatorApplicationVersionStatus struct {
 //+genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 //+genclient:nonNamespaced
 //+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -59,6 +59,7 @@ type OperatorApplicationVersion struct {
 }
 
 //+kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OperatorApplicationVersionList contains a list of OperatorApplicationVersion
 type OperatorApplicationVersionList struct {
@@ -78,4 +79,8 @@ func (in *OperatorApplicationVersion) GetVersionName() string {
 	} else {
 		return in.Spec.AppVersion
 	}
+}
+
+func (in *OperatorApplicationVersion) GetOperatorVersionType() string {
+	return getValue(in.Labels, OperatorAppLabelKey)
 }

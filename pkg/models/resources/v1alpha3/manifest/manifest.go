@@ -36,7 +36,7 @@ func New(informers externalversions.SharedInformerFactory) v1alpha3.Interface {
 }
 
 func (c manifestGetter) Get(namespace, name string) (runtime.Object, error) {
-	manifest, err := c.informers.Application().V1alpha1().Manifests().Lister().Manifests(namespace).Get(name)
+	manifest, err := c.informers.Application().V1alpha1().Manifests().Lister().Get(name)
 	if err != nil {
 		return nil, err
 	}

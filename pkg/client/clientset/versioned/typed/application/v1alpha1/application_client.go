@@ -61,8 +61,8 @@ func (c *ApplicationV1alpha1Client) HelmRepos() HelmRepoInterface {
 	return newHelmRepos(c)
 }
 
-func (c *ApplicationV1alpha1Client) Manifests(namespace string) ManifestInterface {
-	return newManifests(c, namespace)
+func (c *ApplicationV1alpha1Client) Manifests() ManifestInterface {
+	return newManifests(c)
 }
 
 func (c *ApplicationV1alpha1Client) OperatorApplications() OperatorApplicationInterface {

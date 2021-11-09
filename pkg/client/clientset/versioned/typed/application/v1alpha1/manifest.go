@@ -33,7 +33,7 @@ import (
 // ManifestsGetter has a method to return a ManifestInterface.
 // A group's client should implement this interface.
 type ManifestsGetter interface {
-	Manifests(namespace string) ManifestInterface
+	Manifests() ManifestInterface
 }
 
 // ManifestInterface has methods to work with Manifest resources.
@@ -53,14 +53,12 @@ type ManifestInterface interface {
 // manifests implements ManifestInterface
 type manifests struct {
 	client rest.Interface
-	ns     string
 }
 
 // newManifests returns a Manifests
-func newManifests(c *ApplicationV1alpha1Client, namespace string) *manifests {
+func newManifests(c *ApplicationV1alpha1Client) *manifests {
 	return &manifests{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -68,7 +66,6 @@ func newManifests(c *ApplicationV1alpha1Client, namespace string) *manifests {
 func (c *manifests) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Manifest, err error) {
 	result = &v1alpha1.Manifest{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("manifests").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -85,7 +82,6 @@ func (c *manifests) List(ctx context.Context, opts v1.ListOptions) (result *v1al
 	}
 	result = &v1alpha1.ManifestList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("manifests").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -102,7 +98,6 @@ func (c *manifests) Watch(ctx context.Context, opts v1.ListOptions) (watch.Inter
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("manifests").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -113,7 +108,6 @@ func (c *manifests) Watch(ctx context.Context, opts v1.ListOptions) (watch.Inter
 func (c *manifests) Create(ctx context.Context, manifest *v1alpha1.Manifest, opts v1.CreateOptions) (result *v1alpha1.Manifest, err error) {
 	result = &v1alpha1.Manifest{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("manifests").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(manifest).
@@ -126,7 +120,6 @@ func (c *manifests) Create(ctx context.Context, manifest *v1alpha1.Manifest, opt
 func (c *manifests) Update(ctx context.Context, manifest *v1alpha1.Manifest, opts v1.UpdateOptions) (result *v1alpha1.Manifest, err error) {
 	result = &v1alpha1.Manifest{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("manifests").
 		Name(manifest.Name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -141,7 +134,6 @@ func (c *manifests) Update(ctx context.Context, manifest *v1alpha1.Manifest, opt
 func (c *manifests) UpdateStatus(ctx context.Context, manifest *v1alpha1.Manifest, opts v1.UpdateOptions) (result *v1alpha1.Manifest, err error) {
 	result = &v1alpha1.Manifest{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("manifests").
 		Name(manifest.Name).
 		SubResource("status").
@@ -155,7 +147,6 @@ func (c *manifests) UpdateStatus(ctx context.Context, manifest *v1alpha1.Manifes
 // Delete takes name of the manifest and deletes it. Returns an error if one occurs.
 func (c *manifests) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("manifests").
 		Name(name).
 		Body(&opts).
@@ -170,7 +161,6 @@ func (c *manifests) DeleteCollection(ctx context.Context, opts v1.DeleteOptions,
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("manifests").
 		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -183,7 +173,6 @@ func (c *manifests) DeleteCollection(ctx context.Context, opts v1.DeleteOptions,
 func (c *manifests) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Manifest, err error) {
 	result = &v1alpha1.Manifest{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("manifests").
 		Name(name).
 		SubResource(subresources...).

@@ -121,7 +121,8 @@ type ValidatePackageRequest struct {
 type App struct {
 
 	// abstraction of app
-	Abstraction string `json:"abstraction,omitempty"`
+	Abstraction   string `json:"abstraction,omitempty"`
+	AbstractionEn string `json:"abstraction_en,omitempty"`
 
 	// whether there is a released version in the app
 	Active bool `json:"active,omitempty"`
@@ -154,7 +155,8 @@ type App struct {
 	CreateTime *strfmt.DateTime `json:"create_time,omitempty"`
 
 	// app description
-	Description string `json:"description,omitempty"`
+	Description   string `json:"description,omitempty"`
+	DescriptionEn string `json:"description_en,omitempty"`
 
 	// app home page
 	Home string `json:"home,omitempty"`
@@ -326,7 +328,8 @@ type AppVersion struct {
 	CreateTime *strfmt.DateTime `json:"create_time,omitempty"`
 
 	// description of app of specific version
-	Description string `json:"description,omitempty"`
+	Description   string `json:"description,omitempty"`
+	DescriptionEn string `json:"description_en,omitempty"`
 
 	// home of app of specific version
 	Home string `json:"home,omitempty"`
@@ -359,7 +362,8 @@ type AppVersion struct {
 	ReviewId string `json:"review_id,omitempty"`
 
 	// screenshots of app of specific version
-	Screenshots string `json:"screenshots,omitempty"`
+	Screenshots   string `json:"screenshots,omitempty"`
+	ScreenshotsEn string `json:"screenshots_en,omitempty"`
 
 	// sequence of app of specific version
 	Sequence int64 `json:"sequence,omitempty"`
@@ -383,9 +387,6 @@ type AppVersion struct {
 	VersionId string `json:"version_id,omitempty"`
 
 	ClusterTotal *int `json:"cluster_total,omitempty"`
-	
-	// change log of the app
-	ChangeLog string `json:"change_log,omitempty"`
 }
 
 type CreateAppVersionResponse struct {
@@ -887,6 +888,64 @@ type ModifyClusterAttributesRequest struct {
 	// cluster name
 	Name *string `json:"name,omitempty"`
 }
+
+type CreateManifestRequest struct {
+	// name of the db cluster
+	Name string `json:"name"`
+
+	// kind of manifest
+	Kind string `json:"kind"`
+
+	// db cluster install description
+	Description string `json:"description"`
+
+	// version of the manifest
+	Version int `json:"version"`
+
+	// version of db operator
+	OperatorVersion string `json:"operatorVersion"`
+
+	// custom resource
+	CustomResource string `json:"customResource"`
+
+	VersionId string `json:"version_id,omitempty"`
+
+	Username string `json:"-"`
+
+	// current workspace
+	Workspace string `json:"workspace,omitempty"`
+}
+
+type ModifyManifestRequest struct {
+	// name of the db cluster
+	Name string `json:"name"`
+
+	// namespace of the db cluster
+	Namespace string `json:"namespace"`
+
+	// kind of manifest
+	Kind string `json:"kind"`
+
+	// db cluster install description
+	Description string `json:"description"`
+
+	// version of the manifest
+	Version int `json:"version"`
+
+	// version of db operator
+	OperatorVersion string `json:"operatorVersion"`
+
+	// custom resource
+	CustomResource string `json:"customResource"`
+
+	VersionId string `json:"version_id,omitempty"`
+
+	Username string `json:"-"`
+
+	// current workspace
+	Workspace string `json:"workspace,omitempty"`
+}
+
 
 const (
 	CreateTime = "create_time"

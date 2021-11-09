@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/api/constants"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -25,6 +26,9 @@ import (
 
 // ManifestSpec defines the desired state of Manifest
 type ManifestSpec struct {
+	// cluster name
+	Cluster   string `json:"cluster"`
+	Namespace string `json:"namespace"`
 	// kind of the database cluster
 	Kind string `json:"kind"`
 	// info from frontend
@@ -39,19 +43,31 @@ type ManifestSpec struct {
 
 // ManifestStatus defines the observed state of Manifest
 type ManifestStatus struct {
-	Status     string      `json:"status,omitempty"`
+	State         string      `json:"state,omitempty"`
+	ResourceState string      `json:"resourceState,omitempty"`
+	Condition     []ApiResult `json:"condition,omitempty"`
 	// current manifest version
-	Version    int         `json:"version,omitempty"`
-	LastUpdate metav1.Time `json:"lastUpdate,omitempty"`
+	Version    int          `json:"version,omitempty"`
+	LastUpdate *metav1.Time `json:"lastUpdate,omitempty"`
 }
 
-// +genclient
+// ApiResult defines the result of pg operator ApiServer
+type ApiResult struct {
+	Api  string `json:"api,omitempty"`
+	Code string `json:"code,omitempty"`
+	Msg  string `json:"msg,omitempty"`
+	Data string `json:"data,omitempty"`
+}
+
 // +kubebuilder:printcolumn:name="Kind",type="string",JSONPath=".spec.kind"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
 // +kubebuilder:printcolumn:name="Application",type="string",JSONPath=".spec.application"
 // +kubebuilder:printcolumn:name="AppVersion",type="string",JSONPath=".spec.appVersion"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
+// +genclient
+// +genclient:nonNamespaced
 // +kubebuilder:subresource:status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -76,4 +92,20 @@ type ManifestList struct {
 
 func init() {
 	SchemeBuilder.Register(&Manifest{}, &ManifestList{})
+}
+
+func (in *Manifest) GetManifestCluster() string {
+	return getValue(in.Labels, constants.ClusterNameLabelKey)
+}
+
+func (in *Manifest) GetManifestWorkspace() string {
+	return getValue(in.Labels, constants.WorkspaceLabelKey)
+}
+
+func (in *Manifest) GetManifestNamespace() string {
+	return getValue(in.Labels, constants.NamespaceLabelKey)
+}
+
+func (in *Manifest) GetCreator() string {
+	return getValue(in.Annotations, constants.CreatorAnnotationKey)
 }

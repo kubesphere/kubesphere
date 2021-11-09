@@ -6,32 +6,21 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: helmcategories.application.kubesphere.io
+  name: operatorapplications.application.kubesphere.io
 spec:
   group: application.kubesphere.io
   names:
-    kind: HelmCategory
-    listKind: HelmCategoryList
-    plural: helmcategories
-    shortNames:
-    - hctg
-    singular: helmcategory
+    kind: OperatorApplication
+    listKind: OperatorApplicationList
+    plural: operatorapplications
+    singular: operatorapplication
   scope: Cluster
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .spec.name
-      name: name
-      type: string
-    - jsonPath: .status.total
-      name: total
-      type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: HelmCategory is the Schema for the helmcategories API
+        description: OperatorApplication is the Schema for the operatorapplications
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -46,26 +35,35 @@ spec:
           metadata:
             type: object
           spec:
-            description: HelmCategorySpec defines the desired state of HelmRepo
+            description: OperatorApplicationSpec defines the desired state of OperatorApplication
             properties:
-              description:
-                description: info from frontend
+              abstraction:
                 type: string
-              locale:
+              abstraction_en:
+                type: string
+              description:
+                description: description from operator's description or frontend
+                type: string
+              description_en:
+                type: string
+              icon:
                 type: string
               name:
-                description: name of the category
+                description: the name of the operator application
+                type: string
+              operator:
+                type: string
+              owner:
                 type: string
             required:
             - name
+            - operator
             type: object
           status:
+            description: OperatorApplicationStatus defines the observed state of OperatorApplication
             properties:
-              total:
-                description: total helmapplications belong to this category
-                type: integer
-            required:
-            - total
+              state:
+                type: string
             type: object
         type: object
     served: true

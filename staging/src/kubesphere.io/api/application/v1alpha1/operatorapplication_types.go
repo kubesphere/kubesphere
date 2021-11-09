@@ -28,22 +28,24 @@ type OperatorApplicationSpec struct {
 	// the name of the operator application
 	AppName string `json:"name"`
 	// description from operator's description or frontend
-	Description string `json:"description,omitempty"`
-	Abstraction string `json:"abstraction,omitempty"`
-	Operator    string `json:"operator"`
-	Icon        string `json:"icon,omitempty"`
-	Owner string `json:"owner,omitempty"`
+	Description   string `json:"description,omitempty"`
+	DescriptionEn string `json:"description_en,omitempty"`
+	Abstraction   string `json:"abstraction,omitempty"`
+	AbstractionEn string `json:"abstraction_en,omitempty"`
+	Operator      string `json:"operator"`
+	Icon          string `json:"icon,omitempty"`
+	Owner         string `json:"owner,omitempty"`
 }
 
 // OperatorApplicationStatus defines the observed state of OperatorApplication
 type OperatorApplicationStatus struct {
-	LatestVersion string `json:"latestVersion"`
-	State         string `json:"state,omitempty"`
+	State string `json:"state,omitempty"`
 }
 
 //+genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 //+genclient:nonNamespaced
 //+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -57,6 +59,7 @@ type OperatorApplication struct {
 }
 
 //+kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OperatorApplicationList contains a list of OperatorApplication
 type OperatorApplicationList struct {

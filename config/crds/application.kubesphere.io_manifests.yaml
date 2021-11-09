@@ -1,0 +1,121 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: manifests.application.kubesphere.io
+spec:
+  group: application.kubesphere.io
+  names:
+    kind: Manifest
+    listKind: ManifestList
+    plural: manifests
+    singular: manifest
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.kind
+      name: Kind
+      type: string
+    - jsonPath: .status.status
+      name: Status
+      type: string
+    - jsonPath: .spec.application
+      name: Application
+      type: string
+    - jsonPath: .spec.appVersion
+      name: AppVersion
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Manifest is the Schema for the manifests API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ManifestSpec defines the desired state of Manifest
+            properties:
+              app:
+                type: string
+              appVersion:
+                type: string
+              cluster:
+                description: cluster name
+                type: string
+              customResource:
+                type: string
+              description:
+                description: info from frontend
+                type: string
+              kind:
+                description: kind of the database cluster
+                type: string
+              namespace:
+                type: string
+              version:
+                description: expected release version, when this version is not equal
+                  status.version, the release need upgrade this filed should be modified
+                  when any filed of the spec modified.
+                type: integer
+            required:
+            - appVersion
+            - customResource
+            - kind
+            - version
+            type: object
+          status:
+            description: ManifestStatus defines the observed state of Manifest
+            properties:
+              condition:
+                items:
+                  description: ApiResult defines the result of pg operator ApiServer
+                  properties:
+                    api:
+                      type: string
+                    code:
+                      type: string
+                    data:
+                      type: string
+                    msg:
+                      type: string
+                  type: object
+                type: array
+              lastUpdate:
+                format: date-time
+                type: string
+              resourceState:
+                type: string
+              state:
+                type: string
+              version:
+                description: current manifest version
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

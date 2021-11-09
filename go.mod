@@ -91,6 +91,7 @@ require (
 	github.com/yvasiyarov/gorelic v0.0.6 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	golang.org/x/mobile v0.0.0-20211103151657-e68c98865fb2 // indirect
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
 	google.golang.org/grpc v1.30.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect

@@ -59,6 +59,12 @@ type ReleaseInterface interface {
 	ModifyApplication(request ModifyClusterAttributesRequest) error
 	DeleteApplication(workspace, clusterName, namespace, id string) error
 	UpgradeApplication(request UpgradeClusterRequest) error
+
+	CreateManifest(workspace, clusterName, namespace string, request CreateManifestRequest) error
+	DeleteManifest(workspace, clusterName, namespace, manifestName string) error
+	ModifyManifest(request ModifyManifestRequest) error
+	ListManifests(workspace, clusterName, namespace string, conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error)
+	DescribeManifest(workspace, clusterName, namespace, manifestName string) (*Manifest, error)
 }
 
 type releaseOperator struct {
@@ -68,6 +74,13 @@ type releaseOperator struct {
 	appVersionLister listers_v1alpha1.HelmApplicationVersionLister
 	cachedRepos      reposcache.ReposCache
 	clusterClients   clusterclient.ClusterClients
+
+	manifestClient    typed_v1alpha1.ManifestInterface
+	manifestLister    listers_v1alpha1.ManifestLister
+	operatorVerClient typed_v1alpha1.OperatorApplicationVersionInterface
+	operatorClient    typed_v1alpha1.OperatorApplicationInterface
+	operatorVerLister listers_v1alpha1.OperatorApplicationVersionLister
+	operatorLister    listers_v1alpha1.OperatorApplicationLister
 }
 
 func newReleaseOperator(cached reposcache.ReposCache, k8sFactory informers.SharedInformerFactory, ksFactory externalversions.SharedInformerFactory, ksClient versioned.Interface) ReleaseInterface {
@@ -78,6 +91,13 @@ func newReleaseOperator(cached reposcache.ReposCache, k8sFactory informers.Share
 		cachedRepos:      cached,
 		clusterClients:   clusterclient.NewClusterClient(ksFactory.Cluster().V1alpha1().Clusters()),
 		appVersionLister: ksFactory.Application().V1alpha1().HelmApplicationVersions().Lister(),
+
+		manifestClient:    ksClient.ApplicationV1alpha1().Manifests(),
+		operatorVerClient: ksClient.ApplicationV1alpha1().OperatorApplicationVersions(),
+		operatorClient:    ksClient.ApplicationV1alpha1().OperatorApplications(),
+		manifestLister:    ksFactory.Application().V1alpha1().Manifests().Lister(),
+		operatorVerLister: ksFactory.Application().V1alpha1().OperatorApplicationVersions().Lister(),
+		operatorLister:    ksFactory.Application().V1alpha1().OperatorApplications().Lister(),
 	}
 
 	return c
@@ -90,6 +110,18 @@ type Application struct {
 	App     *App        `json:"app,omitempty" description:"application template info"`
 
 	ReleaseInfo []runtime.Object `json:"releaseInfo,omitempty" description:"release info"`
+}
+
+type Manifest struct {
+	Cluster        string `json:"cluster"`
+	Namespace      string `json:"namespace"`
+	Kind           string `json:"kind"`
+	Description    string `json:"description,omitempty"`
+	AppName        string `json:"app,omitempty"`
+	AppVersion     string `json:"appVersion"`
+	CustomResource string `json:"customResource" yaml:"customResource"`
+	Version        int    `json:"version"`
+	Name           string `json:"name" description:"cluster name"`
 }
 
 func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest) error {
@@ -433,6 +465,208 @@ func (c *releaseOperator) getAppVersionWithData(repoId, id string) (ret *v1alpha
 	}
 	ret, err = c.appVersionLister.Get(id)
 
+	if err != nil && !apierrors.IsNotFound(err) {
+		klog.Error(err)
+		return nil, err
+	}
+	return
+}
+
+// manifest
+func (c *releaseOperator) CreateManifest(workspace, clusterName, namespace string, request CreateManifestRequest) error {
+	version, err := c.getOperatorAppVersion(request.OperatorVersion)
+
+	if err != nil {
+		klog.Errorf("get operator version %s failed, error: %v", request.OperatorVersion, err)
+		return err
+	}
+
+	exists, err := c.manifestExists(workspace, clusterName, namespace, clusterName)
+
+	if err != nil && !apierrors.IsNotFound(err) {
+		klog.Errorf("get manifest %s failed, error: %v", clusterName, err)
+		return err
+	}
+
+	if exists {
+		err = fmt.Errorf("manifest %s exists", request.Name)
+		klog.Error(err)
+		return err
+	}
+
+	manifest := &v1alpha1.Manifest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: request.Name,
+			Annotations: map[string]string{
+				constants.CreatorAnnotationKey: request.Username,
+			},
+			Labels: map[string]string{
+				constants.WorkspaceLabelKey: request.Workspace,
+				constants.NamespaceLabelKey: namespace,
+			},
+		},
+		Spec: v1alpha1.ManifestSpec{
+			Cluster:        clusterName,
+			Namespace:      namespace,
+			Kind:           request.Kind,
+			Description:    request.Description,
+			AppVersion:     request.OperatorVersion,
+			Version:        request.Version,
+			CustomResource: request.CustomResource,
+		},
+		Status: v1alpha1.ManifestStatus{},
+	}
+
+	if clusterName != "" {
+		manifest.Labels[constants.ClusterNameLabelKey] = clusterName
+	}
+
+	// dbType: mysql, postgresql, clickhouse
+	if dbType := version.GetOperatorVersionType(); dbType != "" {
+		manifest.Labels[constants.OperatorAppLabelKey] = dbType
+	}
+
+	manifest, err = c.manifestClient.Create(context.TODO(), manifest, metav1.CreateOptions{})
+
+	if err != nil {
+		klog.Errorln(err)
+		return err
+	} else {
+		klog.Infof("create manifest %s success in %s", request.Name, clusterName)
+	}
+
+	return nil
+}
+
+func (c *releaseOperator) DeleteManifest(workspace, clusterName, namespace, manifestName string) error {
+
+	_, err := c.manifestLister.Get(manifestName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		klog.Errorf("get manifest %s failed, err: %s", manifestName, err)
+		return err
+	}
+
+	err = c.manifestClient.Delete(context.TODO(), manifestName, metav1.DeleteOptions{})
+
+	if err != nil {
+		klog.Errorf("delete manifest %s failed, error: %s", manifestName, err)
+		return err
+	} else {
+		klog.V(2).Infof("delete release %s", manifestName)
+	}
+
+	return nil
+}
+
+func (c *releaseOperator) ModifyManifest(request ModifyManifestRequest) error {
+
+	if request.Description == "" {
+		return nil
+	}
+
+	manifest, err := c.manifestLister.Get(request.Name)
+	if err != nil {
+		klog.Errorf("get release failed, error: %s", err)
+		return err
+	}
+
+	manifestCopy := manifest.DeepCopy()
+	manifestCopy.Spec.Description = stringutils.ShortenString(strings.TrimSpace(request.Description), v1alpha1.MsgLen)
+
+	pt := client.MergeFrom(manifest)
+
+	data, err := pt.Data(manifestCopy)
+	if err != nil {
+		klog.Errorf("create patch failed, error: %s", err)
+		return err
+	}
+
+	_, err = c.rlsClient.Patch(context.TODO(), request.Name, pt.Type(), data, metav1.PatchOptions{})
+	if err != nil {
+		klog.Errorln(err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *releaseOperator) ListManifests(workspace, clusterName, namespace string, conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error) {
+	ls := map[string]string{}
+	if workspace != "" {
+		ls[constants.WorkspaceLabelKey] = workspace
+	}
+	if namespace != "" {
+		ls[constants.NamespaceLabelKey] = namespace
+	}
+	if clusterName != "" {
+		ls[constants.ClusterNameLabelKey] = clusterName
+	}
+
+	manifests, err := c.manifestLister.List(labels.SelectorFromSet(ls))
+	if err != nil && !apierrors.IsNotFound(err) {
+		klog.Errorf("list app release failed, error: %v", err)
+		return nil, err
+	}
+
+	manifests = filterManifests(manifests, conditions)
+
+	if reverse {
+		sort.Sort(sort.Reverse(ManifestList(manifests)))
+	} else {
+		sort.Sort(ManifestList(manifests))
+	}
+
+	totalCount := len(manifests)
+	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	manifests = manifests[start:end]
+	items := make([]interface{}, 0, len(manifests))
+	for i := range manifests {
+		mft := convertManifest(manifests[i])
+		items = append(items, mft)
+	}
+
+	return &models.PageableResponse{TotalCount: totalCount, Items: items}, nil
+}
+
+func (c *releaseOperator) DescribeManifest(workspace, clusterName, namespace, manifestName string) (*Manifest, error) {
+	mft, err := c.manifestLister.Get(manifestName)
+	if err != nil && !apierrors.IsNotFound(err) {
+		klog.Errorf("list manifest failed, error: %v", err)
+		return nil, err
+	}
+
+	app := &Manifest{}
+	app = convertManifest(mft)
+	return app, nil
+}
+
+func (c *releaseOperator) manifestExists(workspace, clusterName, namespace, name string) (bool, error) {
+	set := map[string]string{
+		constants.WorkspaceLabelKey: workspace,
+		constants.NamespaceLabelKey: namespace,
+	}
+	if clusterName != "" {
+		set[constants.ClusterNameLabelKey] = clusterName
+	}
+
+	list, err := c.manifestLister.List(labels.SelectorFromSet(set))
+	if err != nil {
+		return false, err
+	}
+	for _, manifest := range list {
+		if manifest.Name == name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// get operator application version
+func (c *releaseOperator) getOperatorAppVersion(versionName string) (ret *v1alpha1.OperatorApplicationVersion, err error) {
+	ret, err = c.operatorVerLister.Get(versionName)
 	if err != nil && !apierrors.IsNotFound(err) {
 		klog.Error(err)
 		return nil, err

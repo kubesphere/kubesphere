@@ -6,32 +6,21 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: helmcategories.application.kubesphere.io
+  name: operatorapplicationversions.application.kubesphere.io
 spec:
   group: application.kubesphere.io
   names:
-    kind: HelmCategory
-    listKind: HelmCategoryList
-    plural: helmcategories
-    shortNames:
-    - hctg
-    singular: helmcategory
+    kind: OperatorApplicationVersion
+    listKind: OperatorApplicationVersionList
+    plural: operatorapplicationversions
+    singular: operatorapplicationversion
   scope: Cluster
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .spec.name
-      name: name
-      type: string
-    - jsonPath: .status.total
-      name: total
-      type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: HelmCategory is the Schema for the helmcategories API
+        description: OperatorApplicationVersion is the Schema for the operatorapplicationversions
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -46,26 +35,38 @@ spec:
           metadata:
             type: object
           spec:
-            description: HelmCategorySpec defines the desired state of HelmRepo
+            description: OperatorApplicationVersionSpec defines the desired state
+              of OperatorApplicationVersion
             properties:
-              description:
-                description: info from frontend
+              appVersion:
                 type: string
-              locale:
+              changeLog:
+                type: string
+              changeLog_en:
                 type: string
               name:
-                description: name of the category
+                description: the name of the operator
+                type: string
+              operatorVersion:
+                type: string
+              owner:
+                type: string
+              screenshots:
+                type: string
+              screenshots_en:
                 type: string
             required:
+            - appVersion
+            - changeLog
             - name
+            - operatorVersion
             type: object
           status:
+            description: OperatorApplicationVersionStatus defines the observed state
+              of OperatorApplicationVersion
             properties:
-              total:
-                description: total helmapplications belong to this category
-                type: integer
-            required:
-            - total
+              state:
+                type: string
             type: object
         type: object
     served: true

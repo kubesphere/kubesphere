@@ -31,8 +31,9 @@ type ManifestLister interface {
 	// List lists all Manifests in the indexer.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.Manifest, err error)
-	// Manifests returns an object that can list and get Manifests.
-	Manifests(namespace string) ManifestNamespaceLister
+	// Get retrieves the Manifest from the index for a given name.
+	// Objects returned here must be treated as read-only.
+	Get(name string) (*v1alpha1.Manifest, error)
 	ManifestListerExpansion
 }
 
@@ -54,41 +55,9 @@ func (s *manifestLister) List(selector labels.Selector) (ret []*v1alpha1.Manifes
 	return ret, err
 }
 
-// Manifests returns an object that can list and get Manifests.
-func (s *manifestLister) Manifests(namespace string) ManifestNamespaceLister {
-	return manifestNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// ManifestNamespaceLister helps list and get Manifests.
-// All objects returned here must be treated as read-only.
-type ManifestNamespaceLister interface {
-	// List lists all Manifests in the indexer for a given namespace.
-	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.Manifest, err error)
-	// Get retrieves the Manifest from the indexer for a given namespace and name.
-	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.Manifest, error)
-	ManifestNamespaceListerExpansion
-}
-
-// manifestNamespaceLister implements the ManifestNamespaceLister
-// interface.
-type manifestNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all Manifests in the indexer for a given namespace.
-func (s manifestNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.Manifest, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.Manifest))
-	})
-	return ret, err
-}
-
-// Get retrieves the Manifest from the indexer for a given namespace and name.
-func (s manifestNamespaceLister) Get(name string) (*v1alpha1.Manifest, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the Manifest from the index for a given name.
+func (s *manifestLister) Get(name string) (*v1alpha1.Manifest, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

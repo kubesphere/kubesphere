@@ -33,7 +33,6 @@ import (
 // FakeManifests implements ManifestInterface
 type FakeManifests struct {
 	Fake *FakeApplicationV1alpha1
-	ns   string
 }
 
 var manifestsResource = schema.GroupVersionResource{Group: "application.kubesphere.io", Version: "v1alpha1", Resource: "manifests"}
@@ -43,8 +42,7 @@ var manifestsKind = schema.GroupVersionKind{Group: "application.kubesphere.io", 
 // Get takes name of the manifest, and returns the corresponding manifest object, and an error if there is any.
 func (c *FakeManifests) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Manifest, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(manifestsResource, c.ns, name), &v1alpha1.Manifest{})
-
+		Invokes(testing.NewRootGetAction(manifestsResource, name), &v1alpha1.Manifest{})
 	if obj == nil {
 		return nil, err
 	}
@@ -54,8 +52,7 @@ func (c *FakeManifests) Get(ctx context.Context, name string, options v1.GetOpti
 // List takes label and field selectors, and returns the list of Manifests that match those selectors.
 func (c *FakeManifests) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ManifestList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(manifestsResource, manifestsKind, c.ns, opts), &v1alpha1.ManifestList{})
-
+		Invokes(testing.NewRootListAction(manifestsResource, manifestsKind, opts), &v1alpha1.ManifestList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -76,15 +73,13 @@ func (c *FakeManifests) List(ctx context.Context, opts v1.ListOptions) (result *
 // Watch returns a watch.Interface that watches the requested manifests.
 func (c *FakeManifests) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(manifestsResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(manifestsResource, opts))
 }
 
 // Create takes the representation of a manifest and creates it.  Returns the server's representation of the manifest, and an error, if there is any.
 func (c *FakeManifests) Create(ctx context.Context, manifest *v1alpha1.Manifest, opts v1.CreateOptions) (result *v1alpha1.Manifest, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(manifestsResource, c.ns, manifest), &v1alpha1.Manifest{})
-
+		Invokes(testing.NewRootCreateAction(manifestsResource, manifest), &v1alpha1.Manifest{})
 	if obj == nil {
 		return nil, err
 	}
@@ -94,8 +89,7 @@ func (c *FakeManifests) Create(ctx context.Context, manifest *v1alpha1.Manifest,
 // Update takes the representation of a manifest and updates it. Returns the server's representation of the manifest, and an error, if there is any.
 func (c *FakeManifests) Update(ctx context.Context, manifest *v1alpha1.Manifest, opts v1.UpdateOptions) (result *v1alpha1.Manifest, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(manifestsResource, c.ns, manifest), &v1alpha1.Manifest{})
-
+		Invokes(testing.NewRootUpdateAction(manifestsResource, manifest), &v1alpha1.Manifest{})
 	if obj == nil {
 		return nil, err
 	}
@@ -106,8 +100,7 @@ func (c *FakeManifests) Update(ctx context.Context, manifest *v1alpha1.Manifest,
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *FakeManifests) UpdateStatus(ctx context.Context, manifest *v1alpha1.Manifest, opts v1.UpdateOptions) (*v1alpha1.Manifest, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(manifestsResource, "status", c.ns, manifest), &v1alpha1.Manifest{})
-
+		Invokes(testing.NewRootUpdateSubresourceAction(manifestsResource, "status", manifest), &v1alpha1.Manifest{})
 	if obj == nil {
 		return nil, err
 	}
@@ -117,14 +110,13 @@ func (c *FakeManifests) UpdateStatus(ctx context.Context, manifest *v1alpha1.Man
 // Delete takes name of the manifest and deletes it. Returns an error if one occurs.
 func (c *FakeManifests) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(manifestsResource, c.ns, name), &v1alpha1.Manifest{})
-
+		Invokes(testing.NewRootDeleteAction(manifestsResource, name), &v1alpha1.Manifest{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeManifests) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(manifestsResource, c.ns, listOpts)
+	action := testing.NewRootDeleteCollectionAction(manifestsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.ManifestList{})
 	return err
@@ -133,8 +125,7 @@ func (c *FakeManifests) DeleteCollection(ctx context.Context, opts v1.DeleteOpti
 // Patch applies the patch and returns the patched manifest.
 func (c *FakeManifests) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Manifest, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(manifestsResource, c.ns, name, pt, data, subresources...), &v1alpha1.Manifest{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(manifestsResource, name, pt, data, subresources...), &v1alpha1.Manifest{})
 	if obj == nil {
 		return nil, err
 	}
