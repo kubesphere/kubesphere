@@ -51,7 +51,7 @@ func TestListPods(t *testing.T) {
 				Filters:   map[query.Field]query.Value{query.FieldNamespace: query.Value("default")},
 			},
 			&api.ListResult{
-				Items:      []interface{}{foo4, foo3, foo2, foo1},
+				Items:      []interface{}{foo5, foo4, foo3, foo2, foo1},
 				TotalItems: len(pods),
 			},
 			nil,
@@ -68,11 +68,32 @@ func TestListPods(t *testing.T) {
 				Ascending: false,
 				Filters: map[query.Field]query.Value{
 					query.FieldNamespace: query.Value("default"),
-					filedPVCName:         query.Value(foo4.Spec.Volumes[0].PersistentVolumeClaim.ClaimName),
+					fieldPVCName:         query.Value(foo4.Spec.Volumes[0].PersistentVolumeClaim.ClaimName),
 				},
 			},
 			&api.ListResult{
 				Items:      []interface{}{foo4},
+				TotalItems: 1,
+			},
+			nil,
+		},
+		{
+			"test status filter",
+			"default",
+			&query.Query{
+				Pagination: &query.Pagination{
+					Limit:  10,
+					Offset: 0,
+				},
+				SortBy:    query.FieldName,
+				Ascending: false,
+				Filters: map[query.Field]query.Value{
+					query.FieldNamespace: query.Value("default"),
+					fieldStatus:          query.Value(corev1.PodRunning),
+				},
+			},
+			&api.ListResult{
+				Items:      []interface{}{foo5},
 				TotalItems: 1,
 			},
 			nil,
@@ -133,7 +154,16 @@ var (
 			},
 		},
 	}
-	pods = []interface{}{foo1, foo2, foo3, foo4}
+	foo5 = &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo5",
+			Namespace: "default",
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+		},
+	}
+	pods = []interface{}{foo1, foo2, foo3, foo4, foo5}
 )
 
 func prepare() v1alpha3.Interface {

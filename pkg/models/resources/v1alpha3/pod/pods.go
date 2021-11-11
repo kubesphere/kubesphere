@@ -28,9 +28,10 @@ import (
 )
 
 const (
-	filedNameName    = "nodeName"
-	filedPVCName     = "pvcName"
-	filedServiceName = "serviceName"
+	fieldNodeName    = "nodeName"
+	fieldPVCName     = "pvcName"
+	fieldServiceName = "serviceName"
+	fieldStatus      = "status"
 )
 
 type podsGetter struct {
@@ -82,12 +83,14 @@ func (p *podsGetter) filter(object runtime.Object, filter query.Filter) bool {
 		return false
 	}
 	switch filter.Field {
-	case filedNameName:
+	case fieldNodeName:
 		return pod.Spec.NodeName == string(filter.Value)
-	case filedPVCName:
+	case fieldPVCName:
 		return p.podBindPVC(pod, string(filter.Value))
-	case filedServiceName:
+	case fieldServiceName:
 		return p.podBelongToService(pod, string(filter.Value))
+	case fieldStatus:
+		return string(pod.Status.Phase) == string(filter.Value)
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(pod.ObjectMeta, filter)
 	}
