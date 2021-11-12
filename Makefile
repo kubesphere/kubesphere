@@ -127,7 +127,7 @@ container-cross-push: ; $(info $(M)...Begin to build and push.)  @ ## Build and 
 
 helm-package: ; $(info $(M)...Begin to helm-package.)  @ ## Helm-package.
 	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
-	helm package config/ks-core --app-version=v3.1.0 --version=0.1.0 -d ./bin
+	helm package config/ks-core --app-version=v3.2.0 --version=0.1.0 -d ./bin
 
 helm-deploy: ; $(info $(M)...Begin to helm-deploy.)  @ ## Helm-deploy.
 	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
