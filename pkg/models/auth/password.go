@@ -76,7 +76,8 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, username, passwo
 				return nil, providerOptions.Name, err
 			}
 			linkedAccount, err := p.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
+				klog.Error(err)
 				return nil, providerOptions.Name, err
 			}
 			// using this method requires you to manually provision users.
