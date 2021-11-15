@@ -8,6 +8,9 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 GV="network:v1alpha1 servicemesh:v1alpha2 tenant:v1alpha1 tenant:v1alpha2 devops:v1alpha1 iam:v1alpha2 devops:v1alpha3 cluster:v1alpha1 storage:v1alpha1 auditing:v1alpha1 types:v1beta1 quota:v1alpha2 application:v1alpha1 notification:v2beta1"
 
+# App Version
+APP_VERSION = v3.2.0
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -127,7 +130,7 @@ container-cross-push: ; $(info $(M)...Begin to build and push.)  @ ## Build and 
 
 helm-package: ; $(info $(M)...Begin to helm-package.)  @ ## Helm-package.
 	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
-	helm package config/ks-core --app-version=v3.2.0 --version=0.1.0 -d ./bin
+	helm package config/ks-core --app-version=${APP_VERSION} --version=0.1.0 -d ./bin
 
 helm-deploy: ; $(info $(M)...Begin to helm-deploy.)  @ ## Helm-deploy.
 	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
