@@ -139,7 +139,7 @@ kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=
 
 ### 🐯 使用 Katacoda 在线安装体验 KubeSphere
 
-[Katacoda](https://www.katacoda.com/) 是一个在线的云原生技术学习实验平台，你可以使用它在浏览器中快速 [安装体验 KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes)。
+[Katacoda](https://www.katacoda.com/) 是一个在线的云原生技术学习实验平台，你可以使用它在浏览器中快速 [安装体验 KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes) 。
 ### 在托管 Kubernetes 上部署 KubeSphere
 
 KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kubernetes 服务上一键安装来部署 KubeSphere。
