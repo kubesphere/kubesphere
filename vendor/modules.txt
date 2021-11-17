@@ -118,6 +118,9 @@ github.com/blang/semver
 ## explicit
 # github.com/bugsnag/panicwrap v1.2.0 => github.com/bugsnag/panicwrap v1.2.0
 ## explicit
+# github.com/casdoor/casdoor-go-sdk v0.1.0 => github.com/casdoor/casdoor-go-sdk v0.1.0
+## explicit
+github.com/casdoor/casdoor-go-sdk/auth
 # github.com/cespare/xxhash v1.1.0 => github.com/cespare/xxhash v1.1.0
 github.com/cespare/xxhash
 # github.com/cespare/xxhash/v2 v2.1.1 => github.com/cespare/xxhash/v2 v2.1.1
@@ -376,6 +379,8 @@ github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/types
+# github.com/golang-jwt/jwt/v4 v4.1.0 => github.com/golang-jwt/jwt/v4 v4.1.0
+github.com/golang-jwt/jwt/v4
 # github.com/golang/example v0.0.0-20170904185048-46695d81d1fa => github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 ## explicit
 github.com/golang/example/stringutil
@@ -2267,6 +2272,7 @@ sigs.k8s.io/yaml
 # github.com/c-bata/go-prompt => github.com/c-bata/go-prompt v0.2.2
 # github.com/campoy/embedmd => github.com/campoy/embedmd v1.0.0
 # github.com/casbin/casbin/v2 => github.com/casbin/casbin/v2 v2.1.2
+# github.com/casdoor/casdoor-go-sdk => github.com/casdoor/casdoor-go-sdk v0.1.0
 # github.com/cenkalti/backoff => github.com/cenkalti/backoff v2.2.1+incompatible
 # github.com/census-instrumentation/opencensus-proto => github.com/census-instrumentation/opencensus-proto v0.2.1
 # github.com/certifi/gocertifi => github.com/certifi/gocertifi v0.0.0-20180118203423-deb3ae2ef261
@@ -2427,6 +2433,7 @@ sigs.k8s.io/yaml
 # github.com/gogo/googleapis => github.com/gogo/googleapis v1.1.0
 # github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 # github.com/gogo/status => github.com/gogo/status v1.0.3
+# github.com/golang-jwt/jwt/v4 => github.com/golang-jwt/jwt/v4 v4.1.0
 # github.com/golang-migrate/migrate/v4 => github.com/golang-migrate/migrate/v4 v4.7.0
 # github.com/golang/example => github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 # github.com/golang/freetype => github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0

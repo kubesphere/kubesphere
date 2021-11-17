@@ -18,6 +18,7 @@ require (
 	github.com/bshuster-repo/logrus-logstash-hook v0.4.1 // indirect
 	github.com/bugsnag/bugsnag-go v1.5.0 // indirect
 	github.com/bugsnag/panicwrap v1.2.0 // indirect
+	github.com/casdoor/casdoor-go-sdk v0.1.0
 	github.com/containernetworking/cni v0.8.0
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/davecgh/go-spew v1.1.1
@@ -222,6 +223,7 @@ replace (
 	github.com/c-bata/go-prompt => github.com/c-bata/go-prompt v0.2.2
 	github.com/campoy/embedmd => github.com/campoy/embedmd v1.0.0
 	github.com/casbin/casbin/v2 => github.com/casbin/casbin/v2 v2.1.2
+	github.com/casdoor/casdoor-go-sdk => github.com/casdoor/casdoor-go-sdk v0.1.0
 	github.com/cenkalti/backoff => github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/census-instrumentation/opencensus-proto => github.com/census-instrumentation/opencensus-proto v0.2.1
 	github.com/certifi/gocertifi => github.com/certifi/gocertifi v0.0.0-20180118203423-deb3ae2ef261
@@ -382,6 +384,7 @@ replace (
 	github.com/gogo/googleapis => github.com/gogo/googleapis v1.1.0
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	github.com/gogo/status => github.com/gogo/status v1.0.3
+	github.com/golang-jwt/jwt/v4 => github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/golang-migrate/migrate/v4 => github.com/golang-migrate/migrate/v4 v4.7.0
 	github.com/golang/example => github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/golang/freetype => github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
