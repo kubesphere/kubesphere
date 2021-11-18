@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
@@ -482,13 +483,20 @@ func makeIngressMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	// For monitoring ingress in the specific namespace
 	// GET /namespaces/{namespace}/ingress/{ingress} or
 	// GET /namespaces/{namespace}/ingress
-	if o.NamespaceName != "" {
+	if o.NamespaceName != constants.KubeSphereNamespace {
 		if o.Ingress != "" {
 			ingressSelector = fmt.Sprintf(`exported_namespace="%s", ingress="%s"`, o.NamespaceName, o.Ingress)
 		} else {
 			ingressSelector = fmt.Sprintf(`exported_namespace="%s", ingress=~"%s"`, o.NamespaceName, o.ResourceFilter)
 		}
+	} else {
+		if o.Ingress != "" {
+			ingressSelector = fmt.Sprintf(`ingress="%s"`, o.Ingress)
+		} else {
+			ingressSelector = fmt.Sprintf(`ingress=~"%s"`, o.ResourceFilter)
+		}
 	}
+
 	// job is a reqiuried filter
 	// GET /namespaces/{namespace}/ingress?job=xxx&pod=xxx
 	if o.Job != "" {
