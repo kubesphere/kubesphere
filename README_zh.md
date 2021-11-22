@@ -60,7 +60,7 @@
 
 <details>
   <summary><b>🔗 Kubernetes 多集群管理</b></summary>
-  提供集中控制平台来管理多个 Kubernetes 集群，支持将应用程序发布到跨不同云供应商的多个k8集群上。
+  提供集中控制平台来管理多个 Kubernetes 集群，支持将应用程序发布到跨不同云供应商的多个 k8s 集群上。
   </details>
 
 <details>
