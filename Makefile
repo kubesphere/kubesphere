@@ -7,6 +7,7 @@
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 GV="network:v1alpha1 servicemesh:v1alpha2 tenant:v1alpha1 tenant:v1alpha2 devops:v1alpha1 iam:v1alpha2 devops:v1alpha3 cluster:v1alpha1 storage:v1alpha1 auditing:v1alpha1 types:v1beta1 quota:v1alpha2 application:v1alpha1 notification:v2beta1"
+MANIFESTS="application/* cluster/* devops/* iam/* network/v1alpha1 quota/* storage/* tenant/*"
 
 # App Version
 APP_VERSION = v3.2.0
@@ -55,7 +56,7 @@ binary: | ks-apiserver ks-controller-manager; $(info $(M)...Build all of binary.
 
 # Build ks-apiserver binary
 ks-apiserver: ; $(info $(M)...Begin to build ks-apiserver binary.)  @ ## Build ks-apiserver.
-	 hack/gobuild.sh cmd/ks-apiserver; 
+	 hack/gobuild.sh cmd/ks-apiserver;
 
 # Build ks-controller-manager binary
 ks-controller-manager: ; $(info $(M)...Begin to build ks-controller-manager binary.)  @ ## Build ks-controller-manager.
@@ -72,7 +73,7 @@ e2e: ;$(info $(M)...Begin to build e2e binary.)  @ ## Build e2e binary.
 kind-e2e: ;$(info $(M)...Run e2e test.) @ ## Run e2e test in kind.
 	hack/kind_e2e.sh
 
-# Run go fmt against code 
+# Run go fmt against code
 fmt: ;$(info $(M)...Begin to run go fmt against code.)  @ ## Run go fmt against code.
 	gofmt -w ./pkg ./cmd ./tools ./api
 
@@ -86,14 +87,7 @@ vet: ;$(info $(M)...Begin to run go vet against code.)  @ ## Run go vet against 
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: ;$(info $(M)...Begin to generate manifests e.g. CRD, RBAC etc..)  @ ## Generate manifests e.g. CRD, RBAC etc.
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/application/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/cluster/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/devops/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/iam/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/network/v1alpha1/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/quota/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/storage/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=kubesphere.io/api/tenant/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crds
+	hack/generate_manifests.sh ${CRD_OPTIONS} ${MANIFESTS}
 
 deploy: manifests ;$(info $(M)...Begin to deploy.)  @ ## Deploy.
 	kubectl apply -f config/crds
