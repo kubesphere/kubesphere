@@ -135,8 +135,13 @@ type UserSpec struct {
 	// But in Go, we don't have ?= (back tracking) capability in regexp (also in CRD validation pattern)
 	// So we adopted an alternative scheme to achieve.
 	// Use 6 different regexp to combine to achieve the same effect.
-	// These six schemes enumerate the arrangement of numbers, uppercase letters, and lowercase letters
-	// that appear for the first time.
+	// These six schemes enumerate the arrangement of numbers, uppercase letters, and lowercase letters that appear for the first time.
+	// - ^(.*[a-z].*[A-Z].*[0-9].*)$ stands for lowercase letter comes first, then followed by an uppercase letter, then a digit.
+	// - ^(.*[a-z].*[0-9].*[A-Z].*)$ stands for lowercase letter comes first, then followed by a digit, then an uppercase leeter.
+	// - ^(.*[A-Z].*[a-z].*[0-9].*)$ ...
+	// - ^(.*[A-Z].*[0-9].*[a-z].*)$ ...
+	// - ^(.*[0-9].*[a-z].*[A-Z].*)$ ...
+	// - ^(.*[0-9].*[A-Z].*[a-z].*)$ ...
 	// Last but not least, the bcrypt string is also included to match the encrypted password. ^(\$2[ayb]\$.{56})$
 	EncryptedPassword string `json:"password,omitempty"`
 }
