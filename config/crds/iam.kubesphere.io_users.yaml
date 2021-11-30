@@ -58,6 +58,9 @@ spec:
                 type: string
               password:
                 description: password will be encrypted by mutating admission webhook
+                maxLength: 64
+                minLength: 6
+                pattern: ^(.*[a-z].*[A-Z].*[0-9].*)$|^(.*[a-z].*[0-9].*[A-Z].*)$|^(.*[A-Z].*[a-z].*[0-9].*)$|^(.*[A-Z].*[0-9].*[a-z].*)$|^(.*[0-9].*[a-z].*[A-Z].*)$|^(.*[0-9].*[A-Z].*[a-z].*)$|^(\$2[ayb]\$.{56})$
                 type: string
             required:
             - email
