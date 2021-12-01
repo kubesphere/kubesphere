@@ -19,6 +19,7 @@ package helmrepo
 import (
 	"context"
 	"math"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -57,20 +58,6 @@ const (
 	HelmRepoFinalizer = "helmrepo.application.kubesphere.io"
 )
 
-// Add creates a new Workspace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileHelmRepo{Client: mgr.GetClient(), scheme: mgr.GetScheme(),
-		recorder: mgr.GetEventRecorderFor("workspace-controller"),
-		config:   mgr.GetConfig(),
-	}
-}
-
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
@@ -96,6 +83,13 @@ type ReconcileHelmRepo struct {
 	scheme   *runtime.Scheme
 	recorder record.EventRecorder
 	config   *rest.Config
+}
+
+func (r *ReconcileHelmRepo) SetupWithManager(mgr ctrl.Manager) error {
+	r.scheme = mgr.GetScheme()
+	r.recorder = mgr.GetEventRecorderFor("workspace-controller")
+	r.config = mgr.GetConfig()
+	return add(mgr, r)
 }
 
 // Reconcile reads that state of the cluster for a helmrepoes object and makes changes based on the state read
