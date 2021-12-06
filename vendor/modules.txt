@@ -347,9 +347,6 @@ github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
 # github.com/go-resty/resty/v2 v2.5.0 => github.com/go-resty/resty/v2 v2.5.0
 github.com/go-resty/resty/v2
-# github.com/go-sql-driver/mysql v1.5.0 => github.com/go-sql-driver/mysql v1.5.0
-## explicit
-github.com/go-sql-driver/mysql
 # github.com/go-stack/stack v1.8.0 => github.com/go-stack/stack v1.8.0
 github.com/go-stack/stack
 # github.com/gobuffalo/flect v0.2.3 => github.com/gobuffalo/flect v0.2.0
@@ -363,10 +360,6 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6 => github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
-## explicit
-github.com/gocraft/dbr
-github.com/gocraft/dbr/dialect
 # github.com/gofrs/uuid v3.2.0+incompatible => github.com/gofrs/uuid v3.2.0+incompatible
 ## explicit
 # github.com/gogo/protobuf v1.3.2 => github.com/gogo/protobuf v1.3.2

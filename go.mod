@@ -45,8 +45,6 @@ require (
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/validate v0.19.8
 	github.com/go-redis/redis v6.15.2+incompatible
-	github.com/go-sql-driver/mysql v1.5.0
-	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/google/go-cmp v0.5.6

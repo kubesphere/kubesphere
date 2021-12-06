@@ -1,4 +1,0 @@
-# exclude all files and folders except bin folder
-!bin
-.idea/
-.vscode/
