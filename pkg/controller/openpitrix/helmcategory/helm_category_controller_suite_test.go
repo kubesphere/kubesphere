@@ -81,7 +81,7 @@ var _ = BeforeSuite(func(done Done) {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	err = Add(k8sManager)
+	err = (&ReconcileHelmCategory{}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&helmapplication.ReconcileHelmApplication{}).SetupWithManager(k8sManager)

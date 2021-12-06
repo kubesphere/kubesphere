@@ -86,6 +86,7 @@ type ReconcileHelmRepo struct {
 }
 
 func (r *ReconcileHelmRepo) SetupWithManager(mgr ctrl.Manager) error {
+	r.Client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 	r.recorder = mgr.GetEventRecorderFor("workspace-controller")
 	r.config = mgr.GetConfig()
