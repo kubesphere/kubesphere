@@ -19,9 +19,10 @@ package options
 import (
 	"flag"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 
@@ -190,7 +191,7 @@ func (o *KubeSphereControllerManagerOptions) IsControllerEnabled(name string) bo
 		if ctrl == name {
 			return true
 		}
-		if ctrl == "-" + name {
+		if ctrl == "-"+name {
 			return false
 		}
 		if ctrl == "*" {
@@ -216,4 +217,3 @@ func (s *KubeSphereControllerManagerOptions) bindLeaderElectionFlags(l *leaderel
 		"The duration the clients should wait between attempting acquisition and renewal "+
 		"of a leadership. This is only applicable if leader election is enabled.")
 }
-

@@ -68,17 +68,17 @@ const (
 // Reconciler reconciles a Workspace object
 type Reconciler struct {
 	client.Client
-	logger                  logr.Logger
-	recorder                record.EventRecorder
+	logger   logr.Logger
+	recorder record.EventRecorder
 	// Knows how to calculate usage
 	registry quotav1.Registry
 
 	MaxConcurrentReconciles int
 	// Controls full recalculation of quota usage
-	ResyncPeriod time.Duration
+	ResyncPeriod    time.Duration
 	InformerFactory k8sinformers.SharedInformerFactory
 
-	scheme       *runtime.Scheme
+	scheme *runtime.Scheme
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {

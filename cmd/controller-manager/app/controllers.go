@@ -18,10 +18,16 @@ package app
 
 import (
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+	ctrl "sigs.k8s.io/controller-runtime"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/helm"
@@ -42,10 +48,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
-	ctrl "sigs.k8s.io/controller-runtime"
-	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/kubefed/pkg/controller/util"
 
 	"kubesphere.io/kubesphere/pkg/controller/storage/snapshotclass"
 
@@ -72,7 +74,7 @@ import (
 	ippoolclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
 )
 
-var allControllers = []string {
+var allControllers = []string{
 	"user",
 	"workspacetemplate",
 	"workspace",
@@ -178,37 +180,37 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 			KubeconfigClient:        kubeconfigClient,
 			AuthenticationOptions:   cmOptions.AuthenticationOptions,
 		}
-		addControllerWithSetup(mgr,"user", userController)
+		addControllerWithSetup(mgr, "user", userController)
 	}
 
 	// "workspacetemplate" controller
 	if cmOptions.IsControllerEnabled("workspacetemplate") {
 		workspaceTemplateReconciler := &workspacetemplate.Reconciler{MultiClusterEnabled: cmOptions.MultiClusterOptions.Enable}
-		addControllerWithSetup(mgr,"workspacetemplate", workspaceTemplateReconciler)
+		addControllerWithSetup(mgr, "workspacetemplate", workspaceTemplateReconciler)
 	}
 
 	// "workspace" controller
 	if cmOptions.IsControllerEnabled("workspace") {
 		workspaceReconciler := &workspace.Reconciler{}
-		addControllerWithSetup(mgr,"workspace", workspaceReconciler)
+		addControllerWithSetup(mgr, "workspace", workspaceReconciler)
 	}
 
 	// "workspacerole" controller
 	if cmOptions.IsControllerEnabled("workspacerole") {
 		workspaceRoleReconciler := &workspacerole.Reconciler{MultiClusterEnabled: cmOptions.MultiClusterOptions.Enable}
-		addControllerWithSetup(mgr,"workspacerole", workspaceRoleReconciler)
+		addControllerWithSetup(mgr, "workspacerole", workspaceRoleReconciler)
 	}
 
 	// "workspacerolebinding" controller
 	if cmOptions.IsControllerEnabled("workspacerolebinding") {
 		workspaceRoleBindingReconciler := &workspacerolebinding.Reconciler{MultiClusterEnabled: cmOptions.MultiClusterOptions.Enable}
-		addControllerWithSetup(mgr,"workspacerolebinding", workspaceRoleBindingReconciler)
+		addControllerWithSetup(mgr, "workspacerolebinding", workspaceRoleBindingReconciler)
 	}
 
 	// "namespace" controller
 	if cmOptions.IsControllerEnabled("namespace") {
 		namespaceReconciler := &namespace.Reconciler{}
-		addControllerWithSetup(mgr,"namespace", namespaceReconciler)
+		addControllerWithSetup(mgr, "namespace", namespaceReconciler)
 	}
 
 	// "helmrepo" controller
@@ -239,29 +241,29 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 		// "helmapplicationversion" controller
 		if cmOptions.IsControllerEnabled("helmapplicationversion") {
 			reconcileHelmAppVersion := (&helmapplication.ReconcileHelmApplicationVersion{})
-			addControllerWithSetup(mgr, "helmapplicationversion",reconcileHelmAppVersion)
+			addControllerWithSetup(mgr, "helmapplicationversion", reconcileHelmAppVersion)
 		}
 	}
 
 	// "helmrelease" controller
 	if cmOptions.IsControllerEnabled("helmrelease") {
 		reconcileHelmRelease := &helmrelease.ReconcileHelmRelease{
-					// nil interface is valid value.
-					StorageClient:      opS3Client,
-					KsFactory:          informerFactory.KubeSphereSharedInformerFactory(),
-					MultiClusterEnable: cmOptions.MultiClusterOptions.Enable,
-					WaitTime:           cmOptions.OpenPitrixOptions.ReleaseControllerOptions.WaitTime,
-					MaxConcurrent:      cmOptions.OpenPitrixOptions.ReleaseControllerOptions.MaxConcurrent,
-					StopChan:           stopCh,
-				}
-		addControllerWithSetup(mgr, "helmrelease",reconcileHelmRelease)
+			// nil interface is valid value.
+			StorageClient:      opS3Client,
+			KsFactory:          informerFactory.KubeSphereSharedInformerFactory(),
+			MultiClusterEnable: cmOptions.MultiClusterOptions.Enable,
+			WaitTime:           cmOptions.OpenPitrixOptions.ReleaseControllerOptions.WaitTime,
+			MaxConcurrent:      cmOptions.OpenPitrixOptions.ReleaseControllerOptions.MaxConcurrent,
+			StopChan:           stopCh,
+		}
+		addControllerWithSetup(mgr, "helmrelease", reconcileHelmRelease)
 	}
 
 	// "helm" controller
 	if cmOptions.IsControllerEnabled("helm") {
 		if !cmOptions.GatewayOptions.IsEmpty() {
 			helmReconciler := &helm.Reconciler{GatewayOptions: cmOptions.GatewayOptions}
-			addControllerWithSetup(mgr, "helm",helmReconciler)
+			addControllerWithSetup(mgr, "helm", helmReconciler)
 		}
 	}
 
@@ -274,21 +276,21 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 			Mapper:              mgr.GetRESTMapper(),
 			ApplicationSelector: selector,
 		}
-		addControllerWithSetup(mgr, "application",applicationReconciler)
+		addControllerWithSetup(mgr, "application", applicationReconciler)
 	}
 
 	// "serviceaccount" controller
 	if cmOptions.IsControllerEnabled("serviceaccount") {
 		saReconciler := &serviceaccount.Reconciler{}
-		addControllerWithSetup(mgr, "serviceaccount",saReconciler)
+		addControllerWithSetup(mgr, "serviceaccount", saReconciler)
 	}
 
 	// "resourcequota" controller
 	if cmOptions.IsControllerEnabled("resourcequota") {
 		resourceQuotaReconciler := &quota.Reconciler{
 			MaxConcurrentReconciles: quota.DefaultMaxConcurrentReconciles,
-			ResyncPeriod: quota.DefaultResyncPeriod,
-			InformerFactory: informerFactory.KubernetesSharedInformerFactory(),
+			ResyncPeriod:            quota.DefaultResyncPeriod,
+			InformerFactory:         informerFactory.KubernetesSharedInformerFactory(),
 		}
 		addControllerWithSetup(mgr, "resourcequota", resourceQuotaReconciler)
 	}
@@ -515,7 +517,6 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 
 	return nil
 }
-
 
 var addSuccessfullyControllers = sets.NewString()
 
