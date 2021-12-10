@@ -48,6 +48,9 @@ type ClusterSpec struct {
 
 	// Connection holds info to connect to the member cluster
 	Connection Connection `json:"connection,omitempty"`
+
+	// ExternalKubeAPIEnabled export kubeapiserver to public use a lb type service if connection type is proxy
+	ExternalKubeAPIEnabled bool `json:"externalKubeAPIEnabled,omitempty"`
 }
 
 type ConnectionType string
@@ -75,6 +78,10 @@ type Connection struct {
 	// Should provide this field explicitly if connection type is direct.
 	// Will be populated by ks-apiserver if connection type is proxy.
 	KubernetesAPIEndpoint string `json:"kubernetesAPIEndpoint,omitempty"`
+
+	// External Kubernetes API Server endpoint
+	// Will be populated by ks-apiserver if connection type is proxy and ExternalKubeAPIEnabled is true.
+	ExternalKubernetesAPIEndpoint string `json:"externalKubernetesAPIEndpoint,omitempty"`
 
 	// KubeConfig content used to connect to cluster api server
 	// Should provide this field explicitly if connection type is direct.
@@ -105,6 +112,9 @@ const (
 
 	// Cluster has been one of federated clusters
 	ClusterFederated ClusterConditionType = "Federated"
+
+	// Cluster external access ready
+	ClusterExternalAccessReady ClusterConditionType = "ExternalAccessReady"
 
 	// Cluster is all available for requests
 	ClusterReady ClusterConditionType = "Ready"
