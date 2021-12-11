@@ -68,15 +68,15 @@ type KubeSphereControllerManagerOptions struct {
 	//      "!kubesphere.io/creator" means exclude applications with this key
 	ApplicationSelector string
 
-	// ControllerSelectors is the list of controller selectors to enable or disable controller.
+	// ControllerGates is the list of controller gates to enable or disable controller.
 	// '*' means "all enabled by default controllers"
 	// 'foo' means "enable 'foo'"
 	// '-foo' means "disable 'foo'"
 	// first item for a particular name wins.
-	// e.g. '-foo,foo' means "disable foo", 'foo,-foo' means "enable foo"
+	//     e.g. '-foo,foo' means "disable foo", 'foo,-foo' means "enable foo"
 	// * has the lowest priority.
-	// e.g. *,-foo, means "disable 'foo'"
-	ControllerSelectors []string
+	//     e.g. *,-foo, means "disable 'foo'"
+	ControllerGates []string
 }
 
 func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
@@ -99,7 +99,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		LeaderElect:         false,
 		WebhookCertDir:      "",
 		ApplicationSelector: "",
-		ControllerSelectors: []string{"*"},
+		ControllerGates: []string{"*"},
 	}
 
 	return s
@@ -134,7 +134,7 @@ func (s *KubeSphereControllerManagerOptions) Flags(allControllerNameSelectors []
 	gfs.StringVar(&s.ApplicationSelector, "application-selector", s.ApplicationSelector, ""+
 		"Only reconcile application(sigs.k8s.io/application) objects match given selector, this could avoid conflicts with "+
 		"other projects built on top of sig-application. Default behavior is to reconcile all of application objects.")
-	gfs.StringSliceVar(&s.ControllerSelectors, "controllers", []string{"*"}, fmt.Sprintf(""+
+	gfs.StringSliceVar(&s.ControllerGates, "controllers", []string{"*"}, fmt.Sprintf(""+
 		"A list of controllers to enable. '*' enables all on-by-default controllers, 'foo' enables the controller "+
 		"named 'foo', '-foo' disables the controller named 'foo'.\nAll controllers: %s",
 		strings.Join(allControllerNameSelectors, ", ")))
@@ -171,7 +171,7 @@ func (o *KubeSphereControllerManagerOptions) Validate(allControllerNameSelectors
 
 	// genetic option: controllers, check all selectors are valid
 	allControllersNameSet := sets.NewString(allControllerNameSelectors...)
-	for _, selector := range o.ControllerSelectors {
+	for _, selector := range o.ControllerGates {
 		if selector == "*" {
 			continue
 		}
@@ -187,7 +187,7 @@ func (o *KubeSphereControllerManagerOptions) Validate(allControllerNameSelectors
 // IsControllerEnabled check if a specified controller enabled or not.
 func (o *KubeSphereControllerManagerOptions) IsControllerEnabled(name string) bool {
 	hasStar := false
-	for _, ctrl := range o.ControllerSelectors {
+	for _, ctrl := range o.ControllerGates {
 		if ctrl == name {
 			return true
 		}

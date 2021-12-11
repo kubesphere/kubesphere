@@ -60,7 +60,7 @@ func TestIsControllerEnabled(t *testing.T) {
 
 	for _, tc := range testcases {
 		option := NewKubeSphereControllerManagerOptions()
-		option.ControllerSelectors = tc.controllerFlags
+		option.ControllerGates = tc.controllerFlags
 		actual := option.IsControllerEnabled(tc.controllerName)
 		assert.Equal(t, tc.expected, actual, "%v: expected %v, got %v", tc.name, tc.expected, actual)
 	}
