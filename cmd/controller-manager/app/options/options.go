@@ -99,7 +99,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		LeaderElect:         false,
 		WebhookCertDir:      "",
 		ApplicationSelector: "",
-		ControllerGates: []string{"*"},
+		ControllerGates:     []string{"*"},
 	}
 
 	return s
