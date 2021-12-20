@@ -28,6 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kubeinformers "k8s.io/client-go/informers"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -306,10 +307,7 @@ func (f *fixture) run_(serviceKey string, expectedVS *v1alpha3.VirtualService, s
 		}
 
 		if unequals := reflectutils.Equal(got, expectedVS); len(unequals) != 0 {
-			f.t.Errorf("didn't get expected result, got %#v, unequal fields:", got)
-			for _, unequal := range unequals {
-				f.t.Errorf("%s", unequal)
-			}
+			f.t.Errorf("didn't get expected result, got %#v, unequal fields:%s", got, diff.ObjectGoPrintSideBySide(expectedVS, got))
 		}
 	}
 }
@@ -528,7 +526,9 @@ func TestStrategies(t *testing.T) {
 		expected.Spec.Http[0].Route[0].Weight = 100
 		expected.Spec.Http[0].Route[0].Destination.Subset = "v2"
 		expected.Spec.Http[0].Route = expected.Spec.Http[0].Route[:1]
-		expected.Spec.Http = expected.Spec.Http[:1]
+		expected.Spec.Http[1].Route[0].Weight = 100
+		expected.Spec.Http[1].Route[0].Destination.Subset = "v2"
+		expected.Spec.Http[1].Route = expected.Spec.Http[0].Route[:1]
 		runStrategy(t, svc, defaultDr, strategy, expected)
 	})
 

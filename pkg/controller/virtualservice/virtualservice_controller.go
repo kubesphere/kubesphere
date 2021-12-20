@@ -557,40 +557,40 @@ func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicem
 	vs.Spec.Hosts = strategy.Spec.Template.Spec.Hosts
 
 	// For multi-ports, apply the rules to each port matched http/tcp protocol
-	for _, port := range service.Spec.Ports {
-		s := strategy.DeepCopy()
-		strategyTempSpec := s.Spec.Template.Spec
-		// fill route.destination.port and match.port filed
-		if len(strategyTempSpec.Http) > 0 && servicemesh.SupportHttpProtocol(port.Name) {
-			for _, http := range strategyTempSpec.Http {
-				if len(http.Match) == 0 {
-					http.Match = []*apinetworkingv1alpha3.HTTPMatchRequest{{Port: uint32(port.Port)}}
-				} else {
-					for _, match := range http.Match {
-						match.Port = uint32(port.Port)
+	if len(strategy.Spec.GovernorVersion) == 0 {
+		for _, port := range service.Spec.Ports {
+			s := strategy.DeepCopy()
+			strategyTempSpec := s.Spec.Template.Spec
+			// fill route.destination.port and match.port filed
+			if len(strategyTempSpec.Http) > 0 && servicemesh.SupportHttpProtocol(port.Name) {
+				for _, http := range strategyTempSpec.Http {
+					if len(http.Match) == 0 {
+						http.Match = []*apinetworkingv1alpha3.HTTPMatchRequest{{Port: uint32(port.Port)}}
+					} else {
+						for _, match := range http.Match {
+							match.Port = uint32(port.Port)
+						}
+					}
+					for _, route := range http.Route {
+						route.Destination.Port = &apinetworkingv1alpha3.PortSelector{
+							Number: uint32(port.Port),
+						}
 					}
 				}
-				for _, route := range http.Route {
-					route.Destination.Port = &apinetworkingv1alpha3.PortSelector{
-						Number: uint32(port.Port),
+				vs.Spec.Http = append(vs.Spec.Http, strategyTempSpec.Http...)
+			}
+			if len(strategyTempSpec.Tcp) > 0 && !servicemesh.SupportHttpProtocol(port.Name) {
+				for _, tcp := range strategyTempSpec.Tcp {
+					tcp.Match = []*apinetworkingv1alpha3.L4MatchAttributes{{Port: uint32(port.Port)}}
+					for _, r := range tcp.Route {
+						r.Destination.Port = &apinetworkingv1alpha3.PortSelector{Number: uint32(port.Port)}
 					}
 				}
+				vs.Spec.Tcp = append(vs.Spec.Tcp, strategyTempSpec.Tcp...)
 			}
-			vs.Spec.Http = append(vs.Spec.Http, strategyTempSpec.Http...)
 		}
-		if len(strategyTempSpec.Tcp) > 0 && !servicemesh.SupportHttpProtocol(port.Name) {
-			for _, tcp := range strategyTempSpec.Tcp {
-				tcp.Match = []*apinetworkingv1alpha3.L4MatchAttributes{{Port: uint32(port.Port)}}
-				for _, r := range tcp.Route {
-					r.Destination.Port = &apinetworkingv1alpha3.PortSelector{Number: uint32(port.Port)}
-				}
-			}
-			vs.Spec.Tcp = append(vs.Spec.Tcp, strategyTempSpec.Tcp...)
-		}
-	}
-
-	// one version rules them all
-	if len(strategy.Spec.GovernorVersion) > 0 {
+	} else {
+		// one version rules them all
 		governorDestinationWeight := apinetworkingv1alpha3.HTTPRouteDestination{
 			Destination: &apinetworkingv1alpha3.Destination{
 				Host:   service.Name,
@@ -601,30 +601,30 @@ func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicem
 
 		for _, port := range service.Spec.Ports {
 			match := apinetworkingv1alpha3.HTTPMatchRequest{Port: uint32(port.Port)}
-			if len(strategy.Spec.Template.Spec.Http) > 0 {
+			if len(strategy.Spec.Template.Spec.Http) > 0 && servicemesh.SupportHttpProtocol(port.Name) {
 				governorRoute := apinetworkingv1alpha3.HTTPRoute{
 					Route: []*apinetworkingv1alpha3.HTTPRouteDestination{&governorDestinationWeight},
 					Match: []*apinetworkingv1alpha3.HTTPMatchRequest{&match},
 				}
-				vs.Spec.Http = []*apinetworkingv1alpha3.HTTPRoute{&governorRoute}
-
+				vs.Spec.Http = append(vs.Spec.Http, &governorRoute)
 			}
-			if len(strategy.Spec.Template.Spec.Tcp) > 0 {
+			if len(strategy.Spec.Template.Spec.Tcp) > 0 && !servicemesh.SupportHttpProtocol(port.Name) {
 				tcpRoute := apinetworkingv1alpha3.TCPRoute{
 					Route: []*apinetworkingv1alpha3.RouteDestination{
 						{
 							Destination: &apinetworkingv1alpha3.Destination{
 								Host:   governorDestinationWeight.Destination.Host,
 								Subset: governorDestinationWeight.Destination.Subset,
+								Port: &apinetworkingv1alpha3.PortSelector{
+									Number: uint32(port.Port),
+								},
 							},
 							Weight: governorDestinationWeight.Weight,
 						},
 					},
 					Match: []*apinetworkingv1alpha3.L4MatchAttributes{{Port: match.Port}},
 				}
-
-				//governorRoute := v1alpha3.TCPRoute{tcpRoute}
-				vs.Spec.Tcp = []*apinetworkingv1alpha3.TCPRoute{&tcpRoute}
+				vs.Spec.Tcp = append(vs.Spec.Tcp, &tcpRoute)
 			}
 		}
 	}
