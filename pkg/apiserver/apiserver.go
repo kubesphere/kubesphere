@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	rt "runtime"
+	"strconv"
 	"time"
 
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
@@ -33,8 +34,6 @@ import (
 	"kubesphere.io/api/notification/v2beta1"
 
 	openpitrixv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v2alpha1"
-
-	"strconv"
 
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -228,6 +227,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.KubernetesClient.KubeSphere(), s.EventsClient, s.LoggingClient, s.AuditingClient, amOperator, rbacAuthorizer, s.MonitoringClient, s.RuntimeCache, s.Config.MeteringOptions))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), rbacAuthorizer, s.KubernetesClient.Config()))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(s.container,
+		s.KubernetesClient.KubeSphere(),
 		s.InformerFactory.KubernetesSharedInformerFactory(),
 		s.InformerFactory.KubeSphereSharedInformerFactory(),
 		s.Config.MultiClusterOptions.ProxyPublishService,

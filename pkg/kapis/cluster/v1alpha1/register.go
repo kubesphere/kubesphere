@@ -26,6 +26,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
 )
@@ -37,6 +38,7 @@ const (
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 
 func AddToContainer(container *restful.Container,
+	ksclient kubesphere.Interface,
 	k8sInformers k8sinformers.SharedInformerFactory,
 	ksInformers externalversions.SharedInformerFactory,
 	proxyService string,
@@ -44,7 +46,7 @@ func AddToContainer(container *restful.Container,
 	agentImage string) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
-	h := newHandler(k8sInformers, ksInformers, proxyService, proxyAddress, agentImage)
+	h := newHandler(ksclient, k8sInformers, ksInformers, proxyService, proxyAddress, agentImage)
 
 	// returns deployment yaml for cluster agent
 	webservice.Route(webservice.GET("/clusters/{cluster}/agent/deployment").
@@ -58,6 +60,13 @@ func AddToContainer(container *restful.Container,
 		Doc("").
 		Param(webservice.BodyParameter("cluster", "cluster specification")).
 		To(h.validateCluster).
+		Returns(http.StatusOK, api.StatusOK, nil).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.MultiClusterTag}))
+
+	webservice.Route(webservice.PUT("/clusters/{cluster}/kubeconfig").
+		Doc("Update cluster kubeconfig.").
+		Param(webservice.PathParameter("cluster", "Name of the cluster.").Required(true)).
+		To(h.updateKubeConfig).
 		Returns(http.StatusOK, api.StatusOK, nil).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.MultiClusterTag}))
 
