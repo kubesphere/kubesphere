@@ -45,10 +45,10 @@ type terminalHandler struct {
 	authorizer authorizer.Authorizer
 }
 
-func newTerminalHandler(client kubernetes.Interface, authorizer authorizer.Authorizer, config *rest.Config) *terminalHandler {
+func newTerminalHandler(client kubernetes.Interface, authorizer authorizer.Authorizer, config *rest.Config, options *terminal.Options) *terminalHandler {
 	return &terminalHandler{
 		authorizer: authorizer,
-		terminaler: terminal.NewTerminaler(client, config),
+		terminaler: terminal.NewTerminaler(client, config, options),
 	}
 }
 
@@ -88,4 +88,39 @@ func (t *terminalHandler) handleTerminalSession(request *restful.Request, respon
 	}
 
 	t.terminaler.HandleSession(shell, namespace, podName, containerName, conn)
+}
+
+func (t *terminalHandler) handleShellAccessToNode(request *restful.Request, response *restful.Response) {
+	nodename := request.PathParameter("nodename")
+
+	user, _ := requestctx.UserFrom(request.Request.Context())
+
+	createPodsExec := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            "create",
+		Resource:        "pods",
+		Subresource:     "exec",
+		Namespace:       "kubesphere-controls-system",
+		ResourceRequest: true,
+		ResourceScope:   requestctx.NamespaceScope,
+	}
+
+	decision, reason, err := t.authorizer.Authorize(createPodsExec)
+	if err != nil {
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	if decision != authorizer.DecisionAllow {
+		api.HandleForbidden(response, request, errors.New(reason))
+		return
+	}
+
+	conn, err := upgrader.Upgrade(response.ResponseWriter, request.Request, nil)
+	if err != nil {
+		klog.Warning(err)
+		return
+	}
+
+	t.terminaler.HandleShellAccessToNode(nodename, conn)
 }
