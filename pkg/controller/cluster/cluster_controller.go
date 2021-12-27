@@ -156,7 +156,7 @@ type clusterController struct {
 
 	resyncPeriod time.Duration
 
-	hostClusterNmae string
+	hostClusterName string
 }
 
 func NewClusterController(
@@ -185,7 +185,7 @@ func NewClusterController(
 		workerLoopPeriod: time.Second,
 		clusterMap:       make(map[string]*clusterData),
 		resyncPeriod:     resyncPeriod,
-		hostClusterNmae:  hostClusterName,
+		hostClusterName:  hostClusterName,
 	}
 	c.clusterLister = clusterInformer.Lister()
 	c.clusterHasSynced = clusterInformer.Informer().HasSynced
@@ -321,7 +321,7 @@ func (c *clusterController) reconcileHostCluster() error {
 	// no host cluster, create one
 	if len(clusters) == 0 {
 		hostCluster.Spec.Connection.KubeConfig = hostKubeConfig
-		hostCluster.Name = c.hostClusterNmae
+		hostCluster.Name = c.hostClusterName
 		_, err = c.clusterClient.Create(context.TODO(), hostCluster, metav1.CreateOptions{})
 		return err
 	} else if len(clusters) > 1 {
