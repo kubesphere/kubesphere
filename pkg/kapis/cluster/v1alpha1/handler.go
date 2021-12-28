@@ -46,7 +46,9 @@ import (
 	"kubesphere.io/api/cluster/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/api"
+	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/api/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/config"
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/version"
@@ -63,6 +65,7 @@ const (
 var errClusterConnectionIsNotProxy = fmt.Errorf("cluster is not using proxy connection")
 
 type handler struct {
+	ksclient        kubesphere.Interface
 	serviceLister   v1.ServiceLister
 	clusterLister   clusterlister.ClusterLister
 	configMapLister v1.ConfigMapLister
@@ -73,13 +76,14 @@ type handler struct {
 	yamlPrinter  *printers.YAMLPrinter
 }
 
-func newHandler(k8sInformers k8sinformers.SharedInformerFactory, ksInformers externalversions.SharedInformerFactory, proxyService, proxyAddress, agentImage string) *handler {
+func newHandler(ksclient kubesphere.Interface, k8sInformers k8sinformers.SharedInformerFactory, ksInformers externalversions.SharedInformerFactory, proxyService, proxyAddress, agentImage string) *handler {
 
 	if len(agentImage) == 0 {
 		agentImage = defaultAgentImage
 	}
 
 	return &handler{
+		ksclient:        ksclient,
 		serviceLister:   k8sInformers.Core().V1().Services().Lister(),
 		clusterLister:   ksInformers.Cluster().V1alpha1().Clusters().Lister(),
 		configMapLister: k8sInformers.Core().V1().ConfigMaps().Lister(),
@@ -133,7 +137,6 @@ func (h *handler) generateAgentDeployment(request *restful.Request, response *re
 	response.Write(buf.Bytes())
 }
 
-//
 func (h *handler) populateProxyAddress() error {
 	if len(h.proxyService) == 0 {
 		return fmt.Errorf("neither proxy address nor proxy service provided")
@@ -249,6 +252,73 @@ func (h *handler) generateDefaultDeployment(cluster *v1alpha1.Cluster, w io.Writ
 	}
 
 	return h.yamlPrinter.PrintObj(&agent, w)
+}
+
+// updateKubeConfig updates the kubeconfig of the specific cluster, this API is used to update expired kubeconfig.
+func (h *handler) updateKubeConfig(request *restful.Request, response *restful.Response) {
+	var req clusterv1alpha1.UpdateClusterRequest
+	if err := request.ReadEntity(&req); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	clusterName := request.PathParameter("cluster")
+	obj, err := h.clusterLister.Get(clusterName)
+	if err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+	cluster := obj.DeepCopy()
+	if _, ok := cluster.Labels[v1alpha1.HostCluster]; ok {
+		api.HandleBadRequest(response, request, fmt.Errorf("update kubeconfig of the host cluster is not allowed"))
+		return
+	}
+	// For member clusters that use proxy mode, we don't need to update the kubeconfig,
+	// if the certs expired, just restart the tower component in the host cluster, it will renew the cert.
+	if cluster.Spec.Connection.Type == v1alpha1.ConnectionTypeProxy {
+		api.HandleBadRequest(response, request, fmt.Errorf(
+			"update kubeconfig of member clusters which using proxy mode is not allowed, their certs are managed and will be renewed by tower",
+		))
+		return
+	}
+
+	if len(req.KubeConfig) == 0 {
+		api.HandleBadRequest(response, request, fmt.Errorf("cluster kubeconfig MUST NOT be empty"))
+		return
+	}
+	config, err := loadKubeConfigFromBytes(req.KubeConfig)
+	if err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+	config.Timeout = defaultTimeout
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+	if _, err = clientSet.Discovery().ServerVersion(); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	_, err = validateKubeSphereAPIServer(cluster.Spec.Connection.KubeSphereAPIEndpoint, cluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		api.HandleBadRequest(response, request, fmt.Errorf("unable validate kubesphere endpoint, %v", err))
+		return
+	}
+
+	err = h.validateMemberClusterConfiguration(cluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		api.HandleBadRequest(response, request, fmt.Errorf("failed to validate member cluster configuration, err: %v", err))
+	}
+
+	cluster.Spec.Connection.KubeConfig = req.KubeConfig
+	if _, err = h.ksclient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+	response.WriteHeader(http.StatusOK)
 }
 
 // ValidateCluster validate cluster kubeconfig and kubesphere apiserver address, check their accessibility
