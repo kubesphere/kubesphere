@@ -12,7 +12,7 @@ controller:
     namespace: ""  # defaults to .Release.Namespace
   image:
     repository: kubesphere/nginx-ingress-controller
-    tag: "v0.48.1"
+    tag: "v1.1.0"
     pullPolicy: IfNotPresent
     digest: ""
 

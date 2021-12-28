@@ -11,7 +11,7 @@ spec:
     {{- with .Values.controller.image }}
     {{- toYaml . | nindent 6 }}
     {{- end }}
-
+    watchIngressWithoutClass: true
     publishService:
       enabled: {{ eq .Values.service.type "LoadBalancer" }}
 

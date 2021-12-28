@@ -59,7 +59,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		r, err := reconciler.New(
 			reconciler.WithChart(*w.Chart),
 			reconciler.WithGroupVersionKind(w.GroupVersionKind),
-			reconciler.WithOverrideValues(r.defaultConfiguration()),
+			reconciler.WithOverrideValues(r.defaultConfiguration(w.OverrideValues)),
 			reconciler.SkipDependentWatches(w.WatchDependentResources != nil && !*w.WatchDependentResources),
 			reconciler.WithMaxConcurrentReconciles(maxConcurrentReconciles),
 			reconciler.WithReconcilePeriod(reconcilePeriod),
@@ -78,8 +78,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return nil
 }
 
-func (r *Reconciler) defaultConfiguration() map[string]string {
-	var overrideValues = make(map[string]string)
+func (r *Reconciler) defaultConfiguration(overrideValues map[string]string) map[string]string {
 	if r.GatewayOptions.Repository != "" {
 		overrideValues["controller.image.repository"] = r.GatewayOptions.Repository
 	}
