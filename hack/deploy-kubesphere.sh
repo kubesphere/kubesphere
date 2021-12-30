@@ -30,9 +30,9 @@ function wait_for_installation_finish() {
     done < <(timeout 900 kubectl logs -n kubesphere-system deploy/ks-installer -f)
 }
 
-# Use kubespheredev and latest tag as default image
+# Use kubesphere and latest tag as default image
 TAG="${TAG:-latest}"
-REPO="${REPO:-kubespheredev}"
+REPO="${REPO:-kubesphere}"
 
 # Use KIND_LOAD_IMAGE=y .hack/deploy-kubesphere.sh to load
 # the built docker image into kind before deploying.
