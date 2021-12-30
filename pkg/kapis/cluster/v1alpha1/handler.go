@@ -41,8 +41,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-
 	"kubesphere.io/api/cluster/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -51,6 +49,7 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
@@ -286,7 +285,7 @@ func (h *handler) updateKubeConfig(request *restful.Request, response *restful.R
 		api.HandleBadRequest(response, request, fmt.Errorf("cluster kubeconfig MUST NOT be empty"))
 		return
 	}
-	config, err := loadKubeConfigFromBytes(req.KubeConfig)
+	config, err := k8sutil.LoadKubeConfigFromBytes(req.KubeConfig)
 	if err != nil {
 		api.HandleBadRequest(response, request, err)
 		return
@@ -363,7 +362,7 @@ func (h *handler) validateCluster(request *restful.Request, response *restful.Re
 
 // validateKubeConfig takes base64 encoded kubeconfig and check its validity
 func (h *handler) validateKubeConfig(kubeconfig []byte) error {
-	config, err := loadKubeConfigFromBytes(kubeconfig)
+	config, err := k8sutil.LoadKubeConfigFromBytes(kubeconfig)
 	if err != nil {
 		return err
 	}
@@ -393,20 +392,6 @@ func (h *handler) validateKubeConfig(kubeconfig []byte) error {
 	return err
 }
 
-func loadKubeConfigFromBytes(kubeconfig []byte) (*rest.Config, error) {
-	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return config, nil
-}
-
 // validateKubeSphereAPIServer uses version api to check the accessibility
 // If kubesphere apiserver endpoint is not provided, use kube-apiserver proxy instead
 func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version.Info, error) {
@@ -426,7 +411,7 @@ func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version
 			return nil, err
 		}
 	} else {
-		config, err := loadKubeConfigFromBytes(kubeconfig)
+		config, err := k8sutil.LoadKubeConfigFromBytes(kubeconfig)
 		if err != nil {
 			return nil, err
 		}
@@ -485,7 +470,7 @@ func (h *handler) validateMemberClusterConfiguration(memberKubeconfig []byte) er
 
 // getMemberClusterConfig returns KubeSphere running config by the given member cluster kubeconfig
 func (h *handler) getMemberClusterConfig(kubeconfig []byte) (*config.Config, error) {
-	config, err := loadKubeConfigFromBytes(kubeconfig)
+	config, err := k8sutil.LoadKubeConfigFromBytes(kubeconfig)
 	if err != nil {
 		return nil, err
 	}

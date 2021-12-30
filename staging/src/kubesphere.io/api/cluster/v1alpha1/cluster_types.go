@@ -121,6 +121,9 @@ const (
 
 	// Openpitrix runtime is created
 	ClusterOpenPitrixRuntimeReady ClusterConditionType = "OpenPitrixRuntimeReady"
+
+	// ClusterKubeConfigCertExpiresInSevenDays indicates that the cluster certificate is about to expire.
+	ClusterKubeConfigCertExpiresInSevenDays ClusterConditionType = "KubeConfigCertExpiresInSevenDays"
 )
 
 type ClusterCondition struct {

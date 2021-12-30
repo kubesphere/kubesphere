@@ -41,6 +41,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
@@ -339,7 +340,7 @@ func TestValidateKubeConfig(t *testing.T) {
 		"",
 		agentImage)
 
-	config, err := loadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
+	config, err := k8sutil.LoadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,7 +416,7 @@ func TestValidateMemberClusterConfiguration(t *testing.T) {
 		"",
 		agentImage)
 
-	config, err := loadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
+	config, err := k8sutil.LoadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
