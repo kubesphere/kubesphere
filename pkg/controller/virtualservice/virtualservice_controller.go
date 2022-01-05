@@ -316,61 +316,12 @@ func (v *VirtualServiceController) syncService(key string) error {
 	}
 	vs := currentVirtualService.DeepCopy()
 
-	// create a whole new virtualservice
-
-	// TODO(jeff): use FQDN to replace service name
-	vs.Spec.Hosts = []string{name}
-
-	vs.Spec.Http = []*apinetworkingv1alpha3.HTTPRoute{}
-	vs.Spec.Tcp = []*apinetworkingv1alpha3.TCPRoute{}
-
-	// check if service has TCP protocol ports
-	for _, port := range service.Spec.Ports {
-		var route apinetworkingv1alpha3.HTTPRouteDestination
-		var match apinetworkingv1alpha3.HTTPMatchRequest
-		if port.Protocol == v1.ProtocolTCP {
-			route = apinetworkingv1alpha3.HTTPRouteDestination{
-				Destination: &apinetworkingv1alpha3.Destination{
-					Host:   name,
-					Subset: subsets[0].Name,
-					Port: &apinetworkingv1alpha3.PortSelector{
-						Number: uint32(port.Port),
-					},
-				},
-				Weight: 100,
-			}
-
-			match = apinetworkingv1alpha3.HTTPMatchRequest{Port: uint32(port.Port)}
-
-			// a http port, add to HTTPRoute
-
-			if servicemesh.SupportHttpProtocol(port.Name) {
-				httpRoute := apinetworkingv1alpha3.HTTPRoute{
-					Route: []*apinetworkingv1alpha3.HTTPRouteDestination{&route},
-					Match: []*apinetworkingv1alpha3.HTTPMatchRequest{&match},
-				}
-				vs.Spec.Http = append(vs.Spec.Http, &httpRoute)
-			} else {
-				// everything else treated as TCPRoute
-				tcpRoute := apinetworkingv1alpha3.TCPRoute{
-					Route: []*apinetworkingv1alpha3.RouteDestination{
-						{
-							Destination: route.Destination,
-							Weight:      route.Weight,
-						},
-					},
-					Match: []*apinetworkingv1alpha3.L4MatchAttributes{{Port: match.Port}},
-				}
-				vs.Spec.Tcp = append(vs.Spec.Tcp, &tcpRoute)
-			}
-		}
-	}
-
 	if len(strategies) > 0 {
 		// apply strategy spec to virtualservice
 
 		switch strategies[0].Spec.StrategyPolicy {
 		case servicemeshv1alpha2.PolicyPause:
+			vs.Spec = v.generateDefaultVirtualServiceSpec(name, subsets, service).Spec
 			break
 		case servicemeshv1alpha2.PolicyWaitForWorkloadReady:
 			set := v.getSubsets(strategies[0])
@@ -388,6 +339,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 			}
 			// strategy has subset that are not ready
 			if nonExist {
+				vs.Spec = v.generateDefaultVirtualServiceSpec(name, subsets, service).Spec
 				break
 			} else {
 				vs.Spec = v.generateVirtualServiceSpec(strategies[0], service).Spec
@@ -397,7 +349,11 @@ func (v *VirtualServiceController) syncService(key string) error {
 		default:
 			vs.Spec = v.generateVirtualServiceSpec(strategies[0], service).Spec
 		}
+	} else {
+		vs.Spec = v.generateDefaultVirtualServiceSpec(name, subsets, service).Spec
 	}
+
+	v.patchHTTPRoute(currentVirtualService.Spec.Http, vs.Spec.Http)
 
 	createVirtualService := len(currentVirtualService.ResourceVersion) == 0
 
@@ -631,4 +587,73 @@ func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicem
 
 	servicemesh.FillDestinationPort(vs, service)
 	return vs
+}
+
+// create a whole new virtualservice
+func (v *VirtualServiceController) generateDefaultVirtualServiceSpec(name string, subsets []*apinetworkingv1alpha3.Subset, service *v1.Service) *clientgonetworkingv1alpha3.VirtualService {
+	vs := &clientgonetworkingv1alpha3.VirtualService{}
+	// TODO(jeff): use FQDN to replace service name
+	vs.Spec.Hosts = []string{name}
+	// check if service has TCP protocol ports
+	for _, port := range service.Spec.Ports {
+		var route apinetworkingv1alpha3.HTTPRouteDestination
+		var match apinetworkingv1alpha3.HTTPMatchRequest
+		if port.Protocol == v1.ProtocolTCP {
+			route = apinetworkingv1alpha3.HTTPRouteDestination{
+				Destination: &apinetworkingv1alpha3.Destination{
+					Host:   name,
+					Subset: subsets[0].Name,
+					Port: &apinetworkingv1alpha3.PortSelector{
+						Number: uint32(port.Port),
+					},
+				},
+				Weight: 100,
+			}
+
+			match = apinetworkingv1alpha3.HTTPMatchRequest{Port: uint32(port.Port)}
+
+			// a http port, add to HTTPRoute
+
+			if servicemesh.SupportHttpProtocol(port.Name) {
+				httpRoute := apinetworkingv1alpha3.HTTPRoute{
+					Name:  port.Name,
+					Route: []*apinetworkingv1alpha3.HTTPRouteDestination{&route},
+					Match: []*apinetworkingv1alpha3.HTTPMatchRequest{&match},
+				}
+				vs.Spec.Http = append(vs.Spec.Http, &httpRoute)
+			} else {
+				// everything else treated as TCPRoute
+				tcpRoute := apinetworkingv1alpha3.TCPRoute{
+					Route: []*apinetworkingv1alpha3.RouteDestination{
+						{
+							Destination: route.Destination,
+							Weight:      route.Weight,
+						},
+					},
+					Match: []*apinetworkingv1alpha3.L4MatchAttributes{{Port: match.Port}},
+				}
+				vs.Spec.Tcp = append(vs.Spec.Tcp, &tcpRoute)
+			}
+		}
+	}
+	return vs
+}
+
+// patchHTTPRoute copy all properties from origin to the target HTTPRoute except Match and Route
+func (v *VirtualServiceController) patchHTTPRoute(origin, target []*apinetworkingv1alpha3.HTTPRoute) []*apinetworkingv1alpha3.HTTPRoute {
+	originMap := map[string]*apinetworkingv1alpha3.HTTPRoute{}
+	for _, o := range origin {
+		originMap[o.Name] = o
+	}
+
+	for _, t := range target {
+		if o, ok := originMap[t.Name]; ok {
+			match := t.Match
+			route := t.Route
+			*t = *o
+			t.Match = match
+			t.Route = route
+		}
+	}
+	return target
 }
