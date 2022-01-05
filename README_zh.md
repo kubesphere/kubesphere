@@ -55,7 +55,7 @@
 
 <details>
   <summary><b>🕸 部署 Kubernetes 集群</b></summary>
-  支持在任何基础设施上部署 Kubernetes，支持在线安装和离线安装，<a href="https://kubesphere.io/zh/docs/installing-on-linux/introduction/intro/">了解更多</a> 。
+  支持在任何基础设施上部署 Kubernetes，支持在线安装和离线安装，<a href="https://kubesphere.io/zh/docs/installing-on-linux/introduction/intro/">了解更多</a>。
   </details>
 
 <details>
@@ -65,42 +65,47 @@
 
 <details>
   <summary><b>🤖 Kubernetes DevOps</b></summary>
-  提供开箱即用的基于 Jenkins 的 CI/CD，并内置自动化流水线插件，包括Binary-to-Image (B2I) 和Source-to-Image (S2I)，<a href="https://kubesphere.io/zh/devops/">了解更多</a> 。
+  提供开箱即用的基于 Jenkins 的 CI/CD，并内置自动化流水线插件，包括 Binary-to-Image (B2I) 和 Source-to-Image (S2I)，<a href="https://kubesphere.io/zh/devops/">了解更多</a>。
   </details>
 
 <details>
   <summary><b>🔎 云原生可观测性</b></summary>
-  支持多维度监控、事件和审计日志；内置多租户日志查询和收集，告警和通知，<a href="https://kubesphere.io/zh/observability/">了解更多</a> 。
+  支持多维度监控、事件和审计日志；内置多租户日志查询和收集，告警和通知，<a href="https://kubesphere.io/zh/observability/">了解更多</a>。
   </details>
 
 <details>
   <summary><b>🧩 基于 Istio 的微服务治理</b></summary>
-  为分布式微服务应用程序提供细粒度的流量管理、可观测性和服务跟踪，支持可视化的流量拓扑，<a href="https://kubesphere.io/zh/service-mesh/">了解更多</a> 。
+  为分布式微服务应用程序提供细粒度的流量管理、可观测性和服务跟踪，支持可视化的流量拓扑，<a href="https://kubesphere.io/zh/service-mesh/">了解更多</a>。
   </details>
 
 <details>
   <summary><b>💻 应用商店</b></summary>
-  为基于 Helm 的应用程序提供应用商店，并在 Kubernetes 平台上提供应用程序生命周期管理功能，<a href="https://kubesphere.io/zh/docs/pluggable-components/app-store/">了解更多</a> 。
+  为基于 Helm 的应用程序提供应用商店，并在 Kubernetes 平台上提供应用程序生命周期管理功能，<a href="https://kubesphere.io/zh/docs/pluggable-components/app-store/">了解更多</a>。
   </details>
 
 <details>
   <summary><b>💡 Kubernetes 边缘节点管理</b></summary>
-  基于 <a href="https://kubeedge.io/zh/">KubeEdge</a> 实现应用与工作负载在云端与边缘节点的统一分发与管理，解决在海量边、端设备上完成应用交付、运维、管控的需求，<a href= "https://kubesphere.io/zh/docs/pluggable-components/kubeedge/">了解更多</a> 。
+  基于 <a href="https://kubeedge.io/zh/">KubeEdge</a> 实现应用与工作负载在云端与边缘节点的统一分发与管理，解决在海量边、端设备上完成应用交付、运维、管控的需求，<a href= "https://kubesphere.io/zh/docs/pluggable-components/kubeedge/">了解更多</a>。
   </details>
 
 <details>
   <summary><b>📊 多维度计量与计费</b></summary>
-  提供基于集群与租户的多维度资源计量与计费的监控报表，让 Kubernetes 运营成本更透明，<a href="https://kubesphere.io/zh/docs/toolbox/metering-and-billing/view-resource-consumption/">了解更多</a> 。
+  提供基于集群与租户的多维度资源计量与计费的监控报表，让 Kubernetes 运营成本更透明，<a href="https://kubesphere.io/zh/docs/toolbox/metering-and-billing/view-resource-consumption/">了解更多</a>。
   </details>
 
 <details>
   <summary><b>🗃 支持多种存储和网络解决方案</b></summary>
-  <li>支持 GlusterFS、CephRBD、NFS、LocalPV ，并提供多个 CSI 插件对接公有云与企业级存储。</li><li>提供Kubernetes在裸机、边缘和虚拟化中的负载均衡器实现 <a href="https://github.com/kubesphere/openelb">OpenELB</a> 。</li><li>提供网络策略和容器组 IP 池管理，支持 Calico、Flannel、Kube-OVN。</li>
+  <li>支持 GlusterFS、CephRBD、NFS、LocalPV ，并提供多个 CSI 插件对接公有云与企业级存储。</li><li>提供 Kubernetes 在裸机、边缘和虚拟化中的负载均衡器实现 <a href="https://github.com/kubesphere/openelb">OpenELB</a> 。</li><li>提供网络策略和容器组 IP 池管理，支持 Calico、Flannel、Kube-OVN。</li>
   </details>
 
 <details>
-  <summary><b>🏘 多租户</b></summary>
+  <summary><b>🏘 多租户与统一鉴权认证</b></summary>
   提供统一的认证鉴权与细粒度的基于角色的授权系统，支持对接 AD/LDAP 。
+  </details>
+
+<details>
+  <summary><b>🧠 GPU 工作负载调度与监控</b></summary>
+  支持可视化创建 GPU 工作负载，支持 GPU 监控，同时还支持对 GPU 资源进行租户级配额管理。
   </details>
 
 ## 架构说明
@@ -113,30 +118,38 @@ KubeSphere 使用前后端分离的架构，将 [前端](https://github.com/kube
 
 ## 最新版本
 
-🎉 KubeSphere 3.2.0 全新发布！相关更新信息，请参阅 [3.2.0 GA 详细解读](https://kubesphere.com.cn/blogs/kubesphere-3.2.0-ga-announcement/) 。
-
+🎉 KubeSphere 3.2.1 全新发布！！多项功能优化，带来更好的用户体验，详见 [v3.2.1 发行记录](https://kubesphere.com.cn/docs/release/release-v321/) 。
 ## 安装
 
-KubeSphere 支持在任意平台运行，从本地数据中心到混合多云再走向边缘。此外，KubeSphere 可以部署在任何版本兼容的 Kubernetes 集群上。
-
+KubeSphere 支持在任意平台运行，从本地数据中心到混合多云再走向边缘。此外，KubeSphere 可以部署在任何版本兼容的 Kubernetes 集群上。Installer 默认将执行最小化安装，您可以在安装前或安装后自定义[安装可插拔功能组件](https://kubesphere.com.cn/docs/quick-start/enable-pluggable-components/)。
 ### 快速入门
+#### 在 K8s/K3s 上安装
 
-1. 运行以下命令以在现有 Kubernetes 集群上安装 KubeSphere：
+请确保您的集群满足安装的[前提条件](https://kubesphere.io/zh/docs/quick-start/minimal-kubesphere-on-k8s/)，运行以下命令以在现有 Kubernetes 集群上安装 KubeSphere：
 
 ```yaml
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.0/kubesphere-installer.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/kubesphere-installer.yaml
    
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.0/cluster-configuration.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/cluster-configuration.yaml
+```
+#### All-in-one（Linux 单节点安装）
+
+👨‍💻 没有 Kubernetes 集群? 可以用 [KubeKey](https://github.com/kubesphere/kubekey) 在 Linux 环境以 All-in-one 快速安装单节点 K8s/K3s 和 KubeSphere，下面以 K3s 为例：
+
+```yaml
+# 下载 KubeKey
+curl -sfL https://get-kk.kubesphere.io | VERSION=v1.2.0 sh -
+# 为 kk 赋予可执行权限
+chmod +x kk
+# 创建集群
+./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.2.1
 ```
 
-2. 您可以运行以下命令查看安装日志。 KubeSphere 安装成功后，您可以使用`http://IP:30880` 以默认账号和密码（admin/P@88w0rd）访问KubeSphere 控制台。
+可使用以下命令查看安装日志。如果安装成功，可使用 `http://IP:30880` 访问 KubeSphere Console，管理员登录帐密为 `admin/P@88w0rd`。
 
 ```yaml
 kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
-```
-
-> 👨‍💻 没有 Kubernetes 集群? 可以尝试在 Linux 上以[All-in-one](https://kubesphere.io/zh/docs/quick-start/all-in-one-on-linux/) 模式来安装单节点 Kubernetes 和 KubeSphere。
-
+``` 
 ### 🐯 使用 Katacoda 在线安装体验 KubeSphere
 
 [Katacoda](https://www.katacoda.com/) 是一个在线的云原生技术学习实验平台，你可以使用它在浏览器中快速 [安装体验 KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes) 。
