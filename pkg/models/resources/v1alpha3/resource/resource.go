@@ -19,6 +19,8 @@ package resource
 import (
 	"errors"
 
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/volumesnapshotclass"
+
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/persistentvolume"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
@@ -115,6 +117,7 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	clusterResourceGetters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "persistentvolumes"}] = persistentvolume.New(factory.KubernetesSharedInformerFactory())
 	namespacedResourceGetters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "persistentvolumeclaims"}] = persistentvolumeclaim.New(factory.KubernetesSharedInformerFactory(), factory.SnapshotSharedInformerFactory())
 	namespacedResourceGetters[snapshotv1.SchemeGroupVersion.WithResource("volumesnapshots")] = volumesnapshot.New(factory.SnapshotSharedInformerFactory())
+	clusterResourceGetters[snapshotv1.SchemeGroupVersion.WithResource("volumesnapshotclasses")] = volumesnapshotclass.New(factory.SnapshotSharedInformerFactory())
 	namespacedResourceGetters[rbacv1.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralRoleBinding)] = rolebinding.New(factory.KubernetesSharedInformerFactory())
 	namespacedResourceGetters[rbacv1.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralRole)] = role.New(factory.KubernetesSharedInformerFactory())
 	clusterResourceGetters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "nodes"}] = node.New(factory.KubernetesSharedInformerFactory())
