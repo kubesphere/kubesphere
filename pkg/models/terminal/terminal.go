@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -189,7 +190,7 @@ func NewNodeTerminaler(nodename string, options *Options, client kubernetes.Inte
 	node, err := n.client.CoreV1().Nodes().Get(context.Background(), n.Nodename, metav1.GetOptions{})
 
 	if err != nil {
-		return n, fmt.Errorf("node cannot exist. nodename:%s, err: %v", n.Nodename, err)
+		return n, fmt.Errorf("getting node error. nodename:%s, err: %v", n.Nodename, err)
 	}
 
 	flag := false
@@ -378,21 +379,33 @@ func (t *terminaler) HandleShellAccessToNode(nodename string, conn *websocket.Co
 }
 
 func (n *NodeTerminaler) WatchPodStatusBeRunning(pod *v1.Pod, succ chan bool, fail chan bool) {
-	var err error
-	for i := 0; i < 5; i++ {
-		if pod.Status.Phase == v1.PodRunning {
-			idx, _ := NodeSessionCounter.Load(n.Nodename)
-			atomic.AddInt64(idx.(*int64), 1)
-			close(succ)
-			return
-		}
-		time.Sleep(time.Second)
+	if pod.Status.Phase == v1.PodRunning {
+		idx, _ := NodeSessionCounter.Load(n.Nodename)
+		atomic.AddInt64(idx.(*int64), 1)
+		close(succ)
+		return
+	}
+
+	err := wait.Poll(time.Millisecond*500, time.Second*5, func() (done bool, err error) {
 		pod, err = n.client.CoreV1().Pods(pod.ObjectMeta.Namespace).Get(context.Background(), pod.ObjectMeta.Name, metav1.GetOptions{})
 		if err != nil {
 			klog.Warning(err)
-			close(fail)
-			return
+			return false, err
 		}
+
+		if pod.Status.Phase == v1.PodRunning {
+			idx, _ := NodeSessionCounter.Load(n.Nodename)
+			atomic.AddInt64(idx.(*int64), 1)
+			return true, nil
+		}
+
+		return false, nil
+	})
+
+	if err != nil {
+		klog.Warning("watching pod status error: ", err)
+		close(fail)
+	} else {
+		close(succ)
 	}
-	close(fail)
 }
