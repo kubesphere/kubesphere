@@ -204,9 +204,6 @@ func NewNodeTerminaler(nodename string, options *Options, client kubernetes.Inte
 		return n, fmt.Errorf("node status error. node: %s", n.Nodename)
 	}
 
-	idx := int64(0)
-	NodeSessionCounter.LoadOrStore(nodename, &idx)
-
 	return n, nil
 }
 
@@ -354,7 +351,6 @@ func (t *terminaler) HandleSession(shell, namespace, podName, containerName stri
 }
 
 func (t *terminaler) HandleShellAccessToNode(nodename string, conn *websocket.Conn) {
-	succ, fail := make(chan bool), make(chan bool)
 
 	nodeTerminaler, err := NewNodeTerminaler(nodename, t.options, t.client)
 	if err != nil {
@@ -368,25 +364,29 @@ func (t *terminaler) HandleShellAccessToNode(nodename string, conn *websocket.Co
 		return
 	}
 
-	go nodeTerminaler.WatchPodStatusBeRunning(pod, succ, fail)
-	select {
-	case <-succ:
+	if err := nodeTerminaler.WatchPodStatusBeRunning(pod); err != nil {
+		klog.Warning("watching pod status error: ", err)
+		return
+	} else {
 		t.HandleSession(nodeTerminaler.Shell, nodeTerminaler.Namespace, nodeTerminaler.PodName, nodeTerminaler.ContainerName, conn)
 		defer nodeTerminaler.CleanUpNSEnterPod()
-	case <-fail:
-		klog.Warning("watching pod status error")
 	}
 }
 
-func (n *NodeTerminaler) WatchPodStatusBeRunning(pod *v1.Pod, succ chan bool, fail chan bool) {
+func (n *NodeTerminaler) WatchPodStatusBeRunning(pod *v1.Pod) error {
 	if pod.Status.Phase == v1.PodRunning {
-		idx, _ := NodeSessionCounter.Load(n.Nodename)
-		atomic.AddInt64(idx.(*int64), 1)
-		close(succ)
-		return
+		idx, ok := NodeSessionCounter.Load(n.Nodename)
+		if ok {
+			atomic.AddInt64(idx.(*int64), 1)
+		} else {
+			i := int64(1)
+			NodeSessionCounter.LoadOrStore(n.Nodename, &i)
+		}
+
+		return nil
 	}
 
-	err := wait.Poll(time.Millisecond*500, time.Second*5, func() (done bool, err error) {
+	return wait.Poll(time.Millisecond*500, time.Second*5, func() (done bool, err error) {
 		pod, err = n.client.CoreV1().Pods(pod.ObjectMeta.Namespace).Get(context.Background(), pod.ObjectMeta.Name, metav1.GetOptions{})
 		if err != nil {
 			klog.Warning(err)
@@ -394,18 +394,15 @@ func (n *NodeTerminaler) WatchPodStatusBeRunning(pod *v1.Pod, succ chan bool, fa
 		}
 
 		if pod.Status.Phase == v1.PodRunning {
-			idx, _ := NodeSessionCounter.Load(n.Nodename)
-			atomic.AddInt64(idx.(*int64), 1)
+			idx, ok := NodeSessionCounter.Load(n.Nodename)
+			if ok {
+				atomic.AddInt64(idx.(*int64), 1)
+			} else {
+				i := int64(1)
+				NodeSessionCounter.LoadOrStore(n.Nodename, &i)
+			}
 			return true, nil
 		}
-
 		return false, nil
 	})
-
-	if err != nil {
-		klog.Warning("watching pod status error: ", err)
-		close(fail)
-	} else {
-		close(succ)
-	}
 }
