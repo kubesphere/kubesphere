@@ -145,8 +145,6 @@ func TestNodesGetterGet(t *testing.T) {
 	}
 	nodeGot := got.(*corev1.Node)
 
-	// ignore last-annotated-at annotation
-	delete(nodeGot.Annotations, nodeAnnotatedAt)
 	if diff := cmp.Diff(nodeGot.Annotations, expectedAnnotations); len(diff) != 0 {
 		t.Errorf("%T, diff(-got, +expected), %v", expectedAnnotations, nodeGot.Annotations)
 	}
@@ -170,7 +168,7 @@ func TestListNodes(t *testing.T) {
 			},
 			&api.ListResult{
 				Items: []interface{}{
-					node2,
+					node2Expected,
 				},
 				TotalItems: 1,
 			},
@@ -187,7 +185,7 @@ func TestListNodes(t *testing.T) {
 			},
 			&api.ListResult{
 				Items: []interface{}{
-					node1,
+					node1Expected,
 				},
 				TotalItems: 1,
 			},
@@ -204,7 +202,7 @@ func TestListNodes(t *testing.T) {
 			},
 			&api.ListResult{
 				Items: []interface{}{
-					node2,
+					node2Expected,
 				},
 				TotalItems: 1,
 			},
@@ -239,6 +237,17 @@ var (
 			Unschedulable: true,
 		},
 	}
+
+	node1Expected = &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "node1",
+			Annotations: map[string]string{},
+		},
+		Spec: corev1.NodeSpec{
+			Unschedulable: true,
+		},
+	}
+
 	node2 = &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node2",
@@ -247,6 +256,17 @@ var (
 			Unschedulable: false,
 		},
 	}
+
+	node2Expected = &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "node2",
+			Annotations: map[string]string{},
+		},
+		Spec: corev1.NodeSpec{
+			Unschedulable: false,
+		},
+	}
+
 	nodes = []*corev1.Node{node1, node2}
 )
 
