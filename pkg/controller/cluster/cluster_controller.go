@@ -309,24 +309,6 @@ func buildClusterData(kubeconfig []byte) (*clusterData, error) {
 	}, nil
 }
 
-func (c *clusterController) syncStatus() error {
-	clusters, err := c.clusterLister.List(labels.Everything())
-	if err != nil {
-		return err
-	}
-
-	for _, cluster := range clusters {
-		key, err := cache.MetaNamespaceKeyFunc(cluster)
-		if err != nil {
-			return err
-		}
-
-		c.queue.AddRateLimited(key)
-	}
-
-	return nil
-}
-
 // reconcileHostCluster will create a host cluster if there are no clusters labeled 'cluster-role.kubesphere.io/host'
 func (c *clusterController) reconcileHostCluster() error {
 	clusters, err := c.clusterLister.List(labels.SelectorFromSet(labels.Set{clusterv1alpha1.HostCluster: ""}))
@@ -350,7 +332,7 @@ func (c *clusterController) reconcileHostCluster() error {
 	}
 
 	// only deal with cluster managed by kubesphere
-	cluster := clusters[0]
+	cluster := clusters[0].DeepCopy()
 	managedByKubesphere, ok := cluster.Labels[kubesphereManaged]
 	if !ok || managedByKubesphere != "true" {
 		return nil
@@ -406,45 +388,34 @@ func (c *clusterController) probeClusters() error {
 			continue
 		}
 
-		var con clusterv1alpha1.ClusterCondition
-		_, err = clientSet.Discovery().ServerVersion()
-		if err == nil {
-			con = clusterv1alpha1.ClusterCondition{
-				Type:               clusterv1alpha1.ClusterReady,
-				Status:             v1.ConditionTrue,
-				LastUpdateTime:     metav1.Now(),
-				LastTransitionTime: metav1.Now(),
-				Reason:             string(clusterv1alpha1.ClusterReady),
-				Message:            "Cluster is available now",
-			}
-		} else {
-			con = clusterv1alpha1.ClusterCondition{
-				Type:               clusterv1alpha1.ClusterReady,
-				Status:             v1.ConditionFalse,
-				LastUpdateTime:     metav1.Now(),
-				LastTransitionTime: metav1.Now(),
-				Reason:             "failed to connect get kubernetes version",
-				Message:            "Cluster is not available now",
-			}
+		condition := clusterv1alpha1.ClusterCondition{
+			Type:               clusterv1alpha1.ClusterReady,
+			Status:             v1.ConditionTrue,
+			LastUpdateTime:     metav1.Now(),
+			LastTransitionTime: metav1.Now(),
+			Reason:             string(clusterv1alpha1.ClusterReady),
+			Message:            "Cluster is available now",
+		}
+		if _, err = clientSet.Discovery().ServerVersion(); err != nil {
+			condition.Status = v1.ConditionFalse
+			condition.Reason = "failed to connect get kubernetes version"
+			condition.Message = "Cluster is not available now"
 		}
 
-		c.updateClusterCondition(cluster, con)
 		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			ct, err := c.clusterClient.Get(context.TODO(), cluster.Name, metav1.GetOptions{})
+			newCluster, err := c.clusterClient.Get(context.TODO(), cluster.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
-
-			ct.Status.Conditions = cluster.Status.Conditions
-			ct, err = c.clusterClient.Update(context.TODO(), ct, metav1.UpdateOptions{})
+			c.updateClusterCondition(newCluster, condition)
+			_, err = c.clusterClient.Update(context.TODO(), newCluster, metav1.UpdateOptions{})
 			return err
 		})
 		if err != nil {
 			klog.Errorf("failed to update cluster %s status, err: %v", cluster.Name, err)
 		} else {
-			klog.V(4).Infof("successfully updated cluster %s to status %v", cluster.Name, con)
+			klog.V(4).Infof("successfully updated cluster %s to status %v", cluster.Name, condition)
 		}
-
 	}
 
 	return nil
@@ -465,7 +436,6 @@ func (c *clusterController) syncCluster(key string) error {
 	}()
 
 	cluster, err := c.clusterLister.Get(name)
-
 	if err != nil {
 		// cluster not found, possibly been deleted
 		// need to do the cleanup
@@ -759,7 +729,6 @@ func (c *clusterController) tryToFetchKubeSphereComponents(host string, transpor
 	return configz, nil
 }
 
-//
 func (c *clusterController) tryFetchKubeSphereVersion(host string, transport http.RoundTripper) (string, error) {
 	client := http.Client{
 		Transport: transport,
