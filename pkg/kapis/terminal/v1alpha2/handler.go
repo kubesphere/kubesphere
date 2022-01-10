@@ -104,7 +104,7 @@ func (t *terminalHandler) handleShellAccessToNode(request *restful.Request, resp
 		ResourceScope:   requestctx.ClusterScope,
 	}
 
-	decision, reason, err := t.authorizer.Authorize(createPodsExec)
+	decision, reason, err := t.authorizer.Authorize(createNodesExec)
 	if err != nil {
 		api.HandleInternalError(response, request, err)
 		return
