@@ -19,6 +19,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+
 	"os"
 	"testing"
 	"time"
@@ -32,6 +33,7 @@ import (
 	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/models/terminal"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -189,6 +191,10 @@ func newTestConfig() (*Config, error) {
 		},
 		GPUOptions: &gpu.Options{
 			Kinds: []gpu.GPUKind{},
+		},
+		TerminalOptions: &terminal.Options{
+			Image:   "alpine:3.15",
+			Timeout: 600,
 		},
 	}
 	return conf, nil

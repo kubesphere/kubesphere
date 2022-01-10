@@ -28,6 +28,7 @@ import (
 
 	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
 
+	"kubesphere.io/kubesphere/pkg/models/terminal"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -109,6 +110,7 @@ type Config struct {
 	MeteringOptions       *metering.Options       `json:"metering,omitempty" yaml:"metering,omitempty" mapstructure:"metering"`
 	GatewayOptions        *gateway.Options        `json:"gateway,omitempty" yaml:"gateway,omitempty" mapstructure:"gateway"`
 	GPUOptions            *gpu.Options            `json:"gpu,omitempty" yaml:"gpu,omitempty" mapstructure:"gpu"`
+	TerminalOptions       *terminal.Options       `json:"terminal,omitempty" yaml:"terminal,omitempty" mapstructure:"terminal"`
 }
 
 // newConfig creates a default non-empty Config
@@ -136,6 +138,7 @@ func New() *Config {
 		MeteringOptions:       metering.NewMeteringOptions(),
 		GatewayOptions:        gateway.NewGatewayOptions(),
 		GPUOptions:            gpu.NewGPUOptions(),
+		TerminalOptions:       terminal.NewTerminalOptions(),
 	}
 }
 
