@@ -79,6 +79,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *Reconciler) defaultConfiguration(overrideValues map[string]string) map[string]string {
+	if overrideValues == nil {
+		//vendor/github.com/operator-framework/helm-operator-plugins/pkg/watches/watches.go:85-87
+		overrideValues = make(map[string]string)
+	}
 	if r.GatewayOptions.Repository != "" {
 		overrideValues["controller.image.repository"] = r.GatewayOptions.Repository
 	}
