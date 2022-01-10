@@ -95,14 +95,13 @@ func (t *terminalHandler) handleShellAccessToNode(request *restful.Request, resp
 
 	user, _ := requestctx.UserFrom(request.Request.Context())
 
-	createPodsExec := authorizer.AttributesRecord{
+	createNodesExec := authorizer.AttributesRecord{
 		User:            user,
 		Verb:            "create",
-		Resource:        "pods",
+		Resource:        "nodes",
 		Subresource:     "exec",
-		Namespace:       "kubesphere-controls-system",
 		ResourceRequest: true,
-		ResourceScope:   requestctx.NamespaceScope,
+		ResourceScope:   requestctx.ClusterScope,
 	}
 
 	decision, reason, err := t.authorizer.Authorize(createPodsExec)
