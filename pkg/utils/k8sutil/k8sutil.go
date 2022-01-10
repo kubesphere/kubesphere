@@ -18,6 +18,8 @@ package k8sutil
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
@@ -54,4 +56,19 @@ func GetWorkspaceOwnerName(ownerReferences []metav1.OwnerReference) string {
 		}
 	}
 	return ""
+}
+
+// LoadKubeConfigFromBytes parses the kubeconfig yaml data to the rest.Config struct.
+func LoadKubeConfigFromBytes(kubeconfig []byte) (*rest.Config, error) {
+	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }

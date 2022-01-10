@@ -19,7 +19,9 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -52,6 +54,7 @@ import (
 	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
@@ -614,6 +617,11 @@ func (c *clusterController) syncCluster(key string) error {
 	}
 	c.updateClusterCondition(cluster, readyConditon)
 
+	if err = c.updateKubeConfigExpirationDateCondition(cluster); err != nil {
+		klog.Errorf("sync KubeConfig expiration date for cluster %s failed: %v", cluster.Name, err)
+		return err
+	}
+
 	if !reflect.DeepEqual(oldCluster, cluster) {
 		_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
 		if err != nil {
@@ -822,4 +830,53 @@ func (c *clusterController) unJoinFederation(clusterConfig *rest.Config, unjoini
 			return err
 		}
 	}
+}
+
+func parseKubeConfigExpirationDate(kubeconfig []byte) (time.Time, error) {
+	config, err := k8sutil.LoadKubeConfigFromBytes(kubeconfig)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if config.CertData == nil {
+		return time.Time{}, fmt.Errorf("empty CertData")
+	}
+	block, _ := pem.Decode(config.CertData)
+	if block == nil {
+		return time.Time{}, fmt.Errorf("pem.Decode failed, got empty block data")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return cert.NotAfter, nil
+}
+
+func (c *clusterController) updateKubeConfigExpirationDateCondition(cluster *clusterv1alpha1.Cluster) error {
+	if _, ok := cluster.Labels[clusterv1alpha1.HostCluster]; ok {
+		return nil
+	}
+	// we don't need to check member clusters which using proxy mode, their certs are managed and will be renewed by tower.
+	if cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeProxy {
+		return nil
+	}
+
+	klog.V(5).Infof("sync KubeConfig expiration date for cluster %s", cluster.Name)
+	notAfter, err := parseKubeConfigExpirationDate(cluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		return fmt.Errorf("parseKubeConfigExpirationDate for cluster %s failed: %v", cluster.Name, err)
+	}
+	expiresInSevenDays := v1.ConditionFalse
+	if time.Now().AddDate(0, 0, 7).Sub(notAfter) > 0 {
+		expiresInSevenDays = v1.ConditionTrue
+	}
+
+	c.updateClusterCondition(cluster, clusterv1alpha1.ClusterCondition{
+		Type:               clusterv1alpha1.ClusterKubeConfigCertExpiresInSevenDays,
+		Status:             expiresInSevenDays,
+		LastUpdateTime:     metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             string(clusterv1alpha1.ClusterKubeConfigCertExpiresInSevenDays),
+		Message:            notAfter.String(),
+	})
+	return nil
 }
