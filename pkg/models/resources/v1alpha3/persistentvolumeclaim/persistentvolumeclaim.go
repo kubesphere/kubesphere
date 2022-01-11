@@ -53,6 +53,8 @@ func (p *persistentVolumeClaimGetter) Get(namespace, name string) (runtime.Objec
 	if err != nil {
 		return pvc, err
 	}
+	// we should never mutate the shared objects from informers
+	pvc = pvc.DeepCopy()
 	p.annotatePVC(pvc)
 	return pvc, nil
 }
@@ -65,6 +67,7 @@ func (p *persistentVolumeClaimGetter) List(namespace string, query *query.Query)
 
 	var result []runtime.Object
 	for _, pvc := range all {
+		pvc = pvc.DeepCopy()
 		p.annotatePVC(pvc)
 		result = append(result, pvc)
 	}

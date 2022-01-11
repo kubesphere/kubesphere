@@ -22,7 +22,18 @@ var (
 		},
 	}
 
+	sc1Expected = &v1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "sc1",
+			Annotations: map[string]string{
+				"kubesphere.io/pvc-count": "1",
+			},
+		},
+	}
+
 	scs = []interface{}{sc1}
+
+	scsExpected = []interface{}{sc1Expected}
 
 	pvc1 = &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -85,7 +96,7 @@ func TestSearch(t *testing.T) {
 			conditions:  &params.Conditions{},
 			orderBy:     "name",
 			reverse:     true,
-			expected:    scs,
+			expected:    scsExpected,
 			expectedErr: nil,
 		},
 	}

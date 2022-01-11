@@ -37,7 +37,7 @@ var (
 	testStorageClassName = "test-csi"
 )
 
-func TestListPods(t *testing.T) {
+func TestListPVCs(t *testing.T) {
 	tests := []struct {
 		description string
 		namespace   string
@@ -58,7 +58,7 @@ func TestListPods(t *testing.T) {
 				Filters:   map[query.Field]query.Value{query.FieldNamespace: query.Value("default")},
 			},
 			&api.ListResult{
-				Items:      []interface{}{pvc3, pvc2, pvc1},
+				Items:      []interface{}{pvc3Expected, pvc2Expected, pvc1Expected},
 				TotalItems: len(persistentVolumeClaims),
 			},
 			nil,
@@ -79,7 +79,7 @@ func TestListPods(t *testing.T) {
 				},
 			},
 			&api.ListResult{
-				Items:      []interface{}{pvc1},
+				Items:      []interface{}{pvc1Expected},
 				TotalItems: 1,
 			},
 			nil,
@@ -100,7 +100,7 @@ func TestListPods(t *testing.T) {
 				},
 			},
 			&api.ListResult{
-				Items:      []interface{}{pvcGet2},
+				Items:      []interface{}{pvc2Expected},
 				TotalItems: 1,
 			},
 			nil,
@@ -121,7 +121,7 @@ func TestListPods(t *testing.T) {
 				},
 			},
 			&api.ListResult{
-				Items:      []interface{}{pvcGet3},
+				Items:      []interface{}{pvc3Expected},
 				TotalItems: 1,
 			},
 			nil,
@@ -154,6 +154,21 @@ var (
 			Phase: corev1.ClaimPending,
 		},
 	}
+
+	pvc1Expected = &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pvc-1",
+			Namespace: "default",
+			Annotations: map[string]string{
+				annotationInUse:         "false",
+				annotationAllowSnapshot: "false",
+			},
+		},
+		Status: corev1.PersistentVolumeClaimStatus{
+			Phase: corev1.ClaimPending,
+		},
+	}
+
 	pvc2 = &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pvc-2",
@@ -167,7 +182,7 @@ var (
 		},
 	}
 
-	pvcGet2 = &corev1.PersistentVolumeClaim{
+	pvc2Expected = &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pvc-2",
 			Namespace: "default",
@@ -189,7 +204,7 @@ var (
 		},
 	}
 
-	pvcGet3 = &corev1.PersistentVolumeClaim{
+	pvc3Expected = &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pvc-3",
 			Namespace: "default",
