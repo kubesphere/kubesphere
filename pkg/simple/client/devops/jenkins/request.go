@@ -324,22 +324,28 @@ func (r *Requester) Do(ar *APIRequest, responseStruct interface{}, options ...in
 	if fileUpload {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		for _, file := range files {
-			fileData, err := os.Open(file)
+		uploadFunc := func(fileName string) error {
+			fileData, err := os.Open(fileName)
 			if err != nil {
 				Error.Println(err.Error())
-				return nil, err
-			}
-
-			part, err := writer.CreateFormFile("file", filepath.Base(file))
-			if err != nil {
-				Error.Println(err.Error())
-				return nil, err
-			}
-			if _, err = io.Copy(part, fileData); err != nil {
-				return nil, err
+				return err
 			}
 			defer fileData.Close()
+
+			part, err := writer.CreateFormFile("file", filepath.Base(fileName))
+			if err != nil {
+				return err
+			}
+			if _, err = io.Copy(part, fileData); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		for _, file := range files {
+			if err := uploadFunc(file); err != nil {
+				return nil, err
+			}
 		}
 		var params map[string]string
 		json.NewDecoder(ar.Payload).Decode(&params)
