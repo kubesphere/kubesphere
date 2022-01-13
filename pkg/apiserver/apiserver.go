@@ -25,17 +25,8 @@ import (
 	"strconv"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/utils/iputil"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization"
-
-	"kubesphere.io/api/notification/v2beta1"
-
-	openpitrixv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v2alpha1"
-
 	"github.com/emicklei/go-restful"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -57,6 +48,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/bearertoken"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
@@ -71,6 +64,7 @@ import (
 	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2alpha1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
+	crd "kubesphere.io/kubesphere/pkg/kapis/crd"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	gatewayv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/gateway/v1alpha1"
@@ -84,6 +78,7 @@ import (
 	notificationkapisv2beta2 "kubesphere.io/kubesphere/pkg/kapis/notification/v2beta2"
 	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
+	openpitrixv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v2alpha1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha3"
@@ -107,6 +102,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
+	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 )
 
@@ -169,6 +165,7 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	})
 
 	s.installKubeSphereAPIs()
+	s.installCRDAPIs()
 	s.installMetricsAPI()
 	s.container.Filter(monitorRequest)
 
@@ -260,6 +257,14 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(gatewayv1alpha1.AddToContainer(s.container, s.Config.GatewayOptions, s.RuntimeCache, s.RuntimeClient, s.InformerFactory, s.KubernetesClient.Kubernetes(), s.LoggingClient))
 }
 
+// installCRDAPIs Install CRDs to the KAPIs with List and Get options
+func (s *APIServer) installCRDAPIs() {
+	crds := &extv1.CustomResourceDefinitionList{}
+	//TODO Maybe we need a better label name
+	urlruntime.Must(s.RuntimeClient.List(context.TODO(), crds, runtimeclient.MatchingLabels{"kubesphere.io/resource-served": "true"}))
+	urlruntime.Must(crd.AddToContainer(s.container, s.RuntimeClient, s.RuntimeCache, crds))
+}
+
 func (s *APIServer) Run(ctx context.Context) (err error) {
 
 	err = s.waitForResourceSync(ctx)
@@ -298,8 +303,8 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			tenantv1alpha2.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			resourcev1alpha3.Resource(clusterv1alpha1.ResourcesPluralCluster),
-			notificationv2beta1.Resource(v2beta1.ResourcesPluralConfig),
-			notificationv2beta1.Resource(v2beta1.ResourcesPluralReceiver),
+			notificationv2beta1.Resource(notificationv2beta1.ResourcesPluralConfig),
+			notificationv2beta1.Resource(notificationv2beta1.ResourcesPluralReceiver),
 		},
 	}
 
@@ -436,8 +441,8 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "loginrecords"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "network.kubesphere.io", Version: "v1alpha1", Resource: "ippools"},
-		{Group: "notification.kubesphere.io", Version: "v2beta1", Resource: v2beta1.ResourcesPluralConfig},
-		{Group: "notification.kubesphere.io", Version: "v2beta1", Resource: v2beta1.ResourcesPluralReceiver},
+		{Group: "notification.kubesphere.io", Version: "v2beta1", Resource: notificationv2beta1.ResourcesPluralConfig},
+		{Group: "notification.kubesphere.io", Version: "v2beta1", Resource: notificationv2beta1.ResourcesPluralReceiver},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{
