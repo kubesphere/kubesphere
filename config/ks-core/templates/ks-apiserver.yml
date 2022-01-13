@@ -41,8 +41,6 @@ spec:
         resources:
           {{- toYaml .Values.apiserver.resources | nindent 12 }}
         volumeMounts:
-        - mountPath: /etc/kubesphere/ingress-controller
-          name: ks-router-config
         - mountPath: /etc/kubesphere/
           name: kubesphere-config
         - mountPath: /etc/localtime
@@ -77,10 +75,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-      - configMap:
-          defaultMode: 420
-          name: ks-router-config
-        name: ks-router-config
       - configMap:
           defaultMode: 420
           name: kubesphere-config
