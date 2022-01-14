@@ -16,7 +16,7 @@ image:
   ks_kubectl_tag: ""
 
   nginx_ingress_controller_repo: kubesphere/nginx-ingress-controller
-  nginx_ingress_controller_tag: "v0.35.0"
+  nginx_ingress_controller_tag: "v1.1.0"
   defaultbackend_repo: "mirrorgooglecontainers/defaultbackend-amd64"
   defaultbackend_tag: "1.4"
 
