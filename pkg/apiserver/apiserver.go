@@ -73,6 +73,7 @@ import (
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
+	edgeruntimev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/edgeruntime/v1alpha1"
 	gatewayv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/gateway/v1alpha1"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	kubeedgev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/kubeedge/v1alpha1"
@@ -254,6 +255,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.KubernetesClient.Prometheus(), s.AlertingClient, s.Config.AlertingOptions))
 	urlruntime.Must(version.AddToContainer(s.container, s.KubernetesClient.Discovery()))
 	urlruntime.Must(kubeedgev1alpha1.AddToContainer(s.container, s.Config.KubeEdgeOptions.Endpoint))
+	urlruntime.Must(edgeruntimev1alpha1.AddToContainer(s.container, s.Config.EdgeRuntimeOptions.Endpoint))
 	urlruntime.Must(notificationkapisv2beta1.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
 		s.KubernetesClient.KubeSphere()))
 	urlruntime.Must(notificationkapisv2beta2.AddToContainer(s.container, s.Config.NotificationOptions))
