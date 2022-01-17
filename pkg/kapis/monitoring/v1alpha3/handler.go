@@ -20,7 +20,6 @@ package v1alpha3
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -41,6 +40,7 @@ import (
 	"github.com/emicklei/go-restful"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	monitoringdashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
 
@@ -57,9 +57,10 @@ type handler struct {
 	mo              model.MonitoringOperator
 	opRelease       openpitrix.ReleaseInterface
 	meteringOptions *meteringclient.Options
+	rtClient        runtimeclient.Client
 }
 
-func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options) *handler {
+func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client) *handler {
 	var opRelease openpitrix.Interface
 	var s3Client s3.Interface
 	if opOptions != nil && opOptions.S3Options != nil && len(opOptions.S3Options.Endpoint) != 0 {
@@ -81,6 +82,7 @@ func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, m
 		mo:              model.NewMonitoringOperator(monitoringClient, metricsClient, k, f, resourceGetter, opRelease),
 		opRelease:       opRelease,
 		meteringOptions: meteringOptions,
+		rtClient:        rtClient,
 	}
 }
 
@@ -345,6 +347,7 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 	}
 
 	grafanaDashboardName := req.PathParameter("grafanaDashboardName")
+	namespace := req.PathParameter("namespace")
 
 	if grafanaDashboardName == "" {
 		err := errors.New("the requested parameter grafanaDashboardName cannot be empty")
@@ -357,6 +360,7 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 		return
 	}
 
+	// download the Grafana dashboard
 	grafanaDashboardContent := []byte(entity.GrafanaDashboardContent)
 	if entity.GrafanaDashboardUrl != "" {
 		c, err := func(u string) ([]byte, error) {
@@ -392,57 +396,89 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 		grafanaDashboardContent = []byte(c)
 	}
 
+	isClusterCrd := namespace == ""
 	c := converter.NewConverter()
-	convertedDashboard, err := c.ConvertToDashboard(grafanaDashboardContent, true, "", grafanaDashboardName)
+	convertedDashboard, err := c.ConvertToDashboard(grafanaDashboardContent, isClusterCrd, namespace, grafanaDashboardName)
 	if err != nil {
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
+	ctx := context.TODO()
 	annotation := map[string]string{"kubesphere.io/description": entity.Description}
 
-	dashboard := monitoringdashboardv1alpha2.ClusterDashboard{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: convertedDashboard.APIVersion,
-			Kind:       convertedDashboard.Kind,
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:        convertedDashboard.Metadata["name"],
-			Annotations: annotation,
-		},
-		Spec: *convertedDashboard.Spec,
+	// a cluster scope dashboard or a namespaced dashboard with the same name cannot post.
+	if isClusterCrd {
+		clusterdashboard := monitoringdashboardv1alpha2.ClusterDashboard{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: convertedDashboard.APIVersion,
+				Kind:       convertedDashboard.Kind,
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Name:        convertedDashboard.Metadata["name"],
+				Annotations: annotation,
+			},
+			Spec: *convertedDashboard.Spec,
+		}
+
+		objKey := runtimeclient.ObjectKey{
+			Namespace: "",
+			Name:      clusterdashboard.Name,
+		}
+
+		err = h.rtClient.Get(ctx, objKey, &clusterdashboard)
+
+		if err == nil {
+			api.HandleBadRequest(resp, nil, errors.New("dashboards with the same name already exists."))
+			return
+		}
+
+		// create this dashboard
+		err = h.rtClient.Create(ctx, &clusterdashboard)
+
+		if err != nil {
+			api.HandleBadRequest(resp, nil, err)
+			return
+		}
+
+		resp.WriteAsJson(clusterdashboard)
+
+	} else {
+		dashboard := monitoringdashboardv1alpha2.Dashboard{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: convertedDashboard.APIVersion,
+				Kind:       convertedDashboard.Kind,
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Name:        convertedDashboard.Metadata["name"],
+				Namespace:   namespace,
+				Annotations: annotation,
+			},
+			Spec: *convertedDashboard.Spec,
+		}
+
+		objKey := runtimeclient.ObjectKey{
+			Namespace: namespace,
+			Name:      dashboard.Name,
+		}
+
+		err = h.rtClient.Get(ctx, objKey, &dashboard)
+
+		if err == nil {
+			api.HandleBadRequest(resp, nil, errors.New("dashboards with the same name already exists."))
+			return
+		}
+
+		// create this dashboard
+		err = h.rtClient.Create(ctx, &dashboard)
+
+		if err != nil {
+			api.HandleBadRequest(resp, nil, err)
+			return
+		}
+
+		resp.WriteAsJson(dashboard)
+
 	}
-
-	jsonDashbaord, err := json.Marshal(dashboard)
-	if err != nil {
-		api.HandleBadRequest(resp, nil, err)
-		return
-	}
-
-	// a dashboard with the same name cannot post.
-	ctx := context.TODO()
-	_, err = h.k.Discovery().RESTClient().
-		Get().
-		AbsPath("/apis/monitoring.kubesphere.io/v1alpha2/clusterdashboards/" + dashboard.Name).
-		DoRaw(ctx)
-
-	if err == nil {
-		api.HandleBadRequest(resp, nil, errors.New("a dashboard with the same name already exists."))
-		return
-	}
-
-	// create this dashboard
-	_, err = h.k.Discovery().RESTClient().
-		Post().
-		AbsPath("/apis/monitoring.kubesphere.io/v1alpha2/clusterdashboards").
-		Body(jsonDashbaord).
-		DoRaw(ctx)
-
-	if err != nil {
-		api.HandleBadRequest(resp, nil, err)
-		return
-	}
-
-	resp.WriteAsJson(dashboard)
 
 }
