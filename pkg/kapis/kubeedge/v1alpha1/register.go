@@ -33,5 +33,7 @@ func AddToContainer(container *restful.Container, endpoint string) error {
 		return nil
 	}
 
+	proxy.SetProxyDesprecated()
+
 	return proxy.AddToContainer(container)
 }
