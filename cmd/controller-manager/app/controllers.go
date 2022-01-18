@@ -209,7 +209,7 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 
 	// "namespace" controller
 	if cmOptions.IsControllerEnabled("namespace") {
-		namespaceReconciler := &namespace.Reconciler{}
+		namespaceReconciler := &namespace.Reconciler{GatewayOptions: cmOptions.GatewayOptions}
 		addControllerWithSetup(mgr, "namespace", namespaceReconciler)
 	}
 
