@@ -1,0 +1,19 @@
+engines:
+  golint:
+    enabled: true
+  gofmt:
+    enabled: true
+  govet:
+    enabled: true
+  duplication:
+    enabled: true
+    config:
+      languages:
+      - go
+        #mass_threshold: 30
+ratings:
+  paths:
+  - examples/**
+  - "**.go"
+exclude_paths:
+- "**/vendor/**/*"

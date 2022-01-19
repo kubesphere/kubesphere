@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"time"
 
+	es "github.com/dzlab/elastic-go"
 	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/v6/esapi"
 )
@@ -112,12 +113,15 @@ func (e *Elastic) GetTotalHitCount(v interface{}) int64 {
 }
 
 func parseError(response *esapi.Response) error {
-	var e map[string]interface{}
+	var e es.Failure
 	if err := json.NewDecoder(response.Body).Decode(&e); err != nil {
 		return err
 	} else {
 		// Print the response status and error information.
-		e, _ := e["error"].(map[string]interface{})
-		return fmt.Errorf("type: %v, reason: %v", e["type"], e["reason"])
+		if len(e.Err.RootCause) != 0 {
+			return fmt.Errorf("type: %v, reason: %v", e.Err.Type, e.Err.RootCause[0]["reason"])
+		} else {
+			return fmt.Errorf("type: %v, reason: %v", e.Err.Type, e.Err.Reason)
+		}
 	}
 }
