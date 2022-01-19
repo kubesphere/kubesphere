@@ -20,9 +20,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -54,6 +56,46 @@ func TestListUsers(t *testing.T) {
 			&api.ListResult{
 				Items: []interface{}{
 					foo2,
+				},
+				TotalItems: 1,
+			},
+			nil,
+		},
+		{
+			"test workspace filter",
+			"bar",
+			&query.Query{
+				Pagination: &query.Pagination{
+					Limit:  1,
+					Offset: 0,
+				},
+				SortBy:    query.FieldName,
+				Ascending: false,
+				Filters:   map[query.Field]query.Value{iamv1alpha2.ScopeWorkspace: query.Value("wsp1")},
+			},
+			&api.ListResult{
+				Items: []interface{}{
+					bar1,
+				},
+				TotalItems: 1,
+			},
+			nil,
+		},
+		{
+			"test workspace group filter",
+			"bar",
+			&query.Query{
+				Pagination: &query.Pagination{
+					Limit:  1,
+					Offset: 0,
+				},
+				SortBy:    query.FieldName,
+				Ascending: false,
+				Filters:   map[query.Field]query.Value{iamv1alpha2.ScopeWorkspace: query.Value("wsp2")},
+			},
+			&api.ListResult{
+				Items: []interface{}{
+					foo1,
 				},
 				TotalItems: 1,
 			},
@@ -95,7 +137,39 @@ var (
 	}
 	bar1 = &iamv1alpha2.User{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar1",
+			Name:        "bar1",
+			Annotations: map[string]string{"iam.kubesphere.io/workspacerole": "test"},
+		},
+	}
+
+	groupbinding = &iamv1alpha2.GroupBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "group1-foo1",
+			Labels: map[string]string{
+				tenantv1alpha1.WorkspaceLabel: "wsp2",
+			},
+		},
+		GroupRef: iamv1alpha2.GroupRef{
+			Name: "group1",
+		},
+		Users: []string{"foo1"},
+	}
+
+	workspaceRoleBindings = &iamv1alpha2.WorkspaceRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "wsp1-bar1",
+			Labels: map[string]string{
+				tenantv1alpha1.WorkspaceLabel: "wsp1",
+			},
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind: iamv1alpha2.ResourceKindUser,
+				Name: "bar1",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Name: "test",
 		},
 	}
 
@@ -109,5 +183,9 @@ func prepare() v1alpha3.Interface {
 	for _, user := range users {
 		informer.Iam().V1alpha2().Users().Informer().GetIndexer().Add(user)
 	}
+
+	informer.Iam().V1alpha2().WorkspaceRoleBindings().Informer().GetIndexer().Add(workspaceRoleBindings)
+	informer.Iam().V1alpha2().GroupBindings().Informer().GetIndexer().Add(groupbinding)
+
 	return New(informer, nil)
 }
