@@ -41,6 +41,9 @@ type genericProxy struct {
 
 	// api version
 	Version string
+
+	// mark as desprecated
+	desprecated bool
 }
 
 func NewGenericProxy(endpoint string, groupName string, version string) (*genericProxy, error) {
@@ -57,6 +60,10 @@ func NewGenericProxy(endpoint string, groupName string, version string) (*generi
 		GroupName: groupName,
 		Version:   version,
 	}, nil
+}
+
+func (g *genericProxy) SetProxyDesprecated() {
+	g.desprecated = true
 }
 
 // currently, we only support proxy GET/PUT/POST/DELETE/PATCH.
@@ -93,6 +100,10 @@ func (g *genericProxy) AddToContainer(container *restful.Container) error {
 }
 
 func (g *genericProxy) handler(request *restful.Request, response *restful.Response) {
+	if g.desprecated {
+		klog.Warning(fmt.Sprintf("This proxy group %s has deprecated", g.GroupName))
+	}
+
 	u := g.makeURL(request)
 
 	httpProxy := proxy.NewUpgradeAwareHandler(u, http.DefaultTransport, false, false, &errorResponder{})

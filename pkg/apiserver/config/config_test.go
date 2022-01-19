@@ -38,6 +38,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	edgeruntime "kubesphere.io/kubesphere/pkg/simple/client/edgeruntime"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 	"kubesphere.io/kubesphere/pkg/simple/client/gpu"
@@ -182,6 +183,9 @@ func newTestConfig() (*Config, error) {
 		KubeEdgeOptions: &kubeedge.Options{
 			Endpoint: "http://edge-watcher.kubeedge.svc/api/",
 		},
+		EdgeRuntimeOptions: &edgeruntime.Options{
+			Endpoint: "http://edgeservice.kubeedge.svc/api/",
+		},
 		MeteringOptions: &metering.Options{
 			RetentionDay: "7d",
 		},
@@ -277,6 +281,7 @@ func TestStripEmptyOptions(t *testing.T) {
 	config.EventsOptions = &events.Options{Host: ""}
 	config.AuditingOptions = &auditing.Options{Host: ""}
 	config.KubeEdgeOptions = &kubeedge.Options{Endpoint: ""}
+	config.EdgeRuntimeOptions = &edgeruntime.Options{Endpoint: ""}
 
 	config.stripEmptyOptions()
 
@@ -294,7 +299,8 @@ func TestStripEmptyOptions(t *testing.T) {
 		config.MultiClusterOptions != nil ||
 		config.EventsOptions != nil ||
 		config.AuditingOptions != nil ||
-		config.KubeEdgeOptions != nil {
+		config.KubeEdgeOptions != nil ||
+		config.EdgeRuntimeOptions != nil {
 		t.Fatal("config stripEmptyOptions failed")
 	}
 }

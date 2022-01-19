@@ -33,6 +33,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/edgeruntime"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 	"kubesphere.io/kubesphere/pkg/simple/client/gpu"
@@ -107,6 +108,7 @@ type Config struct {
 	AlertingOptions       *alerting.Options       `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
 	NotificationOptions   *notification.Options   `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
 	KubeEdgeOptions       *kubeedge.Options       `json:"kubeedge,omitempty" yaml:"kubeedge,omitempty" mapstructure:"kubeedge"`
+	EdgeRuntimeOptions    *edgeruntime.Options    `json:"edgeruntime,omitempty" yaml:"edgeruntime,omitempty" mapstructure:"edgeruntime"`
 	MeteringOptions       *metering.Options       `json:"metering,omitempty" yaml:"metering,omitempty" mapstructure:"metering"`
 	GatewayOptions        *gateway.Options        `json:"gateway,omitempty" yaml:"gateway,omitempty" mapstructure:"gateway"`
 	GPUOptions            *gpu.Options            `json:"gpu,omitempty" yaml:"gpu,omitempty" mapstructure:"gpu"`
@@ -135,6 +137,7 @@ func New() *Config {
 		EventsOptions:         events.NewEventsOptions(),
 		AuditingOptions:       auditing.NewAuditingOptions(),
 		KubeEdgeOptions:       kubeedge.NewKubeEdgeOptions(),
+		EdgeRuntimeOptions:    edgeruntime.NewEdgeRuntimeOptions(),
 		MeteringOptions:       metering.NewMeteringOptions(),
 		GatewayOptions:        gateway.NewGatewayOptions(),
 		GPUOptions:            gpu.NewGPUOptions(),
@@ -305,6 +308,10 @@ func (conf *Config) stripEmptyOptions() {
 
 	if conf.KubeEdgeOptions != nil && conf.KubeEdgeOptions.Endpoint == "" {
 		conf.KubeEdgeOptions = nil
+	}
+
+	if conf.EdgeRuntimeOptions != nil && conf.EdgeRuntimeOptions.Endpoint == "" {
+		conf.EdgeRuntimeOptions = nil
 	}
 
 	if conf.GPUOptions != nil && len(conf.GPUOptions.Kinds) == 0 {

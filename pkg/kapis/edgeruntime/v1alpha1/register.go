@@ -24,16 +24,13 @@ import (
 )
 
 // there are no versions specified cause we want to proxy all versions of requests to backend service
-// Deprecated: this api group would be removed in v4.0
-var GroupVersion = schema.GroupVersion{Group: "kubeedge.kubesphere.io", Version: ""}
+var GroupVersion = schema.GroupVersion{Group: "edgeruntime.kubesphere.io", Version: ""}
 
 func AddToContainer(container *restful.Container, endpoint string) error {
 	proxy, err := generic.NewGenericProxy(endpoint, GroupVersion.Group, GroupVersion.Version)
 	if err != nil {
 		return nil
 	}
-
-	proxy.SetProxyDesprecated()
 
 	return proxy.AddToContainer(container)
 }
