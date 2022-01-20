@@ -20,8 +20,8 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+	"net/http"
+	"strings"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -29,18 +29,20 @@ import (
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
+	dashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/apis"
 	"kubesphere.io/kubesphere/pkg/apiserver"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-
-	"net/http"
-	"strings"
-
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -230,6 +232,17 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		klog.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
+	if err := extv1.AddToScheme(sch); err != nil {
+		klog.Fatalf("unable add APIs to scheme: %v", err)
+	}
+
+	if err := dashboardv1alpha2.AddToScheme(sch); err != nil {
+		klog.Fatalf("unable add APIs to scheme: %v", err)
+	}
+
+	if err := snapshotv1.AddToScheme(sch); err != nil {
+		klog.Fatalf("unable add APIs to scheme: %v", err)
+	}
 	apiServer.RuntimeCache, err = runtimecache.New(apiServer.KubernetesClient.Config(), runtimecache.Options{Scheme: sch})
 	if err != nil {
 		klog.Fatalf("unable to create controller runtime cache: %v", err)

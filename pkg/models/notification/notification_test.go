@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -31,6 +32,7 @@ import (
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
+	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 )
 
 func TestOperator_List(t *testing.T) {
@@ -41,8 +43,8 @@ func TestOperator_List(t *testing.T) {
 	}{
 		{
 			result: &api.ListResult{
-				Items:      []interface{}{secret1, secret2, secret3},
-				TotalItems: 3,
+				Items:      []interface{}{secret1, secret2},
+				TotalItems: 2,
 			},
 		},
 	}
@@ -199,7 +201,7 @@ var (
 			Name:      "foo3",
 			Namespace: constants.NotificationSecretNamespace,
 			Labels: map[string]string{
-				"type": "global",
+				"type": "namespace",
 			},
 		},
 	}
@@ -214,8 +216,39 @@ func prepare() Operator {
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	for _, secret := range secrets {
-		_ = fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets().Informer().GetIndexer().Add(secret)
+		_ = fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets().Informer().GetIndexer().Add(secret.DeepCopy())
 	}
 
-	return NewOperator(fakeInformerFactory, k8sClient, ksClient)
+	return NewOperator(fakeInformerFactory, k8sClient, ksClient, NewFakeGetter(fakeInformerFactory))
+}
+
+func NewFakeGetter(fakeInformerFactory informers.InformerFactory) resourcev1alpha3.ResourceGetter {
+	return &fakeresourceGetter{fakeInformerFactory: fakeInformerFactory}
+}
+
+type fakeresourceGetter struct {
+	fakeInformerFactory informers.InformerFactory
+}
+
+func (f *fakeresourceGetter) Get(resource, namespace, name string) (runtime.Object, error) {
+
+	return f.fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets().Lister().Secrets(namespace).Get(name)
+}
+func (f *fakeresourceGetter) List(resource, namespace string, query *query.Query) (*api.ListResult, error) {
+	var result []interface{}
+
+	if resource == Secret {
+		sec, err := f.fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets().Lister().Secrets(namespace).List(query.Selector())
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range sec {
+			result = append(result, s)
+		}
+	}
+
+	return &api.ListResult{
+		Items:      result,
+		TotalItems: len(result),
+	}, nil
 }

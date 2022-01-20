@@ -37,13 +37,13 @@ import (
 )
 
 type Handler struct {
-	resourceGetterV1alpha3  *resourcev1alpha3.ResourceGetter
+	resourceGetterV1alpha3  resourcev1alpha3.ResourceGetter
 	resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter
 	componentsGetter        components.ComponentsGetter
 	registryHelper          v2.RegistryHelper
 }
 
-func New(resourceGetterV1alpha3 *resourcev1alpha3.ResourceGetter, resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter, componentsGetter components.ComponentsGetter) *Handler {
+func New(resourceGetterV1alpha3 resourcev1alpha3.ResourceGetter, resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter, componentsGetter components.ComponentsGetter) *Handler {
 	return &Handler{
 		resourceGetterV1alpha3:  resourceGetterV1alpha3,
 		resourcesGetterV1alpha2: resourcesGetterV1alpha2,

@@ -17,55 +17,22 @@ limitations under the License.
 package application
 
 import (
-	"context"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog"
-	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"kubesphere.io/kubesphere/pkg/api"
+	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
-type applicationsGetter struct {
-	c cache.Cache
+func init() {
+	crds.Comparers[schema.GroupVersionKind{Group: "app.k8s.io", Version: "v1beta1", Kind: "Application"}] = compare
 }
 
-func New(c cache.Cache) v1alpha3.Interface {
-	return &applicationsGetter{c}
-}
-
-func (d *applicationsGetter) Get(namespace, name string) (runtime.Object, error) {
-	app := appv1beta1.Application{}
-	err := d.c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, &app)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	return &app, nil
-}
-
-func (d *applicationsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	applications := appv1beta1.ApplicationList{}
-	err := d.c.List(context.Background(), &applications, &client.ListOptions{Namespace: namespace, LabelSelector: query.Selector()})
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	var result []runtime.Object
-	for i := range applications.Items {
-		result = append(result, &applications.Items[i])
-	}
-
-	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
-}
-
-func (d *applicationsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+func compare(left, right metav1.Object, field query.Field) bool {
 
 	leftApplication, ok := left.(*appv1beta1.Application)
 	if !ok {
@@ -82,17 +49,8 @@ func (d *applicationsGetter) compare(left runtime.Object, right runtime.Object, 
 	case query.FieldLastUpdateTimestamp:
 		return lastUpdateTime(leftApplication).After(lastUpdateTime(rightApplication))
 	default:
-		return v1alpha3.DefaultObjectMetaCompare(leftApplication.ObjectMeta, rightApplication.ObjectMeta, field)
+		return crds.DefaultObjectMetaCompare(leftApplication, rightApplication, field)
 	}
-}
-
-func (d *applicationsGetter) filter(object runtime.Object, filter query.Filter) bool {
-	application, ok := object.(*appv1beta1.Application)
-	if !ok {
-		return false
-	}
-
-	return v1alpha3.DefaultObjectMetaFilter(application.ObjectMeta, filter)
 }
 
 func lastUpdateTime(application *appv1beta1.Application) time.Time {

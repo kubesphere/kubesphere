@@ -20,56 +20,22 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
 const (
 	storageClassName = "storageClassName"
 )
 
-type persistentVolumeGetter struct {
-	informers informers.SharedInformerFactory
+func init() {
+	crds.Filters[schema.GroupVersionKind{Group: "", Version: "v1", Kind: "PersistentVolumes"}] = filter
 }
 
-func New(informer informers.SharedInformerFactory) v1alpha3.Interface {
-	return &persistentVolumeGetter{informers: informer}
-}
-
-func (p *persistentVolumeGetter) Get(namespace, name string) (runtime.Object, error) {
-	pv, err := p.informers.Core().V1().PersistentVolumes().Lister().Get(name)
-	return pv, err
-}
-
-func (p *persistentVolumeGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := p.informers.Core().V1().PersistentVolumes().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-	var result []runtime.Object
-	for _, pv := range all {
-		result = append(result, pv)
-	}
-	return v1alpha3.DefaultList(result, query, p.compare, p.filter), nil
-}
-
-func (p *persistentVolumeGetter) compare(obj1, obj2 runtime.Object, field query.Field) bool {
-	pv1, ok := obj1.(*corev1.PersistentVolume)
-	if !ok {
-		return false
-	}
-	pv2, ok := obj2.(*corev1.PersistentVolume)
-	if !ok {
-		return false
-	}
-	return v1alpha3.DefaultObjectMetaCompare(pv1.ObjectMeta, pv2.ObjectMeta, field)
-}
-
-func (p *persistentVolumeGetter) filter(object runtime.Object, filter query.Filter) bool {
+func filter(object metav1.Object, filter query.Filter) bool {
 	pv, ok := object.(*corev1.PersistentVolume)
 	if !ok {
 		return false
@@ -80,6 +46,6 @@ func (p *persistentVolumeGetter) filter(object runtime.Object, filter query.Filt
 	case storageClassName:
 		return pv.Spec.StorageClassName != "" && pv.Spec.StorageClassName == string(filter.Value)
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(pv.ObjectMeta, filter)
+		return crds.DefaultObjectMetaFilter(pv, filter)
 	}
 }

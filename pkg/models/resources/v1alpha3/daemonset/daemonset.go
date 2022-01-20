@@ -20,12 +20,11 @@ import (
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
 const (
@@ -34,49 +33,11 @@ const (
 	statusUpdating = "updating"
 )
 
-type daemonSetGetter struct {
-	sharedInformers informers.SharedInformerFactory
+func init() {
+	crds.Filters[schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "DaemonSet"}] = filter
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &daemonSetGetter{sharedInformers: sharedInformers}
-}
-
-func (d *daemonSetGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(name)
-}
-
-func (d *daemonSetGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	// first retrieves all daemonSets within given namespace
-	daemonSets, err := d.sharedInformers.Apps().V1().DaemonSets().Lister().DaemonSets(namespace).List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, daemonSet := range daemonSets {
-		result = append(result, daemonSet)
-	}
-
-	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
-}
-
-func (d *daemonSetGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
-	leftDaemonSet, ok := left.(*appsv1.DaemonSet)
-	if !ok {
-		return false
-	}
-
-	rightDaemonSet, ok := right.(*appsv1.DaemonSet)
-	if !ok {
-		return false
-	}
-
-	return v1alpha3.DefaultObjectMetaCompare(leftDaemonSet.ObjectMeta, rightDaemonSet.ObjectMeta, field)
-}
-
-func (d *daemonSetGetter) filter(object runtime.Object, filter query.Filter) bool {
+func filter(object metav1.Object, filter query.Filter) bool {
 	daemonSet, ok := object.(*appsv1.DaemonSet)
 	if !ok {
 		return false
@@ -85,7 +46,7 @@ func (d *daemonSetGetter) filter(object runtime.Object, filter query.Filter) boo
 	case query.FieldStatus:
 		return strings.Compare(daemonsetStatus(&daemonSet.Status), string(filter.Value)) == 0
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(daemonSet.ObjectMeta, filter)
+		return crds.DefaultObjectMetaFilter(daemonSet, filter)
 	}
 }
 

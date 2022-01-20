@@ -19,58 +19,19 @@ package federatedsecret
 import (
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/api/types/v1beta1"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
-type fedSecretGetter struct {
-	sharedInformers informers.SharedInformerFactory
+func init() {
+	crds.Filters[v1beta1.SchemeGroupVersion.WithKind(v1beta1.FederatedSecretKind)] = filter
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &fedSecretGetter{sharedInformers: sharedInformers}
-}
-
-func (d *fedSecretGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Types().V1beta1().FederatedSecrets().Lister().FederatedSecrets(namespace).Get(name)
-}
-
-func (d *fedSecretGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	secrets, err := d.sharedInformers.Types().V1beta1().FederatedSecrets().Lister().FederatedSecrets(namespace).List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, secret := range secrets {
-		result = append(result, secret)
-	}
-
-	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
-}
-
-func (d *fedSecretGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
-	leftSecret, ok := left.(*v1beta1.FederatedSecret)
-	if !ok {
-		return false
-	}
-
-	rightSecret, ok := right.(*v1beta1.FederatedSecret)
-	if !ok {
-		return false
-	}
-
-	return v1alpha3.DefaultObjectMetaCompare(leftSecret.ObjectMeta, rightSecret.ObjectMeta, field)
-}
-
-func (d *fedSecretGetter) filter(object runtime.Object, filter query.Filter) bool {
+func filter(object metav1.Object, filter query.Filter) bool {
 	fedSecret, ok := object.(*v1beta1.FederatedSecret)
 	if !ok {
 		return false
@@ -80,6 +41,6 @@ func (d *fedSecretGetter) filter(object runtime.Object, filter query.Filter) boo
 	case query.FieldType:
 		return strings.Compare(string(fedSecret.Spec.Template.Type), string(filter.Value)) == 0
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(fedSecret.ObjectMeta, filter)
+		return crds.DefaultObjectMetaFilter(fedSecret, filter)
 	}
 }

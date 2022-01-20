@@ -22,12 +22,11 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
 const (
@@ -36,33 +35,12 @@ const (
 	jobRunning   = "running"
 )
 
-type jobsGetter struct {
-	sharedInformers informers.SharedInformerFactory
+func init() {
+	crds.Filters[schema.GroupVersionKind{Group: "batch", Version: "v1", Kind: "Job"}] = filter
+	crds.Comparers[schema.GroupVersionKind{Group: "batch", Version: "v1", Kind: "Job"}] = compare
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &jobsGetter{sharedInformers: sharedInformers}
-}
-
-func (d *jobsGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Batch().V1().Jobs().Lister().Jobs(namespace).Get(name)
-}
-
-func (d *jobsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	jobs, err := d.sharedInformers.Batch().V1().Jobs().Lister().Jobs(namespace).List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, job := range jobs {
-		result = append(result, job)
-	}
-
-	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
-}
-
-func (d *jobsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+func compare(left, right metav1.Object, field query.Field) bool {
 
 	leftJob, ok := left.(*batchv1.Job)
 	if !ok {
@@ -82,11 +60,11 @@ func (d *jobsGetter) compare(left runtime.Object, right runtime.Object, field qu
 	case query.FieldStatus:
 		return strings.Compare(jobStatus(leftJob.Status), jobStatus(rightJob.Status)) > 0
 	default:
-		return v1alpha3.DefaultObjectMetaCompare(leftJob.ObjectMeta, rightJob.ObjectMeta, field)
+		return crds.DefaultObjectMetaCompare(leftJob, rightJob, field)
 	}
 }
 
-func (d *jobsGetter) filter(object runtime.Object, filter query.Filter) bool {
+func filter(object metav1.Object, filter query.Filter) bool {
 	job, ok := object.(*batchv1.Job)
 	if !ok {
 		return false
@@ -96,7 +74,7 @@ func (d *jobsGetter) filter(object runtime.Object, filter query.Filter) bool {
 	case query.FieldStatus:
 		return strings.Compare(jobStatus(job.Status), string(filter.Value)) == 0
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(job.ObjectMeta, filter)
+		return crds.DefaultObjectMetaFilter(job, filter)
 	}
 }
 

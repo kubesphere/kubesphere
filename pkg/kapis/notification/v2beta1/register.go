@@ -26,6 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -46,10 +49,12 @@ func AddToContainer(
 	container *restful.Container,
 	informers informers.InformerFactory,
 	k8sClient kubernetes.Interface,
-	ksClient kubesphere.Interface) error {
+	ksClient kubesphere.Interface,
+	cache cache.Cache,
+	cli client.Client) error {
 
 	ws := runtime.NewWebService(GroupVersion)
-	h := newNotificationHandler(informers, k8sClient, ksClient)
+	h := newNotificationHandler(informers, k8sClient, ksClient, cache, cli)
 
 	// apis for global notification config, receiver, and secret
 	ws.Route(ws.GET("/{resources}").

@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
@@ -55,12 +56,12 @@ type GroupOperator interface {
 type groupOperator struct {
 	k8sclient      kubernetes.Interface
 	ksclient       kubesphere.Interface
-	resourceGetter *resourcesv1alpha3.ResourceGetter
+	resourceGetter resourcesv1alpha3.ResourceGetter
 }
 
-func New(informers informers.InformerFactory, ksclient kubesphere.Interface, k8sclient kubernetes.Interface) GroupOperator {
+func New(informers informers.InformerFactory, ksclient kubesphere.Interface, k8sclient kubernetes.Interface, cache client.Reader, cli client.Client) GroupOperator {
 	return &groupOperator{
-		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers, nil),
+		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers, cli.Scheme(), cache),
 		k8sclient:      k8sclient,
 		ksclient:       ksclient,
 	}

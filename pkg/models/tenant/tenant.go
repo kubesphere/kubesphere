@@ -59,7 +59,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/metering"
 	"kubesphere.io/kubesphere/pkg/models/monitoring"
 	resources "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
-	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events"
@@ -105,7 +104,7 @@ type tenantOperator struct {
 	authorizer     authorizer.Authorizer
 	k8sclient      kubernetes.Interface
 	ksclient       kubesphere.Interface
-	resourceGetter *resourcesv1alpha3.ResourceGetter
+	resourceGetter resourcev1alpha3.ResourceGetter
 	events         events.Interface
 	lo             logging.LoggingOperator
 	auditing       auditing.Interface
@@ -113,7 +112,7 @@ type tenantOperator struct {
 	opRelease      openpitrix.ReleaseInterface
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) Interface {
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter resourcev1alpha3.ResourceGetter) Interface {
 	var openpitrixRelease openpitrix.ReleaseInterface
 	if ksclient != nil {
 		openpitrixRelease = openpitrix.NewOpenpitrixOperator(informers, ksclient, nil)
@@ -122,7 +121,7 @@ func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ks
 	return &tenantOperator{
 		am:             am,
 		authorizer:     authorizer,
-		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers, nil),
+		resourceGetter: resourceGetter,
 		k8sclient:      k8sclient,
 		ksclient:       ksclient,
 		events:         events.NewEventsOperator(evtsClient),
@@ -271,7 +270,7 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	if workspace != "" {
 		nsScope = request.WorkspaceScope
 		// filter by workspace
-		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
+		queryParam.LabelSelector = fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace)
 	}
 
 	listNS := authorizer.AttributesRecord{

@@ -20,12 +20,16 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/fake"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
-	corev1 "k8s.io/api/core/v1"
 	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -33,7 +37,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 )
 
-func TestResourceGetter(t *testing.T) {
+func TestResourceGetter_List(t *testing.T) {
 
 	resource := prepare()
 
@@ -64,6 +68,25 @@ func TestResourceGetter(t *testing.T) {
 				TotalItems: 3,
 			},
 		},
+		{
+			Name:      "legecy case",
+			Resource:  "pods",
+			Namespace: "foo",
+			Query: &query.Query{
+				Pagination: &query.Pagination{
+					Limit:  10,
+					Offset: 0,
+				},
+				SortBy:    query.FieldName,
+				Ascending: false,
+				Filters:   map[query.Field]query.Value{},
+			},
+			ExpectError: nil,
+			ExpectResponse: &api.ListResult{
+				Items:      []interface{}{pod3, pod2, pod1},
+				TotalItems: 3,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -81,29 +104,73 @@ func TestResourceGetter(t *testing.T) {
 
 var (
 	foo1 = &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo1",
-			Namespace: "bar",
+			Name: "foo1",
 		},
 	}
 
 	foo2 = &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo2",
-			Namespace: "bar",
+			Name: "foo2",
 		},
 	}
 	bar1 = &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bar1",
-			Namespace: "bar",
+			Name: "bar1",
 		},
 	}
 
 	namespaces = []interface{}{foo1, foo2, bar1}
+
+	pod1 = &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod1",
+			Namespace: "foo",
+		},
+	}
+
+	pod2 = &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod2",
+			Namespace: "foo",
+		},
+	}
+
+	pod3 = &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod3",
+			Namespace: "foo",
+		},
+	}
+
+	pods = []interface{}{pod1, pod2, pod3}
 )
 
-func prepare() *ResourceGetter {
+func prepare() ResourceGetter {
 
 	ksClient := fakeks.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
@@ -112,10 +179,66 @@ func prepare() *ResourceGetter {
 	apiextensionsClient := fakeapiextensions.NewSimpleClientset()
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient, nil)
 
-	for _, namespace := range namespaces {
+	for _, pod := range pods {
 		fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().
-			Namespaces().Informer().GetIndexer().Add(namespace)
+			Pods().Informer().GetIndexer().Add(pod)
 	}
 
-	return NewResourceGetter(fakeInformerFactory, nil)
+	var resourceToGVK map[string]schema.GroupVersionKind = map[string]schema.GroupVersionKind{
+		"namespaces": {Group: "", Version: "v1", Kind: "Namespace"},
+	}
+	var Scheme = runtime.NewScheme()
+	// v1alpha1.AddToScheme(Scheme)
+	corev1.AddToScheme(Scheme)
+
+	c := fake.NewClientBuilder().WithScheme(Scheme).WithObjects(foo1, foo2, bar1).Build()
+	return NewResourceGetterWithKind(fakeInformerFactory, c.Scheme(), c, resourceToGVK)
+}
+
+func TestResourceGetter_Get(t *testing.T) {
+
+	resource := prepare()
+
+	type args struct {
+		resource  string
+		namespace string
+		name      string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    runtime.Object
+		wantErr bool
+	}{
+		{
+			name: "Get namespace",
+			args: args{
+				resource: "namespaces",
+				name:     "foo1",
+			},
+			want: foo1,
+		},
+		{
+			name: "Get Pod",
+			args: args{
+				resource:  "pods",
+				name:      "pod1",
+				namespace: "foo",
+			},
+			want: pod1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got, err := resource.Get(tt.args.resource, tt.args.namespace, tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ResourceGetter.Get() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf(diff)
+			}
+		})
+	}
 }

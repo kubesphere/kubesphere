@@ -17,59 +17,23 @@ limitations under the License.
 package federatedpersistentvolumeclaim
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/api/types/v1beta1"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
 const (
 	storageClassName = "storageClassName"
 )
 
-type fedPersistentVolumeClaimGetter struct {
-	informers informers.SharedInformerFactory
+func init() {
+	crds.Filters[v1beta1.SchemeGroupVersion.WithKind(v1beta1.FederatedPersistentVolumeClaimKind)] = filter
 }
 
-func New(informer informers.SharedInformerFactory) v1alpha3.Interface {
-	return &fedPersistentVolumeClaimGetter{informers: informer}
-}
-
-func (p *fedPersistentVolumeClaimGetter) Get(namespace, name string) (runtime.Object, error) {
-	return p.informers.Types().V1beta1().FederatedPersistentVolumeClaims().Lister().FederatedPersistentVolumeClaims(namespace).Get(name)
-
-}
-
-func (p *fedPersistentVolumeClaimGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := p.informers.Types().V1beta1().FederatedPersistentVolumeClaims().Lister().FederatedPersistentVolumeClaims(namespace).List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, pvc := range all {
-		result = append(result, pvc)
-	}
-	return v1alpha3.DefaultList(result, query, p.compare, p.filter), nil
-}
-
-func (p *fedPersistentVolumeClaimGetter) compare(left, right runtime.Object, field query.Field) bool {
-	leftSnapshot, ok := left.(*v1beta1.FederatedPersistentVolumeClaim)
-	if !ok {
-		return false
-	}
-	rightSnapshot, ok := right.(*v1beta1.FederatedPersistentVolumeClaim)
-	if !ok {
-		return false
-	}
-	return v1alpha3.DefaultObjectMetaCompare(leftSnapshot.ObjectMeta, rightSnapshot.ObjectMeta, field)
-}
-
-func (p *fedPersistentVolumeClaimGetter) filter(object runtime.Object, filter query.Filter) bool {
+func filter(object metav1.Object, filter query.Filter) bool {
 	pvc, ok := object.(*v1beta1.FederatedPersistentVolumeClaim)
 	if !ok {
 		return false
@@ -79,6 +43,6 @@ func (p *fedPersistentVolumeClaimGetter) filter(object runtime.Object, filter qu
 	case storageClassName:
 		return pvc.Spec.Template.Spec.StorageClassName != nil && *pvc.Spec.Template.Spec.StorageClassName == string(filter.Value)
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(pvc.ObjectMeta, filter)
+		return crds.DefaultObjectMetaFilter(pvc, filter)
 	}
 }

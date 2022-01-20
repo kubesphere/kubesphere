@@ -22,11 +22,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/notification"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
 )
 
@@ -37,10 +41,12 @@ type handler struct {
 func newNotificationHandler(
 	informers informers.InformerFactory,
 	k8sClient kubernetes.Interface,
-	ksClient kubesphere.Interface) *handler {
+	ksClient kubesphere.Interface,
+	cache cache.Cache,
+	cli client.Client) *handler {
 
 	return &handler{
-		operator: notification.NewOperator(informers, k8sClient, ksClient),
+		operator: notification.NewOperator(informers, k8sClient, ksClient, resource.NewResourceGetter(informers, cli.Scheme(), cache)),
 	}
 }
 

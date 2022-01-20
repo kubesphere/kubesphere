@@ -40,6 +40,7 @@ import (
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 )
 
 func TestTenantOperator_ListWorkspaces(t *testing.T) {
@@ -480,7 +481,7 @@ var (
 	}
 
 	workspaces            = []interface{}{systemWorkspace, testWorkspace}
-	workspaceTemplates    = []interface{}{testWorkspaceTmpl, systemWorkspaceTmpl}
+	workspaceTemplates    = []interface{}{systemWorkspaceTmpl, testWorkspaceTmpl}
 	namespaces            = []interface{}{kubesphereSystem, defaultNamespace, testNamespace}
 	globalRoles           = []interface{}{platformAdmin, platformRegular}
 	globalRoleBindings    = []interface{}{adminGlobalRoleBinding, regularGlobalRoleBinding}
@@ -544,5 +545,63 @@ func prepare() Interface {
 	amOperator := am.NewOperator(ksClient, k8sClient, fakeInformerFactory, nil)
 	authorizer := rbac.NewRBACAuthorizer(amOperator)
 
-	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil, amOperator, authorizer, nil, nil)
+	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil, amOperator, authorizer, nil, NewFakeGetter(fakeInformerFactory))
+}
+
+func NewFakeGetter(fakeInformerFactory informers.InformerFactory) resourcev1alpha3.ResourceGetter {
+	return &fakeresourceGetter{fakeInformerFactory: fakeInformerFactory}
+}
+
+type fakeresourceGetter struct {
+	fakeInformerFactory informers.InformerFactory
+}
+
+func (f *fakeresourceGetter) Get(resource, namespace, name string) (runtime.Object, error) {
+	if resource == tenantv1alpha2.ResourcePluralWorkspaceTemplate {
+		return f.fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha2().WorkspaceTemplates().Lister().Get(name)
+	}
+	if resource == "namespaces" {
+		return f.fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces().Lister().Get(name)
+	}
+	return f.fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(name)
+}
+func (f *fakeresourceGetter) List(resource, namespace string, query *query.Query) (*api.ListResult, error) {
+	var result []interface{}
+
+	if resource == tenantv1alpha2.ResourcePluralWorkspaceTemplate {
+		workspaces, err := f.fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha2().WorkspaceTemplates().Lister().List(query.Selector())
+
+		if err != nil {
+			return nil, err
+		}
+		for _, ws := range workspaces {
+			result = append(result, ws)
+		}
+	}
+
+	if resource == tenantv1alpha1.ResourcePluralWorkspace {
+		workspaces, err := f.fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().List(query.Selector())
+
+		if err != nil {
+			return nil, err
+		}
+		for _, ws := range workspaces {
+			result = append(result, ws)
+		}
+	}
+
+	if resource == "namespaces" {
+		namespaces, err := f.fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces().Lister().List(query.Selector())
+		if err != nil {
+			return nil, err
+		}
+		for _, ns := range namespaces {
+			result = append(result, ns)
+		}
+	}
+
+	return &api.ListResult{
+		Items:      result,
+		TotalItems: len(result),
+	}, nil
 }

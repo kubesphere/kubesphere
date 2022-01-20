@@ -20,12 +20,10 @@ import (
 	"strings"
 
 	v1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
-	"github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
 const (
@@ -33,45 +31,11 @@ const (
 	driver         = "driver"
 )
 
-type volumeSnapshotClassGetter struct {
-	informers externalversions.SharedInformerFactory
+func init() {
+	crds.Filters[v1.SchemeGroupVersion.WithKind("VolumeSnapshotClass")] = filter
 }
 
-func New(informer externalversions.SharedInformerFactory) v1alpha3.Interface {
-	return &volumeSnapshotClassGetter{informers: informer}
-}
-
-func (v *volumeSnapshotClassGetter) Get(namespace, name string) (runtime.Object, error) {
-	return v.informers.Snapshot().V1().VolumeSnapshotClasses().Lister().Get(name)
-}
-
-func (v *volumeSnapshotClassGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := v.informers.Snapshot().V1().VolumeSnapshotClasses().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, snapshotClass := range all {
-		result = append(result, snapshotClass)
-	}
-
-	return v1alpha3.DefaultList(result, query, v.compare, v.filter), nil
-}
-
-func (v *volumeSnapshotClassGetter) compare(left, right runtime.Object, field query.Field) bool {
-	leftSnapshotClass, ok := left.(*v1.VolumeSnapshotClass)
-	if !ok {
-		return false
-	}
-	rightSnapshotClass, ok := right.(*v1.VolumeSnapshotClass)
-	if !ok {
-		return false
-	}
-	return v1alpha3.DefaultObjectMetaCompare(leftSnapshotClass.ObjectMeta, rightSnapshotClass.ObjectMeta, field)
-}
-
-func (v *volumeSnapshotClassGetter) filter(object runtime.Object, filter query.Filter) bool {
+func filter(object metav1.Object, filter query.Filter) bool {
 	snapshotClass, ok := object.(*v1.VolumeSnapshotClass)
 	if !ok {
 		return false
@@ -83,6 +47,6 @@ func (v *volumeSnapshotClassGetter) filter(object runtime.Object, filter query.F
 	case driver:
 		return strings.EqualFold(snapshotClass.Driver, string(filter.Value))
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(snapshotClass.ObjectMeta, filter)
+		return crds.DefaultObjectMetaFilter(snapshotClass, filter)
 	}
 }

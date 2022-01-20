@@ -17,43 +17,19 @@ limitations under the License.
 package federatedapplication
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/api/types/v1beta1"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
-type fedApplicationsGetter struct {
-	informer informers.SharedInformerFactory
+func init() {
+	crds.Comparers[v1beta1.SchemeGroupVersion.WithKind(v1beta1.FederatedApplicationKind)] = compare
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &fedApplicationsGetter{informer: sharedInformers}
-}
-
-func (d *fedApplicationsGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.informer.Types().V1beta1().FederatedApplications().Lister().FederatedApplications(namespace).Get(name)
-}
-
-func (d *fedApplicationsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	applications, err := d.informer.Types().V1beta1().FederatedApplications().Lister().FederatedApplications(namespace).List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, app := range applications {
-		result = append(result, app)
-	}
-
-	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
-}
-
-func (d *fedApplicationsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+func compare(left, right metav1.Object, field query.Field) bool {
 
 	leftApplication, ok := left.(*v1beta1.FederatedApplication)
 	if !ok {
@@ -70,17 +46,8 @@ func (d *fedApplicationsGetter) compare(left runtime.Object, right runtime.Objec
 	case query.FieldLastUpdateTimestamp:
 		return lastUpdateTime(leftApplication) > (lastUpdateTime(rightApplication))
 	default:
-		return v1alpha3.DefaultObjectMetaCompare(leftApplication.ObjectMeta, rightApplication.ObjectMeta, field)
+		return crds.DefaultObjectMetaCompare(leftApplication, rightApplication, field)
 	}
-}
-
-func (d *fedApplicationsGetter) filter(object runtime.Object, filter query.Filter) bool {
-	application, ok := object.(*v1beta1.FederatedApplication)
-	if !ok {
-		return false
-	}
-
-	return v1alpha3.DefaultObjectMetaFilter(application.ObjectMeta, filter)
 }
 
 func lastUpdateTime(application *v1beta1.FederatedApplication) string {

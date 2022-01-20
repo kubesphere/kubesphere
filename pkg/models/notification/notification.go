@@ -42,19 +42,21 @@ type operator struct {
 	k8sClient      kubernetes.Interface
 	ksClient       kubesphere.Interface
 	informers      informers.InformerFactory
-	resourceGetter *resource.ResourceGetter
+	resourceGetter resource.ResourceGetter
 }
 
 func NewOperator(
 	informers informers.InformerFactory,
 	k8sClient kubernetes.Interface,
-	ksClient kubesphere.Interface) Operator {
+	ksClient kubesphere.Interface,
+	resourceGetter resource.ResourceGetter,
+) Operator {
 
 	return &operator{
 		informers:      informers,
 		k8sClient:      k8sClient,
 		ksClient:       ksClient,
-		resourceGetter: resource.NewResourceGetter(informers, nil),
+		resourceGetter: resourceGetter,
 	}
 }
 

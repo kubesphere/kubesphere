@@ -71,10 +71,10 @@ type monitoringOperator struct {
 	k8s            kubernetes.Interface
 	ks             ksinformers.SharedInformerFactory
 	op             openpitrix.Interface
-	resourceGetter *resourcev1alpha3.ResourceGetter
+	resourceGetter resourcev1alpha3.ResourceGetter
 }
 
-func NewMonitoringOperator(monitoringClient monitoring.Interface, metricsClient monitoring.Interface, k8s kubernetes.Interface, factory informers.InformerFactory, resourceGetter *resourcev1alpha3.ResourceGetter, op openpitrix.Interface) MonitoringOperator {
+func NewMonitoringOperator(monitoringClient monitoring.Interface, metricsClient monitoring.Interface, k8s kubernetes.Interface, factory informers.InformerFactory, resourceGetter resourcev1alpha3.ResourceGetter, op openpitrix.Interface) MonitoringOperator {
 	return &monitoringOperator{
 		prometheus:     monitoringClient,
 		metricsserver:  metricsClient,

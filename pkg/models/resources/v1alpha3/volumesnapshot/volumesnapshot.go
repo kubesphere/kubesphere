@@ -18,12 +18,10 @@ package volumesnapshot
 
 import (
 	v1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
-	"github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
 const (
@@ -35,45 +33,11 @@ const (
 	persistentVolumeClaimName = "persistentVolumeClaimName"
 )
 
-type volumeSnapshotGetter struct {
-	informers externalversions.SharedInformerFactory
+func init() {
+	crds.Filters[v1.SchemeGroupVersion.WithKind("VolumeSnapshot")] = filter
 }
 
-func New(informer externalversions.SharedInformerFactory) v1alpha3.Interface {
-	return &volumeSnapshotGetter{informers: informer}
-}
-
-func (v *volumeSnapshotGetter) Get(namespace, name string) (runtime.Object, error) {
-	return v.informers.Snapshot().V1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).Get(name)
-}
-
-func (v *volumeSnapshotGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := v.informers.Snapshot().V1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, snapshot := range all {
-		result = append(result, snapshot)
-	}
-
-	return v1alpha3.DefaultList(result, query, v.compare, v.filter), nil
-}
-
-func (v *volumeSnapshotGetter) compare(left, right runtime.Object, field query.Field) bool {
-	leftSnapshot, ok := left.(*v1.VolumeSnapshot)
-	if !ok {
-		return false
-	}
-	rightSnapshot, ok := right.(*v1.VolumeSnapshot)
-	if !ok {
-		return false
-	}
-	return v1alpha3.DefaultObjectMetaCompare(leftSnapshot.ObjectMeta, rightSnapshot.ObjectMeta, field)
-}
-
-func (v *volumeSnapshotGetter) filter(object runtime.Object, filter query.Filter) bool {
+func filter(object metav1.Object, filter query.Filter) bool {
 	snapshot, ok := object.(*v1.VolumeSnapshot)
 	if !ok {
 		return false
@@ -89,7 +53,7 @@ func (v *volumeSnapshotGetter) filter(object runtime.Object, filter query.Filter
 		name := snapshot.Spec.Source.PersistentVolumeClaimName
 		return name != nil && *name == string(filter.Value)
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(snapshot.ObjectMeta, filter)
+		return crds.DefaultObjectMetaFilter(snapshot, filter)
 	}
 }
 

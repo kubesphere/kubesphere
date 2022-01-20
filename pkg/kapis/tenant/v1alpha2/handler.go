@@ -59,7 +59,7 @@ type tenantHandler struct {
 func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface,
 	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
 	am am.AccessManagementInterface, authorizer authorizer.Authorizer,
-	monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter,
+	monitoringclient monitoringclient.Interface, resourceGetter resourcev1alpha3.ResourceGetter,
 	meteringOptions *meteringclient.Options) *tenantHandler {
 
 	if meteringOptions == nil || meteringOptions.RetentionDay == "" {

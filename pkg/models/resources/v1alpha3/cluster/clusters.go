@@ -17,74 +17,21 @@ limitations under the License.
 package cluster
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
-	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/crds"
 )
 
-type clustersGetter struct {
-	informers externalversions.SharedInformerFactory
+func init() {
+	crds.Transformers[clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindCluster)] = []crds.TransformFunc{transform}
 }
 
-func New(informers externalversions.SharedInformerFactory) v1alpha3.Interface {
-	return &clustersGetter{
-		informers: informers,
-	}
-}
-
-func (c clustersGetter) Get(_, name string) (runtime.Object, error) {
-	cluster, err := c.informers.Cluster().V1alpha1().Clusters().Lister().Get(name)
-	if err != nil {
-		return nil, err
-	}
-	return c.transform(cluster), nil
-}
-
-func (c clustersGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	clusters, err := c.informers.Cluster().V1alpha1().Clusters().Lister().List(query.Selector())
-	if err != nil {
-		return nil, err
-	}
-
-	var result []runtime.Object
-	for _, cluster := range clusters {
-		result = append(result, cluster)
-	}
-
-	return v1alpha3.DefaultList(result, query, c.compare, c.filter, c.transform), nil
-}
-
-func (c clustersGetter) transform(obj runtime.Object) runtime.Object {
+func transform(obj metav1.Object) runtime.Object {
 	in := obj.(*clusterv1alpha1.Cluster)
 	out := in.DeepCopy()
 	out.Spec.Connection.KubeConfig = nil
 	return out
-}
-
-func (c clustersGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-	leftCluster, ok := left.(*clusterv1alpha1.Cluster)
-	if !ok {
-		return false
-	}
-
-	rightCluster, ok := right.(*clusterv1alpha1.Cluster)
-	if !ok {
-		return false
-	}
-
-	return v1alpha3.DefaultObjectMetaCompare(leftCluster.ObjectMeta, rightCluster.ObjectMeta, field)
-}
-
-func (c clustersGetter) filter(object runtime.Object, filter query.Filter) bool {
-	cluster, ok := object.(*clusterv1alpha1.Cluster)
-	if !ok {
-		return false
-	}
-
-	return v1alpha3.DefaultObjectMetaFilter(cluster.ObjectMeta, filter)
 }
