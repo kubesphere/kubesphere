@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -168,6 +169,9 @@ type ClusterStatus struct {
 	// every amount of time, like 5 minutes.
 	// +optional
 	Configz map[string]bool `json:"configz,omitempty"`
+
+	// UID is the kube-system namespace UID of the cluster, which represents the unique ID of the cluster.
+	UID types.UID `json:"uid,omitempty"`
 }
 
 // +genclient
