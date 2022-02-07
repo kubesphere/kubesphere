@@ -48,7 +48,7 @@ import (
 
 func NewControllerManagerCommand() *cobra.Command {
 	s := options.NewKubeSphereControllerManagerOptions()
-	conf, err := controllerconfig.TryLoadFromDisk()
+	conf, configCh, err := controllerconfig.TryLoadFromDisk()
 	if err == nil {
 		// make sure LeaderElection is not nil
 		s = &options.KubeSphereControllerManagerOptions{
@@ -79,7 +79,7 @@ func NewControllerManagerCommand() *cobra.Command {
 				os.Exit(1)
 			}
 
-			if err = run(s, signals.SetupSignalHandler()); err != nil {
+			if err = Run(s, configCh, signals.SetupSignalHandler()); err != nil {
 				klog.Error(err)
 				os.Exit(1)
 			}
@@ -112,6 +112,37 @@ func NewControllerManagerCommand() *cobra.Command {
 	cmd.AddCommand(versionCmd)
 
 	return cmd
+}
+
+func Run(s *options.KubeSphereControllerManagerOptions, configCh <-chan controllerconfig.Config, ctx context.Context) error {
+	ictx := controllerconfig.Context{}
+	ictx.RenewContext(context.TODO())
+	errCh := make(chan error)
+	defer close(errCh)
+	go func() {
+		if err := run(s, ictx.GetContext()); err != nil {
+			errCh <- err
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			ictx.CancelContext()
+			return nil
+		case cfg := <-configCh:
+			ictx.CancelContext()
+			s.MergeConfig(&cfg)
+			ictx.RenewContext(context.TODO())
+			go func() {
+				if err := run(s, ictx.GetContext()); err != nil {
+					errCh <- err
+				}
+			}()
+		case err := <-errCh:
+			return err
+		}
+	}
 }
 
 func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) error {

@@ -113,10 +113,10 @@ type tenantOperator struct {
 	opRelease      openpitrix.ReleaseInterface
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) Interface {
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, stopCh <-chan struct{}) Interface {
 	var openpitrixRelease openpitrix.ReleaseInterface
 	if ksclient != nil {
-		openpitrixRelease = openpitrix.NewOpenpitrixOperator(informers, ksclient, nil)
+		openpitrixRelease = openpitrix.NewOpenpitrixOperator(informers, ksclient, nil, stopCh)
 	}
 
 	return &tenantOperator{

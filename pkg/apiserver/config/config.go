@@ -17,9 +17,15 @@ limitations under the License.
 package config
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
+
+	"k8s.io/klog"
+
+	"github.com/fsnotify/fsnotify"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization"
@@ -78,6 +84,11 @@ import (
 // we will `root:password@mysql.kubesphere-system.svc` as input, cause
 // mysql-host is missing in command line flags, all other mysql command line flags
 // will be ignored.
+
+var (
+	once        sync.Once
+	cfgChangeCh = make(chan Config)
+)
 
 const (
 	// DefaultConfigurationName is the default name of configuration
@@ -147,33 +158,44 @@ func New() *Config {
 
 // TryLoadFromDisk loads configuration from default location after server startup
 // return nil error if configuration file not exists
-func TryLoadFromDisk() (*Config, error) {
-	viper.SetConfigName(defaultConfigurationName)
-	viper.AddConfigPath(defaultConfigurationPath)
+func TryLoadFromDisk() (*Config, <-chan Config, error) {
+	once.Do(func() {
+		viper.SetConfigName(defaultConfigurationName)
+		viper.AddConfigPath(defaultConfigurationPath)
 
-	// Load from current working directory, only used for debugging
-	viper.AddConfigPath(".")
+		// Load from current working directory, only used for debugging
+		viper.AddConfigPath(".")
 
-	// Load from Environment variables
-	viper.SetEnvPrefix("kubesphere")
-	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		// Load from Environment variables
+		viper.SetEnvPrefix("kubesphere")
+		viper.AutomaticEnv()
+		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+		viper.WatchConfig()
+		viper.OnConfigChange(func(in fsnotify.Event) {
+			cfg := New()
+			if err := viper.Unmarshal(cfg); err != nil {
+				klog.Warning("config reload error", err)
+			} else {
+				cfgChangeCh <- *cfg
+			}
+		})
+	})
+
+	conf := New()
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return nil, err
+			return nil, cfgChangeCh, err
 		} else {
-			return nil, fmt.Errorf("error parsing configuration file %s", err)
+			return nil, cfgChangeCh, fmt.Errorf("error parsing configuration file %s", err)
 		}
 	}
 
-	conf := New()
-
 	if err := viper.Unmarshal(conf); err != nil {
-		return nil, err
+		return nil, cfgChangeCh, err
 	}
 
-	return conf, nil
+	return conf, cfgChangeCh, nil
 }
 
 // convertToMap simply converts config to map[string]bool
@@ -317,4 +339,26 @@ func (conf *Config) stripEmptyOptions() {
 	if conf.GPUOptions != nil && len(conf.GPUOptions.Kinds) == 0 {
 		conf.GPUOptions = nil
 	}
+}
+
+type Context struct {
+	internalCtx       context.Context
+	internalCtxCancel context.CancelFunc
+	mu                sync.RWMutex
+}
+
+func (c *Context) GetContext() context.Context {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.internalCtx
+}
+
+func (c *Context) RenewContext(ctx context.Context) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.internalCtx, c.internalCtxCancel = context.WithCancel(ctx)
+}
+
+func (c *Context) CancelContext() {
+	c.internalCtxCancel()
 }
