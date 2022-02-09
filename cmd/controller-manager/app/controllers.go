@@ -18,7 +18,9 @@ package app
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/kubesphere/pvc-autoresizer/runners"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -98,6 +100,8 @@ var allControllers = []string{
 	"job",
 	"storagecapability",
 	"volumesnapshot",
+	"pvcautoresizer",
+	"workloadrestart",
 	"loginrecord",
 	"cluster",
 	"nsnp",
@@ -346,6 +350,36 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 			informerFactory.SnapshotSharedInformerFactory().Snapshot().V1().VolumeSnapshotClasses(),
 		)
 		addController(mgr, "volumesnapshot", volumeSnapshotController)
+	}
+
+	// "pvc-autoresizer"
+	if cmOptions.IsControllerEnabled("pvc-autoresizer") {
+		if err := runners.SetupIndexer(mgr, false); err != nil {
+			return err
+		}
+
+		promClient, err := runners.NewPrometheusClient("http://prometheus-k8s.kubesphere-monitoring-system:9090")
+		if err != nil {
+			return err
+		}
+		pvcAutoResizerController := runners.NewPVCAutoresizer(
+			promClient,
+			mgr.GetClient(),
+			ctrl.Log.WithName("pvc-autoresizer"),
+			1*time.Minute,
+			mgr.GetEventRecorderFor("pvc-autoresizer"),
+		)
+		addController(mgr, "pvcautoresizer", pvcAutoResizerController)
+	}
+
+	if cmOptions.IsControllerEnabled("workload-Restart") {
+		restarter := runners.NewRestarter(
+			mgr.GetClient(),
+			ctrl.Log.WithName("workload-Restart"),
+			1*time.Minute,
+			mgr.GetEventRecorderFor("workload-Restart"),
+		)
+		addController(mgr, "workloadrestart", restarter)
 	}
 
 	// "loginrecord" controller
