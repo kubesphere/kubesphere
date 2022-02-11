@@ -71,7 +71,7 @@ const (
 	syncFailMessage = "Failed to sync: %s"
 )
 
-// Reconciler reconciles a WorkspaceRole object
+// Reconciler reconciles a User object
 type Reconciler struct {
 	client.Client
 	KubeconfigClient        kubeconfig.Interface
