@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedSecretLister helps list FederatedSecrets.
+// All objects returned here must be treated as read-only.
 type FederatedSecretLister interface {
 	// List lists all FederatedSecrets in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedSecret, err error)
 	// FederatedSecrets returns an object that can list and get FederatedSecrets.
 	FederatedSecrets(namespace string) FederatedSecretNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedSecretLister) FederatedSecrets(namespace string) FederatedSecr
 }
 
 // FederatedSecretNamespaceLister helps list and get FederatedSecrets.
+// All objects returned here must be treated as read-only.
 type FederatedSecretNamespaceLister interface {
 	// List lists all FederatedSecrets in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedSecret, err error)
 	// Get retrieves the FederatedSecret from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedSecret, error)
 	FederatedSecretNamespaceListerExpansion
 }

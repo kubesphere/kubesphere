@@ -26,10 +26,13 @@ import (
 )
 
 // HelmApplicationVersionLister helps list HelmApplicationVersions.
+// All objects returned here must be treated as read-only.
 type HelmApplicationVersionLister interface {
 	// List lists all HelmApplicationVersions in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.HelmApplicationVersion, err error)
 	// Get retrieves the HelmApplicationVersion from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.HelmApplicationVersion, error)
 	HelmApplicationVersionListerExpansion
 }

@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedDeploymentLister helps list FederatedDeployments.
+// All objects returned here must be treated as read-only.
 type FederatedDeploymentLister interface {
 	// List lists all FederatedDeployments in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedDeployment, err error)
 	// FederatedDeployments returns an object that can list and get FederatedDeployments.
 	FederatedDeployments(namespace string) FederatedDeploymentNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedDeploymentLister) FederatedDeployments(namespace string) Feder
 }
 
 // FederatedDeploymentNamespaceLister helps list and get FederatedDeployments.
+// All objects returned here must be treated as read-only.
 type FederatedDeploymentNamespaceLister interface {
 	// List lists all FederatedDeployments in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedDeployment, err error)
 	// Get retrieves the FederatedDeployment from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedDeployment, error)
 	FederatedDeploymentNamespaceListerExpansion
 }

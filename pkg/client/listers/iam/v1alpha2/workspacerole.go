@@ -26,10 +26,13 @@ import (
 )
 
 // WorkspaceRoleLister helps list WorkspaceRoles.
+// All objects returned here must be treated as read-only.
 type WorkspaceRoleLister interface {
 	// List lists all WorkspaceRoles in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.WorkspaceRole, err error)
 	// Get retrieves the WorkspaceRole from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.WorkspaceRole, error)
 	WorkspaceRoleListerExpansion
 }

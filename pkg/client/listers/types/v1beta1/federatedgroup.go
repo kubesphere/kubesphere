@@ -26,10 +26,13 @@ import (
 )
 
 // FederatedGroupLister helps list FederatedGroups.
+// All objects returned here must be treated as read-only.
 type FederatedGroupLister interface {
 	// List lists all FederatedGroups in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedGroup, err error)
 	// Get retrieves the FederatedGroup from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedGroup, error)
 	FederatedGroupListerExpansion
 }

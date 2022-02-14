@@ -26,10 +26,13 @@ import (
 )
 
 // ReceiverLister helps list Receivers.
+// All objects returned here must be treated as read-only.
 type ReceiverLister interface {
 	// List lists all Receivers in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v2beta1.Receiver, err error)
 	// Get retrieves the Receiver from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v2beta1.Receiver, error)
 	ReceiverListerExpansion
 }

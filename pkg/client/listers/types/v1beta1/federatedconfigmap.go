@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedConfigMapLister helps list FederatedConfigMaps.
+// All objects returned here must be treated as read-only.
 type FederatedConfigMapLister interface {
 	// List lists all FederatedConfigMaps in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedConfigMap, err error)
 	// FederatedConfigMaps returns an object that can list and get FederatedConfigMaps.
 	FederatedConfigMaps(namespace string) FederatedConfigMapNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedConfigMapLister) FederatedConfigMaps(namespace string) Federat
 }
 
 // FederatedConfigMapNamespaceLister helps list and get FederatedConfigMaps.
+// All objects returned here must be treated as read-only.
 type FederatedConfigMapNamespaceLister interface {
 	// List lists all FederatedConfigMaps in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedConfigMap, err error)
 	// Get retrieves the FederatedConfigMap from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedConfigMap, error)
 	FederatedConfigMapNamespaceListerExpansion
 }

@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedJobLister helps list FederatedJobs.
+// All objects returned here must be treated as read-only.
 type FederatedJobLister interface {
 	// List lists all FederatedJobs in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedJob, err error)
 	// FederatedJobs returns an object that can list and get FederatedJobs.
 	FederatedJobs(namespace string) FederatedJobNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedJobLister) FederatedJobs(namespace string) FederatedJobNamespa
 }
 
 // FederatedJobNamespaceLister helps list and get FederatedJobs.
+// All objects returned here must be treated as read-only.
 type FederatedJobNamespaceLister interface {
 	// List lists all FederatedJobs in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedJob, err error)
 	// Get retrieves the FederatedJob from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedJob, error)
 	FederatedJobNamespaceListerExpansion
 }

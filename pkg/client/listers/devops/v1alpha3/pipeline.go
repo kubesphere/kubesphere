@@ -26,8 +26,10 @@ import (
 )
 
 // PipelineLister helps list Pipelines.
+// All objects returned here must be treated as read-only.
 type PipelineLister interface {
 	// List lists all Pipelines in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha3.Pipeline, err error)
 	// Pipelines returns an object that can list and get Pipelines.
 	Pipelines(namespace string) PipelineNamespaceLister
@@ -58,10 +60,13 @@ func (s *pipelineLister) Pipelines(namespace string) PipelineNamespaceLister {
 }
 
 // PipelineNamespaceLister helps list and get Pipelines.
+// All objects returned here must be treated as read-only.
 type PipelineNamespaceLister interface {
 	// List lists all Pipelines in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha3.Pipeline, err error)
 	// Get retrieves the Pipeline from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha3.Pipeline, error)
 	PipelineNamespaceListerExpansion
 }
