@@ -129,7 +129,6 @@ func (c *componentsGetter) GetSystemHealthStatus() (v1alpha2.HealthStatus, error
 	status.NodeStatus = nodeStatus
 
 	return status, nil
-
 }
 
 func (c *componentsGetter) GetAllComponentsStatus() ([]v1alpha2.ComponentStatus, error) {
