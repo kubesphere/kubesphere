@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,6 +40,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
+
 	"kubesphere.io/api/cluster/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -49,16 +49,15 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
 const (
-	defaultAgentImage    = "kubesphere/tower:v1.0"
-	defaultTimeout       = 10 * time.Second
-	KubesphereNamespace  = "kubesphere-system"
-	KubeSphereConfigName = "kubesphere-config"
-	KubeSphereApiServer  = "ks-apiserver"
+	defaultAgentImage   = "kubesphere/tower:v1.0"
+	defaultTimeout      = 10 * time.Second
+	KubeSphereApiServer = "ks-apiserver"
 )
 
 var errClusterConnectionIsNotProxy = fmt.Errorf("cluster is not using proxy connection")
@@ -404,7 +403,7 @@ func validateKubeSphereAPIServer(config *rest.Config) (*version.Info, error) {
 		Transport: transport,
 	}
 
-	response, err := client.Get(fmt.Sprintf("%s/api/v1/namespaces/%s/services/:%s:/proxy/kapis/version", config.Host, KubesphereNamespace, KubeSphereApiServer))
+	response, err := client.Get(fmt.Sprintf("%s/api/v1/namespaces/%s/services/:%s:/proxy/kapis/version", config.Host, constants.KubeSphereNamespace, KubeSphereApiServer))
 	if err != nil {
 		return nil, err
 	}
@@ -415,13 +414,13 @@ func validateKubeSphereAPIServer(config *rest.Config) (*version.Info, error) {
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBytes))
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, KubesphereNamespace, responseBody)
+		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, constants.KubeSphereNamespace, responseBody)
 	}
 
 	ver := version.Info{}
 	err = json.NewDecoder(response.Body).Decode(&ver)
 	if err != nil {
-		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, KubesphereNamespace, responseBody)
+		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, constants.KubeSphereNamespace, responseBody)
 	}
 
 	return &ver, nil
@@ -449,37 +448,20 @@ func (h *handler) validateMemberClusterConfiguration(clientSet kubernetes.Interf
 
 // getMemberClusterConfig returns KubeSphere running config by the given member cluster kubeconfig
 func (h *handler) getMemberClusterConfig(clientSet kubernetes.Interface) (*config.Config, error) {
-	memberCm, err := clientSet.CoreV1().ConfigMaps(KubesphereNamespace).Get(context.Background(), KubeSphereConfigName, metav1.GetOptions{})
+	memberCm, err := clientSet.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Get(context.Background(), constants.KubeSphereConfigName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	return getConfigFromCm(memberCm)
+	return config.GetFromConfigMap(memberCm)
 }
 
 // getHostClusterConfig returns KubeSphere running config from host cluster ConfigMap
 func (h *handler) getHostClusterConfig() (*config.Config, error) {
-	hostCm, err := h.configMapLister.ConfigMaps(KubesphereNamespace).Get(KubeSphereConfigName)
+	hostCm, err := h.configMapLister.ConfigMaps(constants.KubeSphereNamespace).Get(constants.KubeSphereConfigName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get host cluster %s/configmap/%s, err: %s", KubesphereNamespace, KubeSphereConfigName, err)
+		return nil, fmt.Errorf("failed to get host cluster %s/configmap/%s, err: %s", constants.KubeSphereNamespace, constants.KubeSphereConfigName, err)
 	}
 
-	return getConfigFromCm(hostCm)
-}
-
-// getConfigFromCm returns KubeSphere ruuning config by the given ConfigMap.
-func getConfigFromCm(cm *corev1.ConfigMap) (*config.Config, error) {
-	Config := config.New()
-
-	value, ok := cm.Data["kubesphere.yaml"]
-	if !ok {
-		return nil, fmt.Errorf("failed to get %s/configmap/%s kubesphere.yaml value", KubesphereNamespace, KubeSphereConfigName)
-	}
-
-	err := yaml.Unmarshal([]byte(value), Config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal value from %s/configmap/%s. err: %s", KubesphereNamespace, KubeSphereConfigName, err)
-	}
-
-	return Config, nil
+	return config.GetFromConfigMap(hostCm)
 }

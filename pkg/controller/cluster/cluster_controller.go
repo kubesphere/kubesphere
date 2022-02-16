@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -51,9 +52,12 @@ import (
 
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/config"
 	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
@@ -635,6 +639,39 @@ func (c *clusterController) syncCluster(key string) error {
 		}
 	}
 
+	if err = c.setClusterNameInConfigMap(clusterDt.client, cluster.Name); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *clusterController) setClusterNameInConfigMap(client kubernetes.Interface, name string) error {
+	cm, err := client.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Get(context.TODO(), constants.KubeSphereConfigName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	configData, err := config.GetFromConfigMap(cm)
+	if err != nil {
+		return err
+	}
+	if configData.MultiClusterOptions == nil {
+		configData.MultiClusterOptions = &multicluster.Options{}
+	}
+	if configData.MultiClusterOptions.ClusterName == name {
+		return nil
+	}
+
+	configData.MultiClusterOptions.ClusterName = name
+	newConfigData, err := yaml.Marshal(configData)
+	if err != nil {
+		return err
+	}
+	cm.Data[constants.KubeSphereConfigMapDataKey] = string(newConfigData)
+	if _, err = client.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Update(context.TODO(), cm, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
 	return nil
 }
 

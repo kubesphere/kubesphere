@@ -53,6 +53,10 @@ type Options struct {
 
 	// HostClusterName is the name of the control plane cluster, default set to host.
 	HostClusterName string `json:"hostClusterName,omitempty" yaml:"hostClusterName,omitempty"`
+
+	// ClusterName is the name of the current cluster,
+	// this value will be set by the cluster-controller and stored in the kubesphere-config configmap.
+	ClusterName string `json:"clusterName,omitempty" yaml:"clusterName,omitempty"`
 }
 
 // NewOptions returns a default nil options

@@ -22,17 +22,17 @@ import (
 	"strings"
 	"sync"
 
-	"k8s.io/klog"
-
 	"github.com/fsnotify/fsnotify"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization"
-
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 
 	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/terminal"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
@@ -362,4 +362,18 @@ func (conf *Config) stripEmptyOptions() {
 	if conf.GPUOptions != nil && len(conf.GPUOptions.Kinds) == 0 {
 		conf.GPUOptions = nil
 	}
+}
+
+// GetFromConfigMap returns KubeSphere ruuning config by the given ConfigMap.
+func GetFromConfigMap(cm *corev1.ConfigMap) (*Config, error) {
+	c := &Config{}
+	value, ok := cm.Data[constants.KubeSphereConfigMapDataKey]
+	if !ok {
+		return nil, fmt.Errorf("failed to get configmap kubesphere.yaml value")
+	}
+
+	if err := yaml.Unmarshal([]byte(value), c); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal value from configmap. err: %s", err)
+	}
+	return c, nil
 }
