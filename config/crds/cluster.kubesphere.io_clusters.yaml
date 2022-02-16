@@ -167,6 +167,10 @@ spec:
                 description: Region is the name of the region in which all of the
                   nodes in the cluster exist.  e.g. 'us-east1'.
                 type: string
+              uid:
+                description: UID is the kube-system namespace UID of the cluster,
+                  which represents the unique ID of the cluster.
+                type: string
               zones:
                 description: Zones are the names of availability zones in which the
                   nodes of the cluster exist, e.g. 'us-east1-a'.
