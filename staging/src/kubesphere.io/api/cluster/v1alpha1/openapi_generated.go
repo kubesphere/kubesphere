@@ -14345,6 +14345,13 @@ func schema_kubesphereio_api_cluster_v1alpha1_ClusterSpec(ref common.ReferenceCa
 							Ref:         ref("kubesphere.io/api/cluster/v1alpha1.Connection"),
 						},
 					},
+					"externalKubeAPIEnabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ExternalKubeAPIEnabled export kubeapiserver to public use a lb type service if connection type is proxy",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -14463,6 +14470,13 @@ func schema_kubesphereio_api_cluster_v1alpha1_Connection(ref common.ReferenceCal
 					"kubernetesAPIEndpoint": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Kubernetes API Server endpoint. Example: https://10.10.0.1:6443 Should provide this field explicitly if connection type is direct. Will be populated by ks-apiserver if connection type is proxy.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"externalKubernetesAPIEndpoint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "External Kubernetes API Server endpoint Will be populated by ks-apiserver if connection type is proxy and ExternalKubeAPIEnabled is true.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

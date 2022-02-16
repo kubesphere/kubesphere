@@ -26,10 +26,13 @@ import (
 )
 
 // GlobalRoleBindingLister helps list GlobalRoleBindings.
+// All objects returned here must be treated as read-only.
 type GlobalRoleBindingLister interface {
 	// List lists all GlobalRoleBindings in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.GlobalRoleBinding, err error)
 	// Get retrieves the GlobalRoleBinding from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.GlobalRoleBinding, error)
 	GlobalRoleBindingListerExpansion
 }

@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedResourceQuotaLister helps list FederatedResourceQuotas.
+// All objects returned here must be treated as read-only.
 type FederatedResourceQuotaLister interface {
 	// List lists all FederatedResourceQuotas in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedResourceQuota, err error)
 	// FederatedResourceQuotas returns an object that can list and get FederatedResourceQuotas.
 	FederatedResourceQuotas(namespace string) FederatedResourceQuotaNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedResourceQuotaLister) FederatedResourceQuotas(namespace string)
 }
 
 // FederatedResourceQuotaNamespaceLister helps list and get FederatedResourceQuotas.
+// All objects returned here must be treated as read-only.
 type FederatedResourceQuotaNamespaceLister interface {
 	// List lists all FederatedResourceQuotas in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedResourceQuota, err error)
 	// Get retrieves the FederatedResourceQuota from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedResourceQuota, error)
 	FederatedResourceQuotaNamespaceListerExpansion
 }

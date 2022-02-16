@@ -26,10 +26,13 @@ import (
 )
 
 // ResourceQuotaLister helps list ResourceQuotas.
+// All objects returned here must be treated as read-only.
 type ResourceQuotaLister interface {
 	// List lists all ResourceQuotas in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha2.ResourceQuota, err error)
 	// Get retrieves the ResourceQuota from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha2.ResourceQuota, error)
 	ResourceQuotaListerExpansion
 }

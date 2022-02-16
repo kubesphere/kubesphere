@@ -26,8 +26,10 @@ import (
 )
 
 // FederatedClusterRoleBindingLister helps list FederatedClusterRoleBindings.
+// All objects returned here must be treated as read-only.
 type FederatedClusterRoleBindingLister interface {
 	// List lists all FederatedClusterRoleBindings in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedClusterRoleBinding, err error)
 	// FederatedClusterRoleBindings returns an object that can list and get FederatedClusterRoleBindings.
 	FederatedClusterRoleBindings(namespace string) FederatedClusterRoleBindingNamespaceLister
@@ -58,10 +60,13 @@ func (s *federatedClusterRoleBindingLister) FederatedClusterRoleBindings(namespa
 }
 
 // FederatedClusterRoleBindingNamespaceLister helps list and get FederatedClusterRoleBindings.
+// All objects returned here must be treated as read-only.
 type FederatedClusterRoleBindingNamespaceLister interface {
 	// List lists all FederatedClusterRoleBindings in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedClusterRoleBinding, err error)
 	// Get retrieves the FederatedClusterRoleBinding from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.FederatedClusterRoleBinding, error)
 	FederatedClusterRoleBindingNamespaceListerExpansion
 }

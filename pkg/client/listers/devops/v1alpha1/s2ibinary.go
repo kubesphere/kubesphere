@@ -26,8 +26,10 @@ import (
 )
 
 // S2iBinaryLister helps list S2iBinaries.
+// All objects returned here must be treated as read-only.
 type S2iBinaryLister interface {
 	// List lists all S2iBinaries in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.S2iBinary, err error)
 	// S2iBinaries returns an object that can list and get S2iBinaries.
 	S2iBinaries(namespace string) S2iBinaryNamespaceLister
@@ -58,10 +60,13 @@ func (s *s2iBinaryLister) S2iBinaries(namespace string) S2iBinaryNamespaceLister
 }
 
 // S2iBinaryNamespaceLister helps list and get S2iBinaries.
+// All objects returned here must be treated as read-only.
 type S2iBinaryNamespaceLister interface {
 	// List lists all S2iBinaries in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.S2iBinary, err error)
 	// Get retrieves the S2iBinary from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.S2iBinary, error)
 	S2iBinaryNamespaceListerExpansion
 }

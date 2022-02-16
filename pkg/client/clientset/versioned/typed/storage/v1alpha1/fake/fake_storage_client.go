@@ -21,10 +21,19 @@ package fake
 import (
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
+	v1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/storage/v1alpha1"
 )
 
 type FakeStorageV1alpha1 struct {
 	*testing.Fake
+}
+
+func (c *FakeStorageV1alpha1) ProvisionerCapabilities() v1alpha1.ProvisionerCapabilityInterface {
+	return &FakeProvisionerCapabilities{c}
+}
+
+func (c *FakeStorageV1alpha1) StorageClassCapabilities() v1alpha1.StorageClassCapabilityInterface {
+	return &FakeStorageClassCapabilities{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
