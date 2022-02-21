@@ -24,17 +24,17 @@ import (
 
 // Options contains configuration of the default Gateway
 type Options struct {
-	WatchesPath string `json:"watchesPath,omitempty" yaml:"watchesPath"`
-	Namespace   string `json:"namespace,omitempty" yaml:"namespace"`
-	Repository  string `json:"repository,omitempty" yaml:"repository"`
-	Tag         string `json:"tag,omitempty" yaml:"tag"`
+	WatchesPath string `json:"watchesPath,omitempty" yaml:"watchesPath,omitempty"`
+	Namespace   string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	Repository  string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Tag         string `json:"tag,omitempty" yaml:"tag,omitempty"`
 }
 
 // NewGatewayOptions creates a default Gateway Option
 func NewGatewayOptions() *Options {
 	return &Options{
 		WatchesPath: "",
-		Namespace:   "", //constants.KubeSphereControlNamespace
+		Namespace:   "", // constants.KubeSphereControlNamespace
 		Repository:  "",
 		Tag:         "",
 	}

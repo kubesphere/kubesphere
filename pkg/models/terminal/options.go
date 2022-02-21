@@ -3,8 +3,8 @@ package terminal
 import "github.com/spf13/pflag"
 
 type Options struct {
-	Image   string `json:"image,omitempty" yaml:"image"`
-	Timeout int    `json:"timeout,omitempty" yaml:"timeout"`
+	Image   string `json:"image,omitempty" yaml:"image,omitempty"`
+	Timeout int    `json:"timeout,omitempty" yaml:"timeout,omitempty"`
 }
 
 func NewTerminalOptions() *Options {

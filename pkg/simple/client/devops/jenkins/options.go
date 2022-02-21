@@ -25,11 +25,11 @@ import (
 )
 
 type Options struct {
-	Host           string `json:",omitempty" yaml:"host" description:"Jenkins service host address"`
-	Username       string `json:",omitempty" yaml:"username" description:"Jenkins admin username"`
-	Password       string `json:",omitempty" yaml:"password" description:"Jenkins admin password"`
-	MaxConnections int    `json:"maxConnections,omitempty" yaml:"maxConnections" description:"Maximum connections allowed to connect to Jenkins"`
-	Endpoint       string `json:"endpoint,omitempty" yaml:"endpoint" description:"The endpoint of the ks-devops apiserver"`
+	Host           string `json:",omitempty" yaml:"host,omitempty" description:"Jenkins service host address"`
+	Username       string `json:",omitempty" yaml:"username,omitempty" description:"Jenkins admin username"`
+	Password       string `json:",omitempty" yaml:"password,omitempty" description:"Jenkins admin password"`
+	MaxConnections int    `json:"maxConnections,omitempty" yaml:"maxConnections,omitempty" description:"Maximum connections allowed to connect to Jenkins"`
+	Endpoint       string `json:"endpoint,omitempty" yaml:"endpoint,omitempty" description:"The endpoint of the ks-devops apiserver"`
 }
 
 // NewDevopsOptions returns a `zero` instance

@@ -31,28 +31,28 @@ const (
 
 type Options struct {
 	// Enable
-	Enable           bool `json:"enable"`
-	EnableFederation bool `json:"enableFederation,omitempty"`
+	Enable           bool `json:"enable" yaml:"enable"`
+	EnableFederation bool `json:"enableFederation,omitempty" yaml:"enableFederation,omitempty"`
 
 	// ProxyPublishService is the service name of multicluster component tower.
 	//   If this field provided, apiserver going to use the ingress.ip of this service.
 	// This field will be used when generating agent deployment yaml for joining clusters.
-	ProxyPublishService string `json:"proxyPublishService,omitempty"`
+	ProxyPublishService string `json:"proxyPublishService,omitempty" yaml:"proxyPublishService,omitempty"`
 
 	// ProxyPublishAddress is the public address of tower for all cluster agents.
 	//   This field takes precedence over field ProxyPublishService.
 	// If both field ProxyPublishService and ProxyPublishAddress are empty, apiserver will
 	// return 404 Not Found for all cluster agent yaml requests.
-	ProxyPublishAddress string `json:"proxyPublishAddress,omitempty"`
+	ProxyPublishAddress string `json:"proxyPublishAddress,omitempty" yaml:"proxyPublishAddress,omitempty"`
 
 	// AgentImage is the image used when generating deployment for all cluster agents.
-	AgentImage string `json:"agentImage,omitempty"`
+	AgentImage string `json:"agentImage,omitempty" yaml:"agentImage,omitempty"`
 
 	// ClusterControllerResyncPeriod is the resync period used by cluster controller.
-	ClusterControllerResyncPeriod time.Duration `json:"clusterControllerResyncPeriod,omitempty" yaml:"clusterControllerResyncPeriod"`
+	ClusterControllerResyncPeriod time.Duration `json:"clusterControllerResyncPeriod,omitempty" yaml:"clusterControllerResyncPeriod,omitempty"`
 
 	// HostClusterName is the name of the control plane cluster, default set to host.
-	HostClusterName string `json:"hostClusterName,omitempty" yaml:"hostClusterName"`
+	HostClusterName string `json:"hostClusterName,omitempty" yaml:"hostClusterName,omitempty"`
 }
 
 // NewOptions returns a default nil options

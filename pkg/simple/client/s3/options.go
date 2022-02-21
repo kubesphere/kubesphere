@@ -24,14 +24,14 @@ import (
 
 // Options contains configuration to access a s3 service
 type Options struct {
-	Endpoint        string `json:"endpoint,omitempty" yaml:"endpoint"`
-	Region          string `json:"region,omitempty" yaml:"region"`
+	Endpoint        string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Region          string `json:"region,omitempty" yaml:"region,omitempty"`
 	DisableSSL      bool   `json:"disableSSL" yaml:"disableSSL"`
 	ForcePathStyle  bool   `json:"forcePathStyle" yaml:"forcePathStyle"`
-	AccessKeyID     string `json:"accessKeyID,omitempty" yaml:"accessKeyID"`
-	SecretAccessKey string `json:"secretAccessKey,omitempty" yaml:"secretAccessKey"`
-	SessionToken    string `json:"sessionToken,omitempty" yaml:"sessionToken"`
-	Bucket          string `json:"bucket,omitempty" yaml:"bucket"`
+	AccessKeyID     string `json:"accessKeyID,omitempty" yaml:"accessKeyID,omitempty"`
+	SecretAccessKey string `json:"secretAccessKey,omitempty" yaml:"secretAccessKey,omitempty"`
+	SessionToken    string `json:"sessionToken,omitempty" yaml:"sessionToken,omitempty"`
+	Bucket          string `json:"bucket,omitempty" yaml:"bucket,omitempty"`
 }
 
 // NewS3Options creates a default disabled Options(empty endpoint)

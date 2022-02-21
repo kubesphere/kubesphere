@@ -21,8 +21,8 @@ import (
 )
 
 type Options struct {
-	Host  string `json:",omitempty" yaml:"host" description:"SonarQube service host address"`
-	Token string `json:",omitempty" yaml:"token" description:"SonarQube service token"`
+	Host  string `json:",omitempty" yaml:"host,omitempty" description:"SonarQube service host address"`
+	Token string `json:",omitempty" yaml:"token,omitempty" description:"SonarQube service token"`
 }
 
 func NewSonarQubeOptions() *Options {

@@ -36,15 +36,15 @@ type KubernetesOptions struct {
 	// kubernetes apiserver public address, used to generate kubeconfig
 	// for downloading, default to host defined in kubeconfig
 	// +optional
-	Master string `json:"master,omitempty" yaml:"master"`
+	Master string `json:"master,omitempty" yaml:"master,omitempty"`
 
 	// kubernetes clientset qps
 	// +optional
-	QPS float32 `json:"qps,omitempty" yaml:"qps"`
+	QPS float32 `json:"qps,omitempty" yaml:"qps,omitempty"`
 
 	// kubernetes clientset burst
 	// +optional
-	Burst int `json:"burst,omitempty" yaml:"burst"`
+	Burst int `json:"burst,omitempty" yaml:"burst,omitempty"`
 }
 
 // NewKubernetesOptions returns a `zero` instance
