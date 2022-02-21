@@ -14439,6 +14439,13 @@ func schema_kubesphereio_api_cluster_v1alpha1_ClusterStatus(ref common.Reference
 							},
 						},
 					},
+					"uid": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UID is the kube-system namespace UID of the cluster, which represents the unique ID of the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},

@@ -576,7 +576,6 @@ func (c *clusterController) syncCluster(key string) error {
 		klog.Errorf("Failed to get kubernetes version, %#v", err)
 		return err
 	}
-
 	cluster.Status.KubernetesVersion = version.GitVersion
 
 	nodes, err := clusterDt.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -584,7 +583,6 @@ func (c *clusterController) syncCluster(key string) error {
 		klog.Errorf("Failed to get cluster nodes, %#v", err)
 		return err
 	}
-
 	cluster.Status.NodeCount = len(nodes.Items)
 
 	configz, err := c.tryToFetchKubeSphereComponents(clusterDt.config.Host, clusterDt.transport)
@@ -598,6 +596,13 @@ func (c *clusterController) syncCluster(key string) error {
 	} else {
 		cluster.Status.KubeSphereVersion = v
 	}
+
+	// Use kube-system namespace UID as cluster ID
+	kubeSystem, err := clusterDt.client.CoreV1().Namespaces().Get(context.TODO(), metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	cluster.Status.UID = kubeSystem.UID
 
 	// label cluster host cluster if configz["multicluster"]==true
 	if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
