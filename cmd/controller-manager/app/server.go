@@ -48,7 +48,7 @@ import (
 
 func NewControllerManagerCommand() *cobra.Command {
 	s := options.NewKubeSphereControllerManagerOptions()
-	conf, configCh, err := controllerconfig.TryLoadFromDisk()
+	conf, err := controllerconfig.TryLoadFromDisk()
 	if err == nil {
 		// make sure LeaderElection is not nil
 		s = &options.KubeSphereControllerManagerOptions{
@@ -78,8 +78,7 @@ func NewControllerManagerCommand() *cobra.Command {
 				klog.Error(utilerrors.NewAggregate(errs))
 				os.Exit(1)
 			}
-
-			if err = Run(s, configCh, signals.SetupSignalHandler()); err != nil {
+			if err = Run(s, controllerconfig.WatchConfigChange(), signals.SetupSignalHandler()); err != nil {
 				klog.Error(err)
 				os.Exit(1)
 			}
@@ -115,31 +114,34 @@ func NewControllerManagerCommand() *cobra.Command {
 }
 
 func Run(s *options.KubeSphereControllerManagerOptions, configCh <-chan controllerconfig.Config, ctx context.Context) error {
-	ictx := controllerconfig.Context{}
-	ictx.RenewContext(context.TODO())
+	ictx, cancelFunc := context.WithCancel(context.TODO())
 	errCh := make(chan error)
 	defer close(errCh)
 	go func() {
-		if err := run(s, ictx.GetContext()); err != nil {
+		if err := run(s, ictx); err != nil {
 			errCh <- err
 		}
 	}()
 
+	// The ctx (signals.SetupSignalHandler()) is to control the entire program life cycle,
+	// The ictx(internal context)  is created here to control the life cycle of the controller-manager(all controllers, sharedInformer, webhook etc.)
+	// when config changed, stop server and renew context, start new server
 	for {
 		select {
 		case <-ctx.Done():
-			ictx.CancelContext()
+			cancelFunc()
 			return nil
 		case cfg := <-configCh:
-			ictx.CancelContext()
+			cancelFunc()
 			s.MergeConfig(&cfg)
-			ictx.RenewContext(context.TODO())
+			ictx, cancelFunc = context.WithCancel(context.TODO())
 			go func() {
-				if err := run(s, ictx.GetContext()); err != nil {
+				if err := run(s, ictx); err != nil {
 					errCh <- err
 				}
 			}()
 		case err := <-errCh:
+			cancelFunc()
 			return err
 		}
 	}

@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -86,8 +85,8 @@ import (
 // will be ignored.
 
 var (
-	once        sync.Once
-	cfgChangeCh = make(chan Config)
+	// singleton instance of config package
+	_config = defaultConfig()
 )
 
 const (
@@ -97,6 +96,61 @@ const (
 	// DefaultConfigurationPath the default location of the configuration file
 	defaultConfigurationPath = "/etc/kubesphere"
 )
+
+type config struct {
+	cfg         *Config
+	cfgChangeCh chan Config
+	watchOnce   sync.Once
+	loadOnce    sync.Once
+}
+
+func (c *config) watchConfig() <-chan Config {
+	c.watchOnce.Do(func() {
+		viper.WatchConfig()
+		viper.OnConfigChange(func(in fsnotify.Event) {
+			cfg := New()
+			if err := viper.Unmarshal(cfg); err != nil {
+				klog.Warning("config reload error", err)
+			} else {
+				c.cfgChangeCh <- *cfg
+			}
+		})
+	})
+	return c.cfgChangeCh
+}
+
+func (c *config) loadFromDisk() (*Config, error) {
+	var err error
+	c.loadOnce.Do(func() {
+		if err = viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+				err = fmt.Errorf("error parsing configuration file %s", err)
+			}
+		}
+		err = viper.Unmarshal(c.cfg)
+	})
+	return c.cfg, err
+}
+
+func defaultConfig() *config {
+	viper.SetConfigName(defaultConfigurationName)
+	viper.AddConfigPath(defaultConfigurationPath)
+
+	// Load from current working directory, only used for debugging
+	viper.AddConfigPath(".")
+
+	// Load from Environment variables
+	viper.SetEnvPrefix("kubesphere")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	return &config{
+		cfg:         New(),
+		cfgChangeCh: make(chan Config),
+		watchOnce:   sync.Once{},
+		loadOnce:    sync.Once{},
+	}
+}
 
 // Config defines everything needed for apiserver to deal with external services
 type Config struct {
@@ -158,44 +212,13 @@ func New() *Config {
 
 // TryLoadFromDisk loads configuration from default location after server startup
 // return nil error if configuration file not exists
-func TryLoadFromDisk() (*Config, <-chan Config, error) {
-	once.Do(func() {
-		viper.SetConfigName(defaultConfigurationName)
-		viper.AddConfigPath(defaultConfigurationPath)
+func TryLoadFromDisk() (*Config, error) {
+	return _config.loadFromDisk()
+}
 
-		// Load from current working directory, only used for debugging
-		viper.AddConfigPath(".")
-
-		// Load from Environment variables
-		viper.SetEnvPrefix("kubesphere")
-		viper.AutomaticEnv()
-		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-		viper.WatchConfig()
-		viper.OnConfigChange(func(in fsnotify.Event) {
-			cfg := New()
-			if err := viper.Unmarshal(cfg); err != nil {
-				klog.Warning("config reload error", err)
-			} else {
-				cfgChangeCh <- *cfg
-			}
-		})
-	})
-
-	conf := New()
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return nil, cfgChangeCh, err
-		} else {
-			return nil, cfgChangeCh, fmt.Errorf("error parsing configuration file %s", err)
-		}
-	}
-
-	if err := viper.Unmarshal(conf); err != nil {
-		return nil, cfgChangeCh, err
-	}
-
-	return conf, cfgChangeCh, nil
+// WatchConfigChange return config change channel
+func WatchConfigChange() <-chan Config {
+	return _config.watchConfig()
 }
 
 // convertToMap simply converts config to map[string]bool
@@ -339,26 +362,4 @@ func (conf *Config) stripEmptyOptions() {
 	if conf.GPUOptions != nil && len(conf.GPUOptions.Kinds) == 0 {
 		conf.GPUOptions = nil
 	}
-}
-
-type Context struct {
-	internalCtx       context.Context
-	internalCtxCancel context.CancelFunc
-	mu                sync.RWMutex
-}
-
-func (c *Context) GetContext() context.Context {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.internalCtx
-}
-
-func (c *Context) RenewContext(ctx context.Context) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.internalCtx, c.internalCtxCancel = context.WithCancel(ctx)
-}
-
-func (c *Context) CancelContext() {
-	c.internalCtxCancel()
 }

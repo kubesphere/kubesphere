@@ -220,6 +220,8 @@ func (s *KubeSphereControllerManagerOptions) bindLeaderElectionFlags(l *leaderel
 		"of a leadership. This is only applicable if leader election is enabled.")
 }
 
+// MergeConfig merge new config without validation
+// When misconfigured, the app should just crash directly
 func (s *KubeSphereControllerManagerOptions) MergeConfig(cfg *controllerconfig.Config) {
 	s.KubernetesOptions = cfg.KubernetesOptions
 	s.DevopsOptions = cfg.DevopsOptions

@@ -38,7 +38,7 @@ func NewAPIServerCommand() *cobra.Command {
 	s := options.NewServerRunOptions()
 
 	// Load configuration from file
-	conf, configCh, err := apiserverconfig.TryLoadFromDisk()
+	conf, err := apiserverconfig.TryLoadFromDisk()
 	if err == nil {
 		s = &options.ServerRunOptions{
 			GenericServerRunOptions: s.GenericServerRunOptions,
@@ -57,7 +57,7 @@ cluster's shared state through which all other components interact.`,
 			if errs := s.Validate(); len(errs) != 0 {
 				return utilerrors.NewAggregate(errs)
 			}
-			return Run(s, configCh, signals.SetupSignalHandler())
+			return Run(s, apiserverconfig.WatchConfigChange(), signals.SetupSignalHandler())
 		},
 		SilenceUsage: true,
 	}
@@ -89,31 +89,34 @@ cluster's shared state through which all other components interact.`,
 }
 
 func Run(s *options.ServerRunOptions, configCh <-chan apiserverconfig.Config, ctx context.Context) error {
-	ictx := apiserverconfig.Context{}
-	ictx.RenewContext(context.TODO())
+	ictx, cancelFunc := context.WithCancel(context.TODO())
 	errCh := make(chan error)
 	defer close(errCh)
 	go func() {
-		if err := run(s, ictx.GetContext()); err != nil {
+		if err := run(s, ictx); err != nil {
 			errCh <- err
 		}
 	}()
 
+	// The ctx (signals.SetupSignalHandler()) is to control the entire program life cycle,
+	// The ictx(internal context)  is created here to control the life cycle of the ks-apiserver(http server, sharedInformer etc.)
+	// when config change, stop server and renew context, start new server
 	for {
 		select {
 		case <-ctx.Done():
-			ictx.CancelContext()
+			cancelFunc()
 			return nil
 		case cfg := <-configCh:
-			ictx.CancelContext()
+			cancelFunc()
 			s.Config = &cfg
-			ictx.RenewContext(context.TODO())
+			ictx, cancelFunc = context.WithCancel(context.TODO())
 			go func() {
-				if err := run(s, ictx.GetContext()); err != nil {
+				if err := run(s, ictx); err != nil {
 					errCh <- err
 				}
 			}()
 		case err := <-errCh:
+			cancelFunc()
 			return err
 		}
 	}

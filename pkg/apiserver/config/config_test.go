@@ -240,7 +240,7 @@ func TestGet(t *testing.T) {
 	conf.RedisOptions.Password = "P@88w0rd"
 	os.Setenv("KUBESPHERE_REDIS_PASSWORD", "P@88w0rd")
 
-	conf2, _, err := TryLoadFromDisk()
+	conf2, err := TryLoadFromDisk()
 	if err != nil {
 		t.Fatal(err)
 	}
