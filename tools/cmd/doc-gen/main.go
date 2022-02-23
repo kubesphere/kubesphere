@@ -22,8 +22,9 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	kapisdevops "kubesphere.io/kubesphere/pkg/kapis/devops"
 	"log"
+
+	kapisdevops "kubesphere.io/kubesphere/pkg/kapis/devops"
 
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/version"

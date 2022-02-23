@@ -17,11 +17,12 @@ limitations under the License.
 package devops
 
 import (
-	"github.com/emicklei/go-restful"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/emicklei/go-restful"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAddToContainer(t *testing.T) {
@@ -41,6 +42,7 @@ func TestAddToContainer(t *testing.T) {
 		args: args{
 			target:         "/kapis/devops.kubesphere.io/v1alpha1/resources",
 			mockAPIPattern: "/v1alpha1/resources",
+			mockResponse:   fakeResponse,
 		},
 		wantResponse: fakeResponse,
 	}, {
@@ -48,6 +50,7 @@ func TestAddToContainer(t *testing.T) {
 		args: args{
 			target:         "/kapis/devops.kubesphere.io/v1alpha2/resources",
 			mockAPIPattern: "/v1alpha2/resources",
+			mockResponse:   fakeResponse,
 		},
 		wantResponse: fakeResponse,
 	}, {
@@ -55,6 +58,7 @@ func TestAddToContainer(t *testing.T) {
 		args: args{
 			target:         "/kapis/devops.kubesphere.io/v1alpha3/resources",
 			mockAPIPattern: "/v1alpha3/resources",
+			mockResponse:   fakeResponse,
 		},
 		wantResponse: fakeResponse,
 	}, {
