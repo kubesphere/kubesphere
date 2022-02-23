@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The KubeSphere Authors.
+Copyright 2022 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,26 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package devops
 
 import (
 	"github.com/emicklei/go-restful"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"kubesphere.io/kubesphere/pkg/kapis/generic"
 )
 
-const (
-	GroupName = "devops.kubesphere.io"
-)
+const groupName = "devops.kubesphere.io"
 
-var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
+var versions = []string{"v1alpha1", "v1alpha2", "v1alpha3"}
 
+// AddToContainer registers DevOps proxies to the container.
 func AddToContainer(container *restful.Container, endpoint string) error {
-	proxy, err := generic.NewGenericProxy(endpoint, GroupVersion.Group, GroupVersion.Version)
-	if err != nil {
-		return err
+	for _, version := range versions {
+		proxy, err := generic.NewGenericProxy(endpoint, groupName, version)
+		if err != nil {
+			return err
+		}
+		if err = proxy.AddToContainer(container); err != nil {
+			return err
+		}
 	}
-
-	return proxy.AddToContainer(container)
+	return nil
 }
