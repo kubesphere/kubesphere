@@ -49,6 +49,9 @@ const (
 
 	UserNameHeader = "X-Token-Username"
 
+	PrometheusSvcName = "prometheus-k8s"
+	PrometheusSvcPort = "9090"
+
 	AuthenticationTag = "Authentication"
 	UserTag           = "User"
 	GroupTag          = "Group"

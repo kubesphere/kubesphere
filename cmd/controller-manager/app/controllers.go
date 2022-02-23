@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	"github.com/kubesphere/pvc-autoresizer/runners"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -358,7 +360,8 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 			return err
 		}
 
-		promClient, err := runners.NewPrometheusClient("http://prometheus-k8s.kubesphere-monitoring-system:9090")
+		prometheusUrl := "http://" + constants.PrometheusSvcName + "." + constants.KubeSphereMonitoringNamespace + ":" + constants.PrometheusSvcPort
+		promClient, err := runners.NewPrometheusClient(prometheusUrl)
 		if err != nil {
 			return err
 		}
