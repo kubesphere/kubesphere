@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/constants"
-
 	"github.com/kubesphere/pvc-autoresizer/runners"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -355,24 +353,25 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 	}
 
 	// "pvc-autoresizer"
-	if cmOptions.IsControllerEnabled("pvc-autoresizer") {
-		if err := runners.SetupIndexer(mgr, false); err != nil {
-			return err
+	monitoringOptionsEnable := cmOptions.MonitoringOptions != nil && len(cmOptions.MonitoringOptions.Endpoint) != 0
+	if monitoringOptionsEnable {
+		if cmOptions.IsControllerEnabled("pvc-autoresizer") {
+			if err := runners.SetupIndexer(mgr, false); err != nil {
+				return err
+			}
+			promClient, err := runners.NewPrometheusClient(cmOptions.MonitoringOptions.Endpoint)
+			if err != nil {
+				return err
+			}
+			pvcAutoResizerController := runners.NewPVCAutoresizer(
+				promClient,
+				mgr.GetClient(),
+				ctrl.Log.WithName("pvc-autoresizer"),
+				1*time.Minute,
+				mgr.GetEventRecorderFor("pvc-autoresizer"),
+			)
+			addController(mgr, "pvcautoresizer", pvcAutoResizerController)
 		}
-
-		prometheusUrl := "http://" + constants.PrometheusSvcName + "." + constants.KubeSphereMonitoringNamespace + ":" + constants.PrometheusSvcPort
-		promClient, err := runners.NewPrometheusClient(prometheusUrl)
-		if err != nil {
-			return err
-		}
-		pvcAutoResizerController := runners.NewPVCAutoresizer(
-			promClient,
-			mgr.GetClient(),
-			ctrl.Log.WithName("pvc-autoresizer"),
-			1*time.Minute,
-			mgr.GetEventRecorderFor("pvc-autoresizer"),
-		)
-		addController(mgr, "pvcautoresizer", pvcAutoResizerController)
 	}
 
 	if cmOptions.IsControllerEnabled("workload-Restart") {

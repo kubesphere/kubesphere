@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
+
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -57,6 +59,7 @@ type KubeSphereControllerManagerOptions struct {
 	MultiClusterOptions   *multicluster.Options
 	ServiceMeshOptions    *servicemesh.Options
 	GatewayOptions        *gateway.Options
+	MonitoringOptions     *prometheus.Options
 	LeaderElect           bool
 	LeaderElection        *leaderelection.LeaderElectionConfig
 	WebhookCertDir        string
