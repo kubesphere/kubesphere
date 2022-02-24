@@ -27,6 +27,7 @@ import (
 
 func TestAddToContainer(t *testing.T) {
 	fakeResponse := "fake DevOps APIServer response"
+	notFoundResponse := "404 page not found\n"
 	type args struct {
 		target         string
 		mockAPIPattern string
@@ -44,7 +45,7 @@ func TestAddToContainer(t *testing.T) {
 			mockAPIPattern: "/v1alpha1/resources",
 			mockResponse:   fakeResponse,
 		},
-		wantResponse: fakeResponse,
+		wantResponse: notFoundResponse,
 	}, {
 		name: "Should proxy v1alpha2 API properly",
 		args: args{
@@ -67,14 +68,14 @@ func TestAddToContainer(t *testing.T) {
 			target:         "/kapis/devops.kubesphere.io/v1alpha3/resources",
 			mockAPIPattern: "/v1alpha4/resources",
 		},
-		wantResponse: "404 page not found\n",
+		wantResponse: notFoundResponse,
 	}, {
 		name: "Should not proxy v1alpha123 API properly event if pattern matched",
 		args: args{
 			target:         "/kapis/devops.kubesphere.io/v1alpha123/resources",
 			mockAPIPattern: "/v1alpha123/resources",
 		},
-		wantResponse: "404 page not found\n",
+		wantResponse: notFoundResponse,
 	},
 	}
 	for _, tt := range tests {

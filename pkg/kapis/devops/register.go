@@ -18,18 +18,21 @@ package devops
 
 import (
 	"github.com/emicklei/go-restful"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"kubesphere.io/kubesphere/pkg/kapis/generic"
 )
 
-const groupName = "devops.kubesphere.io"
-
-var versions = []string{"v1alpha1", "v1alpha2", "v1alpha3"}
+var devopsGroupVersions = []schema.GroupVersion{
+	{Group: "devops.kubesphere.io", Version: "v1alpha2"},
+	{Group: "devops.kubesphere.io", Version: "v1alpha3"},
+	// TODO Add other group versions here, like cd.devops.kubesphere.io
+}
 
 // AddToContainer registers DevOps proxies to the container.
 func AddToContainer(container *restful.Container, endpoint string) error {
-	for _, version := range versions {
-		proxy, err := generic.NewGenericProxy(endpoint, groupName, version)
+	for _, groupVersion := range devopsGroupVersions {
+		proxy, err := generic.NewGenericProxy(endpoint, groupVersion.Group, groupVersion.Version)
 		if err != nil {
 			return err
 		}
