@@ -63,10 +63,10 @@ type Options struct {
 	Issuer string `json:"issuer,omitempty" yaml:"issuer,omitempty"`
 
 	// RSA private key file used to sign the id token
-	SignKey string `json:"signKey,omitempty" yaml:"signKey"`
+	SignKey string `json:"signKey,omitempty" yaml:"signKey,omitempty"`
 
 	// Raw RSA private key. Base64 encoded PEM file
-	SignKeyData string `json:"-,omitempty" yaml:"signKeyData"`
+	SignKeyData string `json:"-,omitempty" yaml:"signKeyData,omitempty"`
 
 	// Register identity providers.
 	IdentityProviders []IdentityProviderOptions `json:"identityProviders,omitempty" yaml:"identityProviders,omitempty"`
@@ -191,7 +191,7 @@ type Token struct {
 type Client struct {
 	// The name of the OAuth client is used as the client_id parameter when making requests to <master>/oauth/authorize
 	// and <master>/oauth/token.
-	Name string `json:"name" yaml:"name,omitempty"`
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 
 	// Secret is the unique secret associated with a client
 	Secret string `json:"-" yaml:"secret,omitempty"`

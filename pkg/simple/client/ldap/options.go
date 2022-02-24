@@ -23,14 +23,14 @@ import (
 )
 
 type Options struct {
-	Host            string `json:"host,omitempty" yaml:"host"`
-	ManagerDN       string `json:"managerDN,omitempty" yaml:"managerDN"`
-	ManagerPassword string `json:"managerPassword,omitempty" yaml:"managerPassword"`
-	UserSearchBase  string `json:"userSearchBase,omitempty" yaml:"userSearchBase"`
-	GroupSearchBase string `json:"groupSearchBase,omitempty" yaml:"groupSearchBase"`
-	InitialCap      int    `json:"initialCap,omitempty" yaml:"initialCap"`
-	MaxCap          int    `json:"maxCap,omitempty" yaml:"maxCap"`
-	PoolName        string `json:"poolName,omitempty" yaml:"poolName"`
+	Host            string `json:"host,omitempty" yaml:"host,omitempty"`
+	ManagerDN       string `json:"managerDN,omitempty" yaml:"managerDN,omitempty"`
+	ManagerPassword string `json:"managerPassword,omitempty" yaml:"managerPassword,omitempty"`
+	UserSearchBase  string `json:"userSearchBase,omitempty" yaml:"userSearchBase,omitempty"`
+	GroupSearchBase string `json:"groupSearchBase,omitempty" yaml:"groupSearchBase,omitempty"`
+	InitialCap      int    `json:"initialCap,omitempty" yaml:"initialCap,omitempty"`
+	MaxCap          int    `json:"maxCap,omitempty" yaml:"maxCap,omitempty"`
+	PoolName        string `json:"poolName,omitempty" yaml:"poolName,omitempty"`
 }
 
 // NewOptions return a default option

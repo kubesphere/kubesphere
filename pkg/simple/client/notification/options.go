@@ -17,7 +17,7 @@ limitations under the License.
 package notification
 
 type Options struct {
-	Endpoint string
+	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 }
 
 func NewNotificationOptions() *Options {

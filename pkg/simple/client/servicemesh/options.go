@@ -21,16 +21,16 @@ import "github.com/spf13/pflag"
 type Options struct {
 
 	// istio pilot discovery service url
-	IstioPilotHost string `json:"istioPilotHost,omitempty" yaml:"istioPilotHost"`
+	IstioPilotHost string `json:"istioPilotHost,omitempty" yaml:"istioPilotHost,omitempty"`
 
 	// jaeger query service url
-	JaegerQueryHost string `json:"jaegerQueryHost,omitempty" yaml:"jaegerQueryHost"`
+	JaegerQueryHost string `json:"jaegerQueryHost,omitempty" yaml:"jaegerQueryHost,omitempty"`
 
 	// kiali query service url
-	KialiQueryHost string `json:"kialiQueryHost,omitempty" yaml:"kialiQueryHost"`
+	KialiQueryHost string `json:"kialiQueryHost,omitempty" yaml:"kialiQueryHost,omitempty"`
 
 	// prometheus service url for servicemesh metrics
-	ServicemeshPrometheusHost string `json:"servicemeshPrometheusHost,omitempty" yaml:"servicemeshPrometheusHost"`
+	ServicemeshPrometheusHost string `json:"servicemeshPrometheusHost,omitempty" yaml:"servicemeshPrometheusHost,omitempty"`
 }
 
 // NewServiceMeshOptions returns a `zero` instance
