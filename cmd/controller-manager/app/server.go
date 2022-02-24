@@ -78,8 +78,7 @@ func NewControllerManagerCommand() *cobra.Command {
 				klog.Error(utilerrors.NewAggregate(errs))
 				os.Exit(1)
 			}
-
-			if err = run(s, signals.SetupSignalHandler()); err != nil {
+			if err = Run(s, controllerconfig.WatchConfigChange(), signals.SetupSignalHandler()); err != nil {
 				klog.Error(err)
 				os.Exit(1)
 			}
@@ -112,6 +111,40 @@ func NewControllerManagerCommand() *cobra.Command {
 	cmd.AddCommand(versionCmd)
 
 	return cmd
+}
+
+func Run(s *options.KubeSphereControllerManagerOptions, configCh <-chan controllerconfig.Config, ctx context.Context) error {
+	ictx, cancelFunc := context.WithCancel(context.TODO())
+	errCh := make(chan error)
+	defer close(errCh)
+	go func() {
+		if err := run(s, ictx); err != nil {
+			errCh <- err
+		}
+	}()
+
+	// The ctx (signals.SetupSignalHandler()) is to control the entire program life cycle,
+	// The ictx(internal context)  is created here to control the life cycle of the controller-manager(all controllers, sharedInformer, webhook etc.)
+	// when config changed, stop server and renew context, start new server
+	for {
+		select {
+		case <-ctx.Done():
+			cancelFunc()
+			return nil
+		case cfg := <-configCh:
+			cancelFunc()
+			s.MergeConfig(&cfg)
+			ictx, cancelFunc = context.WithCancel(context.TODO())
+			go func() {
+				if err := run(s, ictx); err != nil {
+					errCh <- err
+				}
+			}()
+		case err := <-errCh:
+			cancelFunc()
+			return err
+		}
+	}
 }
 
 func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) error {

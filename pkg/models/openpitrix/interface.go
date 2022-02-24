@@ -19,7 +19,6 @@ package openpitrix
 import (
 	"sync"
 
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
@@ -55,7 +54,7 @@ func init() {
 	cachedReposData = reposcache.NewReposCache()
 }
 
-func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient versioned.Interface, s3Client s3.Interface) Interface {
+func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient versioned.Interface, s3Client s3.Interface, stopCh <-chan struct{}) Interface {
 	once.Do(func() {
 		klog.Infof("start helm repo informer")
 		helmReposInformer = ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmRepos().Informer()
@@ -85,9 +84,6 @@ func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient ve
 		indexer := ctgInformer.GetIndexer()
 
 		cachedReposData.SetCategoryIndexer(indexer)
-
-		go ctgInformer.Run(wait.NeverStop)
-		go helmReposInformer.Run(wait.NeverStop)
 	})
 
 	return &openpitrixOperator{

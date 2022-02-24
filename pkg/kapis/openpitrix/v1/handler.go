@@ -50,7 +50,7 @@ type openpitrixHandler struct {
 	openpitrix openpitrix.Interface
 }
 
-func newOpenpitrixHandler(ksInformers informers.InformerFactory, ksClient versioned.Interface, option *openpitrixoptions.Options) *openpitrixHandler {
+func newOpenpitrixHandler(ksInformers informers.InformerFactory, ksClient versioned.Interface, option *openpitrixoptions.Options, stopCh <-chan struct{}) *openpitrixHandler {
 	var s3Client s3.Interface
 	if option != nil && option.S3Options != nil && len(option.S3Options.Endpoint) != 0 {
 		var err error
@@ -61,7 +61,7 @@ func newOpenpitrixHandler(ksInformers informers.InformerFactory, ksClient versio
 	}
 
 	return &openpitrixHandler{
-		openpitrix.NewOpenpitrixOperator(ksInformers, ksClient, s3Client),
+		openpitrix.NewOpenpitrixOperator(ksInformers, ksClient, s3Client, stopCh),
 	}
 }
 
