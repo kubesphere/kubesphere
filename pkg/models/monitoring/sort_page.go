@@ -120,7 +120,7 @@ func (raw *Metrics) Sort(target, order, identifier string) *Metrics {
 				// Record ordinals in the final result
 				v, ok := mv.Metadata[identifier]
 				if ok && v != "" {
-					if _, ok1 := resourceOrdinal[v]; !ok1 {
+					if _, ok := resourceOrdinal[v]; !ok {
 						resourceOrdinal[v] = ordinal
 						ordinal++
 					}
