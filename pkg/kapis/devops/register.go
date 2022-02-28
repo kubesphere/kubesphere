@@ -17,6 +17,8 @@ limitations under the License.
 package devops
 
 import (
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -26,13 +28,17 @@ import (
 var devopsGroupVersions = []schema.GroupVersion{
 	{Group: "devops.kubesphere.io", Version: "v1alpha2"},
 	{Group: "devops.kubesphere.io", Version: "v1alpha3"},
+	{Group: "gitops.kubesphere.io", Version: "v1alpha1"},
 	// TODO Add other group versions here, like cd.devops.kubesphere.io
 }
 
 // AddToContainer registers DevOps proxies to the container.
 func AddToContainer(container *restful.Container, endpoint string) error {
+	endpoint = strings.TrimSuffix(endpoint, "/")
 	for _, groupVersion := range devopsGroupVersions {
-		proxy, err := generic.NewGenericProxy(endpoint, groupVersion.Group, groupVersion.Version)
+		// Ensure that we proxy with different group here due to trimming of "/kapis/group_name".
+		// TODO: We could add a flag to decide to trim "/kapis/group_name" or not when creating a new GenericProxy.
+		proxy, err := generic.NewGenericProxy(endpoint+"/kapis/"+groupVersion.Group, groupVersion.Group, groupVersion.Version)
 		if err != nil {
 			return err
 		}

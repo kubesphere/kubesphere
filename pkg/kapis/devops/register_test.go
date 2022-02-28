@@ -39,44 +39,60 @@ func TestAddToContainer(t *testing.T) {
 		wantErr      bool
 		wantResponse string
 	}{{
-		name: "Should proxy v1alpha1 API properly",
+		name: "Should proxy devops.kubesphere.io/v1alpha1 API properly",
 		args: args{
 			target:         "/kapis/devops.kubesphere.io/v1alpha1/resources",
-			mockAPIPattern: "/v1alpha1/resources",
+			mockAPIPattern: "/kapis/devops.kubesphere.io/v1alpha1/resources",
 			mockResponse:   fakeResponse,
 		},
 		wantResponse: notFoundResponse,
 	}, {
-		name: "Should proxy v1alpha2 API properly",
+		name: "Should proxy devops.kubesphere.io/v1alpha2 API properly",
 		args: args{
 			target:         "/kapis/devops.kubesphere.io/v1alpha2/resources",
-			mockAPIPattern: "/v1alpha2/resources",
+			mockAPIPattern: "/kapis/devops.kubesphere.io/v1alpha2/resources",
 			mockResponse:   fakeResponse,
 		},
 		wantResponse: fakeResponse,
 	}, {
-		name: "Should proxy v1alpha3 API properly",
+		name: "Should proxy devops.kubesphere.io/v1alpha3 API properly",
 		args: args{
 			target:         "/kapis/devops.kubesphere.io/v1alpha3/resources",
-			mockAPIPattern: "/v1alpha3/resources",
+			mockAPIPattern: "/kapis/devops.kubesphere.io/v1alpha3/resources",
 			mockResponse:   fakeResponse,
 		},
 		wantResponse: fakeResponse,
 	}, {
-		name: "Should return 404 if no pattern matches",
+		name: "Should proxy gitops.kubesphere.io/v1alpha1 API properly",
+		args: args{
+			target:         "/kapis/gitops.kubesphere.io/v1alpha1/resources",
+			mockAPIPattern: "/kapis/gitops.kubesphere.io/v1alpha1/resources",
+			mockResponse:   fakeResponse,
+		},
+		wantResponse: fakeResponse,
+	}, {
+		name: "Should return 404 if versions miss match",
 		args: args{
 			target:         "/kapis/devops.kubesphere.io/v1alpha3/resources",
-			mockAPIPattern: "/v1alpha4/resources",
+			mockAPIPattern: "/kapis/devops.kubesphere.io/v1alpha1/resources",
 		},
 		wantResponse: notFoundResponse,
 	}, {
-		name: "Should not proxy v1alpha123 API properly event if pattern matched",
+		name: "Should return 404 if groups miss match",
 		args: args{
-			target:         "/kapis/devops.kubesphere.io/v1alpha123/resources",
-			mockAPIPattern: "/v1alpha123/resources",
+			target:         "/kapis/devops.kubesphere.io/v1alpha3/resources",
+			mockAPIPattern: "/kapis/gitops.kubesphere.io/v1alpha3/resources",
 		},
 		wantResponse: notFoundResponse,
 	},
+		{
+			name: "Should not proxy v1alpha123 API properly event if pattern matched",
+			args: args{
+				target:         "/kapis/devops.kubesphere.io/v1alpha123/resources",
+				mockAPIPattern: "/kapis/devops.kubesphere.io/v1alpha123/resources",
+			},
+			wantResponse: notFoundResponse,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
