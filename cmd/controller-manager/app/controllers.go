@@ -374,14 +374,14 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 		}
 	}
 
-	if cmOptions.IsControllerEnabled("workload-Restart") {
+	if cmOptions.IsControllerEnabled("pvc-workload-restarter") {
 		restarter := runners.NewRestarter(
 			mgr.GetClient(),
-			ctrl.Log.WithName("workload-Restart"),
+			ctrl.Log.WithName("pvc-workload-restarter"),
 			1*time.Minute,
-			mgr.GetEventRecorderFor("workload-Restart"),
+			mgr.GetEventRecorderFor("pvc-workload-restarter"),
 		)
-		addController(mgr, "workloadrestart", restarter)
+		addController(mgr, "pvcworkloadrestarter", restarter)
 	}
 
 	// "loginrecord" controller
