@@ -38,6 +38,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -173,6 +174,7 @@ func NewClusterController(
 	clusterClient clusterclient.ClusterInterface,
 	resyncPeriod time.Duration,
 	hostClusterName string,
+	configmapInformer coreinformers.ConfigMapInformer,
 ) *clusterController {
 
 	broadcaster := record.NewBroadcaster()
@@ -203,6 +205,18 @@ func NewClusterController(
 			c.addCluster(newObj)
 		},
 		DeleteFunc: c.addCluster,
+	}, resyncPeriod)
+
+	configmapInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			oldCM := oldObj.(*v1.ConfigMap)
+			newCM := newObj.(*v1.ConfigMap)
+			if oldCM.ResourceVersion == newCM.ResourceVersion {
+				return
+			}
+			// Update the clusterName field when the kubesphere-config configmap is updated.
+			c.syncClusterNameInConfigMap()
+		},
 	}, resyncPeriod)
 
 	return c
@@ -673,6 +687,27 @@ func (c *clusterController) setClusterNameInConfigMap(client kubernetes.Interfac
 		return err
 	}
 	return nil
+}
+
+func (c *clusterController) syncClusterNameInConfigMap() {
+	clusters, err := c.clusterLister.List(labels.Everything())
+	if err != nil {
+		klog.Errorf("list clusters failed: %v", err)
+		return
+	}
+
+	for _, cluster := range clusters {
+		clusterDt, ok := c.clusterMap[cluster.Name]
+		if !ok {
+			continue
+		}
+		if err = retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
+			return c.setClusterNameInConfigMap(clusterDt.client, cluster.Name)
+		}); err != nil {
+			klog.Errorf("update configmap %s failed: %v", constants.KubeSphereConfigName, err)
+			continue
+		}
+	}
 }
 
 func (c *clusterController) checkIfClusterIsHostCluster(memberClusterNodes *v1.NodeList) bool {
