@@ -164,7 +164,7 @@ const (
 type UserStatus struct {
 	// The user status
 	// +optional
-	State *UserState `json:"state,omitempty"`
+	State UserState `json:"state,omitempty"`
 	// +optional
 	Reason string `json:"reason,omitempty"`
 	// +optional
