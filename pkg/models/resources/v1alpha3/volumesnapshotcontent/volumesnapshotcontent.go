@@ -1,6 +1,7 @@
 package volumesnapshotcontent
 
 import (
+	"strconv"
 	"strings"
 
 	v1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
@@ -17,6 +18,7 @@ const (
 	volumeSnapshotClassName = "volumeSnapshotClassName"
 	volumeSnapshotName      = "volumeSnapshotName"
 	volumeSnapshotNameSpace = "volumeSnapshotNamespace"
+	readyToUse              = "readyToUse"
 )
 
 type volumesnapshotcontentGetter struct {
@@ -70,6 +72,8 @@ func (v *volumesnapshotcontentGetter) filter(object runtime.Object, filter query
 		return strings.EqualFold(snapshotcontent.Spec.VolumeSnapshotRef.Name, string(filter.Value))
 	case volumeSnapshotNameSpace:
 		return strings.EqualFold(snapshotcontent.Spec.VolumeSnapshotRef.Namespace, string(filter.Value))
+	case readyToUse:
+		return strings.EqualFold(strconv.FormatBool(*snapshotcontent.Status.ReadyToUse), string(filter.Value))
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(snapshotcontent.ObjectMeta, filter)
 	}
