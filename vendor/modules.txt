@@ -503,6 +503,10 @@ github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversi
 github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions/volumesnapshot/v1beta1
 github.com/kubernetes-csi/external-snapshotter/client/v4/listers/volumesnapshot/v1
 github.com/kubernetes-csi/external-snapshotter/client/v4/listers/volumesnapshot/v1beta1
+# github.com/kubesphere/pvc-autoresizer v0.1.1
+## explicit
+github.com/kubesphere/pvc-autoresizer/metrics
+github.com/kubesphere/pvc-autoresizer/runners
 # github.com/kubesphere/sonargo v0.0.2 => github.com/kubesphere/sonargo v0.0.2
 ## explicit
 github.com/kubesphere/sonargo/sonar
