@@ -123,6 +123,9 @@ var NodeMetrics = []string{
 	"node_pod_abnormal_ratio",
 	"node_pleg_quantile",
 
+	"node_device_size_usage",
+	"node_device_size_utilisation",
+
 	// meter
 	"meter_node_cpu_usage",
 	"meter_node_memory_usage_wo_cache",
