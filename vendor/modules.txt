@@ -285,7 +285,6 @@ github.com/fatih/structs
 ## explicit
 github.com/form3tech-oss/jwt-go
 # github.com/fsnotify/fsnotify v1.4.9 => github.com/fsnotify/fsnotify v1.4.9
-## explicit
 github.com/fsnotify/fsnotify
 # github.com/garyburd/redigo v1.6.0 => github.com/garyburd/redigo v1.6.0
 ## explicit
