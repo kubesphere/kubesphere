@@ -155,3 +155,11 @@ clean: ;$(info $(M)...Begin to clean.)  @ ## Clean.
 
 clientset:  ;$(info $(M)...Begin to find or download controller-gen.)  @ ## Find or download controller-gen,download controller-gen if necessary.
 	./hack/generate_client.sh ${GV}
+
+# Fix invalid file's license, `license-eye` is required.
+update-licenses: ;$(info $(M)...Begin to update licenses.)
+	@hack/update-licenses.sh
+
+# Fix invalid file's license, `license-eye` is required.
+verify-licenses: ;$(info $(M)...Begin to check licenses.)
+	@hack/verify-licenses.sh
