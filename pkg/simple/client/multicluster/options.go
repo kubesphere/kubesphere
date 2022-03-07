@@ -32,8 +32,7 @@ const (
 type Options struct {
 	// Enable
 	// Deprecated: this field will be removed in the future version, use ClusterRole instead.
-	Enable           bool `json:"enable" yaml:"enable"`
-	EnableFederation bool `json:"enableFederation,omitempty" yaml:"enableFederation,omitempty"`
+	Enable bool `json:"enable" yaml:"enable"`
 
 	// ProxyPublishService is the service name of multicluster component tower.
 	//   If this field provided, apiserver going to use the ingress.ip of this service.
@@ -68,7 +67,6 @@ type Options struct {
 func NewOptions() *Options {
 	return &Options{
 		Enable:                        false,
-		EnableFederation:              false,
 		ProxyPublishAddress:           "",
 		ProxyPublishService:           "",
 		AgentImage:                    "kubesphere/tower:v1.0",
