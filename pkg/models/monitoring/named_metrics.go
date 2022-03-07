@@ -264,6 +264,8 @@ var ContainerMetrics = []string{
 	"container_cpu_usage",
 	"container_memory_usage",
 	"container_memory_usage_wo_cache",
+	"container_processes_usage",
+	"container_threads_usage",
 }
 
 var PVCMetrics = []string{
