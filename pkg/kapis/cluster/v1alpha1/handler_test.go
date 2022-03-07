@@ -39,6 +39,7 @@ import (
 	"kubesphere.io/api/cluster/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 )
@@ -112,16 +113,16 @@ authentication:
 
 var hostCm = &corev1.ConfigMap{
 	ObjectMeta: metav1.ObjectMeta{
-		Namespace: KubesphereNamespace,
-		Name:      KubeSphereConfigName,
+		Namespace: constants.KubeSphereNamespace,
+		Name:      constants.KubeSphereConfigName,
 	},
 	Data: hostMap,
 }
 
 var memberCm = &corev1.ConfigMap{
 	ObjectMeta: metav1.ObjectMeta{
-		Namespace: KubesphereNamespace,
-		Name:      KubeSphereConfigName,
+		Namespace: constants.KubeSphereNamespace,
+		Name:      constants.KubeSphereConfigName,
 	},
 	Data: memberMap,
 }
@@ -465,14 +466,14 @@ func addMemberClusterResource(targetCm *corev1.ConfigMap, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = c.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubesphereNamespace}}, metav1.CreateOptions{})
+	_, err = c.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: constants.KubeSphereNamespace}}, metav1.CreateOptions{})
 	if err != nil && !errors.IsAlreadyExists(err) {
 		t.Fatal(err)
 	}
 
-	_, err = c.CoreV1().ConfigMaps(KubesphereNamespace).Create(context.Background(), targetCm, metav1.CreateOptions{})
+	_, err = c.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Create(context.Background(), targetCm, metav1.CreateOptions{})
 	if err != nil && errors.IsAlreadyExists(err) {
-		_, err = c.CoreV1().ConfigMaps(KubesphereNamespace).Update(context.Background(), targetCm, metav1.UpdateOptions{})
+		_, err = c.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Update(context.Background(), targetCm, metav1.UpdateOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -486,7 +487,7 @@ func addMemberClusterResource(targetCm *corev1.ConfigMap, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = c.AppsV1().Deployments(KubesphereNamespace).Create(context.Background(), &deploy, metav1.CreateOptions{})
+	_, err = c.AppsV1().Deployments(constants.KubeSphereNamespace).Create(context.Background(), &deploy, metav1.CreateOptions{})
 	if err != nil && !errors.IsAlreadyExists(err) {
 		t.Fatal(err)
 	}
