@@ -188,7 +188,7 @@ func (t *tenantOperator) makeQueryOptions(user user.Info, q meteringv1alpha1.Que
 			var wsList *api.ListResult
 			qu := query.New()
 			qu.LabelSelector = q.LabelSelector
-			wsList, err = t.ListWorkspaces(user, qu)
+			wsList, err = t.ListWorkspaceTemplates(user, qu)
 			if err != nil {
 				return qo, err
 			}
@@ -703,7 +703,7 @@ func (t *tenantOperator) transformMetricData(metrics monitoringmodel.Metrics) me
 	for _, metric := range metrics.Results {
 		metricName := metric.MetricName
 		for _, metricValue := range metric.MetricValues {
-			//metricValue.SumValue
+			// metricValue.SumValue
 			podName := metricValue.Metadata["pod"]
 			if s, err := strconv.ParseFloat(metricValue.SumValue, 64); err != nil {
 				klog.Error("failed to parse string to float64")

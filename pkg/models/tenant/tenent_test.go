@@ -66,7 +66,7 @@ func TestTenantOperator_ListWorkspaces(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result, err := tenantOperator.ListWorkspaces(&user.DefaultInfo{Name: test.username}, query.New())
+		result, err := tenantOperator.ListWorkspaceTemplates(&user.DefaultInfo{Name: test.username}, query.New())
 
 		if err != nil {
 			if !reflect.DeepEqual(err, test.expectError) {
