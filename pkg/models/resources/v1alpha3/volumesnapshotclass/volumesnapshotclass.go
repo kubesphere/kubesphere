@@ -56,6 +56,7 @@ func (v *volumeSnapshotClassGetter) List(namespace string, query *query.Query) (
 
 	var result []runtime.Object
 	for _, snapshotClass := range all {
+		snapshotClass = snapshotClass.DeepCopy()
 		count := v.countVolumeSnapshots(snapshotClass.Name)
 		if snapshotClass.Annotations == nil {
 			snapshotClass.Annotations = make(map[string]string)
