@@ -112,8 +112,8 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, username, passwo
 	}
 
 	// check user status
-	if user != nil && (user.Status.State == nil || *user.Status.State != iamv1alpha2.UserActive) {
-		if user.Status.State != nil && *user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
+	if user != nil && user.Status.State != iamv1alpha2.UserActive {
+		if user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
 			klog.Errorf("%s, username: %s", RateLimitExceededError, username)
 			return nil, "", RateLimitExceededError
 		} else {

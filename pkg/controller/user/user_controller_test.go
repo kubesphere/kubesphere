@@ -125,12 +125,12 @@ func TestDoNothing(t *testing.T) {
 	// becomes active after password encrypted
 	updateEvent = <-w.ResultChan()
 	user = updateEvent.Object.(*iamv1alpha2.User)
-	assert.Equal(t, iamv1alpha2.UserActive, *user.Status.State)
+	assert.Equal(t, iamv1alpha2.UserActive, user.Status.State)
 
 	// block user
 	updateEvent = <-w.ResultChan()
 	user = updateEvent.Object.(*iamv1alpha2.User)
-	assert.Equal(t, iamv1alpha2.UserAuthLimitExceeded, *user.Status.State)
+	assert.Equal(t, iamv1alpha2.UserAuthLimitExceeded, user.Status.State)
 	assert.True(t, result.Requeue)
 
 	time.Sleep(result.RequeueAfter + time.Second)
@@ -144,5 +144,5 @@ func TestDoNothing(t *testing.T) {
 	// unblock user
 	updateEvent = <-w.ResultChan()
 	user = updateEvent.Object.(*iamv1alpha2.User)
-	assert.Equal(t, iamv1alpha2.UserActive, *user.Status.State)
+	assert.Equal(t, iamv1alpha2.UserActive, user.Status.State)
 }
