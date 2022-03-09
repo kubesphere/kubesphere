@@ -97,7 +97,7 @@ func (v *volumeSnapshotClassGetter) filter(object runtime.Object, filter query.F
 }
 
 func (v *volumeSnapshotClassGetter) countVolumeSnapshots(name string) int {
-	snapshots, err := v.informers.Snapshot().V1().VolumeSnapshots().Lister().VolumeSnapshots("").List(labels.Everything())
+	snapshots, err := v.informers.Snapshot().V1().VolumeSnapshots().Lister().List(labels.Everything())
 	if err != nil {
 		return 0
 	}
