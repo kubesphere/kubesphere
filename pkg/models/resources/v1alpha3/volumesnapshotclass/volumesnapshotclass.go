@@ -17,7 +17,10 @@ limitations under the License.
 package volumesnapshotclass
 
 import (
+	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/labels"
 
 	v1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	"github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
@@ -53,6 +56,12 @@ func (v *volumeSnapshotClassGetter) List(namespace string, query *query.Query) (
 
 	var result []runtime.Object
 	for _, snapshotClass := range all {
+		snapshotClass = snapshotClass.DeepCopy()
+		count := v.countVolumeSnapshots(snapshotClass.Name)
+		if snapshotClass.Annotations == nil {
+			snapshotClass.Annotations = make(map[string]string)
+		}
+		snapshotClass.Annotations["kubesphere.io/snapshot-count"] = strconv.Itoa(count)
 		result = append(result, snapshotClass)
 	}
 
@@ -85,4 +94,19 @@ func (v *volumeSnapshotClassGetter) filter(object runtime.Object, filter query.F
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(snapshotClass.ObjectMeta, filter)
 	}
+}
+
+func (v *volumeSnapshotClassGetter) countVolumeSnapshots(name string) int {
+	snapshots, err := v.informers.Snapshot().V1().VolumeSnapshots().Lister().List(labels.Everything())
+	if err != nil {
+		return 0
+	}
+	var count int
+
+	for _, snapshot := range snapshots {
+		if snapshot.Spec.VolumeSnapshotClassName != nil && *snapshot.Spec.VolumeSnapshotClassName == name {
+			count++
+		}
+	}
+	return count
 }
