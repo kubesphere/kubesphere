@@ -65,7 +65,7 @@ import (
 	alertingv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2alpha1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
-	crd "kubesphere.io/kubesphere/pkg/kapis/crd"
+	"kubesphere.io/kubesphere/pkg/kapis/crd"
 	kapisdevops "kubesphere.io/kubesphere/pkg/kapis/devops"
 	edgeruntimev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/edgeruntime/v1alpha1"
 	gatewayv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/gateway/v1alpha1"
@@ -85,6 +85,7 @@ import (
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha3"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
+	tenantv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha3"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/kapis/version"
 	"kubesphere.io/kubesphere/pkg/models/auth"
@@ -225,6 +226,8 @@ func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 		s.KubernetesClient.Master()))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
 		s.KubernetesClient.KubeSphere(), s.EventsClient, s.LoggingClient, s.AuditingClient, amOperator, rbacAuthorizer, s.MonitoringClient, s.RuntimeCache, s.Config.MeteringOptions, stopCh))
+	urlruntime.Must(tenantv1alpha3.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
+		s.KubernetesClient.KubeSphere(), s.EventsClient, s.LoggingClient, s.AuditingClient, amOperator, rbacAuthorizer, s.MonitoringClient, s.RuntimeCache, s.Config.MeteringOptions, stopCh))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), rbacAuthorizer, s.KubernetesClient.Config(), s.Config.TerminalOptions))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(s.container,
 		s.KubernetesClient.KubeSphere(),
@@ -263,7 +266,7 @@ func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 // installCRDAPIs Install CRDs to the KAPIs with List and Get options
 func (s *APIServer) installCRDAPIs() {
 	crds := &extv1.CustomResourceDefinitionList{}
-	//TODO Maybe we need a better label name
+	// TODO Maybe we need a better label name
 	urlruntime.Must(s.RuntimeClient.List(context.TODO(), crds, runtimeclient.MatchingLabels{"kubesphere.io/resource-served": "true"}))
 	urlruntime.Must(crd.AddToContainer(s.container, s.RuntimeClient, s.RuntimeCache, crds))
 }
