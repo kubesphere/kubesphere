@@ -311,6 +311,20 @@ func (h *handler) updateKubeConfig(request *restful.Request, response *restful.R
 		api.HandleBadRequest(response, request, fmt.Errorf("failed to validate member cluster configuration, err: %v", err))
 	}
 
+	// Check if the cluster is the same
+	kubeSystem, err := clientSet.CoreV1().Namespaces().Get(context.TODO(), metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+	if kubeSystem.UID != cluster.Status.UID {
+		api.HandleBadRequest(
+			response, request, fmt.Errorf(
+				"this kubeconfig corresponds to a different cluster than the previous one, you need to make sure that kubeconfig is not from another cluster",
+			))
+		return
+	}
+
 	cluster.Spec.Connection.KubeConfig = req.KubeConfig
 	if _, err = h.ksclient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 		api.HandleBadRequest(response, request, err)
