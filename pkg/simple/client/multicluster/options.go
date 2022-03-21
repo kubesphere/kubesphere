@@ -31,8 +31,8 @@ const (
 
 type Options struct {
 	// Enable
-	Enable           bool `json:"enable" yaml:"enable"`
-	EnableFederation bool `json:"enableFederation,omitempty" yaml:"enableFederation,omitempty"`
+	// Deprecated: this field will be removed in the future version, use ClusterRole instead.
+	Enable bool `json:"enable" yaml:"enable"`
 
 	// ProxyPublishService is the service name of multicluster component tower.
 	//   If this field provided, apiserver going to use the ingress.ip of this service.
@@ -57,13 +57,16 @@ type Options struct {
 	// ClusterName is the name of the current cluster,
 	// this value will be set by the cluster-controller and stored in the kubesphere-config configmap.
 	ClusterName string `json:"clusterName,omitempty" yaml:"clusterName,omitempty"`
+
+	// ClusterRole is the role of the current cluster,
+	// available values: host, member.
+	ClusterRole string `json:"clusterRole,omitempty" yaml:"clusterRole,omitempty"`
 }
 
 // NewOptions returns a default nil options
 func NewOptions() *Options {
 	return &Options{
 		Enable:                        false,
-		EnableFederation:              false,
 		ProxyPublishAddress:           "",
 		ProxyPublishService:           "",
 		AgentImage:                    "kubesphere/tower:v1.0",
