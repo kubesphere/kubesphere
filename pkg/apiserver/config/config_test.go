@@ -151,6 +151,7 @@ func newTestConfig() (*Config, error) {
 			AuthenticateRateLimiterMaxTries: 5,
 			AuthenticateRateLimiterDuration: 30 * time.Minute,
 			JwtSecret:                       "xxxxxx",
+			LoginHistoryMaximumEntries:      100,
 			MultipleLogin:                   false,
 			OAuthOptions: &oauth.Options{
 				Issuer:            oauth.DefaultIssuer,
