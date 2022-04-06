@@ -85,7 +85,7 @@ require (
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	github.com/xenolf/lego v0.3.2-0.20160613233155-a9d8cec0e656 // indirect
@@ -666,7 +666,7 @@ replace (
 	github.com/speps/go-hashids => github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/afero => github.com/spf13/afero v1.2.2
 	github.com/spf13/cast => github.com/spf13/cast v1.3.0
-	github.com/spf13/cobra => github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra => github.com/spf13/cobra v1.2.1
 	github.com/spf13/jwalterweatherman => github.com/spf13/jwalterweatherman v1.0.0
 	github.com/spf13/pflag => github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper => github.com/spf13/viper v1.4.0
