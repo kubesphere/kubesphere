@@ -61,6 +61,7 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 	github.com/kubesphere/pvc-autoresizer v0.1.1
 	github.com/kubesphere/sonargo v0.0.2
+	github.com/kubesphere/storageclass-accessor v0.2.0
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
@@ -107,16 +108,16 @@ require (
 	istio.io/api v0.0.0-20201113182140-d4b7e3fc2b44
 	istio.io/client-go v0.0.0-20201113183938-0734e976e785
 	istio.io/gogo-genproto v0.0.0-20201113182723-5b8563d8a012 // indirect
-	k8s.io/api v0.21.4
+	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.21.4
-	k8s.io/apimachinery v0.21.4
+	k8s.io/apimachinery v0.22.1
 	k8s.io/apiserver v0.21.2
 	k8s.io/cli-runtime v0.21.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.21.2
 	k8s.io/component-base v0.21.4
 	k8s.io/klog v1.0.0
-	k8s.io/klog/v2 v2.8.0
+	k8s.io/klog/v2 v2.9.0
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e
 	k8s.io/kubectl v0.21.2
 	k8s.io/metrics v0.21.2
@@ -126,7 +127,7 @@ require (
 	kubesphere.io/monitoring-dashboard v0.2.2
 	rsc.io/letsencrypt v0.0.1 // indirect
 	sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
-	sigs.k8s.io/controller-runtime v0.9.8-0.20211019125639-aa2b3e68a52d
+	sigs.k8s.io/controller-runtime v0.10.0
 	sigs.k8s.io/controller-tools v0.6.2
 	sigs.k8s.io/kubefed v0.8.1
 	sigs.k8s.io/kustomize/api v0.8.8

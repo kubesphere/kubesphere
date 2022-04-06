@@ -511,6 +511,10 @@ github.com/kubesphere/pvc-autoresizer/runners
 # github.com/kubesphere/sonargo v0.0.2 => github.com/kubesphere/sonargo v0.0.2
 ## explicit
 github.com/kubesphere/sonargo/sonar
+# github.com/kubesphere/storageclass-accessor v0.2.0
+## explicit
+github.com/kubesphere/storageclass-accessor/client/apis/accessor/v1alpha1
+github.com/kubesphere/storageclass-accessor/webhook
 # github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 => github.com/lann/builder v0.0.0-20180802200727-47ae307949d0
 ## explicit
 github.com/lann/builder
@@ -1327,7 +1331,7 @@ istio.io/client-go/pkg/listers/security/v1beta1
 ## explicit
 istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
-# k8s.io/api v0.21.4 => k8s.io/api v0.21.2
+# k8s.io/api v0.22.1 => k8s.io/api v0.21.2
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1394,7 +1398,7 @@ k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensio
 k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/internalinterfaces
 k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/v1
 k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/v1beta1
-# k8s.io/apimachinery v0.21.4 => k8s.io/apimachinery v0.21.2
+# k8s.io/apimachinery v0.22.1 => k8s.io/apimachinery v0.21.2
 ## explicit
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -1916,7 +1920,7 @@ k8s.io/gengo/types
 ## explicit
 k8s.io/klog
 k8s.io/klog/klogr
-# k8s.io/klog/v2 v2.8.0 => k8s.io/klog/v2 v2.8.0
+# k8s.io/klog/v2 v2.9.0 => k8s.io/klog/v2 v2.8.0
 ## explicit
 k8s.io/klog/v2
 # k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e => k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
@@ -2015,7 +2019,7 @@ sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
 # sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0 => sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 ## explicit
 sigs.k8s.io/application/api/v1beta1
-# sigs.k8s.io/controller-runtime v0.9.8-0.20211019125639-aa2b3e68a52d => sigs.k8s.io/controller-runtime v0.9.8-0.20211019125639-aa2b3e68a52d
+# sigs.k8s.io/controller-runtime v0.10.0 => sigs.k8s.io/controller-runtime v0.9.8-0.20211019125639-aa2b3e68a52d
 ## explicit
 sigs.k8s.io/controller-runtime
 sigs.k8s.io/controller-runtime/pkg/builder

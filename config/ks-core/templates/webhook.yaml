@@ -120,3 +120,37 @@ webhooks:
           - pods
         scope: '*'
     sideEffects: None
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: storageclass-accessor.storage.kubesphere.io
+webhooks:
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      caBundle: {{ b64enc $ca.Cert | quote }}
+      service:
+        name: ks-controller-manager
+        namespace: {{ .Release.Namespace }}
+        path: /persistentvolumeclaims
+        port: 443
+    failurePolicy: Ignore
+    matchPolicy: Exact
+    name: storageclass-accessor.storage.kubesphere.io
+    namespaceSelector: {}
+    objectSelector: {}
+    rules:
+      - apiGroups:
+          - '*'
+        apiVersions:
+          - '*'
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - persistentvolumeclaims
+        scope: '*'
+    sideEffects: None
