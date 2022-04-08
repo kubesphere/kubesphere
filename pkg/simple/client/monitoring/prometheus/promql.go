@@ -113,6 +113,9 @@ var promQLTemplates = map[string]string{
 	"node_pod_abnormal_ratio":     `node:pod_abnormal:ratio{$1}`,
 	"node_pleg_quantile":          `node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile{$1}`,
 
+	"node_device_size_usage":       `sum by(device, node, host_ip, role) (node_filesystem_size_bytes{device!~"/dev/loop\\d+",device=~"/dev/.*",job="node-exporter"} * on(namespace, pod) group_left(node, host_ip, role) node_namespace_pod:kube_pod_info:{$1}) - sum by(device, node, host_ip, role) (node_filesystem_avail_bytes{device!~"/dev/loop\\d+",device=~"/dev/.*",job="node-exporter"} * on(namespace, pod) group_left(node, host_ip, role) node_namespace_pod:kube_pod_info:{$1})`,
+	"node_device_size_utilisation": `1 - sum by(device, node, host_ip, role) (node_filesystem_avail_bytes{device!~"/dev/loop\\d+",device=~"/dev/.*",job="node-exporter"} * on(namespace, pod) group_left(node, host_ip, role) node_namespace_pod:kube_pod_info:{$1}) / sum by(device, node, host_ip, role) (node_filesystem_size_bytes{device!~"/dev/loop\\d+",device=~"/dev/.*",job="node-exporter"} * on(namespace, pod) group_left(node, host_ip, role) node_namespace_pod:kube_pod_info:{$1})`,
+
 	// workspace
 	"workspace_cpu_usage":                  `round(sum by (workspace) (namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", $1}), 0.001)`,
 	"workspace_memory_usage":               `sum by (workspace) (namespace:container_memory_usage_bytes:sum{namespace!="", $1})`,
@@ -211,6 +214,8 @@ var promQLTemplates = map[string]string{
 	"container_cpu_usage":             `round(sum by (namespace, pod, container) (irate(container_cpu_usage_seconds_total{job="kubelet", container!="POD", container!="", image!="", $1}[5m])), 0.001)`,
 	"container_memory_usage":          `sum by (namespace, pod, container) (container_memory_usage_bytes{job="kubelet", container!="POD", container!="", image!="", $1})`,
 	"container_memory_usage_wo_cache": `sum by (namespace, pod, container) (container_memory_working_set_bytes{job="kubelet", container!="POD", container!="", image!="", $1})`,
+	"container_processes_usage":       `sum by (namespace, pod, container) (container_processes{job="kubelet", container!="POD", container!="", image!="", $1})`,
+	"container_threads_usage":         `sum by (namespace, pod, container) (container_threads {job="kubelet", container!="POD", container!="", image!="", $1})`,
 
 	// pvc
 	"pvc_inodes_available":   `max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_inodes_free) * on (namespace, persistentvolumeclaim) group_left (storageclass) kube_persistentvolumeclaim_info{$1}`,

@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -37,6 +38,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -51,9 +53,12 @@ import (
 
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/config"
 	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
@@ -169,6 +174,7 @@ func NewClusterController(
 	clusterClient clusterclient.ClusterInterface,
 	resyncPeriod time.Duration,
 	hostClusterName string,
+	configmapInformer coreinformers.ConfigMapInformer,
 ) *clusterController {
 
 	broadcaster := record.NewBroadcaster()
@@ -199,6 +205,18 @@ func NewClusterController(
 			c.addCluster(newObj)
 		},
 		DeleteFunc: c.addCluster,
+	}, resyncPeriod)
+
+	configmapInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			oldCM := oldObj.(*v1.ConfigMap)
+			newCM := newObj.(*v1.ConfigMap)
+			if oldCM.ResourceVersion == newCM.ResourceVersion {
+				return
+			}
+			// Update the clusterName field when the kubesphere-config configmap is updated.
+			c.syncClusterNameInConfigMap()
+		},
 	}, resyncPeriod)
 
 	return c
@@ -576,7 +594,6 @@ func (c *clusterController) syncCluster(key string) error {
 		klog.Errorf("Failed to get kubernetes version, %#v", err)
 		return err
 	}
-
 	cluster.Status.KubernetesVersion = version.GitVersion
 
 	nodes, err := clusterDt.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -584,7 +601,6 @@ func (c *clusterController) syncCluster(key string) error {
 		klog.Errorf("Failed to get cluster nodes, %#v", err)
 		return err
 	}
-
 	cluster.Status.NodeCount = len(nodes.Items)
 
 	configz, err := c.tryToFetchKubeSphereComponents(clusterDt.config.Host, clusterDt.transport)
@@ -598,6 +614,13 @@ func (c *clusterController) syncCluster(key string) error {
 	} else {
 		cluster.Status.KubeSphereVersion = v
 	}
+
+	// Use kube-system namespace UID as cluster ID
+	kubeSystem, err := clusterDt.client.CoreV1().Namespaces().Get(context.TODO(), metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	cluster.Status.UID = kubeSystem.UID
 
 	// label cluster host cluster if configz["multicluster"]==true
 	if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
@@ -630,7 +653,61 @@ func (c *clusterController) syncCluster(key string) error {
 		}
 	}
 
+	if err = c.setClusterNameInConfigMap(clusterDt.client, cluster.Name); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (c *clusterController) setClusterNameInConfigMap(client kubernetes.Interface, name string) error {
+	cm, err := client.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Get(context.TODO(), constants.KubeSphereConfigName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	configData, err := config.GetFromConfigMap(cm)
+	if err != nil {
+		return err
+	}
+	if configData.MultiClusterOptions == nil {
+		configData.MultiClusterOptions = &multicluster.Options{}
+	}
+	if configData.MultiClusterOptions.ClusterName == name {
+		return nil
+	}
+
+	configData.MultiClusterOptions.ClusterName = name
+	newConfigData, err := yaml.Marshal(configData)
+	if err != nil {
+		return err
+	}
+	cm.Data[constants.KubeSphereConfigMapDataKey] = string(newConfigData)
+	if _, err = client.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Update(context.TODO(), cm, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *clusterController) syncClusterNameInConfigMap() {
+	clusters, err := c.clusterLister.List(labels.Everything())
+	if err != nil {
+		klog.Errorf("list clusters failed: %v", err)
+		return
+	}
+
+	for _, cluster := range clusters {
+		clusterDt, ok := c.clusterMap[cluster.Name]
+		if !ok {
+			continue
+		}
+		if err = retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
+			return c.setClusterNameInConfigMap(clusterDt.client, cluster.Name)
+		}); err != nil {
+			klog.Errorf("update configmap %s failed: %v", constants.KubeSphereConfigName, err)
+			continue
+		}
+	}
 }
 
 func (c *clusterController) checkIfClusterIsHostCluster(memberClusterNodes *v1.NodeList) bool {

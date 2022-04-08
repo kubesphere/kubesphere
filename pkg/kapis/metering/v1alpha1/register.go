@@ -49,10 +49,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha1"}
 
-func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteringClient monitoring.Interface, factory informers.InformerFactory, ksClient versioned.Interface, cache cache.Cache, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteringClient monitoring.Interface, factory informers.InformerFactory, ksClient versioned.Interface, cache cache.Cache, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client, stopCh <-chan struct{}) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	h := newHandler(k8sClient, meteringClient, factory, ksClient, resourcev1alpha3.NewResourceGetter(factory, cache), meteringOptions, opOptions, rtClient)
+	h := newHandler(k8sClient, meteringClient, factory, ksClient, resourcev1alpha3.NewResourceGetter(factory, cache), meteringOptions, opOptions, rtClient, stopCh)
 
 	ws.Route(ws.GET("/cluster").
 		To(h.HandleClusterMeterQuery).

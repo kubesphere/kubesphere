@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,6 +40,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
+
 	"kubesphere.io/api/cluster/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -49,16 +49,15 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
 const (
-	defaultAgentImage    = "kubesphere/tower:v1.0"
-	defaultTimeout       = 10 * time.Second
-	KubesphereNamespace  = "kubesphere-system"
-	KubeSphereConfigName = "kubesphere-config"
-	KubeSphereApiServer  = "ks-apiserver"
+	defaultAgentImage   = "kubesphere/tower:v1.0"
+	defaultTimeout      = 10 * time.Second
+	KubeSphereApiServer = "ks-apiserver"
 )
 
 var errClusterConnectionIsNotProxy = fmt.Errorf("cluster is not using proxy connection")
@@ -301,15 +300,29 @@ func (h *handler) updateKubeConfig(request *restful.Request, response *restful.R
 		return
 	}
 
-	_, err = validateKubeSphereAPIServer(cluster.Spec.Connection.KubeSphereAPIEndpoint, cluster.Spec.Connection.KubeConfig)
+	_, err = validateKubeSphereAPIServer(config)
 	if err != nil {
 		api.HandleBadRequest(response, request, fmt.Errorf("unable validate kubesphere endpoint, %v", err))
 		return
 	}
 
-	err = h.validateMemberClusterConfiguration(cluster.Spec.Connection.KubeConfig)
+	err = h.validateMemberClusterConfiguration(clientSet)
 	if err != nil {
 		api.HandleBadRequest(response, request, fmt.Errorf("failed to validate member cluster configuration, err: %v", err))
+	}
+
+	// Check if the cluster is the same
+	kubeSystem, err := clientSet.CoreV1().Namespaces().Get(context.TODO(), metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+	if kubeSystem.UID != cluster.Status.UID {
+		api.HandleBadRequest(
+			response, request, fmt.Errorf(
+				"this kubeconfig corresponds to a different cluster than the previous one, you need to make sure that kubeconfig is not from another cluster",
+			))
+		return
 	}
 
 	cluster.Spec.Connection.KubeConfig = req.KubeConfig
@@ -340,20 +353,29 @@ func (h *handler) validateCluster(request *restful.Request, response *restful.Re
 		return
 	}
 
-	err = h.validateKubeConfig(cluster.Spec.Connection.KubeConfig)
+	config, err := k8sutil.LoadKubeConfigFromBytes(cluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+	config.Timeout = defaultTimeout
+	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		api.HandleBadRequest(response, request, err)
 		return
 	}
 
-	_, err = validateKubeSphereAPIServer(cluster.Spec.Connection.KubeSphereAPIEndpoint, cluster.Spec.Connection.KubeConfig)
-	if err != nil {
+	if err = h.validateKubeConfig(cluster.Name, clientSet); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	if _, err = validateKubeSphereAPIServer(config); err != nil {
 		api.HandleBadRequest(response, request, fmt.Errorf("unable validate kubesphere endpoint, %v", err))
 		return
 	}
 
-	err = h.validateMemberClusterConfiguration(cluster.Spec.Connection.KubeConfig)
-	if err != nil {
+	if err = h.validateMemberClusterConfiguration(clientSet); err != nil {
 		api.HandleBadRequest(response, request, fmt.Errorf("failed to validate member cluster configuration, err: %v", err))
 	}
 
@@ -361,8 +383,8 @@ func (h *handler) validateCluster(request *restful.Request, response *restful.Re
 }
 
 // validateKubeConfig takes base64 encoded kubeconfig and check its validity
-func (h *handler) validateKubeConfig(kubeconfig []byte) error {
-	config, err := k8sutil.LoadKubeConfigFromBytes(kubeconfig)
+func (h *handler) validateKubeConfig(clusterName string, clientSet kubernetes.Interface) error {
+	kubeSystem, err := clientSet.CoreV1().Namespaces().Get(context.TODO(), metav1.NamespaceSystem, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -372,60 +394,30 @@ func (h *handler) validateKubeConfig(kubeconfig []byte) error {
 		return err
 	}
 
-	// clusters with the exactly same KubernetesAPIEndpoint considered to be one
+	// clusters with the exactly same kube-system namespace UID considered to be one
 	// MUST not import the same cluster twice
-	for _, cluster := range clusters {
-		if len(cluster.Spec.Connection.KubernetesAPIEndpoint) != 0 && cluster.Spec.Connection.KubernetesAPIEndpoint == config.Host {
-			return fmt.Errorf("existing cluster %s with the exacty same server address, MUST not import the same cluster twice", cluster.Name)
+	for _, existedCluster := range clusters {
+		if existedCluster.Status.UID == kubeSystem.UID {
+			return fmt.Errorf("cluster %s already exists (%s), MUST not import the same cluster twice", clusterName, existedCluster.Name)
 		}
 	}
 
-	config.Timeout = defaultTimeout
-
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
 	_, err = clientSet.Discovery().ServerVersion()
-
 	return err
 }
 
 // validateKubeSphereAPIServer uses version api to check the accessibility
-// If kubesphere apiserver endpoint is not provided, use kube-apiserver proxy instead
-func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version.Info, error) {
-	if len(ksEndpoint) == 0 && len(kubeconfig) == 0 {
-		return nil, fmt.Errorf("neither kubesphere api endpoint nor kubeconfig was provided")
+func validateKubeSphereAPIServer(config *rest.Config) (*version.Info, error) {
+	transport, err := rest.TransportFor(config)
+	if err != nil {
+		return nil, err
 	}
-
 	client := http.Client{
-		Timeout: defaultTimeout,
+		Timeout:   defaultTimeout,
+		Transport: transport,
 	}
 
-	path := fmt.Sprintf("%s/kapis/version", ksEndpoint)
-
-	if len(ksEndpoint) != 0 {
-		_, err := url.Parse(ksEndpoint)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		config, err := k8sutil.LoadKubeConfigFromBytes(kubeconfig)
-		if err != nil {
-			return nil, err
-		}
-
-		transport, err := rest.TransportFor(config)
-		if err != nil {
-			return nil, err
-		}
-
-		client.Transport = transport
-		path = fmt.Sprintf("%s/api/v1/namespaces/%s/services/:%s:/proxy/kapis/version", config.Host, KubesphereNamespace, KubeSphereApiServer)
-	}
-
-	response, err := client.Get(path)
+	response, err := client.Get(fmt.Sprintf("%s/api/v1/namespaces/%s/services/:%s:/proxy/kapis/version", config.Host, constants.KubeSphereNamespace, KubeSphereApiServer))
 	if err != nil {
 		return nil, err
 	}
@@ -436,13 +428,13 @@ func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBytes))
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, KubesphereNamespace, responseBody)
+		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, constants.KubeSphereNamespace, responseBody)
 	}
 
 	ver := version.Info{}
 	err = json.NewDecoder(response.Body).Decode(&ver)
 	if err != nil {
-		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, KubesphereNamespace, responseBody)
+		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, constants.KubeSphereNamespace, responseBody)
 	}
 
 	return &ver, nil
@@ -450,13 +442,13 @@ func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version
 
 // validateMemberClusterConfiguration compares host and member cluster jwt, if they are not same, it changes member
 // cluster jwt to host's, then restart member cluster ks-apiserver.
-func (h *handler) validateMemberClusterConfiguration(memberKubeconfig []byte) error {
+func (h *handler) validateMemberClusterConfiguration(clientSet kubernetes.Interface) error {
 	hConfig, err := h.getHostClusterConfig()
 	if err != nil {
 		return err
 	}
 
-	mConfig, err := h.getMemberClusterConfig(memberKubeconfig)
+	mConfig, err := h.getMemberClusterConfig(clientSet)
 	if err != nil {
 		return err
 	}
@@ -469,50 +461,21 @@ func (h *handler) validateMemberClusterConfiguration(memberKubeconfig []byte) er
 }
 
 // getMemberClusterConfig returns KubeSphere running config by the given member cluster kubeconfig
-func (h *handler) getMemberClusterConfig(kubeconfig []byte) (*config.Config, error) {
-	config, err := k8sutil.LoadKubeConfigFromBytes(kubeconfig)
+func (h *handler) getMemberClusterConfig(clientSet kubernetes.Interface) (*config.Config, error) {
+	memberCm, err := clientSet.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Get(context.Background(), constants.KubeSphereConfigName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	config.Timeout = defaultTimeout
-
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	memberCm, err := clientSet.CoreV1().ConfigMaps(KubesphereNamespace).Get(context.Background(), KubeSphereConfigName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return getConfigFromCm(memberCm)
+	return config.GetFromConfigMap(memberCm)
 }
 
 // getHostClusterConfig returns KubeSphere running config from host cluster ConfigMap
 func (h *handler) getHostClusterConfig() (*config.Config, error) {
-	hostCm, err := h.configMapLister.ConfigMaps(KubesphereNamespace).Get(KubeSphereConfigName)
+	hostCm, err := h.configMapLister.ConfigMaps(constants.KubeSphereNamespace).Get(constants.KubeSphereConfigName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get host cluster %s/configmap/%s, err: %s", KubesphereNamespace, KubeSphereConfigName, err)
+		return nil, fmt.Errorf("failed to get host cluster %s/configmap/%s, err: %s", constants.KubeSphereNamespace, constants.KubeSphereConfigName, err)
 	}
 
-	return getConfigFromCm(hostCm)
-}
-
-// getConfigFromCm returns KubeSphere ruuning config by the given ConfigMap.
-func getConfigFromCm(cm *corev1.ConfigMap) (*config.Config, error) {
-	Config := config.New()
-
-	value, ok := cm.Data["kubesphere.yaml"]
-	if !ok {
-		return nil, fmt.Errorf("failed to get %s/configmap/%s kubesphere.yaml value", KubesphereNamespace, KubeSphereConfigName)
-	}
-
-	err := yaml.Unmarshal([]byte(value), Config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal value from %s/configmap/%s. err: %s", KubesphereNamespace, KubeSphereConfigName, err)
-	}
-
-	return Config, nil
+	return config.GetFromConfigMap(hostCm)
 }

@@ -28,7 +28,7 @@ import (
 )
 
 type Options struct {
-	Mode string `json:"mode"  yaml:"mode"`
+	Mode string `json:"mode" yaml:"mode"`
 }
 
 func NewOptions() *Options {

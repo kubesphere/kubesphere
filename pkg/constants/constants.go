@@ -31,6 +31,8 @@ const (
 	IngressControllerNamespace    = KubeSphereControlNamespace
 	AdminUserName                 = "admin"
 	IngressControllerPrefix       = "kubesphere-router-"
+	KubeSphereConfigName          = "kubesphere-config"
+	KubeSphereConfigMapDataKey    = "kubesphere.yaml"
 
 	ClusterNameLabelKey               = "kubesphere.io/cluster"
 	NameLabelKey                      = "kubesphere.io/name"

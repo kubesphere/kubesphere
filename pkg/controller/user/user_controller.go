@@ -231,7 +231,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	r.Recorder.Event(user, corev1.EventTypeNormal, successSynced, messageResourceSynced)
 
 	// block user for AuthenticateRateLimiterDuration duration, after that put it back to the queue to unblock
-	if user.Status.State != nil && *user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
+	if user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
 		return ctrl.Result{Requeue: true, RequeueAfter: r.AuthenticationOptions.AuthenticateRateLimiterDuration}, nil
 	}
 
@@ -454,13 +454,17 @@ func (r *Reconciler) deleteLoginRecords(ctx context.Context, user *iamv1alpha2.U
 
 // syncUserStatus Update the user status
 func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User) error {
+	// skip status sync if the user is disabled
+	if user.Status.State == iamv1alpha2.UserDisabled {
+		return nil
+	}
+
 	if user.Spec.EncryptedPassword == "" {
 		if user.Labels[iamv1alpha2.IdentifyProviderLabel] != "" {
 			// mapped user from other identity provider always active until disabled
-			if user.Status.State == nil || *user.Status.State != iamv1alpha2.UserActive {
-				active := iamv1alpha2.UserActive
+			if user.Status.State != iamv1alpha2.UserActive {
 				user.Status = iamv1alpha2.UserStatus{
-					State:              &active,
+					State:              iamv1alpha2.UserActive,
 					LastTransitionTime: &metav1.Time{Time: time.Now()},
 				}
 				err := r.Update(ctx, user, &client.UpdateOptions{})
@@ -469,11 +473,10 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 				}
 			}
 		} else {
-			// becomes disabled after setting a blank password
-			if user.Status.State == nil || *user.Status.State != iamv1alpha2.UserDisabled {
-				disabled := iamv1alpha2.UserDisabled
+			// empty password is not allowed for normal user
+			if user.Status.State != iamv1alpha2.UserDisabled {
 				user.Status = iamv1alpha2.UserStatus{
-					State:              &disabled,
+					State:              iamv1alpha2.UserDisabled,
 					LastTransitionTime: &metav1.Time{Time: time.Now()},
 				}
 				err := r.Update(ctx, user, &client.UpdateOptions{})
@@ -482,32 +485,29 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 				}
 			}
 		}
+		// skip auth limit check
 		return nil
 	}
 
 	// becomes active after password encrypted
-	if isEncrypted(user.Spec.EncryptedPassword) {
-		if user.Status.State == nil || *user.Status.State == iamv1alpha2.UserDisabled {
-			active := iamv1alpha2.UserActive
-			user.Status = iamv1alpha2.UserStatus{
-				State:              &active,
-				LastTransitionTime: &metav1.Time{Time: time.Now()},
-			}
-			err := r.Update(ctx, user, &client.UpdateOptions{})
-			if err != nil {
-				return err
-			}
+	if user.Status.State == "" && isEncrypted(user.Spec.EncryptedPassword) {
+		user.Status = iamv1alpha2.UserStatus{
+			State:              iamv1alpha2.UserActive,
+			LastTransitionTime: &metav1.Time{Time: time.Now()},
+		}
+		err := r.Update(ctx, user, &client.UpdateOptions{})
+		if err != nil {
+			return err
 		}
 	}
 
 	// blocked user, check if need to unblock user
-	if user.Status.State != nil && *user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
+	if user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
 		if user.Status.LastTransitionTime != nil &&
 			user.Status.LastTransitionTime.Add(r.AuthenticationOptions.AuthenticateRateLimiterDuration).Before(time.Now()) {
 			// unblock user
-			active := iamv1alpha2.UserActive
 			user.Status = iamv1alpha2.UserStatus{
-				State:              &active,
+				State:              iamv1alpha2.UserActive,
 				LastTransitionTime: &metav1.Time{Time: time.Now()},
 			}
 			err := r.Update(ctx, user, &client.UpdateOptions{})
@@ -538,9 +538,8 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 
 	// block user if failed login attempts exceeds maximum tries setting
 	if failedLoginAttempts >= r.AuthenticationOptions.AuthenticateRateLimiterMaxTries {
-		limitExceed := iamv1alpha2.UserAuthLimitExceeded
 		user.Status = iamv1alpha2.UserStatus{
-			State:              &limitExceed,
+			State:              iamv1alpha2.UserAuthLimitExceeded,
 			Reason:             fmt.Sprintf("Failed login attempts exceed %d in last %s", failedLoginAttempts, r.AuthenticationOptions.AuthenticateRateLimiterDuration),
 			LastTransitionTime: &metav1.Time{Time: time.Now()},
 		}

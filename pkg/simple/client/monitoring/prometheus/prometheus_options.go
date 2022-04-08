@@ -21,7 +21,7 @@ import (
 )
 
 type Options struct {
-	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint"`
+	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 }
 
 func NewPrometheusOptions() *Options {

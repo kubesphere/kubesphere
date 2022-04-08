@@ -72,6 +72,18 @@ func TestListVolumeSnapshotClass(t *testing.T) {
 	snapshotClass3.CreationTimestamp = v1.NewTime(snapshotClass1.CreationTimestamp.Add(time.Hour * 3))
 	snapshotClass3.DeletionPolicy = snapshotv1.VolumeSnapshotContentRetain
 
+	sc1Expected := snapshotClass1.DeepCopy()
+	sc1Expected.Annotations = make(map[string]string)
+	sc1Expected.Annotations["kubesphere.io/snapshot-count"] = "0"
+
+	sc2Expected := snapshotClass2.DeepCopy()
+	sc2Expected.Annotations = make(map[string]string)
+	sc2Expected.Annotations["kubesphere.io/snapshot-count"] = "0"
+
+	sc3Expected := snapshotClass3.DeepCopy()
+	sc3Expected.Annotations = make(map[string]string)
+	sc3Expected.Annotations["kubesphere.io/snapshot-count"] = "0"
+
 	volumeSnapshotClasses := []interface{}{snapshotClass1, snapshotClass2, snapshotClass3}
 
 	for _, s := range volumeSnapshotClasses {
@@ -86,7 +98,7 @@ func TestListVolumeSnapshotClass(t *testing.T) {
 			snapshotClassList, err := getter.List("", query1)
 			Expect(err).To(BeNil())
 			Expect(snapshotClassList.TotalItems).To(Equal(1))
-			Expect(snapshotClassList.Items[0]).To(Equal(snapshotClass1))
+			Expect(snapshotClassList.Items[0]).To(Equal(sc1Expected))
 		})
 
 		It("match driver", func() {
@@ -95,7 +107,7 @@ func TestListVolumeSnapshotClass(t *testing.T) {
 			snapshotClassList, err := getter.List("", query1)
 			Expect(err).To(BeNil())
 			Expect(snapshotClassList.TotalItems).To(Equal(1))
-			Expect(snapshotClassList.Items[0]).To(Equal(snapshotClass2))
+			Expect(snapshotClassList.Items[0]).To(Equal(sc2Expected))
 		})
 
 		It("match deletionPolicy", func() {
@@ -104,7 +116,7 @@ func TestListVolumeSnapshotClass(t *testing.T) {
 			snapshotClassList, err := getter.List("", query1)
 			Expect(err).To(BeNil())
 			Expect(snapshotClassList.TotalItems).To(Equal(1))
-			Expect(snapshotClassList.Items[0]).To(Equal(snapshotClass3))
+			Expect(snapshotClassList.Items[0]).To(Equal(sc3Expected))
 		})
 
 	})

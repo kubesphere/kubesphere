@@ -1073,6 +1073,63 @@
         }
       }
     },
+    "/kapis/gitops.kubesphere.io/v1alpha1/{path}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      }
+    },
     "/kapis/iam.kubesphere.io/v1alpha2/clustermembers": {
       "get": {
         "produces": [
@@ -12362,7 +12419,7 @@
           "Workspace"
         ],
         "summary": "List all workspaces that belongs to the current user",
-        "operationId": "ListWorkspaces",
+        "operationId": "ListWorkspaceTemplates",
         "responses": {
           "200": {
             "description": "ok",
@@ -12380,7 +12437,7 @@
           "Workspace"
         ],
         "summary": "Create workspace.",
-        "operationId": "CreateWorkspace",
+        "operationId": "CreateWorkspaceTemplate",
         "parameters": [
           {
             "name": "body",
@@ -12410,7 +12467,7 @@
           "Workspace"
         ],
         "summary": "Describe workspace.",
-        "operationId": "DescribeWorkspace",
+        "operationId": "DescribeWorkspaceTemplate",
         "parameters": [
           {
             "type": "string",
@@ -12437,7 +12494,7 @@
           "Workspace"
         ],
         "summary": "Update workspace.",
-        "operationId": "UpdateWorkspace",
+        "operationId": "UpdateWorkspaceTemplate",
         "parameters": [
           {
             "type": "string",
@@ -12472,7 +12529,7 @@
           "Workspace"
         ],
         "summary": "Delete workspace.",
-        "operationId": "DeleteWorkspace",
+        "operationId": "DeleteWorkspaceTemplate",
         "parameters": [
           {
             "type": "string",
@@ -12504,7 +12561,7 @@
           "Workspace"
         ],
         "summary": "Update workspace.",
-        "operationId": "PatchWorkspace",
+        "operationId": "PatchWorkspaceTemplate",
         "parameters": [
           {
             "type": "string",
@@ -13085,6 +13142,205 @@
             "description": "ok",
             "schema": {
               "$ref": "#/definitions/v1.Namespace"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/tenant.kubesphere.io/v1alpha3/workspaces": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "List all workspaces that belongs to the current user",
+        "operationId": "ListWorkspaces",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/models.PageableResponse"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/tenant.kubesphere.io/v1alpha3/workspacetemplates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "List all workspaces that belongs to the current user",
+        "operationId": "ListWorkspaceTemplates",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/models.PageableResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Create workspace.",
+        "operationId": "CreateWorkspaceTemplate",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/tenant.kubesphere.io/v1alpha3/workspacetemplates/{workspace}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Describe workspace.",
+        "operationId": "DescribeWorkspaceTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Update workspace.",
+        "operationId": "UpdateWorkspaceTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Delete workspace.",
+        "operationId": "DeleteWorkspaceTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/errors.Error"
+            }
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json",
+          "application/merge-patch+json",
+          "application/json-patch+json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Update workspace.",
+        "operationId": "PatchWorkspaceTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
             }
           }
         }
@@ -14024,14 +14280,14 @@
     },
     "metering.OpenPitrixStatistic": {
       "required": [
-        "net_bytes_transmitted",
-        "net_bytes_received",
         "pvc_bytes_total",
         "deployments",
         "statefulsets",
         "daemonsets",
         "cpu_usage",
-        "memory_usage_wo_cache"
+        "memory_usage_wo_cache",
+        "net_bytes_transmitted",
+        "net_bytes_received"
       ],
       "properties": {
         "cpu_usage": {
@@ -21081,10 +21337,10 @@
     },
     "v1alpha2.Node": {
       "required": [
-        "rank",
         "id",
-        "label",
         "labelMinor",
+        "label",
+        "rank",
         "controls"
       ],
       "properties": {
@@ -21192,10 +21448,10 @@
     },
     "v1alpha2.NodeSummary": {
       "required": [
-        "labelMinor",
         "rank",
         "id",
-        "label"
+        "label",
+        "labelMinor"
       ],
       "properties": {
         "adjacency": {

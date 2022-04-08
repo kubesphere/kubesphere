@@ -22,6 +22,10 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
+
+	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
@@ -55,6 +59,7 @@ type KubeSphereControllerManagerOptions struct {
 	MultiClusterOptions   *multicluster.Options
 	ServiceMeshOptions    *servicemesh.Options
 	GatewayOptions        *gateway.Options
+	MonitoringOptions     *prometheus.Options
 	LeaderElect           bool
 	LeaderElection        *leaderelection.LeaderElectionConfig
 	WebhookCertDir        string
@@ -216,4 +221,19 @@ func (s *KubeSphereControllerManagerOptions) bindLeaderElectionFlags(l *leaderel
 	fs.DurationVar(&l.RetryPeriod, "leader-elect-retry-period", l.RetryPeriod, ""+
 		"The duration the clients should wait between attempting acquisition and renewal "+
 		"of a leadership. This is only applicable if leader election is enabled.")
+}
+
+// MergeConfig merge new config without validation
+// When misconfigured, the app should just crash directly
+func (s *KubeSphereControllerManagerOptions) MergeConfig(cfg *controllerconfig.Config) {
+	s.KubernetesOptions = cfg.KubernetesOptions
+	s.DevopsOptions = cfg.DevopsOptions
+	s.S3Options = cfg.S3Options
+	s.AuthenticationOptions = cfg.AuthenticationOptions
+	s.LdapOptions = cfg.LdapOptions
+	s.OpenPitrixOptions = cfg.OpenPitrixOptions
+	s.NetworkOptions = cfg.NetworkOptions
+	s.MultiClusterOptions = cfg.MultiClusterOptions
+	s.ServiceMeshOptions = cfg.ServiceMeshOptions
+	s.GatewayOptions = cfg.GatewayOptions
 }
