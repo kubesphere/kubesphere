@@ -104,8 +104,67 @@ spec:
                   type: object
                 storageClassName:
                   type: string
+                workspaceSelector:
+                  properties:
+                    fieldSelector:
+                      items:
+                        properties:
+                          fieldExpressions:
+                            items:
+                              properties:
+                                field:
+                                  enum:
+                                    - Name
+                                    - Status
+                                  type: string
+                                operator:
+                                  enum:
+                                    - In
+                                    - NotIn
+                                  type: string
+                                values:
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                                - field
+                                - operator
+                                - values
+                              type: object
+                            type: array
+                        required:
+                          - fieldExpressions
+                        type: object
+                      type: array
+                    labelSelector:
+                      items:
+                        properties:
+                          matchExpressions:
+                            items:
+                              properties:
+                                key:
+                                  type: string
+                                operator:
+                                  enum:
+                                    - In
+                                    - NotIn
+                                  type: string
+                                values:
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                                - key
+                                - operator
+                                - values
+                              type: object
+                            type: array
+                        required:
+                          - matchExpressions
+                        type: object
+                      type: array
+                  type: object
               required:
-                - namespaceSelector
                 - storageClassName
               type: object
           type: object
