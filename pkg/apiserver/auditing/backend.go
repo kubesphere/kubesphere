@@ -36,7 +36,7 @@ const (
 	DefaultSendersNum    = 100
 	DefaultBatchSize     = 100
 	DefaultBatchInterval = time.Second * 3
-	WebhookURL           = "https://kube-auditing-webhook-svc.kubesphere-logging-system.svc:443/audit/webhook/event"
+	WebhookURL           = "https://kube-auditing-webhook-svc.kubesphere-logging-system.svc:6443/audit/webhook/event"
 )
 
 type Backend struct {
