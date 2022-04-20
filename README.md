@@ -139,7 +139,7 @@ kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3
 
 ```yaml
 # Download KubeKey
-curl -sfL https://get-kk.kubesphere.io | VERSION=v1.2.0 sh -
+curl -sfL https://get-kk.kubesphere.io | VERSION=v2.0.0 sh -
 # Make kk executable
 chmod +x kk
 # Create a cluster
