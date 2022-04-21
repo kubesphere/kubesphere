@@ -24,7 +24,7 @@ import (
 
 // GatewaySpec defines the desired state of Gateway
 type GatewaySpec struct {
-	Conroller  ControllerSpec `json:"controller,omitempty"`
+	Controller ControllerSpec `json:"controller,omitempty"`
 	Service    ServiceSpec    `json:"service,omitempty"`
 	Deployment DeploymentSpec `json:"deployment,omitempty"`
 }

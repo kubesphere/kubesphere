@@ -98,7 +98,7 @@ func (c *gatewayOperator) overideDefaultValue(gateway *v1alpha1.Gateway, namespa
 	// overide default name
 	gateway.Name = fmt.Sprint(gatewayPrefix, namespace)
 	if gateway.Name != globalGatewayname {
-		gateway.Spec.Conroller.Scope = v1alpha1.Scope{Enabled: true, Namespace: namespace}
+		gateway.Spec.Controller.Scope = v1alpha1.Scope{Enabled: true, Namespace: namespace}
 	}
 	gateway.Namespace = c.getWorkingNamespace(namespace)
 	return gateway
@@ -155,7 +155,7 @@ func (c *gatewayOperator) convert(namespace string, svc *corev1.Service, deploy 
 			Namespace: svc.Namespace,
 		},
 		Spec: v1alpha1.GatewaySpec{
-			Conroller: v1alpha1.ControllerSpec{
+			Controller: v1alpha1.ControllerSpec{
 				Scope: v1alpha1.Scope{
 					Enabled:   true,
 					Namespace: namespace,
@@ -336,7 +336,7 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 	cm := &corev1.ConfigMap{}
 	err := c.client.Get(context.TODO(), client.ObjectKey{Namespace: l.Namespace, Name: fmt.Sprintf("%s-nginx", l.Name)}, cm)
 	if err == nil {
-		l.Spec.Conroller.Config = cm.Data
+		l.Spec.Controller.Config = cm.Data
 		defer func() {
 			c.client.Delete(context.TODO(), cm)
 		}()
@@ -459,7 +459,7 @@ func (c *gatewayOperator) filter(object runtime.Object, filter query.Filter) boo
 		namesapce = svc.Labels["project"]
 		objMeta = svc.ObjectMeta
 	} else {
-		namesapce = gateway.Spec.Conroller.Scope.Namespace
+		namesapce = gateway.Spec.Controller.Scope.Namespace
 		objMeta = gateway.ObjectMeta
 	}
 
