@@ -28,6 +28,7 @@ import (
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	devopsv1alpha1 "kubesphere.io/api/devops/v1alpha1"
 	v1alpha3 "kubesphere.io/api/devops/v1alpha3"
+	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
 	v1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
 	v2beta1 "kubesphere.io/api/notification/v2beta1"
@@ -102,6 +103,20 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha3().DevOpsProjects().Informer()}, nil
 	case v1alpha3.SchemeGroupVersion.WithResource("pipelines"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha3().Pipelines().Informer()}, nil
+
+		// Group=extensions.kubesphere.io, Version=v1alpha1
+	case extensionsv1alpha1.SchemeGroupVersion.WithResource("apiservices"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Extensions().V1alpha1().APIServices().Informer()}, nil
+	case extensionsv1alpha1.SchemeGroupVersion.WithResource("categories"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Extensions().V1alpha1().Categories().Informer()}, nil
+	case extensionsv1alpha1.SchemeGroupVersion.WithResource("jsbundles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Extensions().V1alpha1().JSBundles().Informer()}, nil
+	case extensionsv1alpha1.SchemeGroupVersion.WithResource("repositories"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Extensions().V1alpha1().Repositories().Informer()}, nil
+	case extensionsv1alpha1.SchemeGroupVersion.WithResource("reverseproxies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Extensions().V1alpha1().ReverseProxies().Informer()}, nil
+	case extensionsv1alpha1.SchemeGroupVersion.WithResource("subscriptions"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Extensions().V1alpha1().Subscriptions().Informer()}, nil
 
 		// Group=iam.kubesphere.io, Version=v1alpha2
 	case v1alpha2.SchemeGroupVersion.WithResource("globalroles"):
