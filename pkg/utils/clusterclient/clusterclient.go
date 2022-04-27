@@ -17,7 +17,6 @@ limitations under the License.
 package clusterclient
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"sync"
@@ -31,10 +30,7 @@ import (
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
-)
-
-var (
-	ClusterNotExistsFormat = "cluster %s not exists"
+	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 )
 
 type innerCluster struct {
@@ -45,8 +41,7 @@ type innerCluster struct {
 
 type clusterClients struct {
 	sync.RWMutex
-	clusterMap        map[string]*clusterv1alpha1.Cluster
-	clusterKubeconfig map[string]string
+	clusterLister clusterlister.ClusterLister
 
 	// build a in memory cluster cache to speed things up
 	innerClusters map[string]*innerCluster
@@ -60,48 +55,16 @@ type ClusterClients interface {
 	GetInnerCluster(string) *innerCluster
 }
 
-func (c *clusterClients) IsClusterReady(cluster *clusterv1alpha1.Cluster) bool {
-	for _, condition := range cluster.Status.Conditions {
-		if condition.Type == clusterv1alpha1.ClusterReady && condition.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-
-func (c *clusterClients) IsHostCluster(cluster *clusterv1alpha1.Cluster) bool {
-	if _, ok := cluster.Labels[clusterv1alpha1.HostCluster]; ok {
-		return true
-	}
-	return false
-}
-
-func (c *clusterClients) GetInnerCluster(name string) *innerCluster {
-	c.RLock()
-	defer c.RUnlock()
-	if cluster, ok := c.innerClusters[name]; ok {
-		return cluster
-	}
-	return nil
-}
-
-var c *clusterClients
-var lock sync.Mutex
+var (
+	once sync.Once
+	c    *clusterClients
+)
 
 func NewClusterClient(clusterInformer clusterinformer.ClusterInformer) ClusterClients {
-
-	if c == nil {
-		lock.Lock()
-		defer lock.Unlock()
-
-		if c != nil {
-			return c
-		}
-
+	once.Do(func() {
 		c = &clusterClients{
-			clusterMap:        map[string]*clusterv1alpha1.Cluster{},
-			clusterKubeconfig: map[string]string{},
-			innerClusters:     make(map[string]*innerCluster),
+			innerClusters: make(map[string]*innerCluster),
+			clusterLister: clusterInformer.Lister(),
 		}
 
 		clusterInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -109,15 +72,18 @@ func NewClusterClient(clusterInformer clusterinformer.ClusterInformer) ClusterCl
 				c.addCluster(obj)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				c.removeCluster(oldObj)
+				newCluster := newObj.(*clusterv1alpha1.Cluster)
+				oldCluster := oldObj.(*clusterv1alpha1.Cluster)
+				if newCluster.ResourceVersion == oldCluster.ResourceVersion {
+					return
+				}
 				c.addCluster(newObj)
 			},
 			DeleteFunc: func(obj interface{}) {
 				c.removeCluster(obj)
 			},
 		})
-	}
-
+	})
 	return c
 }
 
@@ -125,11 +91,7 @@ func (c *clusterClients) removeCluster(obj interface{}) {
 	cluster := obj.(*clusterv1alpha1.Cluster)
 	klog.V(4).Infof("remove cluster %s", cluster.Name)
 	c.Lock()
-	if _, ok := c.clusterMap[cluster.Name]; ok {
-		delete(c.clusterMap, cluster.Name)
-		delete(c.innerClusters, cluster.Name)
-		delete(c.clusterKubeconfig, cluster.Name)
-	}
+	delete(c.innerClusters, cluster.Name)
 	c.Unlock()
 }
 
@@ -172,39 +134,58 @@ func newInnerCluster(cluster *clusterv1alpha1.Cluster) *innerCluster {
 	}
 }
 
-func (c *clusterClients) addCluster(obj interface{}) {
+func (c *clusterClients) addCluster(obj interface{}) *innerCluster {
 	cluster := obj.(*clusterv1alpha1.Cluster)
 	klog.V(4).Infof("add new cluster %s", cluster.Name)
 	_, err := url.Parse(cluster.Spec.Connection.KubernetesAPIEndpoint)
 	if err != nil {
 		klog.Errorf("Parse kubernetes apiserver endpoint %s failed, %v", cluster.Spec.Connection.KubernetesAPIEndpoint, err)
-		return
+		return nil
 	}
 
-	innerCluster := newInnerCluster(cluster)
+	inner := newInnerCluster(cluster)
 	c.Lock()
-	c.clusterMap[cluster.Name] = cluster
-	c.clusterKubeconfig[cluster.Name] = string(cluster.Spec.Connection.KubeConfig)
-	c.innerClusters[cluster.Name] = innerCluster
+	c.innerClusters[cluster.Name] = inner
 	c.Unlock()
-}
-
-func (c *clusterClients) GetClusterKubeconfig(clusterName string) (string, error) {
-	c.RLock()
-	defer c.RUnlock()
-	if c, exists := c.clusterKubeconfig[clusterName]; exists {
-		return c, nil
-	} else {
-		return "", fmt.Errorf(ClusterNotExistsFormat, clusterName)
-	}
+	return inner
 }
 
 func (c *clusterClients) Get(clusterName string) (*clusterv1alpha1.Cluster, error) {
+	return c.clusterLister.Get(clusterName)
+}
+
+func (c *clusterClients) GetClusterKubeconfig(clusterName string) (string, error) {
+	cluster, err := c.clusterLister.Get(clusterName)
+	if err != nil {
+		return "", err
+	}
+	return string(cluster.Spec.Connection.KubeConfig), nil
+}
+
+func (c *clusterClients) GetInnerCluster(name string) *innerCluster {
 	c.RLock()
 	defer c.RUnlock()
-	if cluster, exists := c.clusterMap[clusterName]; exists {
-		return cluster, nil
-	} else {
-		return nil, fmt.Errorf(ClusterNotExistsFormat, clusterName)
+	if inner, ok := c.innerClusters[name]; ok {
+		return inner
+	} else if cluster, err := c.clusterLister.Get(name); err == nil {
+		// double check if the cluster exists but is not cached
+		return c.addCluster(cluster)
 	}
+	return nil
+}
+
+func (c *clusterClients) IsClusterReady(cluster *clusterv1alpha1.Cluster) bool {
+	for _, condition := range cluster.Status.Conditions {
+		if condition.Type == clusterv1alpha1.ClusterReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *clusterClients) IsHostCluster(cluster *clusterv1alpha1.Cluster) bool {
+	if _, ok := cluster.Labels[clusterv1alpha1.HostCluster]; ok {
+		return true
+	}
+	return false
 }
