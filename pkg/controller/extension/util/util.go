@@ -1,10 +1,15 @@
 package util
 
 import (
+	"fmt"
 	"github.com/Masterminds/semver/v3"
 	"k8s.io/klog"
 	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
 )
+
+func GeneratePodName(repoName string) string {
+	return fmt.Sprintf("%s-%s", "catalog", repoName)
+}
 
 func GetRecommendedPluginVersion(versions []extensionsv1alpha1.PluginVersion, k8sVersion string) *extensionsv1alpha1.PluginVersion {
 	if len(versions) == 0 {

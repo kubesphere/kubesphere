@@ -15,7 +15,3 @@ limitations under the License.
 */
 
 package extension
-
-const (
-	RepoPodPrefix = "catalog"
-)

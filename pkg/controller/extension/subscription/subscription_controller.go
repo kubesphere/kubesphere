@@ -25,7 +25,7 @@ import (
 	"kubesphere.io/api/application/v1alpha1"
 	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/controller/extension"
+	"kubesphere.io/kubesphere/pkg/controller/extension/util"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmwrapper"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -88,7 +88,7 @@ func (r *SubscriptionReconciler) loadChartData(ctx context.Context, pluginRef *e
 		return "", err
 	}
 	po := &corev1.Pod{}
-	podName := fmt.Sprintf("%s-%s", extension.RepoPodPrefix, repo.Name)
+	podName := util.GeneratePodName(repo.Name)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: podName}, po); err != nil {
 		return "", err
 	}
@@ -130,6 +130,7 @@ func (r *SubscriptionReconciler) reconcile(ctx context.Context, sub *extensionsv
 		// TODO: Upgrade the release.
 	}
 
+	// TODO: Add more conditions
 	sub.Status.State = "installed"
 	if err := r.Update(ctx, sub); err != nil {
 		return sub, ctrl.Result{}, err
