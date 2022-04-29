@@ -26,7 +26,7 @@ RUN mv /tmp/${TARGETOS}-${TARGETARCH}/helm ${OUTDIR}/usr/local/bin/
 
 # install kustomize
 ADD https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_${TARGETOS}_${TARGETARCH}.tar.gz /tmp
-RUN tar xvzf /tmp/kustomize_${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz -C /tmp
+RUN tar xvzf /tmp/kustomize_${KUSTOMIZE_VERSION}_${TARGETOS}_${TARGETARCH}.tar.gz -C /tmp
 RUN mv /tmp/kustomize ${OUTDIR}/usr/local/bin/
 
 
