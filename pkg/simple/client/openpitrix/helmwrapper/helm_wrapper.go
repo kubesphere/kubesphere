@@ -18,24 +18,23 @@ package helmwrapper
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/chart/loader"
 
-	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/tools/clientcmd"
 
-	yaml "gopkg.in/yaml.v3"
+	"helm.sh/helm/v3/pkg/chartutil"
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	"k8s.io/klog"
 	kpath "k8s.io/utils/path"
-	"sigs.k8s.io/kustomize/api/types"
 
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
@@ -48,18 +47,9 @@ const (
 var (
 	ErrorTimedOutToWaitResource = errors.New("timed out waiting for resources to be ready")
 
-	UninstallNotFoundFormat = "Error: uninstall: Release not loaded: %s: release: not found"
-	StatusNotFoundFormat    = "Error: release: not found"
+	UninstallNotFoundFormat = "uninstall: Release not loaded: %s: release: not found"
+	StatusNotFoundFormat    = "release: not found"
 	releaseExists           = "release exists"
-
-	kustomizationFile  = "kustomization.yaml"
-	postRenderExecFile = "helm-post-render.sh"
-	// kustomize cannot read stdio now, so we save helm stdout to file, then kustomize reads that file and build the resources
-	kustomizeBuild = `#!/bin/sh
-# save helm stdout to file, then kustomize read this file
-cat > ./.local-helm-output.yaml
-kustomize build
-`
 )
 
 type HelmRes struct {
@@ -89,23 +79,7 @@ func (c *helmWrapper) IsReleaseReady(waitTime time.Duration) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	var client *kube.Client
-	if c.Kubeconfig == "" {
-		client = kube.New(nil)
-	} else {
-		// kube.New() needs kubeconfig.
-		err := c.ensureWorkspace()
-		if err != nil {
-			return false, err
-		}
-		defer c.cleanup()
-		helmSettings := cli.New()
-		helmSettings.KubeConfig = c.kubeConfigPath()
-		client = kube.New(helmSettings.RESTClientGetter())
-	}
-
-	client.Namespace = c.Namespace
+	client := c.helmConf.KubeClient
 	resources, err := client.Build(bytes.NewBufferString(manifest), true)
 
 	err = client.Wait(resources, waitTime)
@@ -121,56 +95,22 @@ func (c *helmWrapper) IsReleaseReady(waitTime time.Duration) (bool, error) {
 	return false, err
 }
 
-func (c *helmWrapper) Status() (status *helmrelease.Release, err error) {
-	if err = c.ensureWorkspace(); err != nil {
+func (c *helmWrapper) Status() (*helmrelease.Release, error) {
+	helmStatus := action.NewStatus(c.helmConf)
+
+	release, err := helmStatus.Run(c.ReleaseName)
+	if err != nil {
+		if err.Error() == StatusNotFoundFormat {
+			klog.V(2).Infof("namespace: %s, name: %s, run command failed, error: %v", c.Namespace, c.ReleaseName, err)
+			return nil, err
+		}
+		klog.Errorf("namespace: %s, name: %s, run command failed, error: %v", c.Namespace, c.ReleaseName, err)
 		return nil, err
 	}
-	defer c.cleanup()
 
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	cmd := exec.Cmd{
-		Path: c.cmdPath,
-		Dir:  c.Workspace(),
-		Args: []string{
-			c.cmdPath,
-			"status",
-			fmt.Sprintf("%s", c.ReleaseName),
-			"--namespace",
-			c.Namespace,
-			"--output",
-			"json",
-		},
-		Stderr: stderr,
-		Stdout: stdout,
-	}
-
-	if c.kubeConfigPath() != "" {
-		cmd.Args = append(cmd.Args, "--kubeconfig", c.kubeConfigPath())
-	}
-
-	err = cmd.Run()
-
-	if err != nil {
-		helmErr := strings.TrimSpace(stderr.String())
-		if helmErr == StatusNotFoundFormat {
-			klog.V(2).Infof("namespace: %s, name: %s, run command failed, stderr: %s, error: %v", c.Namespace, c.ReleaseName, stderr, err)
-			return nil, errors.New(helmErr)
-		}
-		klog.Errorf("namespace: %s, name: %s, run command failed, stderr: %s, error: %v", c.Namespace, c.ReleaseName, stderr, err)
-		return
-	} else {
-		klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
-		klog.V(8).Infof("namespace: %s, name: %s, run command success, stdout: %s", c.Namespace, c.ReleaseName, stdout)
-	}
-
-	status = &helmrelease.Release{}
-	err = json.Unmarshal(stdout.Bytes(), status)
-	if err != nil {
-		klog.Errorf("namespace: %s, name: %s, json unmarshal failed, error: %s", c.Namespace, c.ReleaseName, err)
-	}
-
-	return
+	klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
+	klog.V(8).Infof("namespace: %s, name: %s, run command success, release: %v", c.Namespace, c.ReleaseName, release)
+	return release, nil
 }
 
 func (c *helmWrapper) Workspace() string {
@@ -189,24 +129,18 @@ type helmWrapper struct {
 	ReleaseName string
 	ChartName   string
 
+	// helm action Config
+	helmConf *action.Configuration
+
 	// add labels to helm chart
 	labels map[string]string
 	// add annotations to helm chart
 	annotations map[string]string
 
-	// helm cmd path
-	cmdPath         string
 	base            string
 	workspaceSuffix string
 	dryRun          bool
 	mock            bool
-}
-
-func (c *helmWrapper) kubeConfigPath() string {
-	if len(c.Kubeconfig) == 0 {
-		return ""
-	}
-	return filepath.Join(c.Workspace(), "kube.config")
 }
 
 // The dir where chart saved
@@ -258,58 +192,45 @@ func SetMock(mock bool) Option {
 	}
 }
 
+func NewInClusterRESTClientGetter(kubeconfig string, namespace string) genericclioptions.RESTClientGetter {
+	flags := genericclioptions.NewConfigFlags(true)
+	if kubeconfig != "" {
+		//cfg, _ := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		cfg, _ := clientcmd.RESTConfigFromKubeConfig([]byte(kubeconfig))
+		flags = genericclioptions.NewConfigFlags(false)
+		flags.APIServer = &cfg.Host
+		flags.BearerToken = &cfg.BearerToken
+		flags.CAFile = &cfg.CAFile
+		flags.WithDiscoveryBurst(cfg.Burst)
+		//flags.WithDiscoveryQPS(cfg.QPS)
+		if sa := cfg.Impersonate.UserName; sa != "" {
+			flags.Impersonate = &sa
+		}
+	}
+
+	flags.Namespace = &namespace
+	return flags
+}
+
 func NewHelmWrapper(kubeconfig, ns, rls string, options ...Option) *helmWrapper {
 	c := &helmWrapper{
 		Kubeconfig:      kubeconfig,
 		Namespace:       ns,
 		ReleaseName:     rls,
 		base:            workspaceBase,
-		cmdPath:         helmPath,
 		workspaceSuffix: idutils.GetUuid36(""),
 	}
+
+	klog.V(8).Infof("namespace: %s, name: %s, release: %s, kubeconfig:%s", c.Namespace, c.ReleaseName, rls, kubeconfig)
+	getter := NewInClusterRESTClientGetter(kubeconfig, ns)
+	c.helmConf = new(action.Configuration)
+	c.helmConf.Init(getter, ns, "", klog.Infof)
 
 	for _, option := range options {
 		option(c)
 	}
 
 	return c
-}
-
-func (c *helmWrapper) setupPostRenderEnvironment() error {
-	if len(c.labels) == 0 && len(c.annotations) == 0 {
-		return nil
-	}
-
-	// build the executable file
-	postRender, err := os.OpenFile(filepath.Join(c.Workspace(), postRenderExecFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-	if err != nil {
-		return err
-	}
-	_, err = postRender.WriteString(kustomizeBuild)
-	if err != nil {
-		return err
-	}
-	postRender.Close()
-
-	// create kustomization.yaml
-	kustomization, err := os.OpenFile(filepath.Join(c.Workspace(), kustomizationFile), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
-
-	kustomizationConfig := types.Kustomization{
-		Resources:         []string{"./.local-helm-output.yaml"},
-		CommonAnnotations: c.annotations,                    // add extra annotations to output
-		Labels:            []types.Label{{Pairs: c.labels}}, // Labels to add to all objects but not selectors.
-	}
-
-	err = yaml.NewEncoder(kustomization).Encode(kustomizationConfig)
-	if err != nil {
-		return err
-	}
-	kustomization.Close()
-
-	return nil
 }
 
 // ensureWorkspace check whether workspace exists or not.
@@ -330,18 +251,6 @@ func (c *helmWrapper) ensureWorkspace() error {
 	if err != nil {
 		klog.Errorf("mkdir %s failed, error: %s", c.chartDir(), err)
 		return err
-	}
-
-	if len(c.Kubeconfig) > 0 {
-		kubeFile, err := os.OpenFile(c.kubeConfigPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-		if err != nil {
-			return err
-		}
-		_, err = kubeFile.WriteString(c.Kubeconfig)
-		if err != nil {
-			return err
-		}
-		kubeFile.Close()
 	}
 
 	return nil
@@ -382,76 +291,41 @@ func (c *helmWrapper) createChart(chartName, chartData, values string) error {
 }
 
 // helm uninstall
-func (c *helmWrapper) Uninstall() (err error) {
+func (c *helmWrapper) Uninstall() error {
 	start := time.Now()
 	defer func() {
 		klog.V(2).Infof("run command end, namespace: %s, name: %s elapsed: %v", c.Namespace, c.ReleaseName, time.Now().Sub(start))
 	}()
 
-	if err = c.ensureWorkspace(); err != nil {
-		return
-	}
-	defer c.cleanup()
-
-	stderr := &bytes.Buffer{}
-	stdout := &bytes.Buffer{}
-	cmd := exec.Cmd{
-		Path:   c.cmdPath,
-		Dir:    c.Workspace(),
-		Stdout: stdout,
-		Stderr: stderr,
-	}
-
-	cmd.Args = make([]string, 0, 10)
-
-	// only for mock
-	if c.mock {
-		cmd.Path = os.Args[0]
-		cmd.Args = []string{os.Args[0], "-test.run=TestHelperProcess", "--"}
-		cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
-	}
-
-	cmd.Args = append(cmd.Args, c.cmdPath,
-		"uninstall",
-		c.ReleaseName,
-		"--namespace",
-		c.Namespace)
-
+	uninstall := action.NewUninstall(c.helmConf)
 	if c.dryRun {
-		cmd.Args = append(cmd.Args, "--dry-run")
+		uninstall.DryRun = true
 	}
 
-	if c.kubeConfigPath() != "" {
-		cmd.Args = append(cmd.Args, "--kubeconfig", c.kubeConfigPath())
-	}
-
-	klog.V(4).Infof("run command: %s", cmd.String())
-	err = cmd.Run()
-
+	_, err := uninstall.Run(c.ReleaseName)
 	if err != nil {
-		eMsg := strings.TrimSpace(stderr.String())
 		// release does not exist. It's ok.
-		if fmt.Sprintf(UninstallNotFoundFormat, c.ReleaseName) == eMsg {
+		if fmt.Sprintf(UninstallNotFoundFormat, c.ReleaseName) == err.Error() {
 			return nil
 		}
-		klog.Errorf("run command failed, stderr: %s, error: %v", eMsg, err)
-		return errors.New("%s", eMsg)
+		klog.Errorf("run command failed, error: %v", err)
+		return err
 	} else {
 		klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
 	}
 
-	return
+	return nil
 }
 
 // helm upgrade
-func (c *helmWrapper) Upgrade(chartName, chartData, values string) (err error) {
+func (c *helmWrapper) Upgrade(chartName, chartData, values string) error {
 	sts, err := c.Status()
 	if err != nil {
 		return err
 	}
 
 	if sts.Info.Status == "deployed" {
-		return c.install(chartName, chartData, values, true)
+		return c.writeAction(chartName, chartData, values, true)
 	} else {
 		err = errors.New("cannot upgrade release %s/%s, current state is %s", c.Namespace, c.ReleaseName, sts.Info.Status)
 		return err
@@ -459,7 +333,7 @@ func (c *helmWrapper) Upgrade(chartName, chartData, values string) (err error) {
 }
 
 // helm install
-func (c *helmWrapper) Install(chartName, chartData, values string) (err error) {
+func (c *helmWrapper) Install(chartName, chartData, values string) error {
 	sts, err := c.Status()
 	if err == nil {
 		// helm release has been installed
@@ -470,142 +344,107 @@ func (c *helmWrapper) Install(chartName, chartData, values string) (err error) {
 	} else {
 		if err.Error() == StatusNotFoundFormat {
 			// continue to install
-			return c.install(chartName, chartData, values, false)
+			return c.writeAction(chartName, chartData, values, false)
 		}
 		return err
 	}
 }
 
-func (c *helmWrapper) install(chartName, chartData, values string, upgrade bool) (err error) {
+func (c *helmWrapper) mockRelease() (*helmrelease.Release, error) {
+	return helmrelease.Mock(&helmrelease.MockReleaseOptions{Name: c.ReleaseName, Namespace: c.Namespace}), nil
+}
+
+func (c *helmWrapper) helmUpgrade(chart *chart.Chart, values map[string]interface{}) (*helmrelease.Release, error) {
+	upgrade := action.NewUpgrade(c.helmConf)
+	upgrade.Namespace = c.Namespace
+
+	if c.dryRun || klog.V(8) == true {
+		upgrade.DryRun = true
+	}
+	if len(c.labels) > 0 || len(c.annotations) > 0 {
+		postRenderer := newPostRendererKustomize(c.labels, c.annotations)
+		upgrade.PostRenderer = postRenderer
+	}
+
+	return upgrade.Run(c.ReleaseName, chart, values)
+}
+
+func (c *helmWrapper) helmInstall(chart *chart.Chart, values map[string]interface{}) (*helmrelease.Release, error) {
+	install := action.NewInstall(c.helmConf)
+	install.ReleaseName = c.ReleaseName
+	install.Namespace = c.Namespace
+
+	if c.dryRun || klog.V(8) == true {
+		install.DryRun = true
+	}
+	if len(c.labels) > 0 || len(c.annotations) > 0 {
+		postRenderer := newPostRendererKustomize(c.labels, c.annotations)
+		install.PostRenderer = postRenderer
+	}
+
+	return install.Run(chart, values)
+}
+
+func (c *helmWrapper) writeAction(chartName, chartData, values string, upgrade bool) error {
 	if klog.V(2) {
 		start := time.Now()
 		defer func() {
-			klog.V(2).Infof("run command end, namespace: %s, name: %s elapsed: %v", c.Namespace, c.ReleaseName, time.Now().Sub(start))
+			klog.V(2).Infof("run command end, namespace: %s, name: %s, upgrade: %t, elapsed: %v", c.Namespace, c.ReleaseName, upgrade, time.Now().Sub(start))
 		}()
 	}
 
-	if err = c.ensureWorkspace(); err != nil {
-		return
+	if err := c.ensureWorkspace(); err != nil {
+		return err
 	}
 	defer c.cleanup()
 
-	err = c.setupPostRenderEnvironment()
-	if err != nil {
-		return
-	}
-
-	if err = c.createChart(chartName, chartData, values); err != nil {
-		return
+	if err := c.createChart(chartName, chartData, values); err != nil {
+		return err
 	}
 	klog.V(8).Infof("namespace: %s, name: %s, chart values: %s", c.Namespace, c.ReleaseName, values)
 
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-
-	cmd := exec.Cmd{
-		Path:   c.cmdPath,
-		Dir:    c.Workspace(),
-		Stdout: stdout,
-		Stderr: stderr,
+	chartRequested, err := loader.Load(c.chartPath())
+	if err != nil {
+		return err
+	}
+	valuePath := filepath.Join(c.Workspace(), "values.yaml")
+	helmValues, err := chartutil.ReadValuesFile(valuePath)
+	if err != nil {
+		return err
 	}
 
-	cmd.Args = make([]string, 0, 10)
-
-	// only for mock
+	var rel *helmrelease.Release
 	if c.mock {
-		cmd.Path = os.Args[0]
-		cmd.Args = []string{os.Args[0], "-test.run=TestHelperProcess", "--"}
-		cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
-	}
-
-	cmd.Args = append(cmd.Args, c.cmdPath)
-	if upgrade {
-		cmd.Args = append(cmd.Args, "upgrade")
+		rel, err = c.mockRelease()
 	} else {
-		cmd.Args = append(cmd.Args, "install")
+		if upgrade {
+			rel, err = c.helmUpgrade(chartRequested, helmValues.AsMap())
+		} else {
+			rel, err = c.helmInstall(chartRequested, helmValues.AsMap())
+		}
 	}
-
-	cmd.Args = append(cmd.Args, c.ReleaseName, c.chartPath(), "--namespace", c.Namespace)
-
-	if len(values) > 0 {
-		cmd.Args = append(cmd.Args, "--values", filepath.Join(c.Workspace(), "values.yaml"))
-	}
-
-	if c.dryRun {
-		cmd.Args = append(cmd.Args, "--dry-run")
-	}
-
-	if c.kubeConfigPath() != "" {
-		cmd.Args = append(cmd.Args, "--kubeconfig", c.kubeConfigPath())
-	}
-
-	// Post render, add annotations or labels to resources
-	if len(c.labels) > 0 || len(c.annotations) > 0 {
-		cmd.Args = append(cmd.Args, "--post-renderer", filepath.Join(c.Workspace(), postRenderExecFile))
-	}
-
-	if klog.V(8) {
-		// output debug info
-		cmd.Args = append(cmd.Args, "--debug")
-	}
-
-	klog.V(4).Infof("run command: %s", cmd.String())
-	err = cmd.Run()
 
 	if err != nil {
-		klog.Errorf("namespace: %s, name: %s, run command: %s failed, stderr: %s, error: %v", c.Namespace, c.ReleaseName, cmd.String(), stderr, err)
-		// return the error of helm install
-		return errors.New("%s", stderr.String())
-	} else {
-		klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
-		klog.V(8).Infof("namespace: %s, name: %s, run command success, stdout: %s", c.Namespace, c.ReleaseName, stdout)
+		klog.Errorf("namespace: %s, name: %s,  error: %v", c.Namespace, c.ReleaseName, err)
+		return err
 	}
 
-	return
+	klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
+	klog.V(8).Infof("namespace: %s, name: %s, run command success, release: %v", c.Namespace, c.ReleaseName, rel)
+
+	return nil
 }
 
-func (c *helmWrapper) Manifest() (manifest string, err error) {
-	if err = c.ensureWorkspace(); err != nil {
-		return "", err
-	}
-	defer c.cleanup()
+func (c *helmWrapper) Manifest() (string, error) {
+	get := action.NewGet(c.helmConf)
 
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	cmd := exec.Cmd{
-		Path: c.cmdPath,
-		Dir:  c.Workspace(),
-		Args: []string{
-			c.cmdPath,
-			"get",
-			"manifest",
-			c.ReleaseName,
-			"--namespace",
-			c.Namespace,
-		},
-		Stderr: stderr,
-		Stdout: stdout,
-	}
-
-	if c.kubeConfigPath() != "" {
-		cmd.Args = append(cmd.Args, "--kubeconfig", c.kubeConfigPath())
-	}
-
-	if klog.V(8) {
-		// output debug info
-		cmd.Args = append(cmd.Args, "--debug")
-	}
-
-	klog.V(4).Infof("run command: %s", cmd.String())
-	err = cmd.Run()
+	rel, err := get.Run(c.ReleaseName)
 
 	if err != nil {
-		klog.Errorf("namespace: %s, name: %s, run command failed, stderr: %s, error: %v", c.Namespace, c.ReleaseName, stderr, err)
+		klog.Errorf("namespace: %s, name: %s, run command failed, error: %v", c.Namespace, c.ReleaseName, err)
 		return "", err
-	} else {
-		klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
-		klog.V(8).Infof("namespace: %s, name: %s, run command success, stdout: %s", c.Namespace, c.ReleaseName, stdout)
 	}
-
-	return stdout.String(), nil
+	klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
+	klog.V(8).Infof("namespace: %s, name: %s, run command success, mainfest: %s", c.Namespace, c.ReleaseName, rel.Manifest)
+	return rel.Manifest, nil
 }
