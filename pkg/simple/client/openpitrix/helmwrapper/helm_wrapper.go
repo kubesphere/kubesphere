@@ -445,6 +445,6 @@ func (c *helmWrapper) Manifest() (string, error) {
 		return "", err
 	}
 	klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
-	klog.V(8).Infof("namespace: %s, name: %s, run command success, mainfest: %s", c.Namespace, c.ReleaseName, rel.Manifest)
+	klog.V(8).Infof("namespace: %s, name: %s, run command success, manifest: %s", c.Namespace, c.ReleaseName, rel.Manifest)
 	return rel.Manifest, nil
 }
