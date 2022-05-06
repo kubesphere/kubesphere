@@ -126,10 +126,10 @@ func createUserWithWait(f framework.KubeSphereFramework, c client.Client, userna
 			framework.Failf("Cannot retrieve User %q: %v", username, err)
 			return false, err
 		}
-		if u == nil || u.Status.State == nil {
+		if u == nil || u.Status.State == "" {
 			return false, nil
 		}
-		return *u.Status.State == v1alpha2.UserActive, nil
+		return u.Status.State == v1alpha2.UserActive, nil
 	})
 
 	if err != nil {
