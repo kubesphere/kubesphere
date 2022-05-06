@@ -98,7 +98,7 @@ func (c *helmWrapper) IsReleaseReady(waitTime time.Duration) (bool, error) {
 func (c *helmWrapper) Status() (*helmrelease.Release, error) {
 	helmStatus := action.NewStatus(c.helmConf)
 
-	release, err := helmStatus.Run(c.ReleaseName)
+	rel, err := helmStatus.Run(c.ReleaseName)
 	if err != nil {
 		if err.Error() == StatusNotFoundFormat {
 			klog.V(2).Infof("namespace: %s, name: %s, run command failed, error: %v", c.Namespace, c.ReleaseName, err)
@@ -109,8 +109,8 @@ func (c *helmWrapper) Status() (*helmrelease.Release, error) {
 	}
 
 	klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
-	klog.V(8).Infof("namespace: %s, name: %s, run command success, release: %v", c.Namespace, c.ReleaseName, release)
-	return release, nil
+	klog.V(8).Infof("namespace: %s, name: %s, run command success, manifest: %s", c.Namespace, c.ReleaseName, rel.Manifest)
+	return rel, nil
 }
 
 func (c *helmWrapper) Workspace() string {
@@ -195,14 +195,12 @@ func SetMock(mock bool) Option {
 func NewInClusterRESTClientGetter(kubeconfig string, namespace string) genericclioptions.RESTClientGetter {
 	flags := genericclioptions.NewConfigFlags(true)
 	if kubeconfig != "" {
-		//cfg, _ := clientcmd.BuildConfigFromFlags("", kubeconfig)
 		cfg, _ := clientcmd.RESTConfigFromKubeConfig([]byte(kubeconfig))
 		flags = genericclioptions.NewConfigFlags(false)
 		flags.APIServer = &cfg.Host
 		flags.BearerToken = &cfg.BearerToken
 		flags.CAFile = &cfg.CAFile
 		flags.WithDiscoveryBurst(cfg.Burst)
-		//flags.WithDiscoveryQPS(cfg.QPS)
 		if sa := cfg.Impersonate.UserName; sa != "" {
 			flags.Impersonate = &sa
 		}
@@ -358,7 +356,7 @@ func (c *helmWrapper) helmUpgrade(chart *chart.Chart, values map[string]interfac
 	upgrade := action.NewUpgrade(c.helmConf)
 	upgrade.Namespace = c.Namespace
 
-	if c.dryRun || klog.V(8) == true {
+	if c.dryRun {
 		upgrade.DryRun = true
 	}
 	if len(c.labels) > 0 || len(c.annotations) > 0 {
@@ -374,7 +372,7 @@ func (c *helmWrapper) helmInstall(chart *chart.Chart, values map[string]interfac
 	install.ReleaseName = c.ReleaseName
 	install.Namespace = c.Namespace
 
-	if c.dryRun || klog.V(8) == true {
+	if c.dryRun {
 		install.DryRun = true
 	}
 	if len(c.labels) > 0 || len(c.annotations) > 0 {
@@ -430,8 +428,7 @@ func (c *helmWrapper) writeAction(chartName, chartData, values string, upgrade b
 	}
 
 	klog.V(2).Infof("namespace: %s, name: %s, run command success", c.Namespace, c.ReleaseName)
-	klog.V(8).Infof("namespace: %s, name: %s, run command success, release: %v", c.Namespace, c.ReleaseName, rel)
-
+	klog.V(8).Infof("namespace: %s, name: %s, run command success, manifest: %s", c.Namespace, c.ReleaseName, rel.Manifest)
 	return nil
 }
 
