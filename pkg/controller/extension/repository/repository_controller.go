@@ -105,7 +105,7 @@ func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1
 		// Create the pod
 		pod = &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-%s", RepoPodPrefix, repo.Name),
+				Name:      podName,
 				Namespace: constants.KubeSphereNamespace,
 				Labels:    map[string]string{},
 			},
@@ -141,7 +141,7 @@ func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1
 			repoCopy.Status.State = RepoStateUpdating
 		} else {
 			if pod.Status.Phase == corev1.PodRunning {
-				if _, err := r.syncPlugins(ctx, repo, pod); err != nil {
+				if err := r.syncPlugins(ctx, repo, pod); err != nil {
 					return ctrl.Result{}, err
 				}
 				repoCopy.Status.State = RepoStateReady
@@ -152,7 +152,7 @@ func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1
 	}
 
 	if !reflect.DeepEqual(repo, repoCopy) {
-		return ctrl.Result{}, r.Update(ctx, repo)
+		return ctrl.Result{}, r.Update(ctx, repoCopy)
 	} else {
 		duration := DefaultInterval
 		if repo.Spec.UpdateStrategy.Interval != nil {
@@ -163,14 +163,14 @@ func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1
 }
 
 // syncPlugins fetch the index.yaml from pod and create plugins that belong to the repo.
-func (r *RepositoryReconciler) syncPlugins(ctx context.Context, repo *extensionsv1alpha1.Repository, pod *corev1.Pod) (ctrl.Result, error) {
+func (r *RepositoryReconciler) syncPlugins(ctx context.Context, repo *extensionsv1alpha1.Repository, pod *corev1.Pod) error {
 	newCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	index, err := helmrepoindex.LoadRepoIndex(newCtx, fmt.Sprintf("http://%s:8080", pod.Status.PodIP), &v1alpha1.HelmRepoCredential{})
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	} else {
-		return ctrl.Result{}, r.createPlugins(ctx, index, repo)
+		return r.createPlugins(ctx, index, repo)
 	}
 }
 
@@ -259,9 +259,10 @@ func (r *RepositoryReconciler) createPlugins(ctx context.Context, index *helmrep
 		pluginVersions := make([]extensionsv1alpha1.PluginVersion, 0, len(versions))
 		for _, version := range versions {
 			if version.Metadata == nil {
-				klog.Warning("version metadata is emtpy")
+				klog.Warning("version metadata is empty")
 				continue
 			}
+			klog.V(2).Infof("find version %s", version.Name)
 			maintainers := make([]extensionsv1alpha1.Maintainer, 0, len(version.Maintainers))
 			for _, m := range version.Maintainers {
 				maintainers = append(maintainers, extensionsv1alpha1.Maintainer{Name: m.Name, Email: m.Email, URL: m.URL})
