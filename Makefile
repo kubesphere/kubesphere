@@ -159,3 +159,6 @@ clientset:  ;$(info $(M)...Begin to find or download controller-gen.)  @ ## Find
 # Fix invalid file's license.
 update-licenses: ;$(info $(M)...Begin to update licenses.)
 	@hack/update-licenses.sh
+
+golint:
+	@hack/verify-golangci-lint.sh
