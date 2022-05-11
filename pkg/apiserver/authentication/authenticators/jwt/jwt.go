@@ -60,15 +60,19 @@ func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string
 		}, true, nil
 	}
 
-	u, err := t.userLister.Get(verified.User.GetName())
+	userInfo, err := t.userLister.Get(verified.User.GetName())
 	if err != nil {
 		return nil, false, err
 	}
 
+	// AuthLimitExceeded state should be ignored
+	if userInfo.Status.State == iamv1alpha2.UserDisabled {
+		return nil, false, auth.AccountIsNotActiveError
+	}
 	return &authenticator.Response{
 		User: &user.DefaultInfo{
-			Name:   u.GetName(),
-			Groups: append(u.Spec.Groups, user.AllAuthenticated),
+			Name:   userInfo.GetName(),
+			Groups: append(userInfo.Spec.Groups, user.AllAuthenticated),
 		},
 	}, true, nil
 }
