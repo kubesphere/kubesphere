@@ -530,7 +530,9 @@ func (r *Reconciler) syncUserStatus(ctx context.Context, user *iamv1alpha2.User)
 	now := time.Now()
 	failedLoginAttempts := 0
 	for _, loginRecord := range records.Items {
+		afterStateTransition := user.Status.LastTransitionTime == nil || loginRecord.CreationTimestamp.After(user.Status.LastTransitionTime.Time)
 		if !loginRecord.Spec.Success &&
+			afterStateTransition &&
 			loginRecord.CreationTimestamp.Add(r.AuthenticationOptions.AuthenticateRateLimiterDuration).After(now) {
 			failedLoginAttempts++
 		}
