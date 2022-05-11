@@ -53,6 +53,11 @@ func Test_oauthAuthenticator_Authenticate(t *testing.T) {
 								"email":    "user1@kubesphere.io",
 								"username": "user1",
 							},
+							"code2": map[string]string{
+								"uid":      "100002",
+								"email":    "user2@kubesphere.io",
+								"username": "user2",
+							},
 						},
 					},
 				},
@@ -67,8 +72,14 @@ func Test_oauthAuthenticator_Authenticate(t *testing.T) {
 
 	ksClient := fakeks.NewSimpleClientset()
 	ksInformerFactory := ksinformers.NewSharedInformerFactory(ksClient, 0)
-	err := ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newUser("user1", "100001", "fake"))
-	if err != nil {
+
+	if err := ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newUser("user1", "100001", "fake")); err != nil {
+		t.Fatal(err)
+	}
+
+	blockedUser := newUser("user2", "100002", "fake")
+	blockedUser.Status = iamv1alpha2.UserStatus{State: iamv1alpha2.UserDisabled}
+	if err := ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(blockedUser); err != nil {
 		t.Fatal(err)
 	}
 
@@ -102,6 +113,22 @@ func Test_oauthAuthenticator_Authenticate(t *testing.T) {
 			},
 			provider: "fake",
 			wantErr:  false,
+		},
+		{
+			name: "Blocked user test",
+			oauthAuthenticator: NewOAuthAuthenticator(
+				nil,
+				ksInformerFactory.Iam().V1alpha2().Users().Lister(),
+				oauthOptions,
+			),
+			args: args{
+				ctx:      context.Background(),
+				provider: "fake",
+				req:      must(http.NewRequest(http.MethodGet, "https://ks-console.kubesphere.io/oauth/callback/test?code=code2&state=100002", nil)),
+			},
+			userInfo: nil,
+			provider: "",
+			wantErr:  true,
 		},
 		{
 			name: "Should successfully",

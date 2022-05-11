@@ -91,6 +91,10 @@ func (o *oauthAuthenticator) Authenticate(_ context.Context, provider string, re
 	}
 
 	if user != nil {
+		if user.Status.State == iamv1alpha2.UserDisabled {
+			// state not active
+			return nil, "", AccountIsNotActiveError
+		}
 		return &authuser.DefaultInfo{Name: user.GetName()}, providerOptions.Name, nil
 	}
 
