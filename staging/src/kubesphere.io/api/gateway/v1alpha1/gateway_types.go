@@ -31,7 +31,7 @@ type GatewaySpec struct {
 
 type ControllerSpec struct {
 	// +optional
-	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+	Replicas *int32 `json:"replicas,omitempty"`
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +optional
@@ -49,9 +49,11 @@ type ServiceSpec struct {
 
 type DeploymentSpec struct {
 	// +optional
-	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+	Replicas *int32 `json:"replicas,omitempty"`
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
+	// +optional
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type Scope struct {

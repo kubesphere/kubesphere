@@ -7,7 +7,7 @@
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 GV="network:v1alpha1 servicemesh:v1alpha2 tenant:v1alpha1 tenant:v1alpha2 devops:v1alpha1 iam:v1alpha2 devops:v1alpha3 cluster:v1alpha1 storage:v1alpha1 auditing:v1alpha1 types:v1beta1 quota:v1alpha2 application:v1alpha1 notification:v2beta1 gateway:v1alpha1"
-MANIFESTS="application/* cluster/* iam/* network/v1alpha1 quota/* storage/* tenant/*"
+MANIFESTS="application/* cluster/* iam/* network/v1alpha1 quota/* storage/* tenant/* gateway/*"
 
 # App Version
 APP_VERSION = v3.2.0
