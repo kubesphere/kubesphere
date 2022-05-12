@@ -537,7 +537,13 @@ func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicem
 			}
 			if len(strategyTempSpec.Tcp) > 0 && !servicemesh.SupportHttpProtocol(port.Name) {
 				for _, tcp := range strategyTempSpec.Tcp {
-					tcp.Match = []*apinetworkingv1alpha3.L4MatchAttributes{{Port: uint32(port.Port)}}
+					if len(tcp.Match) == 0 {
+						tcp.Match = []*apinetworkingv1alpha3.L4MatchAttributes{{Port: uint32(port.Port)}}
+					} else {
+						for _, match := range tcp.Match {
+							match.Port = uint32(port.Port)
+						}
+					}
 					for _, r := range tcp.Route {
 						r.Destination.Port = &apinetworkingv1alpha3.PortSelector{Number: uint32(port.Port)}
 					}
