@@ -437,6 +437,9 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 	authenticated, provider, err := h.passwordAuthenticator.Authenticate(req.Request.Context(), username, password)
 	if err != nil {
 		switch err {
+		case auth.AccountIsNotActiveError:
+			response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
+			return
 		case auth.IncorrectPasswordError:
 			requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
 			if err := h.loginRecorder.RecordLogin(username, iamv1alpha2.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, err); err != nil {
