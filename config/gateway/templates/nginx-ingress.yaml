@@ -192,13 +192,7 @@ spec:
     # ref: https://github.com/kubernetes/ingress-nginx/issues/4735#issuecomment-551204903
     # Ideally, there should be no limits.
     # https://engineering.indeedblog.com/blog/2019/12/cpu-throttling-regression-fix/
-    resources:
-    #  limits:
-    #    cpu: 100m
-    #    memory: 90Mi
-      requests:
-        cpu: 100m
-        memory: 90Mi
+    resources: {{ toYaml .Values.deployment.resources |  nindent 6 }}
 
     # Mutually exclusive with keda autoscaling
     autoscaling:
