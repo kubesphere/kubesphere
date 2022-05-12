@@ -406,7 +406,12 @@ func waitForCacheSync(discoveryClient discovery.DiscoveryInterface, sharedInform
 		}
 	}
 	sharedInformerFactory.Start(stopCh)
-	sharedInformerFactory.WaitForCacheSync(stopCh)
+	syncMap := sharedInformerFactory.WaitForCacheSync(stopCh)
+	for informType, synced := range syncMap {
+		if !synced {
+			return fmt.Errorf("resouce %s cache sync failed", informType.String())
+		}
+	}
 	return nil
 }
 
