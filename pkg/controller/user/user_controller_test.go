@@ -68,9 +68,11 @@ func TestDoNothing(t *testing.T) {
 	for i := 0; i < authenticateOptions.AuthenticateRateLimiterMaxTries+1; i++ {
 		loginRecord := iamv1alpha2.LoginRecord{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              fmt.Sprintf("%s-%d", user.Name, i),
-				Labels:            map[string]string{iamv1alpha2.UserReferenceLabel: user.Name},
-				CreationTimestamp: metav1.Now(),
+				Name:   fmt.Sprintf("%s-%d", user.Name, i),
+				Labels: map[string]string{iamv1alpha2.UserReferenceLabel: user.Name},
+				// Ensure that the failed login record created after the user status change to active,
+				// otherwise, the failed login attempts will not be counted.
+				CreationTimestamp: metav1.NewTime(time.Now().Add(time.Minute)),
 			},
 			Spec: iamv1alpha2.LoginRecordSpec{
 				Success: false,
