@@ -19,6 +19,7 @@ package clusterclient
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -72,12 +73,11 @@ func NewClusterClient(clusterInformer clusterinformer.ClusterInformer) ClusterCl
 				c.addCluster(obj)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				newCluster := newObj.(*clusterv1alpha1.Cluster)
 				oldCluster := oldObj.(*clusterv1alpha1.Cluster)
-				if newCluster.ResourceVersion == oldCluster.ResourceVersion {
-					return
+				newCluster := newObj.(*clusterv1alpha1.Cluster)
+				if !reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) {
+					c.addCluster(newObj)
 				}
-				c.addCluster(newObj)
 			},
 			DeleteFunc: func(obj interface{}) {
 				c.removeCluster(obj)
