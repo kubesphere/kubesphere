@@ -73,7 +73,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		if err := r.SetupWithManager(mgr); err != nil {
 			return err
 		}
-		klog.Info("configured watch", "gvk", w.GroupVersionKind, "chartPath", w.ChartPath, "maxConcurrentReconciles", maxConcurrentReconciles, "reconcilePeriod", reconcilePeriod)
+		klog.Infoln("configured watch", "gvk", w.GroupVersionKind, "chartPath", w.ChartPath, "maxConcurrentReconciles", maxConcurrentReconciles, "reconcilePeriod", reconcilePeriod)
 	}
 	return nil
 }
