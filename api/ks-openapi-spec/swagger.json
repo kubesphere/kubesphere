@@ -13167,6 +13167,35 @@
         }
       }
     },
+    "/kapis/tenant.kubesphere.io/v1alpha3/workspaces/{workspace}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Get workspace.",
+        "operationId": "GetWorkspace",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1.Workspace"
+            }
+          }
+        }
+      }
+    },
     "/kapis/tenant.kubesphere.io/v1alpha3/workspacetemplates": {
       "get": {
         "produces": [
@@ -14280,14 +14309,14 @@
     },
     "metering.OpenPitrixStatistic": {
       "required": [
+        "memory_usage_wo_cache",
+        "net_bytes_transmitted",
+        "net_bytes_received",
         "pvc_bytes_total",
         "deployments",
         "statefulsets",
         "daemonsets",
-        "cpu_usage",
-        "memory_usage_wo_cache",
-        "net_bytes_transmitted",
-        "net_bytes_received"
+        "cpu_usage"
       ],
       "properties": {
         "cpu_usage": {
@@ -20810,6 +20839,27 @@
         }
       }
     },
+    "v1alpha1.Workspace": {
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/v1alpha1.WorkspaceSpec"
+        },
+        "status": {
+          "$ref": "#/definitions/v1alpha1.WorkspaceStatus"
+        }
+      }
+    },
     "v1alpha1.WorkspaceSpec": {
       "properties": {
         "manager": {
@@ -20820,6 +20870,7 @@
         }
       }
     },
+    "v1alpha1.WorkspaceStatus": {},
     "v1alpha2.APIResponse": {
       "properties": {
         "histogram": {
@@ -21337,8 +21388,8 @@
     },
     "v1alpha2.Node": {
       "required": [
-        "id",
         "labelMinor",
+        "id",
         "label",
         "rank",
         "controls"
@@ -21448,10 +21499,10 @@
     },
     "v1alpha2.NodeSummary": {
       "required": [
-        "rank",
         "id",
         "label",
-        "labelMinor"
+        "labelMinor",
+        "rank"
       ],
       "properties": {
         "adjacency": {

@@ -72,6 +72,7 @@ const orphanFinalizer = "orphan.finalizers.kubesphere.io"
 
 type Interface interface {
 	ListWorkspaces(user user.Info, queryParam *query.Query) (*api.ListResult, error)
+	GetWorkspace(workspace string) (*tenantv1alpha1.Workspace, error)
 	ListWorkspaceTemplates(user user.Info, query *query.Query) (*api.ListResult, error)
 	CreateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
 	DeleteWorkspaceTemplate(workspace string, opts metav1.DeleteOptions) error
@@ -194,6 +195,15 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 	})
 
 	return result, nil
+}
+
+func (t *tenantOperator) GetWorkspace(workspace string) (*tenantv1alpha1.Workspace, error) {
+	obj, err := t.resourceGetter.Get(tenantv1alpha1.ResourcePluralWorkspace, "", workspace)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return obj.(*tenantv1alpha1.Workspace), nil
 }
 
 func (t *tenantOperator) ListWorkspaceTemplates(user user.Info, queryParam *query.Query) (*api.ListResult, error) {

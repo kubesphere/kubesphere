@@ -23,6 +23,7 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
@@ -113,6 +114,13 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		To(handler.ListWorkspaces).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Doc("List all workspaces that belongs to the current user").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceTag}))
+
+	ws.Route(ws.GET("/workspaces/{workspace}").
+		To(handler.GetWorkspace).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Returns(http.StatusOK, api.StatusOK, tenantv1alpha1.Workspace{}).
+		Doc("Get workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceTag}))
 
 	c.Add(ws)
