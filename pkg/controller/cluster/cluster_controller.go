@@ -43,7 +43,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -217,7 +216,6 @@ func (c *clusterController) Run(workers int, stopCh <-chan struct{}) error {
 		if err := c.probeClusters(); err != nil {
 			klog.Errorf("failed to reconcile cluster ready status, err: %v", err)
 		}
-
 	}, c.resyncPeriod, stopCh)
 
 	<-stopCh
@@ -293,64 +291,8 @@ func (c *clusterController) probeClusters() error {
 	}
 
 	for _, cluster := range clusters {
-		// if the cluster is not federated, we skip it and consider it not ready.
-		if !isConditionTrue(cluster, clusterv1alpha1.ClusterFederated) {
-			continue
-		}
-
-		if len(cluster.Spec.Connection.KubeConfig) == 0 {
-			continue
-		}
-
-		clientConfig, err := clientcmd.NewClientConfigFromBytes(cluster.Spec.Connection.KubeConfig)
-		if err != nil {
-			klog.Error(err)
-			continue
-		}
-
-		config, err := clientConfig.ClientConfig()
-		if err != nil {
-			klog.Error(err)
-			continue
-		}
-		config.Timeout = probeClusterTimeout
-
-		clientSet, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			klog.Error(err)
-			continue
-		}
-
-		condition := clusterv1alpha1.ClusterCondition{
-			Type:               clusterv1alpha1.ClusterReady,
-			Status:             v1.ConditionTrue,
-			LastUpdateTime:     metav1.Now(),
-			LastTransitionTime: metav1.Now(),
-			Reason:             string(clusterv1alpha1.ClusterReady),
-			Message:            "Cluster is available now",
-		}
-		if _, err = clientSet.Discovery().ServerVersion(); err != nil {
-			condition.Status = v1.ConditionFalse
-			condition.Reason = "failed to connect get kubernetes version"
-			condition.Message = "Cluster is not available now"
-		}
-
-		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			newCluster, err := c.clusterClient.Get(context.TODO(), cluster.Name, metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			c.updateClusterCondition(newCluster, condition)
-			_, err = c.clusterClient.Update(context.TODO(), newCluster, metav1.UpdateOptions{})
-			return err
-		})
-		if err != nil {
-			klog.Errorf("failed to update cluster %s status, err: %v", cluster.Name, err)
-		} else {
-			klog.V(4).Infof("successfully updated cluster %s to status %v", cluster.Name, condition)
-		}
+		c.syncCluster(cluster.Name)
 	}
-
 	return nil
 }
 
