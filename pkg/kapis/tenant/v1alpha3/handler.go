@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
@@ -77,4 +78,19 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 	}
 
 	resp.WriteEntity(result)
+}
+
+func (h *tenantHandler) GetWorkspace(request *restful.Request, response *restful.Response) {
+	workspace, err := h.tenant.GetWorkspace(request.PathParameter("workspace"))
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(workspace)
 }
