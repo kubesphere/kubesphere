@@ -28,8 +28,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"helm.sh/helm/v3/pkg/chartutil"
 	helmrelease "helm.sh/helm/v3/pkg/release"
@@ -192,24 +190,6 @@ func SetMock(mock bool) Option {
 	}
 }
 
-func NewInClusterRESTClientGetter(kubeconfig string, namespace string) genericclioptions.RESTClientGetter {
-	flags := genericclioptions.NewConfigFlags(true)
-	if kubeconfig != "" {
-		cfg, _ := clientcmd.RESTConfigFromKubeConfig([]byte(kubeconfig))
-		flags = genericclioptions.NewConfigFlags(false)
-		flags.APIServer = &cfg.Host
-		flags.BearerToken = &cfg.BearerToken
-		flags.CAFile = &cfg.CAFile
-		flags.WithDiscoveryBurst(cfg.Burst)
-		if sa := cfg.Impersonate.UserName; sa != "" {
-			flags.Impersonate = &sa
-		}
-	}
-
-	flags.Namespace = &namespace
-	return flags
-}
-
 func NewHelmWrapper(kubeconfig, ns, rls string, options ...Option) *helmWrapper {
 	c := &helmWrapper{
 		Kubeconfig:      kubeconfig,
@@ -220,7 +200,7 @@ func NewHelmWrapper(kubeconfig, ns, rls string, options ...Option) *helmWrapper 
 	}
 
 	klog.V(8).Infof("namespace: %s, name: %s, release: %s, kubeconfig:%s", c.Namespace, c.ReleaseName, rls, kubeconfig)
-	getter := NewInClusterRESTClientGetter(kubeconfig, ns)
+	getter := NewClusterRESTClientGetter(kubeconfig, ns)
 	c.helmConf = new(action.Configuration)
 	c.helmConf.Init(getter, ns, "", klog.Infof)
 
