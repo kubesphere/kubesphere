@@ -531,7 +531,6 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 			typesv1beta1.ResourcePluralFederatedConfigmap,
 			typesv1beta1.ResourcePluralFederatedStatefulSet,
 			typesv1beta1.ResourcePluralFederatedIngress,
-			typesv1beta1.ResourcePluralFederatedResourceQuota,
 			typesv1beta1.ResourcePluralFederatedPersistentVolumeClaim,
 			typesv1beta1.ResourcePluralFederatedApplication,
 		}

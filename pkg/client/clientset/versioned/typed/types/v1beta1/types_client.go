@@ -38,7 +38,6 @@ type TypesV1beta1Interface interface {
 	FederatedLimitRangesGetter
 	FederatedNamespacesGetter
 	FederatedPersistentVolumeClaimsGetter
-	FederatedResourceQuotasGetter
 	FederatedSecretsGetter
 	FederatedServicesGetter
 	FederatedStatefulSetsGetter
@@ -95,10 +94,6 @@ func (c *TypesV1beta1Client) FederatedNamespaces(namespace string) FederatedName
 
 func (c *TypesV1beta1Client) FederatedPersistentVolumeClaims(namespace string) FederatedPersistentVolumeClaimInterface {
 	return newFederatedPersistentVolumeClaims(c, namespace)
-}
-
-func (c *TypesV1beta1Client) FederatedResourceQuotas(namespace string) FederatedResourceQuotaInterface {
-	return newFederatedResourceQuotas(c, namespace)
 }
 
 func (c *TypesV1beta1Client) FederatedSecrets(namespace string) FederatedSecretInterface {

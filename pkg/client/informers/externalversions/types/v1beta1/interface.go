@@ -48,8 +48,6 @@ type Interface interface {
 	FederatedNamespaces() FederatedNamespaceInformer
 	// FederatedPersistentVolumeClaims returns a FederatedPersistentVolumeClaimInformer.
 	FederatedPersistentVolumeClaims() FederatedPersistentVolumeClaimInformer
-	// FederatedResourceQuotas returns a FederatedResourceQuotaInformer.
-	FederatedResourceQuotas() FederatedResourceQuotaInformer
 	// FederatedSecrets returns a FederatedSecretInformer.
 	FederatedSecrets() FederatedSecretInformer
 	// FederatedServices returns a FederatedServiceInformer.
@@ -127,11 +125,6 @@ func (v *version) FederatedNamespaces() FederatedNamespaceInformer {
 // FederatedPersistentVolumeClaims returns a FederatedPersistentVolumeClaimInformer.
 func (v *version) FederatedPersistentVolumeClaims() FederatedPersistentVolumeClaimInformer {
 	return &federatedPersistentVolumeClaimInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// FederatedResourceQuotas returns a FederatedResourceQuotaInformer.
-func (v *version) FederatedResourceQuotas() FederatedResourceQuotaInformer {
-	return &federatedResourceQuotaInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedSecrets returns a FederatedSecretInformer.

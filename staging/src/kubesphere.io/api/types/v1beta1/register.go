@@ -67,8 +67,6 @@ func init() {
 		&FederatedNotificationReceiverList{},
 		&FederatedPersistentVolumeClaim{},
 		&FederatedPersistentVolumeClaimList{},
-		&FederatedResourceQuota{},
-		&FederatedResourceQuotaList{},
 		&FederatedSecret{},
 		&FederatedSecretList{},
 		&FederatedService{},

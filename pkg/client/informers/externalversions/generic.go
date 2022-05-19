@@ -188,8 +188,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedNamespaces().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatedpersistentvolumeclaims"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedPersistentVolumeClaims().Informer()}, nil
-	case v1beta1.SchemeGroupVersion.WithResource("federatedresourcequotas"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedResourceQuotas().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatedsecrets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedSecrets().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatedservices"):

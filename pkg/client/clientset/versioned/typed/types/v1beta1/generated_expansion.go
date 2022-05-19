@@ -42,8 +42,6 @@ type FederatedNamespaceExpansion interface{}
 
 type FederatedPersistentVolumeClaimExpansion interface{}
 
-type FederatedResourceQuotaExpansion interface{}
-
 type FederatedSecretExpansion interface{}
 
 type FederatedServiceExpansion interface{}
