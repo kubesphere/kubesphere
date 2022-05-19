@@ -106,14 +106,6 @@ type FederatedPersistentVolumeClaimListerExpansion interface{}
 // FederatedPersistentVolumeClaimNamespaceLister.
 type FederatedPersistentVolumeClaimNamespaceListerExpansion interface{}
 
-// FederatedResourceQuotaListerExpansion allows custom methods to be added to
-// FederatedResourceQuotaLister.
-type FederatedResourceQuotaListerExpansion interface{}
-
-// FederatedResourceQuotaNamespaceListerExpansion allows custom methods to be added to
-// FederatedResourceQuotaNamespaceLister.
-type FederatedResourceQuotaNamespaceListerExpansion interface{}
-
 // FederatedSecretListerExpansion allows custom methods to be added to
 // FederatedSecretLister.
 type FederatedSecretListerExpansion interface{}
