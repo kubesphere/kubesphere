@@ -39,6 +39,11 @@ func TestClient_Get(t *testing.T) {
 	type args struct {
 		url string
 	}
+
+	simpleCache, err := cache.NewSimpleCache(nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	token, _ := json.Marshal(
 		&TokenResponse{
 			Username: "test",
@@ -93,7 +98,7 @@ func TestClient_Get(t *testing.T) {
 			name: "Token",
 			fields: fields{
 				Strategy: AuthStrategyToken,
-				cache:    cache.NewSimpleCache(),
+				cache:    simpleCache,
 				client: &MockClient{
 					tokenResult:   token,
 					requestResult: "fake",

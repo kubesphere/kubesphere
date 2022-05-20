@@ -72,7 +72,7 @@ func New(option *Options, stopCh <-chan struct{}) (Interface, error) {
 
 	cache, err := cacheFactories[option.Type].Create(option.Options, stopCh)
 	if err != nil {
-		klog.Errorf("failed to create cache", err)
+		klog.Errorf("failed to create cache, error: %v", err)
 		return nil, err
 	}
 	return cache, nil
