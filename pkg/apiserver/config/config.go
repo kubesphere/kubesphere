@@ -160,7 +160,7 @@ type Config struct {
 	ServiceMeshOptions    *servicemesh.Options    `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
 	NetworkOptions        *network.Options        `json:"network,omitempty" yaml:"network,omitempty" mapstructure:"network"`
 	LdapOptions           *ldap.Options           `json:"-,omitempty" yaml:"ldap,omitempty" mapstructure:"ldap"`
-	RedisOptions          *cache.Options          `json:"redis,omitempty" yaml:"redis,omitempty" mapstructure:"redis"`
+	CacheOptions          *cache.Options          `json:"cache,omitempty" yaml:"cache,omitempty" mapstructure:"cache"`
 	S3Options             *s3.Options             `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
 	OpenPitrixOptions     *openpitrix.Options     `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
 	MonitoringOptions     *prometheus.Options     `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
@@ -189,7 +189,7 @@ func New() *Config {
 		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
 		NetworkOptions:        network.NewNetworkOptions(),
 		LdapOptions:           ldap.NewOptions(),
-		RedisOptions:          cache.NewRedisOptions(),
+		CacheOptions:          cache.NewCacheOptions(),
 		S3Options:             s3.NewS3Options(),
 		OpenPitrixOptions:     openpitrix.NewOptions(),
 		MonitoringOptions:     prometheus.NewPrometheusOptions(),
@@ -292,8 +292,8 @@ func (conf *Config) ToMap() map[string]bool {
 // Remove invalid options before serializing to json or yaml
 func (conf *Config) stripEmptyOptions() {
 
-	if conf.RedisOptions != nil && conf.RedisOptions.Host == "" {
-		conf.RedisOptions = nil
+	if conf.CacheOptions != nil && conf.CacheOptions.Type == "" {
+		conf.CacheOptions = nil
 	}
 
 	if conf.DevopsOptions != nil && conf.DevopsOptions.Host == "" {

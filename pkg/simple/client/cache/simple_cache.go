@@ -21,6 +21,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
@@ -32,13 +35,57 @@ type simpleObject struct {
 	expiredAt   time.Time
 }
 
-// SimpleCache implements cache.Interface use memory objects, it should be used only for testing
-type simpleCache struct {
-	store map[string]simpleObject
+func (so *simpleObject) IsExpired() bool {
+	if so.neverExpire {
+		return false
+	}
+	if time.Now().After(so.expiredAt) {
+		return true
+	}
+	return false
 }
 
-func NewSimpleCache() Interface {
-	return &simpleCache{store: make(map[string]simpleObject)}
+type SimpleCacheOptions struct {
+	CleanupPeriod time.Duration `json:"cleanupPeriod" yaml:"cleanupPeriod" mapstructure:"cleanupperiod"`
+}
+
+// SimpleCache implements cache.Interface use memory objects, it should be used only for testing
+type simpleCache struct {
+	cleanupPeriod time.Duration
+	store         map[string]simpleObject
+}
+
+func NewSimpleCache(options *SimpleCacheOptions, stopCh <-chan struct{}) (Interface, error) {
+	if options == nil {
+		return &simpleCache{store: make(map[string]simpleObject)}, nil
+	}
+	cache := &simpleCache{
+		store:         make(map[string]simpleObject),
+		cleanupPeriod: options.CleanupPeriod,
+	}
+	go wait.Until(cache.cleanInvalidToken, options.CleanupPeriod, stopCh)
+
+	return cache, nil
+}
+
+func (s *simpleCache) sync(stopCh <-chan struct{}) {
+	ticker := time.NewTicker(s.cleanupPeriod)
+	for {
+		select {
+		case <-ticker.C:
+			s.cleanInvalidToken()
+		case <-stopCh:
+			return
+		}
+	}
+}
+
+func (s *simpleCache) cleanInvalidToken() {
+	for k, v := range s.store {
+		if v.IsExpired() {
+			delete(s.store, k)
+		}
+	}
 }
 
 func (s *simpleCache) Keys(pattern string) ([]string, error) {
@@ -120,4 +167,33 @@ func (s *simpleCache) Expire(key string, duration time.Duration) error {
 
 	s.store[key] = sobject
 	return nil
+}
+
+type simpleCacheFactory struct {
+}
+
+func (sf *simpleCacheFactory) Type() string {
+	return "simpleCache"
+}
+
+func (sf *simpleCacheFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
+	var sOptions SimpleCacheOptions
+
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		WeaklyTypedInput: true,
+		Result:           &sOptions,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := decoder.Decode(options); err != nil {
+		return nil, err
+	}
+
+	return NewSimpleCache(&sOptions, stopCh)
+}
+
+func init() {
+	RegisterCacheFactory(&simpleCacheFactory{})
 }
