@@ -17,10 +17,12 @@ limitations under the License.
 package cache
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/go-redis/redis"
+	"github.com/mitchellh/mapstructure"
 	"k8s.io/klog"
 )
 
@@ -28,7 +30,14 @@ type Client struct {
 	client *redis.Client
 }
 
-func NewRedisClient(option *Options, stopCh <-chan struct{}) (Interface, error) {
+type RedisOptions struct {
+	Host     string `json:"host" yaml:"host" mapstructure:"host"`
+	Port     int    `json:"port" yaml:"port" mapstructure:"port"`
+	Password string `json:"password" yaml:"password" mapstructure:"password"`
+	DB       int    `json:"db" yaml:"db" mapstructure:"db"`
+}
+
+func NewRedisClient(option *RedisOptions, stopCh <-chan struct{}) (Interface, error) {
 	var r Client
 
 	redisOptions := &redis.Options{
@@ -88,4 +97,32 @@ func (r *Client) Exists(keys ...string) (bool, error) {
 
 func (r *Client) Expire(key string, duration time.Duration) error {
 	return r.client.Expire(key, duration).Err()
+}
+
+type redisFactory struct{}
+
+func (rf *redisFactory) Type() string {
+	return "redis"
+}
+
+func (rf *redisFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
+	var rOptions RedisOptions
+	if err := mapstructure.Decode(options, &rOptions); err != nil {
+		return nil, err
+	}
+	if rOptions.Port == 0 {
+		return nil, errors.New("invalid service port number")
+	}
+	if len(rOptions.Host) == 0 {
+		return nil, errors.New("invalid service host")
+	}
+	client, err := NewRedisClient(&rOptions, stopCh)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func init() {
+	RegisterCacheFactory(&redisFactory{})
 }
