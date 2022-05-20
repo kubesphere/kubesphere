@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
@@ -39,6 +40,8 @@ import (
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/api/types/v1beta1"
+
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/api/auditing/v1alpha1"
@@ -53,6 +56,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/auditing"
 	"kubesphere.io/kubesphere/pkg/models/events"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/models/logging"
 	"kubesphere.io/kubesphere/pkg/models/metering"
 	"kubesphere.io/kubesphere/pkg/models/monitoring"
@@ -92,7 +96,7 @@ type Interface interface {
 	DeleteNamespace(workspace, namespace string) error
 	UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
-	ListClusters(info user.Info) (*api.ListResult, error)
+	ListClusters(info user.Info, queryParam *query.Query) (*api.ListResult, error)
 	Metering(user user.Info, queryParam *meteringv1alpha1.Query, priceInfo meteringclient.PriceInfo) (monitoring.Metrics, error)
 	MeteringHierarchy(user user.Info, queryParam *meteringv1alpha1.Query, priceInfo meteringclient.PriceInfo) (metering.ResourceStatistic, error)
 	CreateWorkspaceResourceQuota(workspace string, resourceQuota *quotav1alpha2.ResourceQuota) (*quotav1alpha2.ResourceQuota, error)
@@ -103,6 +107,7 @@ type Interface interface {
 
 type tenantOperator struct {
 	am             am.AccessManagementInterface
+	im             im.IdentityManagementInterface
 	authorizer     authorizer.Authorizer
 	k8sclient      kubernetes.Interface
 	ksclient       kubesphere.Interface
@@ -114,9 +119,10 @@ type tenantOperator struct {
 	opRelease      openpitrix.ReleaseInterface
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, opClient openpitrix.Interface) Interface {
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, im im.IdentityManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, opClient openpitrix.Interface) Interface {
 	return &tenantOperator{
 		am:             am,
+		im:             im,
 		authorizer:     authorizer,
 		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers, nil),
 		k8sclient:      k8sclient,
@@ -498,7 +504,7 @@ func (t *tenantOperator) ListWorkspaceClusters(workspaceName string) (*api.ListR
 		for _, cluster := range workspace.Spec.Placement.Clusters {
 			obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", cluster.Name)
 			if err != nil {
-				klog.Error(err)
+				klog.Warning(err)
 				if errors.IsNotFound(err) {
 					continue
 				}
@@ -527,89 +533,69 @@ func (t *tenantOperator) ListWorkspaceClusters(workspaceName string) (*api.ListR
 	return &api.ListResult{Items: []interface{}{}, TotalItems: 0}, nil
 }
 
-func (t *tenantOperator) ListClusters(user user.Info) (*api.ListResult, error) {
+func (t *tenantOperator) ListClusters(user user.Info, queryParam *query.Query) (*api.ListResult, error) {
 
 	listClustersInGlobalScope := authorizer.AttributesRecord{
 		User:            user,
 		Verb:            "list",
+		APIGroup:        "cluster.kubesphere.io",
 		Resource:        "clusters",
 		ResourceScope:   request.GlobalScope,
 		ResourceRequest: true,
 	}
 
 	allowedListClustersInGlobalScope, _, err := t.authorizer.Authorize(listClustersInGlobalScope)
-
 	if err != nil {
-		klog.Error(err)
-		return nil, err
+		return nil, fmt.Errorf("failed to authorize: %s", err)
 	}
 
-	listWorkspacesInGlobalScope := authorizer.AttributesRecord{
-		User:            user,
-		Verb:            "list",
-		Resource:        "workspaces",
-		ResourceScope:   request.GlobalScope,
-		ResourceRequest: true,
+	if allowedListClustersInGlobalScope == authorizer.DecisionAllow {
+		return t.resourceGetter.List(clusterv1alpha1.ResourcesPluralCluster, "", queryParam)
 	}
 
-	allowedListWorkspacesInGlobalScope, _, err := t.authorizer.Authorize(listWorkspacesInGlobalScope)
-
+	userDetail, err := t.im.DescribeUser(user.GetName())
 	if err != nil {
-		klog.Error(err)
-		return nil, err
+		return nil, fmt.Errorf("failed to describe user: %s", err)
 	}
 
-	if allowedListClustersInGlobalScope == authorizer.DecisionAllow ||
-		allowedListWorkspacesInGlobalScope == authorizer.DecisionAllow {
-		result, err := t.resourceGetter.List(clusterv1alpha1.ResourcesPluralCluster, "", query.New())
+	grantedClustersAnnotation := userDetail.Annotations[iamv1alpha2.GrantedClustersAnnotation]
+	var grantedClusters sets.String
+	if len(grantedClustersAnnotation) > 0 {
+		grantedClusters = sets.NewString(strings.Split(grantedClustersAnnotation, ",")...)
+	} else {
+		grantedClusters = sets.NewString()
+	}
+	var clusters []*clusterv1alpha1.Cluster
+	for _, grantedCluster := range grantedClusters.List() {
+		obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", grantedCluster)
 		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-		return result, nil
-	}
-
-	workspaceRoleBindings, err := t.am.ListWorkspaceRoleBindings(user.GetName(), user.GetGroups(), "")
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	clusters := map[string]*clusterv1alpha1.Cluster{}
-
-	for _, roleBinding := range workspaceRoleBindings {
-		workspaceName := roleBinding.Labels[tenantv1alpha1.WorkspaceLabel]
-		workspace, err := t.DescribeWorkspaceTemplate(workspaceName)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-
-		for _, grantedCluster := range workspace.Spec.Placement.Clusters {
-			// skip if cluster exist
-			if clusters[grantedCluster.Name] != nil {
+			if errors.IsNotFound(err) {
 				continue
 			}
-			obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", grantedCluster.Name)
-			if err != nil {
-				klog.Error(err)
-				if errors.IsNotFound(err) {
-					continue
-				}
-				return nil, err
-			}
-			cluster := obj.(*clusterv1alpha1.Cluster)
-			clusters[cluster.Name] = cluster
+			return nil, fmt.Errorf("failed to fetch cluster: %s", err)
 		}
+		cluster := obj.(*clusterv1alpha1.Cluster)
+		clusters = append(clusters, cluster)
 	}
 
-	items := make([]interface{}, 0)
+	items := make([]runtime.Object, 0)
 	for _, cluster := range clusters {
 		items = append(items, cluster)
 	}
 
-	return &api.ListResult{Items: items, TotalItems: len(items)}, nil
+	// apply additional labelSelector
+	if queryParam.LabelSelector != "" {
+		queryParam.Filters[query.FieldLabel] = query.Value(queryParam.LabelSelector)
+	}
+
+	// use default pagination search logic
+	result := resources.DefaultList(items, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
+		return resources.DefaultObjectMetaCompare(left.(*clusterv1alpha1.Cluster).ObjectMeta, right.(*clusterv1alpha1.Cluster).ObjectMeta, field)
+	}, func(workspace runtime.Object, filter query.Filter) bool {
+		return resources.DefaultObjectMetaFilter(workspace.(*clusterv1alpha1.Cluster).ObjectMeta, filter)
+	})
+
+	return result, nil
 }
 
 func (t *tenantOperator) DeleteWorkspaceTemplate(workspace string, opts metav1.DeleteOptions) error {

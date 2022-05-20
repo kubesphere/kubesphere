@@ -58,6 +58,7 @@ const (
 	GlobalRoleAnnotation                  = "iam.kubesphere.io/globalrole"
 	WorkspaceRoleAnnotation               = "iam.kubesphere.io/workspacerole"
 	ClusterRoleAnnotation                 = "iam.kubesphere.io/clusterrole"
+	GrantedClustersAnnotation             = "iam.kubesphere.io/granted-clusters"
 	UninitializedAnnotation               = "iam.kubesphere.io/uninitialized"
 	LastPasswordChangeTimeAnnotation      = "iam.kubesphere.io/last-password-change-time"
 	RoleAnnotation                        = "iam.kubesphere.io/role"

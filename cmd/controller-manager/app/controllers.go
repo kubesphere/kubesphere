@@ -488,9 +488,10 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 		if cmOptions.MultiClusterOptions.Enable {
 			clusterController := cluster.NewClusterController(
 				client.Kubernetes(),
+				client.KubeSphere(),
 				client.Config(),
 				kubesphereInformer.Cluster().V1alpha1().Clusters(),
-				client.KubeSphere().ClusterV1alpha1().Clusters(),
+				kubesphereInformer.Iam().V1alpha2().Users().Lister(),
 				cmOptions.MultiClusterOptions.ClusterControllerResyncPeriod,
 				cmOptions.MultiClusterOptions.HostClusterName,
 			)
