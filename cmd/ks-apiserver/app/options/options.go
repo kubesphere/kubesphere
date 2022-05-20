@@ -20,6 +20,8 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+
+	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
@@ -215,6 +217,8 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		apiServer.ClusterClient = cc
 	}
 
+	apiServer.OpenpitrixClient = openpitrixv1.NewOpenpitrixClient(informerFactory, apiServer.KubernetesClient.KubeSphere(), s.OpenPitrixOptions, apiServer.ClusterClient, stopCh)
+
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", s.GenericServerRunOptions.InsecurePort),
 	}
@@ -245,8 +249,6 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if err != nil {
 		klog.Fatalf("unable to create controller runtime client: %v", err)
 	}
-
-	//apiServer.ClusterClients =
 
 	apiServer.Issuer, err = token.NewIssuer(s.AuthenticationOptions)
 	if err != nil {

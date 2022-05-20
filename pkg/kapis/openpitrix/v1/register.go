@@ -14,7 +14,6 @@ limitations under the License.
 package v1
 
 import (
-	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"net/http"
 
 	restful "github.com/emicklei/go-restful"
@@ -39,11 +38,13 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
-func AddToContainer(c *restful.Container, ksInfomrers informers.InformerFactory, ksClient versioned.Interface, options *openpitrixoptions.Options, cc clusterclient.ClusterClients, stopCh <-chan struct{}) error {
+func AddToContainer(c *restful.Container, ksInfomrers informers.InformerFactory, ksClient versioned.Interface, options *openpitrixoptions.Options, opClient openpitrix.Interface) error {
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeJsonPatchJson, runtime.MimeMergePatchJson}
 	webservice := runtime.NewWebService(GroupVersion)
 
-	handler := newOpenpitrixHandler(ksInfomrers, ksClient, options, cc, stopCh)
+	handler := &openpitrixHandler{
+		opClient,
+	}
 
 	webservice.Route(webservice.POST("/repos").
 		To(handler.CreateRepo).

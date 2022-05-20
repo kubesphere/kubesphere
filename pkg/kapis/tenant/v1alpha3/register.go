@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"net/http"
+
+	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -61,12 +62,12 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 	ksclient kubesphere.Interface, evtsClient events.Client, loggingClient logging.Client,
 	auditingclient auditing.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer,
 	monitoringclient monitoringclient.Interface, cache cache.Cache, meteringOptions *meteringclient.Options,
-	cc clusterclient.ClusterClients, stopCh <-chan struct{}) error {
+	opClient openpitrix.Interface) error {
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
 
 	ws := runtime.NewWebService(GroupVersion)
-	v1alpha2Handler := v1alpha2.NewTenantHandler(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourcev1alpha3.NewResourceGetter(factory, cache), meteringOptions, cc, stopCh)
-	handler := newTenantHandler(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourcev1alpha3.NewResourceGetter(factory, cache), meteringOptions, cc, stopCh)
+	v1alpha2Handler := v1alpha2.NewTenantHandler(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourcev1alpha3.NewResourceGetter(factory, cache), meteringOptions, opClient)
+	handler := newTenantHandler(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourcev1alpha3.NewResourceGetter(factory, cache), meteringOptions, opClient)
 
 	ws.Route(ws.POST("/workspacetemplates").
 		To(v1alpha2Handler.CreateWorkspaceTemplate).

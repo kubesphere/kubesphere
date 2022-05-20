@@ -21,6 +21,8 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"kubesphere.io/kubesphere/pkg/utils/reposcache"
+
 	"github.com/go-openapi/strfmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
@@ -69,7 +71,7 @@ func TestOpenPitrixRelease(t *testing.T) {
 		}
 	}
 
-	rlsOperator := newReleaseOperator(cachedReposData, fakeInformerFactory.KubernetesSharedInformerFactory(), fakeInformerFactory.KubeSphereSharedInformerFactory(), ksClient)
+	rlsOperator := newReleaseOperator(reposcache.NewReposCache(), fakeInformerFactory.KubernetesSharedInformerFactory(), fakeInformerFactory.KubeSphereSharedInformerFactory(), ksClient, nil)
 
 	req := CreateClusterRequest{
 		Name:      "test-rls",

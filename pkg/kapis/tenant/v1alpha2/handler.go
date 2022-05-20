@@ -19,7 +19,6 @@ package v1alpha2
 import (
 	"encoding/json"
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
 	"github.com/emicklei/go-restful"
 	corev1 "k8s.io/api/core/v1"
@@ -28,6 +27,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+
+	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 
 	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
@@ -61,14 +62,14 @@ func NewTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.In
 	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
 	am am.AccessManagementInterface, authorizer authorizer.Authorizer,
 	monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter,
-	meteringOptions *meteringclient.Options, cc clusterclient.ClusterClients, stopCh <-chan struct{}) *tenantHandler {
+	meteringOptions *meteringclient.Options, opClient openpitrix.Interface) *tenantHandler {
 
 	if meteringOptions == nil || meteringOptions.RetentionDay == "" {
 		meteringOptions = &meteringclient.DefaultMeteringOption
 	}
 
 	return &tenantHandler{
-		tenant:          tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourceGetter, cc, stopCh),
+		tenant:          tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourceGetter, opClient),
 		meteringOptions: meteringOptions,
 	}
 }

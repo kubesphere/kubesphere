@@ -17,11 +17,10 @@ limitations under the License.
 package openpitrix
 
 import (
-	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
-	"sync"
-
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
 	"kubesphere.io/api/application/v1alpha1"
 
@@ -47,45 +46,36 @@ type openpitrixOperator struct {
 	CategoryInterface
 }
 
-var cachedReposData reposcache.ReposCache
-var helmReposInformer cache.SharedIndexInformer
-var once sync.Once
-
-func init() {
-	cachedReposData = reposcache.NewReposCache()
-}
-
 func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient versioned.Interface, s3Client s3.Interface, cc clusterclient.ClusterClients, stopCh <-chan struct{}) Interface {
-	once.Do(func() {
-		klog.Infof("start helm repo informer")
-		helmReposInformer = ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmRepos().Informer()
-		helmReposInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				r := obj.(*v1alpha1.HelmRepo)
-				cachedReposData.AddRepo(r)
-			},
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				oldRepo := oldObj.(*v1alpha1.HelmRepo)
-				newRepo := newObj.(*v1alpha1.HelmRepo)
-				cachedReposData.UpdateRepo(oldRepo, newRepo)
-			},
-			DeleteFunc: func(obj interface{}) {
-				r := obj.(*v1alpha1.HelmRepo)
-				cachedReposData.DeleteRepo(r)
-			},
-		})
-
-		ctgInformer := ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmCategories().Informer()
-		ctgInformer.AddIndexers(map[string]cache.IndexFunc{
-			reposcache.CategoryIndexer: func(obj interface{}) ([]string, error) {
-				ctg, _ := obj.(*v1alpha1.HelmCategory)
-				return []string{ctg.Spec.Name}, nil
-			},
-		})
-		indexer := ctgInformer.GetIndexer()
-
-		cachedReposData.SetCategoryIndexer(indexer)
+	klog.Infof("start helm repo informer")
+	cachedReposData := reposcache.NewReposCache()
+	helmReposInformer := ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmRepos().Informer()
+	helmReposInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			r := obj.(*v1alpha1.HelmRepo)
+			cachedReposData.AddRepo(r)
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			oldRepo := oldObj.(*v1alpha1.HelmRepo)
+			newRepo := newObj.(*v1alpha1.HelmRepo)
+			cachedReposData.UpdateRepo(oldRepo, newRepo)
+		},
+		DeleteFunc: func(obj interface{}) {
+			r := obj.(*v1alpha1.HelmRepo)
+			cachedReposData.DeleteRepo(r)
+		},
 	})
+
+	ctgInformer := ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmCategories().Informer()
+	ctgInformer.AddIndexers(map[string]cache.IndexFunc{
+		reposcache.CategoryIndexer: func(obj interface{}) ([]string, error) {
+			ctg, _ := obj.(*v1alpha1.HelmCategory)
+			return []string{ctg.Spec.Name}, nil
+		},
+	})
+	indexer := ctgInformer.GetIndexer()
+
+	cachedReposData.SetCategoryIndexer(indexer)
 
 	return &openpitrixOperator{
 		AttachmentInterface:  newAttachmentOperator(s3Client),
