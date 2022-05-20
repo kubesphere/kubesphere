@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"math"
 	"net/url"
 	"strconv"
@@ -50,7 +51,7 @@ type openpitrixHandler struct {
 	openpitrix openpitrix.Interface
 }
 
-func newOpenpitrixHandler(ksInformers informers.InformerFactory, ksClient versioned.Interface, option *openpitrixoptions.Options, stopCh <-chan struct{}) *openpitrixHandler {
+func newOpenpitrixHandler(ksInformers informers.InformerFactory, ksClient versioned.Interface, option *openpitrixoptions.Options, cc clusterclient.ClusterClients, stopCh <-chan struct{}) *openpitrixHandler {
 	var s3Client s3.Interface
 	if option != nil && option.S3Options != nil && len(option.S3Options.Endpoint) != 0 {
 		var err error
@@ -61,7 +62,7 @@ func newOpenpitrixHandler(ksInformers informers.InformerFactory, ksClient versio
 	}
 
 	return &openpitrixHandler{
-		openpitrix.NewOpenpitrixOperator(ksInformers, ksClient, s3Client, stopCh),
+		openpitrix.NewOpenpitrixOperator(ksInformers, ksClient, s3Client, cc, stopCh),
 	}
 }
 

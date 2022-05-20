@@ -21,6 +21,7 @@ package v1alpha1
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/client-go/kubernetes"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
 	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 
@@ -47,6 +48,6 @@ type meterHandler interface {
 	HandlePVCMeterQuery(req *restful.Request, resp *restful.Response)
 }
 
-func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client, stopCh <-chan struct{}) meterHandler {
-	return monitorhle.NewHandler(k, m, nil, f, ksClient, resourceGetter, meteringOptions, opOptions, rtClient, stopCh)
+func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client, cc clusterclient.ClusterClients, stopCh <-chan struct{}) meterHandler {
+	return monitorhle.NewHandler(k, m, nil, f, ksClient, resourceGetter, meteringOptions, opOptions, rtClient, cc, stopCh)
 }

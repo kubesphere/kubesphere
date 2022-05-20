@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"encoding/json"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
 	"github.com/emicklei/go-restful"
 	corev1 "k8s.io/api/core/v1"
@@ -60,14 +61,14 @@ func NewTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.In
 	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
 	am am.AccessManagementInterface, authorizer authorizer.Authorizer,
 	monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter,
-	meteringOptions *meteringclient.Options, stopCh <-chan struct{}) *tenantHandler {
+	meteringOptions *meteringclient.Options, cc clusterclient.ClusterClients, stopCh <-chan struct{}) *tenantHandler {
 
 	if meteringOptions == nil || meteringOptions.RetentionDay == "" {
 		meteringOptions = &meteringclient.DefaultMeteringOption
 	}
 
 	return &tenantHandler{
-		tenant:          tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourceGetter, stopCh),
+		tenant:          tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourceGetter, cc, stopCh),
 		meteringOptions: meteringOptions,
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -60,7 +61,7 @@ type handler struct {
 	rtClient        runtimeclient.Client
 }
 
-func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client, stopCh <-chan struct{}) *handler {
+func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, f informers.InformerFactory, ksClient versioned.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client, cc clusterclient.ClusterClients, stopCh <-chan struct{}) *handler {
 	var opRelease openpitrix.Interface
 	var s3Client s3.Interface
 	if opOptions != nil && opOptions.S3Options != nil && len(opOptions.S3Options.Endpoint) != 0 {
@@ -71,7 +72,7 @@ func NewHandler(k kubernetes.Interface, monitoringClient monitoring.Interface, m
 		}
 	}
 	if ksClient != nil {
-		opRelease = openpitrix.NewOpenpitrixOperator(f, ksClient, s3Client, stopCh)
+		opRelease = openpitrix.NewOpenpitrixOperator(f, ksClient, s3Client, cc, stopCh)
 	}
 	if meteringOptions == nil || meteringOptions.RetentionDay == "" {
 		meteringOptions = &meteringclient.DefaultMeteringOption

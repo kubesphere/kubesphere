@@ -17,6 +17,7 @@ limitations under the License.
 package openpitrix
 
 import (
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"sync"
 
 	"k8s.io/client-go/tools/cache"
@@ -54,7 +55,7 @@ func init() {
 	cachedReposData = reposcache.NewReposCache()
 }
 
-func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient versioned.Interface, s3Client s3.Interface, stopCh <-chan struct{}) Interface {
+func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient versioned.Interface, s3Client s3.Interface, cc clusterclient.ClusterClients, stopCh <-chan struct{}) Interface {
 	once.Do(func() {
 		klog.Infof("start helm repo informer")
 		helmReposInformer = ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmRepos().Informer()
@@ -90,7 +91,7 @@ func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient ve
 		AttachmentInterface:  newAttachmentOperator(s3Client),
 		ApplicationInterface: newApplicationOperator(cachedReposData, ksInformers.KubeSphereSharedInformerFactory(), ksClient, s3Client),
 		RepoInterface:        newRepoOperator(cachedReposData, ksInformers.KubeSphereSharedInformerFactory(), ksClient),
-		ReleaseInterface:     newReleaseOperator(cachedReposData, ksInformers.KubernetesSharedInformerFactory(), ksInformers.KubeSphereSharedInformerFactory(), ksClient),
+		ReleaseInterface:     newReleaseOperator(cachedReposData, ksInformers.KubernetesSharedInformerFactory(), ksInformers.KubeSphereSharedInformerFactory(), ksClient, cc),
 		CategoryInterface:    newCategoryOperator(cachedReposData, ksInformers.KubeSphereSharedInformerFactory(), ksClient),
 	}
 }

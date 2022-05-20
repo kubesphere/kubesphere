@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 
@@ -209,6 +210,11 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		apiServer.AlertingClient = alertingClient
 	}
 
+	if s.Config.MultiClusterOptions.Enable {
+		cc := clusterclient.NewClusterClient(informerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters())
+		apiServer.ClusterClient = cc
+	}
+
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", s.GenericServerRunOptions.InsecurePort),
 	}
@@ -239,6 +245,8 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if err != nil {
 		klog.Fatalf("unable to create controller runtime client: %v", err)
 	}
+
+	//apiServer.ClusterClients =
 
 	apiServer.Issuer, err = token.NewIssuer(s.AuthenticationOptions)
 	if err != nil {

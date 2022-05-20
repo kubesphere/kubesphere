@@ -18,6 +18,7 @@
 package v1alpha3
 
 import (
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"net/http"
 
 	monitoringdashboardv1alpha2 "kubesphere.io/monitoring-dashboard/api/v1alpha2"
@@ -47,10 +48,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha3"}
 
-func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, factory informers.InformerFactory, ksClient versioned.Interface, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client, stopCh <-chan struct{}) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface, metricsClient monitoring.Interface, factory informers.InformerFactory, ksClient versioned.Interface, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client, cc clusterclient.ClusterClients, stopCh <-chan struct{}) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	h := NewHandler(k8sClient, monitoringClient, metricsClient, factory, ksClient, nil, nil, opOptions, rtClient, stopCh)
+	h := NewHandler(k8sClient, monitoringClient, metricsClient, factory, ksClient, nil, nil, opOptions, rtClient, cc, stopCh)
 
 	ws.Route(ws.GET("/kubesphere").
 		To(h.handleKubeSphereMetricsQuery).
