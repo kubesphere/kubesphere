@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -29,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
+	"kubesphere.io/kubesphere/pkg/apiserver"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"kubesphere.io/kubesphere/pkg/version"
@@ -107,9 +109,14 @@ func Run(s *options.ServerRunOptions, configCh <-chan apiserverconfig.Config, ct
 			cancelFunc()
 			return nil
 		case cfg := <-configCh:
+			if reflect.DeepEqual(s.Config, &cfg) {
+				klog.Infof("there is no change in config")
+				continue
+			}
 			cancelFunc()
 			s.Config = &cfg
 			ictx, cancelFunc = context.WithCancel(context.TODO())
+			apiserver.WaitPreviousToShutdown.Add(1)
 			go func() {
 				if err := run(s, ictx); err != nil {
 					errCh <- err

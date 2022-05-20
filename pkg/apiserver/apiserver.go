@@ -277,6 +277,8 @@ func (s *APIServer) installCRDAPIs() {
 	urlruntime.Must(crd.AddToContainer(s.container, s.RuntimeClient, s.RuntimeCache, crds))
 }
 
+var WaitPreviousToShutdown sync.WaitGroup
+
 func (s *APIServer) Run(ctx context.Context) (err error) {
 
 	err = s.waitForResourceSync(ctx)
@@ -290,8 +292,11 @@ func (s *APIServer) Run(ctx context.Context) (err error) {
 	go func() {
 		<-ctx.Done()
 		_ = s.Server.Shutdown(shutdownCtx)
+		WaitPreviousToShutdown.Done()
 	}()
 
+	// If the config has changed, we must wait for the old one to shut down.
+	WaitPreviousToShutdown.Wait()
 	klog.V(0).Infof("Start listening on %s", s.Server.Addr)
 	if s.Server.TLSConfig != nil {
 		err = s.Server.ListenAndServeTLS("", "")
