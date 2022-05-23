@@ -29,6 +29,8 @@ import (
 
 var ErrNoSuchKey = errors.New("no such key")
 
+const typeInMemoryCache = "inMemoryCache"
+
 type simpleObject struct {
 	value       string
 	neverExpire bool
@@ -45,6 +47,10 @@ func (so *simpleObject) IsExpired() bool {
 	return false
 }
 
+// SimpleCacheOptions used to create simpleCache in memory.
+// CleanupPeriod specifies cleans up expired token every period.
+// Note the SimpleCache cannot be used in multi-replicas apiserver,
+// which will lead to data inconsistency.
 type SimpleCacheOptions struct {
 	CleanupPeriod time.Duration `json:"cleanupPeriod" yaml:"cleanupPeriod" mapstructure:"cleanupperiod"`
 }
@@ -66,18 +72,6 @@ func NewSimpleCache(options *SimpleCacheOptions, stopCh <-chan struct{}) (Interf
 	go wait.Until(cache.cleanInvalidToken, options.CleanupPeriod, stopCh)
 
 	return cache, nil
-}
-
-func (s *simpleCache) sync(stopCh <-chan struct{}) {
-	ticker := time.NewTicker(s.cleanupPeriod)
-	for {
-		select {
-		case <-ticker.C:
-			s.cleanInvalidToken()
-		case <-stopCh:
-			return
-		}
-	}
 }
 
 func (s *simpleCache) cleanInvalidToken() {
@@ -173,7 +167,7 @@ type simpleCacheFactory struct {
 }
 
 func (sf *simpleCacheFactory) Type() string {
-	return "simpleCache"
+	return typeInMemoryCache
 }
 
 func (sf *simpleCacheFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {

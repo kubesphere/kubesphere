@@ -26,10 +26,13 @@ import (
 	"k8s.io/klog"
 )
 
+const typeRedis = "redis"
+
 type Client struct {
 	client *redis.Client
 }
 
+// RedisOptions used to create a redis client.
 type RedisOptions struct {
 	Host     string `json:"host" yaml:"host" mapstructure:"host"`
 	Port     int    `json:"port" yaml:"port" mapstructure:"port"`
@@ -102,7 +105,7 @@ func (r *Client) Expire(key string, duration time.Duration) error {
 type redisFactory struct{}
 
 func (rf *redisFactory) Type() string {
-	return "redis"
+	return typeRedis
 }
 
 func (rf *redisFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
