@@ -28,20 +28,20 @@ import (
 
 const typeRedis = "redis"
 
-type Client struct {
+type redisClient struct {
 	client *redis.Client
 }
 
-// RedisOptions used to create a redis client.
-type RedisOptions struct {
+// redisOptions used to create a redis client.
+type redisOptions struct {
 	Host     string `json:"host" yaml:"host" mapstructure:"host"`
 	Port     int    `json:"port" yaml:"port" mapstructure:"port"`
 	Password string `json:"password" yaml:"password" mapstructure:"password"`
 	DB       int    `json:"db" yaml:"db" mapstructure:"db"`
 }
 
-func NewRedisClient(option *RedisOptions, stopCh <-chan struct{}) (Interface, error) {
-	var r Client
+func NewRedisClient(option *redisOptions, stopCh <-chan struct{}) (Interface, error) {
+	var r redisClient
 
 	redisOptions := &redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", option.Host, option.Port),
@@ -73,23 +73,23 @@ func NewRedisClient(option *RedisOptions, stopCh <-chan struct{}) (Interface, er
 	return &r, nil
 }
 
-func (r *Client) Get(key string) (string, error) {
+func (r *redisClient) Get(key string) (string, error) {
 	return r.client.Get(key).Result()
 }
 
-func (r *Client) Keys(pattern string) ([]string, error) {
+func (r *redisClient) Keys(pattern string) ([]string, error) {
 	return r.client.Keys(pattern).Result()
 }
 
-func (r *Client) Set(key string, value string, duration time.Duration) error {
+func (r *redisClient) Set(key string, value string, duration time.Duration) error {
 	return r.client.Set(key, value, duration).Err()
 }
 
-func (r *Client) Del(keys ...string) error {
+func (r *redisClient) Del(keys ...string) error {
 	return r.client.Del(keys...).Err()
 }
 
-func (r *Client) Exists(keys ...string) (bool, error) {
+func (r *redisClient) Exists(keys ...string) (bool, error) {
 	existedKeys, err := r.client.Exists(keys...).Result()
 	if err != nil {
 		return false, err
@@ -98,7 +98,7 @@ func (r *Client) Exists(keys ...string) (bool, error) {
 	return len(keys) == int(existedKeys), nil
 }
 
-func (r *Client) Expire(key string, duration time.Duration) error {
+func (r *redisClient) Expire(key string, duration time.Duration) error {
 	return r.client.Expire(key, duration).Err()
 }
 
@@ -109,7 +109,7 @@ func (rf *redisFactory) Type() string {
 }
 
 func (rf *redisFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
-	var rOptions RedisOptions
+	var rOptions redisOptions
 	if err := mapstructure.Decode(options, &rOptions); err != nil {
 		return nil, err
 	}

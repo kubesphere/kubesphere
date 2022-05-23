@@ -47,11 +47,11 @@ func (so *simpleObject) IsExpired() bool {
 	return false
 }
 
-// SimpleCacheOptions used to create simpleCache in memory.
+// simpleCacheOptions used to create simpleCache in memory.
 // CleanupPeriod specifies cleans up expired token every period.
 // Note the SimpleCache cannot be used in multi-replicas apiserver,
 // which will lead to data inconsistency.
-type SimpleCacheOptions struct {
+type simpleCacheOptions struct {
 	CleanupPeriod time.Duration `json:"cleanupPeriod" yaml:"cleanupPeriod" mapstructure:"cleanupperiod"`
 }
 
@@ -61,7 +61,7 @@ type simpleCache struct {
 	store         map[string]simpleObject
 }
 
-func NewSimpleCache(options *SimpleCacheOptions, stopCh <-chan struct{}) (Interface, error) {
+func NewSimpleCache(options *simpleCacheOptions, stopCh <-chan struct{}) (Interface, error) {
 	if options == nil {
 		return &simpleCache{store: make(map[string]simpleObject)}, nil
 	}
@@ -171,7 +171,7 @@ func (sf *simpleCacheFactory) Type() string {
 }
 
 func (sf *simpleCacheFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
-	var sOptions SimpleCacheOptions
+	var sOptions simpleCacheOptions
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
