@@ -544,5 +544,5 @@ func prepare() Interface {
 	amOperator := am.NewOperator(ksClient, k8sClient, fakeInformerFactory, nil)
 	authorizer := rbac.NewRBACAuthorizer(amOperator)
 
-	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil, amOperator, authorizer, nil, nil, nil)
+	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil, amOperator, nil, authorizer, nil, nil, nil)
 }
