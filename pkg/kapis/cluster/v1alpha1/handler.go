@@ -358,6 +358,12 @@ func (h *handler) validateCluster(request *restful.Request, response *restful.Re
 		api.HandleBadRequest(response, request, err)
 		return
 	}
+
+	if config.TLSClientConfig.Insecure {
+		api.HandleBadRequest(response, request, fmt.Errorf("cluster kubeconfig MUST contain certificate-authority-data"))
+		return
+	}
+
 	config.Timeout = defaultTimeout
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
