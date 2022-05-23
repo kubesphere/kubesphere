@@ -38,11 +38,13 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
-func AddToContainer(c *restful.Container, ksInfomrers informers.InformerFactory, ksClient versioned.Interface, options *openpitrixoptions.Options, stopCh <-chan struct{}) error {
+func AddToContainer(c *restful.Container, ksInfomrers informers.InformerFactory, ksClient versioned.Interface, options *openpitrixoptions.Options, opClient openpitrix.Interface) error {
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeJsonPatchJson, runtime.MimeMergePatchJson}
 	webservice := runtime.NewWebService(GroupVersion)
 
-	handler := newOpenpitrixHandler(ksInfomrers, ksClient, options, stopCh)
+	handler := &openpitrixHandler{
+		opClient,
+	}
 
 	webservice.Route(webservice.POST("/repos").
 		To(handler.CreateRepo).

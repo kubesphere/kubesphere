@@ -20,9 +20,7 @@ package v1alpha1
 import (
 	"net/http"
 
-	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -49,10 +47,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha1"}
 
-func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteringClient monitoring.Interface, factory informers.InformerFactory, ksClient versioned.Interface, cache cache.Cache, meteringOptions *meteringclient.Options, opOptions *openpitrixoptions.Options, rtClient runtimeclient.Client, stopCh <-chan struct{}) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, meteringClient monitoring.Interface, factory informers.InformerFactory, cache cache.Cache, meteringOptions *meteringclient.Options, opClient openpitrix.Interface, rtClient runtimeclient.Client) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	h := newHandler(k8sClient, meteringClient, factory, ksClient, resourcev1alpha3.NewResourceGetter(factory, cache), meteringOptions, opOptions, rtClient, stopCh)
+	h := newHandler(k8sClient, meteringClient, factory, resourcev1alpha3.NewResourceGetter(factory, cache), meteringOptions, opClient, rtClient)
 
 	ws.Route(ws.GET("/cluster").
 		To(h.HandleClusterMeterQuery).

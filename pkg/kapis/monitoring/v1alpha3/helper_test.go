@@ -373,7 +373,7 @@ func TestParseRequestParams(t *testing.T) {
 
 			fakeInformerFactory.KubeSphereSharedInformerFactory()
 
-			handler := NewHandler(client, nil, nil, fakeInformerFactory, ksClient, nil, nil, nil, nil, nil)
+			handler := NewHandler(client, nil, nil, fakeInformerFactory, nil, nil, nil, nil)
 
 			result, err := handler.makeQueryOptions(tt.params, tt.lvl)
 			if err != nil {

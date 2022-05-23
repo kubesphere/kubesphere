@@ -56,33 +56,26 @@ type ClusterClients interface {
 	GetInnerCluster(string) *innerCluster
 }
 
-var (
-	once sync.Once
-	c    *clusterClients
-)
-
 func NewClusterClient(clusterInformer clusterinformer.ClusterInformer) ClusterClients {
-	once.Do(func() {
-		c = &clusterClients{
-			innerClusters: make(map[string]*innerCluster),
-			clusterLister: clusterInformer.Lister(),
-		}
+	c := &clusterClients{
+		innerClusters: make(map[string]*innerCluster),
+		clusterLister: clusterInformer.Lister(),
+	}
 
-		clusterInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				c.addCluster(obj)
-			},
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				oldCluster := oldObj.(*clusterv1alpha1.Cluster)
-				newCluster := newObj.(*clusterv1alpha1.Cluster)
-				if !reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) {
-					c.addCluster(newObj)
-				}
-			},
-			DeleteFunc: func(obj interface{}) {
-				c.removeCluster(obj)
-			},
-		})
+	clusterInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			c.addCluster(obj)
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			oldCluster := oldObj.(*clusterv1alpha1.Cluster)
+			newCluster := newObj.(*clusterv1alpha1.Cluster)
+			if !reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) {
+				c.addCluster(newObj)
+			}
+		},
+		DeleteFunc: func(obj interface{}) {
+			c.removeCluster(obj)
+		},
 	})
 	return c
 }

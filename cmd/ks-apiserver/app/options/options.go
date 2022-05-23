@@ -21,6 +21,9 @@ import (
 	"flag"
 	"fmt"
 
+	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 
 	"k8s.io/client-go/kubernetes/scheme"
@@ -208,6 +211,13 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		}
 		apiServer.AlertingClient = alertingClient
 	}
+
+	if s.Config.MultiClusterOptions.Enable {
+		cc := clusterclient.NewClusterClient(informerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters())
+		apiServer.ClusterClient = cc
+	}
+
+	apiServer.OpenpitrixClient = openpitrixv1.NewOpenpitrixClient(informerFactory, apiServer.KubernetesClient.KubeSphere(), s.OpenPitrixOptions, apiServer.ClusterClient, stopCh)
 
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", s.GenericServerRunOptions.InsecurePort),

@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
+
 	restful "github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -50,7 +52,7 @@ type openpitrixHandler struct {
 	openpitrix openpitrix.Interface
 }
 
-func newOpenpitrixHandler(ksInformers informers.InformerFactory, ksClient versioned.Interface, option *openpitrixoptions.Options, stopCh <-chan struct{}) *openpitrixHandler {
+func NewOpenpitrixClient(ksInformers informers.InformerFactory, ksClient versioned.Interface, option *openpitrixoptions.Options, cc clusterclient.ClusterClients, stopCh <-chan struct{}) openpitrix.Interface {
 	var s3Client s3.Interface
 	if option != nil && option.S3Options != nil && len(option.S3Options.Endpoint) != 0 {
 		var err error
@@ -60,9 +62,7 @@ func newOpenpitrixHandler(ksInformers informers.InformerFactory, ksClient versio
 		}
 	}
 
-	return &openpitrixHandler{
-		openpitrix.NewOpenpitrixOperator(ksInformers, ksClient, s3Client, stopCh),
-	}
+	return openpitrix.NewOpenpitrixOperator(ksInformers, ksClient, s3Client, cc, stopCh)
 }
 
 func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Response) {
