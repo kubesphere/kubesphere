@@ -175,6 +175,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		apiServer.SonarClient = sonarqube.NewSonar(sonarClient.SonarQube())
 	}
 
+	// If debug mode is on or CacheOptions is nil, will create a fake cache.
 	if s.CacheOptions != nil {
 		if s.DebugMode {
 			s.CacheOptions.Type = fakeInterface
