@@ -18,14 +18,15 @@ package v1alpha3
 
 import (
 	"fmt"
-	"github.com/emicklei/go-restful"
 	"io"
-	"k8s.io/klog"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
 	"unsafe"
+
+	"github.com/emicklei/go-restful"
+	"k8s.io/klog"
 
 	"github.com/google/go-cmp/cmp"
 	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/fake"
@@ -203,7 +204,6 @@ var (
 	namespaces  = []interface{}{defaultNamespace, kubesphereNamespace}
 	secrets     = []interface{}{secretFoo1, secretFoo2}
 	services    = []interface{}{apiServerService, ksControllerService}
-
 )
 
 func prepare() (*Handler, error) {
@@ -244,7 +244,6 @@ func prepare() (*Handler, error) {
 	}
 
 	handler := New(resourcev1alpha3.NewResourceGetter(fakeInformerFactory, nil), resourcev1alpha2.NewResourceGetter(fakeInformerFactory), components.NewComponentsGetter(fakeInformerFactory.KubernetesSharedInformerFactory()))
-
 
 	return handler, nil
 }
