@@ -280,6 +280,9 @@ type AppVersionReview struct {
 
 	// version type
 	VersionType string `json:"version_type,omitempty"`
+
+	// Workspace of the app version
+	Workspace string `json:"workspace,omitempty"`
 }
 
 type CreateAppRequest struct {

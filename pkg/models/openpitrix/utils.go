@@ -817,6 +817,7 @@ func convertAppVersionReview(app *v1alpha1.HelmApplication, appVersion *v1alpha1
 	review.VersionID = appVersion.GetHelmApplicationVersionId()
 	review.Phase = AppVersionReviewPhaseOAIGen{}
 	review.VersionName = appVersion.GetVersionName()
+	review.Workspace = appVersion.GetWorkspace()
 
 	review.StatusTime = strfmt.DateTime(status.Audit[0].Time.Time)
 	review.AppName = app.GetTrueName()
