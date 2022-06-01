@@ -82,6 +82,9 @@ type KubeSphereControllerManagerOptions struct {
 	// * has the lowest priority.
 	//     e.g. *,-foo, means "disable 'foo'"
 	ControllerGates []string
+
+	// Enable gops or not.
+	GOPSEnabled bool
 }
 
 func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
@@ -143,6 +146,9 @@ func (s *KubeSphereControllerManagerOptions) Flags(allControllerNameSelectors []
 		"A list of controllers to enable. '*' enables all on-by-default controllers, 'foo' enables the controller "+
 		"named 'foo', '-foo' disables the controller named 'foo'.\nAll controllers: %s",
 		strings.Join(allControllerNameSelectors, ", ")))
+
+	gfs.BoolVar(&s.GOPSEnabled, "gops", s.GOPSEnabled, "Whether to enable gops or not.  When enabled this option, "+
+		"controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
 
 	kfs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)

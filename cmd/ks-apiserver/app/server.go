@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/gops/agent"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -57,6 +58,15 @@ cluster's shared state through which all other components interact.`,
 			if errs := s.Validate(); len(errs) != 0 {
 				return utilerrors.NewAggregate(errs)
 			}
+
+			if s.GOPSEnabled {
+				// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
+				// Bind to a random port on address 127.0.0.1.
+				if err := agent.Listen(agent.Options{}); err != nil {
+					klog.Fatal(err)
+				}
+			}
+
 			return Run(s, apiserverconfig.WatchConfigChange(), signals.SetupSignalHandler())
 		},
 		SilenceUsage: true,
