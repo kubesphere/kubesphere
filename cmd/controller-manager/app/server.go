@@ -73,7 +73,7 @@ func NewControllerManagerCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:  "controller-manager",
-		Long: `KubeSphere controller manager is a daemon that`,
+		Long: `KubeSphere controller manager is a daemon that embeds the control loops shipped with KubeSphere.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if errs := s.Validate(allControllers); len(errs) != 0 {
 				klog.Error(utilerrors.NewAggregate(errs))
