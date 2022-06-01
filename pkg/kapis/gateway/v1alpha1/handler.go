@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -177,7 +176,7 @@ func (h *handler) PodLog(request *restful.Request, response *restful.Response) {
 	}
 
 	fw := flushwriter.Wrap(response.ResponseWriter)
-	err := h.gw.GetPodLogs(context.TODO(), podNamespace, podID, logOptions, fw)
+	err := h.gw.GetPodLogs(request.Request.Context(), podNamespace, podID, logOptions, fw)
 	if err != nil {
 		api.HandleError(response, request, err)
 		return
