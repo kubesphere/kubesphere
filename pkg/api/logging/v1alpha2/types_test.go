@@ -1,0 +1,34 @@
+package v1alpha2
+
+import (
+	"fmt"
+	"net/http"
+	"testing"
+
+	"github.com/emicklei/go-restful"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestParseQueryParameter(t *testing.T) {
+	// default operation -- query
+	queryParam := "/tenant.kubesphere.io/v2alpha1/logs?start_time=1136214245&end_time=1136214245&from=0"
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost?%s", queryParam), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	request := restful.NewRequest(req)
+	_, err = ParseQueryParameter(request)
+	assert.NoError(t, err)
+
+	// interval operation
+	queryParamInterval := "/tenant.kubesphere.io/v2alpha1/logs?operation=interval&start_time=1136214245&end_time=1136214245&from=0"
+	reqInterval, err := http.NewRequest("GET", fmt.Sprintf("http://localhost?%s", queryParamInterval), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	requestInterval := restful.NewRequest(reqInterval)
+	_, err = ParseQueryParameter(requestInterval)
+	assert.NoError(t, err)
+}
