@@ -17,7 +17,9 @@ limitations under the License.
 package reflectutils
 
 import (
+	"fmt"
 	"reflect"
+	"unsafe"
 )
 
 func In(value interface{}, container interface{}) bool {
@@ -59,4 +61,16 @@ func Override(left interface{}, right interface{}) {
 			oldVal.Field(i).Set(reflect.ValueOf(val))
 		}
 	}
+}
+
+func SetUnExportedField(ptr interface{}, filedName string, newFiledValue interface{}) (err error) {
+	v := reflect.ValueOf(ptr).Elem().FieldByName(filedName)
+	v = reflect.NewAt(v.Type(), unsafe.Pointer(v.UnsafeAddr())).Elem()
+	nv := reflect.ValueOf(newFiledValue)
+
+	if v.Kind() != nv.Kind() {
+		return fmt.Errorf("kind error")
+	}
+	v.Set(nv)
+	return nil
 }

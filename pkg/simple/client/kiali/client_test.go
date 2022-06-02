@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"reflect"
 	"testing"
 
@@ -58,7 +57,7 @@ func TestClient_Get(t *testing.T) {
 				Strategy: AuthStrategyAnonymous,
 				cache:    nil,
 				client: &MockClient{
-					requestResult: "fake",
+					RequestResult: "fake",
 				},
 				ServiceToken: "token",
 				Host:         "http://kiali.istio-system.svc",
@@ -76,8 +75,8 @@ func TestClient_Get(t *testing.T) {
 				Strategy: AuthStrategyToken,
 				cache:    nil,
 				client: &MockClient{
-					tokenResult:   token,
-					requestResult: "fake",
+					TokenResult:   token,
+					RequestResult: "fake",
 				},
 				ServiceToken: "token",
 				Host:         "http://kiali.istio-system.svc",
@@ -95,8 +94,8 @@ func TestClient_Get(t *testing.T) {
 				Strategy: AuthStrategyToken,
 				cache:    cache.NewSimpleCache(),
 				client: &MockClient{
-					tokenResult:   token,
-					requestResult: "fake",
+					TokenResult:   token,
+					RequestResult: "fake",
 				},
 				ServiceToken: "token",
 				Host:         "http://kiali.istio-system.svc",
@@ -128,23 +127,4 @@ func TestClient_Get(t *testing.T) {
 			}
 		})
 	}
-}
-
-type MockClient struct {
-	tokenResult   []byte
-	requestResult string
-}
-
-func (c *MockClient) Do(req *http.Request) (*http.Response, error) {
-	return &http.Response{
-		StatusCode: 200,
-		Body:       ioutil.NopCloser(bytes.NewReader([]byte(c.requestResult))),
-	}, nil
-}
-
-func (c *MockClient) PostForm(url string, data url.Values) (resp *http.Response, err error) {
-	return &http.Response{
-		StatusCode: 200,
-		Body:       ioutil.NopCloser(bytes.NewReader(c.tokenResult)),
-	}, nil
 }
