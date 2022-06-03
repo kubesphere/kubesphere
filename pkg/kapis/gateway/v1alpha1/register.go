@@ -28,19 +28,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
+	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
+	loggingclient "kubesphere.io/kubesphere/pkg/simple/client/logging"
 )
 
 var GroupVersion = schema.GroupVersion{Group: "gateway.kubesphere.io", Version: "v1alpha1"}
 
-func AddToContainer(container *restful.Container, options *gateway.Options, cache cache.Cache, client client.Client, factory informers.InformerFactory, k8sClient kubernetes.Interface) error {
+func AddToContainer(container *restful.Container, options *gateway.Options, cache cache.Cache, client client.Client, factory informers.InformerFactory, k8sClient kubernetes.Interface, loggingClient loggingclient.Client) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	handler := newHandler(options, cache, client, factory, k8sClient)
+	handler := newHandler(options, cache, client, factory, k8sClient, loggingClient)
 
 	// register gateway apis
 	ws.Route(ws.POST("/namespaces/{namespace}/gateways").
@@ -100,6 +102,14 @@ func AddToContainer(container *restful.Container, options *gateway.Options, cach
 		Param(ws.PathParameter("namespace", "the watching namespace of the gateway")).
 		Param(ws.PathParameter("pod", "the pod name of the gateway")).
 		Returns(http.StatusOK, api.StatusOK, v1alpha1.Gateway{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GatewayTag}))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/gateways/{gateway}/logs").
+		To(handler.PodLogSearch).
+		Doc("Retrieve log of the gateway's pod from ES").
+		Param(ws.PathParameter("namespace", "the watching namespace of the gateway")).
+		Param(ws.PathParameter("gateway", "the name of the gateway")).
+		Returns(http.StatusOK, api.StatusOK, loggingv1alpha2.APIResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GatewayTag}))
 
 	container.Add(ws)

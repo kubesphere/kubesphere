@@ -114,8 +114,8 @@ type amOperator struct {
 	k8sclient                  kubernetes.Interface
 }
 
-func NewReadOnlyOperator(factory informers.InformerFactory) AccessManagementInterface {
-	return &amOperator{
+func NewReadOnlyOperator(factory informers.InformerFactory, devopsClient devops.Interface) AccessManagementInterface {
+	operator := &amOperator{
 		globalRoleBindingGetter:    globalrolebinding.New(factory.KubeSphereSharedInformerFactory()),
 		workspaceRoleBindingGetter: workspacerolebinding.New(factory.KubeSphereSharedInformerFactory()),
 		clusterRoleBindingGetter:   clusterrolebinding.New(factory.KubernetesSharedInformerFactory()),
@@ -126,16 +126,17 @@ func NewReadOnlyOperator(factory informers.InformerFactory) AccessManagementInte
 		roleGetter:                 role.New(factory.KubernetesSharedInformerFactory()),
 		namespaceLister:            factory.KubernetesSharedInformerFactory().Core().V1().Namespaces().Lister(),
 	}
+	// no more CRDs of devopsprojects if the DevOps module was disabled
+	if devopsClient != nil {
+		operator.devopsProjectLister = factory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects().Lister()
+	}
+	return operator
 }
 
 func NewOperator(ksClient kubesphere.Interface, k8sClient kubernetes.Interface, factory informers.InformerFactory, devopsClient devops.Interface) AccessManagementInterface {
-	amOperator := NewReadOnlyOperator(factory).(*amOperator)
+	amOperator := NewReadOnlyOperator(factory, devopsClient).(*amOperator)
 	amOperator.ksclient = ksClient
 	amOperator.k8sclient = k8sClient
-	// no more CRDs of devopsprojects if the DevOps module was disabled
-	if devopsClient != nil {
-		amOperator.devopsProjectLister = factory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects().Lister()
-	}
 	return amOperator
 }
 
@@ -1090,19 +1091,21 @@ func (am *amOperator) ListGroupRoleBindings(workspace string, query *query.Query
 			result = append(result, roleBinding)
 		}
 	}
-	devOpsProjects, err := am.devopsProjectLister.List(labels.SelectorFromSet(labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}))
-	if err != nil {
-		return nil, err
-	}
-	for _, devOpsProject := range devOpsProjects {
-		roleBindings, err := am.roleBindingGetter.List(devOpsProject.Name, query)
+	if am.devopsProjectLister != nil {
+		devOpsProjects, err := am.devopsProjectLister.List(labels.SelectorFromSet(labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}))
 		if err != nil {
-			klog.Error(err)
 			return nil, err
 		}
-		for _, obj := range roleBindings.Items {
-			roleBinding := obj.(*rbacv1.RoleBinding)
-			result = append(result, roleBinding)
+		for _, devOpsProject := range devOpsProjects {
+			roleBindings, err := am.roleBindingGetter.List(devOpsProject.Name, query)
+			if err != nil {
+				klog.Error(err)
+				return nil, err
+			}
+			for _, obj := range roleBindings.Items {
+				roleBinding := obj.(*rbacv1.RoleBinding)
+				result = append(result, roleBinding)
+			}
 		}
 	}
 	return result, nil

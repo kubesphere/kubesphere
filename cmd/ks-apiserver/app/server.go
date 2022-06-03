@@ -19,6 +19,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -56,8 +57,7 @@ cluster's shared state through which all other components interact.`,
 			if errs := s.Validate(); len(errs) != 0 {
 				return utilerrors.NewAggregate(errs)
 			}
-
-			return Run(s, signals.SetupSignalHandler())
+			return Run(s, apiserverconfig.WatchConfigChange(), signals.SetupSignalHandler())
 		},
 		SilenceUsage: true,
 	}
@@ -88,8 +88,41 @@ cluster's shared state through which all other components interact.`,
 	return cmd
 }
 
-func Run(s *options.ServerRunOptions, ctx context.Context) error {
+func Run(s *options.ServerRunOptions, configCh <-chan apiserverconfig.Config, ctx context.Context) error {
+	ictx, cancelFunc := context.WithCancel(context.TODO())
+	errCh := make(chan error)
+	defer close(errCh)
+	go func() {
+		if err := run(s, ictx); err != nil {
+			errCh <- err
+		}
+	}()
 
+	// The ctx (signals.SetupSignalHandler()) is to control the entire program life cycle,
+	// The ictx(internal context)  is created here to control the life cycle of the ks-apiserver(http server, sharedInformer etc.)
+	// when config change, stop server and renew context, start new server
+	for {
+		select {
+		case <-ctx.Done():
+			cancelFunc()
+			return nil
+		case cfg := <-configCh:
+			cancelFunc()
+			s.Config = &cfg
+			ictx, cancelFunc = context.WithCancel(context.TODO())
+			go func() {
+				if err := run(s, ictx); err != nil {
+					errCh <- err
+				}
+			}()
+		case err := <-errCh:
+			cancelFunc()
+			return err
+		}
+	}
+}
+
+func run(s *options.ServerRunOptions, ctx context.Context) error {
 	apiserver, err := s.NewAPIServer(ctx.Done())
 	if err != nil {
 		return err
@@ -97,8 +130,12 @@ func Run(s *options.ServerRunOptions, ctx context.Context) error {
 
 	err = apiserver.PrepareRun(ctx.Done())
 	if err != nil {
-		return nil
+		return err
 	}
 
-	return apiserver.Run(ctx)
+	err = apiserver.Run(ctx)
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	return err
 }

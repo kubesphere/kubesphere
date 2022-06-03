@@ -22,7 +22,7 @@ var (
 )
 
 type GateKeeperProvider struct {
-	*client.Client
+	client *client.Client
 }
 
 func NewGateKeeperProvider(client *client.Client) *GateKeeperProvider {
@@ -34,7 +34,7 @@ func (p *GateKeeperProvider) AddPolicy(ctx context.Context, policy *v1alpha1.Pol
 	if err != nil {
 		return err
 	}
-	_, err = p.AddTemplate(ctx, template)
+	_, err = p.client.AddTemplate(ctx, template)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (p *GateKeeperProvider) AddRule(ctx context.Context, rule *v1alpha1.Rule) e
 	if err != nil {
 		return err
 	}
-	_, err = p.AddConstraint(ctx, constraint)
+	_, err = p.client.AddConstraint(ctx, constraint)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (p *GateKeeperProvider) RemovePolicy(ctx context.Context, policy *v1alpha1.
 	if err != nil {
 		return err
 	}
-	_, err = p.RemoveTemplate(ctx, template)
+	_, err = p.client.RemoveTemplate(ctx, template)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (p *GateKeeperProvider) RemoveRule(ctx context.Context, rule *v1alpha1.Rule
 	if err != nil {
 		return err
 	}
-	_, err = p.RemoveConstraint(ctx, constraint)
+	_, err = p.client.RemoveConstraint(ctx, constraint)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,6 @@ func Template(policy *v1alpha1.Policy) (*templates.ConstraintTemplate, error) {
 					},
 					Validation: &templates.Validation{
 						OpenAPIV3Schema: spec.Parameters.Validation.OpenAPIV3Schema,
-						LegacySchema:    &spec.Parameters.Validation.LegacySchema,
 					},
 				},
 			},

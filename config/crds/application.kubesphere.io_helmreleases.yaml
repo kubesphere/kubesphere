@@ -43,10 +43,14 @@ spec:
         description: HelmRelease is the Schema for the helmreleases API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -66,7 +70,8 @@ spec:
                 description: The name of the chart which will be installed.
                 type: string
               chartVersion:
-                description: Specify the exact chart version to install. If this is not specified, the latest version is installed
+                description: Specify the exact chart version to install. If this is
+                  not specified, the latest version is installed
                 type: string
               description:
                 description: Message got from frontend
@@ -82,7 +87,9 @@ spec:
                 format: byte
                 type: string
               version:
-                description: expected release version, when this version is not equal status.version, the release need upgrade this filed should be modified when any filed of the spec modified.
+                description: expected release version, when this version is not equal
+                  status.version, the release need upgrade this filed should be modified
+                  when any filed of the spec modified.
                 type: integer
             required:
             - chartName
@@ -94,7 +101,8 @@ spec:
             description: HelmReleaseStatus defines the observed state of HelmRelease
             properties:
               deployStatus:
-                description: deploy status list of history, which will store at most 10 state
+                description: deploy status list of history, which will store at most
+                  10 state
                 items:
                   properties:
                     deployTime:
@@ -102,7 +110,8 @@ spec:
                       format: date-time
                       type: string
                     message:
-                      description: A human readable message indicating details about why the release is in this state.
+                      description: A human readable message indicating details about
+                        why the release is in this state.
                       type: string
                     state:
                       description: current state of the release
@@ -121,7 +130,8 @@ spec:
                 format: date-time
                 type: string
               message:
-                description: A human readable message indicating details about why the release is in this state.
+                description: A human readable message indicating details about why
+                  the release is in this state.
                 type: string
               state:
                 description: current state

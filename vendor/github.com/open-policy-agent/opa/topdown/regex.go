@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/yashtewari/glob-intersection"
+	gintersect "github.com/yashtewari/glob-intersection"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown/builtins"
@@ -17,6 +17,21 @@ import (
 
 var regexpCacheLock = sync.Mutex{}
 var regexpCache map[string]*regexp.Regexp
+
+func builtinRegexIsValid(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+
+	s, err := builtins.StringOperand(operands[0].Value, 1)
+	if err != nil {
+		return iter(ast.BooleanTerm(false))
+	}
+
+	_, err = regexp.Compile(string(s))
+	if err != nil {
+		return iter(ast.BooleanTerm(false))
+	}
+
+	return iter(ast.BooleanTerm(true))
+}
 
 func builtinRegexMatch(a, b ast.Value) (ast.Value, error) {
 	s1, err := builtins.StringOperand(a, 1)
@@ -79,11 +94,11 @@ func builtinRegexSplit(a, b ast.Value) (ast.Value, error) {
 	}
 
 	elems := re.Split(string(s2), -1)
-	arr := make(ast.Array, len(elems))
-	for i := range arr {
+	arr := make([]*ast.Term, len(elems))
+	for i := range elems {
 		arr[i] = ast.StringTerm(elems[i])
 	}
-	return arr, nil
+	return ast.NewArray(arr...), nil
 }
 
 func getRegexp(pat string) (*regexp.Regexp, error) {
@@ -151,11 +166,11 @@ func builtinRegexFind(a, b, c ast.Value) (ast.Value, error) {
 	}
 
 	elems := re.FindAllString(string(s2), n)
-	arr := make(ast.Array, len(elems))
-	for i := range arr {
+	arr := make([]*ast.Term, len(elems))
+	for i := range elems {
 		arr[i] = ast.StringTerm(elems[i])
 	}
-	return arr, nil
+	return ast.NewArray(arr...), nil
 }
 
 func builtinRegexFindAllStringSubmatch(a, b, c ast.Value) (ast.Value, error) {
@@ -178,21 +193,23 @@ func builtinRegexFindAllStringSubmatch(a, b, c ast.Value) (ast.Value, error) {
 	}
 	matches := re.FindAllStringSubmatch(string(s2), n)
 
-	outer := make(ast.Array, len(matches))
-	for i := range outer {
-		inner := make(ast.Array, len(matches[i]))
-		for j := range inner {
+	outer := make([]*ast.Term, len(matches))
+	for i := range matches {
+		inner := make([]*ast.Term, len(matches[i]))
+		for j := range matches[i] {
 			inner[j] = ast.StringTerm(matches[i][j])
 		}
-		outer[i] = ast.ArrayTerm(inner...)
+		outer[i] = ast.NewTerm(ast.NewArray(inner...))
 	}
 
-	return outer, nil
+	return ast.NewArray(outer...), nil
 }
 
 func init() {
 	regexpCache = map[string]*regexp.Regexp{}
+	RegisterBuiltinFunc(ast.RegexIsValid.Name, builtinRegexIsValid)
 	RegisterFunctionalBuiltin2(ast.RegexMatch.Name, builtinRegexMatch)
+	RegisterFunctionalBuiltin2(ast.RegexMatchDeprecated.Name, builtinRegexMatch)
 	RegisterFunctionalBuiltin2(ast.RegexSplit.Name, builtinRegexSplit)
 	RegisterFunctionalBuiltin2(ast.GlobsMatch.Name, builtinGlobsMatch)
 	RegisterFunctionalBuiltin4(ast.RegexTemplateMatch.Name, builtinRegexMatchTemplate)

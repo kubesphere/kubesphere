@@ -4,29 +4,22 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/open-policy-agent/frameworks/constraint/pkg/client/drivers"
-	"github.com/open-policy-agent/frameworks/constraint/pkg/externaldata"
 	"github.com/open-policy-agent/frameworks/constraint/pkg/types"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/storage/inmem"
 	"github.com/open-policy-agent/opa/topdown"
-	opatypes "github.com/open-policy-agent/opa/types"
+	"github.com/pkg/errors"
 )
 
-const (
-	moduleSetPrefix = "__modset_"
-	moduleSetSep    = "_idx_"
-)
+const moduleSetPrefix = "__modset_"
+const moduleSetSep = "_idx_"
 
 type module struct {
 	text   string
@@ -72,12 +65,6 @@ func DisableBuiltins(builtins ...string) Arg {
 	}
 }
 
-func AddExternalDataProviderCache(providerCache *externaldata.ProviderCache) Arg {
-	return func(d *driver) {
-		d.providerCache = providerCache
-	}
-}
-
 func New(args ...Arg) drivers.Driver {
 	d := &driver{
 		compiler:     ast.NewCompiler(),
@@ -88,15 +75,6 @@ func New(args ...Arg) drivers.Driver {
 	for _, arg := range args {
 		arg(d)
 	}
-
-	// adding externaldata builtin otherwise capabilities get overridden
-	// if a capability, like http.send, is disabled
-	if d.providerCache != nil {
-		d.capabilities.Builtins = append(d.capabilities.Builtins, &ast.Builtin{
-			Name: "external_data",
-			Decl: opatypes.NewFunction(opatypes.Args(opatypes.A), opatypes.A),
-		})
-	}
 	d.compiler.WithCapabilities(d.capabilities)
 	return d
 }
@@ -104,82 +82,15 @@ func New(args ...Arg) drivers.Driver {
 var _ drivers.Driver = &driver{}
 
 type driver struct {
-	modulesMux    sync.RWMutex
-	compiler      *ast.Compiler
-	modules       map[string]*ast.Module
-	storage       storage.Store
-	capabilities  *ast.Capabilities
-	traceEnabled  bool
-	providerCache *externaldata.ProviderCache
+	modulesMux   sync.RWMutex
+	compiler     *ast.Compiler
+	modules      map[string]*ast.Module
+	storage      storage.Store
+	capabilities *ast.Capabilities
+	traceEnabled bool
 }
 
 func (d *driver) Init(ctx context.Context) error {
-	if d.providerCache != nil {
-		rego.RegisterBuiltin1(
-			&rego.Function{
-				Name:    "external_data",
-				Decl:    opatypes.NewFunction(opatypes.Args(opatypes.A), opatypes.A),
-				Memoize: true,
-			},
-			func(bctx rego.BuiltinContext, regorequest *ast.Term) (*ast.Term, error) {
-				var regoReq externaldata.RegoRequest
-				if err := ast.As(regorequest.Value, &regoReq); err != nil {
-					return nil, err
-				}
-				// only primitive types are allowed for keys
-				for _, key := range regoReq.Keys {
-					switch v := key.(type) {
-					case int:
-					case int32:
-					case int64:
-					case string:
-					case float64:
-					case float32:
-						break
-					default:
-						return externaldata.HandleError(http.StatusBadRequest, fmt.Errorf("type %v is not supported in external_data", v))
-					}
-				}
-
-				provider, err := d.providerCache.Get(regoReq.ProviderName)
-				if err != nil {
-					return externaldata.HandleError(http.StatusBadRequest, err)
-				}
-
-				externaldataRequest := externaldata.NewProviderRequest(regoReq.Keys)
-				reqBody, err := json.Marshal(externaldataRequest)
-				if err != nil {
-					return externaldata.HandleError(http.StatusInternalServerError, err)
-				}
-
-				req, err := http.NewRequest("POST", provider.Spec.URL, bytes.NewBuffer(reqBody))
-				if err != nil {
-					return externaldata.HandleError(http.StatusInternalServerError, err)
-				}
-
-				ctx, cancel := context.WithDeadline(bctx.Context, time.Now().Add(time.Duration(provider.Spec.Timeout)*time.Second))
-				defer cancel()
-
-				resp, err := http.DefaultClient.Do(req.WithContext(ctx))
-				if err != nil {
-					return externaldata.HandleError(http.StatusInternalServerError, err)
-				}
-				defer resp.Body.Close()
-				respBody, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					return externaldata.HandleError(http.StatusInternalServerError, err)
-				}
-
-				var externaldataResponse externaldata.ProviderResponse
-				if err := json.Unmarshal(respBody, &externaldataResponse); err != nil {
-					return externaldata.HandleError(http.StatusInternalServerError, err)
-				}
-
-				regoResponse := externaldata.NewRegoResponse(resp.StatusCode, &externaldataResponse)
-				return externaldata.PrepareRegoResponse(regoResponse)
-			},
-		)
-	}
 	return nil
 }
 
@@ -196,20 +107,20 @@ func copyModules(modules map[string]*ast.Module, filter string) map[string]*ast.
 
 func (d *driver) checkModuleName(name string) error {
 	if name == "" {
-		return fmt.Errorf("module name cannot be empty")
+		return errors.Errorf("Module name cannot be empty")
 	}
 	if strings.HasPrefix(name, moduleSetPrefix) {
-		return fmt.Errorf("single modules not allowed to use name prefix %q", moduleSetPrefix)
+		return errors.Errorf("Single modules not allowed to use name prefix %s", moduleSetPrefix)
 	}
 	return nil
 }
 
 func (d *driver) checkModuleSetName(name string) error {
 	if name == "" {
-		return fmt.Errorf("modules name prefix cannot be empty")
+		return errors.Errorf("Modules name prefix cannot be empty")
 	}
 	if strings.Contains(name, moduleSetSep) {
-		return fmt.Errorf("modules name prefix not allowed to contain the sequence n%s", moduleSetSep)
+		return errors.Errorf("Modules name prefix not allowed to contain the sequence n%s", moduleSetSep)
 	}
 	return nil
 }
@@ -232,7 +143,7 @@ func (d *driver) PutModule(ctx context.Context, name string, src string) error {
 	return err
 }
 
-// PutModules implements drivers.Driver.
+// PutModules implements drivers.Driver
 func (d *driver) PutModules(ctx context.Context, namePrefix string, srcs []string) error {
 	if err := d.checkModuleSetName(namePrefix); err != nil {
 		return err
@@ -260,7 +171,7 @@ func (d *driver) PutModules(ctx context.Context, namePrefix string, srcs []strin
 }
 
 // DeleteModule deletes a rule from OPA and returns true if a rule was found and deleted, false
-// if a rule was not found, and any errors.
+// if a rule was not found, and any errors
 func (d *driver) DeleteModule(ctx context.Context, name string) (bool, error) {
 	if err := d.checkModuleName(name); err != nil {
 		return false, err
@@ -319,7 +230,7 @@ func (d *driver) alterModules(ctx context.Context, insert insertParam, remove []
 	return len(remove), nil
 }
 
-// DeleteModules implements drivers.Driver.
+// DeleteModules implements drivers.Driver
 func (d *driver) DeleteModules(ctx context.Context, namePrefix string) (int, error) {
 	if err := d.checkModuleSetName(namePrefix); err != nil {
 		return 0, err
@@ -346,7 +257,7 @@ func (d *driver) listModuleSet(namePrefix string) []string {
 func parsePath(path string) ([]string, error) {
 	p, ok := storage.ParsePathEscaped(path)
 	if !ok {
-		return nil, fmt.Errorf("bad data path: %q", path)
+		return nil, fmt.Errorf("Bad data path: %s", path)
 	}
 	return p, nil
 }
@@ -380,12 +291,14 @@ func (d *driver) PutData(ctx context.Context, path string, data interface{}) err
 		d.storage.Abort(ctx, txn)
 		return err
 	}
-
-	return d.storage.Commit(ctx, txn)
+	if err := d.storage.Commit(ctx, txn); err != nil {
+		return err
+	}
+	return nil
 }
 
 // DeleteData deletes data from OPA and returns true if data was found and deleted, false
-// if data was not found, and any errors.
+// if data was not found, and any errors
 func (d *driver) DeleteData(ctx context.Context, path string) (bool, error) {
 	d.modulesMux.RLock()
 	defer d.modulesMux.RUnlock()
@@ -421,17 +334,16 @@ func (d *driver) eval(ctx context.Context, path string, input interface{}, cfg *
 	}
 	if d.traceEnabled || cfg.TracingEnabled {
 		buf := topdown.NewBufferTracer()
-		args = append(args, rego.QueryTracer(buf))
-		r := rego.New(args...)
-		res, err := r.Eval(ctx)
+		args = append(args, rego.Tracer(buf))
+		rego := rego.New(args...)
+		res, err := rego.Eval(ctx)
 		b := &bytes.Buffer{}
 		topdown.PrettyTrace(b, *buf)
 		t := b.String()
 		return res, &t, err
 	}
-
-	r := rego.New(args...)
-	res, err := r.Eval(ctx)
+	rego := rego.New(args...)
+	res, err := rego.Eval(ctx)
 	return res, nil, err
 }
 
@@ -484,11 +396,11 @@ func (d *driver) Dump(ctx context.Context) (string, error) {
 	var dt interface{}
 	// There should be only 1 or 0 expression values
 	if len(data) > 1 {
-		return "", errors.New("too many dump results")
+		return "", errors.New("Too many dump results")
 	}
 	for _, da := range data {
 		if len(data) > 1 {
-			return "", errors.New("too many expressions results")
+			return "", errors.New("Too many expressions results")
 		}
 		for _, e := range da.Expressions {
 			dt = e.Value

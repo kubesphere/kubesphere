@@ -169,7 +169,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 						Namespace: "kubesphere-controls-system",
 					},
 					Spec: v1alpha1.GatewaySpec{
-						Conroller: v1alpha1.ControllerSpec{
+						Controller: v1alpha1.ControllerSpec{
 							Scope: v1alpha1.Scope{
 								Enabled:   true,
 								Namespace: "project6",
@@ -181,6 +181,9 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 							},
 							Type: corev1.ServiceTypeNodePort,
 						},
+					},
+					Status: runtime.RawExtension{
+						Raw: []byte("{\"loadBalancer\":{},\"service\":[{\"name\":\"http\",\"protocol\":\"TCP\",\"port\":80,\"targetPort\":0}]}\n"),
 					},
 				},
 			},
@@ -340,7 +343,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 						APIVersion: "gateway.kubesphere.io/v1alpha1",
 					},
 					Spec: v1alpha1.GatewaySpec{
-						Conroller: v1alpha1.ControllerSpec{
+						Controller: v1alpha1.ControllerSpec{
 							Scope: v1alpha1.Scope{
 								Enabled:   true,
 								Namespace: "projct1",
@@ -371,7 +374,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 						APIVersion: "gateway.kubesphere.io/v1alpha1",
 					},
 					Spec: v1alpha1.GatewaySpec{
-						Conroller: v1alpha1.ControllerSpec{
+						Controller: v1alpha1.ControllerSpec{
 							Scope: v1alpha1.Scope{
 								Enabled:   true,
 								Namespace: "projct2",
@@ -503,7 +506,7 @@ func Test_gatewayOperator_UpdateGateway(t *testing.T) {
 			ResourceVersion: "1",
 		},
 		Spec: v1alpha1.GatewaySpec{
-			Conroller: v1alpha1.ControllerSpec{
+			Controller: v1alpha1.ControllerSpec{
 				Scope: v1alpha1.Scope{
 					Enabled:   true,
 					Namespace: "project3",
@@ -612,7 +615,7 @@ func Test_gatewayOperator_UpgradeGateway(t *testing.T) {
 					ResourceVersion: "1",
 				},
 				Spec: v1alpha1.GatewaySpec{
-					Conroller: v1alpha1.ControllerSpec{
+					Controller: v1alpha1.ControllerSpec{
 						Scope: v1alpha1.Scope{
 							Enabled:   true,
 							Namespace: "project2",
@@ -688,7 +691,7 @@ func Test_gatewayOperator_ListGateways(t *testing.T) {
 				Namespace: "kubesphere-controls-system",
 			},
 			Spec: v1alpha1.GatewaySpec{
-				Conroller: v1alpha1.ControllerSpec{
+				Controller: v1alpha1.ControllerSpec{
 					Scope: v1alpha1.Scope{
 						Enabled:   true,
 						Namespace: "project2",

@@ -21,6 +21,8 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"kubesphere.io/kubesphere/pkg/utils/reposcache"
+
 	"github.com/go-openapi/strfmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -172,5 +174,5 @@ func prepareAppOperator() ApplicationInterface {
 	k8sClient = fakek8s.NewSimpleClientset()
 	fakeInformerFactory = informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
-	return newApplicationOperator(cachedReposData, fakeInformerFactory.KubeSphereSharedInformerFactory(), ksClient, fake.NewFakeS3())
+	return newApplicationOperator(reposcache.NewReposCache(), fakeInformerFactory.KubeSphereSharedInformerFactory(), ksClient, fake.NewFakeS3())
 }

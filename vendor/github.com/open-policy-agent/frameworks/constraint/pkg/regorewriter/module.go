@@ -8,7 +8,7 @@ import (
 	"github.com/open-policy-agent/opa/format"
 )
 
-// Module represents a rego module.
+// Module represents a rego module
 type Module struct {
 	FilePath
 
@@ -22,7 +22,7 @@ func (m *Module) Write() error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(m.Path(), b, 0o600)
+	return ioutil.WriteFile(m.Path(), b, 0640)
 }
 
 // Content returns the module as a byte slice of rego source code.

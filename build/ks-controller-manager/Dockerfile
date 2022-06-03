@@ -9,7 +9,7 @@ ARG TARGETARCH
 ARG TARGETOS
 ARG HELM_VERSION=v3.5.2
 ARG KUSTOMIZE_VERSION=v4.2.0
-ARG INGRESS_NGINX_VERSION=3.35.0
+ARG INGRESS_NGINX_VERSION=4.0.13
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin
@@ -26,7 +26,7 @@ RUN mv /tmp/${TARGETOS}-${TARGETARCH}/helm ${OUTDIR}/usr/local/bin/
 
 # install kustomize
 ADD https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_${TARGETOS}_${TARGETARCH}.tar.gz /tmp
-RUN tar xvzf /tmp/kustomize_${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz -C /tmp
+RUN tar xvzf /tmp/kustomize_${KUSTOMIZE_VERSION}_${TARGETOS}_${TARGETARCH}.tar.gz -C /tmp
 RUN mv /tmp/kustomize ${OUTDIR}/usr/local/bin/
 
 

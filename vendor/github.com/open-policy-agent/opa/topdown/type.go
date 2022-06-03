@@ -37,7 +37,7 @@ func builtinIsBoolean(a ast.Value) (ast.Value, error) {
 
 func builtinIsArray(a ast.Value) (ast.Value, error) {
 	switch a.(type) {
-	case ast.Array:
+	case *ast.Array:
 		return ast.Boolean(true), nil
 	default:
 		return nil, BuiltinEmpty{}

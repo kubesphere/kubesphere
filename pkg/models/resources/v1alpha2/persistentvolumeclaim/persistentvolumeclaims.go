@@ -123,6 +123,7 @@ func (s *persistentVolumeClaimSearcher) Search(namespace string, conditions *par
 
 	r := make([]interface{}, 0)
 	for _, i := range result {
+		i = i.DeepCopy()
 		inUse := s.countPods(i.Name, i.Namespace)
 		isSnapshotAllow := s.isSnapshotAllowed(i.GetAnnotations()["volume.beta.kubernetes.io/storage-provisioner"])
 		if i.Annotations == nil {

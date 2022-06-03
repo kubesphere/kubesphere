@@ -68,9 +68,11 @@ func TestDoNothing(t *testing.T) {
 	for i := 0; i < authenticateOptions.AuthenticateRateLimiterMaxTries+1; i++ {
 		loginRecord := iamv1alpha2.LoginRecord{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              fmt.Sprintf("%s-%d", user.Name, i),
-				Labels:            map[string]string{iamv1alpha2.UserReferenceLabel: user.Name},
-				CreationTimestamp: metav1.Now(),
+				Name:   fmt.Sprintf("%s-%d", user.Name, i),
+				Labels: map[string]string{iamv1alpha2.UserReferenceLabel: user.Name},
+				// Ensure that the failed login record created after the user status change to active,
+				// otherwise, the failed login attempts will not be counted.
+				CreationTimestamp: metav1.NewTime(time.Now().Add(time.Minute)),
 			},
 			Spec: iamv1alpha2.LoginRecordSpec{
 				Success: false,
@@ -99,7 +101,7 @@ func TestDoNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = c.Reconcile(context.Background(), reconcile.Request{
+	result, err := c.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: user.Name},
 	})
 	if err != nil {
@@ -108,22 +110,15 @@ func TestDoNothing(t *testing.T) {
 
 	// append finalizer
 	updateEvent := <-w.ResultChan()
-	assert.Equal(t, updateEvent.Type, watch.Modified)
+	assert.Equal(t, watch.Modified, updateEvent.Type)
 	assert.NotNil(t, updateEvent.Object)
 	user = updateEvent.Object.(*iamv1alpha2.User)
 	assert.NotNil(t, user)
 	assert.NotEmpty(t, user.Finalizers)
 
-	result, err := c.Reconcile(context.Background(), reconcile.Request{
-		NamespacedName: types.NamespacedName{Name: user.Name},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	updateEvent = <-w.ResultChan()
 	// encrypt password
-	assert.Equal(t, updateEvent.Type, watch.Modified)
+	assert.Equal(t, watch.Modified, updateEvent.Type)
 	assert.NotNil(t, updateEvent.Object)
 	user = updateEvent.Object.(*iamv1alpha2.User)
 	assert.NotNil(t, user)
@@ -132,12 +127,12 @@ func TestDoNothing(t *testing.T) {
 	// becomes active after password encrypted
 	updateEvent = <-w.ResultChan()
 	user = updateEvent.Object.(*iamv1alpha2.User)
-	assert.Equal(t, *user.Status.State, iamv1alpha2.UserActive)
+	assert.Equal(t, iamv1alpha2.UserActive, user.Status.State)
 
 	// block user
 	updateEvent = <-w.ResultChan()
 	user = updateEvent.Object.(*iamv1alpha2.User)
-	assert.Equal(t, *user.Status.State, iamv1alpha2.UserAuthLimitExceeded)
+	assert.Equal(t, iamv1alpha2.UserAuthLimitExceeded, user.Status.State)
 	assert.True(t, result.Requeue)
 
 	time.Sleep(result.RequeueAfter + time.Second)
@@ -151,5 +146,5 @@ func TestDoNothing(t *testing.T) {
 	// unblock user
 	updateEvent = <-w.ResultChan()
 	user = updateEvent.Object.(*iamv1alpha2.User)
-	assert.Equal(t, *user.Status.State, iamv1alpha2.UserActive)
+	assert.Equal(t, iamv1alpha2.UserActive, user.Status.State)
 }

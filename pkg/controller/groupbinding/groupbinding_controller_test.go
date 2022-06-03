@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"kubesphere.io/api/iam/v1alpha2"
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
-	v1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	fedv1beta1types "kubesphere.io/api/types/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
@@ -63,8 +63,8 @@ type fixture struct {
 	fedgroupBindingLister []*fedv1beta1types.FederatedGroupBinding
 	userLister            []*v1alpha2.User
 	// Actions expected to happen on the client.
-	kubeactions []core.Action
-	actions     []core.Action
+	k8sactions []core.Action
+	ksactions  []core.Action
 	// Objects from here preloaded into NewSimpleFake.
 	kubeobjects []runtime.Object
 	objects     []runtime.Object
@@ -185,32 +185,32 @@ func (f *fixture) runController(groupBinding string, startInformers bool, expect
 
 	actions := filterInformerActions(f.ksclient.Actions())
 	for i, action := range actions {
-		if len(f.actions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[i:])
+		if len(f.ksactions) < i+1 {
+			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.ksactions), actions[i:])
 			break
 		}
 
-		expectedAction := f.actions[i]
+		expectedAction := f.ksactions[i]
 		checkAction(expectedAction, action, f.t)
 	}
 
-	if len(f.actions) > len(actions) {
-		f.t.Errorf("%d additional expected actions:%+v", len(f.actions)-len(actions), f.actions[len(actions):])
+	if len(f.ksactions) > len(actions) {
+		f.t.Errorf("%d additional expected actions:%+v", len(f.ksactions)-len(actions), f.ksactions[len(actions):])
 	}
 
 	k8sActions := filterInformerActions(f.k8sclient.Actions())
 	for i, action := range k8sActions {
-		if len(f.kubeactions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.kubeactions), k8sActions[i:])
+		if len(f.k8sactions) < i+1 {
+			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.k8sactions), k8sActions[i:])
 			break
 		}
 
-		expectedAction := f.kubeactions[i]
+		expectedAction := f.k8sactions[i]
 		checkAction(expectedAction, action, f.t)
 	}
 
-	if len(f.kubeactions) > len(k8sActions) {
-		f.t.Errorf("%d additional expected actions:%+v", len(f.kubeactions)-len(k8sActions), f.kubeactions[len(k8sActions):])
+	if len(f.k8sactions) > len(k8sActions) {
+		f.t.Errorf("%d additional expected actions:%+v", len(f.k8sactions)-len(k8sActions), f.k8sactions[len(k8sActions):])
 	}
 }
 
@@ -269,18 +269,12 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 func filterInformerActions(actions []core.Action) []core.Action {
 	var ret []core.Action
 	for _, action := range actions {
-		if len(action.GetNamespace()) == 0 &&
-			(action.Matches("list", "groupbindings") ||
-				action.Matches("watch", "groupbindings") ||
-				action.Matches("list", "federatedgroupbindings") ||
-				action.Matches("list", "users") ||
-				action.Matches("watch", "users") ||
-				action.Matches("get", "users")) {
+		// filter out read action
+		if action.GetVerb() == "watch" || action.GetVerb() == "list" || action.GetVerb() == "get" {
 			continue
 		}
 		ret = append(ret, action)
 	}
-
 	return ret
 }
 
@@ -289,14 +283,14 @@ func (f *fixture) expectUpdateGroupsFinalizerAction(groupBinding *v1alpha2.Group
 	expect.Finalizers = []string{"finalizers.kubesphere.io/groupsbindings"}
 	expect.Labels = map[string]string{constants.KubefedManagedLabel: "false"}
 	action := core.NewUpdateAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"}, "", expect)
-	f.actions = append(f.actions, action)
+	f.ksactions = append(f.ksactions, action)
 }
 
 func (f *fixture) expectUpdateGroupsDeleteAction(groupBinding *v1alpha2.GroupBinding) {
 	expect := groupBinding.DeepCopy()
 	expect.Finalizers = []string{}
 	action := core.NewUpdateAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "groupbindings"}, "", expect)
-	f.actions = append(f.actions, action)
+	f.ksactions = append(f.ksactions, action)
 }
 
 func (f *fixture) expectPatchUserAction(user *v1alpha2.User, groups []string) {
@@ -305,16 +299,16 @@ func (f *fixture) expectPatchUserAction(user *v1alpha2.User, groups []string) {
 	patch := client.MergeFrom(user)
 	patchData, _ := patch.Data(newUser)
 
-	f.actions = append(f.actions, core.NewPatchAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Resource: "users", Version: "v1alpha2"}, user.Namespace, user.Name, patch.Type(), patchData))
+	f.ksactions = append(f.ksactions, core.NewPatchAction(schema.GroupVersionResource{Group: "iam.kubesphere.io", Resource: "users", Version: "v1alpha2"}, user.Namespace, user.Name, patch.Type(), patchData))
 }
 
 func (f *fixture) expectCreateFederatedGroupBindingsAction(groupBinding *v1alpha2.GroupBinding) {
 	b := newFederatedGroupBinding(groupBinding)
 
-	controllerutil.SetControllerReference(groupBinding, b, scheme.Scheme)
+	_ = controllerutil.SetControllerReference(groupBinding, b, scheme.Scheme)
 
 	actionCreate := core.NewCreateAction(schema.GroupVersionResource{Group: "types.kubefed.io", Version: "v1beta1", Resource: "federatedgroupbindings"}, "", b)
-	f.actions = append(f.actions, actionCreate)
+	f.ksactions = append(f.ksactions, actionCreate)
 }
 
 func getKey(groupBinding *v1alpha2.GroupBinding, t *testing.T) string {
@@ -341,9 +335,9 @@ func TestCreatesGroupBinding(t *testing.T) {
 
 	f.objects = append(f.objects, user)
 
-	excepctGroups := []string{"test"}
+	expectGroups := []string{"test"}
 
-	f.expectPatchUserAction(user, excepctGroups)
+	f.expectPatchUserAction(user, expectGroups)
 	f.expectCreateFederatedGroupBindingsAction(groupbinding)
 
 	f.run(getKey(groupbinding, t))

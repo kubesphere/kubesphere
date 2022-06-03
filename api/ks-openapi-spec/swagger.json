@@ -933,6 +933,32 @@
         }
       }
     },
+    "/kapis/cluster.kubesphere.io/v1alpha1/clusters/{cluster}/kubeconfig": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Multi-cluster"
+        ],
+        "summary": "Update cluster kubeconfig.",
+        "operationId": "updateKubeConfig",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Name of the cluster.",
+            "name": "cluster",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      }
+    },
     "/kapis/devops.kubesphere.io/v1alpha2/{path}": {
       "get": {
         "produces": [
@@ -991,6 +1017,63 @@
       }
     },
     "/kapis/devops.kubesphere.io/v1alpha3/{path}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "handler",
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      }
+    },
+    "/kapis/gitops.kubesphere.io/v1alpha1/{path}": {
       "get": {
         "produces": [
           "application/json"
@@ -2017,7 +2100,7 @@
           "Authentication"
         ],
         "summary": "KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.",
-        "operationId": "Login",
+        "operationId": "login",
         "deprecated": true,
         "parameters": [
           {
@@ -3754,6 +3837,35 @@
         }
       }
     },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/clusterdashboards/{grafanaDashboardName}/template": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Convert Grafana templates to KubeSphere clusterdashboards.",
+        "operationId": "handleGrafanaDashboardImport",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the Grafana template to be converted",
+            "name": "grafanaDashboardName",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.ClusterDashboard"
+            }
+          }
+        }
+      }
+    },
     "/kapis/monitoring.kubesphere.io/v1alpha3/components/{component}": {
       "get": {
         "produces": [
@@ -3940,6 +4052,239 @@
           {
             "type": "string",
             "description": "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both namespace CPU usage and memory usage: `namespace_cpu_usage|namespace_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).",
+            "name": "metrics_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ",
+            "name": "start",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ",
+            "name": "end",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "10m",
+            "description": "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).",
+            "name": "step",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.",
+            "name": "time",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metrics"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/dashboards/{grafanaDashboardName}/template": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Convert Grafana templates to KubeSphere dashboards.",
+        "operationId": "handleGrafanaDashboardImport",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the Grafana template to be converted",
+            "name": "grafanaDashboardName",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the project",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.Dashboard"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/ingresses": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Ingress Metrics"
+        ],
+        "summary": "Get Ingress-level metric data of the specific namespace's Ingresses.",
+        "operationId": "handleIngressMetricsQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the namespace.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The job name filter. Ingress could be served by multi Ingress controllers, The job filters metric from a specific controller.",
+            "name": "job",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The pod name filter.",
+            "name": "pod",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The duration is the time window of Range Vector. The format is [0-9]+[smhdwy]. Defaults to 5m (i.e. 5 min).",
+            "name": "duration",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).",
+            "name": "metrics_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The PVC filter consists of a regexp pattern. It specifies which PVC data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.",
+            "name": "resources_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ",
+            "name": "start",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ",
+            "name": "end",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "10m",
+            "description": "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).",
+            "name": "step",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.",
+            "name": "time",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Sort PVCs by the specified metric. Not applicable if **start** and **end** are provided.",
+            "name": "sort_metric",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "desc.",
+            "description": "Sort order. One of asc, desc.",
+            "name": "sort_type",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 5,
+            "description": "Page size, the maximum number of results in a single page. Defaults to 5.",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metrics"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/ingresses/{ingress}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Ingress Metrics"
+        ],
+        "summary": "Get Ingress-level metric data of a specific Ingress. Navigate to the Ingress by the Ingress's namespace.",
+        "operationId": "handleIngressMetricsQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the namespace.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "ingress name.",
+            "name": "ingress",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The job name filter. Ingress could be served by multi Ingress controllers, The job filters metric from a specific controller.",
+            "name": "job",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The pod filter.",
+            "name": "pod",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The duration is the time window of Range Vector. The format is [0-9]+[smhdwy]. Defaults to 5m (i.e. 5 min).",
+            "name": "duration",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).",
             "name": "metrics_filter",
             "in": "query"
           },
@@ -9774,6 +10119,7 @@
         ],
         "summary": "List router of a specified project",
         "operationId": "handleGetRouter",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -9801,6 +10147,7 @@
         ],
         "summary": "Update a router for a specified project",
         "operationId": "handleUpdateRouter",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -9828,6 +10175,7 @@
         ],
         "summary": "Create a router for a specified project",
         "operationId": "handleCreateRouter",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -9855,6 +10203,7 @@
         ],
         "summary": "List router of a specified project",
         "operationId": "handleDeleteRouter",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -10314,7 +10663,7 @@
         }
       }
     },
-    "/kapis/resources.kubesphere.io/v1alpha3/namespaces/{namespace}/registrysecrets/{secret}": {
+    "/kapis/resources.kubesphere.io/v1alpha3/namespaces/{namespace}/registrysecrets/{secret}/verify": {
       "post": {
         "produces": [
           "application/json"
@@ -10334,7 +10683,7 @@
           },
           {
             "type": "string",
-            "description": "Secret name of the image repository credential to create",
+            "description": "Name of the secret name",
             "name": "secret",
             "in": "path",
             "required": true
@@ -10358,7 +10707,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "type": "string"
+              "$ref": "#/definitions/v1.Secret"
             }
           }
         }
@@ -12070,7 +12419,7 @@
           "Workspace"
         ],
         "summary": "List all workspaces that belongs to the current user",
-        "operationId": "ListWorkspaces",
+        "operationId": "ListWorkspaceTemplates",
         "responses": {
           "200": {
             "description": "ok",
@@ -12088,7 +12437,7 @@
           "Workspace"
         ],
         "summary": "Create workspace.",
-        "operationId": "CreateWorkspace",
+        "operationId": "CreateWorkspaceTemplate",
         "parameters": [
           {
             "name": "body",
@@ -12118,7 +12467,7 @@
           "Workspace"
         ],
         "summary": "Describe workspace.",
-        "operationId": "DescribeWorkspace",
+        "operationId": "DescribeWorkspaceTemplate",
         "parameters": [
           {
             "type": "string",
@@ -12145,7 +12494,7 @@
           "Workspace"
         ],
         "summary": "Update workspace.",
-        "operationId": "UpdateWorkspace",
+        "operationId": "UpdateWorkspaceTemplate",
         "parameters": [
           {
             "type": "string",
@@ -12180,7 +12529,7 @@
           "Workspace"
         ],
         "summary": "Delete workspace.",
-        "operationId": "DeleteWorkspace",
+        "operationId": "DeleteWorkspaceTemplate",
         "parameters": [
           {
             "type": "string",
@@ -12212,7 +12561,7 @@
           "Workspace"
         ],
         "summary": "Update workspace.",
-        "operationId": "PatchWorkspace",
+        "operationId": "PatchWorkspaceTemplate",
         "parameters": [
           {
             "type": "string",
@@ -12798,6 +13147,234 @@
         }
       }
     },
+    "/kapis/tenant.kubesphere.io/v1alpha3/workspaces": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "List all workspaces that belongs to the current user",
+        "operationId": "ListWorkspaces",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/models.PageableResponse"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/tenant.kubesphere.io/v1alpha3/workspaces/{workspace}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Get workspace.",
+        "operationId": "GetWorkspace",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1.Workspace"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/tenant.kubesphere.io/v1alpha3/workspacetemplates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "List all workspaces that belongs to the current user",
+        "operationId": "ListWorkspaceTemplates",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/models.PageableResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Create workspace.",
+        "operationId": "CreateWorkspaceTemplate",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/tenant.kubesphere.io/v1alpha3/workspacetemplates/{workspace}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Describe workspace.",
+        "operationId": "DescribeWorkspaceTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Update workspace.",
+        "operationId": "UpdateWorkspaceTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Delete workspace.",
+        "operationId": "DeleteWorkspaceTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/errors.Error"
+            }
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json",
+          "application/merge-patch+json",
+          "application/json-patch+json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Workspace"
+        ],
+        "summary": "Update workspace.",
+        "operationId": "PatchWorkspaceTemplate",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workspace name",
+            "name": "workspace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.WorkspaceTemplate"
+            }
+          }
+        }
+      }
+    },
     "/kapis/terminal.kubesphere.io/v1alpha2/namespaces/{namespace}/pods/{pod}/exec": {
       "get": {
         "produces": [
@@ -12831,6 +13408,49 @@
         }
       }
     },
+    "/kapis/terminal.kubesphere.io/v1alpha2/nodes/{nodename}/exec": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Terminal"
+        ],
+        "summary": "create shell access to node session",
+        "operationId": "handleShellAccessToNode",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of cluster node",
+            "name": "nodename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/oauth/.well-known/openid-configuration": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "The OpenID Provider's configuration information can be retrieved.",
+        "operationId": "discovery",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/oauth/authenticate": {
       "post": {
         "consumes": [
@@ -12843,7 +13463,7 @@
           "Authentication"
         ],
         "summary": "TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be cached by the webhook token authenticator plugin in the kube-apiserver.",
-        "operationId": "TokenReview",
+        "operationId": "tokenReview",
         "parameters": [
           {
             "name": "body",
@@ -12875,8 +13495,8 @@
         "tags": [
           "Authentication"
         ],
-        "summary": "All requests for OAuth tokens involve a request to /oauth/authorize.",
-        "operationId": "Authorize",
+        "summary": "The authorization endpoint is used to interact with the resource owner and obtain an authorization grant.",
+        "operationId": "authorize",
         "parameters": [
           {
             "type": "string",
@@ -12887,24 +13507,82 @@
           },
           {
             "type": "string",
-            "description": "The client identifier issued to the client during the registration process described by [RFC6749] Section 2.2.",
+            "description": "OAuth 2.0 Client Identifier valid at the Authorization Server.",
             "name": "client_id",
             "in": "query",
             "required": true
           },
           {
             "type": "string",
-            "description": "After completing its interaction with the resource owner, the authorization server directs the resource owner's user-agent back to the client.The redirection endpoint URI MUST be an absolute URI as defined by [RFC3986] Section 4.3.",
+            "description": "Redirection URI to which the response will be sent. This URI MUST exactly match one of the Redirection URI values for the Client pre-registered at the OpenID Provider.",
             "name": "redirect_uri",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OpenID Connect requests MUST contain the openid scope value. If the openid scope value is not present, the behavior is entirely unspecified.",
+            "name": "scope",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Opaque value used to maintain state between the request and the callback.",
+            "name": "state",
             "in": "query"
           }
         ],
         "responses": {
-          "302": {
-            "description": "Found",
-            "schema": {
-              "type": "string"
-            }
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "The authorization endpoint is used to interact with the resource owner and obtain an authorization grant.",
+        "operationId": "authorize",
+        "parameters": [
+          {
+            "description": "The value MUST be one of \"code\" for requesting an authorization code as described by [RFC6749] Section 4.1.1, \"token\" for requesting an access token (implicit grant) as described by [RFC6749] Section 4.2.2.",
+            "name": "response_type",
+            "in": "body",
+            "required": true
+          },
+          {
+            "description": "OAuth 2.0 Client Identifier valid at the Authorization Server.",
+            "name": "client_id",
+            "in": "body",
+            "required": true
+          },
+          {
+            "description": "Redirection URI to which the response will be sent. This URI MUST exactly match one of the Redirection URI values for the Client pre-registered at the OpenID Provider.",
+            "name": "redirect_uri",
+            "in": "body",
+            "required": true
+          },
+          {
+            "description": "OpenID Connect requests MUST contain the openid scope value. If the openid scope value is not present, the behavior is entirely unspecified.",
+            "name": "scope",
+            "in": "body"
+          },
+          {
+            "description": "Opaque value used to maintain state between the request and the callback.",
+            "name": "state",
+            "in": "body"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -12967,6 +13645,23 @@
         }
       }
     },
+    "/oauth/keys": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "OP's JSON Web Key Set [JWK] document.",
+        "operationId": "keys",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/oauth/logout": {
       "get": {
         "consumes": [
@@ -12979,7 +13674,7 @@
           "Authentication"
         ],
         "summary": "This endpoint takes an ID token and logs the user out of KubeSphere if the subject matches the current session.",
-        "operationId": "Logout",
+        "operationId": "logout",
         "parameters": [
           {
             "type": "string",
@@ -13022,12 +13717,26 @@
           "Authentication"
         ],
         "summary": "The resource owner password credentials grant type is suitable in\ncases where the resource owner has a trust relationship with the\nclient, such as the device operating system or a highly privileged application.",
-        "operationId": "Token",
+        "operationId": "token",
         "parameters": [
           {
             "type": "string",
-            "description": "Value MUST be set to \"password\".",
+            "description": "OAuth defines four grant types: authorization code, implicit, resource owner password credentials, and client credentials.",
             "name": "grant_type",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Valid client credential.",
+            "name": "client_id",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Valid client credential.",
+            "name": "client_secret",
             "in": "formData",
             "required": true
           },
@@ -13035,15 +13744,19 @@
             "type": "string",
             "description": "The resource owner username.",
             "name": "username",
-            "in": "formData",
-            "required": true
+            "in": "formData"
           },
           {
             "type": "string",
             "description": "The resource owner password.",
             "name": "password",
-            "in": "formData",
-            "required": true
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "description": "Valid authorization code.",
+            "name": "code",
+            "in": "formData"
           }
         ],
         "responses": {
@@ -13055,9 +13768,85 @@
           }
         }
       }
+    },
+    "/oauth/userinfo": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "summary": "UserInfo Endpoint is an OAuth 2.0 Protected Resource that returns Claims about the authenticated End-User.",
+        "operationId": "userinfo",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "anotations.Annotation": {
+      "properties": {
+        "datasource": {
+          "type": "string"
+        },
+        "enable": {
+          "type": "boolean"
+        },
+        "expr": {
+          "type": "string"
+        },
+        "iconColor": {
+          "type": "string"
+        },
+        "iconSize": {
+          "type": "integer",
+          "format": "integer"
+        },
+        "lineColor": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "showLine": {
+          "type": "boolean"
+        },
+        "step": {
+          "type": "string"
+        },
+        "tagKeys": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tagsField": {
+          "type": "string"
+        },
+        "textField": {
+          "type": "string"
+        },
+        "textFormat": {
+          "type": "string"
+        },
+        "titleFormat": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
     "api.ListResult": {
       "required": [
         "items",
@@ -13520,14 +14309,14 @@
     },
     "metering.OpenPitrixStatistic": {
       "required": [
-        "deployments",
-        "statefulsets",
-        "daemonsets",
-        "cpu_usage",
         "memory_usage_wo_cache",
         "net_bytes_transmitted",
         "net_bytes_received",
-        "pvc_bytes_total"
+        "pvc_bytes_total",
+        "deployments",
+        "statefulsets",
+        "daemonsets",
+        "cpu_usage"
       ],
       "properties": {
         "cpu_usage": {
@@ -13998,6 +14787,9 @@
         "expires_in": {
           "type": "integer",
           "format": "int32"
+        },
+        "id_token": {
+          "type": "string"
         },
         "refresh_token": {
           "type": "string"
@@ -14573,7 +15365,8 @@
     },
     "openpitrix.CreateRepoRequest": {
       "required": [
-        "providers"
+        "providers",
+        "sync_period"
       ],
       "properties": {
         "app_default_status": {
@@ -14596,6 +15389,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "sync_period": {
+          "type": "string"
         },
         "type": {
           "type": "string"
@@ -14706,6 +15502,7 @@
     },
     "openpitrix.ModifyRepoRequest": {
       "required": [
+        "sync_period",
         "providers"
       ],
       "properties": {
@@ -14729,6 +15526,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "sync_period": {
+          "type": "string"
         },
         "type": {
           "type": "string"
@@ -14809,6 +15609,9 @@
           "type": "string"
         },
         "status_time": {
+          "type": "string"
+        },
+        "sync_period": {
           "type": "string"
         },
         "type": {
@@ -14913,6 +15716,226 @@
           "type": "string"
         },
         "version_id": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.Axis": {
+      "properties": {
+        "decimals": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "format": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.BarGaugeOptions": {
+      "properties": {
+        "colorMode": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "displayMode": {
+          "type": "string"
+        },
+        "graphMode": {
+          "type": "string"
+        },
+        "justifyMode": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "orientation": {
+          "type": "string"
+        },
+        "textMode": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.BarGaugePanel": {
+      "properties": {
+        "options": {
+          "$ref": "#/definitions/panels.BarGaugeOptions"
+        }
+      }
+    },
+    "panels.Gauge": {
+      "properties": {
+        "maxValue": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "minValue": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "show": {
+          "type": "boolean"
+        },
+        "thresholdLabels": {
+          "type": "boolean"
+        },
+        "thresholdMarkers": {
+          "type": "boolean"
+        }
+      }
+    },
+    "panels.GraphPanel": {
+      "properties": {
+        "bars": {
+          "type": "boolean"
+        },
+        "lines": {
+          "type": "boolean"
+        },
+        "stack": {
+          "type": "boolean"
+        },
+        "xaxis": {
+          "$ref": "#/definitions/panels.Axis"
+        },
+        "yaxes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/panels.Axis"
+          }
+        }
+      }
+    },
+    "panels.Panel": {
+      "required": [
+        "GraphPanel",
+        "SinglestatPanel",
+        "TablePanel",
+        "TextPanel",
+        "BarGaugePanel"
+      ],
+      "properties": {
+        "BarGaugePanel": {
+          "$ref": "#/definitions/panels.BarGaugePanel"
+        },
+        "GraphPanel": {
+          "$ref": "#/definitions/panels.GraphPanel"
+        },
+        "SinglestatPanel": {
+          "$ref": "#/definitions/panels.SinglestatPanel"
+        },
+        "TablePanel": {
+          "$ref": "#/definitions/panels.TablePanel"
+        },
+        "TextPanel": {
+          "$ref": "#/definitions/panels.TextPanel"
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "datasource": {
+          "type": "string"
+        },
+        "decimals": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "description": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "height": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "legend": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/panels.Target"
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.SinglestatPanel": {
+      "properties": {
+        "gauge": {
+          "$ref": "#/definitions/panels.Gauge"
+        },
+        "sparkline": {
+          "type": "string"
+        },
+        "valueName": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.Sort": {
+      "properties": {
+        "col": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "desc": {
+          "type": "boolean"
+        }
+      }
+    },
+    "panels.TablePanel": {
+      "properties": {
+        "scroll": {
+          "type": "boolean"
+        },
+        "sort": {
+          "$ref": "#/definitions/panels.Sort"
+        }
+      }
+    },
+    "panels.Target": {
+      "properties": {
+        "expr": {
+          "type": "string"
+        },
+        "legendFormat": {
+          "type": "string"
+        },
+        "refId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "step": {
+          "type": "string"
+        }
+      }
+    },
+    "panels.TextPanel": {
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "mode": {
           "type": "string"
         }
       }
@@ -15327,6 +16350,77 @@
       }
     },
     "runtime.Object": {},
+    "templatings.Option": {
+      "properties": {
+        "selected": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "templatings.TemplateVar": {
+      "properties": {
+        "allFormat": {
+          "type": "string"
+        },
+        "allValue": {
+          "type": "string"
+        },
+        "auto": {
+          "type": "boolean"
+        },
+        "auto_count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "datasource": {
+          "type": "string"
+        },
+        "hide": {
+          "type": "integer",
+          "format": "byte"
+        },
+        "includeAll": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "multi": {
+          "type": "boolean"
+        },
+        "multiFormat": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/templatings.Option"
+          }
+        },
+        "query": {
+          "type": "string"
+        },
+        "regex": {
+          "type": "string"
+        },
+        "sort": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
     "v1.AWSElasticBlockStoreVolumeSource": {
       "description": "Represents a Persistent Disk resource in AWS.\n\nAn AWS EBS disk must exist before mounting to a container. The disk must also be in the same AWS zone as the kubelet. An AWS EBS disk can only be mounted as read/write once. AWS EBS volumes support ownership management and SELinux relabeling.",
       "required": [
@@ -19745,6 +20839,27 @@
         }
       }
     },
+    "v1alpha1.Workspace": {
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/v1alpha1.WorkspaceSpec"
+        },
+        "status": {
+          "$ref": "#/definitions/v1alpha1.WorkspaceStatus"
+        }
+      }
+    },
     "v1alpha1.WorkspaceSpec": {
       "properties": {
         "manager": {
@@ -19755,6 +20870,7 @@
         }
       }
     },
+    "v1alpha1.WorkspaceStatus": {},
     "v1alpha2.APIResponse": {
       "properties": {
         "histogram": {
@@ -19783,6 +20899,24 @@
         "status": {
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "v1alpha2.ClusterDashboard": {
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/v1alpha2.DashboardSpec"
         }
       }
     },
@@ -19948,6 +21082,80 @@
           "type": "string"
         },
         "ProbeID": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.Dashboard": {
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/v1alpha2.DashboardSpec"
+        }
+      }
+    },
+    "v1alpha2.DashboardSpec": {
+      "properties": {
+        "annotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/anotations.Annotation"
+          }
+        },
+        "auto_refresh": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "editable": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "integer",
+          "format": "integer"
+        },
+        "panels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/panels.Panel"
+          }
+        },
+        "shared_crosshair": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "templatings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/templatings.TemplateVar"
+          }
+        },
+        "time": {
+          "$ref": "#/definitions/time.Time"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "uid": {
           "type": "string"
         }
       }
@@ -20180,10 +21388,10 @@
     },
     "v1alpha2.Node": {
       "required": [
-        "id",
         "labelMinor",
-        "rank",
+        "id",
         "label",
+        "rank",
         "controls"
       ],
       "properties": {

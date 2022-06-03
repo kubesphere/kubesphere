@@ -27,6 +27,7 @@ import (
 
 	"kubesphere.io/api/iam/v1alpha2"
 
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"kubesphere.io/kubesphere/test/e2e/constant"
 	"kubesphere.io/kubesphere/test/e2e/framework"
 	"kubesphere.io/kubesphere/test/e2e/framework/iam"
@@ -72,6 +73,11 @@ var _ = Describe("Groups", func() {
 			By("Assign user to Group")
 			_, err = restClient.IamV1alpha2().Groups().CreateBinding(context.TODO(), workspace, group, UserName)
 			framework.ExpectNoError(err)
+
+			Eventually(func() bool {
+				user, err := iam.GetUser(adminClient, UserName)
+				return err == nil && stringutils.FindString(user.Spec.Groups, group) != -1
+			}, timeout, interval).Should(BeTrue())
 
 			By("Creating a new client with user authentication")
 			userClient, err = iam.NewClient(f.GetScheme(), u.Name, constant.DefaultPassword)
@@ -120,10 +126,10 @@ func createUserWithWait(f framework.KubeSphereFramework, c client.Client, userna
 			framework.Failf("Cannot retrieve User %q: %v", username, err)
 			return false, err
 		}
-		if u == nil || u.Status.State == nil {
+		if u == nil || u.Status.State == "" {
 			return false, nil
 		}
-		return *u.Status.State == v1alpha2.UserActive, nil
+		return u.Status.State == v1alpha2.UserActive, nil
 	})
 
 	if err != nil {

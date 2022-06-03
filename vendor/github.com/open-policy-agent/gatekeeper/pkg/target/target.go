@@ -20,27 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// This pattern is meant to match:
-//
-//   REGULAR NAMESPACES
-//   - These are defined by this pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
-//   - You'll see that this is the first two-thirds or so of the pattern below
-//
-//   PREFIX-BASED WILDCARDS
-//   - A typical namespace must end in an alphanumeric character.  A prefixed wildcard
-//     can end in "*" (like `kube*`) or "-*" (like `kube-*`).
-//   - To implement this, we add the following: (\*|-\*)?
-//   - Crucially, this _does not_ allow the value to end in a dash (like `kube-`).  That is
-//     not a valid namespace and not a wildcard, so it's disallowed
-//
-//   Notably, this disallows other uses of the "*" character like:
-//   - *
-//   - *-system
-//   - k*-system
-//
-// See the following regexr to test this regex: https://regexr.com/60t2o
-const wildcardNSPattern = `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$`
-
 var _ client.TargetHandler = &K8sValidationTarget{}
 
 type K8sValidationTarget struct{}
@@ -199,7 +178,7 @@ func getString(m map[string]interface{}, k string) (string, error) {
 }
 
 // nestedMap augments unstructured.NestedMap to interpret a nil-valued field
-// as missing.
+// as missing
 func nestedMap(rmap map[string]interface{}, field string) (map[string]interface{}, bool, error) {
 	objMap, found, err := unstructured.NestedMap(rmap, field)
 	if err != nil || !found {
@@ -272,20 +251,12 @@ func (h *K8sValidationTarget) MatchSchema() apiextensions.JSONSchemaProps {
 			Schema: &apiextensions.JSONSchemaProps{Type: "string"},
 		},
 	}
-	wildcardNSList := apiextensions.JSONSchemaProps{
-		Type: "array",
-		Items: &apiextensions.JSONSchemaPropsOrArray{
-			Schema: &apiextensions.JSONSchemaProps{Type: "string", Pattern: wildcardNSPattern},
-		},
-	}
-
 	nullableStringList := apiextensions.JSONSchemaProps{
 		Type: "array",
 		Items: &apiextensions.JSONSchemaPropsOrArray{
 			Schema: &apiextensions.JSONSchemaProps{Type: "string", Nullable: true},
 		},
 	}
-
 	trueBool := true
 	labelSelectorSchema := apiextensions.JSONSchemaProps{
 		Type: "object",
@@ -337,8 +308,8 @@ func (h *K8sValidationTarget) MatchSchema() apiextensions.JSONSchemaProps {
 					},
 				},
 			},
-			"namespaces":         wildcardNSList,
-			"excludedNamespaces": wildcardNSList,
+			"namespaces":         stringList,
+			"excludedNamespaces": stringList,
 			"labelSelector":      labelSelectorSchema,
 			"namespaceSelector":  labelSelectorSchema,
 			"scope": {

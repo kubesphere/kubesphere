@@ -66,21 +66,21 @@ func builtinNumBytes(a ast.Value) (ast.Value, error) {
 	switch unitStr {
 	case "":
 		m = none
-	case "kb":
+	case "kb", "k":
 		m = kb
-	case "kib":
+	case "kib", "ki":
 		m = ki
-	case "mb":
+	case "mb", "m":
 		m = mb
-	case "mib":
+	case "mib", "mi":
 		m = mi
-	case "gb":
+	case "gb", "g":
 		m = gb
-	case "gib":
+	case "gib", "gi":
 		m = gi
-	case "tb":
+	case "tb", "t":
 		m = tb
-	case "tib":
+	case "tib", "ti":
 		m = ti
 	default:
 		return nil, errUnitNotRecognized(unitStr)

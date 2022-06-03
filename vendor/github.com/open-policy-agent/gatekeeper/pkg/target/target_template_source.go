@@ -89,13 +89,13 @@ add_field(object, key, value) = ret {
 }
 
 # has_field returns whether an object has a field
-has_field(object, field) {
+has_field(object, field) = true {
   object[field]
 }
 
 # False is a tricky special case, as false responses would create an undefined document unless
 # they are explicitly tested for
-has_field(object, field) {
+has_field(object, field) = true {
   object[field] == false
 }
 
@@ -107,8 +107,6 @@ has_field(object, field) = false {
 # get_default returns the value of an object's field or the provided default value.
 # It avoids creating an undefined state when trying to access an object attribute that does
 # not exist. It considers a null value to be missing.
-# TODO(https://github.com/open-policy-agent/gatekeeper/issues/1409): We may be able to replace
-# this with the built-in object.get().
 get_default(object, field, _default) = output {
   has_field(object, field)
   output = object[field]
@@ -184,11 +182,11 @@ matches_scope(match) {
 ########################
 
 # match_expression_violated checks to see if a match expression is violated.
-match_expression_violated("In", labels, key, values) {
+match_expression_violated("In", labels, key, values) = true {
   has_field(labels, key) == false
 }
 
-match_expression_violated("In", labels, key, values) {
+match_expression_violated("In", labels, key, values) = true {
   # values array must be non-empty for rule to be valid
   count(values) > 0
   valueSet := {v | v = values[_]}
@@ -196,18 +194,18 @@ match_expression_violated("In", labels, key, values) {
 }
 
 # No need to check if labels has the key, because a missing key is automatic non-violation
-match_expression_violated("NotIn", labels, key, values) {
+match_expression_violated("NotIn", labels, key, values) = true {
   # values array must be non-empty for rule to be valid
   count(values) > 0
   valueSet := {v | v = values[_]}
   count({labels[key]} - valueSet) == 0
 }
 
-match_expression_violated("Exists", labels, key, values) {
+match_expression_violated("Exists", labels, key, values) = true {
   has_field(labels, key) == false
 }
 
-match_expression_violated("DoesNotExist", labels, key, values) {
+match_expression_violated("DoesNotExist", labels, key, values) = true {
   has_field(labels, key) == true
 }
 
@@ -310,10 +308,7 @@ get_ns_name[out] {
   out := input.review.namespace
 }
 
-# Checks that:
-#   1. The input item is not of kind namespace
-#   2. The input item has no namespace, and is thus cluster-scoped
-always_match_ns_selectors {
+always_match_ns_selectors(match) {
   not is_ns(input.review.kind)
   get_default(input.review, "namespace", "") == ""
 }
@@ -325,34 +320,15 @@ matches_namespaces(match) {
 # Always match cluster scoped resources, unless resource is namespace
 matches_namespaces(match) {
   has_field(match, "namespaces")
-  always_match_ns_selectors
+  always_match_ns_selectors(match)
 }
 
 matches_namespaces(match) {
   has_field(match, "namespaces")
-  not always_match_ns_selectors
+  not always_match_ns_selectors(match)
   get_ns_name[ns]
   nss := {n | n = match.namespaces[_]}
-  # This is vulnerable to a value of "false", but as we're dealing with strings it's ok
-  nss[ns]
-}
-
-# Prefix-based matching
-matches_namespaces(match) {
-  has_field(match, "namespaces")
-  not always_match_ns_selectors
-  get_ns_name[ns]
-  wild_nss := wildcard_namespaces(match.namespaces)
-  prefix_glob_match(wild_nss, ns)
-}
-
-wildcard_namespaces(ns_array) = out {
-  out := [ nss | endswith(ns_array[i], "*")
-                         nss := ns_array[i] ]
-}
-
-prefix_glob_match(match_nss, object_ns) {
-  glob.match(match_nss[_], [], object_ns)
+  count({ns} - nss) == 0
 }
 
 does_not_match_excludednamespaces(match) {
@@ -362,20 +338,15 @@ does_not_match_excludednamespaces(match) {
 # Always match cluster scoped resources, unless resource is namespace
 does_not_match_excludednamespaces(match) {
   has_field(match, "excludedNamespaces")
-  always_match_ns_selectors
+  always_match_ns_selectors(match)
 }
 
 does_not_match_excludednamespaces(match) {
   has_field(match, "excludedNamespaces")
-  not always_match_ns_selectors
+  not always_match_ns_selectors(match)
   get_ns_name[ns]
   nss := {n | n = match.excludedNamespaces[_]}
-  # This is vulnerable to a value of "false", but as we're dealing with strings it's ok
-  not nss[ns]
-
-  # Check for prefix matches
-  wild_ex_nss := wildcard_namespaces(match.excludedNamespaces)
-  not prefix_glob_match(wild_ex_nss, ns)
+  count({ns} - nss) != 0
 }
 
 matches_nsselector(match) {
@@ -385,12 +356,12 @@ matches_nsselector(match) {
 # Always match cluster scoped resources, unless resource is namespace
 matches_nsselector(match) {
   has_field(match, "namespaceSelector")
-  always_match_ns_selectors
+  always_match_ns_selectors(match)
 }
 
 matches_nsselector(match) {
   not is_ns(input.review.kind)
-  not always_match_ns_selectors
+  not always_match_ns_selectors(match)
   has_field(match, "namespaceSelector")
   get_ns[ns]
   matches_namespace_selector(match, ns)
@@ -399,7 +370,7 @@ matches_nsselector(match) {
 # if we are matching against a namespace, match against either the old or new object
 matches_nsselector(match) {
   is_ns(input.review.kind)
-  not always_match_ns_selectors
+  not always_match_ns_selectors(match)
   has_field(match, "namespaceSelector")
   any_labelselector_match(get_default(match, "namespaceSelector", {}))
 }

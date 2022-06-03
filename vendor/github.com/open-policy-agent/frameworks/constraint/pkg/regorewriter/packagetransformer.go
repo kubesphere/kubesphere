@@ -21,14 +21,14 @@ type PackagePrefixer struct {
 	prefix []string
 }
 
-// NewPackagePrefixer returns a new PackagePrefixer.
+// NewPackagePrefixer returns a new PackagePrefixer
 func NewPackagePrefixer(pkgPrefix string) *PackagePrefixer {
 	return &PackagePrefixer{
 		prefix: strings.Split(pkgPrefix, "."),
 	}
 }
 
-// Transform implements PackageTransformer.
+// Transform implements PackageTransformer
 func (p *PackagePrefixer) Transform(ref ast.Ref) ast.Ref {
 	var newRef ast.Ref
 	newRef = append(newRef, ref[0])

@@ -41,21 +41,18 @@ spec:
         resources:
           {{- toYaml .Values.apiserver.resources | nindent 12 }}
         volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-sock
-        - mountPath: /etc/kubesphere/ingress-controller
-          name: ks-router-config
         - mountPath: /etc/kubesphere/
           name: kubesphere-config
         - mountPath: /etc/localtime
           name: host-time
+          readOnly: true
         {{- if .Values.apiserver.extraVolumeMounts }}
           {{- toYaml .Values.apiserver.extraVolumeMounts | nindent 8 }}
         {{- end }}
         env:
         {{- if .Values.env }}
-        {{- toYaml .Values.env | nindent 8 }}
-        {{- end }}
+        { { - toYaml .Values.env | nindent 8 } }
+        { { - end } }
         livenessProbe:
           failureThreshold: 8
           httpGet:
@@ -64,54 +61,31 @@ spec:
             scheme: HTTP
           initialDelaySeconds: 15
           timeoutSeconds: 15
-      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
-      {{- with .Values.tolerations }}
+      serviceAccountName: { { include "ks-core.serviceAccountName" . } }
+      { { - with .Values.tolerations } }
       tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        { { - toYaml . | nindent 8 } }
+      { { - end } }
+      { { - with .Values.nodeSelector } }
+      nodeSelector:
+        { { - toYaml . | nindent 8 } }
+      { { - end } }
+      { { - with .Values.affinity } }
       affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-              - key: node-role.kubernetes.io/master
-                operator: In
-                values:
-                - ""
-{{- if gt .Values.replicaCount 1.0 }}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: kubernetes.io/hostname
-            labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - ks-apiserver
-            namespaces:
-            - {{ .Release.Namespace }}
-{{- end }}
+        { { - toYaml . | nindent 8 } }
+      { { - end } }
       volumes:
-      - hostPath:
-          path: /var/run/docker.sock
-          type: ""
-        name: docker-sock
-      - configMap:
-          defaultMode: 420
-          name: ks-router-config
-        name: ks-router-config
-      - configMap:
-          defaultMode: 420
+        - configMap:
+            defaultMode: 420
+            name: kubesphere-config
           name: kubesphere-config
-        name: kubesphere-config
-      - hostPath:
-          path: /etc/localtime
-          type: ""
-        name: host-time
-      {{- if .Values.apiserver.extraVolumes }}
-        {{ toYaml .Values.apiserver.extraVolumes | nindent 6 }}
-      {{- end }}
+        - hostPath:
+            path: /etc/localtime
+            type: ""
+          name: host-time
+      { { - if .Values.apiserver.extraVolumes } }
+      { { toYaml .Values.apiserver.extraVolumes | nindent 6 } }
+      { { - end } }
 ---
 
 apiVersion: v1

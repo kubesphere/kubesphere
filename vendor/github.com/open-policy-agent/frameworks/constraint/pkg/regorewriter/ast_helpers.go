@@ -1,10 +1,9 @@
 package regorewriter
 
 import (
-	"fmt"
-
 	"github.com/golang/glog"
 	"github.com/open-policy-agent/opa/ast"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -40,10 +39,10 @@ func packagesAsRefs(strs []string) ([]ast.Ref, error) {
 			return nil, err
 		}
 		if len(ref) == 0 {
-			return nil, fmt.Errorf("invalid ref input %s", s)
+			return nil, errors.Errorf("invalid ref input %s", s)
 		}
 		if !dataVarTerm.Equal(ref[0]) {
-			return nil, fmt.Errorf("ref must start with data: %w", err)
+			return nil, errors.Wrapf(err, "ref must start with data")
 		}
 		refs = append(refs, ref)
 	}

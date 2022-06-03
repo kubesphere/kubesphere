@@ -27,7 +27,7 @@ type NSNPOptions struct {
 }
 
 type Options struct {
-	EnableNetworkPolicy bool        `json:"enableNetworkPolicy,omitempty" yaml:"enableNetworkPolicy"`
+	EnableNetworkPolicy bool        `json:"enableNetworkPolicy,omitempty" yaml:"enableNetworkPolicy,omitempty"`
 	NSNPOptions         NSNPOptions `json:"nsnpOptions,omitempty" yaml:"nsnpOptions,omitempty"`
 	WeaveScopeHost      string      `json:"weaveScopeHost,omitempty" yaml:"weaveScopeHost,omitempty"`
 	IPPoolType          string      `json:"ippoolType,omitempty" yaml:"ippoolType,omitempty"`

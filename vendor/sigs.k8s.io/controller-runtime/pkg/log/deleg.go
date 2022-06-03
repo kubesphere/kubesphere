@@ -76,7 +76,7 @@ func (p *loggerPromise) V(l *DelegatingLogger, level int) *loggerPromise {
 
 // Fulfill instantiates the Logger with the provided logger.
 func (p *loggerPromise) Fulfill(parentLogger logr.Logger) {
-	var logger = parentLogger
+	logger := logr.WithCallDepth(parentLogger, 1)
 	if p.name != nil {
 		logger = logger.WithName(*p.name)
 	}

@@ -408,7 +408,6 @@ func deepCopy(val interface{}) interface{} {
 }
 
 func ptr(data interface{}, path storage.Path) (interface{}, error) {
-
 	node := data
 	for i := range path {
 		key := path[i]

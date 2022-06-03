@@ -20,9 +20,10 @@ import (
 	"context"
 	"time"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -45,15 +46,6 @@ import (
 const (
 	HelmCategoryFinalizer = "helmcategories.application.kubesphere.io"
 )
-
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileHelmCategory{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
-}
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
@@ -185,9 +177,14 @@ var _ reconcile.Reconciler = &ReconcileHelmCategory{}
 // ReconcileWorkspace reconciles a Workspace object
 type ReconcileHelmCategory struct {
 	client.Client
-	Scheme   *runtime.Scheme
+	//Scheme   *runtime.Scheme
 	recorder record.EventRecorder
 	config   *rest.Config
+}
+
+func (r *ReconcileHelmCategory) SetupWithManager(mgr ctrl.Manager) error {
+	r.Client = mgr.GetClient()
+	return add(mgr, r)
 }
 
 // Reconcile reads that state of the cluster for a helmcategories object and makes changes based on the state read

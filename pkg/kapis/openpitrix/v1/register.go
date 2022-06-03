@@ -16,7 +16,7 @@ package v1
 import (
 	"net/http"
 
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -38,11 +38,13 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
-func AddToContainer(c *restful.Container, ksInfomrers informers.InformerFactory, ksClient versioned.Interface, options *openpitrixoptions.Options) error {
+func AddToContainer(c *restful.Container, ksInfomrers informers.InformerFactory, ksClient versioned.Interface, options *openpitrixoptions.Options, opClient openpitrix.Interface) error {
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeJsonPatchJson, runtime.MimeMergePatchJson}
 	webservice := runtime.NewWebService(GroupVersion)
 
-	handler := newOpenpitrixHandler(ksInfomrers, ksClient, options)
+	handler := &openpitrixHandler{
+		opClient,
+	}
 
 	webservice.Route(webservice.POST("/repos").
 		To(handler.CreateRepo).

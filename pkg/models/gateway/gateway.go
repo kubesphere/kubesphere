@@ -93,12 +93,12 @@ func (c *gatewayOperator) getWorkingNamespace(namespace string) string {
 	return ns
 }
 
-// overide user's setting when create/update a project gateway.
-func (c *gatewayOperator) overideDefaultValue(gateway *v1alpha1.Gateway, namespace string) *v1alpha1.Gateway {
-	// overide default name
+// override user's setting when create/update a project gateway.
+func (c *gatewayOperator) overrideDefaultValue(gateway *v1alpha1.Gateway, namespace string) *v1alpha1.Gateway {
+	// override default name
 	gateway.Name = fmt.Sprint(gatewayPrefix, namespace)
 	if gateway.Name != globalGatewayname {
-		gateway.Spec.Conroller.Scope = v1alpha1.Scope{Enabled: true, Namespace: namespace}
+		gateway.Spec.Controller.Scope = v1alpha1.Scope{Enabled: true, Namespace: namespace}
 	}
 	gateway.Namespace = c.getWorkingNamespace(namespace)
 	return gateway
@@ -155,7 +155,7 @@ func (c *gatewayOperator) convert(namespace string, svc *corev1.Service, deploy 
 			Namespace: svc.Namespace,
 		},
 		Spec: v1alpha1.GatewaySpec{
-			Conroller: v1alpha1.ControllerSpec{
+			Controller: v1alpha1.ControllerSpec{
 				Scope: v1alpha1.Scope{
 					Enabled:   true,
 					Namespace: namespace,
@@ -173,6 +173,9 @@ func (c *gatewayOperator) convert(namespace string, svc *corev1.Service, deploy 
 	if an, ok := deploy.Annotations[SidecarInject]; ok {
 		legacy.Spec.Deployment.Annotations = make(map[string]string)
 		legacy.Spec.Deployment.Annotations[SidecarInject] = an
+	}
+	if len(deploy.Spec.Template.Spec.Containers) > 0 {
+		legacy.Spec.Deployment.Resources = deploy.Spec.Template.Spec.Containers[0].Resources
 	}
 	return &legacy
 }
@@ -201,7 +204,7 @@ func (c *gatewayOperator) getMasterNodeIp() []string {
 }
 
 func (c *gatewayOperator) updateStatus(gateway *v1alpha1.Gateway, svc *corev1.Service) (*v1alpha1.Gateway, error) {
-	// append selected node ip as loadbalancer ingress ip
+	// append selected node ip as loadBalancer ingress ip
 	if svc.Spec.Type != corev1.ServiceTypeLoadBalancer && len(svc.Status.LoadBalancer.Ingress) == 0 {
 		rips := c.getMasterNodeIp()
 		for _, rip := range rips {
@@ -240,8 +243,8 @@ func (c *gatewayOperator) updateStatus(gateway *v1alpha1.Gateway, svc *corev1.Se
 	return gateway, nil
 }
 
-// GetGateways returns all Gateways from the project. There are at most 2 gatways exists in a project,
-// a Glabal Gateway and a Project Gateway or a Legacy Project Gateway.
+// GetGateways returns all Gateways from the project. There are at most 2 gateways exists in a project,
+// a Global Gateway and a Project Gateway or a Legacy Project Gateway.
 func (c *gatewayOperator) GetGateways(namespace string) ([]*v1alpha1.Gateway, error) {
 
 	var gateways []*v1alpha1.Gateway
@@ -259,12 +262,12 @@ func (c *gatewayOperator) GetGateways(namespace string) ([]*v1alpha1.Gateway, er
 	}
 	obj := &v1alpha1.Gateway{}
 	err := c.client.Get(context.TODO(), key, obj)
-	if errors.IsNotFound(err) {
-		return gateways, nil
-	} else if err != nil {
+
+	if err == nil {
+		gateways = append(gateways, obj)
+	} else if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
-	gateways = append(gateways, obj)
 
 	for _, g := range gateways {
 		s := &corev1.Service{}
@@ -281,7 +284,7 @@ func (c *gatewayOperator) GetGateways(namespace string) ([]*v1alpha1.Gateway, er
 		}
 	}
 
-	return gateways, err
+	return gateways, nil
 }
 
 // Create a Gateway in a namespace
@@ -295,7 +298,7 @@ func (c *gatewayOperator) CreateGateway(namespace string, obj *v1alpha1.Gateway)
 		return nil, fmt.Errorf("can't create project gateway if legacy gateway exists, please upgrade the gateway firstly")
 	}
 
-	c.overideDefaultValue(obj, namespace)
+	c.overrideDefaultValue(obj, namespace)
 	err := c.client.Create(context.TODO(), obj)
 	return obj, err
 }
@@ -316,7 +319,7 @@ func (c *gatewayOperator) UpdateGateway(namespace string, obj *v1alpha1.Gateway)
 	if c.options.Namespace == "" && obj.Namespace != namespace || c.options.Namespace != "" && c.options.Namespace != obj.Namespace {
 		return nil, fmt.Errorf("namepsace doesn't match with origin namesapce")
 	}
-	c.overideDefaultValue(obj, namespace)
+	c.overrideDefaultValue(obj, namespace)
 	err := c.client.Update(context.TODO(), obj)
 	return obj, err
 }
@@ -332,11 +335,11 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 		return nil, fmt.Errorf("invalid operation, can't upgrade legacy gateway when working namespace changed")
 	}
 
-	// Get legency gateway's config from configmap
+	// Get legacy gateway's config from configmap
 	cm := &corev1.ConfigMap{}
 	err := c.client.Get(context.TODO(), client.ObjectKey{Namespace: l.Namespace, Name: fmt.Sprintf("%s-nginx", l.Name)}, cm)
 	if err == nil {
-		l.Spec.Conroller.Config = cm.Data
+		l.Spec.Controller.Config = cm.Data
 		defer func() {
 			c.client.Delete(context.TODO(), cm)
 		}()
@@ -355,7 +358,7 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 		return nil, err
 	}
 
-	// Patch the legacy Serivce with helm annotations, So that it can be mannaged by the helm release.
+	// Patch the legacy Service with helm annotations, So that it can be managed by the helm release.
 	patch := []byte(fmt.Sprintf(helmPatch, l.Name, l.Namespace))
 	err = c.client.Patch(context.Background(), &corev1.Service{
 		ObjectMeta: v1.ObjectMeta{
@@ -368,7 +371,7 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 		return nil, err
 	}
 
-	c.overideDefaultValue(l, namespace)
+	c.overrideDefaultValue(l, namespace)
 	err = c.client.Create(context.TODO(), l)
 	return l, err
 }
@@ -396,8 +399,8 @@ func (c *gatewayOperator) ListGateways(query *query.Query) (*api.ListResult, err
 			}),
 	})
 
-	for _, s := range services.Items {
-		result = append(result, &s)
+	for i := range services.Items {
+		result = append(result, &services.Items[i])
 	}
 
 	return v1alpha3.DefaultList(result, query, c.compare, c.filter, c.transform), nil
@@ -447,16 +450,27 @@ func (c *gatewayOperator) compare(left runtime.Object, right runtime.Object, fie
 }
 
 func (c *gatewayOperator) filter(object runtime.Object, filter query.Filter) bool {
+	var objMeta v1.ObjectMeta
+	var namesapce string
+
 	gateway, ok := object.(*v1alpha1.Gateway)
 	if !ok {
-		return false
+		svc, ok := object.(*corev1.Service)
+		if !ok {
+			return false
+		}
+		namesapce = svc.Labels["project"]
+		objMeta = svc.ObjectMeta
+	} else {
+		namesapce = gateway.Spec.Controller.Scope.Namespace
+		objMeta = gateway.ObjectMeta
 	}
 
 	switch filter.Field {
 	case query.FieldNamespace:
-		return strings.Compare(gateway.Spec.Conroller.Scope.Namespace, string(filter.Value)) == 0
+		return strings.Compare(namesapce, string(filter.Value)) == 0
 	default:
-		return v1alpha3.DefaultObjectMetaFilter(gateway.ObjectMeta, filter)
+		return v1alpha3.DefaultObjectMetaFilter(objMeta, filter)
 	}
 }
 

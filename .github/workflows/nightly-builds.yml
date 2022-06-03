@@ -26,14 +26,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Downloading go dependencies
-        run: go mod vendor
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
 
-      - name: Build
-        run: make all
-
-      - name: Make OpenAPI Spec
-        run: make openapi
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v1
 
       - name: Build and push docker images
         env:
@@ -41,13 +40,8 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-
-          if [[ $? == 0 ]]; then
-            tag=nightly-$(date '+%Y%m%d')
-            REPO=kubespheredev TAG=${tag} make container-push
-          else
-            exit -1
-          fi
+          tag=nightly-$(date '+%Y%m%d')
+          REPO=kubespheredev TAG=${tag} make container-cross-push
 
       - name: slack
         uses: 8398a7/action-slack@v3

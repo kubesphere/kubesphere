@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
@@ -64,7 +65,7 @@ var promQLTemplates = map[string]string{
 	"cluster_daemonset_count":            `sum(kube_daemonset_labels)`,
 	"cluster_deployment_count":           `sum(kube_deployment_labels)`,
 	"cluster_endpoint_count":             `sum(kube_endpoint_labels)`,
-	"cluster_hpa_count":                  `sum(kube_hpa_labels)`,
+	"cluster_hpa_count":                  `sum(kube_horizontalpodautoscaler_labels)`,
 	"cluster_job_count":                  `sum(kube_job_labels)`,
 	"cluster_statefulset_count":          `sum(kube_statefulset_labels)`,
 	"cluster_replicaset_count":           `count(kube_replicaset_labels)`,
@@ -112,6 +113,9 @@ var promQLTemplates = map[string]string{
 	"node_pod_abnormal_ratio":     `node:pod_abnormal:ratio{$1}`,
 	"node_pleg_quantile":          `node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile{$1}`,
 
+	"node_device_size_usage":       `sum by(device, node, host_ip, role) (node_filesystem_size_bytes{device!~"/dev/loop\\d+",device=~"/dev/.*",job="node-exporter"} * on(namespace, pod) group_left(node, host_ip, role) node_namespace_pod:kube_pod_info:{$1}) - sum by(device, node, host_ip, role) (node_filesystem_avail_bytes{device!~"/dev/loop\\d+",device=~"/dev/.*",job="node-exporter"} * on(namespace, pod) group_left(node, host_ip, role) node_namespace_pod:kube_pod_info:{$1})`,
+	"node_device_size_utilisation": `1 - sum by(device, node, host_ip, role) (node_filesystem_avail_bytes{device!~"/dev/loop\\d+",device=~"/dev/.*",job="node-exporter"} * on(namespace, pod) group_left(node, host_ip, role) node_namespace_pod:kube_pod_info:{$1}) / sum by(device, node, host_ip, role) (node_filesystem_size_bytes{device!~"/dev/loop\\d+",device=~"/dev/.*",job="node-exporter"} * on(namespace, pod) group_left(node, host_ip, role) node_namespace_pod:kube_pod_info:{$1})`,
+
 	// workspace
 	"workspace_cpu_usage":                  `round(sum by (workspace) (namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", $1}), 0.001)`,
 	"workspace_memory_usage":               `sum by (workspace) (namespace:container_memory_usage_bytes:sum{namespace!="", $1})`,
@@ -128,7 +132,7 @@ var promQLTemplates = map[string]string{
 	"workspace_daemonset_count":            `sum by (workspace) (kube_daemonset_labels{namespace!=""} * on (namespace) group_left(workspace)(kube_namespace_labels{$1}))`,
 	"workspace_deployment_count":           `sum by (workspace) (kube_deployment_labels{namespace!=""} * on (namespace) group_left(workspace)(kube_namespace_labels{$1}))`,
 	"workspace_endpoint_count":             `sum by (workspace) (kube_endpoint_labels{namespace!=""} * on (namespace) group_left(workspace)(kube_namespace_labels{$1}))`,
-	"workspace_hpa_count":                  `sum by (workspace) (kube_hpa_labels{namespace!=""} * on (namespace) group_left(workspace)(kube_namespace_labels{$1}))`,
+	"workspace_hpa_count":                  `sum by (workspace) (kube_horizontalpodautoscaler_labels{namespace!=""} * on (namespace) group_left(workspace)(kube_namespace_labels{$1}))`,
 	"workspace_job_count":                  `sum by (workspace) (kube_job_labels{namespace!=""} * on (namespace) group_left(workspace)(kube_namespace_labels{$1}))`,
 	"workspace_statefulset_count":          `sum by (workspace) (kube_statefulset_labels{namespace!=""} * on (namespace) group_left(workspace)(kube_namespace_labels{$1}))`,
 	"workspace_replicaset_count":           `count by (workspace) (kube_replicaset_labels{namespace!=""} * on (namespace) group_left(workspace)(kube_namespace_labels{$1}))`,
@@ -155,7 +159,7 @@ var promQLTemplates = map[string]string{
 	"namespace_daemonset_count":            `sum by (namespace) (kube_daemonset_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
 	"namespace_deployment_count":           `sum by (namespace) (kube_deployment_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
 	"namespace_endpoint_count":             `sum by (namespace) (kube_endpoint_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
-	"namespace_hpa_count":                  `sum by (namespace) (kube_hpa_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
+	"namespace_hpa_count":                  `sum by (namespace) (kube_horizontalpodautoscaler_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
 	"namespace_job_count":                  `sum by (namespace) (kube_job_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
 	"namespace_statefulset_count":          `sum by (namespace) (kube_statefulset_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
 	"namespace_replicaset_count":           `count by (namespace) (kube_replicaset_labels{namespace!=""} * on (namespace) group_left(workspace) kube_namespace_labels{$1})`,
@@ -167,8 +171,8 @@ var promQLTemplates = map[string]string{
 
 	// ingress
 	"ingress_request_count":                 `round(sum(increase(nginx_ingress_controller_requests{$1,$2}[$3])))`,
-	"ingress_request_4xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status="[4].*"}[$3])))`,
-	"ingress_request_5xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status="[5].*"}[$3])))`,
+	"ingress_request_4xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status=~"[4].*"}[$3])))`,
+	"ingress_request_5xx_count":             `round(sum(increase(nginx_ingress_controller_requests{$1,$2,status=~"[5].*"}[$3])))`,
 	"ingress_active_connections":            `sum(avg_over_time(nginx_ingress_controller_nginx_process_connections{$2,state="active"}[$3]))`,
 	"ingress_success_rate":                  `sum(rate(nginx_ingress_controller_requests{$1,$2,status!~"[4-5].*"}[$3])) / sum(rate(nginx_ingress_controller_requests{$1,$2}[$3]))`,
 	"ingress_request_duration_average":      `sum_over_time(nginx_ingress_controller_request_duration_seconds_sum{$1,$2}[$3])/sum_over_time(nginx_ingress_controller_request_duration_seconds_count{$1,$2}[$3])`,
@@ -210,6 +214,8 @@ var promQLTemplates = map[string]string{
 	"container_cpu_usage":             `round(sum by (namespace, pod, container) (irate(container_cpu_usage_seconds_total{job="kubelet", container!="POD", container!="", image!="", $1}[5m])), 0.001)`,
 	"container_memory_usage":          `sum by (namespace, pod, container) (container_memory_usage_bytes{job="kubelet", container!="POD", container!="", image!="", $1})`,
 	"container_memory_usage_wo_cache": `sum by (namespace, pod, container) (container_memory_working_set_bytes{job="kubelet", container!="POD", container!="", image!="", $1})`,
+	"container_processes_usage":       `sum by (namespace, pod, container) (container_processes{job="kubelet", container!="POD", container!="", image!="", $1})`,
+	"container_threads_usage":         `sum by (namespace, pod, container) (container_threads {job="kubelet", container!="POD", container!="", image!="", $1})`,
 
 	// pvc
 	"pvc_inodes_available":   `max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_inodes_free) * on (namespace, persistentvolumeclaim) group_left (storageclass) kube_persistentvolumeclaim_info{$1}`,
@@ -232,7 +238,7 @@ var promQLTemplates = map[string]string{
 	"etcd_server_proposals_applied_rate":         `avg(etcd:etcd_server_proposals_applied:sum_irate)`,
 	"etcd_server_proposals_committed_rate":       `avg(etcd:etcd_server_proposals_committed:sum_irate)`,
 	"etcd_server_proposals_pending_count":        `avg(etcd:etcd_server_proposals_pending:sum)`,
-	"etcd_mvcc_db_size":                          `avg(etcd:etcd_debugging_mvcc_db_total_size:sum)`,
+	"etcd_mvcc_db_size":                          `avg(etcd:etcd_mvcc_db_total_size:sum)`,
 	"etcd_network_client_grpc_received_bytes":    `sum(etcd:etcd_network_client_grpc_received_bytes:sum_irate)`,
 	"etcd_network_client_grpc_sent_bytes":        `sum(etcd:etcd_network_client_grpc_sent_bytes:sum_irate)`,
 	"etcd_grpc_call_rate":                        `sum(etcd:grpc_server_started:sum_irate)`,
@@ -482,13 +488,20 @@ func makeIngressMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	// For monitoring ingress in the specific namespace
 	// GET /namespaces/{namespace}/ingress/{ingress} or
 	// GET /namespaces/{namespace}/ingress
-	if o.NamespaceName != "" {
+	if o.NamespaceName != constants.KubeSphereNamespace {
 		if o.Ingress != "" {
 			ingressSelector = fmt.Sprintf(`exported_namespace="%s", ingress="%s"`, o.NamespaceName, o.Ingress)
 		} else {
 			ingressSelector = fmt.Sprintf(`exported_namespace="%s", ingress=~"%s"`, o.NamespaceName, o.ResourceFilter)
 		}
+	} else {
+		if o.Ingress != "" {
+			ingressSelector = fmt.Sprintf(`ingress="%s"`, o.Ingress)
+		} else {
+			ingressSelector = fmt.Sprintf(`ingress=~"%s"`, o.ResourceFilter)
+		}
 	}
+
 	// job is a reqiuried filter
 	// GET /namespaces/{namespace}/ingress?job=xxx&pod=xxx
 	if o.Job != "" {

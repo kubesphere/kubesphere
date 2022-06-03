@@ -23,25 +23,20 @@ var supportedVersions = map[string]bool{
 	v1beta1.SchemeGroupVersion.Version:  true,
 }
 
-// validateTargets ensures that the targets field has the appropriate values.
+// validateTargets ensures that the targets field has the appropriate values
 func validateTargets(templ *templates.ConstraintTemplate) error {
-	targets := templ.Spec.Targets
-	if targets == nil {
-		return errors.New(`field "targets" not specified in ConstraintTemplate spec`)
+	if len(templ.Spec.Targets) > 1 {
+		return errors.New("Multi-target templates are not currently supported")
+	} else if templ.Spec.Targets == nil {
+		return errors.New(`Field "targets" not specified in ConstraintTemplate spec`)
+	} else if len(templ.Spec.Targets) == 0 {
+		return errors.New("No targets specified. ConstraintTemplate must specify one target")
 	}
-
-	switch len(targets) {
-	case 0:
-		return errors.New("no targets specified: ConstraintTemplate must specify one target")
-	case 1:
-		return nil
-	default:
-		return errors.New("multi-target templates are not currently supported")
-	}
+	return nil
 }
 
 // createSchema combines the schema of the match target and the ConstraintTemplate parameters
-// to form the schema of the actual constraint resource.
+// to form the schema of the actual constraint resource
 func (h *crdHelper) createSchema(templ *templates.ConstraintTemplate, target MatchSchemaProvider) (*apiextensions.JSONSchemaProps, error) {
 	props := map[string]apiextensions.JSONSchemaProps{
 		"match":             target.MatchSchema(),
@@ -80,7 +75,7 @@ func (h *crdHelper) createSchema(templ *templates.ConstraintTemplate, target Mat
 }
 
 // crdHelper builds the scheme for handling CRDs. It is necessary to build crdHelper at runtime as
-// modules are added to the CRD scheme builder during the init stage.
+// modules are added to the CRD scheme builder during the init stage
 type crdHelper struct {
 	scheme *runtime.Scheme
 }
@@ -93,15 +88,13 @@ func newCRDHelper() (*crdHelper, error) {
 	return &crdHelper{scheme: scheme}, nil
 }
 
-// createCRD takes a template and a schema and converts it to a CRD.
+// createCRD takes a template and a schema and converts it to a CRD
 func (h *crdHelper) createCRD(
 	templ *templates.ConstraintTemplate,
 	schema *apiextensions.JSONSchemaProps) (*apiextensions.CustomResourceDefinition, error) {
-	falseBool := false
 	crd := &apiextensions.CustomResourceDefinition{
 		Spec: apiextensions.CustomResourceDefinitionSpec{
-			PreserveUnknownFields: &falseBool,
-			Group:                 constraintGroup,
+			Group: constraintGroup,
 			Names: apiextensions.CustomResourceDefinitionNames{
 				Kind:       templ.Spec.CRD.Spec.Names.Kind,
 				ListKind:   templ.Spec.CRD.Spec.Names.Kind + "List",
@@ -160,16 +153,16 @@ func (h *crdHelper) createCRD(
 	return crd2, nil
 }
 
-// validateCRD calls the CRD package's validation on an internal representation of the CRD.
+// validateCRD calls the CRD package's validation on an internal representation of the CRD
 func (h *crdHelper) validateCRD(crd *apiextensions.CustomResourceDefinition) error {
-	errs := apiextensionsvalidation.ValidateCustomResourceDefinition(crd, apiextensionsv1.SchemeGroupVersion)
-	if len(errs) > 0 {
-		return errs.ToAggregate()
+	errors := apiextensionsvalidation.ValidateCustomResourceDefinition(crd, apiextensionsv1.SchemeGroupVersion)
+	if len(errors) > 0 {
+		return errors.ToAggregate()
 	}
 	return nil
 }
 
-// validateCR validates the provided custom resource against its CustomResourceDefinition.
+// validateCR validates the provided custom resource against its CustomResourceDefinition
 func (h *crdHelper) validateCR(cr *unstructured.Unstructured, crd *apiextensions.CustomResourceDefinition) error {
 	validator, _, err := validation.NewSchemaValidator(crd.Spec.Validation)
 	if err != nil {
@@ -179,16 +172,16 @@ func (h *crdHelper) validateCR(cr *unstructured.Unstructured, crd *apiextensions
 		return err.ToAggregate()
 	}
 	if errs := apivalidation.IsDNS1123Subdomain(cr.GetName()); len(errs) != 0 {
-		return fmt.Errorf("invalid Name: %s", strings.Join(errs, "\n"))
+		return fmt.Errorf("Invalid Name: %s", strings.Join(errs, "\n"))
 	}
 	if cr.GetKind() != crd.Spec.Names.Kind {
-		return fmt.Errorf("wrong kind for constraint %s. Have %s, want %s", cr.GetName(), cr.GetKind(), crd.Spec.Names.Kind)
+		return fmt.Errorf("Wrong kind for constraint %s. Have %s, want %s", cr.GetName(), cr.GetKind(), crd.Spec.Names.Kind)
 	}
 	if cr.GroupVersionKind().Group != constraintGroup {
-		return fmt.Errorf("wrong group for constraint %s. Have %s, want %s", cr.GetName(), cr.GroupVersionKind().Group, constraintGroup)
+		return fmt.Errorf("Wrong group for constraint %s. Have %s, want %s", cr.GetName(), cr.GroupVersionKind().Group, constraintGroup)
 	}
 	if !supportedVersions[cr.GroupVersionKind().Version] {
-		return fmt.Errorf("wrong version for constraint %s. Have %s, supported: %v", cr.GetName(), cr.GroupVersionKind().Version, supportedVersions)
+		return fmt.Errorf("Wrong version for constraint %s. Have %s, supported: %v", cr.GetName(), cr.GroupVersionKind().Version, supportedVersions)
 	}
 	return nil
 }

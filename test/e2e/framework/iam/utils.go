@@ -34,13 +34,10 @@ import (
 func NewClient(s *runtime.Scheme, user, passsword string) (client.Client, error) {
 
 	ctx := framework.TestContext
-	token, err := getToken(ctx.Host, user, passsword)
-	if err != nil {
-		return nil, err
-	}
 	config := &rest.Config{
-		Host:        ctx.Host,
-		BearerToken: token.AccessToken,
+		Host:     ctx.Host,
+		Username: user,
+		Password: passsword,
 	}
 
 	return generic.New(config, client.Options{Scheme: s})
@@ -48,13 +45,10 @@ func NewClient(s *runtime.Scheme, user, passsword string) (client.Client, error)
 
 func NewRestClient(user, passsword string) (*restclient.RestClient, error) {
 	ctx := framework.TestContext
-	token, err := getToken(ctx.Host, user, passsword)
-	if err != nil {
-		return nil, err
-	}
 	config := &rest.Config{
-		Host:        ctx.Host,
-		BearerToken: token.AccessToken,
+		Host:     ctx.Host,
+		Username: user,
+		Password: passsword,
 	}
 
 	return restclient.NewForConfig(config)

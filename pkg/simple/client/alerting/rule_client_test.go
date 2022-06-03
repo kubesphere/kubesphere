@@ -29,7 +29,7 @@ func TestListRules(t *testing.T) {
                     {
                         "state": "firing",
                         "name": "KubeCPUOvercommit",
-                        "query": "sum(namespace:kube_pod_container_resource_requests_cpu_cores:sum) / sum(kube_node_status_allocatable_cpu_cores) > (count(kube_node_status_allocatable_cpu_cores) - 1) / count(kube_node_status_allocatable_cpu_cores)",
+                        "query": "sum(namespace:kube_pod_container_resource_requests_cpu_cores:sum) / sum(kube_node_status_allocatable{resource='cpu'}) > (count(kube_node_status_allocatable{resource='cpu'}) - 1) / count(kube_node_status_allocatable{resource='cpu'})",
                         "duration": 300,
                         "labels": {
                             "severity": "warning"

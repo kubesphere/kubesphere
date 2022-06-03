@@ -16,48 +16,47 @@ limitations under the License.
 package v1beta1
 
 import (
+	apisTemplates "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates"
+	"github.com/open-policy-agent/frameworks/constraint/pkg/core/templates"
 	coreTemplates "github.com/open-policy-agent/frameworks/constraint/pkg/core/templates"
-	"github.com/open-policy-agent/frameworks/constraint/pkg/schema"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/conversion"
 )
 
-func Convert_v1beta1_Validation_To_templates_Validation(in *Validation, out *coreTemplates.Validation, s conversion.Scope) error { // nolint:revive // Required exact function name.
+func Convert_v1beta1_Validation_To_templates_Validation(in *Validation, out *coreTemplates.Validation, s conversion.Scope) error { //nolint:golint
 	inSchema := in.OpenAPIV3Schema
-
-	// legacySchema should allow for users to provide arbitrary parameters, regardless of whether the user specified them
-	if in.LegacySchema != nil && *in.LegacySchema && inSchema == nil {
-		inSchema = &apiextensionsv1.JSONSchemaProps{}
+	// to preserve legacy behavior, allow users to provide arbitrary parameters, regardless of whether the user specified them
+	if inSchema == nil {
+		inSchema = &apiextensionsv1beta1.JSONSchemaProps{}
 	}
 
-	if inSchema != nil {
-		inSchemaCopy := inSchema.DeepCopy()
+	inSchemaCopy := inSchema.DeepCopy()
+	if err := apisTemplates.AddPreserveUnknownFields(inSchemaCopy); err != nil {
+		return err
+	}
 
-		if in.LegacySchema != nil && *in.LegacySchema {
-			if err := schema.AddPreserveUnknownFields(inSchemaCopy); err != nil {
-				return err
-			}
-		}
+	out.OpenAPIV3Schema = new(apiextensions.JSONSchemaProps)
+	if err := apiextensionsv1beta1.Convert_v1beta1_JSONSchemaProps_To_apiextensions_JSONSchemaProps(inSchemaCopy, out.OpenAPIV3Schema, s); err != nil {
+		return err
+	}
+	return nil
+}
 
-		out.OpenAPIV3Schema = new(apiextensions.JSONSchemaProps)
-		if err := apiextensionsv1.Convert_v1_JSONSchemaProps_To_apiextensions_JSONSchemaProps(inSchemaCopy, out.OpenAPIV3Schema, s); err != nil {
+func Convert_v1beta1_CRDSpec_To_templates_CRDSpec(in *CRDSpec, out *templates.CRDSpec, s conversion.Scope) error { //nolint:golint
+	if err := Convert_v1beta1_Names_To_templates_Names(&in.Names, &out.Names, s); err != nil {
+		return err
+	}
+	validation := in.Validation
+	if validation == nil {
+		validation = &Validation{}
+	}
+	{
+		in, out := &validation, &out.Validation
+		*out = new(templates.Validation)
+		if err := Convert_v1beta1_Validation_To_templates_Validation(*in, *out, s); err != nil {
 			return err
 		}
-	} else {
-		out.OpenAPIV3Schema = nil
 	}
-
-	// As LegacySchema is a pointer, we have to explicitly copy the value.  Doing a simple copy of
-	// out.LegacySchema = in.LegacySchema yields a duplicate pointer to the same value.  This links
-	// the value of LegacySchema in the out object to that of the in object, potentially creating
-	// a bug where both change when only one is meant to.
-	if in.LegacySchema == nil {
-		out.LegacySchema = nil
-	} else {
-		inVal := *in.LegacySchema
-		out.LegacySchema = &inVal
-	}
-
 	return nil
 }

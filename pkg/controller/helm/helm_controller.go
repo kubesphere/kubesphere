@@ -23,25 +23,26 @@ import (
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
+
 	"github.com/operator-framework/helm-operator-plugins/pkg/annotation"
 	"github.com/operator-framework/helm-operator-plugins/pkg/reconciler"
 	"github.com/operator-framework/helm-operator-plugins/pkg/watches"
 )
 
 type Reconciler struct {
-	WatchFiles []string
+	GatewayOptions *gateway.Options
 }
 
 // SetupWithManager creates reconilers for each helm package that defined in the WatchFiles.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var watchKinds []watches.Watch
-	for _, file := range r.WatchFiles {
-		ws, err := watches.Load(file)
-		if err != nil {
-			return err
-		}
-		watchKinds = append(watchKinds, ws...)
+
+	ws, err := watches.Load(r.GatewayOptions.WatchesPath)
+	if err != nil {
+		return err
 	}
+	watchKinds = append(watchKinds, ws...)
 
 	for _, w := range watchKinds {
 		// Register controller with the factory
@@ -58,7 +59,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		r, err := reconciler.New(
 			reconciler.WithChart(*w.Chart),
 			reconciler.WithGroupVersionKind(w.GroupVersionKind),
-			reconciler.WithOverrideValues(w.OverrideValues),
+			reconciler.WithOverrideValues(r.defaultConfiguration(w.OverrideValues)),
 			reconciler.SkipDependentWatches(w.WatchDependentResources != nil && !*w.WatchDependentResources),
 			reconciler.WithMaxConcurrentReconciles(maxConcurrentReconciles),
 			reconciler.WithReconcilePeriod(reconcilePeriod),
@@ -72,7 +73,21 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		if err := r.SetupWithManager(mgr); err != nil {
 			return err
 		}
-		klog.Info("configured watch", "gvk", w.GroupVersionKind, "chartPath", w.ChartPath, "maxConcurrentReconciles", maxConcurrentReconciles, "reconcilePeriod", reconcilePeriod)
+		klog.Infoln("configured watch", "gvk", w.GroupVersionKind, "chartPath", w.ChartPath, "maxConcurrentReconciles", maxConcurrentReconciles, "reconcilePeriod", reconcilePeriod)
 	}
 	return nil
+}
+
+func (r *Reconciler) defaultConfiguration(overrideValues map[string]string) map[string]string {
+	if overrideValues == nil {
+		//vendor/github.com/operator-framework/helm-operator-plugins/pkg/watches/watches.go:85-87
+		overrideValues = make(map[string]string)
+	}
+	if r.GatewayOptions.Repository != "" {
+		overrideValues["controller.image.repository"] = r.GatewayOptions.Repository
+	}
+	if r.GatewayOptions.Tag != "" {
+		overrideValues["controller.image.tag"] = r.GatewayOptions.Tag
+	}
+	return overrideValues
 }

@@ -7,6 +7,10 @@ package topdown
 import (
 	"context"
 	"fmt"
+	"io"
+
+	"github.com/open-policy-agent/opa/metrics"
+	"github.com/open-policy-agent/opa/topdown/cache"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown/builtins"
@@ -28,14 +32,20 @@ type (
 	// BuiltinContext contains context from the evaluator that may be used by
 	// built-in functions.
 	BuiltinContext struct {
-		Context  context.Context // request context that was passed when query started
-		Cancel   Cancel          // atomic value that signals evaluation to halt
-		Runtime  *ast.Term       // runtime information on the OPA instance
-		Cache    builtins.Cache  // built-in function state cache
-		Location *ast.Location   // location of built-in call
-		Tracers  []Tracer        // tracer objects for trace() built-in function
-		QueryID  uint64          // identifies query being evaluated
-		ParentID uint64          // identifies parent of query being evaluated
+		Context                context.Context       // request context that was passed when query started
+		Metrics                metrics.Metrics       // metrics registry for recording built-in specific metrics
+		Seed                   io.Reader             // randomization seed
+		Time                   *ast.Term             // wall clock time
+		Cancel                 Cancel                // atomic value that signals evaluation to halt
+		Runtime                *ast.Term             // runtime information on the OPA instance
+		Cache                  builtins.Cache        // built-in function state cache
+		InterQueryBuiltinCache cache.InterQueryCache // cross-query built-in function state cache
+		Location               *ast.Location         // location of built-in call
+		Tracers                []Tracer              // Deprecated: Use QueryTracers instead
+		QueryTracers           []QueryTracer         // tracer objects for trace() built-in function
+		TraceEnabled           bool                  // indicates whether tracing is enabled for the evaluation
+		QueryID                uint64                // identifies query being evaluated
+		ParentID               uint64                // identifies parent of query being evaluated
 	}
 
 	// BuiltinFunc defines an interface for implementing built-in functions.

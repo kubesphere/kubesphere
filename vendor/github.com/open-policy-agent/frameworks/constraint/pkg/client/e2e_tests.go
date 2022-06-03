@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/open-policy-agent/frameworks/constraint/pkg/core/templates"
 	"github.com/open-policy-agent/frameworks/constraint/pkg/types"
+	"github.com/pkg/errors"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -74,13 +74,13 @@ func newConstraint(kind, name string, params map[string]string, enforcementActio
 }
 
 var (
-	// basic deny template.
+	// basic deny template
 	denyTemplateRego = `package foo
 violation[{"msg": "DENIED", "details": {}}] {
 	"always" == "always"
 }`
 
-	// basic deny template that uses a lib rule.
+	// basic deny template that uses a lib rule
 	denyTemplateWithLibRego = `package foo
 
 import data.lib.bar
@@ -106,32 +106,29 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs := map[string]func(*Client) error{}
 	tcs["Add Template"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", rego, libs...))
-		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
-		}
-		return nil
+		return errors.Wrap(err, "AddTemplate")
 	}
 	tcs["Deny All"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", rego, libs...))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		rsps, err := c.Review(ctx, targetData{Name: "Sara", ForConstraint: "Foo"})
 		if err != nil {
-			return fmt.Errorf("got Review: %w", err)
+			return errors.Wrap(err, "Review")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 1 {
 			return e("Bad number of results", rsps)
 		}
 		if !reflect.DeepEqual(rsps.Results()[0].Constraint, cstr) {
-			return e(fmt.Sprintf("got Constraint %s != %s", spew.Sdump(rsps.Results()[0].Constraint), spew.Sdump(cstr)), rsps)
+			return e(fmt.Sprintf("Constraint %s != %s", spew.Sdump(rsps.Results()[0].Constraint), spew.Sdump(cstr)), rsps)
 		}
 		if rsps.Results()[0].Msg != denied {
 			return e(fmt.Sprintf("res.Msg = %s; wanted DENIED", rsps.Results()[0].Msg), rsps)
@@ -145,26 +142,26 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Deny All Audit x2"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", rego, libs...))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		obj := &targetData{Name: "Sara", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj); err != nil {
-			return fmt.Errorf("got AddData: %w", err)
+			return errors.Wrap(err, "AddData")
 		}
 		obj2 := &targetData{Name: "Max", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj2); err != nil {
-			return fmt.Errorf("got AddDataX2: %w", err)
+			return errors.Wrap(err, "AddDataX2")
 		}
 		rsps, err := c.Audit(ctx)
 		if err != nil {
-			return fmt.Errorf("got Audit: %w", err)
+			return errors.Wrap(err, "Audit")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 2 {
 			return e("Bad number of results", rsps)
@@ -183,22 +180,22 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Deny All Audit"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", rego, libs...))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		obj := &targetData{Name: "Sara", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj); err != nil {
-			return fmt.Errorf("got AddData: %w", err)
+			return errors.Wrap(err, "AddData")
 		}
 		rsps, err := c.Audit(ctx)
 		if err != nil {
-			return fmt.Errorf("got Audit: %w", err)
+			return errors.Wrap(err, "Audit")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 1 {
 			return e("Bad number of results", rsps)
@@ -218,7 +215,7 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Autoreject All"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", denyTemplateRego))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		goodNamespaceSelectorConstraint := `
 {
@@ -251,17 +248,17 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 		u := &unstructured.Unstructured{}
 		err = json.Unmarshal([]byte(goodNamespaceSelectorConstraint), u)
 		if err != nil {
-			return fmt.Errorf("got Unable to parse constraint JSON: %w", err)
+			return errors.Wrap(err, "Unable to parse constraint JSON")
 		}
 		if _, err := c.AddConstraint(ctx, u); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		rsps, err := c.Review(ctx, targetData{Name: "Sara", ForConstraint: "Foo"})
 		if err != nil {
-			return fmt.Errorf("got Review: %w", err)
+			return errors.Wrap(err, "Review")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 2 {
 			return e("Bad number of results", rsps)
@@ -280,26 +277,26 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Remove Data"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", rego, libs...))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		obj := &targetData{Name: "Sara", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj); err != nil {
-			return fmt.Errorf("got AddData: %w", err)
+			return errors.Wrap(err, "AddData")
 		}
 		obj2 := &targetData{Name: "Max", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj2); err != nil {
-			return fmt.Errorf("got AddDataX2: %w", err)
+			return errors.Wrap(err, "AddDataX2")
 		}
 		rsps, err := c.Audit(ctx)
 		if err != nil {
-			return fmt.Errorf("got Audit: %w", err)
+			return errors.Wrap(err, "Audit")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 2 {
 			return e("Bad number of results", rsps)
@@ -314,14 +311,14 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 		}
 
 		if _, err := c.RemoveData(ctx, obj2); err != nil {
-			return fmt.Errorf("got RemoveData: %w", err)
+			return errors.Wrapf(err, "RemoveData")
 		}
 		rsps2, err := c.Audit(ctx)
 		if err != nil {
-			return fmt.Errorf("got AuditX2: %w", err)
+			return errors.Wrapf(err, "AuditX2")
 		}
 		if len(rsps2.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps2.Results()) != 1 {
 			return e("Bad number of results", rsps2)
@@ -341,22 +338,22 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Remove Constraint"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", denyTemplateRego))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		obj := &targetData{Name: "Sara", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj); err != nil {
-			return fmt.Errorf("got AddData: %w", err)
+			return errors.Wrap(err, "AddData")
 		}
 		rsps, err := c.Audit(ctx)
 		if err != nil {
-			return fmt.Errorf("got Audit: %w", err)
+			return errors.Wrap(err, "Audit")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 1 {
 			return e("Bad number of results", rsps)
@@ -372,11 +369,11 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 		}
 
 		if _, err := c.RemoveConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got RemoveConstraint: %w", err)
+			return errors.Wrap(err, "RemoveConstraint")
 		}
 		rsps2, err := c.Audit(ctx)
 		if err != nil {
-			return fmt.Errorf("got AuditX2: %w", err)
+			return errors.Wrap(err, "AuditX2")
 		}
 		if len(rsps2.Results()) != 0 {
 			return e("Responses returned", rsps2)
@@ -388,22 +385,22 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 		tmpl := newConstraintTemplate("Foo", denyTemplateRego)
 		_, err := c.AddTemplate(ctx, tmpl)
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		obj := &targetData{Name: "Sara", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj); err != nil {
-			return fmt.Errorf("got AddData: %w", err)
+			return errors.Wrap(err, "AddData")
 		}
 		rsps, err := c.Audit(ctx)
 		if err != nil {
-			return fmt.Errorf("got Audit: %w", err)
+			return errors.Wrap(err, "Audit")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 1 {
 			return e("Bad number of results", rsps)
@@ -419,11 +416,11 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 		}
 
 		if _, err := c.RemoveTemplate(ctx, tmpl); err != nil {
-			return fmt.Errorf("got RemoveTemplate: %w", err)
+			return errors.Wrap(err, "RemoveTemplate")
 		}
 		rsps2, err := c.Audit(ctx)
 		if err != nil {
-			return fmt.Errorf("got AuditX2: %w", err)
+			return errors.Wrap(err, "AuditX2")
 		}
 		if len(rsps2.Results()) != 0 {
 			return e("Responses returned", rsps2)
@@ -434,18 +431,18 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Tracing Off"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", denyTemplateRego))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		rsps, err := c.Review(ctx, targetData{Name: "Sara", ForConstraint: "Foo"})
 		if err != nil {
-			return fmt.Errorf("got Review: %w", err)
+			return errors.Wrap(err, "Review")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 1 {
 			return e("Bad number of results", rsps)
@@ -461,18 +458,18 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Tracing On"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", rego, libs...))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		rsps, err := c.Review(ctx, targetData{Name: "Sara", ForConstraint: "Foo"}, Tracing(true))
 		if err != nil {
-			return fmt.Errorf("got Review: %w", err)
+			return errors.Wrap(err, "Review")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 1 {
 			return e("Bad number of results", rsps)
@@ -488,26 +485,26 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Audit Tracing Enabled"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", rego, libs...))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		obj := &targetData{Name: "Sara", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj); err != nil {
-			return fmt.Errorf("got AddData: %w", err)
+			return errors.Wrap(err, "AddData")
 		}
 		obj2 := &targetData{Name: "Max", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj2); err != nil {
-			return fmt.Errorf("got AddDataX2: %w", err)
+			return errors.Wrap(err, "AddDataX2")
 		}
 		rsps, err := c.Audit(ctx, Tracing(true))
 		if err != nil {
-			return fmt.Errorf("got Audit: %w", err)
+			return errors.Wrap(err, "Audit")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 2 {
 			return e("Bad number of results", rsps)
@@ -523,26 +520,26 @@ func addDenyAllE2ETests(nameSuffix string, rego string, libs ...string) {
 	tcs["Audit Tracing Disabled"] = func(c *Client) error {
 		_, err := c.AddTemplate(ctx, newConstraintTemplate("Foo", rego, libs...))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", nil, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		obj := &targetData{Name: "Sara", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj); err != nil {
-			return fmt.Errorf("got AddData: %w", err)
+			return errors.Wrap(err, "AddData")
 		}
 		obj2 := &targetData{Name: "Max", ForConstraint: "Foo"}
 		if _, err := c.AddData(ctx, obj2); err != nil {
-			return fmt.Errorf("got AddDataX2: %w", err)
+			return errors.Wrap(err, "AddDataX2")
 		}
 		rsps, err := c.Audit(ctx, Tracing(false))
 		if err != nil {
-			return fmt.Errorf("got Audit: %w", err)
+			return errors.Wrap(err, "Audit")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 2 {
 			return e("Bad number of results", rsps)
@@ -568,19 +565,19 @@ violation[{"msg": "DRYRUN", "details": {}}] {
 	"always" == "always"
 }`))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		testEnforcementAction := "dryrun"
 		cstr := newConstraint("Foo", "ph", nil, &testEnforcementAction)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		rsps, err := c.Review(ctx, targetData{Name: "Sara", ForConstraint: "Foo"})
 		if err != nil {
-			return fmt.Errorf("got Review: %w", err)
+			return errors.Wrap(err, "Review")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 1 {
 			return e("Bad number of results", rsps)
@@ -600,18 +597,18 @@ violation[{"msg": "DENIED", "details": {}}] {
 	input.parameters.name == input.review.Name
 }`))
 		if err != nil {
-			return fmt.Errorf("got AddTemplate: %w", err)
+			return errors.Wrap(err, "AddTemplate")
 		}
 		cstr := newConstraint("Foo", "ph", map[string]string{"name": "deny_me"}, nil)
 		if _, err := c.AddConstraint(ctx, cstr); err != nil {
-			return fmt.Errorf("got AddConstraint: %w", err)
+			return errors.Wrap(err, "AddConstraint")
 		}
 		rsps, err := c.Review(ctx, targetData{Name: "deny_me", ForConstraint: "Foo"})
 		if err != nil {
-			return fmt.Errorf("got Review: %w", err)
+			return errors.Wrap(err, "Review")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned")
+			return errors.New("No responses returned")
 		}
 		if len(rsps.Results()) != 1 {
 			return e("Bad number of results", rsps)
@@ -625,10 +622,10 @@ violation[{"msg": "DENIED", "details": {}}] {
 
 		rsps, err = c.Review(ctx, targetData{Name: "Sara", ForConstraint: "Foo"})
 		if err != nil {
-			return fmt.Errorf("got Review: %w", err)
+			return errors.Wrap(err, "Review")
 		}
 		if len(rsps.ByTarget) == 0 {
-			return errors.New("no responses returned for second test")
+			return errors.New("No responses returned for second test")
 		}
 		if len(rsps.Results()) != 0 {
 			return e("Expected no results", rsps)

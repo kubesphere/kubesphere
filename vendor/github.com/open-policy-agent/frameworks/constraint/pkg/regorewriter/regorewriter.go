@@ -1,7 +1,6 @@
 package regorewriter
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,12 +10,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/format"
+	"github.com/pkg/errors"
 )
 
-const (
-	vLog       = 2
-	vLogDetail = vLog + 1
-)
+const vLog = 2
+const vLogDetail = vLog + 1
 
 // RegoRewriter rewrites rego code by updating library package paths by prepending a prefix
 // and updating references to library code accordingly.
@@ -46,11 +44,11 @@ type RegoRewriter struct {
 func New(pt PackageTransformer, libs []string, externs []string) (*RegoRewriter, error) {
 	externRefs, err := packagesAsRefs(externs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse externs: %w", err)
+		return nil, errors.Wrapf(err, "failed to parse externs")
 	}
 	libRefs, err := packagesAsRefs(libs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse libs: %w", err)
+		return nil, errors.Wrapf(err, "failed to parse libs")
 	}
 
 	return &RegoRewriter{
@@ -95,7 +93,7 @@ func (r *RegoRewriter) addTestDir(testDirPath string) error {
 	glog.V(vLog).Infof("Walking test dir %s", testDirPath)
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return fmt.Errorf("walk error on path %s: %w", path, err)
+			return errors.Wrapf(err, "walk error on path %s", path)
 		}
 		if info.IsDir() {
 			return nil
@@ -113,15 +111,17 @@ func (r *RegoRewriter) addTestDir(testDirPath string) error {
 		r.testData = append(r.testData, &TestData{FilePath: FilePath{path: path}, content: bytes})
 		return nil
 	}
-
-	return filepath.Walk(testDirPath, walkFn)
+	if err := filepath.Walk(testDirPath, walkFn); err != nil {
+		return err
+	}
+	return nil
 }
 
 // addFileFromFs reads a file from the filesystem, parses it then appends it to slice.
 func (r *RegoRewriter) addFileFromFs(path string, slice *[]*Module) error {
 	glog.V(vLog).Infof("adding file %s", path)
 	if !strings.HasSuffix(path, ".rego") {
-		return fmt.Errorf("invalid file specified %s", path)
+		return errors.Errorf("invalid file specified %s", path)
 	}
 
 	bytes, err := ioutil.ReadFile(path)
@@ -166,8 +166,10 @@ func (r *RegoRewriter) addPathFromFs(path string, slice *[]*Module) error {
 			}
 			return r.addFileFromFs(path, slice)
 		}
-
-		return filepath.Walk(path, walkFn)
+		if err := filepath.Walk(path, walkFn); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	return r.addFileFromFs(path, slice)
@@ -184,7 +186,7 @@ func (r *RegoRewriter) AddLibFromFs(path string) error {
 	return r.addPathFromFs(path, &r.libs)
 }
 
-// forAllModules runs f on all rego modules (both entrypoints and libraries).
+// forAllModules runs f on all rego modules (both entrypoints and libraries)
 func (r *RegoRewriter) forAllModules(f func(*Module) error) error {
 	for _, m := range r.libs {
 		if err := f(m); err != nil {
@@ -223,7 +225,7 @@ func (r *RegoRewriter) checkLibPackages() error {
 	for _, mod := range r.libs {
 		path := mod.Module.Package.Path
 		if !r.allowedLibPackage(path) {
-			return fmt.Errorf("path %s not found in lib prefixes", path)
+			return errors.Errorf("path %s not found in lib prefixes", path)
 		}
 	}
 	return nil
@@ -265,7 +267,7 @@ func (r *RegoRewriter) checkRef(ref ast.Ref) error {
 		}
 	}
 
-	return fmt.Errorf("disallowed ref %s", ref)
+	return errors.Errorf("disallowed ref %s", ref)
 }
 
 // checkImport checks the import statement to ensure that it's a subref of an allowed lib prefix.
@@ -273,13 +275,9 @@ func (r *RegoRewriter) checkImport(i *ast.Import) error {
 	want := i.Path.String()
 	glog.V(vLog).Infof("checking import %s", want)
 
-	importRef, ok := i.Path.Value.(ast.Ref)
-	if !ok {
-		return fmt.Errorf("got reference of type %T, want %T", i.Path.Value, ast.Ref{})
-	}
-
+	importRef := i.Path.Value.(ast.Ref)
 	if isSubRef(inputRefPrefix, importRef) {
-		return fmt.Errorf("bad import")
+		return errors.Errorf("bad import")
 	}
 
 	for _, libPrefix := range r.allowedLibPrefixes {
@@ -288,7 +286,7 @@ func (r *RegoRewriter) checkImport(i *ast.Import) error {
 		}
 	}
 
-	return fmt.Errorf("bad import")
+	return errors.Errorf("bad import")
 }
 
 // checkDataReferences checks that all data references are directed to allowed lib prefixes or
@@ -312,7 +310,7 @@ func (r *RegoRewriter) checkDataReferences() error {
 			})
 		}
 		if errs != nil {
-			return fmt.Errorf("check refs failed on module %s: %w", m.FilePath, errs)
+			return errors.Wrapf(errs, "check refs failed on module %s", m.FilePath)
 		}
 		return nil
 	})
@@ -356,17 +354,12 @@ func (r *RegoRewriter) rewriteDataRef(ref ast.Ref) ast.Ref {
 }
 
 // rewriteImportPath updates an import path to the new value.
-func (r *RegoRewriter) rewriteImportPath(path *ast.Term) (*ast.Term, error) {
-	pathRef, ok := path.Value.(ast.Ref)
-	if !ok {
-		return nil, fmt.Errorf("got reference of type %T, want %T", path.Value, ast.Ref{})
-	}
-
+func (r *RegoRewriter) rewriteImportPath(path *ast.Term) *ast.Term {
+	pathRef := path.Value.(ast.Ref)
 	if !r.refNeedsRewrite(pathRef) {
-		return path, nil
+		return path
 	}
-
-	return ast.NewTerm(r.rewriteDataRef(pathRef)), nil
+	return ast.NewTerm(r.rewriteDataRef(pathRef))
 }
 
 // Rewrite will check the input source and update the package paths and refs as appropriate.
@@ -387,11 +380,7 @@ func (r *RegoRewriter) Rewrite() (*Sources, error) {
 			for _, t := range i.Path.Value.(ast.Ref) {
 				glog.V(vLogDetail).Infof("  term: %s %#v %#v", t, t, reflect.TypeOf(t.Value).String())
 			}
-			var err error
-			i.Path, err = r.rewriteImportPath(i.Path)
-			if err != nil {
-				return err
-			}
+			i.Path = r.rewriteImportPath(i.Path)
 		}
 
 		for _, rule := range mod.Module.Rules {

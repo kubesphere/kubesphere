@@ -19,6 +19,7 @@ package metrics
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/emicklei/go-restful"
 	"github.com/prometheus/client_golang/prometheus"
@@ -30,6 +31,8 @@ import (
 )
 
 var (
+	registerOnce sync.Once
+
 	Defaults        DefaultMetrics
 	defaultRegistry compbasemetrics.KubeRegistry
 	// MustRegister registers registerable metrics but uses the defaultRegistry, panic upon the first registration that causes an error
@@ -54,10 +57,13 @@ type DefaultMetrics struct{}
 
 // Install adds the DefaultMetrics handler
 func (m DefaultMetrics) Install(c *restful.Container) {
+	registerOnce.Do(m.registerMetrics)
+	c.Handle("/kapis/metrics", Handler())
+}
+
+func (m DefaultMetrics) registerMetrics() {
 	RawMustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 	RawMustRegister(prometheus.NewGoCollector())
-
-	c.Handle("/kapis/metrics", Handler())
 }
 
 //Overwrite version.Get

@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 )
 
-// Sources represents all modules that have been fed into the.
+// Sources represents all modules that have been fed into the
 type Sources struct {
 	// EntryPoints are the sources which contain the constraint template violation rule.
 	EntryPoints []*Module
@@ -47,7 +47,7 @@ func (s *Sources) allSources() []sourceFile {
 	return m
 }
 
-// ForEachModule applies fn to each EntryPoint and Lib.
+// ForEachModule applys fn to each EntryPoint and Lib
 func (s *Sources) ForEachModule(fn func(m *Module) error) error {
 	for _, module := range s.EntryPoints {
 		if err := fn(module); err != nil {
@@ -91,19 +91,18 @@ func (s *Sources) Reparent(old, new string) error {
 
 // Write will write the sources to the filesystem.
 func (s *Sources) Write() error {
-	// TODO: Determine if _ is intended to be used in anything.
-	return s.forAll(func(_ sourceFile) error {
+	return s.forAll(func(module sourceFile) error {
 		for _, module := range s.allSources() {
 			path := module.Path()
 			content, err := module.Content()
 			if err != nil {
 				return err
 			}
-			if err = os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+			if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 				return err
 			}
 			glog.Infof("Writing %s", path)
-			if err = ioutil.WriteFile(path, content, 0o600); err != nil {
+			if err := ioutil.WriteFile(path, content, 0640); err != nil {
 				return err
 			}
 		}

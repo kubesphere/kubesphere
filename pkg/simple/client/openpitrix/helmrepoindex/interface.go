@@ -16,7 +16,11 @@ limitations under the License.
 
 package helmrepoindex
 
-import "time"
+import (
+	"time"
+
+	"kubesphere.io/api/application/v1alpha1"
+)
 
 type VersionInterface interface {
 	GetName() string
@@ -28,8 +32,10 @@ type VersionInterface interface {
 	GetIcon() string
 	GetHome() string
 	GetSources() string
+	GetRawSources() []string
 	GetKeywords() string
 	GetMaintainers() string
+	GetRawMaintainers() []*v1alpha1.Maintainer
 	GetScreenshots() string
 	GetPackageName() string
 	GetCreateTime() time.Time

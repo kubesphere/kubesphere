@@ -24,15 +24,19 @@ import (
 
 // Options contains configuration of the default Gateway
 type Options struct {
-	WatchesPath string `json:"watchesPath,omitempty" yaml:"watchesPath"`
-	Namespace   string `json:"namespace,omitempty" yaml:"namespace"`
+	WatchesPath string `json:"watchesPath,omitempty" yaml:"watchesPath,omitempty"`
+	Namespace   string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	Repository  string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Tag         string `json:"tag,omitempty" yaml:"tag,omitempty"`
 }
 
 // NewGatewayOptions creates a default Gateway Option
 func NewGatewayOptions() *Options {
 	return &Options{
 		WatchesPath: "",
-		Namespace:   "", //constants.KubeSphereControlNamespace
+		Namespace:   "", // constants.KubeSphereControlNamespace
+		Repository:  "",
+		Tag:         "",
 	}
 }
 
@@ -59,4 +63,6 @@ func (s *Options) ApplyTo(options *Options) {
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.StringVar(&s.WatchesPath, "watches-path", c.WatchesPath, "Path to the watches file to use.")
 	fs.StringVar(&s.Namespace, "namespace", c.Namespace, "Working Namespace of the Gateway's Ingress Controller.")
+	fs.StringVar(&s.Repository, "repository", c.Repository, "The Gateway Controller's image repository")
+	fs.StringVar(&s.Tag, "tag", c.Tag, "The Gateway Controller's image tag")
 }

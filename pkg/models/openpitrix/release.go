@@ -70,13 +70,13 @@ type releaseOperator struct {
 	clusterClients   clusterclient.ClusterClients
 }
 
-func newReleaseOperator(cached reposcache.ReposCache, k8sFactory informers.SharedInformerFactory, ksFactory externalversions.SharedInformerFactory, ksClient versioned.Interface) ReleaseInterface {
+func newReleaseOperator(cached reposcache.ReposCache, k8sFactory informers.SharedInformerFactory, ksFactory externalversions.SharedInformerFactory, ksClient versioned.Interface, cc clusterclient.ClusterClients) ReleaseInterface {
 	c := &releaseOperator{
 		informers:        k8sFactory,
 		rlsClient:        ksClient.ApplicationV1alpha1().HelmReleases(),
 		rlsLister:        ksFactory.Application().V1alpha1().HelmReleases().Lister(),
 		cachedRepos:      cached,
-		clusterClients:   clusterclient.NewClusterClient(ksFactory.Cluster().V1alpha1().Clusters()),
+		clusterClients:   cc,
 		appVersionLister: ksFactory.Application().V1alpha1().HelmApplicationVersions().Lister(),
 	}
 

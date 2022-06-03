@@ -10720,6 +10720,10 @@
           "description": "Desired state of the cluster",
           "type": "boolean"
         },
+        "externalKubeAPIEnabled": {
+          "description": "ExternalKubeAPIEnabled export kubeapiserver to public use a lb type service if connection type is proxy",
+          "type": "boolean"
+        },
         "joinFederation": {
           "description": "Join cluster as a kubefed cluster",
           "type": "boolean"
@@ -10766,6 +10770,10 @@
           "description": "Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.",
           "type": "string"
         },
+        "uid": {
+          "description": "UID is the kube-system namespace UID of the cluster, which represents the unique ID of the cluster.",
+          "type": "string"
+        },
         "zones": {
           "description": "Zones are the names of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.",
           "type": "array",
@@ -10779,6 +10787,10 @@
     "io.kubesphere.api.cluster.v1alpha1.Connection": {
       "type": "object",
       "properties": {
+        "externalKubernetesAPIEndpoint": {
+          "description": "External Kubernetes API Server endpoint Will be populated by ks-apiserver if connection type is proxy and ExternalKubeAPIEnabled is true.",
+          "type": "string"
+        },
         "kubeconfig": {
           "description": "KubeConfig content used to connect to cluster api server Should provide this field explicitly if connection type is direct. Will be populated by ks-proxy if connection type is proxy.",
           "type": "string",

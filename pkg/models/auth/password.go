@@ -76,7 +76,8 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, username, passwo
 				return nil, providerOptions.Name, err
 			}
 			linkedAccount, err := p.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
-			if err != nil {
+			if err != nil && !errors.IsNotFound(err) {
+				klog.Error(err)
 				return nil, providerOptions.Name, err
 			}
 			// using this method requires you to manually provision users.
@@ -111,8 +112,8 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, username, passwo
 	}
 
 	// check user status
-	if user != nil && (user.Status.State == nil || *user.Status.State != iamv1alpha2.UserActive) {
-		if user.Status.State != nil && *user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
+	if user != nil && user.Status.State != iamv1alpha2.UserActive {
+		if user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
 			klog.Errorf("%s, username: %s", RateLimitExceededError, username)
 			return nil, "", RateLimitExceededError
 		} else {
@@ -129,7 +130,8 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, username, passwo
 			return nil, "", err
 		}
 		u := &authuser.DefaultInfo{
-			Name: user.Name,
+			Name:   user.Name,
+			Groups: user.Spec.Groups,
 		}
 		// check if the password is initialized
 		if uninitialized := user.Annotations[iamv1alpha2.UninitializedAnnotation]; uninitialized != "" {

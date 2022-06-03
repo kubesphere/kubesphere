@@ -7,7 +7,7 @@ type TestData struct {
 	content []byte
 }
 
-// Content implements sourceFile.
+// Content implements sourceFile
 func (t *TestData) Content() ([]byte, error) {
 	return t.content, nil
 }

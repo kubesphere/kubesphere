@@ -23,12 +23,13 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -43,6 +44,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
+	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
@@ -57,6 +59,7 @@ type Reconciler struct {
 	Logger                  logr.Logger
 	Recorder                record.EventRecorder
 	MaxConcurrentReconciles int
+	GatewayOptions          *gateway.Options
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -117,7 +120,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	} else {
 		// The object is being deleted
 		if sliceutil.HasString(namespace.ObjectMeta.Finalizers, finalizer) {
-			if err := r.deleteRouter(rootCtx, logger, namespace.Name); err != nil {
+			if err := r.deleteGateway(rootCtx, logger, namespace.Name); err != nil {
 				return ctrl.Result{}, err
 			}
 			// remove our finalizer from the list and update it.
@@ -213,31 +216,18 @@ func (r *Reconciler) unbindWorkspace(ctx context.Context, logger logr.Logger, na
 	return nil
 }
 
-func (r *Reconciler) deleteRouter(ctx context.Context, logger logr.Logger, namespace string) error {
-	routerName := constants.IngressControllerPrefix + namespace
-
-	// delete service first
-	service := corev1.Service{}
-	err := r.Get(ctx, types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &service)
-	if err != nil {
-		return client.IgnoreNotFound(err)
+// delete gateway
+func (r *Reconciler) deleteGateway(ctx context.Context, logger logr.Logger, namespace string) error {
+	gatewayName := constants.IngressControllerPrefix + namespace
+	if r.GatewayOptions.Namespace != "" {
+		namespace = r.GatewayOptions.Namespace
 	}
-	logger.V(4).Info("delete router service", "namespace", service.Namespace, "service", service.Name)
-	err = r.Delete(ctx, &service)
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-
-	// delete deployment
-	deploy := appsv1.Deployment{}
-	err = r.Get(ctx, types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &deploy)
-	if err != nil {
-		logger.Error(err, "delete router deployment failed")
-		return err
-	}
-
-	logger.V(4).Info("delete router deployment", "namespace", deploy.Namespace, "deployment", deploy.Name)
-	err = r.Delete(ctx, &deploy)
+	gateway := unstructured.Unstructured{}
+	gateway.SetGroupVersionKind(schema.GroupVersionKind{Group: "gateway.kubesphere.io", Version: "v1alpha1", Kind: "Gateway"})
+	gateway.SetName(gatewayName)
+	gateway.SetNamespace(namespace)
+	logger.V(4).Info("deleting gateway", "namespace", namespace, "name", gatewayName)
+	err := r.Delete(ctx, &gateway)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}

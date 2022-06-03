@@ -6,8 +6,6 @@ package storage
 
 import (
 	"context"
-
-	"github.com/open-policy-agent/opa/ast"
 )
 
 // Transaction defines the interface that identifies a consistent snapshot over
@@ -20,7 +18,6 @@ type Transaction interface {
 type Store interface {
 	Trigger
 	Policy
-	Indexing
 
 	// NewTransaction is called create a new transaction in the store.
 	NewTransaction(ctx context.Context, params ...TransactionParams) (Transaction, error)
@@ -194,26 +191,4 @@ func (TriggersNotSupported) Register(context.Context, Transaction, TriggerConfig
 // been registered on a Store.
 type TriggerHandle interface {
 	Unregister(ctx context.Context, txn Transaction)
-}
-
-// IndexIterator defines the interface for iterating over index results.
-type IndexIterator func(*ast.ValueMap) error
-
-// Indexing defines the interface for building an index.
-type Indexing interface {
-	Build(ctx context.Context, txn Transaction, ref ast.Ref) (Index, error)
-}
-
-// Index defines the interface for searching a pre-built index.
-type Index interface {
-	Lookup(ctx context.Context, txn Transaction, value interface{}, iter IndexIterator) error
-}
-
-// IndexingNotSupported provides default implementations of the Indexing
-// interface which may be used if the backend does not support indexing.
-type IndexingNotSupported struct{}
-
-// Build always returns an error indicating indexing is not supported.
-func (IndexingNotSupported) Build(context.Context, Transaction, ast.Ref) (Index, error) {
-	return nil, indexingNotSupportedError()
 }

@@ -37,7 +37,7 @@ func (p *Probe) TestFuncs() map[string]func() error {
 	return ret
 }
 
-// This must be a separate function to create a separate closure for each test.
+// This must be a separate function to create a separate closure for each test
 func (p *Probe) runTest(name string) func() error {
 	return func() error {
 		if err := p.client.Reset(context.Background()); err != nil {
@@ -49,7 +49,7 @@ func (p *Probe) runTest(name string) func() error {
 			if err2 != nil {
 				dump = err2.Error()
 			}
-			return fmt.Errorf("error: %s\n\nOPA Dump: %s", err, dump)
+			return fmt.Errorf("error: %s\n\nOPA Dump: %s\n", err, dump) //nolint:golint
 		}
 		return nil
 	}

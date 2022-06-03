@@ -91,6 +91,7 @@ func (s *storageClassesSearcher) Search(namespace string, conditions *params.Con
 
 	r := make([]interface{}, 0)
 	for _, i := range result {
+		i = i.DeepCopy()
 		count := s.countPersistentVolumeClaims(i.Name)
 		if i.Annotations == nil {
 			i.Annotations = make(map[string]string)

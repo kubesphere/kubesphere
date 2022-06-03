@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/terminal"
 )
 
 const (
@@ -36,17 +37,25 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, client kubernetes.Interface, authorizer authorizer.Authorizer, config *rest.Config) error {
+func AddToContainer(c *restful.Container, client kubernetes.Interface, authorizer authorizer.Authorizer, config *rest.Config, options *terminal.Options) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
 
-	handler := newTerminalHandler(client, authorizer, config)
+	handler := newTerminalHandler(client, authorizer, config, options)
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/pods/{pod}/exec").
 		To(handler.handleTerminalSession).
 		Param(webservice.PathParameter("namespace", "namespace of which the pod located in")).
 		Param(webservice.PathParameter("pod", "name of the pod")).
 		Doc("create terminal session").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TerminalTag}).
+		Writes(models.PodInfo{}))
+
+	//Add new Route to support shell access to the node
+	webservice.Route(webservice.GET("/nodes/{nodename}/exec").
+		To(handler.handleShellAccessToNode).
+		Param(webservice.PathParameter("nodename", "name of cluster node")).
+		Doc("create shell access to node session").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TerminalTag}).
 		Writes(models.PodInfo{}))
 

@@ -31,6 +31,8 @@ const (
 	IngressControllerNamespace    = KubeSphereControlNamespace
 	AdminUserName                 = "admin"
 	IngressControllerPrefix       = "kubesphere-router-"
+	KubeSphereConfigName          = "kubesphere-config"
+	KubeSphereConfigMapDataKey    = "kubesphere.yaml"
 
 	ClusterNameLabelKey               = "kubesphere.io/cluster"
 	NameLabelKey                      = "kubesphere.io/name"
@@ -71,6 +73,8 @@ const (
 	OpenpitrixAttachmentTag  = "Attachment"
 	OpenpitrixRepositoryTag  = "Repository"
 	OpenpitrixManagementTag  = "App Management"
+	// HelmRepoMinSyncPeriod min sync period in seconds
+	HelmRepoMinSyncPeriod = 180
 
 	CleanupDanglingAppOngoing = "ongoing"
 	CleanupDanglingAppDone    = "done"

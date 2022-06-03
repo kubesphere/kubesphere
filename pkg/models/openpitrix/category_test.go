@@ -20,6 +20,8 @@ import (
 	"context"
 	"testing"
 
+	"kubesphere.io/kubesphere/pkg/utils/reposcache"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
@@ -82,5 +84,5 @@ func prepareCategoryOperator() CategoryInterface {
 	k8sClient = fakek8s.NewSimpleClientset()
 	fakeInformerFactory = informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
-	return newCategoryOperator(fakeInformerFactory.KubeSphereSharedInformerFactory(), ksClient)
+	return newCategoryOperator(reposcache.NewReposCache(), fakeInformerFactory.KubeSphereSharedInformerFactory(), ksClient)
 }

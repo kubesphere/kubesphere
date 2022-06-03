@@ -21,13 +21,19 @@ limitations under the License.
 package terminal
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -53,6 +59,10 @@ type TerminalSession struct {
 	sizeChan chan remotecommand.TerminalSize
 }
 
+var (
+	NodeSessionCounter sync.Map
+)
+
 // TerminalMessage is the messaging protocol between ShellController and TerminalSession.
 //
 // OP      DIRECTION  FIELD(S) USED  DESCRIPTION
@@ -71,6 +81,9 @@ type TerminalMessage struct {
 func (t TerminalSession) Next() *remotecommand.TerminalSize {
 	select {
 	case size := <-t.sizeChan:
+		if size.Height == 0 && size.Width == 0 {
+			return nil
+		}
 		return &size
 	}
 }
@@ -135,20 +148,136 @@ func (t TerminalSession) Toast(p string) error {
 // For now the status code is unused and reason is shown to the user (unless "")
 func (t TerminalSession) Close(status uint32, reason string) {
 	klog.Warning(status, reason)
+	close(t.sizeChan)
 	t.conn.Close()
 }
 
 type Interface interface {
 	HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn)
+	HandleShellAccessToNode(nodename string, conn *websocket.Conn)
 }
 
 type terminaler struct {
-	client kubernetes.Interface
-	config *rest.Config
+	client  kubernetes.Interface
+	config  *rest.Config
+	options *Options
 }
 
-func NewTerminaler(client kubernetes.Interface, config *rest.Config) Interface {
-	return &terminaler{client: client, config: config}
+type NodeTerminaler struct {
+	Nodename      string
+	Namespace     string
+	PodName       string
+	ContainerName string
+	Shell         string
+	Privileged    bool
+	Config        *Options
+	client        kubernetes.Interface
+}
+
+func NewTerminaler(client kubernetes.Interface, config *rest.Config, options *Options) Interface {
+	return &terminaler{client: client, config: config, options: options}
+}
+
+func NewNodeTerminaler(nodename string, options *Options, client kubernetes.Interface) (*NodeTerminaler, error) {
+
+	n := &NodeTerminaler{
+		Namespace:     "kubesphere-controls-system",
+		ContainerName: "nsenter",
+		Nodename:      nodename,
+		PodName:       nodename + "-shell-access",
+		Shell:         "sh",
+		Privileged:    true,
+		Config:        options,
+		client:        client,
+	}
+
+	node, err := n.client.CoreV1().Nodes().Get(context.Background(), n.Nodename, metav1.GetOptions{})
+
+	if err != nil {
+		return n, fmt.Errorf("getting node error. nodename:%s, err: %v", n.Nodename, err)
+	}
+
+	flag := false
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == v1.NodeReady && condition.Status == v1.ConditionTrue {
+			flag = true
+			break
+		}
+	}
+	if !flag {
+		return n, fmt.Errorf("node status error. node: %s", n.Nodename)
+	}
+
+	return n, nil
+}
+
+func (n *NodeTerminaler) getNSEnterPod() (*v1.Pod, error) {
+	pod, err := n.client.CoreV1().Pods(n.Namespace).Get(context.Background(), n.PodName, metav1.GetOptions{})
+
+	if err != nil || (pod.Status.Phase != v1.PodRunning && pod.Status.Phase != v1.PodPending) {
+		//pod has timed out, but has not been cleaned up
+		if pod.Status.Phase == v1.PodSucceeded || pod.Status.Phase == v1.PodFailed {
+			err := n.client.CoreV1().Pods(n.Namespace).Delete(context.Background(), n.PodName, metav1.DeleteOptions{})
+			if err != nil {
+				return pod, err
+			}
+		}
+
+		var p = &v1.Pod{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "pod",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: n.PodName,
+			},
+			Spec: v1.PodSpec{
+				NodeName:      n.Nodename,
+				HostPID:       true,
+				HostNetwork:   true,
+				RestartPolicy: v1.RestartPolicyNever,
+				Containers: []v1.Container{
+					{
+						Name:  n.ContainerName,
+						Image: n.Config.Image,
+						Command: []string{
+							"nsenter", "-m", "-u", "-i", "-n", "-p", "-t", "1",
+						},
+						Stdin: true,
+						TTY:   true,
+						SecurityContext: &v1.SecurityContext{
+							Privileged: &n.Privileged,
+						},
+					},
+				},
+			},
+		}
+
+		if n.Config.Timeout == 0 {
+			p.Spec.Containers[0].Args = []string{"tail", "-f", "/dev/null"}
+		} else {
+			p.Spec.Containers[0].Args = []string{"sleep", strconv.Itoa(n.Config.Timeout)}
+		}
+
+		pod, err = n.client.CoreV1().Pods(n.Namespace).Create(context.Background(), p, metav1.CreateOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("create pod failed on %s node: %v", n.Nodename, err)
+		}
+	}
+
+	return pod, nil
+}
+
+func (n NodeTerminaler) CleanUpNSEnterPod() {
+	idx, _ := NodeSessionCounter.Load(n.Nodename)
+	atomic.AddInt64(idx.(*int64), -1)
+
+	if *(idx.(*int64)) == 0 {
+		err := n.client.CoreV1().Pods(n.Namespace).Delete(context.Background(), n.PodName, metav1.DeleteOptions{})
+		if err != nil {
+			klog.Warning(err)
+		}
+	}
 }
 
 // startProcess is called by handleAttach
@@ -223,4 +352,61 @@ func (t *terminaler) HandleSession(shell, namespace, podName, containerName stri
 	}
 
 	session.Close(1, "Process exited")
+}
+
+func (t *terminaler) HandleShellAccessToNode(nodename string, conn *websocket.Conn) {
+
+	nodeTerminaler, err := NewNodeTerminaler(nodename, t.options, t.client)
+	if err != nil {
+		klog.Warning("node terminaler init error: ", err)
+		return
+	}
+
+	pod, err := nodeTerminaler.getNSEnterPod()
+	if err != nil {
+		klog.Warning("get nsenter pod error: ", err)
+		return
+	}
+
+	if err := nodeTerminaler.WatchPodStatusBeRunning(pod); err != nil {
+		klog.Warning("watching pod status error: ", err)
+		return
+	} else {
+		t.HandleSession(nodeTerminaler.Shell, nodeTerminaler.Namespace, nodeTerminaler.PodName, nodeTerminaler.ContainerName, conn)
+		defer nodeTerminaler.CleanUpNSEnterPod()
+	}
+}
+
+func (n *NodeTerminaler) WatchPodStatusBeRunning(pod *v1.Pod) error {
+	if pod.Status.Phase == v1.PodRunning {
+		idx, ok := NodeSessionCounter.Load(n.Nodename)
+		if ok {
+			atomic.AddInt64(idx.(*int64), 1)
+		} else {
+			i := int64(1)
+			NodeSessionCounter.LoadOrStore(n.Nodename, &i)
+		}
+
+		return nil
+	}
+
+	return wait.Poll(time.Millisecond*500, time.Second*5, func() (done bool, err error) {
+		pod, err = n.client.CoreV1().Pods(pod.ObjectMeta.Namespace).Get(context.Background(), pod.ObjectMeta.Name, metav1.GetOptions{})
+		if err != nil {
+			klog.Warning(err)
+			return false, err
+		}
+
+		if pod.Status.Phase == v1.PodRunning {
+			idx, ok := NodeSessionCounter.Load(n.Nodename)
+			if ok {
+				atomic.AddInt64(idx.(*int64), 1)
+			} else {
+				i := int64(1)
+				NodeSessionCounter.LoadOrStore(n.Nodename, &i)
+			}
+			return true, nil
+		}
+		return false, nil
+	})
 }

@@ -16,10 +16,7 @@ var errBadPath = fmt.Errorf("bad document path")
 func mergeTermWithValues(exist *ast.Term, pairs [][2]*ast.Term) (*ast.Term, error) {
 
 	var result *ast.Term
-
-	if exist != nil {
-		result = exist.Copy()
-	}
+	var init bool
 
 	for _, pair := range pairs {
 
@@ -31,31 +28,43 @@ func mergeTermWithValues(exist *ast.Term, pairs [][2]*ast.Term) (*ast.Term, erro
 
 		if len(target) == 1 {
 			result = pair[1]
-		} else if result == nil {
-			result = ast.NewTerm(makeTree(target[1:], pair[1]))
+			init = true
 		} else {
-			node := result
-			done := false
-			for i := 1; i < len(target)-1 && !done; i++ {
-				if child := node.Get(target[i]); child == nil {
+			if !init {
+				result = exist.Copy()
+				init = true
+			}
+
+			if result == nil {
+				result = ast.NewTerm(makeTree(target[1:], pair[1]))
+			} else {
+				node := result
+				done := false
+				for i := 1; i < len(target)-1 && !done; i++ {
+					if child := node.Get(target[i]); child == nil {
+						obj, ok := node.Value.(ast.Object)
+						if !ok {
+							return nil, errConflictingDoc
+						}
+						obj.Insert(target[i], ast.NewTerm(makeTree(target[i+1:], pair[1])))
+						done = true
+					} else {
+						node = child
+					}
+				}
+				if !done {
 					obj, ok := node.Value.(ast.Object)
 					if !ok {
 						return nil, errConflictingDoc
 					}
-					obj.Insert(target[i], ast.NewTerm(makeTree(target[i+1:], pair[1])))
-					done = true
-				} else {
-					node = child
+					obj.Insert(target[len(target)-1], pair[1])
 				}
-			}
-			if !done {
-				obj, ok := node.Value.(ast.Object)
-				if !ok {
-					return nil, errConflictingDoc
-				}
-				obj.Insert(target[len(target)-1], pair[1])
 			}
 		}
+	}
+
+	if !init {
+		result = exist
 	}
 
 	return result, nil

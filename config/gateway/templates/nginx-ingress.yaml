@@ -8,27 +8,32 @@ spec:
     # To rolling upgrade from old nginx ingress controller, we have to overide the name pattern
     name: ""
     image:
-    {{- with .Values.controller.image }}
-    {{- toYaml . | nindent 6 }}
-    {{- end }}
-
+    { { - with .Values.controller.image } }
+    { { - toYaml . | nindent 6 } }
+    { { - end } }
+    watchIngressWithoutClass: true
     publishService:
-      enabled: {{ eq .Values.service.type "LoadBalancer" }}
+      enabled: { { eq .Values.service.type "LoadBalancer" } }
 
     # Will add custom configuration options to Nginx https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/
-    {{- if .Values.controller.config }}
-    config: {{ toYaml .Values.controller.config | nindent 6 }}
-    {{- end }}
+    { { - if .Values.controller.config } }
+    config: { { toYaml .Values.controller.config | nindent 6 } }
+    { { - end } }
+
+    { { - if hasKey .Values.deployment.annotations "servicemesh.kubesphere.io/enabled" } }
+    podAnnotations:
+      sidecar.istio.io/inject: { { get .Values.deployment.annotations "servicemesh.kubesphere.io/enabled" } }
+    { { - end } }
 
     ## Annotations to be added to the controller config configuration configmap
     ##
-    configAnnotations: {}
+    configAnnotations: { }
 
     # Will add custom headers before sending traffic to backends according to https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/customization/custom-headers
-    proxySetHeaders: {}
+    proxySetHeaders: { }
 
     # Will add custom headers before sending response traffic to the client according to: https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/#add-headers
-    addHeaders: {}
+    addHeaders: { }
 
     # Optionally customize the pod dnsConfig.
     dnsConfig: {}
@@ -107,46 +112,45 @@ spec:
     annotations: {{ toYaml .Values.deployment.annotations | nindent 6 }}
     {{- end }}
 
-    ## Labels to be added to the controller Deployment or DaemonSet
-    ##
-    labels: {}
-    #  keel.sh/policy: patch
-    #  keel.sh/trigger: poll
+## Labels to be added to the controller Deployment or DaemonSet
+##
+labels: { }
+#  keel.sh/policy: patch
+#  keel.sh/trigger: poll
 
 
-    ## Node tolerations for server scheduling to nodes with taints
-    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-    ##
-    tolerations: []
-    #  - key: "key"
-    #    operator: "Equal|Exists"
-    #    value: "value"
-    #    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
+## Node tolerations for server scheduling to nodes with taints
+## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+##
+tolerations: [ ]
+#  - key: "key"
+#    operator: "Equal|Exists"
+#    value: "value"
+#    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
 
-    ## Affinity and anti-affinity
-    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-    ##
-    affinity: {}
-      # # An example of preferred pod anti-affinity, weight is in the range 1-100
-      # podAntiAffinity:
-      #   preferredDuringSchedulingIgnoredDuringExecution:
-      #   - weight: 100
-      #     podAffinityTerm:
-      #       labelSelector:
-      #         matchExpressions:
-      #         - key: app.kubernetes.io/name
-      #           operator: In
-      #           values:
-      #           - ingress-nginx
-      #         - key: app.kubernetes.io/instance
-      #           operator: In
-      #           values:
-      #           - ingress-nginx
-      #         - key: app.kubernetes.io/component
-      #           operator: In
-      #           values:
-      #           - controller
-      #       topologyKey: kubernetes.io/hostname
+## Affinity and anti-affinity
+## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+##
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - ingress-nginx
+              - key: app.kubernetes.io/instance
+                operator: In
+                values:
+                  - { { .Release.Name } }-ingress
+            - key: app.kubernetes.io/component
+            operator: In
+            values:
+              - controller
+          topologyKey: kubernetes.io/hostname
 
       # # An example of required pod anti-affinity
       # podAntiAffinity:
@@ -188,23 +192,17 @@ spec:
     # ref: https://github.com/kubernetes/ingress-nginx/issues/4735#issuecomment-551204903
     # Ideally, there should be no limits.
     # https://engineering.indeedblog.com/blog/2019/12/cpu-throttling-regression-fix/
-    resources:
-    #  limits:
-    #    cpu: 100m
-    #    memory: 90Mi
-      requests:
-        cpu: 100m
-        memory: 90Mi
+resources: { { toYaml .Values.deployment.resources |  nindent 6 } }
 
-    # Mutually exclusive with keda autoscaling
-    autoscaling:
-      enabled: false
-      minReplicas: 1
-      maxReplicas: 11
-      targetCPUUtilizationPercentage: 50
-      targetMemoryUtilizationPercentage: 50
+  # Mutually exclusive with keda autoscaling
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 11
+    targetCPUUtilizationPercentage: 50
+    targetMemoryUtilizationPercentage: 50
 
-    ## Override NGINX template
+  ## Override NGINX template
     customTemplate:
       configMapName: ""
       configMapKey: ""

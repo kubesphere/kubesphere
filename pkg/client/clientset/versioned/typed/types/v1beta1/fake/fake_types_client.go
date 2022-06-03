@@ -76,10 +76,6 @@ func (c *FakeTypesV1beta1) FederatedPersistentVolumeClaims(namespace string) v1b
 	return &FakeFederatedPersistentVolumeClaims{c, namespace}
 }
 
-func (c *FakeTypesV1beta1) FederatedResourceQuotas(namespace string) v1beta1.FederatedResourceQuotaInterface {
-	return &FakeFederatedResourceQuotas{c, namespace}
-}
-
 func (c *FakeTypesV1beta1) FederatedSecrets(namespace string) v1beta1.FederatedSecretInterface {
 	return &FakeFederatedSecrets{c, namespace}
 }

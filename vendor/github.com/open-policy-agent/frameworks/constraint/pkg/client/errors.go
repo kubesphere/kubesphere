@@ -8,7 +8,7 @@ import (
 // Errors is a list of error.
 type Errors []error
 
-// Errors implements error.
+// Errors implements error
 var _ error = Errors{}
 
 // Error implements error.
@@ -25,7 +25,7 @@ type ErrorMap map[string]error
 func (e ErrorMap) Error() string {
 	b := &strings.Builder{}
 	for k, v := range e {
-		_, _ = fmt.Fprintf(b, "%s: %s\n", k, v)
+		fmt.Fprintf(b, "%s: %s\n", k, v)
 	}
 	return b.String()
 }

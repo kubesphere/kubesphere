@@ -30,6 +30,7 @@ type CopyPropagator struct {
 	livevars           ast.VarSet // vars that must be preserved in the resulting query
 	sorted             []ast.Var  // sorted copy of vars to ensure deterministic result
 	ensureNonEmptyBody bool
+	compiler           *ast.Compiler
 }
 
 // New returns a new CopyPropagator that optimizes queries while preserving vars
@@ -54,8 +55,17 @@ func (p *CopyPropagator) WithEnsureNonEmptyBody(yes bool) *CopyPropagator {
 	return p
 }
 
+// WithCompiler configures the compiler to read from while processing the query. This
+// should be the same compiler used to compile the original policy.
+func (p *CopyPropagator) WithCompiler(c *ast.Compiler) *CopyPropagator {
+	p.compiler = c
+	return p
+}
+
 // Apply executes the copy propagation optimization and returns a new query.
-func (p *CopyPropagator) Apply(query ast.Body) (result ast.Body) {
+func (p *CopyPropagator) Apply(query ast.Body) ast.Body {
+
+	result := ast.NewBody()
 
 	uf, ok := makeDisjointSets(p.livevars, query)
 	if !ok {
@@ -63,14 +73,15 @@ func (p *CopyPropagator) Apply(query ast.Body) (result ast.Body) {
 	}
 
 	// Compute set of vars that appear in the head of refs in the query. If a var
-	// is dereferenced, we cannot plug it with a constant value so the constant on
-	// the union-find root must be unset (e.g., [1][0] is not legal.)
+	// is dereferenced, we can plug it with a constant value, but it is not always
+	// optimal to do so.
+	// TODO: Improve the algorithm for when we should plug constants/calls/etc
 	headvars := ast.NewVarSet()
 	ast.WalkRefs(query, func(x ast.Ref) bool {
 		if v, ok := x[0].Value.(ast.Var); ok {
 			if root, ok := uf.Find(v); ok {
 				root.constant = nil
-				headvars.Add(root.key)
+				headvars.Add(root.key.(ast.Var))
 			} else {
 				headvars.Add(v)
 			}
@@ -78,21 +89,21 @@ func (p *CopyPropagator) Apply(query ast.Body) (result ast.Body) {
 		return false
 	})
 
-	bindings := map[ast.Var]*binding{}
+	removedEqs := ast.NewValueMap()
 
 	for _, expr := range query {
 
 		pctx := &plugContext{
-			bindings: bindings,
-			uf:       uf,
-			negated:  expr.Negated,
-			headvars: headvars,
+			removedEqs: removedEqs,
+			uf:         uf,
+			negated:    expr.Negated,
+			headvars:   headvars,
 		}
 
-		if expr, keep := p.plugBindings(pctx, expr); keep {
-			if p.updateBindings(pctx, expr) {
-				result.Append(expr)
-			}
+		expr = p.plugBindings(pctx, expr)
+
+		if p.updateBindings(pctx, expr) {
+			result.Append(expr)
 		}
 	}
 
@@ -104,7 +115,7 @@ func (p *CopyPropagator) Apply(query ast.Body) (result ast.Body) {
 	// from being added to the result. For example:
 	//
 	// - Given the following result: <empty>
-	// - Given the following bindings: x/input.x and y/input
+	// - Given the following removed equalities: "x = input.x" and "y = input"
 	// - Given the following liveset: {x}
 	//
 	// If this step were to run AFTER the following step, the output would be:
@@ -116,8 +127,8 @@ func (p *CopyPropagator) Apply(query ast.Body) (result ast.Body) {
 		if root, ok := uf.Find(v); ok {
 			if root.constant != nil {
 				result.Append(ast.Equality.Expr(ast.NewTerm(v), root.constant))
-			} else if b, ok := bindings[root.key]; ok {
-				result.Append(ast.Equality.Expr(ast.NewTerm(v), ast.NewTerm(b.v)))
+			} else if b := removedEqs.Get(root.key); b != nil {
+				result.Append(ast.Equality.Expr(ast.NewTerm(v), ast.NewTerm(b)))
 			} else if root.key != v {
 				result.Append(ast.Equality.Expr(ast.NewTerm(v), ast.NewTerm(root.key)))
 			}
@@ -125,17 +136,46 @@ func (p *CopyPropagator) Apply(query ast.Body) (result ast.Body) {
 	}
 
 	// Run post-processing step on query to ensure that all killed exprs are
-	// accounted for. If an expr is killed but the binding is never used, the query
-	// must still include the expr. For example, given the query 'input.x = a' and
-	// an empty livevar set, the result must include the ref input.x otherwise the
-	// query could be satisfied without input.x being defined. When exprs are
-	// killed we initialize the binding counter to zero and then increment it each
-	// time the binding is substituted. if the binding was never substituted it
-	// means the binding value must be added back into the query.
-	for _, b := range sortbindings(bindings) {
-		if !b.containedIn(result) {
-			result.Append(ast.Equality.Expr(ast.NewTerm(b.k), ast.NewTerm(b.v)))
+	// accounted for. There are several cases we look for:
+	//
+	// * If an expr is killed but the binding is never used, the query
+	//   must still include the expr. For example, given the query 'input.x = a' and
+	//   an empty livevar set, the result must include the ref input.x otherwise the
+	//   query could be satisfied without input.x being defined.
+	//
+	// * If an expr is killed that provided safety to vars which are not
+	//   otherwise being made safe by the current result.
+	//
+	// For any of these cases we re-add the removed equality expression
+	// to the current result.
+
+	// Invariant: Live vars are bound (above) and reserved vars are implicitly ground.
+	safe := ast.ReservedVars.Copy()
+	safe.Update(p.livevars)
+	safe.Update(ast.OutputVarsFromBody(p.compiler, result, safe))
+	unsafe := result.Vars(ast.SafetyCheckVisitorParams).Diff(safe)
+
+	for _, b := range sortbindings(removedEqs) {
+		removedEq := ast.Equality.Expr(ast.NewTerm(b.k), ast.NewTerm(b.v))
+
+		providesSafety := false
+		outputVars := ast.OutputVarsFromExpr(p.compiler, removedEq, safe)
+		diff := unsafe.Diff(outputVars)
+		if len(diff) < len(unsafe) {
+			unsafe = diff
+			providesSafety = true
 		}
+
+		if providesSafety || !containedIn(b.v, result) {
+			result.Append(removedEq)
+			safe.Update(outputVars)
+		}
+	}
+
+	if len(unsafe) > 0 {
+		// NOTE(tsandall): This should be impossible but if it does occur, throw
+		// away the result rather than generating unsafe output.
+		return query
 	}
 
 	if p.ensureNonEmptyBody && len(result) == 0 {
@@ -147,19 +187,7 @@ func (p *CopyPropagator) Apply(query ast.Body) (result ast.Body) {
 
 // plugBindings applies the binding list and union-find to x. This process
 // removes as many variables as possible.
-func (p *CopyPropagator) plugBindings(pctx *plugContext, expr *ast.Expr) (*ast.Expr, bool) {
-
-	// Kill single term expressions that are in the binding list. They will be
-	// re-added during post-processing if needed.
-	if term, ok := expr.Terms.(*ast.Term); ok {
-		if v, ok := term.Value.(ast.Var); ok {
-			if root, ok := pctx.uf.Find(v); ok {
-				if _, ok := pctx.bindings[root.key]; ok {
-					return nil, false
-				}
-			}
-		}
-	}
+func (p *CopyPropagator) plugBindings(pctx *plugContext, expr *ast.Expr) *ast.Expr {
 
 	xform := bindingPlugTransform{
 		pctx: pctx,
@@ -175,7 +203,7 @@ func (p *CopyPropagator) plugBindings(pctx *plugContext, expr *ast.Expr) (*ast.E
 	if expr, ok := x.(*ast.Expr); !ok || err != nil {
 		panic("unreachable")
 	} else {
-		return expr, true
+		return expr
 	}
 }
 
@@ -205,9 +233,9 @@ func (t bindingPlugTransform) plugBindingsVar(pctx *plugContext, v ast.Var) (res
 
 	// Apply binding list to substitute remaining vars.
 	if v, ok := result.(ast.Var); ok {
-		if b, ok := pctx.bindings[v]; ok {
-			if !pctx.negated || b.v.IsGround() {
-				result = b.v
+		if b := pctx.removedEqs.Get(v); b != nil {
+			if !pctx.negated || b.IsGround() {
+				result = b
 			}
 		}
 	}
@@ -218,7 +246,7 @@ func (t bindingPlugTransform) plugBindingsVar(pctx *plugContext, v ast.Var) (res
 func (t bindingPlugTransform) plugBindingsRef(pctx *plugContext, v ast.Ref) ast.Ref {
 
 	// Apply union-find to remove redundant variables from input.
-	if root, ok := pctx.uf.Find(v[0].Value.(ast.Var)); ok {
+	if root, ok := pctx.uf.Find(v[0].Value); ok {
 		v[0].Value = root.Value()
 	}
 
@@ -226,11 +254,16 @@ func (t bindingPlugTransform) plugBindingsRef(pctx *plugContext, v ast.Ref) ast.
 
 	// Refs require special handling. If the head of the ref was killed, then
 	// the rest of the ref must be concatenated with the new base.
-	//
-	// Invariant: ref heads can only be replaced by refs (not calls).
-	if b, ok := pctx.bindings[v[0].Value.(ast.Var)]; ok {
-		if !pctx.negated || b.v.IsGround() {
-			result = b.v.(ast.Ref).Concat(v[1:])
+	if b := pctx.removedEqs.Get(v[0].Value); b != nil {
+		if !pctx.negated || b.IsGround() {
+			var base ast.Ref
+			switch x := b.(type) {
+			case ast.Ref:
+				base = x
+			default:
+				base = ast.Ref{ast.NewTerm(x)}
+			}
+			result = base.Concat(v[1:])
 		}
 	}
 
@@ -251,7 +284,7 @@ func (p *CopyPropagator) updateBindings(pctx *plugContext, expr *ast.Expr) bool 
 		k, v, keep := p.updateBindingsEq(a, b)
 		if !keep {
 			if v != nil {
-				pctx.bindings[k] = newbinding(k, v)
+				pctx.removedEqs.Put(k, v)
 			}
 			return false
 		}
@@ -259,7 +292,7 @@ func (p *CopyPropagator) updateBindings(pctx *plugContext, expr *ast.Expr) bool 
 		terms := expr.Terms.([]*ast.Term)
 		output := terms[len(terms)-1]
 		if k, ok := output.Value.(ast.Var); ok && !p.livevars.Contains(k) && !pctx.headvars.Contains(k) {
-			pctx.bindings[k] = newbinding(k, ast.CallTerm(terms[:len(terms)-1]...).Value)
+			pctx.removedEqs.Put(k, ast.CallTerm(terms[:len(terms)-1]...).Value)
 			return false
 		}
 	}
@@ -289,26 +322,22 @@ func (p *CopyPropagator) updateBindingsEqAsymmetric(a, b *ast.Term) (ast.Var, as
 }
 
 type plugContext struct {
-	bindings map[ast.Var]*binding
-	uf       *unionFind
-	headvars ast.VarSet
-	negated  bool
+	removedEqs *ast.ValueMap
+	uf         *unionFind
+	headvars   ast.VarSet
+	negated    bool
 }
 
 type binding struct {
-	k ast.Var
+	k ast.Value
 	v ast.Value
 }
 
-func newbinding(k ast.Var, v ast.Value) *binding {
-	return &binding{k: k, v: v}
-}
-
-func (b *binding) containedIn(query ast.Body) bool {
+func containedIn(value ast.Value, x interface{}) bool {
 	var stop bool
-	switch v := b.v.(type) {
+	switch v := value.(type) {
 	case ast.Ref:
-		ast.WalkRefs(query, func(other ast.Ref) bool {
+		ast.WalkRefs(x, func(other ast.Ref) bool {
 			if stop || other.HasPrefix(v) {
 				stop = true
 				return stop
@@ -316,7 +345,7 @@ func (b *binding) containedIn(query ast.Body) bool {
 			return false
 		})
 	default:
-		ast.WalkTerms(query, func(other *ast.Term) bool {
+		ast.WalkTerms(x, func(other *ast.Term) bool {
 			if stop || other.Value.Compare(v) == 0 {
 				stop = true
 				return stop
@@ -327,21 +356,16 @@ func (b *binding) containedIn(query ast.Body) bool {
 	return stop
 }
 
-func sortbindings(bindings map[ast.Var]*binding) []*binding {
-	sorted := make([]*binding, 0, len(bindings))
-	for _, b := range bindings {
-		sorted = append(sorted, b)
-	}
+func sortbindings(bindings *ast.ValueMap) []*binding {
+	sorted := make([]*binding, 0, bindings.Len())
+	bindings.Iter(func(k ast.Value, v ast.Value) bool {
+		sorted = append(sorted, &binding{k, v})
+		return false
+	})
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].k.Compare(sorted[j].k) < 0
 	})
 	return sorted
-}
-
-type unionFind struct {
-	roots   map[ast.Var]*unionFindRoot
-	parents map[ast.Var]ast.Var
-	rank    rankFunc
 }
 
 // makeDisjointSets builds the union-find structure for the query. The structure
@@ -352,7 +376,7 @@ type unionFind struct {
 // false.
 func makeDisjointSets(livevars ast.VarSet, query ast.Body) (*unionFind, bool) {
 	uf := newUnionFind(func(r1, r2 *unionFindRoot) (*unionFindRoot, *unionFindRoot) {
-		if livevars.Contains(r1.key) {
+		if v, ok := r1.key.(ast.Var); ok && livevars.Contains(v) {
 			return r1, r2
 		}
 		return r2, r1
@@ -383,86 +407,6 @@ func makeDisjointSets(livevars ast.VarSet, query ast.Body) (*unionFind, bool) {
 	}
 
 	return uf, true
-}
-
-type rankFunc func(*unionFindRoot, *unionFindRoot) (*unionFindRoot, *unionFindRoot)
-
-func newUnionFind(rank rankFunc) *unionFind {
-	return &unionFind{
-		roots:   map[ast.Var]*unionFindRoot{},
-		parents: map[ast.Var]ast.Var{},
-		rank:    rank,
-	}
-}
-
-func (uf *unionFind) MakeSet(v ast.Var) *unionFindRoot {
-
-	root, ok := uf.Find(v)
-	if ok {
-		return root
-	}
-
-	root = newUnionFindRoot(v)
-	uf.parents[v] = v
-	uf.roots[v] = root
-	return uf.roots[v]
-}
-
-func (uf *unionFind) Find(v ast.Var) (*unionFindRoot, bool) {
-
-	parent, ok := uf.parents[v]
-	if !ok {
-		return nil, false
-	}
-
-	if parent == v {
-		return uf.roots[v], true
-	}
-
-	return uf.Find(parent)
-}
-
-func (uf *unionFind) Merge(a, b ast.Var) (*unionFindRoot, bool) {
-
-	r1 := uf.MakeSet(a)
-	r2 := uf.MakeSet(b)
-
-	if r1 != r2 {
-
-		r1, r2 = uf.rank(r1, r2)
-
-		uf.parents[r2.key] = r1.key
-		delete(uf.roots, r2.key)
-
-		// Sets can have at most one constant value associated with them. When
-		// unioning, we must preserve this invariant. If a set has two constants,
-		// there will be no way to prove the query.
-		if r1.constant != nil && r2.constant != nil && !r1.constant.Equal(r2.constant) {
-			return nil, false
-		} else if r1.constant == nil {
-			r1.constant = r2.constant
-		}
-	}
-
-	return r1, true
-}
-
-type unionFindRoot struct {
-	key      ast.Var
-	constant *ast.Term
-}
-
-func newUnionFindRoot(key ast.Var) *unionFindRoot {
-	return &unionFindRoot{
-		key: key,
-	}
-}
-
-func (r *unionFindRoot) Value() ast.Value {
-	if r.constant != nil {
-		return r.constant.Value
-	}
-	return r.key
 }
 
 func isNoop(expr *ast.Expr) bool {

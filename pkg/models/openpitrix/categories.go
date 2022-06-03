@@ -17,6 +17,8 @@ import (
 	"context"
 	"sort"
 
+	"kubesphere.io/kubesphere/pkg/utils/reposcache"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,12 +50,14 @@ type CategoryInterface interface {
 type categoryOperator struct {
 	ctgClient typed_v1alpha1.ApplicationV1alpha1Interface
 	ctgLister listers_v1alpha1.HelmCategoryLister
+	repoCache reposcache.ReposCache
 }
 
-func newCategoryOperator(ksFactory externalversions.SharedInformerFactory, ksClient versioned.Interface) CategoryInterface {
+func newCategoryOperator(repoCache reposcache.ReposCache, ksFactory externalversions.SharedInformerFactory, ksClient versioned.Interface) CategoryInterface {
 	c := &categoryOperator{
 		ctgClient: ksClient.ApplicationV1alpha1(),
 		ctgLister: ksFactory.Application().V1alpha1().HelmCategories().Lister(),
+		repoCache: repoCache,
 	}
 
 	return c
@@ -190,8 +194,15 @@ func (c *categoryOperator) ListCategories(conditions *params.Conditions, orderBy
 	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
 	ctgs = ctgs[start:end]
 	items := make([]interface{}, 0, len(ctgs))
+
+	ctgCountsOfBuiltinRepo := c.repoCache.CopyCategoryCount()
 	for i := range ctgs {
-		items = append(items, convertCategory(ctgs[i]))
+		convertedCtg := convertCategory(ctgs[i])
+		// The statistic of category for app in etcd is stored in the crd.
+		// The statistic of category for the app in the built-in repo is stored in the memory.
+		// So we should calculate these two value then return.
+		*convertedCtg.AppTotal += ctgCountsOfBuiltinRepo[convertedCtg.CategoryID]
+		items = append(items, convertedCtg)
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil

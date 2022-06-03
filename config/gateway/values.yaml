@@ -12,8 +12,9 @@ controller:
     namespace: ""  # defaults to .Release.Namespace
   image:
     repository: kubesphere/nginx-ingress-controller
-    tag: "v0.48.1"
+    tag: "v1.1.0"
     pullPolicy: IfNotPresent
+    digest: ""
 
 
 service:
@@ -23,6 +24,14 @@ service:
 
 ## for nginx controller, same with controller
 deployment:
-  annotations: {}
+  annotations: { }
   replicas: 1
+  resources:
+    #    limits:
+    #      cpu: 100m
+    #      memory: 90Mi
+    requests:
+      cpu: 100m
+      memory: 90Mi
+
   

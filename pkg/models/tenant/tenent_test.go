@@ -66,7 +66,7 @@ func TestTenantOperator_ListWorkspaces(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result, err := tenantOperator.ListWorkspaces(&user.DefaultInfo{Name: test.username}, query.New())
+		result, err := tenantOperator.ListWorkspaceTemplates(&user.DefaultInfo{Name: test.username}, query.New())
 
 		if err != nil {
 			if !reflect.DeepEqual(err, test.expectError) {
@@ -544,5 +544,5 @@ func prepare() Interface {
 	amOperator := am.NewOperator(ksClient, k8sClient, fakeInformerFactory, nil)
 	authorizer := rbac.NewRBACAuthorizer(amOperator)
 
-	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil, amOperator, authorizer, nil, nil)
+	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil, amOperator, nil, authorizer, nil, nil, nil)
 }

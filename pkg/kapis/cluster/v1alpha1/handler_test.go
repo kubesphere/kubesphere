@@ -21,8 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -32,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/printers"
+	"k8s.io/client-go/kubernetes"
 	k8s "k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/clientcmd"
@@ -40,8 +39,9 @@ import (
 	"kubesphere.io/api/cluster/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/version"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 )
 
 const (
@@ -113,16 +113,16 @@ authentication:
 
 var hostCm = &corev1.ConfigMap{
 	ObjectMeta: metav1.ObjectMeta{
-		Namespace: KubesphereNamespace,
-		Name:      KubeSphereConfigName,
+		Namespace: constants.KubeSphereNamespace,
+		Name:      constants.KubeSphereConfigName,
 	},
 	Data: hostMap,
 }
 
 var memberCm = &corev1.ConfigMap{
 	ObjectMeta: metav1.ObjectMeta{
-		Namespace: KubesphereNamespace,
-		Name:      KubeSphereConfigName,
+		Namespace: constants.KubeSphereNamespace,
+		Name:      constants.KubeSphereConfigName,
 	},
 	Data: memberMap,
 }
@@ -252,7 +252,7 @@ func TestGeranteAgentDeployment(t *testing.T) {
 	for _, testCase := range testCases {
 
 		t.Run(testCase.description, func(t *testing.T) {
-			h := newHandler(informersFactory.KubernetesSharedInformerFactory(),
+			h := newHandler(ksclient, informersFactory.KubernetesSharedInformerFactory(),
 				informersFactory.KubeSphereSharedInformerFactory(),
 				proxyService,
 				"",
@@ -333,13 +333,13 @@ func TestValidateKubeConfig(t *testing.T) {
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)
 
-	h := newHandler(informersFactory.KubernetesSharedInformerFactory(),
+	h := newHandler(ksclient, informersFactory.KubernetesSharedInformerFactory(),
 		informersFactory.KubeSphereSharedInformerFactory(),
 		proxyService,
 		"",
 		agentImage)
 
-	config, err := loadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
+	config, err := k8sutil.LoadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,32 +371,15 @@ func TestValidateKubeConfig(t *testing.T) {
 		_ = env.Stop()
 	}()
 
-	err = h.validateKubeConfig([]byte(base64EncodedKubeConfig))
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-var ver = version.Get()
-
-func endpoint(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(ver)
-}
-
-func TestValidateKubeSphereEndpoint(t *testing.T) {
-	svr := httptest.NewServer(http.HandlerFunc(endpoint))
-	defer svr.Close()
-
-	got, err := validateKubeSphereAPIServer(svr.URL, nil)
+	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(&ver, got); len(diff) != 0 {
-		t.Errorf("%T +got, -expected %v", ver, diff)
+	err = h.validateKubeConfig("test", clientSet)
+	if err != nil {
+		t.Fatal(err)
 	}
-
 }
 
 func TestValidateMemberClusterConfiguration(t *testing.T) {
@@ -409,13 +392,13 @@ func TestValidateMemberClusterConfiguration(t *testing.T) {
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().ConfigMaps().Informer().GetIndexer().Add(hostCm)
 
-	h := newHandler(informersFactory.KubernetesSharedInformerFactory(),
+	h := newHandler(ksclient, informersFactory.KubernetesSharedInformerFactory(),
 		informersFactory.KubeSphereSharedInformerFactory(),
 		proxyService,
 		"",
 		agentImage)
 
-	config, err := loadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
+	config, err := k8sutil.LoadKubeConfigFromBytes([]byte(base64EncodedKubeConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -447,15 +430,20 @@ func TestValidateMemberClusterConfiguration(t *testing.T) {
 		_ = env.Stop()
 	}()
 
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	addMemberClusterResource(hostCm, t)
 
-	err = h.validateMemberClusterConfiguration([]byte(base64EncodedKubeConfig))
+	err = h.validateMemberClusterConfiguration(clientSet)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	addMemberClusterResource(memberCm, t)
-	err = h.validateMemberClusterConfiguration([]byte(base64EncodedKubeConfig))
+	err = h.validateMemberClusterConfiguration(clientSet)
 	if err == nil {
 		t.Fatal()
 	}
@@ -478,14 +466,14 @@ func addMemberClusterResource(targetCm *corev1.ConfigMap, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = c.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubesphereNamespace}}, metav1.CreateOptions{})
+	_, err = c.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: constants.KubeSphereNamespace}}, metav1.CreateOptions{})
 	if err != nil && !errors.IsAlreadyExists(err) {
 		t.Fatal(err)
 	}
 
-	_, err = c.CoreV1().ConfigMaps(KubesphereNamespace).Create(context.Background(), targetCm, metav1.CreateOptions{})
+	_, err = c.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Create(context.Background(), targetCm, metav1.CreateOptions{})
 	if err != nil && errors.IsAlreadyExists(err) {
-		_, err = c.CoreV1().ConfigMaps(KubesphereNamespace).Update(context.Background(), targetCm, metav1.UpdateOptions{})
+		_, err = c.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Update(context.Background(), targetCm, metav1.UpdateOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -499,7 +487,7 @@ func addMemberClusterResource(targetCm *corev1.ConfigMap, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = c.AppsV1().Deployments(KubesphereNamespace).Create(context.Background(), &deploy, metav1.CreateOptions{})
+	_, err = c.AppsV1().Deployments(constants.KubeSphereNamespace).Create(context.Background(), &deploy, metav1.CreateOptions{})
 	if err != nil && !errors.IsAlreadyExists(err) {
 		t.Fatal(err)
 	}

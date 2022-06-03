@@ -133,7 +133,7 @@ func TestCountLogsByInterval(t *testing.T) {
 			fakeVersion: es.ElasticV7,
 			fakeResp:    "es7_count_logs_by_interval_400.json",
 			fakeCode:    http.StatusBadRequest,
-			expectedErr: "type: search_phase_execution_exception, reason: all shards failed",
+			expectedErr: "type: search_phase_execution_exception, reason: Unable to parse interval [30m0s]",
 		},
 		{
 			fakeVersion: es.ElasticV7,

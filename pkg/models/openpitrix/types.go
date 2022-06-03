@@ -280,6 +280,9 @@ type AppVersionReview struct {
 
 	// version type
 	VersionType string `json:"version_type,omitempty"`
+
+	// Workspace of the app version
+	Workspace string `json:"workspace,omitempty"`
 }
 
 type CreateAppRequest struct {
@@ -585,6 +588,11 @@ type CreateRepoRequest struct {
 	// required, runtime provider eg.[qingcloud|aliyun|aws|kubernetes]
 	Providers []string `json:"providers"`
 
+	// min sync period to sync helm repo, a duration string is a sequence of
+	// decimal numbers, each with optional fraction and a unit suffix,
+	// such as "180s", "2h" or "45m".
+	SyncPeriod string `json:"sync_period"`
+
 	// repository type
 	Type string `json:"type,omitempty"`
 
@@ -611,6 +619,9 @@ type ModifyRepoRequest struct {
 	Description *string `json:"description,omitempty"`
 
 	Workspace *string `json:"workspace,omitempty"`
+
+	// min sync period to sync helm repo
+	SyncPeriod *string `json:"sync_period"`
 
 	// repository name
 	Name *string `json:"name,omitempty"`
@@ -716,6 +727,8 @@ type Repo struct {
 
 	// visibility.eg:[public|private]
 	Visibility string `json:"visibility,omitempty"`
+
+	SyncPeriod string `json:"sync_period,omitempty"`
 }
 
 type CreateRepoResponse struct {

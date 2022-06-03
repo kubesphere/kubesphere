@@ -37,7 +37,7 @@ type Options struct {
 	BasicAuth          bool          `json:"basicAuth" yaml:"basicAuth"`
 	Username           string        `json:"username" yaml:"username"`
 	Password           string        `json:"password" yaml:"password"`
-	IndexPrefix        string        `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
+	IndexPrefix        string        `json:"indexPrefix,omitempty" yaml:"indexPrefix,omitempty"`
 	Version            string        `json:"version" yaml:"version"`
 }
 

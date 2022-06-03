@@ -28,6 +28,8 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
+
+	"kubesphere.io/kubesphere/pkg/simple/client/es/versions"
 )
 
 type Elastic struct {
@@ -62,6 +64,7 @@ func (e *Elastic) Search(indices string, body []byte, scroll bool) ([]byte, erro
 	opts := []func(*esapi.SearchRequest){
 		e.client.Search.WithContext(context.Background()),
 		e.client.Search.WithIndex(indices),
+		e.client.Search.WithTrackTotalHits(true),
 		e.client.Search.WithIgnoreUnavailable(true),
 		e.client.Search.WithBody(bytes.NewBuffer(body)),
 	}
@@ -114,12 +117,15 @@ func (e *Elastic) GetTotalHitCount(v interface{}) int64 {
 }
 
 func parseError(response *esapi.Response) error {
-	var e map[string]interface{}
+	var e versions.Error
 	if err := json.NewDecoder(response.Body).Decode(&e); err != nil {
 		return err
 	} else {
 		// Print the response status and error information.
-		e, _ := e["error"].(map[string]interface{})
-		return fmt.Errorf("type: %v, reason: %v", e["type"], e["reason"])
+		if len(e.Details.RootCause) != 0 {
+			return fmt.Errorf("type: %v, reason: %v", e.Details.Type, e.Details.RootCause[0].Reason)
+		} else {
+			return fmt.Errorf("type: %v, reason: %v", e.Details.Type, e.Details.Reason)
+		}
 	}
 }

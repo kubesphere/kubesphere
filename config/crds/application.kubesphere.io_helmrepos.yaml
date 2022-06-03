@@ -40,10 +40,14 @@ spec:
         description: HelmRepo is the Schema for the helmrepoes API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -56,13 +60,16 @@ spec:
                   accessKeyID:
                     type: string
                   caFile:
-                    description: verify certificates of HTTPS-enabled servers using this CA bundle
+                    description: verify certificates of HTTPS-enabled servers using
+                      this CA bundle
                     type: string
                   certFile:
-                    description: identify HTTPS client using this SSL certificate file
+                    description: identify HTTPS client using this SSL certificate
+                      file
                     type: string
                   insecureSkipTLSVerify:
-                    description: skip tls certificate checks for the repository, default is ture
+                    description: skip tls certificate checks for the repository, default
+                      is ture
                     type: boolean
                   keyFile:
                     description: identify HTTPS client using this SSL key file
@@ -83,13 +90,16 @@ spec:
                 description: name of the repo
                 type: string
               syncPeriod:
-                description: sync period in seconds, no sync when SyncPeriod=0, the minimum SyncPeriod is 180s
+                description: sync period in seconds, no sync when SyncPeriod=0, the
+                  minimum SyncPeriod is 180s
                 type: integer
               url:
                 description: helm repo url
                 type: string
               version:
-                description: expected repo version, when this version is not equal status.version, the repo need upgrade this filed should be modified when any filed of the spec modified.
+                description: expected repo version, when this version is not equal
+                  status.version, the repo need upgrade this filed should be modified
+                  when any filed of the spec modified.
                 type: integer
             required:
             - name
@@ -109,14 +119,17 @@ spec:
                 description: current state of the repo, successful, failed or syncing
                 type: string
               syncState:
-                description: sync state list of history, which will store at most 10 state
+                description: sync state list of history, which will store at most
+                  10 state
                 items:
                   properties:
                     message:
-                      description: A human readable message indicating details about why the repo is in this state.
+                      description: A human readable message indicating details about
+                        why the repo is in this state.
                       type: string
                     state:
-                      description: 'last sync state, valid state are: "failed", "success", and ""'
+                      description: 'last sync state, valid state are: "failed", "success",
+                        and ""'
                       type: string
                     syncTime:
                       format: date-time
@@ -126,7 +139,8 @@ spec:
                   type: object
                 type: array
               version:
-                description: if status.version!=spec.Version, we need sync the repo now
+                description: if status.version!=spec.Version, we need sync the repo
+                  now
                 type: integer
             type: object
         type: object

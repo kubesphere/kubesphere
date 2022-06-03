@@ -21,23 +21,29 @@ spec:
       openAPIV3Schema:
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
           spec:
             properties:
               blockSize:
-                description: The block size to use for IP address assignments from this pool. Defaults to 26 for IPv4 and 112 for IPv6.
+                description: The block size to use for IP address assignments from
+                  this pool. Defaults to 26 for IPv4 and 112 for IPv6.
                 type: integer
               cidr:
                 description: The pool CIDR.
                 type: string
               disabled:
-                description: When disabled is true, IPAM will not assign addresses from this pool.
+                description: When disabled is true, IPAM will not assign addresses
+                  from this pool.
                 type: boolean
               dns:
                 description: DNS contains values interesting for DNS resolvers

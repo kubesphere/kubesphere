@@ -19,16 +19,18 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"reflect"
-	"sync"
+	"strings"
 	"time"
 
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -42,16 +44,21 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
-	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/apiserver/config"
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
@@ -117,53 +124,35 @@ var hostCluster = &clusterv1alpha1.Cluster{
 	},
 }
 
-// ClusterData stores cluster client
-type clusterData struct {
-
-	// cached rest.Config
-	config *rest.Config
-
-	// cached kubernetes client, rebuild once cluster changed
-	client kubernetes.Interface
-
-	// cached kubeconfig
-	cachedKubeconfig []byte
-
-	// cached transport, used to proxy kubesphere version request
-	transport http.RoundTripper
-}
-
 type clusterController struct {
 	eventBroadcaster record.EventBroadcaster
 	eventRecorder    record.EventRecorder
 
 	// build this only for host cluster
-	client     kubernetes.Interface
+	k8sClient  kubernetes.Interface
 	hostConfig *rest.Config
 
-	clusterClient clusterclient.ClusterInterface
+	ksClient kubesphere.Interface
 
 	clusterLister    clusterlister.ClusterLister
+	userLister       iamv1alpha2listers.UserLister
 	clusterHasSynced cache.InformerSynced
 
 	queue workqueue.RateLimitingInterface
 
 	workerLoopPeriod time.Duration
 
-	mu sync.RWMutex
-
-	clusterMap map[string]*clusterData
-
 	resyncPeriod time.Duration
 
-	hostClusterNmae string
+	hostClusterName string
 }
 
 func NewClusterController(
-	client kubernetes.Interface,
+	k8sClient kubernetes.Interface,
+	ksClient kubesphere.Interface,
 	config *rest.Config,
 	clusterInformer clusterinformer.ClusterInformer,
-	clusterClient clusterclient.ClusterInterface,
+	userLister iamv1alpha2listers.UserLister,
 	resyncPeriod time.Duration,
 	hostClusterName string,
 ) *clusterController {
@@ -172,30 +161,34 @@ func NewClusterController(
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
 		klog.Info(fmt.Sprintf(format, args))
 	})
-	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: client.CoreV1().Events("")})
+	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "cluster-controller"})
 
 	c := &clusterController{
 		eventBroadcaster: broadcaster,
 		eventRecorder:    recorder,
-		client:           client,
+		k8sClient:        k8sClient,
+		ksClient:         ksClient,
 		hostConfig:       config,
-		clusterClient:    clusterClient,
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "cluster"),
 		workerLoopPeriod: time.Second,
-		clusterMap:       make(map[string]*clusterData),
 		resyncPeriod:     resyncPeriod,
-		hostClusterNmae:  hostClusterName,
+		hostClusterName:  hostClusterName,
+		userLister:       userLister,
 	}
 	c.clusterLister = clusterInformer.Lister()
 	c.clusterHasSynced = clusterInformer.Informer().HasSynced
 
 	clusterInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
-		AddFunc: c.addCluster,
+		AddFunc: c.enqueueCluster,
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			c.addCluster(newObj)
+			oldCluster := oldObj.(*clusterv1alpha1.Cluster)
+			newCluster := newObj.(*clusterv1alpha1.Cluster)
+			if !reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) {
+				c.enqueueCluster(newObj)
+			}
 		},
-		DeleteFunc: c.addCluster,
+		DeleteFunc: c.enqueueCluster,
 	}, resyncPeriod)
 
 	return c
@@ -226,10 +219,9 @@ func (c *clusterController) Run(workers int, stopCh <-chan struct{}) error {
 			klog.Errorf("Error create host cluster, error %v", err)
 		}
 
-		if err := c.probeClusters(); err != nil {
+		if err := c.resyncClusters(); err != nil {
 			klog.Errorf("failed to reconcile cluster ready status, err: %v", err)
 		}
-
 	}, c.resyncPeriod, stopCh)
 
 	<-stopCh
@@ -254,58 +246,6 @@ func (c *clusterController) processNextItem() bool {
 	return true
 }
 
-func buildClusterData(kubeconfig []byte) (*clusterData, error) {
-	// prepare for
-	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeconfig)
-	if err != nil {
-		klog.Errorf("Unable to create client config from kubeconfig bytes, %#v", err)
-		return nil, err
-	}
-
-	clusterConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		klog.Errorf("Failed to get client config, %#v", err)
-		return nil, err
-	}
-
-	transport, err := rest.TransportFor(clusterConfig)
-	if err != nil {
-		klog.Errorf("Failed to create transport, %#v", err)
-		return nil, err
-	}
-
-	clientSet, err := kubernetes.NewForConfig(clusterConfig)
-	if err != nil {
-		klog.Errorf("Failed to create ClientSet from config, %#v", err)
-		return nil, err
-	}
-
-	return &clusterData{
-		cachedKubeconfig: kubeconfig,
-		config:           clusterConfig,
-		client:           clientSet,
-		transport:        transport,
-	}, nil
-}
-
-func (c *clusterController) syncStatus() error {
-	clusters, err := c.clusterLister.List(labels.Everything())
-	if err != nil {
-		return err
-	}
-
-	for _, cluster := range clusters {
-		key, err := cache.MetaNamespaceKeyFunc(cluster)
-		if err != nil {
-			return err
-		}
-
-		c.queue.AddRateLimited(key)
-	}
-
-	return nil
-}
-
 // reconcileHostCluster will create a host cluster if there are no clusters labeled 'cluster-role.kubesphere.io/host'
 func (c *clusterController) reconcileHostCluster() error {
 	clusters, err := c.clusterLister.List(labels.SelectorFromSet(labels.Set{clusterv1alpha1.HostCluster: ""}))
@@ -321,15 +261,15 @@ func (c *clusterController) reconcileHostCluster() error {
 	// no host cluster, create one
 	if len(clusters) == 0 {
 		hostCluster.Spec.Connection.KubeConfig = hostKubeConfig
-		hostCluster.Name = c.hostClusterNmae
-		_, err = c.clusterClient.Create(context.TODO(), hostCluster, metav1.CreateOptions{})
+		hostCluster.Name = c.hostClusterName
+		_, err = c.ksClient.ClusterV1alpha1().Clusters().Create(context.TODO(), hostCluster, metav1.CreateOptions{})
 		return err
 	} else if len(clusters) > 1 {
 		return fmt.Errorf("there MUST not be more than one host clusters, while there are %d", len(clusters))
 	}
 
 	// only deal with cluster managed by kubesphere
-	cluster := clusters[0]
+	cluster := clusters[0].DeepCopy()
 	managedByKubesphere, ok := cluster.Labels[kubesphereManaged]
 	if !ok || managedByKubesphere != "true" {
 		return nil
@@ -346,86 +286,21 @@ func (c *clusterController) reconcileHostCluster() error {
 	}
 
 	// update host cluster config
-	_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
+	_, err = c.ksClient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{})
 	return err
 }
 
-func (c *clusterController) probeClusters() error {
+func (c *clusterController) resyncClusters() error {
 	clusters, err := c.clusterLister.List(labels.Everything())
 	if err != nil {
 		return err
 	}
 
 	for _, cluster := range clusters {
-		// if the cluster is not federated, we skip it and consider it not ready.
-		if !isConditionTrue(cluster, clusterv1alpha1.ClusterFederated) {
-			continue
+		if err = c.syncCluster(cluster.Name); err != nil {
+			klog.Warningf("failed to sync cluster %s: %s", cluster.Name, err)
 		}
-
-		if len(cluster.Spec.Connection.KubeConfig) == 0 {
-			continue
-		}
-
-		clientConfig, err := clientcmd.NewClientConfigFromBytes(cluster.Spec.Connection.KubeConfig)
-		if err != nil {
-			klog.Error(err)
-			continue
-		}
-
-		config, err := clientConfig.ClientConfig()
-		if err != nil {
-			klog.Error(err)
-			continue
-		}
-		config.Timeout = probeClusterTimeout
-
-		clientSet, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			klog.Error(err)
-			continue
-		}
-
-		var con clusterv1alpha1.ClusterCondition
-		_, err = clientSet.Discovery().ServerVersion()
-		if err == nil {
-			con = clusterv1alpha1.ClusterCondition{
-				Type:               clusterv1alpha1.ClusterReady,
-				Status:             v1.ConditionTrue,
-				LastUpdateTime:     metav1.Now(),
-				LastTransitionTime: metav1.Now(),
-				Reason:             string(clusterv1alpha1.ClusterReady),
-				Message:            "Cluster is available now",
-			}
-		} else {
-			con = clusterv1alpha1.ClusterCondition{
-				Type:               clusterv1alpha1.ClusterReady,
-				Status:             v1.ConditionFalse,
-				LastUpdateTime:     metav1.Now(),
-				LastTransitionTime: metav1.Now(),
-				Reason:             "failed to connect get kubernetes version",
-				Message:            "Cluster is not available now",
-			}
-		}
-
-		c.updateClusterCondition(cluster, con)
-		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			ct, err := c.clusterClient.Get(context.TODO(), cluster.Name, metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-
-			ct.Status.Conditions = cluster.Status.Conditions
-			ct, err = c.clusterClient.Update(context.TODO(), ct, metav1.UpdateOptions{})
-			return err
-		})
-		if err != nil {
-			klog.Errorf("failed to update cluster %s status, err: %v", cluster.Name, err)
-		} else {
-			klog.V(4).Infof("successfully updated cluster %s to status %v", cluster.Name, con)
-		}
-
 	}
-
 	return nil
 }
 
@@ -444,7 +319,6 @@ func (c *clusterController) syncCluster(key string) error {
 	}()
 
 	cluster, err := c.clusterLister.Get(name)
-
 	if err != nil {
 		// cluster not found, possibly been deleted
 		// need to do the cleanup
@@ -462,7 +336,7 @@ func (c *clusterController) syncCluster(key string) error {
 		// registering our finalizer.
 		if !sets.NewString(cluster.ObjectMeta.Finalizers...).Has(clusterv1alpha1.Finalizer) {
 			cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1alpha1.Finalizer)
-			if cluster, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+			if cluster, err = c.ksClient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -472,17 +346,21 @@ func (c *clusterController) syncCluster(key string) error {
 			// need to unJoin federation first, before there are
 			// some cleanup work to do in member cluster which depends
 			// agent to proxy traffic
-			err = c.unJoinFederation(nil, name)
-			if err != nil {
+			if err = c.unJoinFederation(nil, name); err != nil {
 				klog.Errorf("Failed to unjoin federation for cluster %s, error %v", name, err)
 				return err
 			}
 
+			// cleanup after cluster has been deleted
+			if err := c.syncClusterMembers(nil, cluster); err != nil {
+				klog.Errorf("Failed to sync cluster members for %s: %v", name, err)
+				return err
+			}
 			// remove our cluster finalizer
 			finalizers := sets.NewString(cluster.ObjectMeta.Finalizers...)
 			finalizers.Delete(clusterv1alpha1.Finalizer)
 			cluster.ObjectMeta.Finalizers = finalizers.List()
-			if _, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
+			if _, err = c.ksClient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -504,28 +382,30 @@ func (c *clusterController) syncCluster(key string) error {
 		return nil
 	}
 
-	// build up cached cluster data if there isn't any
-	c.mu.Lock()
-	clusterDt, ok := c.clusterMap[cluster.Name]
-	if !ok || clusterDt == nil || !equality.Semantic.DeepEqual(clusterDt.cachedKubeconfig, cluster.Spec.Connection.KubeConfig) {
-		clusterDt, err = buildClusterData(cluster.Spec.Connection.KubeConfig)
-		if err != nil {
-			c.mu.Unlock()
-			return err
-		}
-		c.clusterMap[cluster.Name] = clusterDt
+	clusterConfig, err := clientcmd.RESTConfigFromKubeConfig(cluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create cluster config for %s: %s", cluster.Name, err)
 	}
-	c.mu.Unlock()
+
+	clusterClient, err := kubernetes.NewForConfig(clusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create cluster client for %s: %s", cluster.Name, err)
+	}
+
+	proxyTransport, err := rest.TransportFor(clusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create proxy transport for %s: %s", cluster.Name, err)
+	}
 
 	if !cluster.Spec.JoinFederation { // trying to unJoin federation
-		err = c.unJoinFederation(clusterDt.config, cluster.Name)
+		err = c.unJoinFederation(clusterConfig, cluster.Name)
 		if err != nil {
 			klog.Errorf("Failed to unJoin federation for cluster %s, error %v", cluster.Name, err)
 			c.eventRecorder.Event(cluster, v1.EventTypeWarning, "UnJoinFederation", err.Error())
 			return err
 		}
 	} else { // join federation
-		_, err = c.joinFederation(clusterDt.config, cluster.Name, cluster.Labels)
+		_, err = c.joinFederation(clusterConfig, cluster.Name, cluster.Labels)
 		if err != nil {
 			klog.Errorf("Failed to join federation for cluster %s, error %v", cluster.Name, err)
 
@@ -539,7 +419,7 @@ func (c *clusterController) syncCluster(key string) error {
 			}
 			c.updateClusterCondition(cluster, federationNotReadyCondition)
 
-			_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
+			_, err = c.ksClient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{})
 			if err != nil {
 				klog.Errorf("Failed to update cluster status, %#v", err)
 			}
@@ -565,36 +445,45 @@ func (c *clusterController) syncCluster(key string) error {
 	// since there is no agent necessary for host cluster, so updates for host cluster
 	// is safe.
 	if len(cluster.Spec.Connection.KubernetesAPIEndpoint) == 0 {
-		cluster.Spec.Connection.KubernetesAPIEndpoint = clusterDt.config.Host
+		cluster.Spec.Connection.KubernetesAPIEndpoint = clusterConfig.Host
 	}
 
-	version, err := clusterDt.client.Discovery().ServerVersion()
+	serverVersion, err := clusterClient.Discovery().ServerVersion()
 	if err != nil {
 		klog.Errorf("Failed to get kubernetes version, %#v", err)
 		return err
 	}
+	cluster.Status.KubernetesVersion = serverVersion.GitVersion
 
-	cluster.Status.KubernetesVersion = version.GitVersion
-
-	nodes, err := clusterDt.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodes, err := clusterClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get cluster nodes, %#v", err)
 		return err
 	}
-
 	cluster.Status.NodeCount = len(nodes.Items)
 
-	configz, err := c.tryToFetchKubeSphereComponents(clusterDt.config.Host, clusterDt.transport)
-	if err == nil {
+	// TODO use rest.Interface instead
+	configz, err := c.tryToFetchKubeSphereComponents(clusterConfig.Host, proxyTransport)
+	if err != nil {
+		klog.Warningf("failed to fetch kubesphere components status in cluster %s: %s", cluster.Name, err)
+	} else {
 		cluster.Status.Configz = configz
 	}
 
-	v, err := c.tryFetchKubeSphereVersion(clusterDt.config.Host, clusterDt.transport)
+	// TODO use rest.Interface instead
+	v, err := c.tryFetchKubeSphereVersion(clusterConfig.Host, proxyTransport)
 	if err != nil {
 		klog.Errorf("failed to get KubeSphere version, err: %#v", err)
 	} else {
 		cluster.Status.KubeSphereVersion = v
 	}
+
+	// Use kube-system namespace UID as cluster ID
+	kubeSystem, err := clusterClient.CoreV1().Namespaces().Get(context.TODO(), metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	cluster.Status.UID = kubeSystem.UID
 
 	// label cluster host cluster if configz["multicluster"]==true
 	if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
@@ -604,7 +493,7 @@ func (c *clusterController) syncCluster(key string) error {
 		cluster.Labels[clusterv1alpha1.HostCluster] = ""
 	}
 
-	readyConditon := clusterv1alpha1.ClusterCondition{
+	readyCondition := clusterv1alpha1.ClusterCondition{
 		Type:               clusterv1alpha1.ClusterReady,
 		Status:             v1.ConditionTrue,
 		LastUpdateTime:     metav1.Now(),
@@ -612,21 +501,63 @@ func (c *clusterController) syncCluster(key string) error {
 		Reason:             string(clusterv1alpha1.ClusterReady),
 		Message:            "Cluster is available now",
 	}
-	c.updateClusterCondition(cluster, readyConditon)
+	c.updateClusterCondition(cluster, readyCondition)
 
-	if !reflect.DeepEqual(oldCluster, cluster) {
-		_, err = c.clusterClient.Update(context.TODO(), cluster, metav1.UpdateOptions{})
+	if err = c.updateKubeConfigExpirationDateCondition(cluster); err != nil {
+		klog.Errorf("sync KubeConfig expiration date for cluster %s failed: %v", cluster.Name, err)
+		return err
+	}
+
+	if !reflect.DeepEqual(oldCluster.Status, cluster.Status) {
+		_, err = c.ksClient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Failed to update cluster status, %#v", err)
 			return err
 		}
 	}
 
+	if err = c.setClusterNameInConfigMap(clusterClient, cluster.Name); err != nil {
+		return err
+	}
+
+	if err = c.syncClusterMembers(clusterClient, cluster); err != nil {
+		return fmt.Errorf("failed to sync cluster membership for %s: %s", cluster.Name, err)
+	}
+
+	return nil
+}
+
+func (c *clusterController) setClusterNameInConfigMap(client kubernetes.Interface, name string) error {
+	cm, err := client.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Get(context.TODO(), constants.KubeSphereConfigName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	configData, err := config.GetFromConfigMap(cm)
+	if err != nil {
+		return err
+	}
+	if configData.MultiClusterOptions == nil {
+		configData.MultiClusterOptions = &multicluster.Options{}
+	}
+	if configData.MultiClusterOptions.ClusterName == name {
+		return nil
+	}
+
+	configData.MultiClusterOptions.ClusterName = name
+	newConfigData, err := yaml.Marshal(configData)
+	if err != nil {
+		return err
+	}
+	cm.Data[constants.KubeSphereConfigMapDataKey] = string(newConfigData)
+	if _, err = client.CoreV1().ConfigMaps(constants.KubeSphereNamespace).Update(context.TODO(), cm, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (c *clusterController) checkIfClusterIsHostCluster(memberClusterNodes *v1.NodeList) bool {
-	hostNodes, err := c.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	hostNodes, err := c.k8sClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return false
 	}
@@ -674,7 +605,6 @@ func (c *clusterController) tryToFetchKubeSphereComponents(host string, transpor
 	return configz, nil
 }
 
-//
 func (c *clusterController) tryFetchKubeSphereVersion(host string, transport http.RoundTripper) (string, error) {
 	client := http.Client{
 		Transport: transport,
@@ -712,7 +642,7 @@ func (c *clusterController) tryFetchKubeSphereVersion(host string, transport htt
 	return info.GitVersion, nil
 }
 
-func (c *clusterController) addCluster(obj interface{}) {
+func (c *clusterController) enqueueCluster(obj interface{}) {
 	cluster := obj.(*clusterv1alpha1.Cluster)
 
 	key, err := cache.MetaNamespaceKeyFunc(obj)
@@ -822,4 +752,105 @@ func (c *clusterController) unJoinFederation(clusterConfig *rest.Config, unjoini
 			return err
 		}
 	}
+}
+
+func parseKubeConfigExpirationDate(kubeconfig []byte) (time.Time, error) {
+	config, err := k8sutil.LoadKubeConfigFromBytes(kubeconfig)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if config.CertData == nil {
+		return time.Time{}, fmt.Errorf("empty CertData")
+	}
+	block, _ := pem.Decode(config.CertData)
+	if block == nil {
+		return time.Time{}, fmt.Errorf("pem.Decode failed, got empty block data")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return cert.NotAfter, nil
+}
+
+func (c *clusterController) updateKubeConfigExpirationDateCondition(cluster *clusterv1alpha1.Cluster) error {
+	if _, ok := cluster.Labels[clusterv1alpha1.HostCluster]; ok {
+		return nil
+	}
+	// we don't need to check member clusters which using proxy mode, their certs are managed and will be renewed by tower.
+	if cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeProxy {
+		return nil
+	}
+
+	klog.V(5).Infof("sync KubeConfig expiration date for cluster %s", cluster.Name)
+	notAfter, err := parseKubeConfigExpirationDate(cluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		return fmt.Errorf("parseKubeConfigExpirationDate for cluster %s failed: %v", cluster.Name, err)
+	}
+	expiresInSevenDays := v1.ConditionFalse
+	if time.Now().AddDate(0, 0, 7).Sub(notAfter) > 0 {
+		expiresInSevenDays = v1.ConditionTrue
+	}
+
+	c.updateClusterCondition(cluster, clusterv1alpha1.ClusterCondition{
+		Type:               clusterv1alpha1.ClusterKubeConfigCertExpiresInSevenDays,
+		Status:             expiresInSevenDays,
+		LastUpdateTime:     metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             string(clusterv1alpha1.ClusterKubeConfigCertExpiresInSevenDays),
+		Message:            notAfter.String(),
+	})
+	return nil
+}
+
+// syncClusterMembers Sync granted clusters for users periodically
+func (c *clusterController) syncClusterMembers(clusterClient *kubernetes.Clientset, cluster *clusterv1alpha1.Cluster) error {
+	users, err := c.userLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("failed to list users: %s", err)
+	}
+
+	grantedUsers := sets.NewString()
+	clusterName := cluster.Name
+	if cluster.DeletionTimestamp.IsZero() {
+		list, err := clusterClient.RbacV1().ClusterRoleBindings().List(context.Background(),
+			metav1.ListOptions{LabelSelector: iamv1alpha2.UserReferenceLabel})
+		if err != nil {
+			return fmt.Errorf("failed to list clusterrolebindings: %s", err)
+		}
+		for _, clusterRoleBinding := range list.Items {
+			for _, sub := range clusterRoleBinding.Subjects {
+				if sub.Kind == iamv1alpha2.ResourceKindUser {
+					grantedUsers.Insert(sub.Name)
+				}
+			}
+		}
+	}
+
+	for _, user := range users {
+		user = user.DeepCopy()
+		grantedClustersAnnotation := user.Annotations[iamv1alpha2.GrantedClustersAnnotation]
+		var grantedClusters sets.String
+		if len(grantedClustersAnnotation) > 0 {
+			grantedClusters = sets.NewString(strings.Split(grantedClustersAnnotation, ",")...)
+		} else {
+			grantedClusters = sets.NewString()
+		}
+		if grantedUsers.Has(user.Name) && !grantedClusters.Has(clusterName) {
+			grantedClusters.Insert(clusterName)
+		} else if !grantedUsers.Has(user.Name) && grantedClusters.Has(clusterName) {
+			grantedClusters.Delete(clusterName)
+		}
+		grantedClustersAnnotation = strings.Join(grantedClusters.List(), ",")
+		if user.Annotations[iamv1alpha2.GrantedClustersAnnotation] != grantedClustersAnnotation {
+			if user.Annotations == nil {
+				user.Annotations = make(map[string]string, 0)
+			}
+			user.Annotations[iamv1alpha2.GrantedClustersAnnotation] = grantedClustersAnnotation
+			if _, err := c.ksClient.IamV1alpha2().Users().Update(context.Background(), user, metav1.UpdateOptions{}); err != nil {
+				return fmt.Errorf("failed to update user %s: %s", user.Name, err)
+			}
+		}
+	}
+	return nil
 }

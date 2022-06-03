@@ -25,7 +25,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ConstraintTemplateSpec defines the desired state of ConstraintTemplate.
+// ConstraintTemplateSpec defines the desired state of ConstraintTemplate
 type ConstraintTemplateSpec struct {
 	CRD     CRD      `json:"crd,omitempty"`
 	Targets []Target `json:"targets,omitempty"`
@@ -48,7 +48,6 @@ type Names struct {
 type Validation struct {
 	// +kubebuilder:validation:Schemaless
 	OpenAPIV3Schema *apiextensions.JSONSchemaProps `json:"openAPIV3Schema,omitempty"`
-	LegacySchema    *bool                          `json:"legacySchema,omitempty"`
 }
 
 type Target struct {
@@ -65,7 +64,7 @@ type CreateCRDError struct {
 }
 
 // ByPodStatus defines the observed state of ConstraintTemplate as seen by
-// an individual controller.
+// an individual controller
 type ByPodStatus struct {
 	// a unique identifier for the pod that wrote the status
 	ID                 string           `json:"id,omitempty"`
@@ -73,7 +72,7 @@ type ByPodStatus struct {
 	Errors             []CreateCRDError `json:"errors,omitempty"`
 }
 
-// ConstraintTemplateStatus defines the observed state of ConstraintTemplate.
+// ConstraintTemplateStatus defines the observed state of ConstraintTemplate
 type ConstraintTemplateStatus struct {
 	Created bool          `json:"created,omitempty"`
 	ByPod   []ByPodStatus `json:"byPod,omitempty"`
@@ -98,7 +97,7 @@ type ConstraintTemplate struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ConstraintTemplateList contains a list of ConstraintTemplate.
+// ConstraintTemplateList contains a list of ConstraintTemplate
 type ConstraintTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -107,7 +106,7 @@ type ConstraintTemplateList struct {
 
 // SemanticEqual returns whether there have been changes to a constraint that
 // the framework should know about. It can ignore metadata as it assumes the
-// two comparables share the same identity.
+// two comparables share the same identity
 func (ct *ConstraintTemplate) SemanticEqual(other *ConstraintTemplate) bool {
 	return reflect.DeepEqual(ct.Spec, other.Spec)
 }

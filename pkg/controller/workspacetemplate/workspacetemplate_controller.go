@@ -91,9 +91,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=tenant.kubesphere.io,resources=workspaces,verbs=get;list;watch;
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Logger.WithValues("workspacetemplate", req.NamespacedName)
-	rootCtx := context.Background()
 	workspaceTemplate := &tenantv1alpha2.WorkspaceTemplate{}
-	if err := r.Get(rootCtx, req.NamespacedName, workspaceTemplate); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, workspaceTemplate); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -102,7 +101,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// then lets add the finalizer and update the object.
 		if !sliceutil.HasString(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer) {
 			workspaceTemplate.ObjectMeta.Finalizers = append(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer)
-			if err := r.Update(rootCtx, workspaceTemplate); err != nil {
+			if err := r.Update(ctx, workspaceTemplate); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -110,16 +109,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// The object is being deleted
 		if sliceutil.HasString(workspaceTemplate.ObjectMeta.Finalizers, workspaceTemplateFinalizer) ||
 			sliceutil.HasString(workspaceTemplate.ObjectMeta.Finalizers, orphanFinalizer) {
-			if err := r.deleteOpenPitrixResourcesInWorkspace(rootCtx, workspaceTemplate.Name); err != nil {
-				logger.Error(err, "delete resource in workspace template failed")
+			if err := r.deleteOpenPitrixResourcesInWorkspace(ctx, workspaceTemplate.Name); err != nil {
+				logger.Error(err, "failed to delete related openpitrix resource")
 				return ctrl.Result{}, err
 			}
 
-			if err := r.deleteWorkspace(rootCtx, workspaceTemplate); err != nil {
+			if err := r.deleteWorkspace(ctx, workspaceTemplate); err != nil {
 				if errors.IsNotFound(err) {
-					logger.V(4).Info("workspace not found", "workspacerole", workspaceTemplate.Name)
+					logger.V(4).Info("related workspace not found")
 				} else {
-					logger.Error(err, "failed delete workspaces")
+					logger.Error(err, "failed to delete related workspace")
 					return ctrl.Result{}, nil
 				}
 			}
@@ -130,7 +129,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			})
 
 			logger.V(4).Info("update workspace template")
-			if err := r.Update(rootCtx, workspaceTemplate); err != nil {
+			if err := r.Update(ctx, workspaceTemplate); err != nil {
 				logger.Error(err, "update workspace template failed")
 				return ctrl.Result{}, err
 			}
@@ -140,18 +139,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if r.MultiClusterEnabled {
-		if err := r.multiClusterSync(rootCtx, logger, workspaceTemplate); err != nil {
+		if err := r.multiClusterSync(ctx, logger, workspaceTemplate); err != nil {
 			return ctrl.Result{}, err
 		}
 	} else {
-		if err := r.singleClusterSync(rootCtx, logger, workspaceTemplate); err != nil {
+		if err := r.singleClusterSync(ctx, logger, workspaceTemplate); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
-	if err := r.initWorkspaceRoles(rootCtx, logger, workspaceTemplate); err != nil {
+	if err := r.initWorkspaceRoles(ctx, logger, workspaceTemplate); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.initManagerRoleBinding(rootCtx, logger, workspaceTemplate); err != nil {
+	if err := r.initManagerRoleBinding(ctx, logger, workspaceTemplate); err != nil {
 		return ctrl.Result{}, err
 	}
 	r.Recorder.Event(workspaceTemplate, corev1.EventTypeNormal, controllerutils.SuccessSynced, controllerutils.MessageResourceSynced)
@@ -230,10 +229,6 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, w
 
 func newFederatedWorkspace(template *tenantv1alpha2.WorkspaceTemplate) (*typesv1beta1.FederatedWorkspace, error) {
 	federatedWorkspace := &typesv1beta1.FederatedWorkspace{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       typesv1beta1.FederatedWorkspaceRoleKind,
-			APIVersion: typesv1beta1.SchemeGroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   template.Name,
 			Labels: template.Labels,
@@ -261,6 +256,7 @@ func (r *Reconciler) deleteWorkspace(ctx context.Context, template *tenantv1alph
 		if err := r.Client.Get(ctx, types.NamespacedName{Name: template.Name}, federatedWorkspace); err != nil {
 			return err
 		}
+
 		// Workspace will be deleted with Orphan Option when it has a orphan finalizer.
 		// Reousrces that owned by the Workspace will not be deleted.
 		if sliceutil.HasString(template.ObjectMeta.Finalizers, orphanFinalizer) {
@@ -271,7 +267,17 @@ func (r *Reconciler) deleteWorkspace(ctx context.Context, template *tenantv1alph
 			if err := r.Update(ctx, federatedWorkspace); err != nil {
 				return err
 			}
+		} else {
+			// Usually namespace will bind the lifecycle of workspace with ownerReference,
+			// in multi-cluster environment workspace will not be created in host cluster
+			// if the cluster is not be granted or kubefed-controller-manager is unavailable,
+			// this will cause the federated namespace left an orphan object in host cluster.
+			// After workspaceTemplate deleted we need to deleted orphan namespace in host cluster directly.
+			if err := r.deleteNamespacesInWorkspace(ctx, template); err != nil {
+				return err
+			}
 		}
+
 		if err := r.Delete(ctx, federatedWorkspace); err != nil {
 			return err
 		}
@@ -301,7 +307,6 @@ func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, logger lo
 		if workspaceTemplate.Labels == nil {
 			workspaceTemplate.Labels = make(map[string]string)
 		}
-		workspaceTemplate = workspaceTemplate.DeepCopy()
 		workspaceTemplate.Labels[constants.KubefedManagedLabel] = "false"
 		logger.V(4).Info("update kubefed managed label")
 		if err := r.Update(ctx, workspaceTemplate); err != nil {
@@ -326,8 +331,8 @@ func (r *Reconciler) initWorkspaceRoles(ctx context.Context, logger logr.Logger,
 				expected.Labels = make(map[string]string)
 			}
 			expected.Labels[tenantv1alpha1.WorkspaceLabel] = workspace.Name
-			var existed iamv1alpha2.WorkspaceRole
-			if err := r.Get(ctx, types.NamespacedName{Name: expected.Name}, &existed); err != nil {
+			workspaceRole := &iamv1alpha2.WorkspaceRole{}
+			if err := r.Get(ctx, types.NamespacedName{Name: expected.Name}, workspaceRole); err != nil {
 				if errors.IsNotFound(err) {
 					logger.V(4).Info("create workspace role", "workspacerole", expected.Name)
 					if err := r.Create(ctx, &expected); err != nil {
@@ -340,15 +345,14 @@ func (r *Reconciler) initWorkspaceRoles(ctx context.Context, logger logr.Logger,
 					return err
 				}
 			}
-			if !reflect.DeepEqual(expected.Labels, existed.Labels) ||
-				!reflect.DeepEqual(expected.Annotations, existed.Annotations) ||
-				!reflect.DeepEqual(expected.Rules, existed.Rules) {
-				updated := existed.DeepCopy()
-				updated.Labels = expected.Labels
-				updated.Annotations = expected.Annotations
-				updated.Rules = expected.Rules
-				logger.V(4).Info("update workspace role", "workspacerole", updated.Name)
-				if err := r.Update(ctx, updated); err != nil {
+			if !reflect.DeepEqual(expected.Labels, workspaceRole.Labels) ||
+				!reflect.DeepEqual(expected.Annotations, workspaceRole.Annotations) ||
+				!reflect.DeepEqual(expected.Rules, workspaceRole.Rules) {
+				workspaceRole.Labels = expected.Labels
+				workspaceRole.Annotations = expected.Annotations
+				workspaceRole.Rules = expected.Rules
+				logger.V(4).Info("update workspace role", "workspacerole", workspaceRole.Name)
+				if err := r.Update(ctx, workspaceRole); err != nil {
 					logger.Error(err, "update workspace role failed")
 					return err
 				}
@@ -469,6 +473,23 @@ func (r *Reconciler) deleteHelmRepos(ctx context.Context, ws string) error {
 		}})
 
 	return err
+}
+
+// deleteNamespacesInWorkspace Deletes the namespace associated with the workspace, which match the workspace label selector
+func (r *Reconciler) deleteNamespacesInWorkspace(ctx context.Context, template *tenantv1alpha2.WorkspaceTemplate) error {
+	namespaceList := &corev1.NamespaceList{}
+	err := r.Client.List(ctx, namespaceList, client.MatchingLabels{tenantv1alpha1.WorkspaceLabel: template.Name})
+	if err != nil {
+		return err
+	}
+
+	for _, namespace := range namespaceList.Items {
+		err = r.Client.Delete(ctx, &namespace)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func workspaceRoleBindingChanger(workspaceRoleBinding *iamv1alpha2.WorkspaceRoleBinding, workspace, username, workspaceRoleName string) controllerutil.MutateFn {

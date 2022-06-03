@@ -68,34 +68,36 @@ const (
 // Reconciler reconciles a Workspace object
 type Reconciler struct {
 	client.Client
-	logger                  logr.Logger
-	recorder                record.EventRecorder
-	maxConcurrentReconciles int
+	logger   logr.Logger
+	recorder record.EventRecorder
 	// Knows how to calculate usage
 	registry quotav1.Registry
+
+	MaxConcurrentReconciles int
 	// Controls full recalculation of quota usage
-	resyncPeriod time.Duration
-	scheme       *runtime.Scheme
+	ResyncPeriod    time.Duration
+	InformerFactory k8sinformers.SharedInformerFactory
+
+	scheme *runtime.Scheme
 }
 
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, maxConcurrentReconciles int, resyncPeriod time.Duration, informerFactory k8sinformers.SharedInformerFactory) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.logger = ctrl.Log.WithName("controllers").WithName(ControllerName)
 	r.recorder = mgr.GetEventRecorderFor(ControllerName)
 	r.scheme = mgr.GetScheme()
-	r.registry = generic.NewRegistry(install.NewQuotaConfigurationForControllers(generic.ListerFuncForResourceFunc(informerFactory.ForResource)).Evaluators())
+	r.registry = generic.NewRegistry(install.NewQuotaConfigurationForControllers(
+		generic.ListerFuncForResourceFunc(r.InformerFactory.ForResource)).Evaluators())
 	if r.Client == nil {
 		r.Client = mgr.GetClient()
 	}
-	if maxConcurrentReconciles > 0 {
-		r.maxConcurrentReconciles = maxConcurrentReconciles
-	} else {
-		r.maxConcurrentReconciles = DefaultMaxConcurrentReconciles
+	if r.MaxConcurrentReconciles <= 0 {
+		r.MaxConcurrentReconciles = DefaultMaxConcurrentReconciles
 	}
-	r.resyncPeriod = time.Duration(math.Max(float64(resyncPeriod), float64(DefaultResyncPeriod)))
+	r.ResyncPeriod = time.Duration(math.Max(float64(r.ResyncPeriod), float64(DefaultResyncPeriod)))
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		Named(ControllerName).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: r.maxConcurrentReconciles,
+			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
 		}).
 		For(&quotav1alpha2.ResourceQuota{}).
 		WithEventFilter(predicate.GenerationChangedPredicate{
@@ -206,7 +208,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	r.recorder.Event(resourceQuota, corev1.EventTypeNormal, "Synced", "Synced successfully")
-	return ctrl.Result{RequeueAfter: r.resyncPeriod}, nil
+	return ctrl.Result{RequeueAfter: r.ResyncPeriod}, nil
 }
 
 func (r *Reconciler) bindWorkspace(resourceQuota *quotav1alpha2.ResourceQuota) error {

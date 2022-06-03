@@ -1,5 +1,5 @@
 <p align="center">
-<img src="docs/images/kubesphere-logo.png" alt="banner" width="200px">
+<a href="https://kubesphere.io/"><img src="docs/images/kubesphere-icon.gif" alt="banner" width="200px"></a>
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ The following screenshots give a close insight into KubeSphere. Please check [Wh
   </tr>
 </table>
 
-## Demo Environment
+## Demo environment
 
 🎮 Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted view access. 
 
@@ -103,43 +103,80 @@ The following screenshots give a close insight into KubeSphere. Please check [Wh
   Provide unified authentication with fine-grained roles and three-tier authorization system, and support AD/LDAP authentication.
   </details>
 
+<details>
+  <summary><b>🧠 GPU Workloads Scheduling and Monitoring</b></summary>
+  Create GPU workloads on the GUI, schedule GPU resources, and manage GPU resource quotas by tenant.
+  </details>
+
 ## Architecture
 
-KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from the [backend](https://github.com/kubesphere/kubesphere). External systems can access the components of the backend through the REST APIs. 
+KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from
+the [backend](https://github.com/kubesphere/kubesphere). External systems can access the components of the backend
+through the REST APIs.
 
 ![Architecture](docs/images/architecture.png)
 
 ----
 
-## Latest Release
+## Latest release
 
-🎉 KubeSphere 3.1.1 is now available! See the [Release Notes For 3.1.1](https://kubesphere.io/docs/release/release-v311/) for the updates.
+🎉 KubeSphere 3.2.1 was released on Dec 20! It brought enhancements and better user experience, see
+the [Release Notes For 3.2.1](https://kubesphere.io/docs/release/release-v321/) for the updates.
 
 ## Installation
 
-KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster.
+KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any
+version-compatible Kubernetes cluster. The installer will start a minimal installation by default, you
+can [enable other pluggable components before or after installation](https://kubesphere.io/docs/quick-start/enable-pluggable-components/)
+.
 
-### Quick Start
+### Quick start
 
-1. Run the following commands to install KubeSphere on an exiting Kubernetes cluster:
+#### Installing on K8s/K3s
+
+If your cluster meets
+the [prerequisites](https://kubesphere.io/docs/quick-start/minimal-kubesphere-on-k8s/#prerequisites), then run the
+following commands to install KubeSphere on an exiting Kubernetes cluster:
 
 ```yaml
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.1.1/kubesphere-installer.yaml
-   
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.1.1/cluster-configuration.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/kubesphere-installer.yaml
+
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/cluster-configuration.yaml
 ```
 
-2. You can run the following command to view the installation logs. After KubeSphere is successfully installed, you can use `http://IP:30880` to access the KubeSphere Console with the default account and password (admin/P@88w0rd).
+#### All-in-one
+
+👨‍💻 No Kubernetes? You can use [KubeKey](https://github.com/kubesphere/kubekey) to install both KubeSphere and
+Kubernetes/K3s in single-node mode on your Linux machine. Let's take K3s as an example:
+
+```yaml
+# Download KubeKey
+curl -sfL https://get-kk.kubesphere.io | VERSION=v2.0.0 sh -
+  # Make kk executable
+chmod +x kk
+  # Create a cluster
+./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.2.1
+```
+
+You can run the following command to view the installation logs. After KubeSphere is successfully installed, you can
+access the KubeSphere web console at `http://IP:30880` and log in using the default administrator account (
+admin/P@88w0rd).
 
 ```yaml
 kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
-```
+``` 
 
-> 👨‍💻 No Kubernetes cluster? Try [All-in-one](https://kubesphere.io/docs/quick-start/all-in-one-on-linux/) to install a single-node Kubernetes and KubeSphere on your Linux machine. 
+### 🐯 Katacoda for quick learning
+
+[Katacoda](https://www.katacoda.com/) allows you to explore how to install KubeSphere on an existing Kubernetes cluster
+in a browser. You can start
+the [Katacoda scenario with KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes)
+in minutes.
 
 ### KubeSphere for hosted Kubernetes services
 
-KubeSphere is hosted on the following cloud providers, you can try KubeSphere by one-click installation on their hosted Kubernetes services. 
+KubeSphere is hosted on the following cloud providers, you can try KubeSphere by one-click installation on their hosted
+Kubernetes services.
 
 - [KubeSphere for Amazon EKS](https://aws.amazon.com/quickstart/architecture/qingcloud-kubesphere/)
 - [KubeSphere for Azure AKS](https://market.azure.cn/marketplace/apps/qingcloud.kubesphere)
@@ -150,7 +187,7 @@ You can also install KubeSphere on other hosted Kubernetes services within minut
 
 > 👨‍💻 No internet access? Refer to the [Air-gapped Installation on Kubernetes](https://kubesphere.io/docs/installing-on-kubernetes/on-prem-kubernetes/install-ks-on-linux-airgapped/) or [Air-gapped Installation on Linux](https://kubesphere.io/docs/installing-on-linux/introduction/air-gapped-installation/) for instructions on how to use private registry to install KubeSphere.
 
-## Contributing, Support, Discussion, and Community
+## Contributing, support, discussion, and community
 
 We :heart: your contribution. The [community](https://github.com/kubesphere/community) walks you through how to get started contributing KubeSphere. The [development guide](https://github.com/kubesphere/community/tree/master/developer-guide/development) explains how to set up development environment.
 
@@ -159,11 +196,9 @@ We :heart: your contribution. The [community](https://github.com/kubesphere/comm
 - [Follow us on Twitter](https://twitter.com/KubeSphere)
 
 Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues).
-
 ## Who are using KubeSphere
 
 The [user case studies](https://kubesphere.io/case/) page includes the user list of the project. You can [leave a comment](https://github.com/kubesphere/kubesphere/issues/4123) to let us know your use case.
-
 ## Landscapes
 
 <p align="center">
@@ -171,6 +206,6 @@ The [user case studies](https://kubesphere.io/case/) page includes the user list
 <img src="https://landscape.cncf.io/images/left-logo.svg" width="150"/>&nbsp;&nbsp;<img src="https://landscape.cncf.io/images/right-logo.svg" width="200"/>&nbsp;&nbsp;
 <br/><br/>
 KubeSphere is a member of CNCF and a <a href="https://www.cncf.io/certification/software-conformance/#logos">Kubernetes Conformance Certified platform
-</a>, which enriches the <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.
+</a>, which enriches the <a href="https://landscape.cncf.io/?landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.
 </a>
 </p>

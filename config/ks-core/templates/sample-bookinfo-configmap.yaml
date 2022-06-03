@@ -355,7 +355,7 @@ data:
           targetPort: 9080
 
     ---
-    apiVersion: extensions/v1beta1
+    apiVersion: networking.k8s.io/v1
     kind: Ingress
     metadata:
       namespace: servicemesh
@@ -367,10 +367,13 @@ data:
       rules:
         - http:
             paths:
-              - path: /
-                backend:
-                  serviceName: productpage
-                  servicePort: 9080
+            - backend:
+                service:
+                  name: productpage
+                  port:
+                    number: 9080
+              path: /
+              pathType: ImplementationSpecific
           host: productpage.servicemesh.139.198.121.92.nip.io
 kind: ConfigMap
 metadata:

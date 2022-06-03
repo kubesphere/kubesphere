@@ -321,7 +321,7 @@ func (s *saveSupport) Insert(path ast.Ref, rule *ast.Rule) {
 // being saved. This check allows the evaluator to evaluate statements
 // completely during partial evaluation as long as they do not depend on any
 // kind of unknown value or statements that would generate saves.
-func saveRequired(c *ast.Compiler, ss *saveSet, b *bindings, x interface{}, rec bool) bool {
+func saveRequired(c *ast.Compiler, ic *inliningControl, icIgnoreInternal bool, ss *saveSet, b *bindings, x interface{}, rec bool) bool {
 
 	var found bool
 
@@ -344,9 +344,11 @@ func saveRequired(c *ast.Compiler, ss *saveSet, b *bindings, x interface{}, rec 
 			case ast.Ref:
 				if ss.Contains(node, b) {
 					found = true
+				} else if ic.Disabled(v.ConstantPrefix(), icIgnoreInternal) {
+					found = true
 				} else {
 					for _, rule := range c.GetRulesDynamic(v) {
-						if saveRequired(c, ss, b, rule, true) {
+						if saveRequired(c, ic, icIgnoreInternal, ss, b, rule, true) {
 							found = true
 							break
 						}
@@ -376,6 +378,49 @@ func ignoreDuringPartial(bi *ast.Builtin) bool {
 	for _, ignore := range ast.IgnoreDuringPartialEval {
 		if bi == ignore {
 			return true
+		}
+	}
+	return false
+}
+
+type inliningControl struct {
+	shallow bool
+	disable []disableInliningFrame
+}
+
+type disableInliningFrame struct {
+	internal bool
+	refs     []ast.Ref
+}
+
+func (i *inliningControl) PushDisable(refs []ast.Ref, internal bool) {
+	if i == nil {
+		return
+	}
+	i.disable = append(i.disable, disableInliningFrame{
+		internal: internal,
+		refs:     refs,
+	})
+}
+
+func (i *inliningControl) PopDisable() {
+	if i == nil {
+		return
+	}
+	i.disable = i.disable[:len(i.disable)-1]
+}
+
+func (i *inliningControl) Disabled(ref ast.Ref, ignoreInternal bool) bool {
+	if i == nil {
+		return false
+	}
+	for _, frame := range i.disable {
+		if !frame.internal || !ignoreInternal {
+			for _, other := range frame.refs {
+				if other.HasPrefix(ref) || ref.HasPrefix(other) {
+					return true
+				}
+			}
 		}
 	}
 	return false

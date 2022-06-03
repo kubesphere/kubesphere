@@ -2,9 +2,11 @@ package bundle
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -15,14 +17,16 @@ import (
 // Descriptor contains information about a file and
 // can be used to read the file contents.
 type Descriptor struct {
+	url       string
 	path      string
 	reader    io.Reader
 	closer    io.Closer
 	closeOnce *sync.Once
 }
 
-func newDescriptor(path string, reader io.Reader) *Descriptor {
+func newDescriptor(url, path string, reader io.Reader) *Descriptor {
 	return &Descriptor{
+		url:    url,
 		path:   path,
 		reader: reader,
 	}
@@ -37,6 +41,11 @@ func (d *Descriptor) withCloser(closer io.Closer) *Descriptor {
 // Path returns the path of the file.
 func (d *Descriptor) Path() string {
 	return d.path
+}
+
+// URL returns the url of the file.
+func (d *Descriptor) URL() string {
+	return d.url
 }
 
 // Read will read all the contents from the file the Descriptor refers to
@@ -76,6 +85,20 @@ type dirLoader struct {
 // NewDirectoryLoader returns a basic DirectoryLoader implementation
 // that will load files from a given root directory path.
 func NewDirectoryLoader(root string) DirectoryLoader {
+
+	if len(root) > 1 {
+		// Normalize relative directories, ex "./src/bundle" -> "src/bundle"
+		// We don't need an absolute path, but this makes the joined/trimmed
+		// paths more uniform.
+		if root[0] == '.' && root[1] == filepath.Separator {
+			if len(root) == 2 {
+				root = root[:1] // "./" -> "."
+			} else {
+				root = root[2:] // remove leading "./"
+			}
+		}
+	}
+
 	d := dirLoader{
 		root: root,
 	}
@@ -114,24 +137,46 @@ func (d *dirLoader) NextFile() (*Descriptor, error) {
 
 	// Trim off the root directory and return path as if chrooted
 	cleanedPath := strings.TrimPrefix(fileName, d.root)
+	if d.root == "." && filepath.Base(fileName) == ManifestExt {
+		cleanedPath = fileName
+	}
+
 	if !strings.HasPrefix(cleanedPath, "/") {
 		cleanedPath = "/" + cleanedPath
 	}
 
-	f := newDescriptor(cleanedPath, fh).withCloser(fh)
+	f := newDescriptor(path.Join(d.root, cleanedPath), cleanedPath, fh).withCloser(fh)
 	return f, nil
 }
 
 type tarballLoader struct {
-	r  io.Reader
-	tr *tar.Reader
+	baseURL string
+	r       io.Reader
+	tr      *tar.Reader
+	files   []file
+	idx     int
 }
 
-// NewTarballLoader returns a new DirectoryLoader that reads
-// files out of a gzipped tar archive.
+type file struct {
+	name   string
+	reader io.Reader
+}
+
+// NewTarballLoader is deprecated. Use NewTarballLoaderWithBaseURL instead.
 func NewTarballLoader(r io.Reader) DirectoryLoader {
 	l := tarballLoader{
 		r: r,
+	}
+	return &l
+}
+
+// NewTarballLoaderWithBaseURL returns a new DirectoryLoader that reads
+// files out of a gzipped tar archive. The file URLs will be prefixed
+// with the baseURL.
+func NewTarballLoaderWithBaseURL(r io.Reader, baseURL string) DirectoryLoader {
+	l := tarballLoader{
+		baseURL: strings.TrimSuffix(baseURL, "/"),
+		r:       r,
 	}
 	return &l
 }
@@ -148,19 +193,43 @@ func (t *tarballLoader) NextFile() (*Descriptor, error) {
 		t.tr = tar.NewReader(gr)
 	}
 
-	for {
-		header, err := t.tr.Next()
-		// Eventually we will get an io.EOF error when finished
-		// iterating through the archive
-		if err != nil {
-			return nil, err
-		}
+	if t.files == nil {
+		t.files = []file{}
 
-		// Keep iterating on the archive until we find a normal file
-		if header.Typeflag == tar.TypeReg {
-			// no need to close this descriptor after reading
-			f := newDescriptor(header.Name, t.tr)
-			return f, nil
+		for {
+			header, err := t.tr.Next()
+			if err == io.EOF {
+				break
+			}
+
+			if err != nil {
+				return nil, err
+			}
+
+			// Keep iterating on the archive until we find a normal file
+			if header.Typeflag == tar.TypeReg {
+				f := file{name: header.Name}
+
+				var buf bytes.Buffer
+				if _, err := io.Copy(&buf, t.tr); err != nil {
+					return nil, errors.Wrapf(err, "failed to copy file %s", header.Name)
+				}
+
+				f.reader = &buf
+
+				t.files = append(t.files, f)
+			}
 		}
 	}
+
+	// If done reading files then just return io.EOF
+	// errors for each NextFile() call
+	if t.idx >= len(t.files) {
+		return nil, io.EOF
+	}
+
+	f := t.files[t.idx]
+	t.idx++
+
+	return newDescriptor(path.Join(t.baseURL, f.name), f.name, f.reader), nil
 }

@@ -16,14 +16,14 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ConstraintTemplateSpec defines the desired state of ConstraintTemplate.
+// ConstraintTemplateSpec defines the desired state of ConstraintTemplate
 type ConstraintTemplateSpec struct {
 	CRD     CRD      `json:"crd,omitempty"`
 	Targets []Target `json:"targets,omitempty"`
@@ -34,8 +34,7 @@ type CRD struct {
 }
 
 type CRDSpec struct {
-	Names Names `json:"names,omitempty"`
-	// +kubebuilder:default={legacySchema: true}
+	Names      Names       `json:"names,omitempty"`
 	Validation *Validation `json:"validation,omitempty"`
 }
 
@@ -48,9 +47,7 @@ type Validation struct {
 	// +kubebuilder:validation:Schemaless
 	// +kubebuilder:validation:Type=object
 	// +kubebuilder:pruning:PreserveUnknownFields
-	OpenAPIV3Schema *apiextensionsv1.JSONSchemaProps `json:"openAPIV3Schema,omitempty"`
-	// +kubebuilder:default=true
-	LegacySchema *bool `json:"legacySchema,omitempty"` // *bool allows for "unset" state which we need to apply appropriate defaults
+	OpenAPIV3Schema *apiextensionsv1beta1.JSONSchemaProps `json:"openAPIV3Schema,omitempty"`
 }
 
 type Target struct {
@@ -76,7 +73,7 @@ type ByPodStatus struct {
 	Errors             []CreateCRDError `json:"errors,omitempty"`
 }
 
-// ConstraintTemplateStatus defines the observed state of ConstraintTemplate.
+// ConstraintTemplateStatus defines the observed state of ConstraintTemplate
 type ConstraintTemplateStatus struct {
 	Created bool          `json:"created,omitempty"`
 	ByPod   []ByPodStatus `json:"byPod,omitempty"`
@@ -102,7 +99,7 @@ type ConstraintTemplate struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ConstraintTemplateList contains a list of ConstraintTemplate.
+// ConstraintTemplateList contains a list of ConstraintTemplate
 type ConstraintTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

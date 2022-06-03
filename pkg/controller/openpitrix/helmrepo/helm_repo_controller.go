@@ -21,6 +21,8 @@ import (
 	"math"
 	"time"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,6 +37,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	"kubesphere.io/api/application/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
@@ -42,9 +46,6 @@ import (
 )
 
 const (
-	// min sync period in seconds
-	MinSyncPeriod = 180
-
 	MinRetryDuration     = 60
 	MaxRetryDuration     = 600
 	HelmRepoSyncStateLen = 10
@@ -57,20 +58,6 @@ const (
 const (
 	HelmRepoFinalizer = "helmrepo.application.kubesphere.io"
 )
-
-// Add creates a new Workspace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileHelmRepo{Client: mgr.GetClient(), scheme: mgr.GetScheme(),
-		recorder: mgr.GetEventRecorderFor("workspace-controller"),
-		config:   mgr.GetConfig(),
-	}
-}
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
@@ -97,6 +84,14 @@ type ReconcileHelmRepo struct {
 	scheme   *runtime.Scheme
 	recorder record.EventRecorder
 	config   *rest.Config
+}
+
+func (r *ReconcileHelmRepo) SetupWithManager(mgr ctrl.Manager) error {
+	r.Client = mgr.GetClient()
+	r.scheme = mgr.GetScheme()
+	r.recorder = mgr.GetEventRecorderFor("workspace-controller")
+	r.config = mgr.GetConfig()
+	return add(mgr, r)
 }
 
 // Reconcile reads that state of the cluster for a helmrepoes object and makes changes based on the state read
@@ -156,8 +151,8 @@ func (r *ReconcileHelmRepo) Reconcile(ctx context.Context, request reconcile.Req
 
 	copyInstance := instance.DeepCopy()
 
-	if copyInstance.Spec.SyncPeriod != 0 && copyInstance.Spec.SyncPeriod < MinSyncPeriod {
-		copyInstance.Spec.SyncPeriod = MinSyncPeriod
+	if copyInstance.Spec.SyncPeriod != 0 {
+		copyInstance.Spec.SyncPeriod = int(math.Max(float64(copyInstance.Spec.SyncPeriod), constants.HelmRepoMinSyncPeriod))
 	}
 
 	retryAfter := 0
@@ -197,7 +192,7 @@ func (r *ReconcileHelmRepo) Reconcile(ctx context.Context, request reconcile.Req
 				RequeueAfter: MinRetryDuration * time.Second,
 			}, err
 		} else {
-			retryAfter = MinSyncPeriod
+			retryAfter = constants.HelmRepoMinSyncPeriod
 			if syncErr == nil {
 				retryAfter = copyInstance.Spec.SyncPeriod
 			}
@@ -256,9 +251,7 @@ func needReSyncNow(instance *v1alpha1.HelmRepo) (syncNow bool, after int) {
 	} else {
 		period = instance.Spec.SyncPeriod
 		if period != 0 {
-			if period < MinSyncPeriod {
-				period = MinSyncPeriod
-			}
+			period = int(math.Max(float64(instance.Spec.SyncPeriod), constants.HelmRepoMinSyncPeriod))
 			if now.After(state.SyncTime.Add(time.Duration(period) * time.Second)) {
 				return true, 0
 			}
@@ -296,7 +289,7 @@ func (r *ReconcileHelmRepo) syncRepo(instance *v1alpha1.HelmRepo) error {
 	}
 
 	// 2. merge new index with old index which is stored in crd
-	savedIndex := helmrepoindex.MergeRepoIndex(index, existsSavedIndex)
+	savedIndex := helmrepoindex.MergeRepoIndex(instance, index, existsSavedIndex)
 
 	// 3. save index in crd
 	data, err := savedIndex.Bytes()
