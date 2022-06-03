@@ -93,11 +93,12 @@ func jsonRemove(a *ast.Term, b *ast.Term) (*ast.Term, error) {
 			return nil, err
 		}
 		return ast.NewTerm(newSet), nil
-	case ast.Array:
+	case *ast.Array:
 		// When indexes are removed we shift left to close empty spots in the array
 		// as per the JSON patch spec.
-		var newArray ast.Array
-		for i, v := range aValue {
+		newArray := ast.NewArray()
+		for i := 0; i < aValue.Len(); i++ {
+			v := aValue.Elem(i)
 			// recurse and add the diff of sub objects as needed
 			// Note: Keys in b will be strings for the index, eg path /a/1/b => {"a": {"1": {"b": null}}}
 			diffValue, err := jsonRemove(v, bObj.Get(ast.StringTerm(strconv.Itoa(i))))
@@ -105,7 +106,7 @@ func jsonRemove(a *ast.Term, b *ast.Term) (*ast.Term, error) {
 				return nil, err
 			}
 			if diffValue != nil {
-				newArray = append(newArray, diffValue)
+				newArray = newArray.Append(diffValue)
 			}
 		}
 		return ast.NewTerm(newArray), nil
@@ -142,9 +143,9 @@ func getJSONPaths(operand ast.Value) ([]ast.Ref, error) {
 	var paths []ast.Ref
 
 	switch v := operand.(type) {
-	case ast.Array:
-		for _, f := range v {
-			filter, err := parsePath(f)
+	case *ast.Array:
+		for i := 0; i < v.Len(); i++ {
+			filter, err := parsePath(v.Elem(i))
 			if err != nil {
 				return nil, err
 			}
@@ -180,10 +181,10 @@ func parsePath(path *ast.Term) (ast.Ref, error) {
 			part = strings.ReplaceAll(strings.ReplaceAll(part, "~1", "/"), "~0", "~")
 			pathSegments = append(pathSegments, ast.StringTerm(part))
 		}
-	case ast.Array:
-		for _, term := range p {
+	case *ast.Array:
+		p.Foreach(func(term *ast.Term) {
 			pathSegments = append(pathSegments, term)
-		}
+		})
 	default:
 		return nil, builtins.NewOperandErr(2, "must be one of {set, array} containing string paths or array of path segments but got %v", ast.TypeName(p))
 	}

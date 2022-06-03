@@ -88,13 +88,13 @@ func (u *bindings) plugNamespaced(a *ast.Term, caller *bindings) *ast.Term {
 			return next.plugNamespaced(b, caller)
 		}
 		return u.namespaceVar(b, caller)
-	case ast.Array:
+	case *ast.Array:
 		cpy := *a
-		arr := make(ast.Array, len(v))
+		arr := make([]*ast.Term, v.Len())
 		for i := 0; i < len(arr); i++ {
-			arr[i] = u.plugNamespaced(v[i], caller)
+			arr[i] = u.plugNamespaced(v.Elem(i), caller)
 		}
-		cpy.Value = arr
+		cpy.Value = ast.NewArray(arr...)
 		return &cpy
 	case ast.Object:
 		if a.IsGround() {
@@ -242,13 +242,13 @@ func (vis namespacingVisitor) namespaceTerm(a *ast.Term) *ast.Term {
 	switch v := a.Value.(type) {
 	case ast.Var:
 		return vis.b.namespaceVar(a, vis.caller)
-	case ast.Array:
+	case *ast.Array:
 		cpy := *a
-		arr := make(ast.Array, len(v))
+		arr := make([]*ast.Term, v.Len())
 		for i := 0; i < len(arr); i++ {
-			arr[i] = vis.namespaceTerm(v[i])
+			arr[i] = vis.namespaceTerm(v.Elem(i))
 		}
-		cpy.Value = arr
+		cpy.Value = ast.NewArray(arr...)
 		return &cpy
 	case ast.Object:
 		if a.IsGround() {

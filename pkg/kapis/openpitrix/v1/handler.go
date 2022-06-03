@@ -25,7 +25,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

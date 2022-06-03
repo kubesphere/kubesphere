@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -85,24 +86,49 @@ type FileLoader interface {
 	All(paths []string) (*Result, error)
 	Filtered(paths []string, filter Filter) (*Result, error)
 	AsBundle(path string) (*bundle.Bundle, error)
-
 	WithMetrics(m metrics.Metrics) FileLoader
+	WithBundleVerificationConfig(*bundle.VerificationConfig) FileLoader
+	WithSkipBundleVerification(skipVerify bool) FileLoader
 }
 
 // NewFileLoader returns a new FileLoader instance.
 func NewFileLoader() FileLoader {
 	return &fileLoader{
 		metrics: metrics.New(),
+		files:   make(map[string]bundle.FileInfo),
 	}
 }
 
+type descriptor struct {
+	result  *Result
+	path    string
+	relPath string
+	depth   int
+}
+
 type fileLoader struct {
-	metrics metrics.Metrics
+	metrics     metrics.Metrics
+	bvc         *bundle.VerificationConfig
+	skipVerify  bool
+	descriptors []*descriptor
+	files       map[string]bundle.FileInfo
 }
 
 // WithMetrics provides the metrics instance to use while loading
 func (fl *fileLoader) WithMetrics(m metrics.Metrics) FileLoader {
 	fl.metrics = m
+	return fl
+}
+
+// WithBundleVerificationConfig sets the key configuration used to verify a signed bundle
+func (fl *fileLoader) WithBundleVerificationConfig(config *bundle.VerificationConfig) FileLoader {
+	fl.bvc = config
+	return fl
+}
+
+// WithSkipBundleVerification skips verification of a signed bundle
+func (fl *fileLoader) WithSkipBundleVerification(skipVerify bool) FileLoader {
+	fl.skipVerify = skipVerify
 	return fl
 }
 
@@ -144,33 +170,17 @@ func (fl fileLoader) Filtered(paths []string, filter Filter) (*Result, error) {
 // it will be treated as a normal tarball bundle. If a directory
 // is supplied it will be loaded as an unzipped bundle tree.
 func (fl fileLoader) AsBundle(path string) (*bundle.Bundle, error) {
-	path, err := fileurl.Clean(path)
+	bundleLoader, isDir, err := GetBundleDirectoryLoader(path)
 	if err != nil {
 		return nil, err
 	}
 
-	fi, err := os.Stat(path)
-	if err != nil {
-		return nil, fmt.Errorf("error reading %q: %s", path, err)
-	}
-
-	var bundleLoader bundle.DirectoryLoader
-
-	if fi.IsDir() {
-		bundleLoader = bundle.NewDirectoryLoader(path)
-	} else {
-		fh, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-		bundleLoader = bundle.NewTarballLoader(fh)
-	}
-
-	br := bundle.NewCustomReader(bundleLoader).WithMetrics(fl.metrics)
+	br := bundle.NewCustomReader(bundleLoader).WithMetrics(fl.metrics).WithBundleVerificationConfig(fl.bvc).
+		WithSkipBundleVerification(fl.skipVerify)
 
 	// For bundle directories add the full path in front of module file names
 	// to simplify debugging.
-	if fi.IsDir() {
+	if isDir {
 		br.WithBaseDir(path)
 	}
 
@@ -180,6 +190,49 @@ func (fl fileLoader) AsBundle(path string) (*bundle.Bundle, error) {
 	}
 
 	return &b, err
+}
+
+// GetBundleDirectoryLoader returns a bundle directory loader which can be used to load
+// files in the directory.
+func GetBundleDirectoryLoader(path string) (bundle.DirectoryLoader, bool, error) {
+	path, err := fileurl.Clean(path)
+	if err != nil {
+		return nil, false, err
+	}
+
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, false, fmt.Errorf("error reading %q: %s", path, err)
+	}
+
+	var bundleLoader bundle.DirectoryLoader
+
+	if fi.IsDir() {
+		bundleLoader = bundle.NewDirectoryLoader(path)
+	} else {
+		fh, err := os.Open(path)
+		if err != nil {
+			return nil, false, err
+		}
+		bundleLoader = bundle.NewTarballLoaderWithBaseURL(fh, path)
+	}
+	return bundleLoader, fi.IsDir(), nil
+}
+
+// FilteredPaths return a list of files from the specified
+// paths while applying the given filters. If any filter returns true, the
+// file/directory is excluded.
+func FilteredPaths(paths []string, filter Filter) ([]string, error) {
+	result := []string{}
+
+	_, err := all(paths, filter, func(_ *Result, path string, _ int) error {
+		result = append(result, path)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // All returns a Result object loaded (recursively) from the specified paths.
@@ -248,6 +301,25 @@ func Paths(path string, recurse bool) (paths []string, err error) {
 		return nil
 	})
 	return paths, err
+}
+
+// Dirs resolves filepaths to directories. It will return a list of unique
+// directories.
+func Dirs(paths []string) []string {
+	unique := map[string]struct{}{}
+
+	for _, path := range paths {
+		// TODO: /dir/dir will register top level directory /dir
+		dir := filepath.Dir(path)
+		unique[dir] = struct{}{}
+	}
+
+	var u []string
+	for k := range unique {
+		u = append(u, k)
+	}
+	sort.Strings(u)
+	return u
 }
 
 // SplitPrefix returns a tuple specifying the document prefix and the file
@@ -394,7 +466,7 @@ func loadKnownTypes(path string, bs []byte, m metrics.Metrics) (interface{}, err
 		return loadYAML(path, bs, m)
 	default:
 		if strings.HasSuffix(path, ".tar.gz") {
-			r, err := loadBundleFile(bs, m)
+			r, err := loadBundleFile(path, bs, m)
 			if err != nil {
 				err = errors.Wrap(err, fmt.Sprintf("bundle %s", path))
 			}
@@ -420,9 +492,9 @@ func loadFileForAnyType(path string, bs []byte, m metrics.Metrics) (interface{},
 	return nil, unrecognizedFile(path)
 }
 
-func loadBundleFile(bs []byte, m metrics.Metrics) (bundle.Bundle, error) {
-	tl := bundle.NewTarballLoader(bytes.NewBuffer(bs))
-	br := bundle.NewCustomReader(tl).WithMetrics(m).IncludeManifestInData(true)
+func loadBundleFile(path string, bs []byte, m metrics.Metrics) (bundle.Bundle, error) {
+	tl := bundle.NewTarballLoaderWithBaseURL(bytes.NewBuffer(bs), path)
+	br := bundle.NewCustomReader(tl).WithMetrics(m).WithSkipBundleVerification(true).IncludeManifestInData(true)
 	return br.Read()
 }
 

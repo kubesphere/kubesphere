@@ -7,6 +7,7 @@ package util
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"reflect"
 
@@ -21,7 +22,20 @@ import (
 func UnmarshalJSON(bs []byte, x interface{}) (err error) {
 	buf := bytes.NewBuffer(bs)
 	decoder := NewJSONDecoder(buf)
-	return decoder.Decode(x)
+	if err := decoder.Decode(x); err != nil {
+		return err
+	}
+
+	// Since decoder.Decode validates only the first json structure in bytes,
+	// check if decoder has more bytes to consume to validate whole input bytes.
+	tok, err := decoder.Token()
+	if tok != nil {
+		return fmt.Errorf("error: invalid character '%s' after top-level value", tok)
+	}
+	if err != nil && err != io.EOF {
+		return err
+	}
+	return nil
 }
 
 // NewJSONDecoder returns a new decoder that reads from r.

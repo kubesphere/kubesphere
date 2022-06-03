@@ -130,17 +130,17 @@ webhooks:
   - admissionReviewVersions:
       - v1beta1
     clientConfig:
-      caBundle: {{ b64enc $ca.Cert | quote }}
+      caBundle: { { b64enc $ca.Cert | quote } }
       service:
         name: ks-controller-manager
-        namespace: {{ .Release.Namespace }}
+        namespace: { { .Release.Namespace } }
         path: /persistentvolumeclaims
         port: 443
     failurePolicy: Ignore
     matchPolicy: Exact
     name: storageclass-accessor.storage.kubesphere.io
-    namespaceSelector: {}
-    objectSelector: {}
+    namespaceSelector: { }
+    objectSelector: { }
     rules:
       - apiGroups:
           - '*'

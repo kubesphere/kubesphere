@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/simple/client/admission"
 	"reflect"
 	"strings"
 	"sync"
@@ -178,6 +179,7 @@ type Config struct {
 	GatewayOptions        *gateway.Options        `json:"gateway,omitempty" yaml:"gateway,omitempty" mapstructure:"gateway"`
 	GPUOptions            *gpu.Options            `json:"gpu,omitempty" yaml:"gpu,omitempty" mapstructure:"gpu"`
 	TerminalOptions       *terminal.Options       `json:"terminal,omitempty" yaml:"terminal,omitempty" mapstructure:"terminal"`
+	AdmissionOptions      *admission.Options      `json:"admission,omitempty" yaml:"admission,omitempty" mapstructure:"admission"`
 }
 
 // newConfig creates a default non-empty Config

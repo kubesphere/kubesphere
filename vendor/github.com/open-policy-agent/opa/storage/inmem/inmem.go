@@ -22,7 +22,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/util"
 )
@@ -33,7 +32,6 @@ func New() storage.Store {
 		data:     map[string]interface{}{},
 		triggers: map[*handle]storage.TriggerConfig{},
 		policies: map[string][]byte{},
-		indices:  newIndices(),
 	}
 }
 
@@ -72,7 +70,6 @@ type store struct {
 	data     map[string]interface{}            // raw data
 	policies map[string][]byte                 // raw policies
 	triggers map[*handle]storage.TriggerConfig // registered triggers
-	indices  *indices                          // data ref indices
 }
 
 type handle struct {
@@ -103,7 +100,6 @@ func (db *store) Commit(ctx context.Context, txn storage.Transaction) error {
 	if underlying.write {
 		db.rmu.Lock()
 		event := underlying.Commit()
-		db.indices = newIndices()
 		db.runOnCommitTriggers(ctx, txn, event)
 		// Mark the transaction stale after executing triggers so they can
 		// perform store operations if needed.
@@ -198,20 +194,6 @@ func (db *store) Write(ctx context.Context, txn storage.Transaction, op storage.
 		return err
 	}
 	return underlying.Write(op, path, *val)
-}
-
-func (db *store) Build(ctx context.Context, txn storage.Transaction, ref ast.Ref) (storage.Index, error) {
-	underlying, err := db.underlying(txn)
-	if err != nil {
-		return nil, err
-	}
-	if underlying.write {
-		return nil, &storage.Error{
-			Code:    storage.IndexingNotSupportedErr,
-			Message: "in-memory store does not support indexing on write transactions",
-		}
-	}
-	return db.indices.Build(ctx, db, txn, ref)
 }
 
 func (h *handle) Unregister(ctx context.Context, txn storage.Transaction) {

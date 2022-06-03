@@ -164,3 +164,74 @@ func (s *refStack) Prefixed(ref ast.Ref) bool {
 	}
 	return false
 }
+
+type comprehensionCache struct {
+	stack []map[*ast.Term]*comprehensionCacheElem
+}
+
+type comprehensionCacheElem struct {
+	value    *ast.Term
+	children *util.HashMap
+}
+
+func newComprehensionCache() *comprehensionCache {
+	cache := &comprehensionCache{}
+	cache.Push()
+	return cache
+}
+
+func (c *comprehensionCache) Push() {
+	c.stack = append(c.stack, map[*ast.Term]*comprehensionCacheElem{})
+}
+
+func (c *comprehensionCache) Pop() {
+	c.stack = c.stack[:len(c.stack)-1]
+}
+
+func (c *comprehensionCache) Elem(t *ast.Term) (*comprehensionCacheElem, bool) {
+	elem, ok := c.stack[len(c.stack)-1][t]
+	return elem, ok
+}
+
+func (c *comprehensionCache) Set(t *ast.Term, elem *comprehensionCacheElem) {
+	c.stack[len(c.stack)-1][t] = elem
+}
+
+func newComprehensionCacheElem() *comprehensionCacheElem {
+	return &comprehensionCacheElem{children: newComprehensionCacheHashMap()}
+}
+
+func (c *comprehensionCacheElem) Get(key []*ast.Term) *ast.Term {
+	node := c
+	for i := 0; i < len(key); i++ {
+		x, ok := node.children.Get(key[i])
+		if !ok {
+			return nil
+		}
+		node = x.(*comprehensionCacheElem)
+	}
+	return node.value
+}
+
+func (c *comprehensionCacheElem) Put(key []*ast.Term, value *ast.Term) {
+	node := c
+	for i := 0; i < len(key); i++ {
+		x, ok := node.children.Get(key[i])
+		if ok {
+			node = x.(*comprehensionCacheElem)
+		} else {
+			next := newComprehensionCacheElem()
+			node.children.Put(key[i], next)
+			node = next
+		}
+	}
+	node.value = value
+}
+
+func newComprehensionCacheHashMap() *util.HashMap {
+	return util.NewHashMap(func(a, b util.T) bool {
+		return a.(*ast.Term).Equal(b.(*ast.Term))
+	}, func(x util.T) int {
+		return x.(*ast.Term).Hash()
+	})
+}

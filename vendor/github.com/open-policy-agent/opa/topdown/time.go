@@ -16,26 +16,11 @@ import (
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
 
-type nowKeyID string
-
-var nowKey = nowKeyID("time.now_ns")
 var tzCache map[string]*time.Location
 var tzCacheMutex *sync.Mutex
 
 func builtinTimeNowNanos(bctx BuiltinContext, _ []*ast.Term, iter func(*ast.Term) error) error {
-
-	exist, ok := bctx.Cache.Get(nowKey)
-	var now *ast.Term
-
-	if !ok {
-		curr := time.Now()
-		now = ast.NewTerm(ast.Number(int64ToJSONNumber(curr.UnixNano())))
-		bctx.Cache.Put(nowKey, now)
-	} else {
-		now = exist.(*ast.Term)
-	}
-
-	return iter(now)
+	return iter(bctx.Time)
 }
 
 func builtinTimeParseNanos(a, b ast.Value) (ast.Value, error) {
@@ -91,7 +76,7 @@ func builtinDate(a ast.Value) (ast.Value, error) {
 		return nil, err
 	}
 	year, month, day := t.Date()
-	result := ast.Array{ast.IntNumberTerm(year), ast.IntNumberTerm(int(month)), ast.IntNumberTerm(day)}
+	result := ast.NewArray(ast.IntNumberTerm(year), ast.IntNumberTerm(int(month)), ast.IntNumberTerm(day))
 	return result, nil
 }
 
@@ -101,7 +86,7 @@ func builtinClock(a ast.Value) (ast.Value, error) {
 		return nil, err
 	}
 	hour, minute, second := t.Clock()
-	result := ast.Array{ast.IntNumberTerm(hour), ast.IntNumberTerm(minute), ast.IntNumberTerm(second)}
+	result := ast.NewArray(ast.IntNumberTerm(hour), ast.IntNumberTerm(minute), ast.IntNumberTerm(second))
 	return result, nil
 }
 
@@ -114,24 +99,48 @@ func builtinWeekday(a ast.Value) (ast.Value, error) {
 	return ast.String(weekday), nil
 }
 
+func builtinAddDate(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	t, err := tzTime(operands[0].Value)
+	if err != nil {
+		return err
+	}
+
+	years, err := builtins.IntOperand(operands[1].Value, 2)
+	if err != nil {
+		return err
+	}
+
+	months, err := builtins.IntOperand(operands[2].Value, 3)
+	if err != nil {
+		return err
+	}
+
+	days, err := builtins.IntOperand(operands[3].Value, 4)
+	if err != nil {
+		return err
+	}
+
+	result := t.AddDate(years, months, days)
+	return iter(ast.NewTerm(ast.Number(int64ToJSONNumber(result.UnixNano()))))
+}
+
 func tzTime(a ast.Value) (t time.Time, err error) {
 	var nVal ast.Value
 	loc := time.UTC
 
 	switch va := a.(type) {
-	case ast.Array:
-
-		if len(va) == 0 {
+	case *ast.Array:
+		if va.Len() == 0 {
 			return time.Time{}, builtins.NewOperandTypeErr(1, a, "either number (ns) or [number (ns), string (tz)]")
 		}
 
-		nVal, err = builtins.NumberOperand(va[0].Value, 1)
+		nVal, err = builtins.NumberOperand(va.Elem(0).Value, 1)
 		if err != nil {
 			return time.Time{}, err
 		}
 
-		if len(va) > 1 {
-			tzVal, err := builtins.StringOperand(va[1].Value, 1)
+		if va.Len() > 1 {
+			tzVal, err := builtins.StringOperand(va.Elem(1).Value, 1)
 			if err != nil {
 				return time.Time{}, err
 			}
@@ -198,6 +207,7 @@ func init() {
 	RegisterFunctionalBuiltin1(ast.Date.Name, builtinDate)
 	RegisterFunctionalBuiltin1(ast.Clock.Name, builtinClock)
 	RegisterFunctionalBuiltin1(ast.Weekday.Name, builtinWeekday)
+	RegisterBuiltinFunc(ast.AddDate.Name, builtinAddDate)
 	tzCacheMutex = &sync.Mutex{}
 	tzCache = make(map[string]*time.Location)
 }

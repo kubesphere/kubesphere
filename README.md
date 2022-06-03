@@ -108,10 +108,11 @@ The following screenshots give a close insight into KubeSphere. Please check [Wh
   Create GPU workloads on the GUI, schedule GPU resources, and manage GPU resource quotas by tenant.
   </details>
 
-
 ## Architecture
 
-KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from the [backend](https://github.com/kubesphere/kubesphere). External systems can access the components of the backend through the REST APIs. 
+KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from
+the [backend](https://github.com/kubesphere/kubesphere). External systems can access the components of the backend
+through the REST APIs.
 
 ![Architecture](docs/images/architecture.png)
 
@@ -119,44 +120,63 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 ## Latest release
 
-🎉 KubeSphere 3.2.1 was released on Dec 20! It brought enhancements and better user experience, see the [Release Notes For 3.2.1](https://kubesphere.io/docs/release/release-v321/) for the updates.
+🎉 KubeSphere 3.2.1 was released on Dec 20! It brought enhancements and better user experience, see
+the [Release Notes For 3.2.1](https://kubesphere.io/docs/release/release-v321/) for the updates.
+
 ## Installation
 
-KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster. The installer will start a minimal installation by default, you can [enable other pluggable components before or after installation](https://kubesphere.io/docs/quick-start/enable-pluggable-components/).
+KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any
+version-compatible Kubernetes cluster. The installer will start a minimal installation by default, you
+can [enable other pluggable components before or after installation](https://kubesphere.io/docs/quick-start/enable-pluggable-components/)
+.
+
 ### Quick start
+
 #### Installing on K8s/K3s
 
-If your cluster meets the [prerequisites](https://kubesphere.io/docs/quick-start/minimal-kubesphere-on-k8s/#prerequisites), then run the following commands to install KubeSphere on an exiting Kubernetes cluster:
+If your cluster meets
+the [prerequisites](https://kubesphere.io/docs/quick-start/minimal-kubesphere-on-k8s/#prerequisites), then run the
+following commands to install KubeSphere on an exiting Kubernetes cluster:
 
 ```yaml
 kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/kubesphere-installer.yaml
-   
+
 kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/cluster-configuration.yaml
 ```
+
 #### All-in-one
 
-👨‍💻 No Kubernetes? You can use [KubeKey](https://github.com/kubesphere/kubekey) to install both KubeSphere and Kubernetes/K3s in single-node mode on your Linux machine. Let's take K3s as an example:
+👨‍💻 No Kubernetes? You can use [KubeKey](https://github.com/kubesphere/kubekey) to install both KubeSphere and
+Kubernetes/K3s in single-node mode on your Linux machine. Let's take K3s as an example:
 
 ```yaml
 # Download KubeKey
 curl -sfL https://get-kk.kubesphere.io | VERSION=v2.0.0 sh -
-# Make kk executable
+  # Make kk executable
 chmod +x kk
-# Create a cluster
+  # Create a cluster
 ./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.2.1
 ```
 
-You can run the following command to view the installation logs. After KubeSphere is successfully installed, you can access the KubeSphere web console at `http://IP:30880` and log in using the default administrator account (admin/P@88w0rd).
+You can run the following command to view the installation logs. After KubeSphere is successfully installed, you can
+access the KubeSphere web console at `http://IP:30880` and log in using the default administrator account (
+admin/P@88w0rd).
 
 ```yaml
 kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
 ``` 
+
 ### 🐯 Katacoda for quick learning
 
-[Katacoda](https://www.katacoda.com/) allows you to explore how to install KubeSphere on an existing Kubernetes cluster in a browser. You can start the [Katacoda scenario with KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes) in minutes.
+[Katacoda](https://www.katacoda.com/) allows you to explore how to install KubeSphere on an existing Kubernetes cluster
+in a browser. You can start
+the [Katacoda scenario with KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes)
+in minutes.
+
 ### KubeSphere for hosted Kubernetes services
 
-KubeSphere is hosted on the following cloud providers, you can try KubeSphere by one-click installation on their hosted Kubernetes services. 
+KubeSphere is hosted on the following cloud providers, you can try KubeSphere by one-click installation on their hosted
+Kubernetes services.
 
 - [KubeSphere for Amazon EKS](https://aws.amazon.com/quickstart/architecture/qingcloud-kubesphere/)
 - [KubeSphere for Azure AKS](https://market.azure.cn/marketplace/apps/qingcloud.kubesphere)
@@ -166,6 +186,7 @@ KubeSphere is hosted on the following cloud providers, you can try KubeSphere by
 You can also install KubeSphere on other hosted Kubernetes services within minutes, see the [step-by-step guides](https://kubesphere.io/docs/installing-on-kubernetes/) to get started.
 
 > 👨‍💻 No internet access? Refer to the [Air-gapped Installation on Kubernetes](https://kubesphere.io/docs/installing-on-kubernetes/on-prem-kubernetes/install-ks-on-linux-airgapped/) or [Air-gapped Installation on Linux](https://kubesphere.io/docs/installing-on-linux/introduction/air-gapped-installation/) for instructions on how to use private registry to install KubeSphere.
+
 ## Contributing, support, discussion, and community
 
 We :heart: your contribution. The [community](https://github.com/kubesphere/community) walks you through how to get started contributing KubeSphere. The [development guide](https://github.com/kubesphere/community/tree/master/developer-guide/development) explains how to set up development environment.

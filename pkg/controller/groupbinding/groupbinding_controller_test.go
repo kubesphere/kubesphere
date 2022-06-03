@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"kubesphere.io/api/iam/v1alpha2"
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
-	v1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	fedv1beta1types "kubesphere.io/api/types/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"

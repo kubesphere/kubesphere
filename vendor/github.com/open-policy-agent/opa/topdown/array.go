@@ -20,17 +20,20 @@ func builtinArrayConcat(a, b ast.Value) (ast.Value, error) {
 		return nil, err
 	}
 
-	arrC := make(ast.Array, 0, len(arrA)+len(arrB))
+	arrC := make([]*ast.Term, arrA.Len()+arrB.Len())
 
-	for _, elemA := range arrA {
-		arrC = append(arrC, elemA)
-	}
+	i := 0
+	arrA.Foreach(func(elemA *ast.Term) {
+		arrC[i] = elemA
+		i++
+	})
 
-	for _, elemB := range arrB {
-		arrC = append(arrC, elemB)
-	}
+	arrB.Foreach(func(elemB *ast.Term) {
+		arrC[i] = elemB
+		i++
+	})
 
-	return arrC, nil
+	return ast.NewArray(arrC...), nil
 }
 
 func builtinArraySlice(a, i, j ast.Value) (ast.Value, error) {
@@ -49,24 +52,23 @@ func builtinArraySlice(a, i, j ast.Value) (ast.Value, error) {
 		return nil, err
 	}
 
-	// Return empty array if bounds cannot be clamped sensibly.
-	if (startIndex >= stopIndex) || (startIndex <= 0 && stopIndex <= 0) {
-		return arr[0:0], nil
+	// Clamp stopIndex to avoid out-of-range errors. If negative, clamp to zero.
+	// Otherwise, clamp to length of array.
+	if stopIndex < 0 {
+		stopIndex = 0
+	} else if stopIndex > arr.Len() {
+		stopIndex = arr.Len()
 	}
 
-	// Clamp bounds to avoid out-of-range errors.
+	// Clamp startIndex to avoid out-of-range errors. If negative, clamp to zero.
+	// Otherwise, clamp to stopIndex to avoid to avoid cases like arr[1:0].
 	if startIndex < 0 {
 		startIndex = 0
+	} else if startIndex > stopIndex {
+		startIndex = stopIndex
 	}
 
-	if stopIndex > len(arr) {
-		stopIndex = len(arr)
-	}
-
-	arrb := arr[startIndex:stopIndex]
-
-	return arrb, nil
-
+	return arr.Slice(startIndex, stopIndex), nil
 }
 
 func init() {

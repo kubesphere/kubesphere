@@ -27,7 +27,7 @@ import (
 	"regexp"
 	"strings"
 
-	converter "kubesphere.io/monitoring-dashboard/tools/converter"
+	"kubesphere.io/monitoring-dashboard/tools/converter"
 
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 

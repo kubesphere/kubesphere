@@ -315,6 +315,14 @@ func (c *Comment) String() string {
 	return "#" + string(c.Text)
 }
 
+// Copy returns a deep copy of c.
+func (c *Comment) Copy() *Comment {
+	cpy := *c
+	cpy.Text = make([]byte, len(c.Text))
+	copy(cpy.Text, c.Text)
+	return &cpy
+}
+
 // Equal returns true if this comment equals the other comment.
 // Unlike other equality checks on AST nodes, comment equality
 // depends on location.
@@ -1249,6 +1257,53 @@ func (w *With) Loc() *Location {
 // SetLoc sets the location on w.
 func (w *With) SetLoc(loc *Location) {
 	w.Location = loc
+}
+
+// Copy returns a deep copy of the AST node x. If x is not an AST node, x is returned unmodified.
+func Copy(x interface{}) interface{} {
+	switch x := x.(type) {
+	case *Module:
+		return x.Copy()
+	case *Package:
+		return x.Copy()
+	case *Import:
+		return x.Copy()
+	case *Rule:
+		return x.Copy()
+	case *Head:
+		return x.Copy()
+	case Args:
+		return x.Copy()
+	case Body:
+		return x.Copy()
+	case *Expr:
+		return x.Copy()
+	case *With:
+		return x.Copy()
+	case *SomeDecl:
+		return x.Copy()
+	case *Term:
+		return x.Copy()
+	case *ArrayComprehension:
+		return x.Copy()
+	case *SetComprehension:
+		return x.Copy()
+	case *ObjectComprehension:
+		return x.Copy()
+	case Set:
+		return x.Copy()
+	case *object:
+		return x.Copy()
+	case *Array:
+		return x.Copy()
+	case Ref:
+		return x.Copy()
+	case Call:
+		return x.Copy()
+	case *Comment:
+		return x.Copy()
+	}
+	return x
 }
 
 // RuleSet represents a collection of rules that produce a virtual document.

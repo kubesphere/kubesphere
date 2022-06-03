@@ -24,12 +24,12 @@ service:
 
 ## for nginx controller, same with controller
 deployment:
-  annotations: {}
+  annotations: { }
   replicas: 1
   resources:
-#    limits:
-#      cpu: 100m
-#      memory: 90Mi
+    #    limits:
+    #      cpu: 100m
+    #      memory: 90Mi
     requests:
       cpu: 100m
       memory: 90Mi

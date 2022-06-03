@@ -51,8 +51,8 @@ spec:
         {{- end }}
         env:
         {{- if .Values.env }}
-        {{- toYaml .Values.env | nindent 8 }}
-        {{- end }}
+        { { - toYaml .Values.env | nindent 8 } }
+        { { - end } }
         livenessProbe:
           failureThreshold: 8
           httpGet:
@@ -61,31 +61,31 @@ spec:
             scheme: HTTP
           initialDelaySeconds: 15
           timeoutSeconds: 15
-      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
-      {{- with .Values.tolerations }}
+      serviceAccountName: { { include "ks-core.serviceAccountName" . } }
+      { { - with .Values.tolerations } }
       tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
+        { { - toYaml . | nindent 8 } }
+      { { - end } }
+      { { - with .Values.nodeSelector } }
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
+        { { - toYaml . | nindent 8 } }
+      { { - end } }
+      { { - with .Values.affinity } }
       affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        { { - toYaml . | nindent 8 } }
+      { { - end } }
       volumes:
-      - configMap:
-          defaultMode: 420
+        - configMap:
+            defaultMode: 420
+            name: kubesphere-config
           name: kubesphere-config
-        name: kubesphere-config
-      - hostPath:
-          path: /etc/localtime
-          type: ""
-        name: host-time
-      {{- if .Values.apiserver.extraVolumes }}
-        {{ toYaml .Values.apiserver.extraVolumes | nindent 6 }}
-      {{- end }}
+        - hostPath:
+            path: /etc/localtime
+            type: ""
+          name: host-time
+      { { - if .Values.apiserver.extraVolumes } }
+      { { toYaml .Values.apiserver.extraVolumes | nindent 6 } }
+      { { - end } }
 ---
 
 apiVersion: v1

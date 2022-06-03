@@ -238,13 +238,13 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 
 		// "helmapplication" controller
 		if cmOptions.IsControllerEnabled("helmapplication") {
-			reconcileHelmApp := (&helmapplication.ReconcileHelmApplication{})
+			reconcileHelmApp := &helmapplication.ReconcileHelmApplication{}
 			addControllerWithSetup(mgr, "helmapplication", reconcileHelmApp)
 		}
 
 		// "helmapplicationversion" controller
 		if cmOptions.IsControllerEnabled("helmapplicationversion") {
-			reconcileHelmAppVersion := (&helmapplication.ReconcileHelmApplicationVersion{})
+			reconcileHelmAppVersion := &helmapplication.ReconcileHelmApplicationVersion{}
 			addControllerWithSetup(mgr, "helmapplicationversion", reconcileHelmAppVersion)
 		}
 	}

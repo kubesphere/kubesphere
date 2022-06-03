@@ -117,3 +117,11 @@ func mergeConflictErr(loc *ast.Location) error {
 		Message:  "real and replacement data could not be merged",
 	}
 }
+
+func internalErr(loc *ast.Location, msg string) error {
+	return &Error{
+		Code:     InternalErr,
+		Location: loc,
+		Message:  msg,
+	}
+}

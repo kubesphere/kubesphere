@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/internal/compiler/wasm/opa"
 	"github.com/open-policy-agent/opa/internal/ir"
 	"github.com/open-policy-agent/opa/internal/wasm/encoding"
@@ -56,7 +57,65 @@ const (
 	opaValueType         = "opa_value_type"
 )
 
-var builtins = [...]string{
+var builtinsFunctions = map[string]string{
+	ast.Plus.Name:            "opa_arith_plus",
+	ast.Minus.Name:           "opa_arith_minus",
+	ast.Multiply.Name:        "opa_arith_multiply",
+	ast.Divide.Name:          "opa_arith_divide",
+	ast.Abs.Name:             "opa_arith_abs",
+	ast.Round.Name:           "opa_arith_round",
+	ast.Rem.Name:             "opa_arith_rem",
+	ast.ArrayConcat.Name:     "opa_array_concat",
+	ast.ArraySlice.Name:      "opa_array_slice",
+	ast.SetDiff.Name:         "opa_set_diff",
+	ast.And.Name:             "opa_set_intersection",
+	ast.Or.Name:              "opa_set_union",
+	ast.Intersection.Name:    "opa_sets_intersection",
+	ast.Union.Name:           "opa_sets_union",
+	ast.IsNumber.Name:        "opa_types_is_number",
+	ast.IsString.Name:        "opa_types_is_string",
+	ast.IsBoolean.Name:       "opa_types_is_boolean",
+	ast.IsArray.Name:         "opa_types_is_array",
+	ast.IsSet.Name:           "opa_types_is_set",
+	ast.IsObject.Name:        "opa_types_is_object",
+	ast.IsNull.Name:          "opa_types_is_null",
+	ast.TypeNameBuiltin.Name: "opa_types_name",
+	ast.BitsOr.Name:          "opa_bits_or",
+	ast.BitsAnd.Name:         "opa_bits_and",
+	ast.BitsNegate.Name:      "opa_bits_negate",
+	ast.BitsXOr.Name:         "opa_bits_xor",
+	ast.BitsShiftLeft.Name:   "opa_bits_shiftleft",
+	ast.BitsShiftRight.Name:  "opa_bits_shiftright",
+	ast.Count.Name:           "opa_agg_count",
+	ast.Sum.Name:             "opa_agg_sum",
+	ast.Product.Name:         "opa_agg_product",
+	ast.Max.Name:             "opa_agg_max",
+	ast.Min.Name:             "opa_agg_min",
+	ast.Sort.Name:            "opa_agg_sort",
+	ast.All.Name:             "opa_agg_all",
+	ast.Any.Name:             "opa_agg_any",
+	ast.Concat.Name:          "opa_strings_concat",
+	ast.FormatInt.Name:       "opa_strings_format_int",
+	ast.IndexOf.Name:         "opa_strings_indexof",
+	ast.Substring.Name:       "opa_strings_substring",
+	ast.Lower.Name:           "opa_strings_lower",
+	ast.Upper.Name:           "opa_strings_upper",
+	ast.Contains.Name:        "opa_strings_contains",
+	ast.StartsWith.Name:      "opa_strings_startswith",
+	ast.EndsWith.Name:        "opa_strings_endswith",
+	ast.Split.Name:           "opa_strings_split",
+	ast.Replace.Name:         "opa_strings_replace",
+	ast.ReplaceN.Name:        "opa_strings_replace_n",
+	ast.Trim.Name:            "opa_strings_trim",
+	ast.TrimLeft.Name:        "opa_strings_trim_left",
+	ast.TrimPrefix.Name:      "opa_strings_trim_prefix",
+	ast.TrimRight.Name:       "opa_strings_trim_right",
+	ast.TrimSuffix.Name:      "opa_strings_trim_suffix",
+	ast.TrimSpace.Name:       "opa_strings_trim_space",
+	ast.NumbersRange.Name:    "opa_numbers_range",
+}
+
+var builtinDispatchers = [...]string{
 	"opa_builtin0",
 	"opa_builtin1",
 	"opa_builtin2",
@@ -73,12 +132,12 @@ type Compiler struct {
 	module *module.Module    // output WASM module
 	code   *module.CodeEntry // output WASM code
 
-	builtinStringAddrs   map[int]uint32    // addresses of built-in string constants
-	builtinFuncNameAddrs map[string]int32  // addresses of built-in function names for listing
-	builtinFuncs         map[string]int32  // built-in function ids
-	stringOffset         int32             // null-terminated string data base offset
-	stringAddrs          []uint32          // null-terminated string constant addresses
-	funcs                map[string]uint32 // maps imported and exported function names to function indices
+	builtinStringAddrs    map[int]uint32    // addresses of built-in string constants
+	externalFuncNameAddrs map[string]int32  // addresses of required built-in function names for listing
+	externalFuncs         map[string]int32  // required built-in function ids
+	stringOffset          int32             // null-terminated string data base offset
+	stringAddrs           []uint32          // null-terminated string constant addresses
+	funcs                 map[string]uint32 // maps imported and exported function names to function indices
 
 	nextLocal uint32
 	locals    map[ir.Local]uint32
@@ -109,7 +168,7 @@ func New() *Compiler {
 	c.stages = []func() error{
 		c.initModule,
 		c.compileStrings,
-		c.compileBuiltinDecls,
+		c.compileExternalFuncDecls,
 		c.compileFuncs,
 		c.compilePlan,
 	}
@@ -200,7 +259,12 @@ func (c *Compiler) initModule() error {
 // The strings are indexed for lookups in later stages.
 func (c *Compiler) compileStrings() error {
 
-	c.stringOffset = 2048
+	var err error
+	c.stringOffset, err = getLowestFreeDataSegmentOffset(c.module)
+	if err != nil {
+		return err
+	}
+
 	c.stringAddrs = make([]uint32, len(c.policy.Static.Strings))
 	var buf bytes.Buffer
 
@@ -211,13 +275,15 @@ func (c *Compiler) compileStrings() error {
 		c.stringAddrs[i] = addr
 	}
 
-	c.builtinFuncNameAddrs = make(map[string]int32, len(c.policy.Static.BuiltinFuncs))
+	c.externalFuncNameAddrs = make(map[string]int32)
 
 	for _, decl := range c.policy.Static.BuiltinFuncs {
-		addr := int32(buf.Len()) + int32(c.stringOffset)
-		buf.WriteString(decl.Name)
-		buf.WriteByte(0)
-		c.builtinFuncNameAddrs[decl.Name] = addr
+		if _, ok := builtinsFunctions[decl.Name]; !ok {
+			addr := int32(buf.Len()) + int32(c.stringOffset)
+			buf.WriteString(decl.Name)
+			buf.WriteByte(0)
+			c.externalFuncNameAddrs[decl.Name] = addr
+		}
 	}
 
 	c.builtinStringAddrs = make(map[int]uint32, len(errorMessages))
@@ -244,11 +310,11 @@ func (c *Compiler) compileStrings() error {
 	return nil
 }
 
-// compileBuiltinDecls generates a function that lists the built-ins required by
+// compileExternalFuncDecls generates a function that lists the built-ins required by
 // the policy. The host environment should invoke this function obtain the list
 // of built-in function identifiers (represented as integers) that will be used
 // when calling out.
-func (c *Compiler) compileBuiltinDecls() error {
+func (c *Compiler) compileExternalFuncDecls() error {
 
 	c.code = &module.CodeEntry{}
 	c.nextLocal = 0
@@ -258,16 +324,18 @@ func (c *Compiler) compileBuiltinDecls() error {
 
 	c.appendInstr(instruction.Call{Index: c.function(opaObject)})
 	c.appendInstr(instruction.SetLocal{Index: lobj})
-	c.builtinFuncs = make(map[string]int32, len(c.policy.Static.BuiltinFuncs))
+	c.externalFuncs = make(map[string]int32)
 
 	for index, decl := range c.policy.Static.BuiltinFuncs {
-		c.appendInstr(instruction.GetLocal{Index: lobj})
-		c.appendInstr(instruction.I32Const{Value: c.builtinFuncNameAddrs[decl.Name]})
-		c.appendInstr(instruction.Call{Index: c.function(opaStringTerminated)})
-		c.appendInstr(instruction.I64Const{Value: int64(index)})
-		c.appendInstr(instruction.Call{Index: c.function(opaNumberInt)})
-		c.appendInstr(instruction.Call{Index: c.function(opaObjectInsert)})
-		c.builtinFuncs[decl.Name] = int32(index)
+		if _, ok := builtinsFunctions[decl.Name]; !ok {
+			c.appendInstr(instruction.GetLocal{Index: lobj})
+			c.appendInstr(instruction.I32Const{Value: c.externalFuncNameAddrs[decl.Name]})
+			c.appendInstr(instruction.Call{Index: c.function(opaStringTerminated)})
+			c.appendInstr(instruction.I64Const{Value: int64(index)})
+			c.appendInstr(instruction.Call{Index: c.function(opaNumberInt)})
+			c.appendInstr(instruction.Call{Index: c.function(opaObjectInsert)})
+			c.externalFuncs[decl.Name] = int32(index)
+		}
 	}
 
 	c.appendInstr(instruction.GetLocal{Index: lobj})
@@ -869,15 +937,21 @@ func (c *Compiler) compileUpsert(local ir.Local, path []int, value ir.Local, ins
 
 func (c *Compiler) compileCallStmt(stmt *ir.CallStmt, result *[]instruction.Instruction) error {
 
-	if index, ok := c.funcs[stmt.Func]; ok {
+	fn := stmt.Func
+
+	if name, ok := builtinsFunctions[stmt.Func]; ok {
+		fn = name
+	}
+
+	if index, ok := c.funcs[fn]; ok {
 		return c.compileInternalCall(stmt, index, result)
 	}
 
-	if id, ok := c.builtinFuncs[stmt.Func]; ok {
-		return c.compileBuiltinCall(stmt, id, result)
+	if id, ok := c.externalFuncs[fn]; ok {
+		return c.compileExternalCall(stmt, id, result)
 	}
 
-	c.errors = append(c.errors, fmt.Errorf("undefined function: %q", stmt.Func))
+	c.errors = append(c.errors, fmt.Errorf("undefined function: %q", fn))
 
 	return nil
 }
@@ -898,9 +972,9 @@ func (c *Compiler) compileInternalCall(stmt *ir.CallStmt, index uint32, result *
 	return nil
 }
 
-func (c *Compiler) compileBuiltinCall(stmt *ir.CallStmt, id int32, result *[]instruction.Instruction) error {
+func (c *Compiler) compileExternalCall(stmt *ir.CallStmt, id int32, result *[]instruction.Instruction) error {
 
-	if len(stmt.Args) >= len(builtins) {
+	if len(stmt.Args) >= len(builtinDispatchers) {
 		c.errors = append(c.errors, fmt.Errorf("too many built-in call arguments: %q", stmt.Func))
 		return nil
 	}
@@ -913,7 +987,7 @@ func (c *Compiler) compileBuiltinCall(stmt *ir.CallStmt, id int32, result *[]ins
 		instrs = append(instrs, instruction.GetLocal{Index: c.local(arg)})
 	}
 
-	instrs = append(instrs, instruction.Call{Index: c.funcs[builtins[len(stmt.Args)]]})
+	instrs = append(instrs, instruction.Call{Index: c.funcs[builtinDispatchers[len(stmt.Args)]]})
 	instrs = append(instrs, instruction.SetLocal{Index: c.local(stmt.Result)})
 	instrs = append(instrs, instruction.GetLocal{Index: c.local(stmt.Result)})
 	instrs = append(instrs, instruction.I32Eqz{})
@@ -1010,4 +1084,29 @@ func (c *Compiler) appendInstrs(instrs []instruction.Instruction) {
 	for _, instr := range instrs {
 		c.appendInstr(instr)
 	}
+}
+
+func getLowestFreeDataSegmentOffset(m *module.Module) (int32, error) {
+
+	var offset int32
+
+	for i := range m.Data.Segments {
+
+		if len(m.Data.Segments[i].Offset.Instrs) != 1 {
+			return 0, errors.New("bad data segment offset instructions")
+		}
+
+		instr, ok := m.Data.Segments[i].Offset.Instrs[0].(instruction.I32Const)
+		if !ok {
+			return 0, errors.New("bad data segment offset expr")
+		}
+
+		// NOTE(tsandall): assume memory up to but not including addr is taken.
+		addr := instr.Value + int32(len(m.Data.Segments[i].Init))
+		if addr > offset {
+			offset = addr
+		}
+	}
+
+	return offset, nil
 }

@@ -55,13 +55,17 @@ func builtinConcat(a, b ast.Value) (ast.Value, error) {
 	strs := []string{}
 
 	switch b := b.(type) {
-	case ast.Array:
-		for i := range b {
-			s, ok := b[i].Value.(ast.String)
+	case *ast.Array:
+		err := b.Iter(func(x *ast.Term) error {
+			s, ok := x.Value.(ast.String)
 			if !ok {
-				return nil, builtins.NewOperandElementErr(2, b, b[i].Value, "string")
+				return builtins.NewOperandElementErr(2, b, x.Value, "string")
 			}
 			strs = append(strs, string(s))
+			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
 	case ast.Set:
 		err := b.Iter(func(x *ast.Term) error {
@@ -202,11 +206,11 @@ func builtinSplit(a, b ast.Value) (ast.Value, error) {
 		return nil, err
 	}
 	elems := strings.Split(string(s), string(d))
-	arr := make(ast.Array, len(elems))
-	for i := range arr {
+	arr := make([]*ast.Term, len(elems))
+	for i := range elems {
 		arr[i] = ast.StringTerm(elems[i])
 	}
-	return arr, nil
+	return ast.NewArray(arr...), nil
 }
 
 func builtinReplace(a, b, c ast.Value) (ast.Value, error) {
@@ -343,15 +347,15 @@ func builtinSprintf(a, b ast.Value) (ast.Value, error) {
 		return nil, err
 	}
 
-	astArr, ok := b.(ast.Array)
+	astArr, ok := b.(*ast.Array)
 	if !ok {
 		return nil, builtins.NewOperandTypeErr(2, b, "array")
 	}
 
-	args := make([]interface{}, len(astArr))
+	args := make([]interface{}, astArr.Len())
 
-	for i := range astArr {
-		switch v := astArr[i].Value.(type) {
+	for i := range args {
+		switch v := astArr.Elem(i).Value.(type) {
 		case ast.Number:
 			if n, ok := v.Int(); ok {
 				args[i] = n
@@ -363,7 +367,7 @@ func builtinSprintf(a, b ast.Value) (ast.Value, error) {
 		case ast.String:
 			args[i] = string(v)
 		default:
-			args[i] = astArr[i].String()
+			args[i] = astArr.Elem(i).String()
 		}
 	}
 

@@ -68,15 +68,15 @@ securityContext: {}
   #   drop:
   #   - ALL
   # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+# runAsNonRoot: true
+# runAsUser: 1000
 
 # Kubernetes Version shows in KubeSphere console
 kube_version: "v1.19.4"
 
-env: []
+env: [ ]
 
-tolerations: 
+tolerations:
   - key: node-role.kubernetes.io/master
     effect: NoSchedule
   - key: CriticalAddonsOnly
@@ -90,9 +90,9 @@ tolerations:
     operator: Exists
     tolerationSeconds: 60
 
-affinity: {}
+affinity: { }
 
-nodeSelector: {}
+nodeSelector: { }
 
 ## deployment specific configuration
 
