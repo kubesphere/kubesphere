@@ -196,13 +196,13 @@ func newDeployments(deploymentName, namespace string, labels map[string]string, 
 	return deployment
 }
 
-func newService(serviceName, namesapce string, labels map[string]string) *corev1.Service {
+func newService(serviceName, namespace string, labels map[string]string) *corev1.Service {
 	labels["app"] = serviceName
 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: namesapce,
+			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
 				"servicemesh.kubesphere.io/enabled": "true",

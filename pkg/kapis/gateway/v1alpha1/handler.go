@@ -195,7 +195,7 @@ func (h *handler) PodLogSearch(request *restful.Request, response *restful.Respo
 		api.HandleError(response, request, err)
 		return
 	}
-	// ES log will be filted by pods and namespace by default.
+	// ES log will be filtered by pods and namespace by default.
 	pods, err := h.gw.GetPods(ns, &query.Query{})
 	if err != nil {
 		api.HandleError(response, request, err)
