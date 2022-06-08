@@ -184,7 +184,7 @@ func NewClusterController(
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			oldCluster := oldObj.(*clusterv1alpha1.Cluster)
 			newCluster := newObj.(*clusterv1alpha1.Cluster)
-			if !reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) {
+			if !reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) || newCluster.DeletionTimestamp != nil {
 				c.enqueueCluster(newObj)
 			}
 		},
