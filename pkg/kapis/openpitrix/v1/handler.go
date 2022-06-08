@@ -753,7 +753,7 @@ func (h *openpitrixHandler) ListApplications(req *restful.Request, resp *restful
 		return
 	}
 
-	resp.WriteAsJson(result)
+	resp.WriteEntity(result)
 }
 
 func (h *openpitrixHandler) UpgradeApplication(req *restful.Request, resp *restful.Response) {
