@@ -297,10 +297,10 @@ func (c *clusterController) resyncClusters() error {
 	}
 
 	for _, cluster := range clusters {
-		if err = c.syncCluster(cluster.Name); err != nil {
-			klog.Warningf("failed to sync cluster %s: %s", cluster.Name, err)
-		}
+		key, _ := cache.MetaNamespaceKeyFunc(cluster)
+		c.queue.Add(key)
 	}
+
 	return nil
 }
 
