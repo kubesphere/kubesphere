@@ -40,6 +40,8 @@ spec:
             properties:
               description:
                 type: string
+              displayName:
+                type: string
               icon:
                 type: string
               maintainers:

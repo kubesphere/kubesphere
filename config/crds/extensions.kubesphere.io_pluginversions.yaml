@@ -40,6 +40,8 @@ spec:
                 type: string
               digest:
                 type: string
+              displayName:
+                type: string
               home:
                 type: string
               icon:

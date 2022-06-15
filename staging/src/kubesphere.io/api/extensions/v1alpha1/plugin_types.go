@@ -26,6 +26,7 @@ type Maintainer struct {
 }
 
 type PluginInfo struct {
+	DisplayName string       `json:"displayName,omitempty"`
 	Description string       `json:"description,omitempty"`
 	Icon        string       `json:"icon,omitempty"`
 	Maintainers []Maintainer `json:"maintainers,omitempty"`
