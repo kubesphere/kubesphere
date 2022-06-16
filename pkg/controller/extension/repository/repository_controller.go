@@ -154,7 +154,9 @@ func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1
 		return ctrl.Result{}, r.Update(ctx, repoCopy)
 	} else {
 		duration := DefaultInterval
-		if repo.Spec.UpdateStrategy.RegistryPoll != nil && repo.Spec.UpdateStrategy.Interval != nil {
+		if repoCopy.Status.State != RepoStateReady {
+			duration = 15 * time.Second
+		} else if repo.Spec.UpdateStrategy.RegistryPoll != nil && repo.Spec.UpdateStrategy.Interval != nil {
 			duration = repo.Spec.UpdateStrategy.Interval.Duration
 		}
 		return ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
@@ -297,6 +299,7 @@ func (r *RepositoryReconciler) createPlugins(ctx context.Context, index *helmrep
 						Maintainers: maintainers,
 						Version:     version.Version,
 					},
+					URLs: version.URLs,
 				},
 			})
 		}

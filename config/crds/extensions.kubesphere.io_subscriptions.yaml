@@ -39,7 +39,8 @@ spec:
           spec:
             properties:
               config:
-                type: object
+                format: byte
+                type: string
               enabled:
                 type: boolean
               plugin:

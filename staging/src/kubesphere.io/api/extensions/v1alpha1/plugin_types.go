@@ -44,6 +44,7 @@ type PluginVersionSpec struct {
 	MinKubeVersion string   `json:"minKubeVersion,omitempty"`
 	Home           string   `json:"home,omitempty"`
 	Digest         string   `json:"digest,omitempty"`
+	URLs           []string `json:"urls"`
 }
 
 // +k8s:openapi-gen=true

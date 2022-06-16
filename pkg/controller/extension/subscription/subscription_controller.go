@@ -78,7 +78,7 @@ func (r *SubscriptionReconciler) reconcileDelete(ctx context.Context, sub *exten
 
 func (r *SubscriptionReconciler) loadChartData(ctx context.Context, pluginRef *extensionsv1alpha1.PluginRef) (string, error) {
 	pluginVer := &extensionsv1alpha1.PluginVersion{}
-	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", pluginRef.Name, pluginRef.Name)}, pluginVer)
+	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", pluginRef.Name, pluginRef.Version)}, pluginVer)
 	if err != nil {
 		return "", err
 	}
@@ -92,9 +92,22 @@ func (r *SubscriptionReconciler) loadChartData(ctx context.Context, pluginRef *e
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: podName}, po); err != nil {
 		return "", err
 	}
+
+	var url string
+	for _, d := range pluginVer.Spec.URLs {
+		d = strings.TrimPrefix(d, "/")
+		if len(d) > 0 {
+			url = d
+			break
+		}
+	}
+	if len(url) == 0 {
+		return "", fmt.Errorf("empty url")
+	}
+
 	// TODO: Fetch load data from repo service.
 	if po.Status.Phase == corev1.PodRunning {
-		buf, err := helmrepoindex.LoadChart(ctx, fmt.Sprintf("http://%s:8080", po.Status.PodIP), &v1alpha1.HelmRepoCredential{})
+		buf, err := helmrepoindex.LoadChart(ctx, fmt.Sprintf("http://%s:8080/%s", po.Status.PodIP, url), &v1alpha1.HelmRepoCredential{})
 		if err != nil {
 			return "", err
 		} else {
@@ -105,7 +118,7 @@ func (r *SubscriptionReconciler) loadChartData(ctx context.Context, pluginRef *e
 	}
 }
 
-func (r *SubscriptionReconciler) reconcile(ctx context.Context, sub *extensionsv1alpha1.Subscription) (*extensionsv1alpha1.Subscription, ctrl.Result, error) {
+func (r *SubscriptionReconciler) doReconcile(ctx context.Context, sub *extensionsv1alpha1.Subscription) (*extensionsv1alpha1.Subscription, ctrl.Result, error) {
 	wrapper := helmwrapper.NewHelmWrapper("", sub.Spec.TargetNamespace, sub.Spec.ReleaseName)
 	// TODO: Refactor with helm controller or helm client
 	_, err := wrapper.Manifest()
@@ -116,13 +129,14 @@ func (r *SubscriptionReconciler) reconcile(ctx context.Context, sub *extensionsv
 		} else {
 			charData, err := r.loadChartData(ctx, &sub.Spec.Plugin)
 			if err == nil {
-				if err := wrapper.Install(sub.Spec.Plugin.Name, charData, sub.Spec.Config.String()); err != nil {
+				if err := wrapper.Install(sub.Spec.Plugin.Name, charData, string(sub.Spec.Config)); err != nil {
 					klog.Errorf("install helm release %s/%s failed, error: %s", sub.Spec.TargetNamespace, sub.Spec.ReleaseName, err)
 					return sub, ctrl.Result{}, err
 				} else {
 					klog.Infof("install helm release %s/%s", sub.Spec.TargetNamespace, sub.Spec.ReleaseName)
 				}
 			} else {
+				klog.Errorf("fail to load chart data for subscription: %s, error: %s", sub.Name, err)
 				return nil, ctrl.Result{}, err
 			}
 		}
@@ -160,7 +174,7 @@ func (r *SubscriptionReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return r.reconcileDelete(ctx, sub)
 	}
 
-	if _, res, err := r.reconcile(ctx, sub); err != nil {
+	if _, res, err := r.doReconcile(ctx, sub); err != nil {
 		return res, err
 	}
 

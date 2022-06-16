@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type PluginRef struct {
@@ -27,11 +26,11 @@ type PluginRef struct {
 }
 
 type SubscriptionSpec struct {
-	Plugin          PluginRef            `json:"plugin"`
-	Enabled         bool                 `json:"enabled"`
-	ReleaseName     string               `json:"releaseName,omitempty"`
-	TargetNamespace string               `json:"targetNamespace,omitempty"`
-	Config          runtime.RawExtension `json:"config,omitempty"`
+	Plugin          PluginRef `json:"plugin"`
+	Enabled         bool      `json:"enabled"`
+	ReleaseName     string    `json:"releaseName,omitempty"`
+	TargetNamespace string    `json:"targetNamespace,omitempty"`
+	Config          []byte    `json:"config,omitempty"`
 }
 
 type SubscriptionStatus struct {
