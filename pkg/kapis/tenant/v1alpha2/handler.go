@@ -28,8 +28,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
-	"kubesphere.io/kubesphere/pkg/models/openpitrix"
-
 	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 
@@ -43,6 +41,8 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
@@ -60,7 +60,7 @@ type tenantHandler struct {
 
 func NewTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface,
 	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
-	am am.AccessManagementInterface, authorizer authorizer.Authorizer,
+	am am.AccessManagementInterface, im im.IdentityManagementInterface, authorizer authorizer.Authorizer,
 	monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter,
 	meteringOptions *meteringclient.Options, opClient openpitrix.Interface) *tenantHandler {
 
@@ -69,7 +69,7 @@ func NewTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.In
 	}
 
 	return &tenantHandler{
-		tenant:          tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, authorizer, monitoringclient, resourceGetter, opClient),
+		tenant:          tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, im, authorizer, monitoringclient, resourceGetter, opClient),
 		meteringOptions: meteringOptions,
 	}
 }
@@ -557,8 +557,8 @@ func (h *tenantHandler) ListClusters(r *restful.Request, response *restful.Respo
 		return
 	}
 
-	result, err := h.tenant.ListClusters(user)
-
+	queryParam := query.ParseQueryParameter(r)
+	result, err := h.tenant.ListClusters(user, queryParam)
 	if err != nil {
 		klog.Error(err)
 		if errors.IsNotFound(err) {

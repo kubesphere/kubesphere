@@ -1,5 +1,6 @@
 ---
 name: Bug report
+labels: ["kind/bug"]
 about: Create a report to help us improve
 ---
 

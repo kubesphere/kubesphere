@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -177,7 +176,7 @@ func (h *handler) PodLog(request *restful.Request, response *restful.Response) {
 	}
 
 	fw := flushwriter.Wrap(response.ResponseWriter)
-	err := h.gw.GetPodLogs(context.TODO(), podNamespace, podID, logOptions, fw)
+	err := h.gw.GetPodLogs(request.Request.Context(), podNamespace, podID, logOptions, fw)
 	if err != nil {
 		api.HandleError(response, request, err)
 		return
@@ -196,7 +195,7 @@ func (h *handler) PodLogSearch(request *restful.Request, response *restful.Respo
 		api.HandleError(response, request, err)
 		return
 	}
-	// ES log will be filted by pods and namespace by default.
+	// ES log will be filtered by pods and namespace by default.
 	pods, err := h.gw.GetPods(ns, &query.Query{})
 	if err != nil {
 		api.HandleError(response, request, err)

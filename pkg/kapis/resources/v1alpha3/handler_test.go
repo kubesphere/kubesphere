@@ -17,7 +17,16 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
 	"testing"
+	"unsafe"
+
+	"github.com/emicklei/go-restful"
+	"k8s.io/klog"
 
 	"github.com/google/go-cmp/cmp"
 	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/fake"
@@ -87,12 +96,10 @@ func TestResourceV1alpha2Fallback(t *testing.T) {
 		},
 	}
 
-	factory, err := prepare()
+	handler, err := prepare()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	handler := New(resourcev1alpha3.NewResourceGetter(factory, nil), resourcev1alpha2.NewResourceGetter(factory), components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()))
 
 	for _, test := range tests {
 		got, err := listResources(test.namespace, test.resource, test.query, handler)
@@ -175,12 +182,31 @@ var (
 			ReadyReplicas: 0,
 		},
 	}
+	apiServerService = &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ks-apiserver",
+			Namespace: "istio-system",
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{"app": "ks-apiserver-app"},
+		},
+	}
+	ksControllerService = &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ks-controller",
+			Namespace: "kubesphere-system",
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{"app": "ks-controller-app"},
+		},
+	}
 	deployments = []interface{}{redisDeployment, nginxDeployment}
 	namespaces  = []interface{}{defaultNamespace, kubesphereNamespace}
 	secrets     = []interface{}{secretFoo1, secretFoo2}
+	services    = []interface{}{apiServerService, ksControllerService}
 )
 
-func prepare() (informers.InformerFactory, error) {
+func prepare() (*Handler, error) {
 
 	ksClient := fakeks.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
@@ -210,6 +236,91 @@ func prepare() (informers.InformerFactory, error) {
 			return nil, err
 		}
 	}
+	for _, service := range services {
+		err := k8sInformerFactory.Core().V1().Services().Informer().GetIndexer().Add(service)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return fakeInformerFactory, nil
+	handler := New(resourcev1alpha3.NewResourceGetter(fakeInformerFactory, nil), resourcev1alpha2.NewResourceGetter(fakeInformerFactory), components.NewComponentsGetter(fakeInformerFactory.KubernetesSharedInformerFactory()))
+
+	return handler, nil
+}
+
+func TestHandleGetComponentStatus(t *testing.T) {
+	param := map[string]string{
+		"component": "ks-controller",
+	}
+	request, response, err := buildReqAndRes("GET", "/kapis/resources.kubesphere.io/v1alpha3/components/{component}", param, nil)
+	if err != nil {
+		t.Fatal("build res or req failed ")
+	}
+	handler, err := prepare()
+	if err != nil {
+		t.Fatal("init handler failed")
+	}
+
+	handler.handleGetComponentStatus(request, response)
+
+	if status := response.StatusCode(); status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+}
+
+func TestHandleGetComponents(t *testing.T) {
+	request, response, err := buildReqAndRes("GET", "/kapis/resources.kubesphere.io/v1alpha3/components", nil, nil)
+	if err != nil {
+		t.Fatal("build res or req failed ")
+	}
+	handler, err := prepare()
+	if err != nil {
+		t.Fatal("init handler failed")
+	}
+
+	handler.handleGetComponents(request, response)
+
+	if status := response.StatusCode(); status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+}
+
+//build req and res in *restful
+func buildReqAndRes(method, target string, param map[string]string, body io.Reader) (*restful.Request, *restful.Response, error) {
+	//build req
+	request := httptest.NewRequest(method, target, body)
+	newRequest := restful.NewRequest(request)
+	if param != nil {
+		err := setUnExportedFields(newRequest, "pathParameters", param)
+		if err != nil {
+			klog.Error("set pathParameters failed ")
+			return nil, nil, err
+		}
+	}
+	//build res
+	response := httptest.NewRecorder()
+	newResponse := restful.NewResponse(response)
+
+	// assign  Key:routeProduces a value of "application/json"
+	err := setUnExportedFields(newResponse, "routeProduces", []string{"application/json"})
+	if err != nil {
+		klog.Error("set routeProduces failed ")
+		return nil, nil, err
+	}
+	return newRequest, newResponse, nil
+}
+
+//Setting unexported fields by using reflect
+func setUnExportedFields(ptr interface{}, filedName string, newFiledValue interface{}) (err error) {
+	v := reflect.ValueOf(ptr).Elem().FieldByName(filedName)
+	v = reflect.NewAt(v.Type(), unsafe.Pointer(v.UnsafeAddr())).Elem()
+	nv := reflect.ValueOf(newFiledValue)
+
+	if v.Kind() != nv.Kind() {
+		return fmt.Errorf("kind error")
+	}
+	v.Set(nv)
+	return nil
 }

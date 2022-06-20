@@ -20,6 +20,9 @@ import (
 	"sort"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -150,33 +153,13 @@ func DefaultObjectMetaFilter(item metav1.ObjectMeta, filter query.Filter) bool {
 	}
 }
 
-func labelMatch(labels map[string]string, filter string) bool {
-	fields := strings.SplitN(filter, "=", 2)
-	var key, value string
-	var opposite bool
-	if len(fields) == 2 {
-		key = fields[0]
-		if strings.HasSuffix(key, "!") {
-			key = strings.TrimSuffix(key, "!")
-			opposite = true
-		}
-		value = fields[1]
-	} else {
-		key = fields[0]
-		value = "*"
+func labelMatch(m map[string]string, filter string) bool {
+	labelSelector, err := labels.Parse(filter)
+	if err != nil {
+		klog.Warningf("invalid labelSelector %s: %s", filter, err)
+		return false
 	}
-	for k, v := range labels {
-		if opposite {
-			if (k == key) && v != value {
-				return true
-			}
-		} else {
-			if (k == key) && (value == "*" || v == value) {
-				return true
-			}
-		}
-	}
-	return false
+	return labelSelector.Matches(labels.Set(m))
 }
 
 func objectsToInterfaces(objs []runtime.Object) []interface{} {

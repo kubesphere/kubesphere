@@ -50,6 +50,7 @@ require (
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-containerregistry v0.6.0
+	github.com/google/gops v0.3.23
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/handlers v1.4.0 // indirect
 	github.com/gorilla/websocket v1.4.2
@@ -81,6 +82,8 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
 	github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
+	github.com/shirou/gopsutil v0.0.0-20180427012116-c95755e4bcd7 // indirect
+	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.2.1
@@ -258,6 +261,7 @@ replace (
 	github.com/coreos/pkg => github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 	github.com/cortexproject/cortex => github.com/cortexproject/cortex v1.3.1-0.20200901115931-255ff3306960
 	github.com/cpuguy83/go-md2man => github.com/cpuguy83/go-md2man v1.0.10
+	github.com/cpuguy83/go-md2man/v2 => github.com/cpuguy83/go-md2man/v2 v2.0.0
 	github.com/creack/pty => github.com/creack/pty v1.1.7
 	github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/cznic/b => github.com/cznic/b v0.0.0-20180115125044-35e9bbe41f07
@@ -375,7 +379,6 @@ replace (
 	github.com/gobwas/pool => github.com/gobwas/pool v0.2.0
 	github.com/gobwas/ws => github.com/gobwas/ws v1.0.2
 	github.com/gocql/gocql => github.com/gocql/gocql v0.0.0-20200526081602-cd04bd7f22a7
-	github.com/gocraft/dbr => github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 	github.com/godbus/dbus => github.com/godbus/dbus v0.0.0-20190402143921-271e53dc4968
 	github.com/godror/godror => github.com/godror/godror v0.13.3
 	github.com/gofrs/flock => github.com/gofrs/flock v0.7.1
@@ -501,10 +504,10 @@ replace (
 	github.com/kr/pty => github.com/kr/pty v1.1.5
 	github.com/kr/text => github.com/kr/text v0.1.0
 	github.com/kshvakov/clickhouse => github.com/kshvakov/clickhouse v1.3.5
-	github.com/kubernetes-csi/external-snapshotter/client/v3 => github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0
 	github.com/kubernetes-csi/external-snapshotter/client/v4 => github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 	github.com/kubesphere/pvc-autoresizer => github.com/kubesphere/pvc-autoresizer v0.1.1
 	github.com/kubesphere/sonargo => github.com/kubesphere/sonargo v0.0.2
+	github.com/kubesphere/storageclass-accessor => github.com/kubesphere/storageclass-accessor v0.2.0
 	github.com/kylelemons/go-gypsy => github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28
 	github.com/kylelemons/godebug => github.com/kylelemons/godebug v0.0.0-20160406211939-eadb3ce320cb
 	github.com/lann/builder => github.com/lann/builder v0.0.0-20180802200727-47ae307949d0
@@ -653,6 +656,7 @@ replace (
 	github.com/sergi/go-diff => github.com/sergi/go-diff v1.0.0
 	github.com/shopspring/decimal => github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24
 	github.com/shurcooL/httpfs => github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
+	github.com/shurcooL/sanitized_anchor_name => github.com/shurcooL/sanitized_anchor_name v1.0.0
 	github.com/shurcooL/vfsgen => github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 	github.com/siebenmann/go-kstat => github.com/siebenmann/go-kstat v0.0.0-20160321171754-d34789b79745
 	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2

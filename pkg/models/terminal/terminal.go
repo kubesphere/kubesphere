@@ -81,6 +81,9 @@ type TerminalMessage struct {
 func (t TerminalSession) Next() *remotecommand.TerminalSize {
 	select {
 	case size := <-t.sizeChan:
+		if size.Height == 0 && size.Width == 0 {
+			return nil
+		}
 		return &size
 	}
 }
@@ -145,6 +148,7 @@ func (t TerminalSession) Toast(p string) error {
 // For now the status code is unused and reason is shown to the user (unless "")
 func (t TerminalSession) Close(status uint32, reason string) {
 	klog.Warning(status, reason)
+	close(t.sizeChan)
 	t.conn.Close()
 }
 

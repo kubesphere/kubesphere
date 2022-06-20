@@ -220,7 +220,7 @@ func (o *operator) createCSR(username string) error {
 	}
 
 	var csrBuffer, keyBuffer bytes.Buffer
-	if err = pem.Encode(&keyBuffer, &pem.Block{Type: "PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(x509key)}); err != nil {
+	if err = pem.Encode(&keyBuffer, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(x509key)}); err != nil {
 		klog.Errorln(err)
 		return err
 	}
