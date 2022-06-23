@@ -92,7 +92,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 				},
 			},
 			args: args{
-				namespace: "projct1",
+				namespace: "project1",
 			},
 		},
 		{
@@ -105,7 +105,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 				},
 			},
 			args: args{
-				namespace: "projct1",
+				namespace: "project1",
 			},
 		},
 		{
@@ -336,7 +336,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 				},
 			},
 			args: args{
-				namespace: "projct1",
+				namespace: "project1",
 				obj: &v1alpha1.Gateway{
 					TypeMeta: v1.TypeMeta{
 						Kind:       "Gateway",
@@ -346,7 +346,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 						Controller: v1alpha1.ControllerSpec{
 							Scope: v1alpha1.Scope{
 								Enabled:   true,
-								Namespace: "projct1",
+								Namespace: "project1",
 							},
 						},
 					},
@@ -367,7 +367,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 				},
 			},
 			args: args{
-				namespace: "projct2",
+				namespace: "project2",
 				obj: &v1alpha1.Gateway{
 					TypeMeta: v1.TypeMeta{
 						Kind:       "Gateway",
@@ -377,7 +377,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 						Controller: v1alpha1.ControllerSpec{
 							Scope: v1alpha1.Scope{
 								Enabled:   true,
-								Namespace: "projct2",
+								Namespace: "project2",
 							},
 						},
 					},
@@ -593,7 +593,7 @@ func Test_gatewayOperator_UpgradeGateway(t *testing.T) {
 				},
 			},
 			args: args{
-				namespace: "projct1",
+				namespace: "project1",
 			},
 			wantErr: true,
 		},

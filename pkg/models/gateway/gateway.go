@@ -62,7 +62,7 @@ type GatewayOperator interface {
 	UpdateGateway(namespace string, obj *v1alpha1.Gateway) (*v1alpha1.Gateway, error)
 	UpgradeGateway(namespace string) (*v1alpha1.Gateway, error)
 	ListGateways(query *query.Query) (*api.ListResult, error)
-	GetPods(namesapce string, query *query.Query) (*api.ListResult, error)
+	GetPods(namespace string, query *query.Query) (*api.ListResult, error)
 	GetPodLogs(ctx context.Context, namespace string, podName string, logOptions *corev1.PodLogOptions, responseWriter io.Writer) error
 }
 
@@ -86,7 +86,7 @@ func NewGatewayOperator(client client.Client, cache cache.Cache, options *gatewa
 
 func (c *gatewayOperator) getWorkingNamespace(namespace string) string {
 	ns := c.options.Namespace
-	// Set the working namespace to watching namespace when the Gatway's Namsapce Option is empty
+	// Set the working namespace to watching namespace when the Gateway's Namespace Option is empty
 	if ns == "" {
 		ns = namespace
 	}
@@ -317,7 +317,7 @@ func (c *gatewayOperator) DeleteGateway(namespace string) error {
 // Update Gateway
 func (c *gatewayOperator) UpdateGateway(namespace string, obj *v1alpha1.Gateway) (*v1alpha1.Gateway, error) {
 	if c.options.Namespace == "" && obj.Namespace != namespace || c.options.Namespace != "" && c.options.Namespace != obj.Namespace {
-		return nil, fmt.Errorf("namepsace doesn't match with origin namesapce")
+		return nil, fmt.Errorf("namespace doesn't match with origin namespace")
 	}
 	c.overrideDefaultValue(obj, namespace)
 	err := c.client.Update(context.TODO(), obj)
@@ -345,7 +345,7 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 		}()
 	}
 
-	// Delete old deployment, because it's not compatile with the deployment in the helm chart.
+	// Delete old deployment, because it's not compatible with the deployment in the helm chart.
 	// We can't defer here, there's a potential race condition causing gateway operator fails.
 	d := &appsv1.Deployment{
 		ObjectMeta: v1.ObjectMeta{
@@ -451,7 +451,7 @@ func (c *gatewayOperator) compare(left runtime.Object, right runtime.Object, fie
 
 func (c *gatewayOperator) filter(object runtime.Object, filter query.Filter) bool {
 	var objMeta v1.ObjectMeta
-	var namesapce string
+	var namespace string
 
 	gateway, ok := object.(*v1alpha1.Gateway)
 	if !ok {
@@ -459,31 +459,31 @@ func (c *gatewayOperator) filter(object runtime.Object, filter query.Filter) boo
 		if !ok {
 			return false
 		}
-		namesapce = svc.Labels["project"]
+		namespace = svc.Labels["project"]
 		objMeta = svc.ObjectMeta
 	} else {
-		namesapce = gateway.Spec.Controller.Scope.Namespace
+		namespace = gateway.Spec.Controller.Scope.Namespace
 		objMeta = gateway.ObjectMeta
 	}
 
 	switch filter.Field {
 	case query.FieldNamespace:
-		return strings.Compare(namesapce, string(filter.Value)) == 0
+		return strings.Compare(namespace, string(filter.Value)) == 0
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(objMeta, filter)
 	}
 }
 
-func (c *gatewayOperator) GetPods(namesapce string, query *query.Query) (*api.ListResult, error) {
+func (c *gatewayOperator) GetPods(namespace string, query *query.Query) (*api.ListResult, error) {
 	podGetter := pod.New(c.factory.KubernetesSharedInformerFactory())
 
 	//TODO: move the selector string to options
-	selector, err := labels.Parse(fmt.Sprintf("app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/instance=kubesphere-router-%s-ingress", namesapce))
+	selector, err := labels.Parse(fmt.Sprintf("app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/instance=kubesphere-router-%s-ingress", namespace))
 	if err != nil {
-		return nil, fmt.Errorf("invild selector config")
+		return nil, fmt.Errorf("invaild selector config")
 	}
 	query.LabelSelector = selector.String()
-	return podGetter.List(c.getWorkingNamespace(namesapce), query)
+	return podGetter.List(c.getWorkingNamespace(namespace), query)
 }
 
 func (c *gatewayOperator) GetPodLogs(ctx context.Context, namespace string, podName string, logOptions *corev1.PodLogOptions, responseWriter io.Writer) error {

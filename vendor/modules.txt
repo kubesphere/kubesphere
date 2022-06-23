@@ -416,6 +416,11 @@ github.com/google/go-containerregistry/pkg/v1/types
 github.com/google/go-querystring/query
 # github.com/google/gofuzz v1.1.0 => github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
+# github.com/google/gops v0.3.23
+## explicit
+github.com/google/gops/agent
+github.com/google/gops/internal
+github.com/google/gops/signal
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 => github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 github.com/google/shlex
 # github.com/google/uuid v1.1.2 => github.com/google/uuid v1.1.1
@@ -813,6 +818,10 @@ github.com/rubenv/sql-migrate/sqlparse
 github.com/russross/blackfriday
 # github.com/sergi/go-diff v1.1.0 => github.com/sergi/go-diff v1.0.0
 github.com/sergi/go-diff/diffmatchpatch
+# github.com/shirou/gopsutil v0.0.0-20180427012116-c95755e4bcd7
+## explicit
+# github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
+## explicit
 # github.com/sirupsen/logrus v1.8.1 => github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009 => github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
@@ -871,7 +880,7 @@ github.com/xeipuuv/gojsonreference
 github.com/xeipuuv/gojsonschema
 # github.com/xenolf/lego v0.3.2-0.20160613233155-a9d8cec0e656 => github.com/xenolf/lego v0.3.2-0.20160613233155-a9d8cec0e656
 ## explicit
-# github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca => github.com/xlab/treeprint v0.0.0-20180616005107-d6fb6747feb6
+# github.com/xlab/treeprint v1.1.0 => github.com/xlab/treeprint v0.0.0-20180616005107-d6fb6747feb6
 github.com/xlab/treeprint
 # github.com/yashtewari/glob-intersection v0.0.0-20180916065949-5c77d914dd0b => github.com/yashtewari/glob-intersection v0.0.0-20180916065949-5c77d914dd0b
 github.com/yashtewari/glob-intersection
@@ -988,7 +997,7 @@ golang.org/x/oauth2/internal
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2 => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
+# golang.org/x/sys v0.0.0-20210902050250-f475640dd07b => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
 golang.org/x/sys/cpu
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
