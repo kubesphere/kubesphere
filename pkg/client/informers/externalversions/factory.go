@@ -32,6 +32,7 @@ import (
 	auditing "kubesphere.io/kubesphere/pkg/client/informers/externalversions/auditing"
 	cluster "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster"
 	devops "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops"
+	extensions "kubesphere.io/kubesphere/pkg/client/informers/externalversions/extensions"
 	iam "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
 	network "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network"
@@ -187,6 +188,7 @@ type SharedInformerFactory interface {
 	Auditing() auditing.Interface
 	Cluster() cluster.Interface
 	Devops() devops.Interface
+	Extensions() extensions.Interface
 	Iam() iam.Interface
 	Network() network.Interface
 	Notification() notification.Interface
@@ -211,6 +213,10 @@ func (f *sharedInformerFactory) Cluster() cluster.Interface {
 
 func (f *sharedInformerFactory) Devops() devops.Interface {
 	return devops.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Extensions() extensions.Interface {
+	return extensions.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Iam() iam.Interface {
