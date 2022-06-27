@@ -113,7 +113,7 @@ func (r *ResourceGetter) GetResource(namespace, resource, name string) (interfac
 }
 
 func (r *ResourceGetter) ListResources(namespace, resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	items := make([]interface{}, 0)
+	var items []interface{}
 	var err error
 	var result []interface{}
 

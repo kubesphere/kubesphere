@@ -48,6 +48,7 @@ func TestGetListClusterDashboards(t *testing.T) {
 		t.Fatalf("unable add APIs to scheme: %v", err)
 	}
 
+	//nolint:staticcheck
 	c = fake.NewFakeClientWithScheme(sch)
 
 	var labelSet1 = map[string]string{"foo-1": "bar-1"}

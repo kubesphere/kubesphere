@@ -22,9 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/metering"
-
 	"github.com/pkg/errors"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,6 +37,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/metering"
 	monitoringmodel "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/server/params"
@@ -733,41 +732,6 @@ func (t *tenantOperator) classifyPodStats(user user.Info, cluster, ns string, po
 	}
 
 	return
-}
-
-func (t *tenantOperator) listServices(user user.Info, ns string) (*corev1.ServiceList, error) {
-
-	svcScope := request.NamespaceScope
-
-	listSvc := authorizer.AttributesRecord{
-		User:            user,
-		Verb:            "list",
-		Resource:        "services",
-		Namespace:       ns,
-		ResourceRequest: true,
-		ResourceScope:   svcScope,
-	}
-
-	decision, _, err := t.authorizer.Authorize(listSvc)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	if decision != authorizer.DecisionAllow {
-		_, err := t.am.ListRoleBindings(user.GetName(), nil, ns)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-	}
-
-	svcs, err := t.k8sclient.CoreV1().Services(ns).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return svcs, nil
 }
 
 // updateDeploysStats will update deployment field in resource stats struct with pod stats data and deployments will be classified into 3 classes:

@@ -126,6 +126,7 @@ func TestHandler_Get(t *testing.T) {
 	h := NewTyped(&fakeClient{c}, cm1.GroupVersionKind(), Scheme)
 
 	type args struct {
+		//nolint:unused
 		gvk schema.GroupVersionKind
 		key types.NamespacedName
 	}

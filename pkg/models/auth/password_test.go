@@ -91,8 +91,8 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 	ksClient := fakeks.NewSimpleClientset()
 	ksInformerFactory := ksinformers.NewSharedInformerFactory(ksClient, 0)
 	err := ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newUser("user1", "100001", "fakepwd"))
-	err = ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newUser("user3", "100003", ""))
-	err = ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newActiveUser("user4", "password"))
+	_ = ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newUser("user3", "100003", ""))
+	_ = ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newActiveUser("user4", "password"))
 
 	if err != nil {
 		t.Fatal(err)

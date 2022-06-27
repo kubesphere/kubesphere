@@ -83,9 +83,6 @@ type Metric struct {
 	Max     float64  `json:"max"`
 }
 
-func (m Metric) first() time.Time { return m.Samples[0].Timestamp }
-func (m Metric) last() time.Time  { return m.Samples[len(m.Samples)-1].Timestamp }
-
 // Sample is a single datapoint of a metric.
 type Sample struct {
 	Timestamp time.Time `json:"date"`

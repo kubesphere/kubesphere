@@ -47,7 +47,6 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 	if informers == nil || promResourceClient == nil || ruleClient == nil || option == nil {
 		h := func(req *restful.Request, resp *restful.Response) {
 			ksapi.HandleBadRequest(resp, nil, alertingv2alpha1.ErrAlertingAPIV2NotEnabled)
-			return
 		}
 		ws.Route(ws.GET("/{path:*}").To(h).Returns(http.StatusOK, ksapi.StatusOK, nil))
 		ws.Route(ws.PUT("/{path:*}").To(h).Returns(http.StatusOK, ksapi.StatusOK, nil))

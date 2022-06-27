@@ -96,10 +96,7 @@ var _ = Describe("helmApplication", func() {
 			Eventually(func() bool {
 				var ver v1alpha1.HelmApplicationVersion
 				err := k8sClient.Get(context.Background(), types.NamespacedName{Name: appVer2.Name}, &ver)
-				if apierrors.IsNotFound(err) {
-					return true
-				}
-				return false
+				return apierrors.IsNotFound(err)
 			}, timeout, interval).Should(BeTrue())
 
 			By("Active app version exists")

@@ -102,7 +102,7 @@ func (r *ReconcileHelmRepo) Reconcile(ctx context.Context, request reconcile.Req
 	start := time.Now()
 	klog.Infof("sync repo: %s", request.Name)
 	defer func() {
-		klog.Infof("sync repo end: %s, elapsed: %v", request.Name, time.Now().Sub(start))
+		klog.Infof("sync repo end: %s, elapsed: %v", request.Name, time.Since(start))
 	}()
 	// Fetch the helmrepoes instance
 	instance := &v1alpha1.HelmRepo{}
@@ -137,10 +137,7 @@ func (r *ReconcileHelmRepo) Reconcile(ctx context.Context, request reconcile.Req
 		if sliceutil.HasString(instance.ObjectMeta.Finalizers, HelmRepoFinalizer) {
 			// remove our finalizer from the list and update it.
 			instance.ObjectMeta.Finalizers = sliceutil.RemoveString(instance.ObjectMeta.Finalizers, func(item string) bool {
-				if item == HelmRepoFinalizer {
-					return true
-				}
-				return false
+				return item == HelmRepoFinalizer
 			})
 			if err := r.Update(context.Background(), instance); err != nil {
 				return reconcile.Result{}, err

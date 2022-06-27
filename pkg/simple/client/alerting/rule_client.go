@@ -15,9 +15,6 @@ const (
 	epRules        = apiPrefix + "/rules"
 	statusAPIError = 422
 
-	statusSuccess status = "success"
-	statusError   status = "error"
-
 	ErrBadData     ErrorType = "bad_data"
 	ErrTimeout     ErrorType = "timeout"
 	ErrCanceled    ErrorType = "canceled"

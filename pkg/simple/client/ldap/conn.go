@@ -71,6 +71,7 @@ func (p *PoolConn) MarkUnusable() {
 	p.unusable = true
 }
 
+//nolint:unused
 func (p *PoolConn) autoClose(err error) {
 	for _, code := range p.closeAt {
 		if ldap.IsErrorWithCode(err, code) {

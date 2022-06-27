@@ -53,7 +53,7 @@ func (r *ReconcileHelmApplicationVersion) Reconcile(ctx context.Context, request
 	start := time.Now()
 	klog.V(4).Infof("sync helm application version: %s", request.String())
 	defer func() {
-		klog.V(4).Infof("sync helm application version end: %s, elapsed: %v", request.String(), time.Now().Sub(start))
+		klog.V(4).Infof("sync helm application version end: %s, elapsed: %v", request.String(), time.Since(start))
 	}()
 
 	appVersion := &v1alpha1.HelmApplicationVersion{}
@@ -97,10 +97,7 @@ func (r *ReconcileHelmApplicationVersion) Reconcile(ctx context.Context, request
 
 			// Delete HelmApplicationVersion
 			appVersion.ObjectMeta.Finalizers = sliceutil.RemoveString(appVersion.ObjectMeta.Finalizers, func(item string) bool {
-				if item == HelmAppVersionFinalizer {
-					return true
-				}
-				return false
+				return item == HelmAppVersionFinalizer
 			})
 			if err := r.Update(context.Background(), appVersion); err != nil {
 				return reconcile.Result{}, err

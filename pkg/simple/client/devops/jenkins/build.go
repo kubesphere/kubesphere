@@ -403,6 +403,7 @@ func (j *Jenkins) GetProjectPipelineBuildByType(projectId, pipelineId string, st
 	if err != nil {
 		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
+	//nolint:staticcheck
 	build, err := job.getBuildByType(status)
 	return build.Raw, nil
 }
@@ -411,6 +412,7 @@ func (j *Jenkins) GetMultiBranchPipelineBuildByType(projectId, pipelineId, branc
 	if err != nil {
 		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
+	//nolint:staticcheck
 	build, err := job.getBuildByType(status)
 	return build.Raw, nil
 }

@@ -155,6 +155,7 @@ type ApplicationsOption struct {
 
 func (aso ApplicationsOption) Apply(o *QueryOptions) {
 	// nothing should be done
+	//nolint:gosimple
 	return
 }
 
@@ -167,6 +168,7 @@ type OpenpitrixsOption struct {
 
 func (oso OpenpitrixsOption) Apply(o *QueryOptions) {
 	// nothing should be done
+	//nolint:gosimple
 	return
 }
 
@@ -213,6 +215,7 @@ type ServicesOption struct {
 
 func (sso ServicesOption) Apply(o *QueryOptions) {
 	// nothing should be done
+	//nolint:gosimple
 	return
 }
 

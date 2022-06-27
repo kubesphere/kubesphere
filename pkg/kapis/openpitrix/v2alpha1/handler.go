@@ -84,7 +84,6 @@ func (h *openpitrixHandler) DescribeApplication(req *restful.Request, resp *rest
 	}
 
 	resp.WriteEntity(app)
-	return
 }
 
 func (h *openpitrixHandler) ListApplications(req *restful.Request, resp *restful.Response) {

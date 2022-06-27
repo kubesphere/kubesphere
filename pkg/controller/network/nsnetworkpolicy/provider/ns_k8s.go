@@ -89,6 +89,7 @@ func (c *k8sPolicyController) run(threadiness int, reconcilerPeriod string, stop
 	// Wait until we are in sync with the Kubernetes API before starting the
 	// resource cache.
 	klog.Info("Waiting to sync with Kubernetes API (NetworkPolicy)")
+	//nolint:staticcheck
 	if ok := cache.WaitForCacheSync(stopCh, c.hasSynced); !ok {
 	}
 	klog.Infof("Finished syncing with Kubernetes API (NetworkPolicy)")

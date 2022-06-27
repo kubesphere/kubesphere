@@ -103,8 +103,5 @@ func (s *roleSearcher) Search(namespace string, conditions *params.Conditions, o
 
 // role created by user from kubesphere dashboard
 func isUserFacingRole(role *rbac.Role) bool {
-	if role.Annotations[constants.CreatorAnnotationKey] != "" {
-		return true
-	}
-	return false
+	return role.Annotations[constants.CreatorAnnotationKey] != ""
 }

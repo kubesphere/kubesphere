@@ -199,7 +199,7 @@ func monitorRequest(r *restful.Request, response *restful.Response, chain *restf
 	reqInfo, exists := request.RequestInfoFrom(r.Request.Context())
 	if exists && reqInfo.APIGroup != "" {
 		RequestCounter.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource, strconv.Itoa(response.StatusCode())).Inc()
-		elapsedSeconds := time.Now().Sub(start).Seconds()
+		elapsedSeconds := time.Since(start).Seconds()
 		RequestLatencies.WithLabelValues(reqInfo.Verb, reqInfo.APIGroup, reqInfo.APIVersion, reqInfo.Resource).Observe(elapsedSeconds)
 	}
 }

@@ -41,10 +41,6 @@ func init() {
 	registerMetrics()
 }
 
-const (
-	helmApplicationControllerName = "helm-application-controller"
-)
-
 var _ reconcile.Reconciler = &ReconcileHelmApplication{}
 
 // ReconcileHelmApplication reconciles a federated helm application object

@@ -20,10 +20,6 @@ package reposcache
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
 	"strings"
 	"sync"
 
@@ -128,20 +124,6 @@ func (c *cachedRepos) deleteRepo(repo *v1alpha1.HelmRepo) {
 			delete(c.versions, ver.ApplicationVersionId)
 		}
 	}
-}
-
-func loadBuiltinChartData(name, version string) ([]byte, error) {
-	fName := path.Join(WorkDir, "chart", fmt.Sprintf("%s-%s.tgz", name, version))
-	f, err := os.Open(fName)
-	if err != nil {
-		return nil, err
-	}
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		klog.Errorf("read index failed, error: %s", err)
-		return nil, err
-	}
-	return data, nil
 }
 
 func (c *cachedRepos) DeleteRepo(repo *v1alpha1.HelmRepo) error {

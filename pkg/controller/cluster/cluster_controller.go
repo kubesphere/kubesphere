@@ -79,25 +79,16 @@ const (
 	maxRetries = 15
 
 	kubefedNamespace  = "kube-federation-system"
-	openpitrixRuntime = "openpitrix.io/runtime"
 	kubesphereManaged = "kubesphere.io/managed"
 
 	// Actually host cluster name can be anything, there is only necessary when calling JoinFederation function
 	hostClusterName = "kubesphere"
-
-	// allocate kubernetesAPIServer port in range [portRangeMin, portRangeMax] for agents if port is not specified
-	// kubesphereAPIServer port is defaulted to kubernetesAPIServerPort + 10000
-	portRangeMin = 6000
-	portRangeMax = 7000
 
 	// proxy format
 	proxyFormat = "%s/api/v1/namespaces/kubesphere-system/services/:ks-apiserver:80/proxy/%s"
 
 	// mulitcluster configuration name
 	configzMultiCluster = "multicluster"
-
-	// probe cluster timeout
-	probeClusterTimeout = 3 * time.Second
 )
 
 // Cluster template for reconcile host cluster if there is none.
@@ -372,7 +363,7 @@ func (c *clusterController) syncCluster(key string) error {
 
 	// currently we didn't set cluster.Spec.Enable when creating cluster at client side, so only check
 	// if we enable cluster.Spec.JoinFederation now
-	if cluster.Spec.JoinFederation == false {
+	if !cluster.Spec.JoinFederation {
 		klog.V(5).Infof("Skipping to join cluster %s cause it is not expected to join", cluster.Name)
 		return nil
 	}
@@ -590,6 +581,8 @@ func (c *clusterController) tryToFetchKubeSphereComponents(host string, transpor
 		return nil, err
 	}
 
+	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
 		klog.V(4).Infof("Response status code isn't 200.")
 		return nil, fmt.Errorf("response code %d", response.StatusCode)
@@ -615,6 +608,8 @@ func (c *clusterController) tryFetchKubeSphereVersion(host string, transport htt
 	if err != nil {
 		return "", err
 	}
+
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		klog.V(4).Infof("Response status code isn't 200.")
@@ -669,16 +664,6 @@ func (c *clusterController) handleErr(err error, key interface{}) {
 	klog.V(4).Infof("Dropping cluster %s out of the queue.", key)
 	c.queue.Forget(key)
 	utilruntime.HandleError(err)
-}
-
-// isConditionTrue checks cluster specific condition value is True, return false if condition not exists
-func isConditionTrue(cluster *clusterv1alpha1.Cluster, conditionType clusterv1alpha1.ClusterConditionType) bool {
-	for _, condition := range cluster.Status.Conditions {
-		if condition.Type == conditionType && condition.Status == v1.ConditionTrue {
-			return true
-		}
-	}
-	return false
 }
 
 // updateClusterCondition updates condition in cluster conditions using giving condition

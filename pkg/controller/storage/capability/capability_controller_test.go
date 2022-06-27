@@ -47,7 +47,8 @@ type fixture struct {
 	snapshotSupported bool
 	// Clients
 	k8sClient *k8sfake.Clientset
-	ksClient  *ksfake.Clientset
+	//nolint:unused
+	ksClient *ksfake.Clientset
 	// Objects from here preload into NewSimpleFake.
 	storageObjects []runtime.Object // include StorageClass
 	// Objects to put in the store.

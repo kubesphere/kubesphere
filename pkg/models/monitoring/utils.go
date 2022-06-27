@@ -31,9 +31,6 @@ const (
 	METER_RESOURCE_TYPE_NET_EGRESS
 	METER_RESOURCE_TYPE_PVC
 
-	meteringConfigDir  = "/etc/kubesphere/metering/"
-	meteringConfigName = "ks-metering.yaml"
-
 	meteringDefaultPrecision = 10
 	meteringFeePrecision     = 3
 )

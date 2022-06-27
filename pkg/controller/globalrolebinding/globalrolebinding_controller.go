@@ -76,7 +76,8 @@ type Controller struct {
 	// Kubernetes API.
 	recorder            record.EventRecorder
 	multiClusterEnabled bool
-	devopsClient        devops.Interface
+	//nolint:unused
+	devopsClient devops.Interface
 }
 
 func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface,

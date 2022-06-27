@@ -44,7 +44,6 @@ import (
 )
 
 var (
-	alwaysReady        = func() bool { return true }
 	noResyncPeriodFunc = func() time.Duration { return 0 }
 )
 
@@ -152,6 +151,7 @@ func (f *fixture) run(userName string) {
 	f.runController(userName, true, false)
 }
 
+//nolint:unused
 func (f *fixture) runExpectError(userName string) {
 	f.runController(userName, true, true)
 }

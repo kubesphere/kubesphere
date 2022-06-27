@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -59,7 +58,6 @@ const (
 
 type Controller struct {
 	controller.BaseController
-	scheme                      *runtime.Scheme
 	k8sClient                   kubernetes.Interface
 	ksClient                    kubesphere.Interface
 	groupBindingLister          iamv1alpha2listers.GroupBindingLister
@@ -137,7 +135,7 @@ func (c *Controller) reconcile(key string) error {
 			}
 		}
 		if g != nil {
-			if groupBinding, err = c.ksClient.IamV1alpha2().GroupBindings().Update(context.Background(), g, metav1.UpdateOptions{}); err != nil {
+			if _, err = c.ksClient.IamV1alpha2().GroupBindings().Update(context.Background(), g, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 			// Skip reconcile when group is updated.
@@ -156,7 +154,7 @@ func (c *Controller) reconcile(key string) error {
 				return item == finalizer
 			})
 
-			if groupBinding, err = c.ksClient.IamV1alpha2().GroupBindings().Update(context.Background(), groupBinding, metav1.UpdateOptions{}); err != nil {
+			if _, err = c.ksClient.IamV1alpha2().GroupBindings().Update(context.Background(), groupBinding, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
 		}

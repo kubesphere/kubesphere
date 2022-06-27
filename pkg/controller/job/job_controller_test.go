@@ -38,11 +38,13 @@ var (
 )
 
 type fixture struct {
-	t             *testing.T
-	kubeclient    *k8sfake.Clientset
+	t          *testing.T
+	kubeclient *k8sfake.Clientset
+	//nolint:unused
 	jobController *JobController
 	jobLister     []*batchv1.Job
 
+	//nolint:unused
 	kubeactions []core.Action
 	actions     []core.Action
 

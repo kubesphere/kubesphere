@@ -39,7 +39,7 @@ func (r *ReconcileHelmRelease) GetChartData(rls *v1alpha1.HelmRelease) (chartNam
 			return chartName, chartData, ErrGetRepoFailed
 		}
 
-		index, err := helmrepoindex.ByteArrayToSavedIndex([]byte(repo.Status.Data))
+		index, _ := helmrepoindex.ByteArrayToSavedIndex([]byte(repo.Status.Data))
 
 		if version := index.GetApplicationVersion(rls.Spec.ApplicationId, rls.Spec.ApplicationVersionId); version != nil {
 			url := version.Spec.URLs[0]

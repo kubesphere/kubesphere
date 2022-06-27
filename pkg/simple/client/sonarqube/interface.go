@@ -81,7 +81,7 @@ func (s *sonarQube) GetSonarResultsByTaskIds(taskIds ...string) ([]*SonarStatus,
 			S:                "FILE_LINE",
 			Facets:           "severities,types",
 		}
-		issuesSearch, _, err := s.client.Issues.Search(issuesSearchOption)
+		issuesSearch, _, _ := s.client.Issues.Search(issuesSearchOption)
 		sonarStatus.Issues = issuesSearch
 		sonarStatuses = append(sonarStatuses, sonarStatus)
 	}

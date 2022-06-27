@@ -63,4 +63,6 @@ golangci-lint run \
   -E ineffassign \
   -E staticcheck \
   -E gosimple \
+  -E bodyclose \
+  -E wsl \
   pkg/... cmd/... tools/... test/... kube/...

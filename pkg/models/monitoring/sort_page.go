@@ -161,7 +161,7 @@ func (raw *Metrics) Sort(target, order, identifier string) *Metrics {
 		for _, mv := range item.MetricValues {
 			v, ok := mv.Metadata[identifier]
 			if ok && v != "" {
-				ordinal, _ := resourceOrdinal[v]
+				ordinal := resourceOrdinal[v]
 				sorted[ordinal] = mv
 			}
 		}

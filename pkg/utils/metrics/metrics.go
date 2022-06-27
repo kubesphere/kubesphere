@@ -62,7 +62,9 @@ func (m DefaultMetrics) Install(c *restful.Container) {
 }
 
 func (m DefaultMetrics) registerMetrics() {
+	//nolint:staticcheck
 	RawMustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	//nolint:staticcheck
 	RawMustRegister(prometheus.NewGoCollector())
 }
 

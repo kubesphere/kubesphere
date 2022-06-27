@@ -403,8 +403,6 @@ func (v *DestinationRuleController) addDeployment(obj interface{}) {
 	for key := range services {
 		v.queue.Add(key)
 	}
-
-	return
 }
 
 func (v *DestinationRuleController) deleteDeployment(obj interface{}) {

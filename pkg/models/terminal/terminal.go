@@ -79,13 +79,11 @@ type TerminalMessage struct {
 // TerminalSize handles pty->process resize events
 // Called in a loop from remotecommand as long as the process is running
 func (t TerminalSession) Next() *remotecommand.TerminalSize {
-	select {
-	case size := <-t.sizeChan:
-		if size.Height == 0 && size.Width == 0 {
-			return nil
-		}
-		return &size
+	size := <-t.sizeChan
+	if size.Height == 0 && size.Width == 0 {
+		return nil
 	}
+	return &size
 }
 
 // Read handles pty->process messages (stdin, resize)

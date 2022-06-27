@@ -179,7 +179,7 @@ func (p *pvcEvaluator) UsageStats(options quota.UsageStatsOptions) (quota.UsageS
 var _ quota.Evaluator = &pvcEvaluator{}
 
 func toExternalPersistentVolumeClaimOrError(obj runtime.Object) (*corev1.PersistentVolumeClaim, error) {
-	pvc := &corev1.PersistentVolumeClaim{}
+	var pvc *corev1.PersistentVolumeClaim
 	switch t := obj.(type) {
 	case *corev1.PersistentVolumeClaim:
 		pvc = t

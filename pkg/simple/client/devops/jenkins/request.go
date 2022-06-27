@@ -185,6 +185,7 @@ func (r *Requester) SetClient(client *http.Client) *Requester {
 }
 
 //Add auth on redirect if required.
+//nolint:unused
 func (r *Requester) redirectPolicyFunc(req *http.Request, via []*http.Request) error {
 	if r.BasicAuth != nil {
 		req.SetBasicAuth(r.BasicAuth.Username, r.BasicAuth.Password)
@@ -410,7 +411,7 @@ func (r *Requester) DoPostForm(ar *APIRequest, responseStruct interface{}, form 
 	for k, v := range form {
 		formValue.Set(k, v)
 	}
-	req, err := http.NewRequest("POST", URL.String(), strings.NewReader(formValue.Encode()))
+	req, _ := http.NewRequest("POST", URL.String(), strings.NewReader(formValue.Encode()))
 	if r.BasicAuth != nil {
 		req.SetBasicAuth(r.BasicAuth.Username, r.BasicAuth.Password)
 	}

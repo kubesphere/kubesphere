@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -537,47 +536,6 @@ func (c *applicationOperator) modifyAppAttachment(app *v1alpha1.HelmApplication,
 		}
 	}
 	return "", nil
-}
-
-// modify icon or attachment of the app
-// added: new attachments have been saved to store
-// deleted: attachments should be deleted
-func (c *applicationOperator) appAttachmentDiff(old, newApp *v1alpha1.HelmApplication) (added, deleted []string) {
-
-	added = make([]string, 0, 7)
-	deleted = make([]string, 0, 7)
-
-	if old.Spec.Icon != newApp.Spec.Icon {
-		if old.Spec.Icon != "" && !strings.HasPrefix(old.Spec.Icon, "http://") {
-			deleted = append(deleted, old.Spec.Icon)
-		}
-		added = append(added, newApp.Spec.Icon)
-	}
-
-	existsAtt := make(map[string]string, 6)
-	newAtt := make(map[string]string, 6)
-
-	for _, id := range newApp.Spec.Attachments {
-		newAtt[id] = ""
-	}
-
-	for _, id := range old.Spec.Attachments {
-		existsAtt[id] = ""
-	}
-
-	for _, id := range newApp.Spec.Attachments {
-		if _, exists := existsAtt[id]; !exists {
-			added = append(added, id)
-		}
-	}
-
-	for _, id := range old.Spec.Attachments {
-		if _, exists := newAtt[id]; !exists {
-			deleted = append(deleted, id)
-		}
-	}
-
-	return added, deleted
 }
 
 func (c *applicationOperator) DescribeApp(id string) (*App, error) {

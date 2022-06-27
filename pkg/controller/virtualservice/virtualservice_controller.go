@@ -227,6 +227,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	}
 
 	// default component name to service name
+	//nolint:ineffassign,staticcheck
 	appName := name
 
 	defer func() {
@@ -322,7 +323,6 @@ func (v *VirtualServiceController) syncService(key string) error {
 		switch strategies[0].Spec.StrategyPolicy {
 		case servicemeshv1alpha2.PolicyPause:
 			vs.Spec = v.generateDefaultVirtualServiceSpec(name, subsets, service).Spec
-			break
 		case servicemeshv1alpha2.PolicyWaitForWorkloadReady:
 			set := v.getSubsets(strategies[0])
 

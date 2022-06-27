@@ -488,7 +488,7 @@ func (c IPAMClient) findUnclaimedBlock(pool *v1alpha1.IPPool) (*v1alpha1.IPAMBlo
 	/// Build a map for faster lookups.
 	exists := map[string]bool{}
 	for _, e := range existingBlocks {
-		exists[fmt.Sprintf("%s", e.Spec.CIDR)] = true
+		exists[e.Spec.CIDR] = true
 	}
 
 	// Iterate through pools to find a new block.
@@ -512,7 +512,7 @@ func (c IPAMClient) findUnclaimedBlock(pool *v1alpha1.IPPool) (*v1alpha1.IPAMBlo
 		blocks := blockGenerator(pool)
 		for subnet := blocks(); subnet != nil; subnet = blocks() {
 			// Check if a block already exists for this subnet.
-			if _, ok := exists[fmt.Sprintf("%s", subnet.String())]; !ok {
+			if _, ok := exists[subnet.String()]; !ok {
 				result = v1alpha1.NewBlock(pool, *subnet, nil)
 				break
 			}

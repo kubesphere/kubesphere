@@ -837,6 +837,7 @@ func (j *Jenkins) CheckCron(projectName string, httpParameters *devops.HttpParam
 	var path string
 
 	reader = httpParameters.Body
+	//nolint:ineffassign,staticcheck
 	cronData, err := ioutil.ReadAll(reader)
 	err = json.Unmarshal(cronData, cron)
 	if err != nil {
@@ -889,6 +890,7 @@ func (j *Jenkins) ToJson(httpParameters *devops.HttpParameters) (map[string]inte
 // After creating an instance call init method.
 func CreateJenkins(client *http.Client, base string, maxConnection int, auth ...interface{}) *Jenkins {
 	j := &Jenkins{}
+	//nolint:gosimple
 	if strings.HasSuffix(base, "/") {
 		base = base[:len(base)-1]
 	}

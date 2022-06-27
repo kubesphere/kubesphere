@@ -551,6 +551,4 @@ func ExportMetrics(resp *restful.Response, metrics model.Metrics, startTime, end
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
-
-	return
 }

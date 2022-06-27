@@ -53,7 +53,6 @@ func AppendGitSourceToEtree(source *etree.Element, gitSource *devopsv1alpha3.Git
 		regexTraits.CreateAttr("plugin", "scm-api")
 		regexTraits.CreateElement("regex").SetText(gitSource.RegexFilter)
 	}
-	return
 }
 
 func GetGitSourcefromEtree(source *etree.Element) *devopsv1alpha3.GitSource {

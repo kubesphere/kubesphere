@@ -354,6 +354,7 @@ func TestValidateKubeConfig(t *testing.T) {
 	env := &envtest.Environment{
 		Config: config,
 		ControlPlane: envtest.ControlPlane{
+			//nolint:staticcheck
 			APIServer: &envtest.APIServer{
 				Args: envtest.DefaultKubeAPIServerFlags,
 				URL:  u,
@@ -413,6 +414,7 @@ func TestValidateMemberClusterConfiguration(t *testing.T) {
 	env := &envtest.Environment{
 		Config: config,
 		ControlPlane: envtest.ControlPlane{
+			//nolint:staticcheck
 			APIServer: &envtest.APIServer{
 				Args: envtest.DefaultKubeAPIServerFlags,
 				URL:  u,

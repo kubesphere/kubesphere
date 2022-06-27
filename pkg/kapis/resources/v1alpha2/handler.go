@@ -73,10 +73,6 @@ func newResourceHandler(k8sClient kubernetes.Interface, factory informers.Inform
 	}
 }
 
-func (r *resourceHandler) handleGetNamespacedResources(request *restful.Request, response *restful.Response) {
-	r.handleListNamespaceResources(request, response)
-}
-
 func (r *resourceHandler) handleListNamespaceResources(request *restful.Request, response *restful.Response) {
 	namespace := request.PathParameter("namespace")
 	resource := request.PathParameter("resources")
