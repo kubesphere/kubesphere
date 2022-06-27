@@ -39,7 +39,7 @@ spec:
           spec:
             properties:
               config:
-                type: object
+                type: string
               enabled:
                 type: boolean
               plugin:

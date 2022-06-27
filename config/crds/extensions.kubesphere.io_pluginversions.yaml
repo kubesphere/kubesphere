@@ -69,8 +69,14 @@ spec:
                 items:
                   type: string
                 type: array
+              urls:
+                items:
+                  type: string
+                type: array
               version:
                 type: string
+            required:
+            - urls
             type: object
         type: object
     served: true
