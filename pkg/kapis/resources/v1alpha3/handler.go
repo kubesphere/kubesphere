@@ -65,7 +65,7 @@ func (h *Handler) handleGetResources(request *restful.Request, response *restful
 	}
 
 	if err != resourcev1alpha3.ErrResourceNotSupported {
-		klog.Error(err, resourceType)
+		klog.Errorf("%s, resource type: %s", err, resourceType)
 		api.HandleInternalError(response, nil, err)
 		return
 	}
@@ -99,7 +99,7 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 	}
 
 	if err != resourcev1alpha3.ErrResourceNotSupported {
-		klog.Error(err, resourceType)
+		klog.Errorf("%s, resource type: %s", err, resourceType)
 		api.HandleInternalError(response, request, err)
 		return
 	}
