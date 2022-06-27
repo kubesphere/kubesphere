@@ -59,6 +59,7 @@ func (f *Folder) Create(name, description string) (*Folder, error) {
 	if err != nil {
 		return nil, err
 	}
+	r.Body.Close()
 	if r.StatusCode == 200 {
 		f.Poll()
 		return f, nil
@@ -71,5 +72,6 @@ func (f *Folder) Poll() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	response.Body.Close()
 	return response.StatusCode, nil
 }

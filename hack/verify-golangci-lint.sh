@@ -64,5 +64,4 @@ golangci-lint run \
   -E staticcheck \
   -E gosimple \
   -E bodyclose \
-  -E wsl \
   pkg/... cmd/... tools/... test/... kube/...

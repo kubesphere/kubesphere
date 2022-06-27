@@ -98,6 +98,7 @@ func (r *Requester) SetCrumb(ar *APIRequest) error {
 		}
 		return err
 	}
+	response.Body.Close()
 	if response.StatusCode == 200 && crumbData["crumbRequestField"] != "" {
 		ar.SetHeader(crumbData["crumbRequestField"], crumbData["crumb"])
 	}

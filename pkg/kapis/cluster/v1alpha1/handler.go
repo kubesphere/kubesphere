@@ -421,6 +421,7 @@ func validateKubeSphereAPIServer(config *rest.Config) (*version.Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
 
 	responseBytes, _ := ioutil.ReadAll(response.Body)
 	responseBody := string(responseBytes)
