@@ -17,10 +17,6 @@ limitations under the License.
 package iam
 
 import (
-	"context"
-	"fmt"
-
-	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"kubesphere.io/client-go/client"
@@ -52,14 +48,4 @@ func NewRestClient(user, passsword string) (*restclient.RestClient, error) {
 	}
 
 	return restclient.NewForConfig(config)
-}
-
-func getToken(host, user, password string) (*oauth2.Token, error) {
-	config := &oauth2.Config{
-		Endpoint: oauth2.Endpoint{
-			TokenURL:  fmt.Sprintf("%s/oauth/token", host),
-			AuthStyle: oauth2.AuthStyleInParams,
-		},
-	}
-	return config.PasswordCredentialsToken(context.TODO(), user, password)
 }

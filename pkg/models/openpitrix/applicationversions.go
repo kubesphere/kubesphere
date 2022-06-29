@@ -373,45 +373,27 @@ func (c *applicationOperator) DoAppVersionAction(versionId string, request *Acti
 
 	switch request.Action {
 	case ActionCancel:
-		if version.Status.State != v1alpha1.StateSubmitted {
-		}
 		state = v1alpha1.StateDraft
 		audit.State = v1alpha1.StateDraft
 	case ActionPass:
-		if version.Status.State != v1alpha1.StateSubmitted {
-
-		}
 		state = v1alpha1.StatePassed
 		audit.State = v1alpha1.StatePassed
 	case ActionRecover:
-		if version.Status.State != v1alpha1.StateSuspended {
-
-		}
 		state = v1alpha1.StateActive
 		audit.State = v1alpha1.StateActive
 	case ActionReject:
-		if version.Status.State != v1alpha1.StateSubmitted {
-			// todo check status
-		}
+		// todo check status
 		state = v1alpha1.StateRejected
 		audit.State = v1alpha1.StateRejected
 	case ActionSubmit:
-		if version.Status.State != v1alpha1.StateDraft {
-			// todo check status
-		}
+		// todo check status
 		state = v1alpha1.StateSubmitted
 		audit.State = v1alpha1.StateSubmitted
 	case ActionSuspend:
-		if version.Status.State != v1alpha1.StateActive {
-			// todo check status
-		}
 		state = v1alpha1.StateSuspended
 		audit.State = v1alpha1.StateSuspended
 	case ActionRelease:
 		// release to app store
-		if version.Status.State != v1alpha1.StatePassed {
-			// todo check status
-		}
 		state = v1alpha1.StateActive
 		audit.State = v1alpha1.StateActive
 	default:

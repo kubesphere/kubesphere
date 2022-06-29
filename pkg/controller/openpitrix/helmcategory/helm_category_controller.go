@@ -25,8 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -178,8 +176,6 @@ var _ reconcile.Reconciler = &ReconcileHelmCategory{}
 type ReconcileHelmCategory struct {
 	client.Client
 	//Scheme   *runtime.Scheme
-	recorder record.EventRecorder
-	config   *rest.Config
 }
 
 func (r *ReconcileHelmCategory) SetupWithManager(mgr ctrl.Manager) error {
@@ -195,7 +191,7 @@ func (r *ReconcileHelmCategory) Reconcile(ctx context.Context, request reconcile
 	start := time.Now()
 	klog.V(4).Infof("sync helm category: %s", request.String())
 	defer func() {
-		klog.V(4).Infof("sync helm category end: %s, elapsed: %v", request.String(), time.Now().Sub(start))
+		klog.V(4).Infof("sync helm category end: %s, elapsed: %v", request.String(), time.Since(start))
 	}()
 
 	instance := &v1alpha1.HelmCategory{}
@@ -237,10 +233,7 @@ func (r *ReconcileHelmCategory) Reconcile(ctx context.Context, request reconcile
 			}
 
 			instance.ObjectMeta.Finalizers = sliceutil.RemoveString(instance.ObjectMeta.Finalizers, func(item string) bool {
-				if item == HelmCategoryFinalizer {
-					return true
-				}
-				return false
+				return item == HelmCategoryFinalizer
 			})
 			if err := r.Update(context.Background(), instance); err != nil {
 				return reconcile.Result{}, err
@@ -297,8 +290,7 @@ func (r *ReconcileHelmCategory) updateCategoryCount(id string) error {
 
 func (r *ReconcileHelmCategory) countApplications(id string) (int, error) {
 	list := v1alpha1.HelmApplicationList{}
-	var err error
-	err = r.List(context.TODO(), &list, client.MatchingLabels{
+	err := r.List(context.TODO(), &list, client.MatchingLabels{
 		constants.CategoryIdLabelKey:  id,
 		constants.ChartRepoIdLabelKey: v1alpha1.AppStoreRepoId,
 	})

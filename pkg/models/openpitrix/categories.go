@@ -170,7 +170,7 @@ func (c *categoryOperator) ModifyCategory(id string, request *ModifyCategoryRequ
 
 func (c *categoryOperator) DescribeCategory(id string) (*Category, error) {
 	var err error
-	ctg := &v1alpha1.HelmCategory{}
+	var ctg *v1alpha1.HelmCategory
 	ctg, err = c.ctgClient.HelmCategories().Get(context.TODO(), id, metav1.GetOptions{})
 	if err != nil {
 		klog.Error(err)

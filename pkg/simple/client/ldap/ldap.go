@@ -35,19 +35,15 @@ import (
 )
 
 const (
-	ldapAttributeObjectClass       = "objectClass"
-	ldapAttributeCommonName        = "cn"
-	ldapAttributeSerialNumber      = "sn"
-	ldapAttributeGlobalIDNumber    = "gidNumber"
-	ldapAttributeHomeDirectory     = "homeDirectory"
-	ldapAttributeUserID            = "uid"
-	ldapAttributeUserIDNumber      = "uidNumber"
-	ldapAttributeMail              = "mail"
-	ldapAttributeUserPassword      = "userPassword"
-	ldapAttributePreferredLanguage = "preferredLanguage"
-	ldapAttributeDescription       = "description"
-	ldapAttributeCreateTimestamp   = "createTimestamp"
-	ldapAttributeOrganizationUnit  = "ou"
+	ldapAttributeObjectClass      = "objectClass"
+	ldapAttributeCommonName       = "cn"
+	ldapAttributeSerialNumber     = "sn"
+	ldapAttributeUserID           = "uid"
+	ldapAttributeMail             = "mail"
+	ldapAttributeUserPassword     = "userPassword"
+	ldapAttributeDescription      = "description"
+	ldapAttributeCreateTimestamp  = "createTimestamp"
+	ldapAttributeOrganizationUnit = "ou"
 
 	// ldap create timestamp attribute layout
 	ldapAttributeCreateTimestampLayout = "20060102150405Z"

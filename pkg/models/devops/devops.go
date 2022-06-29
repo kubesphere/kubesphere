@@ -210,6 +210,7 @@ func (d devopsOperator) ListDevOpsProject(workspace string, limit, offset int) (
 	if err != nil {
 		return api.ListResult{}, nil
 	}
+	//nolint:staticcheck,ineffassign
 	items := make([]interface{}, 0)
 	var result []interface{}
 	for _, item := range data {
@@ -550,7 +551,7 @@ func (d devopsOperator) GetNodesDetail(projectName, pipelineName, runId string, 
 		return nil, err
 	}
 
-	Nodes, err := json.Marshal(respNodes)
+	Nodes, _ := json.Marshal(respNodes)
 	err = json.Unmarshal(Nodes, &nodesDetails)
 	if err != nil {
 		klog.Error(err)
@@ -722,7 +723,7 @@ func (d devopsOperator) GetBranchNodesDetail(projectName, pipelineName, branchNa
 		klog.Error(err)
 		return nil, err
 	}
-	Nodes, err := json.Marshal(respNodes)
+	Nodes, _ := json.Marshal(respNodes)
 	err = json.Unmarshal(Nodes, &nodesDetails)
 	if err != nil {
 		klog.Error(err)
@@ -982,9 +983,9 @@ func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error
 		return nil, err
 	}
 
-	err = json.Unmarshal(Body, &checkBody)
+	json.Unmarshal(Body, &checkBody)
 
-	if checkBody.Abort != true && checkBody.Parameters == nil {
+	if !checkBody.Abort && checkBody.Parameters == nil {
 		workRound.Parameters = []devops.CheckPlayloadParameters{}
 		workRound.ID = checkBody.ID
 		jsonBody, _ = json.Marshal(workRound)

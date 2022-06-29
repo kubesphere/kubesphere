@@ -92,10 +92,7 @@ func (a *auditing) getAuditLevel() audit.Level {
 func (a *auditing) Enabled() bool {
 
 	level := a.getAuditLevel()
-	if level.Less(audit.LevelMetadata) {
-		return false
-	}
-	return true
+	return !level.Less(audit.LevelMetadata)
 }
 
 func (a *auditing) K8sAuditingEnabled() bool {
@@ -294,5 +291,6 @@ func (c *ResponseCapture) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 
 // CloseNotify is part of http.CloseNotifier interface
 func (c *ResponseCapture) CloseNotify() <-chan bool {
+	//nolint:staticcheck
 	return c.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }

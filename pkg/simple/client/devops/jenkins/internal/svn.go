@@ -27,6 +27,7 @@ func AppendSvnSourceToEtree(source *etree.Element, svnSource *devopsv1alpha3.Svn
 	if svnSource.Excludes != "" {
 		source.CreateElement("excludes").SetText(svnSource.Excludes)
 	}
+	//nolint:gosimple
 	return
 }
 
@@ -65,7 +66,7 @@ func AppendSingleSvnSourceToEtree(source *etree.Element, svnSource *devopsv1alph
 	source.CreateElement("ignoreDirPropChanges").SetText("false")
 	source.CreateElement("filterChangelog").SetText("false")
 	source.CreateElement("quietOperation").SetText("true")
-
+	//nolint:gosimple
 	return
 }
 

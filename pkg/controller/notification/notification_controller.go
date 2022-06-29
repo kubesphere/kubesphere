@@ -279,13 +279,13 @@ func (c *Controller) multiClusterSync(ctx context.Context, obj client.Object) er
 		return err
 	}
 
-	switch obj.(type) {
+	switch obj := obj.(type) {
 	case *v2beta1.Config:
-		return c.syncFederatedConfig(obj.(*v2beta1.Config))
+		return c.syncFederatedConfig(obj)
 	case *v2beta1.Receiver:
-		return c.syncFederatedReceiver(obj.(*v2beta1.Receiver))
+		return c.syncFederatedReceiver(obj)
 	case *corev1.Secret:
-		return c.syncFederatedSecret(obj.(*corev1.Secret))
+		return c.syncFederatedSecret(obj)
 	default:
 		klog.Errorf("unknown type for notification, %v", obj)
 		return nil

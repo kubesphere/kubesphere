@@ -192,6 +192,7 @@ func (b *Build) Stop() (bool, error) {
 		if err != nil {
 			return false, err
 		}
+		defer response.Body.Close()
 		if response.StatusCode != http.StatusOK {
 			return false, errors.New(strconv.Itoa(response.StatusCode))
 		}
@@ -202,7 +203,8 @@ func (b *Build) Stop() (bool, error) {
 func (b *Build) GetConsoleOutput() string {
 	url := b.Base + "/consoleText"
 	var content string
-	b.Jenkins.Requester.GetXML(url, &content, nil)
+	rsp, _ := b.Jenkins.Requester.GetXML(url, &content, nil)
+	rsp.Body.Close()
 	return content
 }
 
@@ -224,10 +226,11 @@ func (b *Build) GetInjectedEnvVars() (map[string]string, error) {
 		EnvMap map[string]string `json:"envMap"`
 	}
 	endpoint := b.Base + "/injectedEnvVars"
-	_, err := b.Jenkins.Requester.GetJSON(endpoint, &envVars, nil)
+	rsp, err := b.Jenkins.Requester.GetJSON(endpoint, &envVars, nil)
 	if err != nil {
 		return envVars.EnvMap, err
 	}
+	rsp.Body.Close()
 	return envVars.EnvMap, nil
 }
 
@@ -308,13 +311,12 @@ func (b *Build) GetResultSet() (*TestResult, error) {
 	url := b.Base + "/testReport"
 	var report TestResult
 
-	_, err := b.Jenkins.Requester.GetJSON(url, &report, nil)
+	rsp, err := b.Jenkins.Requester.GetJSON(url, &report, nil)
 	if err != nil {
 		return nil, err
 	}
-
+	rsp.Body.Close()
 	return &report, nil
-
 }
 
 func (b *Build) GetTimestamp() time.Time {
@@ -355,7 +357,10 @@ func (b *Build) IsRunning() bool {
 func (b *Build) SetDescription(description string) error {
 	data := url.Values{}
 	data.Set("description", description)
-	_, err := b.Jenkins.Requester.Post(b.Base+"/submitDescription", bytes.NewBufferString(data.Encode()), nil, nil)
+	resp, err := b.Jenkins.Requester.Post(b.Base+"/submitDescription", bytes.NewBufferString(data.Encode()), nil, nil)
+	if err != nil {
+		resp.Body.Close()
+	}
 	return err
 }
 func (b *Build) PauseToggle() error {
@@ -363,6 +368,7 @@ func (b *Build) PauseToggle() error {
 	if err != nil {
 		return err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -395,6 +401,7 @@ func (b *Build) Poll(options ...interface{}) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	response.Body.Close()
 	return response.StatusCode, nil
 }
 
@@ -403,6 +410,7 @@ func (j *Jenkins) GetProjectPipelineBuildByType(projectId, pipelineId string, st
 	if err != nil {
 		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
+	//nolint:staticcheck
 	build, err := job.getBuildByType(status)
 	return build.Raw, nil
 }
@@ -411,6 +419,7 @@ func (j *Jenkins) GetMultiBranchPipelineBuildByType(projectId, pipelineId, branc
 	if err != nil {
 		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
+	//nolint:staticcheck
 	build, err := job.getBuildByType(status)
 	return build.Raw, nil
 }

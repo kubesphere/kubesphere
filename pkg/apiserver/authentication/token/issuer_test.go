@@ -303,8 +303,10 @@ func Test_issuer_Verify(t *testing.T) {
 
 func Test_issuer_keyFunc(t *testing.T) {
 	type fields struct {
-		name             string
-		secret           []byte
+		//nolint:unused
+		name   string
+		secret []byte
+		//nolint:unused
 		maximumClockSkew time.Duration
 	}
 	type args struct {
@@ -342,7 +344,7 @@ func Test_issuer_keyFunc(t *testing.T) {
 				return
 			}
 			iss := s.(*issuer)
-			got, err := iss.keyFunc(tt.args.token)
+			got, _ := iss.keyFunc(tt.args.token)
 			assert.NotNil(t, got)
 		})
 	}

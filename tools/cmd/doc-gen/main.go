@@ -17,14 +17,12 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 
-	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/spec"
@@ -127,8 +125,8 @@ func generateSwaggerJson() []byte {
 	urlruntime.Must(operationsv1alpha2.AddToContainer(container, clientsets.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, clientsets.Kubernetes(), informerFactory, ""))
 	urlruntime.Must(resourcesv1alpha3.AddToContainer(container, informerFactory, nil))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(container, informerFactory, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil))
-	urlruntime.Must(tenantv1alpha3.AddToContainer(container, informerFactory, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(container, informerFactory, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil))
+	urlruntime.Must(tenantv1alpha3.AddToContainer(container, informerFactory, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container, clientsets.Kubernetes(), nil, nil, nil))
 	urlruntime.Must(metricsv1alpha2.AddToContainer(nil, container, clientsets.Kubernetes(), nil))
 	urlruntime.Must(networkv1alpha2.AddToContainer(container, ""))
@@ -257,7 +255,7 @@ func generateSwaggerJson() []byte {
 	})
 
 	data, _ := json.MarshalIndent(swagger, "", "  ")
-	err := ioutil.WriteFile(output, data, 420)
+	err := ioutil.WriteFile(output, data, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -293,14 +291,4 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		"jwt": spec.APIKeyAuth("Authorization", "header"),
 	}
 	swo.Security = []map[string][]string{{"jwt": []string{}}}
-}
-
-func apiTree(container *restful.Container) {
-	buf := bytes.NewBufferString("\n")
-	for _, ws := range container.RegisteredWebServices() {
-		for _, route := range ws.Routes() {
-			buf.WriteString(fmt.Sprintf("%s %s\n", route.Method, route.Path))
-		}
-	}
-	log.Println(buf.String())
 }

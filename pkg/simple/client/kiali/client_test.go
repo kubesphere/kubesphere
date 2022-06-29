@@ -117,6 +117,7 @@ func TestClient_Get(t *testing.T) {
 				tt.fields.ServiceToken,
 				tt.fields.Host,
 			)
+			//nolint:bodyclose
 			gotResp, err := c.Get(tt.args.url)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.Get() error = %v, wantErr %v", err, tt.wantErr)

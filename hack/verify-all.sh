@@ -27,7 +27,6 @@ EXCLUDED_PATTERNS=(
   "verify-linkcheck.sh"          # runs in separate Jenkins job once per day due to high network usage
   "verify-*-dockerized.sh"       # Don't run any scripts that intended to be run dockerized
   "verify-govet-levee.sh"        # Do not run levee analysis by default while KEP-1933 implementation is in alpha.
-  "verify-golangci-lint.sh"      # Experimental - intended to be run by hand periodically
   "verify-licenses.sh"
   )
 

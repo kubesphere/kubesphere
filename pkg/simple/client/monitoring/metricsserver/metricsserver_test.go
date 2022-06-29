@@ -532,7 +532,7 @@ func sortedResults(result []monitoring.Metric) []monitoring.Metric {
 		metricValues := mr.MetricData.MetricValues
 		length := len(metricValues)
 		for i, mv := range metricValues {
-			podName, _ := mv.Metadata["pod"]
+			podName := mv.Metadata["pod"]
 			if i == 0 && podName == "pod2" && length >= 2 {
 				metricValues[0], metricValues[1] = metricValues[1], metricValues[0]
 			}

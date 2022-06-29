@@ -22,7 +22,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/authentication/v1"
@@ -40,8 +39,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 )
-
-var noResyncPeriodFunc = func() time.Duration { return 0 }
 
 func TestGetAuditLevel(t *testing.T) {
 	webhook := &auditingv1alpha1.Webhook{

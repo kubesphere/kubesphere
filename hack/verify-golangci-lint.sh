@@ -35,13 +35,23 @@ PATH="${GOBIN}:${PATH}"
 # Explicitly opt into go modules, even though we're inside a GOPATH directory
 export GO111MODULE=on
 
+if ! command -v golangci-lint ; then
 # Install golangci-lint
-echo 'installing golangci-lint '
-pushd "${KUBE_ROOT}/hack/tools" >/dev/null
-  go install github.com/golangci/golangci-lint/cmd/golangci-lint
-popd >/dev/null
+  echo 'installing golangci-lint '
+  pushd "${KUBE_ROOT}/hack/tools" >/dev/null
+    GO111MODULE=auto go install -mod= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
+  popd >/dev/null
+fi
 
 cd "${KUBE_ROOT}"
+
+function error_exit {
+  if [ $? -eq 1 ]; then
+    echo "Please run the following command:"
+    echo "  make golint"
+  fi
+}
+trap "error_exit" EXIT
 
 echo 'running golangci-lint '
 golangci-lint run \
@@ -50,4 +60,8 @@ golangci-lint run \
   -E deadcode \
   -E unused \
   -E varcheck \
-  -E ineffassign
+  -E ineffassign \
+  -E staticcheck \
+  -E gosimple \
+  -E bodyclose \
+  pkg/... cmd/... tools/... test/... kube/...

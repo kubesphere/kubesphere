@@ -707,7 +707,6 @@ func (h *openpitrixHandler) DescribeApplication(req *restful.Request, resp *rest
 	}
 
 	resp.WriteEntity(app)
-	return
 }
 
 func (h *openpitrixHandler) DeleteApplication(req *restful.Request, resp *restful.Response) {
@@ -988,7 +987,7 @@ func (h *openpitrixHandler) CreateAttachment(req *restful.Request, resp *restful
 			api.HandleBadRequest(resp, nil, err)
 			return
 		}
-		data, err := ioutil.ReadAll(f)
+		data, _ := ioutil.ReadAll(f)
 		f.Close()
 
 		att, err = h.openpitrix.CreateAttachment(data)

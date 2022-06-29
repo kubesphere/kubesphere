@@ -38,10 +38,8 @@ func NewWorkspaceTemplate(name string, manager string, hosts ...string) *tenantv
 
 	clusters := []fedb1.GenericClusterReference{}
 
-	if hosts != nil {
-		for _, h := range hosts {
-			clusters = append(clusters, fedb1.GenericClusterReference{Name: h})
-		}
+	for _, h := range hosts {
+		clusters = append(clusters, fedb1.GenericClusterReference{Name: h})
 	}
 
 	return &tenantv1alpha2.WorkspaceTemplate{

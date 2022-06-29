@@ -120,9 +120,9 @@ func desensitize(data map[string]interface{}) map[string]interface{} {
 		if isSensitiveData(k) {
 			continue
 		}
-		switch v.(type) {
+		switch v := v.(type) {
 		case map[interface{}]interface{}:
-			output[k] = desensitize(convert(v.(map[interface{}]interface{})))
+			output[k] = desensitize(convert(v))
 		default:
 			output[k] = v
 		}
@@ -134,9 +134,9 @@ func desensitize(data map[string]interface{}) map[string]interface{} {
 func convert(m map[interface{}]interface{}) map[string]interface{} {
 	output := make(map[string]interface{})
 	for k, v := range m {
-		switch k.(type) {
+		switch k := k.(type) {
 		case string:
-			output[k.(string)] = v
+			output[k] = v
 		}
 	}
 	return output

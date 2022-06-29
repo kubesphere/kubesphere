@@ -94,7 +94,7 @@ func (c *repoOperator) DoRepoAction(repoId string, request *RepoActionRequest) e
 		klog.Errorf("create patch [%s] failed, error: %s", repoId, err)
 		return err
 	}
-	repo, err = c.repoClient.HelmRepos().Patch(context.TODO(), repoId, types.MergePatchType, data, metav1.PatchOptions{})
+	_, err = c.repoClient.HelmRepos().Patch(context.TODO(), repoId, types.MergePatchType, data, metav1.PatchOptions{})
 	if err != nil {
 		klog.Errorf("patch repo [%s] failed, error: %s", repoId, err)
 		return err
@@ -140,8 +140,7 @@ func (c *repoOperator) CreateRepo(repo *v1alpha1.HelmRepo) (*CreateRepoResponse,
 }
 
 func (c *repoOperator) DeleteRepo(id string) error {
-	var err error
-	err = c.repoClient.HelmRepos().Delete(context.TODO(), id, metav1.DeleteOptions{})
+	err := c.repoClient.HelmRepos().Delete(context.TODO(), id, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		klog.Errorf("delete repo %s failed, error: %s", id, err)
 		return err
@@ -256,7 +255,7 @@ func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 		return nil
 	}
 
-	repo, err = c.repoClient.HelmRepos().Patch(context.TODO(), id, patch.Type(), data, metav1.PatchOptions{})
+	_, err = c.repoClient.HelmRepos().Patch(context.TODO(), id, patch.Type(), data, metav1.PatchOptions{})
 
 	if err != nil {
 		klog.Error(err)

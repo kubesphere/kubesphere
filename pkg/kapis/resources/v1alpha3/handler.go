@@ -127,16 +127,12 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 		switch field {
 		case query.FieldName:
 			conditions.Fuzzy[v1alpha2.Name] = string(value)
-			break
 		case query.FieldNames:
 			conditions.Match[v1alpha2.Name] = string(value)
-			break
 		case query.FieldCreationTimeStamp:
 			conditions.Match[v1alpha2.CreateTime] = string(value)
-			break
 		case query.FieldLastUpdateTimestamp:
 			conditions.Match[v1alpha2.UpdateTime] = string(value)
-			break
 		case query.FieldLabel:
 			values := strings.SplitN(string(value), ":", 2)
 			if len(values) == 2 {
@@ -144,7 +140,6 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 			} else {
 				conditions.Match[v1alpha2.Label] = values[0]
 			}
-			break
 		case query.FieldAnnotation:
 			values := strings.SplitN(string(value), ":", 2)
 			if len(values) == 2 {
@@ -152,16 +147,12 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 			} else {
 				conditions.Match[v1alpha2.Annotation] = values[0]
 			}
-			break
 		case query.FieldStatus:
 			conditions.Match[v1alpha2.Status] = string(value)
-			break
 		case query.FieldOwnerReference:
 			conditions.Match[v1alpha2.Owner] = string(value)
-			break
 		default:
 			conditions.Match[string(field)] = string(value)
-			break
 		}
 	}
 

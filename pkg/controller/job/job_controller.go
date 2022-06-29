@@ -37,7 +37,6 @@ import (
 
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -52,9 +51,7 @@ const (
 )
 
 type JobController struct {
-	client           clientset.Interface
-	eventBroadcaster record.EventBroadcaster
-	eventRecorder    record.EventRecorder
+	client clientset.Interface
 
 	jobLister batchv1listers.JobLister
 	jobSynced cache.InformerSynced
@@ -170,16 +167,6 @@ func (v *JobController) syncJob(key string) error {
 	}
 
 	return nil
-}
-
-// When a job is added, figure out which service it will be used
-// and enqueue it. obj must have *batchv1.Job type
-func (v *JobController) addJob(obj interface{}) {
-	deploy := obj.(*batchv1.Job)
-
-	v.queue.Add(deploy.Name)
-
-	return
 }
 
 func (v *JobController) handleErr(err error, key interface{}) {

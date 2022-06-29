@@ -45,12 +45,14 @@ var (
 )
 
 type fixture struct {
-	t                 *testing.T
+	t *testing.T
+	//nolint:unused
 	snapshotSupported bool
 	// Clients
 	k8sClient           *k8sFake.Clientset
 	snapshotClassClient *snapFake.Clientset
-	ksClient            *ksfake.Clientset
+	//nolint:unused
+	ksClient *ksfake.Clientset
 	// Objects from here preload into NewSimpleFake.
 	storageObjects       []runtime.Object // include StorageClass
 	snapshotClassObjects []runtime.Object

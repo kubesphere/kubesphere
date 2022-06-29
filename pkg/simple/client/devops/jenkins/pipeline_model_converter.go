@@ -78,6 +78,7 @@ func (j *Jenkins) ValidateJenkinsfile(jenkinsfile string) (*ValidateJenkinsfileR
 	if err != nil {
 		return nil, err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -95,6 +96,7 @@ func (j *Jenkins) ValidatePipelineJson(json string) (*ValidatePipelineJsonRespon
 	if err != nil {
 		return nil, err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -110,6 +112,7 @@ func (j *Jenkins) PipelineJsonToJenkinsfile(json string) (*PipelineJsonToJenkins
 	if err != nil {
 		return nil, err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -125,6 +128,7 @@ func (j *Jenkins) JenkinsfileToPipelineJson(jenkinsfile string) (*JenkinsfileToP
 	if err != nil {
 		return nil, err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -140,6 +144,7 @@ func (j *Jenkins) StepsJsonToJenkinsfile(json string) (*StepJsonToJenkinsfileRes
 	if err != nil {
 		return nil, err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -155,6 +160,7 @@ func (j *Jenkins) StepsJenkinsfileToJson(jenkinsfile string) (*StepsJenkinsfileT
 	if err != nil {
 		return nil, err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New(strconv.Itoa(response.StatusCode))
 	}

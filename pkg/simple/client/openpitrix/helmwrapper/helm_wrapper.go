@@ -78,7 +78,7 @@ func (c *helmWrapper) IsReleaseReady(waitTime time.Duration) (bool, error) {
 		return false, err
 	}
 	client := c.helmConf.KubeClient
-	resources, err := client.Build(bytes.NewBufferString(manifest), true)
+	resources, _ := client.Build(bytes.NewBufferString(manifest), true)
 
 	err = client.Wait(resources, waitTime)
 
@@ -95,7 +95,6 @@ func (c *helmWrapper) IsReleaseReady(waitTime time.Duration) (bool, error) {
 
 func (c *helmWrapper) Status() (*helmrelease.Release, error) {
 	helmStatus := action.NewStatus(c.helmConf)
-
 	rel, err := helmStatus.Run(c.ReleaseName)
 	if err != nil {
 		if err.Error() == StatusNotFoundFormat {
@@ -272,7 +271,7 @@ func (c *helmWrapper) createChart(chartName, chartData, values string) error {
 func (c *helmWrapper) Uninstall() error {
 	start := time.Now()
 	defer func() {
-		klog.V(2).Infof("run command end, namespace: %s, name: %s elapsed: %v", c.Namespace, c.ReleaseName, time.Now().Sub(start))
+		klog.V(2).Infof("run command end, namespace: %s, name: %s elapsed: %v", c.Namespace, c.ReleaseName, time.Since(start))
 	}()
 
 	uninstall := action.NewUninstall(c.helmConf)
@@ -367,7 +366,7 @@ func (c *helmWrapper) writeAction(chartName, chartData, values string, upgrade b
 	if klog.V(2) {
 		start := time.Now()
 		defer func() {
-			klog.V(2).Infof("run command end, namespace: %s, name: %s, upgrade: %t, elapsed: %v", c.Namespace, c.ReleaseName, upgrade, time.Now().Sub(start))
+			klog.V(2).Infof("run command end, namespace: %s, name: %s, upgrade: %t, elapsed: %v", c.Namespace, c.ReleaseName, upgrade, time.Since(start))
 		}()
 	}
 

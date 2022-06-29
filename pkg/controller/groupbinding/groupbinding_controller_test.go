@@ -59,7 +59,8 @@ type fixture struct {
 	ksclient  *fake.Clientset
 	k8sclient *k8sfake.Clientset
 	// Objects to put in the store.
-	groupBindingLister    []*v1alpha2.GroupBinding
+	groupBindingLister []*v1alpha2.GroupBinding
+	//nolint:unused
 	fedgroupBindingLister []*fedv1beta1types.FederatedGroupBinding
 	userLister            []*v1alpha2.User
 	// Actions expected to happen on the client.
@@ -163,6 +164,7 @@ func (f *fixture) run(userName string) {
 	f.runController(userName, true, false)
 }
 
+//nolint:unused
 func (f *fixture) runExpectError(userName string) {
 	f.runController(userName, true, true)
 }

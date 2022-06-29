@@ -92,7 +92,6 @@ func (mv *MetricValue) TransferToExportedMetricValue() {
 	}
 	mv.Series = nil
 
-	return
 }
 
 func (p Point) Timestamp() float64 {

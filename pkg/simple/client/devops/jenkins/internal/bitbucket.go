@@ -72,7 +72,6 @@ func AppendBitbucketServerSourceToEtree(source *etree.Element, gitSource *devops
 		regexTraits.CreateAttr("plugin", "scm-api")
 		regexTraits.CreateElement("regex").SetText(gitSource.RegexFilter)
 	}
-	return
 }
 
 func GetBitbucketServerSourceFromEtree(source *etree.Element) *devopsv1alpha3.BitbucketServerSource {

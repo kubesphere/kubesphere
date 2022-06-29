@@ -141,6 +141,7 @@ func NewOperator(ksClient kubesphere.Interface, k8sClient kubernetes.Interface, 
 }
 
 func (am *amOperator) GetGlobalRoleOfUser(username string) (*iamv1alpha2.GlobalRole, error) {
+	//nolint:ineffassign,staticcheck
 	globalRoleBindings, err := am.ListGlobalRoleBindings(username)
 	if len(globalRoleBindings) > 0 {
 		// Usually, only one globalRoleBinding will be found which is created from ks-console.

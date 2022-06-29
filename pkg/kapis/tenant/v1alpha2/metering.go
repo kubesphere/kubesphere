@@ -107,6 +107,4 @@ func (h *tenantHandler) HandlePriceInfoQuery(req *restful.Request, resp *restful
 	priceResponse.PvcPerGigabytesPerHour = priceInfo.PvcPerGigabytesPerHour
 
 	resp.WriteAsJson(priceResponse)
-
-	return
 }

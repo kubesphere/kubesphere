@@ -189,7 +189,7 @@ func (s *issuer) Verify(token string) (*VerifiedResponse, error) {
 	}
 
 	now := time.Now().Unix()
-	if claims.VerifyExpiresAt(now, false) == false {
+	if !claims.VerifyExpiresAt(now, false) {
 		delta := time.Unix(now, 0).Sub(time.Unix(claims.ExpiresAt, 0))
 		err = fmt.Errorf("jwt: token is expired by %v", delta)
 		klog.V(4).Info(err)
@@ -198,7 +198,7 @@ func (s *issuer) Verify(token string) (*VerifiedResponse, error) {
 
 	// allowing a clock skew when checking the time-based values.
 	skewedTime := now + int64(s.maximumClockSkew.Seconds())
-	if claims.VerifyIssuedAt(skewedTime, false) == false {
+	if !claims.VerifyIssuedAt(skewedTime, false) {
 		err = fmt.Errorf("jwt: token used before issued, iat:%v, now:%v", claims.IssuedAt, now)
 		klog.Warning(err)
 		return nil, err

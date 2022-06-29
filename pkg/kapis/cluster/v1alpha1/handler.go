@@ -225,10 +225,10 @@ func (h *handler) generateDefaultDeployment(cluster *v1alpha1.Cluster, w io.Writ
 								fmt.Sprintf("--name=%s", cluster.Name),
 								fmt.Sprintf("--token=%s", cluster.Spec.Connection.Token),
 								fmt.Sprintf("--proxy-server=%s", h.proxyAddress),
-								fmt.Sprintf("--keepalive=10s"),
-								fmt.Sprintf("--kubesphere-service=ks-apiserver.kubesphere-system.svc:80"),
-								fmt.Sprintf("--kubernetes-service=kubernetes.default.svc:443"),
-								fmt.Sprintf("--v=0"),
+								"--keepalive=10s",
+								"--kubesphere-service=ks-apiserver.kubesphere-system.svc:80",
+								"--kubernetes-service=kubernetes.default.svc:443",
+								"--v=0",
 							},
 							Image: h.agentImage,
 							Resources: corev1.ResourceRequirements{
@@ -421,6 +421,7 @@ func validateKubeSphereAPIServer(config *rest.Config) (*version.Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
 
 	responseBytes, _ := ioutil.ReadAll(response.Body)
 	responseBody := string(responseBytes)

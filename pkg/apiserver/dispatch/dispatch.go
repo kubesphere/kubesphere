@@ -56,7 +56,7 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 
 	if len(info.Cluster) == 0 {
 		klog.Warningf("Request with empty cluster, %v", req.URL)
-		http.Error(w, fmt.Sprintf("Bad request, empty cluster"), http.StatusBadRequest)
+		http.Error(w, "Bad request, empty cluster", http.StatusBadRequest)
 		return
 	}
 

@@ -56,7 +56,7 @@ type DockerURL struct {
 func (u *DockerURL) StringWithoutScheme() string {
 	u.Scheme = ""
 	s := u.String()
-	return strings.Trim(s, "//")
+	return strings.Trim(s, "/")
 }
 
 func ParseDockerURL(rawurl string) (*DockerURL, error) {

@@ -30,6 +30,4 @@ var (
 
 	loadRepoInfoFailed = errors.New("load repo info failed")
 	downloadFileFailed = errors.New("download file failed")
-	readFileFailed     = errors.New("read file failed")
-	releaseExists      = errors.New("release exists")
 )

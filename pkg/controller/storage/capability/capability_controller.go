@@ -154,7 +154,6 @@ func (c *StorageCapabilityController) enqueueStorageClassByCSI(csi interface{}) 
 			c.enqueueStorageClass(obj)
 		}
 	}
-	return
 }
 
 func (c *StorageCapabilityController) runWorker() {
@@ -246,7 +245,6 @@ func (c *StorageCapabilityController) updateSnapshotAnnotation(storageClass *sto
 	if _, err := strconv.ParseBool(storageClass.Annotations[annotationAllowSnapshot]); err != nil {
 		storageClass.Annotations[annotationAllowSnapshot] = strconv.FormatBool(snapshotAllow)
 	}
-	return
 }
 
 func (c *StorageCapabilityController) updateCloneVolumeAnnotation(storageClass *storagev1.StorageClass, cloneAllow bool) {
@@ -256,7 +254,6 @@ func (c *StorageCapabilityController) updateCloneVolumeAnnotation(storageClass *
 	if _, err := strconv.ParseBool(storageClass.Annotations[annotationAllowClone]); err != nil {
 		storageClass.Annotations[annotationAllowClone] = strconv.FormatBool(cloneAllow)
 	}
-	return
 }
 
 func (c *StorageCapabilityController) removeAnnotations(storageClass *storagev1.StorageClass) {

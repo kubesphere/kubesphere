@@ -56,9 +56,7 @@ type loginRecordController struct {
 	k8sClient                   kubernetes.Interface
 	ksClient                    kubesphere.Interface
 	loginRecordLister           iamv1alpha2listers.LoginRecordLister
-	loginRecordSynced           cache.InformerSynced
 	userLister                  iamv1alpha2listers.UserLister
-	userSynced                  cache.InformerSynced
 	loginHistoryRetentionPeriod time.Duration
 	loginHistoryMaximumEntries  int
 	// recorder is an event recorder for recording Event resources to the

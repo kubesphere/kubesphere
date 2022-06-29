@@ -58,7 +58,7 @@ func TestOpenPitrixApp(t *testing.T) {
 	}
 
 	// validate corrupted package
-	validateResp, err = appOperator.ValidatePackage(validateReq)
+	_, err = appOperator.ValidatePackage(validateReq)
 	if err == nil {
 		klog.Errorf("validate package failed, error: %s", err)
 		t.FailNow()
@@ -79,7 +79,7 @@ func TestOpenPitrixApp(t *testing.T) {
 	}
 
 	// add app to indexer
-	apps, err := ksClient.ApplicationV1alpha1().HelmApplications().List(context.TODO(), metav1.ListOptions{})
+	apps, _ := ksClient.ApplicationV1alpha1().HelmApplications().List(context.TODO(), metav1.ListOptions{})
 	for _, app := range apps.Items {
 		err := fakeInformerFactory.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmApplications().
 			Informer().GetIndexer().Add(&app)
@@ -90,7 +90,7 @@ func TestOpenPitrixApp(t *testing.T) {
 	}
 
 	// add app version to indexer
-	appvers, err := ksClient.ApplicationV1alpha1().HelmApplicationVersions().List(context.TODO(), metav1.ListOptions{})
+	appvers, _ := ksClient.ApplicationV1alpha1().HelmApplicationVersions().List(context.TODO(), metav1.ListOptions{})
 	for _, ver := range appvers.Items {
 		err := fakeInformerFactory.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmApplicationVersions().
 			Informer().GetIndexer().Add(&ver)

@@ -55,9 +55,6 @@ var (
 		v2beta1.AddToScheme(scheme.Scheme)
 		apis.AddToScheme(scheme.Scheme)
 
-		const timeout = time.Second * 30
-		const interval = time.Second * 1
-
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
@@ -100,6 +97,7 @@ var (
 		)
 		BeforeEach(func() {
 			k8sClient = fakek8s.NewSimpleClientset()
+			//nolint:staticcheck
 			cl = fake.NewFakeClientWithScheme(scheme.Scheme)
 			informerCacheCtx = context.TODO()
 			ksCache = &fakeCache{

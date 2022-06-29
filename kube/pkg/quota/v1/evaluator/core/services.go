@@ -94,7 +94,7 @@ func (p *serviceEvaluator) UncoveredQuotaScopes(limitedScopes []corev1.ScopedRes
 
 // convert the input object to an internal service object or error.
 func toExternalServiceOrError(obj runtime.Object) (*corev1.Service, error) {
-	svc := &corev1.Service{}
+	var svc *corev1.Service
 	switch t := obj.(type) {
 	case *corev1.Service:
 		svc = t

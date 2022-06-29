@@ -17,7 +17,7 @@ limitations under the License.
 package calico
 
 type Options struct {
-	IPIPMode    string `json:"ipipMode,omityempty" yaml:"ipipMode,omityempty"`
-	VXLANMode   string `json:"vxlanMode,omityempty" yaml:"vxlanMode,omityempty"`
-	NATOutgoing bool   `json:"natOutgoing,omitempty" yaml:"natOutgoing,omityempty"`
+	IPIPMode    string `json:"ipipMode,omitempty" yaml:"ipipMode,omitempty"`
+	VXLANMode   string `json:"vxlanMode,omitempty" yaml:"vxlanMode,omitempty"`
+	NATOutgoing bool   `json:"natOutgoing,omitempty" yaml:"natOutgoing,omitempty"`
 }
