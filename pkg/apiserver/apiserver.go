@@ -41,6 +41,7 @@ import (
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	notificationv2beta1 "kubesphere.io/api/notification/v2beta1"
+	notificationv2beta2 "kubesphere.io/api/notification/v2beta2"
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	typesv1beta1 "kubesphere.io/api/types/v1beta1"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
@@ -268,7 +269,8 @@ func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 	urlruntime.Must(edgeruntimev1alpha1.AddToContainer(s.container, s.Config.EdgeRuntimeOptions.Endpoint))
 	urlruntime.Must(notificationkapisv2beta1.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
 		s.KubernetesClient.KubeSphere()))
-	urlruntime.Must(notificationkapisv2beta2.AddToContainer(s.container, s.Config.NotificationOptions))
+	urlruntime.Must(notificationkapisv2beta2.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
+		s.KubernetesClient.KubeSphere(), s.Config.NotificationOptions))
 	urlruntime.Must(gatewayv1alpha1.AddToContainer(s.container, s.Config.GatewayOptions, s.RuntimeCache, s.RuntimeClient, s.InformerFactory, s.KubernetesClient.Kubernetes(), s.LoggingClient))
 }
 
@@ -320,6 +322,10 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			resourcev1alpha3.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			notificationv2beta1.Resource(notificationv2beta1.ResourcesPluralConfig),
 			notificationv2beta1.Resource(notificationv2beta1.ResourcesPluralReceiver),
+			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralConfig),
+			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralReceiver),
+			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralRouter),
+			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralSilence),
 		},
 	}
 
@@ -497,6 +503,12 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 		{Group: "notification.kubesphere.io", Version: "v2beta1"}: {
 			notificationv2beta1.ResourcesPluralConfig,
 			notificationv2beta1.ResourcesPluralReceiver,
+		},
+		{Group: "notification.kubesphere.io", Version: "v2beta2"}: {
+			notificationv2beta2.ResourcesPluralConfig,
+			notificationv2beta2.ResourcesPluralReceiver,
+			notificationv2beta2.ResourcesPluralRouter,
+			notificationv2beta2.ResourcesPluralSilence,
 		},
 	}
 

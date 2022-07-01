@@ -138,7 +138,8 @@ type ConfigStatus struct {
 // +kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
-// DingTalkConfig is the Schema for the dingtalkconfigs API
+
+// Config is the Schema for the configs API
 type Config struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -159,3 +160,5 @@ type ConfigList struct {
 func init() {
 	SchemeBuilder.Register(&Config{}, &ConfigList{})
 }
+
+func (_ *Config) Hub() {}

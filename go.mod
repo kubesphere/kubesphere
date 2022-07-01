@@ -82,8 +82,6 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
 	github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
-	github.com/shirou/gopsutil v0.0.0-20180427012116-c95755e4bcd7 // indirect
-	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.2.1
@@ -182,6 +180,7 @@ replace (
 	github.com/Shopify/logrus-bugsnag => github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d
 	github.com/Shopify/sarama => github.com/Shopify/sarama v1.19.0
 	github.com/Shopify/toxiproxy => github.com/Shopify/toxiproxy v2.1.4+incompatible
+	github.com/StackExchange/wmi => github.com/StackExchange/wmi v1.2.1
 	github.com/VividCortex/gohistogram => github.com/VividCortex/gohistogram v1.0.0
 	github.com/afex/hystrix-go => github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
 	github.com/agnivade/levenshtein => github.com/agnivade/levenshtein v1.0.1
@@ -345,6 +344,7 @@ replace (
 	github.com/go-logfmt/logfmt => github.com/go-logfmt/logfmt v0.5.0
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
+	github.com/go-ole/go-ole => github.com/go-ole/go-ole v1.2.6-0.20210915003542-8b1f7f90f6b1
 	github.com/go-openapi/analysis => github.com/go-openapi/analysis v0.19.10
 	github.com/go-openapi/errors => github.com/go-openapi/errors v0.19.4
 	github.com/go-openapi/jsonpointer => github.com/go-openapi/jsonpointer v0.19.3
@@ -407,6 +407,7 @@ replace (
 	github.com/google/go-github => github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring => github.com/google/go-querystring v1.0.0
 	github.com/google/gofuzz => github.com/google/gofuzz v1.1.0
+	github.com/google/gops => github.com/google/gops v0.3.23
 	github.com/google/martian => github.com/google/martian v2.1.0+incompatible
 	github.com/google/pprof => github.com/google/pprof v0.0.0-20200417002340-c6e0a841f49a
 	github.com/google/renameio => github.com/google/renameio v0.1.0
@@ -490,6 +491,7 @@ replace (
 	github.com/karrick/godirwalk => github.com/karrick/godirwalk v1.10.3
 	github.com/kelseyhightower/envconfig => github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kevinburke/ssh_config => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
+	github.com/keybase/go-ps => github.com/keybase/go-ps v0.0.0-20190827175125-91aafc93ba19
 	github.com/kisielk/errcheck => github.com/kisielk/errcheck v1.2.0
 	github.com/kisielk/gotool => github.com/kisielk/gotool v1.0.0
 	github.com/kisielk/sqlstruct => github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49
@@ -638,6 +640,7 @@ replace (
 	github.com/rainycape/unidecode => github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be
 	github.com/rcrowley/go-metrics => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 	github.com/retailnext/hllpp => github.com/retailnext/hllpp v1.0.1-0.20180308014038-101a6d2f8b52
+	github.com/robfig/cron/v3 => github.com/robfig/cron/v3 v3.0.1
 	github.com/rogpeppe/fastuuid => github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af
 	github.com/rogpeppe/go-charset => github.com/rogpeppe/go-charset v0.0.0-20180617210344-2471d30d28b4
 	github.com/rogpeppe/go-internal => github.com/rogpeppe/go-internal v1.3.0
@@ -654,6 +657,9 @@ replace (
 	github.com/segmentio/kafka-go => github.com/segmentio/kafka-go v0.2.0
 	github.com/sercand/kuberesolver => github.com/sercand/kuberesolver v2.4.0+incompatible
 	github.com/sergi/go-diff => github.com/sergi/go-diff v1.0.0
+	github.com/shirou/gopsutil => github.com/shirou/gopsutil v0.0.0-20180427012116-c95755e4bcd7
+	github.com/shirou/gopsutil/v3 => github.com/shirou/gopsutil/v3 v3.21.9
+	github.com/shirou/w32 => github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 	github.com/shopspring/decimal => github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24
 	github.com/shurcooL/httpfs => github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
 	github.com/shurcooL/sanitized_anchor_name => github.com/shurcooL/sanitized_anchor_name v1.0.0
@@ -682,6 +688,8 @@ replace (
 	github.com/thanos-io/thanos => github.com/thanos-io/thanos v0.13.1-0.20200910143741-e0b7f7b32e9c
 	github.com/tidwall/pretty => github.com/tidwall/pretty v1.0.0
 	github.com/tinylib/msgp => github.com/tinylib/msgp v1.1.0
+	github.com/tklauser/go-sysconf => github.com/tklauser/go-sysconf v0.3.9
+	github.com/tklauser/numcpus => github.com/tklauser/numcpus v0.3.0
 	github.com/tmc/grpc-websocket-proxy => github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5
 	github.com/tv42/httpunix => github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926
 	github.com/uber/jaeger-client-go => github.com/uber/jaeger-client-go v2.23.0+incompatible
@@ -813,6 +821,7 @@ replace (
 	kubesphere.io/client-go => ./staging/src/kubesphere.io/client-go
 	kubesphere.io/monitoring-dashboard => kubesphere.io/monitoring-dashboard v0.2.2
 	rsc.io/binaryregexp => rsc.io/binaryregexp v0.2.0
+	rsc.io/goversion => rsc.io/goversion v1.2.0
 	rsc.io/letsencrypt => rsc.io/letsencrypt v0.0.1
 	rsc.io/pdf => rsc.io/pdf v0.1.1
 	rsc.io/quote/v3 => rsc.io/quote/v3 v3.1.0

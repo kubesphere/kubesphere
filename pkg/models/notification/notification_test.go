@@ -217,5 +217,5 @@ func prepare() Operator {
 		_ = fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets().Informer().GetIndexer().Add(secret)
 	}
 
-	return NewOperator(fakeInformerFactory, k8sClient, ksClient)
+	return NewOperator(fakeInformerFactory, k8sClient, ksClient, nil)
 }

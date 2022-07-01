@@ -37,11 +37,11 @@ func NewNotificationConfigGetter(informer ksinformers.SharedInformerFactory) v1a
 }
 
 func (g *configGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2beta1().Configs().Lister().Get(name)
+	return g.ksInformer.Notification().V2beta2().Configs().Lister().Get(name)
 }
 
 func (g *configGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2beta1().Configs().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2beta2().Configs().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -62,11 +62,61 @@ func NewNotificationReceiverGetter(informer ksinformers.SharedInformerFactory) v
 }
 
 func (g *receiverGetter) Get(_, name string) (runtime.Object, error) {
-	return g.ksInformer.Notification().V2beta1().Receivers().Lister().Get(name)
+	return g.ksInformer.Notification().V2beta2().Receivers().Lister().Get(name)
 }
 
 func (g *receiverGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	objs, err := g.ksInformer.Notification().V2beta1().Receivers().Lister().List(query.Selector())
+	objs, err := g.ksInformer.Notification().V2beta2().Receivers().Lister().List(query.Selector())
+	if err != nil {
+		return nil, err
+	}
+
+	var result []runtime.Object
+	for _, obj := range objs {
+		result = append(result, obj)
+	}
+	return v1alpha3.DefaultList(result, query, compare, filter), nil
+}
+
+type routerGetter struct {
+	ksInformer ksinformers.SharedInformerFactory
+}
+
+func NewNotificationRouterGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
+	return &routerGetter{ksInformer: informer}
+}
+
+func (g *routerGetter) Get(_, name string) (runtime.Object, error) {
+	return g.ksInformer.Notification().V2beta2().Routers().Lister().Get(name)
+}
+
+func (g *routerGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
+	objs, err := g.ksInformer.Notification().V2beta2().Routers().Lister().List(query.Selector())
+	if err != nil {
+		return nil, err
+	}
+
+	var result []runtime.Object
+	for _, obj := range objs {
+		result = append(result, obj)
+	}
+	return v1alpha3.DefaultList(result, query, compare, filter), nil
+}
+
+type silenceGetter struct {
+	ksInformer ksinformers.SharedInformerFactory
+}
+
+func NewNotificationSilenceGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
+	return &silenceGetter{ksInformer: informer}
+}
+
+func (g *silenceGetter) Get(_, name string) (runtime.Object, error) {
+	return g.ksInformer.Notification().V2beta2().Silences().Lister().Get(name)
+}
+
+func (g *silenceGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
+	objs, err := g.ksInformer.Notification().V2beta2().Silences().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
