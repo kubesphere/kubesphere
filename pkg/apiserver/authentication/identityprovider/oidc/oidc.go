@@ -116,7 +116,7 @@ type oidcIdentity struct {
 }
 
 func (o oidcIdentity) GetUserID() string {
-        return base64.RawURLEncoding.EncodeToString([]byte(o.Sub))
+	return base64.RawURLEncoding.EncodeToString([]byte(o.Sub))
 }
 
 func (o oidcIdentity) GetUsername() string {
