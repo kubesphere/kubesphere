@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-        "regexp"
 	"io/ioutil"
 	"net/http"
 
@@ -116,13 +115,7 @@ type oidcIdentity struct {
 }
 
 func (o oidcIdentity) GetUserID() string {
-         StartSubTrimmer := regexp.MustCompile("^[!@#$%^&*()_+\-=\[\]{};':\\|,.<>\/?\"]+")
-         EndSubTrimmer   := regexp.MustCompile("[!@#$%^&*()_+\-=\[\]{};':\\|,.<>\/?\"]+$")
-         // Trim the start
-         HeadSubTrimmed := StartSubTrimmer.ReplaceAllString(o.Sub,"0")
-         // Trim the end
-         TailSubTrimmed := EndSubTrimmer.ReplaceAllString(HeadSubTrimmed,"0")
-         return TailSubTrimmed
+         return base64.RawURLEncoding.EncodeToString([]byte(o.Sub))
 }
 
 func (o oidcIdentity) GetUsername() string {
