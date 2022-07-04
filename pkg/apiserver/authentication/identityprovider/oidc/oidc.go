@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+        "encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
