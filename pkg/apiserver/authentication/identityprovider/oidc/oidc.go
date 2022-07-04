@@ -19,8 +19,7 @@ package oidc
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
-        "encoding/base64"
+	"encoding"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -116,7 +115,7 @@ type oidcIdentity struct {
 }
 
 func (o oidcIdentity) GetUserID() string {
-         return base64.RawURLEncoding.EncodeToString([]byte(o.Sub))
+        return base64.RawURLEncoding.EncodeToString([]byte(o.Sub))
 }
 
 func (o oidcIdentity) GetUsername() string {
