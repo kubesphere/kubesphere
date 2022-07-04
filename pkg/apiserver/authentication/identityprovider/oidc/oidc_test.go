@@ -198,7 +198,7 @@ var _ = Describe("OIDC", func() {
 			req := &http.Request{URL: url}
 			identity, err := provider.IdentityExchangeCallback(req)
 			Expect(err).Should(BeNil())
-			Expect(base64.URLEncoding.DecodeString(identity.GetUserID())).Should(Equal("110169484474386276334"))
+			Expect(string(base64.URLEncoding.DecodeString(identity.GetUserID()))).Should(Equal("110169484474386276334"))
 			Expect(identity.GetUsername()).Should(Equal("test"))
 			Expect(identity.GetEmail()).Should(Equal("test@kubesphere.io"))
 		})
