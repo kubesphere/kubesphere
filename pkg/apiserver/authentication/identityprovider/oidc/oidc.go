@@ -19,7 +19,8 @@ package oidc
 import (
 	"context"
 	"crypto/tls"
-	"encoding"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
