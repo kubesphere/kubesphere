@@ -26,8 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
-
-	"kubesphere.io/api/notification/v2beta1"
+	"kubesphere.io/api/notification/v2beta2"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -50,11 +49,19 @@ func TestListObjects(t *testing.T) {
 	}{
 		{
 			"test name filter",
-			v2beta1.ResourcesPluralConfig,
+			v2beta2.ResourcesPluralConfig,
 		},
 		{
 			"test name filter",
-			v2beta1.ResourcesPluralReceiver,
+			v2beta2.ResourcesPluralReceiver,
+		},
+		{
+			"test name filter",
+			v2beta2.ResourcesPluralRouter,
+		},
+		{
+			"test name filter",
+			v2beta2.ResourcesPluralSilence,
 		},
 	}
 
@@ -99,14 +106,22 @@ func prepare(key string) (v1alpha3.Interface, []interface{}, error) {
 	var indexer cache.Indexer
 	var getter func(informer ksinformers.SharedInformerFactory) v1alpha3.Interface
 	switch key {
-	case v2beta1.ResourcesPluralConfig:
-		indexer = informer.Notification().V2beta1().Configs().Informer().GetIndexer()
+	case v2beta2.ResourcesPluralConfig:
+		indexer = informer.Notification().V2beta2().Configs().Informer().GetIndexer()
 		getter = NewNotificationConfigGetter
-		obj = &v2beta1.Config{}
-	case v2beta1.ResourcesPluralReceiver:
-		indexer = informer.Notification().V2beta1().Receivers().Informer().GetIndexer()
+		obj = &v2beta2.Config{}
+	case v2beta2.ResourcesPluralReceiver:
+		indexer = informer.Notification().V2beta2().Receivers().Informer().GetIndexer()
 		getter = NewNotificationReceiverGetter
-		obj = &v2beta1.Receiver{}
+		obj = &v2beta2.Receiver{}
+	case v2beta2.ResourcesPluralRouter:
+		indexer = informer.Notification().V2beta2().Routers().Informer().GetIndexer()
+		getter = NewNotificationRouterGetter
+		obj = &v2beta2.Router{}
+	case v2beta2.ResourcesPluralSilence:
+		indexer = informer.Notification().V2beta2().Silences().Informer().GetIndexer()
+		getter = NewNotificationSilenceGetter
+		obj = &v2beta2.Silence{}
 	default:
 		return nil, nil, errors.New("unowned type %s", key)
 	}

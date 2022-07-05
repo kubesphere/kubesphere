@@ -40,7 +40,7 @@ func newNotificationHandler(
 	ksClient kubesphere.Interface) *handler {
 
 	return &handler{
-		operator: notification.NewOperator(informers, k8sClient, ksClient),
+		operator: notification.NewOperator(informers, k8sClient, ksClient, nil),
 	}
 }
 
@@ -51,12 +51,12 @@ func (h *handler) ListResource(req *restful.Request, resp *restful.Response) {
 	subresource := req.QueryParameter("type")
 	q := query.ParseQueryParameter(req)
 
-	if !h.operator.IsKnownResource(resource, subresource) {
+	if !h.operator.IsKnownResource(resource, notification.V2beta1, subresource) {
 		api.HandleBadRequest(resp, req, servererr.New("unknown resource type %s/%s", resource, subresource))
 		return
 	}
 
-	objs, err := h.operator.List(user, resource, subresource, q)
+	objs, err := h.operator.ListV2beta1(user, resource, subresource, q)
 	handleResponse(req, resp, objs, err)
 }
 
@@ -67,12 +67,12 @@ func (h *handler) GetResource(req *restful.Request, resp *restful.Response) {
 	name := req.PathParameter("name")
 	subresource := req.QueryParameter("type")
 
-	if !h.operator.IsKnownResource(resource, subresource) {
+	if !h.operator.IsKnownResource(resource, notification.V2beta1, subresource) {
 		api.HandleBadRequest(resp, req, servererr.New("unknown resource type %s/%s", resource, subresource))
 		return
 	}
 
-	obj, err := h.operator.Get(user, resource, name, subresource)
+	obj, err := h.operator.GetV2beta1(user, resource, name, subresource)
 	handleResponse(req, resp, obj, err)
 }
 
@@ -81,18 +81,18 @@ func (h *handler) CreateResource(req *restful.Request, resp *restful.Response) {
 	user := req.PathParameter("user")
 	resource := req.PathParameter("resources")
 
-	if !h.operator.IsKnownResource(resource, "") {
+	if !h.operator.IsKnownResource(resource, notification.V2beta1, "") {
 		api.HandleBadRequest(resp, req, servererr.New("unknown resource type %s", resource))
 		return
 	}
 
-	obj := h.operator.GetObject(resource)
+	obj := h.operator.GetObject(resource, notification.V2beta1)
 	if err := req.ReadEntity(obj); err != nil {
 		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
-	created, err := h.operator.Create(user, resource, obj)
+	created, err := h.operator.CreateV2beta1(user, resource, obj)
 	handleResponse(req, resp, created, err)
 }
 
@@ -102,18 +102,18 @@ func (h *handler) UpdateResource(req *restful.Request, resp *restful.Response) {
 	resource := req.PathParameter("resources")
 	name := req.PathParameter("name")
 
-	if !h.operator.IsKnownResource(resource, "") {
+	if !h.operator.IsKnownResource(resource, notification.V2beta1, "") {
 		api.HandleBadRequest(resp, req, servererr.New("unknown resource type %s", resource))
 		return
 	}
 
-	obj := h.operator.GetObject(resource)
+	obj := h.operator.GetObject(resource, notification.V2beta1)
 	if err := req.ReadEntity(obj); err != nil {
 		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
-	updated, err := h.operator.Update(user, resource, name, obj)
+	updated, err := h.operator.UpdateV2beta1(user, resource, name, obj)
 	handleResponse(req, resp, updated, err)
 }
 
@@ -123,12 +123,12 @@ func (h *handler) DeleteResource(req *restful.Request, resp *restful.Response) {
 	resource := req.PathParameter("resources")
 	name := req.PathParameter("name")
 
-	if !h.operator.IsKnownResource(resource, "") {
+	if !h.operator.IsKnownResource(resource, notification.V2beta1, "") {
 		api.HandleBadRequest(resp, req, servererr.New("unknown resource type %s", resource))
 		return
 	}
 
-	handleResponse(req, resp, servererr.None, h.operator.Delete(user, resource, name))
+	handleResponse(req, resp, servererr.None, h.operator.DeleteV2beta1(user, resource, name))
 }
 
 func handleResponse(req *restful.Request, resp *restful.Response, obj interface{}, err error) {

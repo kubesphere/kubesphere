@@ -24,4 +24,12 @@ const (
 	ResourceKindReceiver      = "Receiver"
 	ResourcesSingularReceiver = "receiver"
 	ResourcesPluralReceiver   = "receivers"
+
+	ResourceKindRouter      = "Router"
+	ResourcesSingularRouter = "router"
+	ResourcesPluralRouter   = "routers"
+
+	ResourceKindSilence      = "Silence"
+	ResourcesSingularSilence = "silence"
+	ResourcesPluralSilence   = "silences"
 )
