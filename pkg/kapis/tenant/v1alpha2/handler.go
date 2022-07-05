@@ -388,6 +388,41 @@ func (h *tenantHandler) QueryLogs(req *restful.Request, resp *restful.Response) 
 	}
 }
 
+func (h *tenantHandler) QueryOpensearchLogs(req *restful.Request, resp *restful.Response) {
+	user, ok := request.UserFrom(req.Request.Context())
+	if !ok {
+		err := fmt.Errorf("cannot obtain user info")
+		klog.Errorln(err)
+		api.HandleForbidden(resp, req, err)
+		return
+	}
+	queryParam, err := loggingv1alpha2.ParseQueryParameter(req)
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, req, err)
+		return
+	}
+
+	if queryParam.Operation == loggingv1alpha2.OperationExport {
+		resp.Header().Set(restful.HEADER_ContentType, "text/plain")
+		resp.Header().Set("Content-Disposition", "attachment")
+		err := h.tenant.ExportLogs(user, queryParam, resp)
+		if err != nil {
+			klog.Errorln(err)
+			api.HandleInternalError(resp, req, err)
+			return
+		}
+	} else {
+		result, err := h.tenant.QueryLogs(user, queryParam)
+		if err != nil {
+			klog.Errorln(err)
+			api.HandleInternalError(resp, req, err)
+			return
+		}
+		resp.WriteAsJson(result)
+	}
+}
+
 func (h *tenantHandler) Auditing(req *restful.Request, resp *restful.Response) {
 	user, ok := request.UserFrom(req.Request.Context())
 	if !ok {

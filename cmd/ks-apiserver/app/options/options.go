@@ -21,6 +21,8 @@ import (
 	"flag"
 	"fmt"
 
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/opensearch"
+
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
@@ -145,6 +147,15 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
 		}
+		apiServer.LoggingClient = loggingClient
+	}
+
+	if s.LoggingOptions.Opensearch.Host != "" {
+		loggingClient, err := opensearch.NewClient(s.LoggingOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
+		}
+
 		apiServer.LoggingClient = loggingClient
 	}
 

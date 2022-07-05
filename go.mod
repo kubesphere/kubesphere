@@ -13,7 +13,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
-	github.com/aws/aws-sdk-go v1.33.12
+	github.com/aws/aws-sdk-go v1.42.27
 	github.com/beevik/etree v1.1.0
 	github.com/bshuster-repo/logrus-logstash-hook v0.4.1 // indirect
 	github.com/bugsnag/bugsnag-go v1.5.0 // indirect
@@ -71,6 +71,7 @@ require (
 	github.com/onsi/gomega v1.15.0
 	github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest v1.0.0
+	github.com/opensearch-project/opensearch-go/v2 v2.0.0
 	github.com/operator-framework/helm-operator-plugins v0.0.8-0.20210810182245-240cc447b3de
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1
@@ -82,8 +83,6 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
 	github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
-	github.com/shirou/gopsutil v0.0.0-20180427012116-c95755e4bcd7 // indirect
-	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.2.1

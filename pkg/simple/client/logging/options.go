@@ -22,7 +22,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
-type Options struct {
+type Opensearch struct {
 	Host        string `json:"host" yaml:"host"`
 	BasicAuth   bool   `json:"basicAuth" yaml:"basicAuth"`
 	Username    string `json:"username" yaml:"username"`
@@ -31,11 +31,22 @@ type Options struct {
 	Version     string `json:"version" yaml:"version"`
 }
 
+type Options struct {
+	Host        string      `json:"host" yaml:"host"`
+	BasicAuth   bool        `json:"basicAuth" yaml:"basicAuth"`
+	Username    string      `json:"username" yaml:"username"`
+	Password    string      `json:"password" yaml:"password"`
+	IndexPrefix string      `json:"indexPrefix,omitempty" yaml:"indexPrefix,omitempty"`
+	Version     string      `json:"version" yaml:"version"`
+	Opensearch  *Opensearch `json:"opensearch,omitempty" yaml:"opensearch,omitempty"`
+}
+
 func NewLoggingOptions() *Options {
 	return &Options{
 		Host:        "",
 		IndexPrefix: "fluentbit",
 		Version:     "",
+		Opensearch:  &Opensearch{},
 	}
 }
 
@@ -43,6 +54,10 @@ func (s *Options) ApplyTo(options *Options) {
 	if s.Host != "" {
 		reflectutils.Override(options, s)
 	}
+	if s.Opensearch != nil {
+		reflectutils.Override(options, s)
+	}
+
 }
 
 func (s *Options) Validate() []error {
@@ -76,4 +91,30 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.StringVar(&s.Version, "logging-elasticsearch-version", c.Version, ""+
 		"Elasticsearch major version, e.g. 5/6/7, if left blank, will detect automatically."+
 		"Currently, minimum supported version is 5.x")
+
+	fs.StringVar(&s.Opensearch.Host, "logging-opensearch-host", c.Opensearch.Host, ""+
+		"Opensearch logging service host. KubeSphere is using opensearch as log store, "+
+		"if this filed left blank, KubeSphere will use kubernetes builtin log API instead, and"+
+		" the following elastic search options will be ignored.")
+
+	fs.BoolVar(&s.Opensearch.BasicAuth, "logging-opensearch-basicAuth", c.Opensearch.BasicAuth, ""+
+		"opensearch logging service basic auth enabled. KubeSphere is using elastic as logging store, "+
+		"if it is set to true, KubeSphere will connect to ElasticSearch using provided username and password by "+
+		"logging-opensearch-username and logging-opensearch-username. Otherwise, KubeSphere will "+
+		"anonymously access the Elasticsearch.")
+
+	fs.StringVar(&s.Opensearch.Username, "logging-opensearch-username", c.Opensearch.Username, ""+
+		"OpenSearch authentication username, only needed when logging-opensearch-basicAuth is"+
+		"set to true. ")
+
+	fs.StringVar(&s.Opensearch.Password, "logging-opensearch-password", c.Opensearch.Password, ""+
+		"OpenSearch authentication password, only needed when logging-opensearch-basicAuth is"+
+		"set to true. ")
+
+	fs.StringVar(&s.Opensearch.IndexPrefix, "logging-opensearch-index-prefix", c.Opensearch.IndexPrefix, ""+
+		"Index name prefix. KubeSphere will retrieve logs against indices matching the prefix.")
+
+	fs.StringVar(&s.Opensearch.Version, "logging-opensearch-version", c.Opensearch.Version, ""+
+		"Opensearch major version, e.g. 1/2, if left blank, will detect automatically."+
+		"Currently, minimum supported version is 2.x")
 }
