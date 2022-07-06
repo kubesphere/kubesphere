@@ -44,6 +44,8 @@ import (
 const (
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
+	// ctrl+d to close terminal.
+	endOfTransmission = "\u0004"
 )
 
 // PtyHandler is what remotecommand expects from a pty
@@ -76,7 +78,7 @@ type TerminalMessage struct {
 	Rows, Cols uint16
 }
 
-// TerminalSize handles pty->process resize events
+// Next handles pty->process resize events
 // Called in a loop from remotecommand as long as the process is running
 func (t TerminalSession) Next() *remotecommand.TerminalSize {
 	select {
@@ -95,7 +97,7 @@ func (t TerminalSession) Read(p []byte) (int, error) {
 	var msg TerminalMessage
 	err := t.conn.ReadJSON(&msg)
 	if err != nil {
-		return 0, err
+		return copy(p, endOfTransmission), err
 	}
 
 	switch msg.Op {
@@ -105,7 +107,7 @@ func (t TerminalSession) Read(p []byte) (int, error) {
 		t.sizeChan <- remotecommand.TerminalSize{Width: msg.Cols, Height: msg.Rows}
 		return 0, nil
 	default:
-		return 0, fmt.Errorf("unknown message type '%s'", msg.Op)
+		return copy(p, endOfTransmission), fmt.Errorf("unknown message type '%s'", msg.Op)
 	}
 }
 
@@ -215,7 +217,7 @@ func (n *NodeTerminaler) getNSEnterPod() (*v1.Pod, error) {
 	pod, err := n.client.CoreV1().Pods(n.Namespace).Get(context.Background(), n.PodName, metav1.GetOptions{})
 
 	if err != nil || (pod.Status.Phase != v1.PodRunning && pod.Status.Phase != v1.PodPending) {
-		//pod has timed out, but has not been cleaned up
+		// pod has timed out, but has not been cleaned up
 		if pod.Status.Phase == v1.PodSucceeded || pod.Status.Phase == v1.PodFailed {
 			err := n.client.CoreV1().Pods(n.Namespace).Delete(context.Background(), n.PodName, metav1.DeleteOptions{})
 			if err != nil {
