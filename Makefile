@@ -56,7 +56,7 @@ binary: | ks-apiserver ks-controller-manager; $(info $(M)...Build all of binary.
 
 # Build ks-apiserver binary
 ks-apiserver: ; $(info $(M)...Begin to build ks-apiserver binary.)  @ ## Build ks-apiserver.
-	 hack/gobuild.sh cmd/ks-apiserver;
+	hack/gobuild.sh cmd/ks-apiserver;
 
 # Build ks-controller-manager binary
 ks-controller-manager: ; $(info $(M)...Begin to build ks-controller-manager binary.)  @ ## Build ks-controller-manager.
