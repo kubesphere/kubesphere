@@ -64,4 +64,5 @@ golangci-lint run \
   -E staticcheck \
   -E gosimple \
   -E bodyclose \
+  --skip-dirs pkg/client \
   pkg/... cmd/... tools/... test/... kube/...
