@@ -1,3 +1,7 @@
+run:
+  timeout: 30m
+  skip-dirs:
+    - pkg/client
 linters:
   # Disable all linters.
   # Default: false
