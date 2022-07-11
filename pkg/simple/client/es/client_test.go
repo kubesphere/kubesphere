@@ -43,6 +43,10 @@ func TestNewClient(t *testing.T) {
 			fakeResp: "es7_detect_version_major_200.json",
 			expected: ElasticV7,
 		},
+		{
+			fakeResp: "opensearchv2_detect_version_major_200.json",
+			expected: OpenSearchV2,
+		},
 	}
 
 	for i, test := range tests {
@@ -88,6 +92,50 @@ func TestClient_Search(t *testing.T) {
 			}
 
 			srv := mockElasticsearchService("/ks-logstash*/_search", test.fakeResp, test.fakeCode)
+			defer srv.Close()
+
+			c, err := NewClient(srv.URL, false, "", "", "ks-logstash", test.fakeVersion)
+			if err != nil {
+				t.Fatalf("create client error, %s", err)
+			}
+			result, err := c.Search(query.NewBuilder(), time.Time{}, time.Now(), false)
+			if test.expectedErr != "" {
+				if diff := cmp.Diff(fmt.Sprint(err), test.expectedErr); diff != "" {
+					t.Fatalf("%T differ (-got, +want): %s", test.expectedErr, diff)
+				}
+			}
+			if diff := cmp.Diff(result, &expected); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
+			}
+		})
+	}
+}
+
+func TestOpensearchClient_Search(t *testing.T) {
+	var tests = []struct {
+		fakeVersion string
+		fakeResp    string
+		fakeCode    int
+		expected    string
+		expectedErr string
+	}{
+		{
+			fakeVersion: OpenSearchV2,
+			fakeResp:    "opensearchv2_search_200.json",
+			fakeCode:    http.StatusOK,
+			expected:    "opensearchv2_search_200_result.json",
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			var expected Response
+			err := JsonFromFile(test.expected, &expected)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			srv := mockElasticsearchService("/", test.fakeResp, test.fakeCode)
 			defer srv.Close()
 
 			c, err := NewClient(srv.URL, false, "", "", "ks-logstash", test.fakeVersion)
