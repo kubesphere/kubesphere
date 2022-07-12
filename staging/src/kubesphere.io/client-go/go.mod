@@ -19,9 +19,9 @@ require (
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
-	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.4.0 // indirect
@@ -60,7 +60,6 @@ replace (
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.4.1
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.9
-	github.com/json-iterator/go => github.com/json-iterator/go v1.1.10
 	github.com/kisielk/errcheck => github.com/kisielk/errcheck v1.2.0
 	github.com/kr/text => github.com/kr/text v0.1.0
 	github.com/matttproud/golang_protobuf_extensions => github.com/matttproud/golang_protobuf_extensions v1.0.1

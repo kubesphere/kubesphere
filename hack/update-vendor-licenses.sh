@@ -171,7 +171,7 @@ mkdir -p "${TMP_LICENSES_DIR}"
 DEPS_DIR="vendor"
 declare -Ag CONTENT
 
-# Put the K8S LICENSE on top
+# Put the KubeSphere LICENSE on top
 if [ -f "${LICENSE_ROOT}/LICENSE" ]; then
   (
     echo "================================================================================"
@@ -234,7 +234,7 @@ Options:
    COPYING files.
 2. Contact the author of the package to ensure there is a LICENSE, COPYRIGHT and/or
    COPYING file present.
-3. Do not use this package in Kubernetes.
+3. Do not use this package in KubeSphere.
 __EOF__
       exit 9
     fi
