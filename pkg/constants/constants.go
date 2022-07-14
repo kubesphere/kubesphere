@@ -49,6 +49,9 @@ const (
 	DevOpsProjectLabelKey             = "kubesphere.io/devopsproject"
 	KubefedManagedLabel               = "kubefed.io/managed"
 
+	ExtensionRepositoryLabel = "extensions.kubesphere.io/repo"
+	ExtensionPluginLabel     = "extensions.kubesphere.io/plugin"
+
 	UserNameHeader = "X-Token-Username"
 
 	AuthenticationTag = "Authentication"
