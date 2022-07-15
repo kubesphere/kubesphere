@@ -942,6 +942,7 @@ func (t *tenantOperator) isAppComponent(ns, kind, componentName string) (bool, s
 
 	for appName, cList := range appWorkloads {
 		for _, component := range cList {
+			//nolint:staticcheck // TODO Use golang.org/x/text/cases instead.
 			if component == fmt.Sprintf("%s:%s", strings.Title(kind), componentName) {
 				return true, appName
 			}
