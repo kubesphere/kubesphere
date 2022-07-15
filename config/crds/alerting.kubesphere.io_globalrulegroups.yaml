@@ -1,0 +1,90 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: globalrulegroups.alerting.kubesphere.io
+spec:
+  group: alerting.kubesphere.io
+  names:
+    kind: GlobalRuleGroup
+    listKind: GlobalRuleGroupList
+    plural: globalrulegroups
+    singular: globalrulegroup
+  scope: Cluster
+  versions:
+  - name: v2beta1
+    schema:
+      openAPIV3Schema:
+        description: GlobalRuleGroup is the Schema for the GlobalRuleGroup API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: GlobalRuleGroupSpec defines the desired state of GlobalRuleGroup
+            properties:
+              interval:
+                type: string
+              partial_response_strategy:
+                type: string
+              rules:
+                items:
+                  properties:
+                    alert:
+                      type: string
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    disable:
+                      type: boolean
+                    expr:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      x-kubernetes-int-or-string: true
+                    for:
+                      description: 'Duration is a valid time unit Supported units:
+                        y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`'
+                      pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                      type: string
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    severity:
+                      type: string
+                  required:
+                  - alert
+                  type: object
+                type: array
+            required:
+            - rules
+            type: object
+          status:
+            description: GlobalRuleGroupStatus defines the observed state of GlobalRuleGroup
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -1,0 +1,174 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: clusterrulegroups.alerting.kubesphere.io
+spec:
+  group: alerting.kubesphere.io
+  names:
+    kind: ClusterRuleGroup
+    listKind: ClusterRuleGroupList
+    plural: clusterrulegroups
+    singular: clusterrulegroup
+  scope: Cluster
+  versions:
+  - name: v2beta1
+    schema:
+      openAPIV3Schema:
+        description: ClusterRuleGroup is the Schema for the ClusterRuleGroup API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterRuleGroupSpec defines the desired state of ClusterRuleGroup
+            properties:
+              interval:
+                type: string
+              partial_response_strategy:
+                type: string
+              rules:
+                items:
+                  properties:
+                    alert:
+                      type: string
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    disable:
+                      type: boolean
+                    expr:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      x-kubernetes-int-or-string: true
+                    exprBuilder:
+                      description: If ExprBuilder is not nil, the configured Expr
+                        will be ignored
+                      properties:
+                        node:
+                          properties:
+                            comparator:
+                              type: string
+                            metricThreshold:
+                              description: Only one of its members may be specified.
+                              properties:
+                                cpu:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    load15m:
+                                      type: number
+                                    load1m:
+                                      type: number
+                                    load5m:
+                                      type: number
+                                    utilization:
+                                      type: number
+                                  type: object
+                                disk:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    inodeUtilization:
+                                      type: number
+                                    iopsRead:
+                                      description: The unit is io/s
+                                      type: number
+                                    iopsWrite:
+                                      description: The unit is io/s
+                                      type: number
+                                    spaceAvailable:
+                                      description: The unit is bytes
+                                      type: number
+                                    spaceUtilization:
+                                      type: number
+                                    throughputRead:
+                                      description: The unit is bytes/s
+                                      type: number
+                                    throughputWrite:
+                                      description: The unit is bytes/s
+                                      type: number
+                                  type: object
+                                memory:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    available:
+                                      description: The unit is bytes
+                                      type: number
+                                    utilization:
+                                      type: number
+                                  type: object
+                                network:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    receivedRate:
+                                      description: The unit is bit/s
+                                      type: number
+                                    transmittedRate:
+                                      description: The unit is bit/s
+                                      type: number
+                                  type: object
+                                pod:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    abnormalRatio:
+                                      type: number
+                                    utilization:
+                                      type: number
+                                  type: object
+                              type: object
+                            names:
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - comparator
+                          - metricThreshold
+                          - names
+                          type: object
+                      type: object
+                    for:
+                      description: 'Duration is a valid time unit Supported units:
+                        y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`'
+                      pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                      type: string
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    severity:
+                      type: string
+                  required:
+                  - alert
+                  type: object
+                type: array
+            required:
+            - rules
+            type: object
+          status:
+            description: ClusterRuleGroupStatus defines the observed state of ClusterRuleGroup
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
