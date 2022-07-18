@@ -1,0 +1,149 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: rulegroups.alerting.kubesphere.io
+spec:
+  group: alerting.kubesphere.io
+  names:
+    kind: RuleGroup
+    listKind: RuleGroupList
+    plural: rulegroups
+    singular: rulegroup
+  scope: Namespaced
+  versions:
+  - name: v2beta1
+    schema:
+      openAPIV3Schema:
+        description: RuleGroup is the Schema for the RuleGroup API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RuleGroupSpec defines the desired state of RuleGroup
+            properties:
+              interval:
+                type: string
+              partial_response_strategy:
+                type: string
+              rules:
+                items:
+                  properties:
+                    alert:
+                      type: string
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    disable:
+                      type: boolean
+                    expr:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      x-kubernetes-int-or-string: true
+                    exprBuilder:
+                      description: If ExprBuilder is not nil, the configured Expr
+                        will be ignored
+                      properties:
+                        workload:
+                          properties:
+                            comparator:
+                              type: string
+                            kind:
+                              type: string
+                            metricThreshold:
+                              description: Only one of its members may be specified.
+                              properties:
+                                cpu:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    usage:
+                                      description: The unit is core
+                                      type: number
+                                  type: object
+                                memory:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    usage:
+                                      description: The memory usage contains cache
+                                        The unit is bytes
+                                      type: number
+                                    usageWoCache:
+                                      description: The memory usage contains no cache
+                                        The unit is bytes
+                                      type: number
+                                  type: object
+                                network:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    receivedRate:
+                                      description: The unit is bit/s
+                                      type: number
+                                    transmittedRate:
+                                      description: The unit is bit/s
+                                      type: number
+                                  type: object
+                                replica:
+                                  description: Only one of its members may be specified.
+                                  properties:
+                                    unavailableRatio:
+                                      type: number
+                                  type: object
+                              type: object
+                            names:
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - comparator
+                          - kind
+                          - names
+                          type: object
+                      type: object
+                    for:
+                      description: 'Duration is a valid time unit Supported units:
+                        y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`'
+                      pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                      type: string
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    severity:
+                      type: string
+                  required:
+                  - alert
+                  type: object
+                type: array
+            required:
+            - rules
+            type: object
+          status:
+            description: RuleGroupStatus defines the observed state of RuleGroup
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

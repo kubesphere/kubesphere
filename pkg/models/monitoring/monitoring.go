@@ -538,6 +538,7 @@ func (mo monitoringOperator) GetAppWorkloads(ns string, apps []string) map[strin
 	for _, appObj := range applicationList {
 		if appFilter(appObj) {
 			for _, com := range appObj.Status.ComponentList.Objects {
+				//nolint:staticcheck // TODO Use golang.org/x/text/cases instead.
 				kind := strings.Title(com.Kind)
 				name := com.Name
 				componentsMap[getAppFullName((appObj))] = append(componentsMap[getAppFullName(appObj)], kind+":"+name)
