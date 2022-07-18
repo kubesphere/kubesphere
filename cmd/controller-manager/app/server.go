@@ -34,6 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
 
+	alertingv2beta1 "kubesphere.io/api/alerting/v2beta1"
+
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
@@ -246,6 +248,19 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 	hookServer.Register("/validate-quota-kubesphere-io-v1alpha2", &webhook.Admission{Handler: resourceQuotaAdmission})
 
 	hookServer.Register("/convert", &conversion.Webhook{})
+
+	rulegroup := alertingv2beta1.RuleGroup{}
+	if err := rulegroup.SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("Unable to setup RuleGroup webhook: %v", err)
+	}
+	clusterrulegroup := alertingv2beta1.ClusterRuleGroup{}
+	if err := clusterrulegroup.SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("Unable to setup ClusterRuleGroup webhook: %v", err)
+	}
+	globalrulegroup := alertingv2beta1.GlobalRuleGroup{}
+	if err := globalrulegroup.SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("Unable to setup GlobalRuleGroup webhook: %v", err)
+	}
 
 	klog.V(2).Info("registering metrics to the webhook server")
 	// Add an extra metric endpoint, so we can use the the same metric definition with ks-apiserver
