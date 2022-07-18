@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
+	"kubesphere.io/kubesphere/pkg/controller/alerting"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/helm"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
@@ -537,6 +538,26 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 				klog.Fatalf("Unable to create Notification controller: %v", err)
 			}
 			addController(mgr, "notification", notificationController)
+		}
+	}
+
+	// controllers for alerting
+	alertingOptionsEnable := cmOptions.AlertingOptions != nil && (cmOptions.AlertingOptions.PrometheusEndpoint != "" || cmOptions.AlertingOptions.ThanosRulerEndpoint != "")
+	if alertingOptionsEnable {
+		// "rulegroup" controller
+		if cmOptions.IsControllerEnabled("rulegroup") {
+			rulegroupReconciler := &alerting.RuleGroupReconciler{}
+			addControllerWithSetup(mgr, "rulegroup", rulegroupReconciler)
+		}
+		// "clusterrulegroup" controller
+		if cmOptions.IsControllerEnabled("clusterrulegroup") {
+			clusterrulegroupReconciler := &alerting.ClusterRuleGroupReconciler{}
+			addControllerWithSetup(mgr, "clusterrulegroup", clusterrulegroupReconciler)
+		}
+		// "globalrulegroup" controller
+		if cmOptions.IsControllerEnabled("globalrulegroup") {
+			globalrulegroupReconciler := &alerting.GlobalRuleGroupReconciler{}
+			addControllerWithSetup(mgr, "globalrulegroup", globalrulegroupReconciler)
 		}
 	}
 

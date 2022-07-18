@@ -67,6 +67,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			ServiceMeshOptions:    conf.ServiceMeshOptions,
 			GatewayOptions:        conf.GatewayOptions,
 			MonitoringOptions:     conf.MonitoringOptions,
+			AlertingOptions:       conf.AlertingOptions,
 			LeaderElection:        s.LeaderElection,
 			LeaderElect:           s.LeaderElect,
 			WebhookCertDir:        s.WebhookCertDir,
