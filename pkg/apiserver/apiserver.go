@@ -322,6 +322,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			resourcev1alpha3.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			notificationv2beta1.Resource(notificationv2beta1.ResourcesPluralConfig),
 			notificationv2beta1.Resource(notificationv2beta1.ResourcesPluralReceiver),
+			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralNotificationManager),
 			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralConfig),
 			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralReceiver),
 			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralRouter),

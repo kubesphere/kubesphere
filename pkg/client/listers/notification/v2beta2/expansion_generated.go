@@ -22,6 +22,10 @@ package v2beta2
 // ConfigLister.
 type ConfigListerExpansion interface{}
 
+// NotificationManagerListerExpansion allows custom methods to be added to
+// NotificationManagerLister.
+type NotificationManagerListerExpansion interface{}
+
 // ReceiverListerExpansion allows custom methods to be added to
 // ReceiverLister.
 type ReceiverListerExpansion interface{}

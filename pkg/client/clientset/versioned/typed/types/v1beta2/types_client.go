@@ -26,11 +26,36 @@ import (
 
 type TypesV1beta2Interface interface {
 	RESTClient() rest.Interface
+	FederatedNotificationConfigsGetter
+	FederatedNotificationManagersGetter
+	FederatedNotificationReceiversGetter
+	FederatedNotificationRoutersGetter
+	FederatedNotificationSilencesGetter
 }
 
 // TypesV1beta2Client is used to interact with features provided by the types.kubefed.io group.
 type TypesV1beta2Client struct {
 	restClient rest.Interface
+}
+
+func (c *TypesV1beta2Client) FederatedNotificationConfigs() FederatedNotificationConfigInterface {
+	return newFederatedNotificationConfigs(c)
+}
+
+func (c *TypesV1beta2Client) FederatedNotificationManagers() FederatedNotificationManagerInterface {
+	return newFederatedNotificationManagers(c)
+}
+
+func (c *TypesV1beta2Client) FederatedNotificationReceivers() FederatedNotificationReceiverInterface {
+	return newFederatedNotificationReceivers(c)
+}
+
+func (c *TypesV1beta2Client) FederatedNotificationRouters() FederatedNotificationRouterInterface {
+	return newFederatedNotificationRouters(c)
+}
+
+func (c *TypesV1beta2Client) FederatedNotificationSilences() FederatedNotificationSilenceInterface {
+	return newFederatedNotificationSilences(c)
 }
 
 // NewForConfig creates a new TypesV1beta2Client for the given config.

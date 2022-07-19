@@ -45,6 +45,8 @@ func Resource(resource string) schema.GroupResource {
 
 func init() {
 	SchemeBuilder.Register(
+		&FederatedNotificationManager{},
+		&FederatedNotificationManagerList{},
 		&FederatedNotificationConfig{},
 		&FederatedNotificationConfigList{},
 		&FederatedNotificationReceiver{},

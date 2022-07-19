@@ -32,6 +32,10 @@ func (c *FakeNotificationV2beta2) Configs() v2beta2.ConfigInterface {
 	return &FakeConfigs{c}
 }
 
+func (c *FakeNotificationV2beta2) NotificationManagers() v2beta2.NotificationManagerInterface {
+	return &FakeNotificationManagers{c}
+}
+
 func (c *FakeNotificationV2beta2) Receivers() v2beta2.ReceiverInterface {
 	return &FakeReceivers{c}
 }

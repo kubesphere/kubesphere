@@ -30,13 +30,13 @@ const (
 	FederatedNotificationConfigKind             = "FederatedNotificationConfig"
 )
 
+// +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
+
 type FederatedNotificationConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -57,8 +57,8 @@ type NotificationConfigTemplate struct {
 	Spec              v2beta2.ConfigSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 
 // FederatedNotificationConfigList contains a list of federatednotificationconfiglists
 type FederatedNotificationConfigList struct {

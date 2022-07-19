@@ -47,6 +47,7 @@ import (
 
 const (
 	Secret              = "secrets"
+	ConfigMap           = "configmaps"
 	VerificationAPIPath = "/api/v2/verify"
 
 	V2beta1 = "v2beta1"
@@ -144,7 +145,7 @@ func (o *operator) list(user, resource, version, subresource string, q *query.Qu
 	q.LabelSelector = q.LabelSelector + filter
 
 	ns := ""
-	if resource == Secret {
+	if resource == Secret || resource == ConfigMap {
 		ns = constants.NotificationSecretNamespace
 	}
 
@@ -193,7 +194,7 @@ func (o *operator) get(user, resource, version, name, subresource string) (runti
 	}
 
 	ns := ""
-	if resource == Secret {
+	if resource == Secret || resource == ConfigMap {
 		ns = constants.NotificationSecretNamespace
 	}
 
@@ -208,7 +209,7 @@ func (o *operator) get(user, resource, version, name, subresource string) (runti
 		return nil, err
 	}
 
-	if subresource == "" || resource == Secret {
+	if subresource == "" || resource == Secret || resource == ConfigMap {
 		return obj, nil
 	}
 
@@ -264,8 +265,10 @@ func (o *operator) create(user, resource, version string, obj runtime.Object) (r
 		return o.ksClient.NotificationV2beta2().Routers().Create(context.Background(), obj.(*v2beta2.Router), v1.CreateOptions{})
 	case v2beta2.ResourcesPluralSilence:
 		return o.ksClient.NotificationV2beta2().Silences().Create(context.Background(), obj.(*v2beta2.Silence), v1.CreateOptions{})
-	case "secrets":
+	case Secret:
 		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Create(context.Background(), obj.(*corev1.Secret), v1.CreateOptions{})
+	case ConfigMap:
+		return o.k8sClient.CoreV1().ConfigMaps(constants.NotificationSecretNamespace).Create(context.Background(), obj.(*corev1.ConfigMap), v1.CreateOptions{})
 	default:
 		return nil, errors.NewInternalError(nil)
 	}
@@ -309,8 +312,10 @@ func (o *operator) delete(user, resource, name string) error {
 		return o.ksClient.NotificationV2beta2().Routers().Delete(context.Background(), name, v1.DeleteOptions{})
 	case v2beta2.ResourcesPluralSilence:
 		return o.ksClient.NotificationV2beta2().Silences().Delete(context.Background(), name, v1.DeleteOptions{})
-	case "secrets":
+	case Secret:
 		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Delete(context.Background(), name, v1.DeleteOptions{})
+	case ConfigMap:
+		return o.k8sClient.CoreV1().ConfigMaps(constants.NotificationSecretNamespace).Delete(context.Background(), name, v1.DeleteOptions{})
 	default:
 		return errors.NewInternalError(nil)
 	}
@@ -366,8 +371,10 @@ func (o *operator) update(user, resource, version, name string, obj runtime.Obje
 		return o.ksClient.NotificationV2beta2().Routers().Update(context.Background(), obj.(*v2beta2.Router), v1.UpdateOptions{})
 	case v2beta2.ResourcesPluralSilence:
 		return o.ksClient.NotificationV2beta2().Silences().Update(context.Background(), obj.(*v2beta2.Silence), v1.UpdateOptions{})
-	case "secrets":
+	case Secret:
 		return o.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).Update(context.Background(), obj.(*corev1.Secret), v1.UpdateOptions{})
+	case ConfigMap:
+		return o.k8sClient.CoreV1().ConfigMaps(constants.NotificationSecretNamespace).Update(context.Background(), obj.(*corev1.ConfigMap), v1.UpdateOptions{})
 	default:
 		return nil, errors.NewInternalError(nil)
 	}
@@ -400,6 +407,8 @@ func (o *operator) GetObject(resource, version string) runtime.Object {
 		return &v2beta2.Silence{}
 	case Secret:
 		return &corev1.Secret{}
+	case ConfigMap:
+		return &corev1.ConfigMap{}
 	default:
 		return nil
 	}
@@ -559,7 +568,7 @@ func appendLabel(user, resource string, obj runtime.Object) error {
 		labels = make(map[string]string)
 	}
 
-	if resource == Secret {
+	if resource == Secret || resource == ConfigMap {
 		labels[constants.NotificationManagedLabel] = "true"
 	}
 

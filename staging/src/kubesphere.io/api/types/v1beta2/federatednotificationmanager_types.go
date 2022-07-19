@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	ResourcePluralFederatedNotificationSilence   = "federatednotificationsilences"
-	ResourceSingularFederatedNotificationSilence = "federatednotificationsilence"
-	FederatedNotificationSilenceKind             = "FederatedNotificationSilence"
+	ResourcePluralFederatedNotificationManager   = "federatednotificationmanagers"
+	ResourceSingularFederatedNotificationManager = "federatednotificationmanager"
+	FederatedNotificationManagerKind             = "FederatedNotificationManager"
 )
 
 // +genclient
@@ -34,32 +34,32 @@ const (
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
 
-type FederatedNotificationSilence struct {
+type FederatedNotificationManager struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              FederatedNotificationSilenceSpec `json:"spec"`
+	Spec              FederatedNotificationManagerSpec `json:"spec"`
 
 	Status *GenericFederatedStatus `json:"status,omitempty"`
 }
 
-type FederatedNotificationSilenceSpec struct {
-	Template  NotificationSilenceTemplate `json:"template"`
+type FederatedNotificationManagerSpec struct {
+	Template  NotificationManagerTemplate `json:"template"`
 	Placement GenericPlacementFields      `json:"placement"`
 	Overrides []GenericOverrideItem       `json:"overrides,omitempty"`
 }
 
-type NotificationSilenceTemplate struct {
+type NotificationManagerTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              v2beta2.SilenceSpec `json:"spec,omitempty"`
+	Spec              v2beta2.NotificationManagerSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 
-// FederatedNotificationSilenceList contains a list of federatednotificationsilencelists
-type FederatedNotificationSilenceList struct {
+// FederatedNotificationManagerList contains a list of federatednotificationmanagerlists
+type FederatedNotificationManagerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FederatedNotificationSilence `json:"items"`
+	Items           []FederatedNotificationManager `json:"items"`
 }

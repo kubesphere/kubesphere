@@ -313,10 +313,10 @@ type Options struct {
 type NotificationManagerStatus struct {
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Cluster,shortName=nm,categories=notification-manager
-// +kubebuilder:subresource:status
-// +kubebuilder:storageversion
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 
 // NotificationManager is the Schema for the notificationmanagers API
 type NotificationManager struct {
@@ -327,7 +327,8 @@ type NotificationManager struct {
 	Status NotificationManagerStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 
 // NotificationManagerList contains a list of NotificationManager
 type NotificationManagerList struct {
