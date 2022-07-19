@@ -53,7 +53,14 @@ function error_exit {
 }
 trap "error_exit" EXIT
 
-echo 'running golangci-lint '
+# Show only new issues created after git revision rev
+rev="${REV:-origin/master}"
+if [ -n "${PULL_BASE_REF}" ];then
+  echo "prow pull ref: ${PULL_BASE_REF}"
+  rev=origin/${PULL_BASE_REF}
+fi
+
+echo "running golangci-lint: REV=${rev} "
 golangci-lint run \
   --timeout 30m \
   --disable-all \
@@ -65,4 +72,5 @@ golangci-lint run \
   -E gosimple \
   -E bodyclose \
   --skip-dirs pkg/client \
+  --new-from-rev="${rev}" \
   pkg/... cmd/... tools/... test/... kube/...
