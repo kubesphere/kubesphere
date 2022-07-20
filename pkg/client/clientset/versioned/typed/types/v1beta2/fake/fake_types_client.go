@@ -21,10 +21,31 @@ package fake
 import (
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
+	v1beta2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/types/v1beta2"
 )
 
 type FakeTypesV1beta2 struct {
 	*testing.Fake
+}
+
+func (c *FakeTypesV1beta2) FederatedNotificationConfigs() v1beta2.FederatedNotificationConfigInterface {
+	return &FakeFederatedNotificationConfigs{c}
+}
+
+func (c *FakeTypesV1beta2) FederatedNotificationManagers() v1beta2.FederatedNotificationManagerInterface {
+	return &FakeFederatedNotificationManagers{c}
+}
+
+func (c *FakeTypesV1beta2) FederatedNotificationReceivers() v1beta2.FederatedNotificationReceiverInterface {
+	return &FakeFederatedNotificationReceivers{c}
+}
+
+func (c *FakeTypesV1beta2) FederatedNotificationRouters() v1beta2.FederatedNotificationRouterInterface {
+	return &FakeFederatedNotificationRouters{c}
+}
+
+func (c *FakeTypesV1beta2) FederatedNotificationSilences() v1beta2.FederatedNotificationSilenceInterface {
+	return &FakeFederatedNotificationSilences{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

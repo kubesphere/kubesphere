@@ -38,6 +38,7 @@ import (
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 	v1beta1 "kubesphere.io/api/types/v1beta1"
+	v1beta2 "kubesphere.io/api/types/v1beta2"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -143,6 +144,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		// Group=notification.kubesphere.io, Version=v2beta2
 	case v2beta2.SchemeGroupVersion.WithResource("configs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta2().Configs().Informer()}, nil
+	case v2beta2.SchemeGroupVersion.WithResource("notificationmanagers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta2().NotificationManagers().Informer()}, nil
 	case v2beta2.SchemeGroupVersion.WithResource("receivers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta2().Receivers().Informer()}, nil
 	case v2beta2.SchemeGroupVersion.WithResource("routers"):
@@ -205,6 +208,18 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedServices().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatedstatefulsets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedStatefulSets().Informer()}, nil
+
+		// Group=types.kubefed.io, Version=v1beta2
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationconfigs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationConfigs().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationmanagers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationManagers().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationreceivers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationReceivers().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationrouters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationRouters().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationsilences"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationSilences().Informer()}, nil
 
 	}
 

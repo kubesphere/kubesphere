@@ -27,12 +27,13 @@ const (
 	FederatedNotificationRouterKind             = "FederatedNotificationRouter"
 )
 
+// +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
+
 type FederatedNotificationRouter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -53,8 +54,8 @@ type NotificationRouterTemplate struct {
 	Spec              v2beta2.RouterSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 
 // FederatedNotificationRouterList contains a list of federatednotificationrouterlists
 type FederatedNotificationRouterList struct {

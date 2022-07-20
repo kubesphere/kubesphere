@@ -27,6 +27,7 @@ import (
 type NotificationV2beta2Interface interface {
 	RESTClient() rest.Interface
 	ConfigsGetter
+	NotificationManagersGetter
 	ReceiversGetter
 	RoutersGetter
 	SilencesGetter
@@ -39,6 +40,10 @@ type NotificationV2beta2Client struct {
 
 func (c *NotificationV2beta2Client) Configs() ConfigInterface {
 	return newConfigs(c)
+}
+
+func (c *NotificationV2beta2Client) NotificationManagers() NotificationManagerInterface {
+	return newNotificationManagers(c)
 }
 
 func (c *NotificationV2beta2Client) Receivers() ReceiverInterface {
