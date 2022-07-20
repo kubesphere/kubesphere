@@ -44,6 +44,7 @@ find_files() {
         -o -wholename '*/third_party/*' \
         -o -wholename '*/vendor/*' \
         -o -wholename './staging/src/kubesphere.io/client-go/*vendor/*' \
+        -o -wholename './staging/src/kubesphere.io/api/*/zz_generated.deepcopy.go' \
         -o -wholename '*/bindata.go' \
       \) -prune \
     \) -name '*.go'
