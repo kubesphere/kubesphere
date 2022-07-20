@@ -69,7 +69,7 @@ func AddToContainer(
 		To(h.ListResource).
 		Doc("list the notification resources").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resources", "known values include configs, receivers, secrets, routers, silences, configmaps")).
+		Param(ws.PathParameter("resources", "known values include notificationmanagers, configs, receivers, secrets, routers, silences, configmaps")).
 		Param(ws.QueryParameter(query.ParameterName, "name used for filtering").Required(false)).
 		Param(ws.QueryParameter(query.ParameterLabelSelector, "label selector used for filtering").Required(false)).
 		Param(ws.QueryParameter("type", "config or receiver type, known values include dingtalk, email, feishu, slack, webhook, wechat").Required(false)).
@@ -83,7 +83,7 @@ func AddToContainer(
 		To(h.GetResource).
 		Doc("get the specified notification resources").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resources", "known values include configs, receivers, secrets, routers, silences, configmaps")).
+		Param(ws.PathParameter("resources", "known values include notificationmanagers, configs, receivers, secrets, routers, silences, configmaps")).
 		Param(ws.PathParameter(query.ParameterName, "the name of the resource")).
 		Param(ws.QueryParameter("type", "config or receiver type, known values include dingtalk, feishu, email, slack, webhook, wechat").Required(false)).
 		Returns(http.StatusOK, api.StatusOK, nil))
@@ -92,14 +92,22 @@ func AddToContainer(
 		To(h.CreateResource).
 		Doc("create a notification resources").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resources", "known values include configs, receivers, secrets, routers, silences, configmaps")).
+		Param(ws.PathParameter("resources", "known values include notificationmanagers, configs, receivers, secrets, routers, silences, configmaps")).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	ws.Route(ws.PUT("/{resources}/{name}").
 		To(h.UpdateResource).
 		Doc("update the specified notification resources").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
-		Param(ws.PathParameter("resources", "known values include configs, receivers, secrets, routers, silences, configmaps")).
+		Param(ws.PathParameter("resources", "known values include notificationmanagers, configs, receivers, secrets, routers, silences, configmaps")).
+		Param(ws.PathParameter(query.ParameterName, "the name of the resource")).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.PATCH("/{resources}/{name}").
+		To(h.PatchResource).
+		Doc("patch the specified notification resources").
+		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
+		Param(ws.PathParameter("resources", "known values include notificationmanagers, configs, receivers, secrets, routers, silences, configmaps")).
 		Param(ws.PathParameter(query.ParameterName, "the name of the resource")).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
@@ -148,6 +156,15 @@ func AddToContainer(
 	ws.Route(ws.PUT("/users/{user}/{resources}/{name}").
 		To(h.UpdateResource).
 		Doc("update the specified notification resources").
+		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
+		Param(ws.PathParameter("user", "user name")).
+		Param(ws.PathParameter("resources", "known values include configs, receivers, secrets, silences, configmaps")).
+		Param(ws.PathParameter(query.ParameterName, "the name of the resource")).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.PATCH("/users/{user}/{resources}/{name}").
+		To(h.PatchResource).
+		Doc("Patch the specified notification resources").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
 		Param(ws.PathParameter("user", "user name")).
 		Param(ws.PathParameter("resources", "known values include configs, receivers, secrets, silences, configmaps")).
