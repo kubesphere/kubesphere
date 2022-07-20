@@ -328,7 +328,7 @@ func isValidShell(validShells []string, shell string) bool {
 
 func (t *terminaler) HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn) {
 	var err error
-	validShells := []string{"sh", "bash"}
+	validShells := []string{"bash", "sh"}
 
 	session := &TerminalSession{conn: conn, sizeChan: make(chan remotecommand.TerminalSize)}
 
