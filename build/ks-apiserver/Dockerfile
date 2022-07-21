@@ -14,8 +14,8 @@ WORKDIR /tmp
 RUN apk add --no-cache ca-certificates
 
 
-# Build 
-FROM golang:1.16.3 as build_context
+# Build
+FROM golang:1.18.4 as build_context
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin/
@@ -30,7 +30,7 @@ RUN mv /workspace/bin/cmd/ks-apiserver ${OUTDIR}/usr/local/bin/
 # Final image
 #############
 
-FROM alpine:3.11 
+FROM alpine:3.11
 
 COPY --from=base_os_context /out/ /
 COPY --from=build_context /out/ /
