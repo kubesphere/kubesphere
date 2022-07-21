@@ -25,6 +25,8 @@ import (
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
 	clientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	alertingv2beta1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/alerting/v2beta1"
+	fakealertingv2beta1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/alerting/v2beta1/fake"
 	applicationv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
 	fakeapplicationv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1/fake"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/auditing/v1alpha1"
@@ -105,6 +107,11 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 }
 
 var _ clientset.Interface = &Clientset{}
+
+// AlertingV2beta1 retrieves the AlertingV2beta1Client
+func (c *Clientset) AlertingV2beta1() alertingv2beta1.AlertingV2beta1Interface {
+	return &fakealertingv2beta1.FakeAlertingV2beta1{Fake: &c.Fake}
+}
 
 // ApplicationV1alpha1 retrieves the ApplicationV1alpha1Client
 func (c *Clientset) ApplicationV1alpha1() applicationv1alpha1.ApplicationV1alpha1Interface {
