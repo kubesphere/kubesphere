@@ -96,6 +96,7 @@ deploy: manifests ;$(info $(M)...Begin to deploy.)  @ ## Deploy.
 mockgen: ;$(info $(M)...Begin to mockgen.)  @ ## Mockgen.
 	mockgen -package=openpitrix -source=pkg/simple/client/openpitrix/openpitrix.go -destination=pkg/simple/client/openpitrix/mock.go
 
+# Deprecated deepcopy cause we will replace deepcopy-gen with controller-gen
 deepcopy: ;$(info $(M)...Begin to deepcopy.)  @ ## Deepcopy.
 	hack/generate_group.sh "deepcopy" kubesphere.io/api kubesphere.io/api ${GV} --output-base=staging/src/  -h "hack/boilerplate.go.txt"
 
@@ -153,6 +154,7 @@ clean: ;$(info $(M)...Begin to clean.)  @ ## Clean.
 	-make -C ./pkg/version clean
 	@echo "ok"
 
+# Deprecated clientset cause we will replace code-generate with controller-runtime cache
 clientset:  ;$(info $(M)...Begin to find or download controller-gen.)  @ ## Find or download controller-gen,download controller-gen if necessary.
 	./hack/generate_client.sh ${GV}
 
