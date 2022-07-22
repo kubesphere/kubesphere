@@ -506,6 +506,7 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 			notificationv2beta1.ResourcesPluralReceiver,
 		},
 		{Group: "notification.kubesphere.io", Version: "v2beta2"}: {
+			notificationv2beta2.ResourcesPluralNotificationManager,
 			notificationv2beta2.ResourcesPluralConfig,
 			notificationv2beta2.ResourcesPluralReceiver,
 			notificationv2beta2.ResourcesPluralRouter,

@@ -16,6 +16,8 @@
 package v2beta2
 
 import (
+	"io/ioutil"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
@@ -116,6 +118,27 @@ func (h *handler) UpdateResource(req *restful.Request, resp *restful.Response) {
 
 	updated, err := h.operator.Update(user, resource, name, obj)
 	handleResponse(req, resp, updated, err)
+}
+
+func (h *handler) PatchResource(req *restful.Request, resp *restful.Response) {
+
+	user := req.PathParameter("user")
+	resource := req.PathParameter("resources")
+	name := req.PathParameter("name")
+
+	if !h.operator.IsKnownResource(resource, nmoperator.V2beta2, "") {
+		api.HandleBadRequest(resp, req, servererr.New("unknown resource type %s", resource))
+		return
+	}
+
+	data, err := ioutil.ReadAll(req.Request.Body)
+	if err != nil {
+		api.HandleBadRequest(resp, req, err)
+		return
+	}
+
+	patched, err := h.operator.Patch(user, resource, name, data)
+	handleResponse(req, resp, patched, err)
 }
 
 func (h *handler) DeleteResource(req *restful.Request, resp *restful.Response) {

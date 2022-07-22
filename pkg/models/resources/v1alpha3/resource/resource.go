@@ -143,6 +143,7 @@ func NewResourceGetter(factory informers.InformerFactory, cache cache.Cache) *Re
 	clusterResourceGetters[rbacv1.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralClusterRole)] = clusterrole.New(factory.KubernetesSharedInformerFactory())
 	clusterResourceGetters[rbacv1.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralClusterRoleBinding)] = clusterrolebinding.New(factory.KubernetesSharedInformerFactory())
 	clusterResourceGetters[clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster)] = cluster.New(factory.KubeSphereSharedInformerFactory())
+	clusterResourceGetters[notificationv2beta2.SchemeGroupVersion.WithResource(notificationv2beta2.ResourcesPluralNotificationManager)] = notification.NewNotificationManagerGetter(factory.KubeSphereSharedInformerFactory())
 	clusterResourceGetters[notificationv2beta2.SchemeGroupVersion.WithResource(notificationv2beta2.ResourcesPluralConfig)] = notification.NewNotificationConfigGetter(factory.KubeSphereSharedInformerFactory())
 	clusterResourceGetters[notificationv2beta2.SchemeGroupVersion.WithResource(notificationv2beta2.ResourcesPluralReceiver)] = notification.NewNotificationReceiverGetter(factory.KubeSphereSharedInformerFactory())
 	clusterResourceGetters[notificationv2beta2.SchemeGroupVersion.WithResource(notificationv2beta2.ResourcesPluralRouter)] = notification.NewNotificationRouterGetter(factory.KubeSphereSharedInformerFactory())

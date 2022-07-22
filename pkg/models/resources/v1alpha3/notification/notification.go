@@ -28,6 +28,31 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 )
 
+type notificationmanagerGetter struct {
+	ksInformer ksinformers.SharedInformerFactory
+}
+
+func NewNotificationManagerGetter(informer ksinformers.SharedInformerFactory) v1alpha3.Interface {
+	return &notificationmanagerGetter{ksInformer: informer}
+}
+
+func (g *notificationmanagerGetter) Get(_, name string) (runtime.Object, error) {
+	return g.ksInformer.Notification().V2beta2().NotificationManagers().Lister().Get(name)
+}
+
+func (g *notificationmanagerGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
+	objs, err := g.ksInformer.Notification().V2beta2().NotificationManagers().Lister().List(query.Selector())
+	if err != nil {
+		return nil, err
+	}
+
+	var result []runtime.Object
+	for _, obj := range objs {
+		result = append(result, obj)
+	}
+	return v1alpha3.DefaultList(result, query, compare, filter), nil
+}
+
 type configGetter struct {
 	ksInformer ksinformers.SharedInformerFactory
 }
