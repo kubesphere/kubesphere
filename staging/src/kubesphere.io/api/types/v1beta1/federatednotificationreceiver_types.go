@@ -61,3 +61,5 @@ type FederatedNotificationReceiverList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedNotificationReceiver `json:"items"`
 }
+
+func (_ *FederatedNotificationReceiver) Hub() {}

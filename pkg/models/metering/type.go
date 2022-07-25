@@ -159,8 +159,6 @@ func (as *AppStatistic) Aggregate() {
 		as.NetBytesReceived += daemonsetObj.NetBytesReceived
 		as.PVCBytesTotal += daemonsetObj.PVCBytesTotal
 	}
-
-	return
 }
 
 type ServiceStatistic struct {

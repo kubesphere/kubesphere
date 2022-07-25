@@ -18,7 +18,6 @@ package workspacerolebinding
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -55,7 +54,7 @@ var _ = Describe("WorkspaceRoleBinding", func() {
 		It("Should create successfully", func() {
 			workspaceAdminBinding := &iamv1alpha2.WorkspaceRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   fmt.Sprintf("admin-workspace1-admin"),
+					Name:   "admin-workspace1-admin",
 					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: workspace.Name},
 				},
 				RoleRef: rbacv1.RoleRef{

@@ -46,7 +46,7 @@ func TestOpenPitrixCategory(t *testing.T) {
 	}
 
 	// add category to indexer
-	ctgs, err := ksClient.ApplicationV1alpha1().HelmCategories().List(context.TODO(), metav1.ListOptions{})
+	ctgs, _ := ksClient.ApplicationV1alpha1().HelmCategories().List(context.TODO(), metav1.ListOptions{})
 	for _, ctg := range ctgs.Items {
 		err := fakeInformerFactory.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmCategories().
 			Informer().GetIndexer().Add(&ctg)

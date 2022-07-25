@@ -53,6 +53,7 @@ func AddToContainer(
 
 	// apis for global notification config, receiver, and secret
 	ws.Route(ws.GET("/{resources}").
+		Deprecate().
 		To(h.ListResource).
 		Doc("list the notification configs or receivers").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -67,6 +68,7 @@ func AddToContainer(
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{}}))
 
 	ws.Route(ws.GET("/{resources}/{name}").
+		Deprecate().
 		To(h.GetResource).
 		Doc("get the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -76,6 +78,7 @@ func AddToContainer(
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	ws.Route(ws.POST("/{resources}").
+		Deprecate().
 		To(h.CreateResource).
 		Doc("create a notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -83,6 +86,7 @@ func AddToContainer(
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	ws.Route(ws.PUT("/{resources}/{name}").
+		Deprecate().
 		To(h.UpdateResource).
 		Doc("update the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -91,6 +95,7 @@ func AddToContainer(
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	ws.Route(ws.DELETE("/{resources}/{name}").
+		Deprecate().
 		To(h.DeleteResource).
 		Doc("delete the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -100,6 +105,7 @@ func AddToContainer(
 
 	// apis for tenant notification config and receiver
 	ws.Route(ws.GET("/users/{user}/{resources}").
+		Deprecate().
 		To(h.ListResource).
 		Doc("list the notification configs or receivers").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -115,6 +121,7 @@ func AddToContainer(
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{}}))
 
 	ws.Route(ws.GET("/users/{user}/{resources}/{name}").
+		Deprecate().
 		To(h.GetResource).
 		Doc("get the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -125,6 +132,7 @@ func AddToContainer(
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	ws.Route(ws.POST("/users/{user}/{resources}").
+		Deprecate().
 		To(h.CreateResource).
 		Doc("create the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -133,6 +141,7 @@ func AddToContainer(
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	ws.Route(ws.PUT("/users/{user}/{resources}/{name}").
+		Deprecate().
 		To(h.UpdateResource).
 		Doc("update the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).
@@ -142,6 +151,7 @@ func AddToContainer(
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	ws.Route(ws.DELETE("/users/{user}/{resources}/{name}").
+		Deprecate().
 		To(h.DeleteResource).
 		Doc("delete the specified notification config or receiver").
 		Metadata(KeyOpenAPITags, []string{constants.NotificationTag}).

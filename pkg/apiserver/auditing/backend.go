@@ -156,7 +156,7 @@ func (b *Backend) sendEvents(events *v1alpha1.EventList) {
 		start := time.Now()
 		defer func() {
 			stopCh <- struct{}{}
-			klog.V(8).Infof("send %d auditing logs used %d", len(events.Items), time.Now().Sub(start).Milliseconds())
+			klog.V(8).Infof("send %d auditing logs used %d", len(events.Items), time.Since(start).Milliseconds())
 		}()
 
 		bs, err := b.eventToBytes(events)
@@ -172,6 +172,7 @@ func (b *Backend) sendEvents(events *v1alpha1.EventList) {
 			klog.Errorf("send audit events error, %s", err)
 			return
 		}
+		defer response.Body.Close()
 
 		if response.StatusCode != http.StatusOK {
 			klog.Errorf("send audit events error[%d]", response.StatusCode)

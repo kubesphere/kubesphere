@@ -189,43 +189,6 @@ func newDestinationRule(name string, host string, labels map[string]string, subs
 	return &dr
 }
 
-func newStrategy(name string, service *v1.Service, principalVersion string) *v1alpha2.Strategy {
-	st := v1alpha2.Strategy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        name,
-			Namespace:   service.Namespace,
-			Labels:      NewLabels().WithApp(""),
-			Annotations: nil,
-		},
-		Spec: v1alpha2.StrategySpec{
-			Type:             v1alpha2.CanaryType,
-			PrincipalVersion: principalVersion,
-			GovernorVersion:  "",
-			Template: v1alpha2.VirtualServiceTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{},
-				Spec: apiv1alpha3.VirtualService{
-					Hosts: []string{service.Name},
-					Http: []*apiv1alpha3.HTTPRoute{
-						{
-							Route: []*apiv1alpha3.HTTPRouteDestination{
-								{
-									Destination: &apiv1alpha3.Destination{
-										Host:   service.Name,
-										Subset: "",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			StrategyPolicy: v1alpha2.PolicyImmediately,
-		},
-	}
-
-	return &st
-}
-
 func toHost(service *v1.Service) string {
 	return fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace)
 }

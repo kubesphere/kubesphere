@@ -262,7 +262,7 @@ func (c *Controller) Approve(csr *certificatesv1.CertificateSigningRequest) erro
 	}
 
 	// approve csr
-	csr, err := c.k8sclient.CertificatesV1().CertificateSigningRequests().UpdateApproval(context.Background(), csr.Name, csr, metav1.UpdateOptions{})
+	_, err := c.k8sclient.CertificatesV1().CertificateSigningRequests().UpdateApproval(context.Background(), csr.Name, csr, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err

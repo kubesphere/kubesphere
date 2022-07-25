@@ -67,6 +67,7 @@ func (j *GlobalRole) Update(ids devops.GlobalPermissionIds) error {
 	if err != nil {
 		return err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -85,6 +86,7 @@ func (j *GlobalRole) AssignRole(sid string) error {
 	if err != nil {
 		return err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -102,6 +104,7 @@ func (j *GlobalRole) UnAssignRole(sid string) error {
 	if err != nil {
 		return err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -131,6 +134,7 @@ func (j *ProjectRole) Update(pattern string, ids devops.ProjectPermissionIds) er
 	if err != nil {
 		return err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -148,6 +152,7 @@ func (j *ProjectRole) AssignRole(sid string) error {
 	if err != nil {
 		return err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New(strconv.Itoa(response.StatusCode))
 	}
@@ -165,6 +170,7 @@ func (j *ProjectRole) UnAssignRole(sid string) error {
 	if err != nil {
 		return err
 	}
+	response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New(strconv.Itoa(response.StatusCode))
 	}

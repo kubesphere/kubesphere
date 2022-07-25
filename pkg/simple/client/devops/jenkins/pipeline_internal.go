@@ -269,6 +269,7 @@ func appendMultiBranchJobTriggerToEtree(properties *etree.Element, s *devopsv1al
 	triggerProperty.CreateAttr("plugin", "multibranch-action-triggers")
 	triggerProperty.CreateElement("createActionJobsToTrigger").SetText(s.CreateActionJobsToTrigger)
 	triggerProperty.CreateElement("deleteActionJobsToTrigger").SetText(s.DeleteActionJobsToTrigger)
+	//nolint:gosimple
 	return
 }
 

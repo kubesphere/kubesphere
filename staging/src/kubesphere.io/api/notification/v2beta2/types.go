@@ -17,6 +17,10 @@ limitations under the License.
 package v2beta2
 
 const (
+	ResourceKindNotificationManager      = "NotificationManagers"
+	ResourcesSingularNotificationManager = "notificationmanager"
+	ResourcesPluralNotificationManager   = "notificationmanagers"
+
 	ResourceKindConfig      = "Configs"
 	ResourcesSingularConfig = "config"
 	ResourcesPluralConfig   = "configs"
@@ -24,4 +28,12 @@ const (
 	ResourceKindReceiver      = "Receiver"
 	ResourcesSingularReceiver = "receiver"
 	ResourcesPluralReceiver   = "receivers"
+
+	ResourceKindRouter      = "Router"
+	ResourcesSingularRouter = "router"
+	ResourcesPluralRouter   = "routers"
+
+	ResourceKindSilence      = "Silence"
+	ResourcesSingularSilence = "silence"
+	ResourcesPluralSilence   = "silences"
 )

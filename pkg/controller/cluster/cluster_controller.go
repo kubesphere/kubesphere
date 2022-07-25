@@ -79,16 +79,10 @@ const (
 	maxRetries = 15
 
 	kubefedNamespace  = "kube-federation-system"
-	openpitrixRuntime = "openpitrix.io/runtime"
 	kubesphereManaged = "kubesphere.io/managed"
 
 	// Actually host cluster name can be anything, there is only necessary when calling JoinFederation function
 	hostClusterName = "kubesphere"
-
-	// allocate kubernetesAPIServer port in range [portRangeMin, portRangeMax] for agents if port is not specified
-	// kubesphereAPIServer port is defaulted to kubernetesAPIServerPort + 10000
-	portRangeMin = 6000
-	portRangeMax = 7000
 
 	// proxy format
 	proxyFormat = "%s/api/v1/namespaces/kubesphere-system/services/:ks-apiserver:80/proxy/%s"
@@ -96,8 +90,9 @@ const (
 	// mulitcluster configuration name
 	configzMultiCluster = "multicluster"
 
-	// probe cluster timeout
-	probeClusterTimeout = 3 * time.Second
+	NotificationCleanup   = "notification.kubesphere.io/cleanup"
+	notificationAPIFormat = "%s/apis/notification.kubesphere.io/v2beta2/%s/%s"
+	secretAPIFormat       = "%s/api/v1/namespaces/%s/secrets/%s"
 )
 
 // Cluster template for reconcile host cluster if there is none.
@@ -356,6 +351,14 @@ func (c *clusterController) syncCluster(key string) error {
 				klog.Errorf("Failed to sync cluster members for %s: %v", name, err)
 				return err
 			}
+
+			if cluster.Annotations[NotificationCleanup] == "true" {
+				if err := c.cleanupNotification(cluster); err != nil {
+					klog.Errorf("Failed to cleanup notification config in cluster %s: %v", name, err)
+					return err
+				}
+			}
+
 			// remove our cluster finalizer
 			finalizers := sets.NewString(cluster.ObjectMeta.Finalizers...)
 			finalizers.Delete(clusterv1alpha1.Finalizer)
@@ -372,7 +375,7 @@ func (c *clusterController) syncCluster(key string) error {
 
 	// currently we didn't set cluster.Spec.Enable when creating cluster at client side, so only check
 	// if we enable cluster.Spec.JoinFederation now
-	if cluster.Spec.JoinFederation == false {
+	if !cluster.Spec.JoinFederation {
 		klog.V(5).Infof("Skipping to join cluster %s cause it is not expected to join", cluster.Name)
 		return nil
 	}
@@ -590,6 +593,8 @@ func (c *clusterController) tryToFetchKubeSphereComponents(host string, transpor
 		return nil, err
 	}
 
+	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
 		klog.V(4).Infof("Response status code isn't 200.")
 		return nil, fmt.Errorf("response code %d", response.StatusCode)
@@ -615,6 +620,8 @@ func (c *clusterController) tryFetchKubeSphereVersion(host string, transport htt
 	if err != nil {
 		return "", err
 	}
+
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		klog.V(4).Infof("Response status code isn't 200.")
@@ -669,16 +676,6 @@ func (c *clusterController) handleErr(err error, key interface{}) {
 	klog.V(4).Infof("Dropping cluster %s out of the queue.", key)
 	c.queue.Forget(key)
 	utilruntime.HandleError(err)
-}
-
-// isConditionTrue checks cluster specific condition value is True, return false if condition not exists
-func isConditionTrue(cluster *clusterv1alpha1.Cluster, conditionType clusterv1alpha1.ClusterConditionType) bool {
-	for _, condition := range cluster.Status.Conditions {
-		if condition.Type == conditionType && condition.Status == v1.ConditionTrue {
-			return true
-		}
-	}
-	return false
 }
 
 // updateClusterCondition updates condition in cluster conditions using giving condition
@@ -852,5 +849,112 @@ func (c *clusterController) syncClusterMembers(clusterClient *kubernetes.Clients
 			}
 		}
 	}
+	return nil
+}
+
+func (c *clusterController) cleanupNotification(cluster *clusterv1alpha1.Cluster) error {
+
+	clusterConfig, err := clientcmd.RESTConfigFromKubeConfig(cluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create cluster config for %s: %s", cluster.Name, err)
+	}
+
+	proxyTransport, err := rest.TransportFor(clusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create proxy transport for %s: %s", cluster.Name, err)
+	}
+
+	client := http.Client{
+		Transport: proxyTransport,
+		Timeout:   5 * time.Second,
+	}
+
+	doDelete := func(kind, name string) error {
+		url := fmt.Sprintf(notificationAPIFormat, clusterConfig.Host, kind, name)
+		req, err := http.NewRequest(http.MethodDelete, url, nil)
+		if err != nil {
+			return err
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("failed to delete notification %s %s in cluster %s, %s", kind, name, cluster.Name, resp.Status)
+		}
+
+		return nil
+	}
+
+	if fedConfigs, err := c.ksClient.TypesV1beta2().FederatedNotificationConfigs().List(context.Background(), metav1.ListOptions{}); err != nil {
+		return err
+	} else {
+		for _, fedConfig := range fedConfigs.Items {
+			if err := doDelete("configs", fedConfig.Name); err != nil {
+				return err
+			}
+		}
+	}
+
+	if fedReceivers, err := c.ksClient.TypesV1beta2().FederatedNotificationReceivers().List(context.Background(), metav1.ListOptions{}); err != nil {
+		return err
+	} else {
+		for _, fedReceiver := range fedReceivers.Items {
+			if err := doDelete("receivers", fedReceiver.Name); err != nil {
+				return err
+			}
+		}
+	}
+
+	if fedRouters, err := c.ksClient.TypesV1beta2().FederatedNotificationRouters().List(context.Background(), metav1.ListOptions{}); err != nil {
+		return err
+	} else {
+		for _, fedRouter := range fedRouters.Items {
+			if err := doDelete("routers", fedRouter.Name); err != nil {
+				return err
+			}
+		}
+	}
+
+	if fedSilences, err := c.ksClient.TypesV1beta2().FederatedNotificationSilences().List(context.Background(), metav1.ListOptions{}); err != nil {
+		return err
+	} else {
+		for _, fedSilence := range fedSilences.Items {
+			if err := doDelete("silences", fedSilence.Name); err != nil {
+				return err
+			}
+		}
+	}
+
+	selector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			constants.NotificationManagedLabel: "true",
+		},
+	}
+	if secrets, err := c.k8sClient.CoreV1().Secrets(constants.NotificationSecretNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: metav1.FormatLabelSelector(&selector)}); err != nil {
+		return err
+	} else {
+		for _, secret := range secrets.Items {
+			url := fmt.Sprintf(secretAPIFormat, clusterConfig.Host, constants.NotificationSecretNamespace, secret.Name)
+			req, err := http.NewRequest(http.MethodDelete, url, nil)
+			if err != nil {
+				return err
+			}
+
+			resp, err := client.Do(req)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
+				return fmt.Errorf("failed to delete notification secret %s in cluster %s, %s", secret.Name, cluster.Name, resp.Status)
+			}
+		}
+	}
+
 	return nil
 }

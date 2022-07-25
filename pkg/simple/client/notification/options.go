@@ -28,6 +28,7 @@ func NewNotificationOptions() *Options {
 
 func (s *Options) ApplyTo(options *Options) {
 	if options == nil {
+		//nolint:staticcheck
 		options = s
 		return
 	}

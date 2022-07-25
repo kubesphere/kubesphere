@@ -175,7 +175,6 @@ func (c *channelPool) Close() {
 	for conn := range conns {
 		conn.Close()
 	}
-	return
 }
 
 func (c *channelPool) Len() int { return len(c.getConns()) }

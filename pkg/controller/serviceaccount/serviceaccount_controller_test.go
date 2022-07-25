@@ -85,6 +85,7 @@ var _ = Describe("ServiceAccount", func() {
 			ctx := context.Background()
 
 			reconciler := &Reconciler{
+				//nolint:staticcheck
 				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
 				logger:   ctrl.Log.WithName("controllers").WithName("acrpullbinding-controller"),
 				scheme:   scheme.Scheme,
@@ -109,6 +110,7 @@ var _ = Describe("ServiceAccount", func() {
 			ctx := context.Background()
 
 			reconciler := &Reconciler{
+				//nolint:staticcheck
 				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
 				logger:   ctrl.Log.WithName("controllers").WithName("acrpullbinding-controller"),
 				scheme:   scheme.Scheme,

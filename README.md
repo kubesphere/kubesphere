@@ -119,7 +119,7 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 ## Latest release
 
-🎉 KubeSphere 3.2.1 was released on Dec 20! It brought enhancements and better user experience, see the [Release Notes For 3.2.1](https://kubesphere.io/docs/release/release-v321/) for the updates.
+🎉 KubeSphere 3.3.0 was released on June 24! It brought enhancements and better user experience, see the [Release Notes For 3.3.0](https://kubesphere.io/docs/release/release-v330/) for the updates.
 ## Installation
 
 KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster. The installer will start a minimal installation by default, you can [enable other pluggable components before or after installation](https://kubesphere.io/docs/quick-start/enable-pluggable-components/).
@@ -129,9 +129,9 @@ KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In 
 If your cluster meets the [prerequisites](https://kubesphere.io/docs/quick-start/minimal-kubesphere-on-k8s/#prerequisites), then run the following commands to install KubeSphere on an exiting Kubernetes cluster:
 
 ```yaml
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/kubesphere-installer.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.0/kubesphere-installer.yaml
    
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/cluster-configuration.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.0/cluster-configuration.yaml
 ```
 #### All-in-one
 
@@ -139,24 +139,21 @@ kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3
 
 ```yaml
 # Download KubeKey
-curl -sfL https://get-kk.kubesphere.io | VERSION=v2.0.0 sh -
+curl -sfL https://get-kk.kubesphere.io | VERSION=v2.2.1 sh -
 # Make kk executable
 chmod +x kk
 # Create a cluster
-./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.2.1
+./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.3.0
 ```
 
 You can run the following command to view the installation logs. After KubeSphere is successfully installed, you can access the KubeSphere web console at `http://IP:30880` and log in using the default administrator account (admin/P@88w0rd).
 
 ```yaml
-kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
+kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l 'app in (ks-install, ks-installer)' -o jsonpath='{.items[0].metadata.name}') -f
 ``` 
-### 🐯 Katacoda for quick learning
-
-[Katacoda](https://www.katacoda.com/) allows you to explore how to install KubeSphere on an existing Kubernetes cluster in a browser. You can start the [Katacoda scenario with KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes) in minutes.
 ### KubeSphere for hosted Kubernetes services
 
-KubeSphere is hosted on the following cloud providers, you can try KubeSphere by one-click installation on their hosted Kubernetes services. 
+KubeSphere is hosted on the following cloud providers, and you can try KubeSphere by one-click installation on their hosted Kubernetes services. 
 
 - [KubeSphere for Amazon EKS](https://aws.amazon.com/quickstart/architecture/qingcloud-kubesphere/)
 - [KubeSphere for Azure AKS](https://market.azure.cn/marketplace/apps/qingcloud.kubesphere)

@@ -147,10 +147,18 @@ type HuaweiSMS struct {
 	AppKey     *Credential `json:"appKey"`
 }
 
+// Sms AWS provider parameters
+type AWSSMS struct {
+	Region          string      `json:"region,omitempty"`
+	AccessKeyId     *Credential `json:"accessKeyId"`
+	SecretAccessKey *Credential `json:"secretAccessKey"`
+}
+
 type Providers struct {
 	Aliyun  *AliyunSMS  `json:"aliyun,omitempty"`
 	Tencent *TencentSMS `json:"tencent,omitempty"`
 	Huawei  *HuaweiSMS  `json:"huawei,omitempty"`
+	AWS     *AWSSMS     `json:"aws,omitempty"`
 }
 
 type SmsConfig struct {
@@ -166,6 +174,14 @@ type PushoverConfig struct {
 	PushoverTokenSecret *Credential `json:"pushoverTokenSecret"`
 }
 
+// FeishuConfig is the configuration of feishu application
+type FeishuConfig struct {
+	// The id of the application with which to send messages.
+	AppID *Credential `json:"appID"`
+	// The key in the secret to be used. Must be a valid secret key.
+	AppSecret *Credential `json:"appSecret"`
+}
+
 //ConfigSpec defines the desired state of Config
 type ConfigSpec struct {
 	DingTalk *DingTalkConfig `json:"dingtalk,omitempty"`
@@ -175,6 +191,7 @@ type ConfigSpec struct {
 	Wechat   *WechatConfig   `json:"wechat,omitempty"`
 	Sms      *SmsConfig      `json:"sms,omitempty"`
 	Pushover *PushoverConfig `json:"pushover,omitempty"`
+	Feishu   *FeishuConfig   `json:"feishu,omitempty"`
 }
 
 // ConfigStatus defines the observed state of Config
@@ -185,8 +202,10 @@ type ConfigStatus struct {
 // +kubebuilder:resource:scope=Cluster,shortName=nc,categories=notification-manager
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
+// +genclient
+// +genclient:nonNamespaced
 
-// Config is the Schema for the dingtalkconfigs API
+// Config is the Schema for the configs API
 type Config struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

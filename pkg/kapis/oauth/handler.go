@@ -655,7 +655,9 @@ func (h *handler) logout(req *restful.Request, resp *restful.Response) {
 
 	state := req.QueryParameter("state")
 	if state != "" {
-		redirectURL.Query().Add("state", state)
+		qry := redirectURL.Query()
+		qry.Add("state", state)
+		redirectURL.RawQuery = qry.Encode()
 	}
 
 	resp.Header().Set("Content-Type", "text/plain")

@@ -194,10 +194,11 @@ func (j *Job) GetAllBuildIds() ([]JobBuild, error) {
 	var buildsResp struct {
 		Builds []JobBuild `json:"allBuilds"`
 	}
-	_, err := j.Jenkins.Requester.GetJSON(j.Base, &buildsResp, map[string]string{"tree": "allBuilds[number,url]"})
+	rsp, err := j.Jenkins.Requester.GetJSON(j.Base, &buildsResp, map[string]string{"tree": "allBuilds[number,url]"})
 	if err != nil {
 		return nil, err
 	}
+	rsp.Body.Close()
 	return buildsResp.Builds, nil
 }
 
@@ -205,10 +206,11 @@ func (j *Job) GetAllBuildStatus() ([]JobBuildStatus, error) {
 	var buildsResp struct {
 		Builds []JobBuildStatus `json:"allBuilds"`
 	}
-	_, err := j.Jenkins.Requester.GetJSON(j.Base, &buildsResp, map[string]string{"tree": "allBuilds[number,building,result]"})
+	resp, err := j.Jenkins.Requester.GetJSON(j.Base, &buildsResp, map[string]string{"tree": "allBuilds[number,building,result]"})
 	if err != nil {
 		return nil, err
 	}
+	resp.Body.Close()
 	return buildsResp.Builds, nil
 }
 
@@ -277,6 +279,7 @@ func (j *Job) Enable() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return false, errors.New(strconv.Itoa(resp.StatusCode))
 	}
@@ -288,6 +291,7 @@ func (j *Job) Disable() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return false, errors.New(strconv.Itoa(resp.StatusCode))
 	}
@@ -299,6 +303,7 @@ func (j *Job) Delete() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return false, errors.New(strconv.Itoa(resp.StatusCode))
 	}
@@ -308,10 +313,11 @@ func (j *Job) Delete() (bool, error) {
 func (j *Job) Rename(name string) (bool, error) {
 	data := url.Values{}
 	data.Set("newName", name)
-	_, err := j.Jenkins.Requester.Post(j.Base+"/doRename", bytes.NewBufferString(data.Encode()), nil, nil)
+	resp, err := j.Jenkins.Requester.Post(j.Base+"/doRename", bytes.NewBufferString(data.Encode()), nil, nil)
 	if err != nil {
 		return false, err
 	}
+	resp.Body.Close()
 	j.Base = "/job/" + name
 	j.Poll()
 	return true, nil
@@ -326,6 +332,7 @@ func (j *Job) Create(config string, qr ...interface{}) (*Job, error) {
 	if err != nil {
 		return nil, err
 	}
+	resp.Body.Close()
 	if resp.StatusCode == 200 {
 		j.Poll()
 		return j, nil
@@ -339,6 +346,7 @@ func (j *Job) Copy(destinationName string) (*Job, error) {
 	if err != nil {
 		return nil, err
 	}
+	resp.Body.Close()
 	if resp.StatusCode == 200 {
 		newJob := &Job{Jenkins: j.Jenkins, Raw: new(JobResponse), Base: "/job/" + destinationName}
 		_, err := newJob.Poll()
@@ -358,6 +366,7 @@ func (j *Job) UpdateConfig(config string) error {
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	if resp.StatusCode == 200 {
 		j.Poll()
 		return nil
@@ -368,10 +377,11 @@ func (j *Job) UpdateConfig(config string) error {
 
 func (j *Job) GetConfig() (string, error) {
 	var data string
-	_, err := j.Jenkins.Requester.GetXML(j.Base+"/config.xml", &data, nil)
+	resp, err := j.Jenkins.Requester.GetXML(j.Base+"/config.xml", &data, nil)
 	if err != nil {
 		return "", err
 	}
+	resp.Body.Close()
 	return data, nil
 }
 
@@ -433,7 +443,7 @@ func (j *Job) InvokeSimple(params map[string]string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	resp.Body.Close()
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		return 0, errors.New("Could not invoke job " + j.GetName())
 	}
@@ -490,6 +500,7 @@ func (j *Job) Invoke(files []string, skipIfRunning bool, params map[string]strin
 	if err != nil {
 		return false, err
 	}
+	resp.Body.Close()
 	if resp.StatusCode == 200 || resp.StatusCode == 201 {
 		return true, nil
 	}
@@ -501,5 +512,6 @@ func (j *Job) Poll() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	response.Body.Close()
 	return response.StatusCode, nil
 }

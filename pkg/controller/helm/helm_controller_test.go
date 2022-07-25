@@ -24,7 +24,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
@@ -40,7 +39,6 @@ import (
 
 var cfg *rest.Config
 var testEnv *envtest.Environment
-var k8sClient client.Client
 
 func TestApplicationController(t *testing.T) {
 	RegisterFailHandler(Fail)

@@ -50,7 +50,7 @@ func TestOpenPitrixRelease(t *testing.T) {
 	}
 
 	// add app to indexer
-	apps, err := ksClient.ApplicationV1alpha1().HelmApplications().List(context.TODO(), metav1.ListOptions{})
+	apps, _ := ksClient.ApplicationV1alpha1().HelmApplications().List(context.TODO(), metav1.ListOptions{})
 	for _, app := range apps.Items {
 		err := fakeInformerFactory.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmApplications().
 			Informer().GetIndexer().Add(&app)
@@ -61,7 +61,7 @@ func TestOpenPitrixRelease(t *testing.T) {
 	}
 
 	// add app version to indexer
-	appvers, err := ksClient.ApplicationV1alpha1().HelmApplicationVersions().List(context.TODO(), metav1.ListOptions{})
+	appvers, _ := ksClient.ApplicationV1alpha1().HelmApplicationVersions().List(context.TODO(), metav1.ListOptions{})
 	for _, ver := range appvers.Items {
 		err := fakeInformerFactory.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmApplicationVersions().
 			Informer().GetIndexer().Add(&ver)
@@ -87,7 +87,7 @@ func TestOpenPitrixRelease(t *testing.T) {
 	}
 
 	// add app version to indexer
-	rls, err := ksClient.ApplicationV1alpha1().HelmReleases().List(context.TODO(), metav1.ListOptions{})
+	rls, _ := ksClient.ApplicationV1alpha1().HelmReleases().List(context.TODO(), metav1.ListOptions{})
 	for _, item := range rls.Items {
 		err := fakeInformerFactory.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmReleases().
 			Informer().GetIndexer().Add(&item)

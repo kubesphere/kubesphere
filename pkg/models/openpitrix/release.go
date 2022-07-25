@@ -128,9 +128,9 @@ func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest) erro
 	}
 
 	patch := client.MergeFrom(oldRls)
-	data, err := patch.Data(newRls)
+	data, _ := patch.Data(newRls)
 
-	newRls, err = c.rlsClient.Patch(context.TODO(), request.ClusterId, patch.Type(), data, metav1.PatchOptions{})
+	_, err = c.rlsClient.Patch(context.TODO(), request.ClusterId, patch.Type(), data, metav1.PatchOptions{})
 	if err != nil {
 		klog.Errorf("patch release %s/%s failed, error: %s", request.Namespace, request.ClusterId, err)
 		return err
@@ -198,7 +198,7 @@ func (c *releaseOperator) CreateApplication(workspace, clusterName, namespace st
 		rls.Labels[constants.ChartRepoIdLabelKey] = repoId
 	}
 
-	rls, err = c.rlsClient.Create(context.TODO(), rls, metav1.CreateOptions{})
+	_, err = c.rlsClient.Create(context.TODO(), rls, metav1.CreateOptions{})
 
 	if err != nil {
 		klog.Errorln(err)
@@ -379,7 +379,7 @@ func (c *releaseOperator) DescribeApplication(workspace, clusterName, namespace,
 
 func (c *releaseOperator) DeleteApplication(workspace, clusterName, namespace, id string) error {
 
-	rls, err := c.rlsLister.Get(id)
+	_, err := c.rlsLister.Get(id)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -389,8 +389,6 @@ func (c *releaseOperator) DeleteApplication(workspace, clusterName, namespace, i
 	}
 
 	// TODO, check workspace, cluster and namespace
-	if rls.GetWorkspace() != workspace || rls.GetRlsCluster() != clusterName || rls.GetRlsNamespace() != namespace {
-	}
 
 	err = c.rlsClient.Delete(context.TODO(), id, metav1.DeleteOptions{})
 
@@ -412,24 +410,6 @@ func (c *releaseOperator) getAppVersion(repoId, id string) (ret *v1alpha1.HelmAp
 
 	if repoId != "" && repoId != v1alpha1.AppStoreRepoId {
 		return nil, fmt.Errorf("app version not found")
-	}
-	ret, err = c.appVersionLister.Get(id)
-
-	if err != nil && !apierrors.IsNotFound(err) {
-		klog.Error(err)
-		return nil, err
-	}
-	return
-}
-
-// get app version from repo and helm application
-func (c *releaseOperator) getAppVersionWithData(repoId, id string) (ret *v1alpha1.HelmApplicationVersion, err error) {
-	if ver, exists, _ := c.cachedRepos.GetAppVersionWithData(id); exists {
-		return ver, nil
-	}
-
-	if repoId != "" && repoId != v1alpha1.AppStoreRepoId {
-		return nil, fmt.Errorf("not found")
 	}
 	ret, err = c.appVersionLister.Get(id)
 

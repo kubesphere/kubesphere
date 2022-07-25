@@ -27,8 +27,7 @@ import (
 const (
 	// DefaultRegistry is the registry name that will be used if no registry
 	// provided and the default is not overridden.
-	DefaultRegistry      = "index.docker.io"
-	defaultRegistryAlias = "docker.io"
+	DefaultRegistry = "index.docker.io"
 
 	// DefaultTag is the tag name that will be used if no tag provided and the
 	// default is not overridden.

@@ -53,6 +53,7 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 	v1alpha1.AddToScheme(Scheme)
 	corev1.AddToScheme(Scheme)
 
+	//nolint:staticcheck
 	client := fake.NewFakeClientWithScheme(Scheme)
 
 	client.Create(context.TODO(), &v1alpha1.Gateway{
@@ -69,9 +70,11 @@ func Test_gatewayOperator_GetGateways(t *testing.T) {
 		},
 	})
 
+	//nolint:staticcheck
 	client2 := fake.NewFakeClientWithScheme(Scheme)
 	create_GlobalGateway(client2)
 
+	//nolint:staticcheck
 	client3 := fake.NewFakeClientWithScheme(Scheme)
 	create_LegacyGateway(client3, "project6")
 
@@ -316,7 +319,7 @@ func Test_gatewayOperator_CreateGateway(t *testing.T) {
 	v1alpha1.AddToScheme(Scheme)
 	corev1.AddToScheme(Scheme)
 	appsv1.AddToScheme(Scheme)
-
+	//nolint:staticcheck
 	client := fake.NewFakeClientWithScheme(Scheme)
 
 	tests := []struct {
@@ -420,6 +423,7 @@ func Test_gatewayOperator_DeleteGateway(t *testing.T) {
 
 	var Scheme = runtime.NewScheme()
 	v1alpha1.AddToScheme(Scheme)
+	//nolint:staticcheck
 	client := fake.NewFakeClientWithScheme(Scheme)
 
 	client.Create(context.TODO(), &v1alpha1.Gateway{
@@ -486,6 +490,7 @@ func Test_gatewayOperator_UpdateGateway(t *testing.T) {
 
 	var Scheme = runtime.NewScheme()
 	v1alpha1.AddToScheme(Scheme)
+	//nolint:staticcheck
 	client := fake.NewFakeClientWithScheme(Scheme)
 
 	client.Create(context.TODO(), &v1alpha1.Gateway{
@@ -569,10 +574,12 @@ func Test_gatewayOperator_UpgradeGateway(t *testing.T) {
 
 	var Scheme = runtime.NewScheme()
 	v1alpha1.AddToScheme(Scheme)
+	//nolint:staticcheck
 	client := fake.NewFakeClientWithScheme(Scheme)
 
 	corev1.AddToScheme(Scheme)
 	appsv1.AddToScheme(Scheme)
+	//nolint:staticcheck
 	client2 := fake.NewFakeClientWithScheme(Scheme)
 	create_LegacyGateway(client2, "project2")
 	create_LegacyGatewayConfigMap(client2, "project2")
@@ -672,7 +679,7 @@ func Test_gatewayOperator_ListGateways(t *testing.T) {
 	v1alpha1.AddToScheme(Scheme)
 	corev1.AddToScheme(Scheme)
 	appsv1.AddToScheme(Scheme)
-
+	//nolint:staticcheck
 	client := fake.NewFakeClientWithScheme(Scheme)
 
 	create_LegacyGateway(client, "project2")
@@ -830,7 +837,9 @@ func Test_gatewayOperator_status(t *testing.T) {
 	corev1.AddToScheme(Scheme)
 	appsv1.AddToScheme(Scheme)
 
+	//nolint:staticcheck
 	client := fake.NewFakeClientWithScheme(Scheme)
+	//nolint:staticcheck
 	client2 := fake.NewFakeClientWithScheme(Scheme)
 
 	fake := &corev1.Node{

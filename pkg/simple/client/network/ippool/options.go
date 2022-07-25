@@ -21,5 +21,5 @@ import (
 )
 
 type Options struct {
-	Calico *calico.Options `json:"calico,omityempty" yaml:"calico,omityempty"`
+	Calico *calico.Options `json:"calico,omitempty" yaml:"calico,omitempty"`
 }

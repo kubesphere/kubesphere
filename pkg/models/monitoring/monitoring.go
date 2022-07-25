@@ -528,6 +528,7 @@ func (mo monitoringOperator) GetAppWorkloads(ns string, apps []string) map[strin
 			if applicationVersion != "" && appObject.Labels[constants.ApplicationVersion] != applicationVersion {
 				return false
 			}
+			//nolint:staticcheck
 			return true
 		}
 
@@ -537,6 +538,7 @@ func (mo monitoringOperator) GetAppWorkloads(ns string, apps []string) map[strin
 	for _, appObj := range applicationList {
 		if appFilter(appObj) {
 			for _, com := range appObj.Status.ComponentList.Objects {
+				//nolint:staticcheck // TODO Use golang.org/x/text/cases instead.
 				kind := strings.Title(com.Kind)
 				name := com.Name
 				componentsMap[getAppFullName((appObj))] = append(componentsMap[getAppFullName(appObj)], kind+":"+name)
@@ -545,41 +547,6 @@ func (mo monitoringOperator) GetAppWorkloads(ns string, apps []string) map[strin
 	}
 
 	return componentsMap
-}
-
-func (mo monitoringOperator) getApplicationPVCs(appObject *v1beta1.Application) []string {
-
-	var pvcList []string
-
-	ns := appObject.Namespace
-	for _, com := range appObject.Status.ComponentList.Objects {
-
-		switch strings.Title(com.Kind) {
-		case "Deployment":
-			deployObj, err := mo.k8s.AppsV1().Deployments(ns).Get(context.Background(), com.Name, metav1.GetOptions{})
-			if err != nil {
-				klog.Error(err.Error())
-				return nil
-			}
-
-			for _, vol := range deployObj.Spec.Template.Spec.Volumes {
-				pvcList = append(pvcList, vol.PersistentVolumeClaim.ClaimName)
-			}
-		case "Statefulset":
-			stsObj, err := mo.k8s.AppsV1().StatefulSets(ns).Get(context.Background(), com.Name, metav1.GetOptions{})
-			if err != nil {
-				klog.Error(err.Error())
-				return nil
-			}
-			for _, vol := range stsObj.Spec.Template.Spec.Volumes {
-				pvcList = append(pvcList, vol.PersistentVolumeClaim.ClaimName)
-			}
-		}
-
-	}
-
-	return pvcList
-
 }
 
 func (mo monitoringOperator) GetSerivePodsMap(ns string, services []string) map[string][]string {

@@ -394,7 +394,6 @@ func ParseAlertingRuleQueryParams(req *restful.Request) (*AlertingRuleQueryParam
 	q.PageNum, err = strconv.Atoi(req.QueryParameter("page"))
 	if err != nil {
 		q.PageNum = 1
-		err = nil
 	}
 	if q.PageNum <= 0 {
 		q.PageNum = 1
@@ -420,7 +419,6 @@ func ParseAlertQueryParams(req *restful.Request) (*AlertQueryParams, error) {
 	q.PageNum, err = strconv.Atoi(req.QueryParameter("page"))
 	if err != nil {
 		q.PageNum = 1
-		err = nil
 	}
 	if q.PageNum <= 0 {
 		q.PageNum = 1

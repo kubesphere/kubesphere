@@ -118,7 +118,7 @@ KubeSphere 使用前后端分离的架构，将 [前端](https://github.com/kube
 
 ## 最新版本
 
-🎉 KubeSphere 3.2.1 全新发布！！多项功能优化，带来更好的用户体验，详见 [v3.2.1 发行记录](https://kubesphere.com.cn/docs/release/release-v321/) 。
+🎉 KubeSphere 3.3.0 全新发布！！多项功能优化，带来更好的用户体验，详见 [v3.3.0 版本说明](https://kubesphere.com.cn/docs/release/release-v330/) 。
 ## 安装
 
 KubeSphere 支持在任意平台运行，从本地数据中心到混合多云再走向边缘。此外，KubeSphere 可以部署在任何版本兼容的 Kubernetes 集群上。Installer 默认将执行最小化安装，您可以在安装前或安装后自定义[安装可插拔功能组件](https://kubesphere.com.cn/docs/quick-start/enable-pluggable-components/)。
@@ -128,9 +128,9 @@ KubeSphere 支持在任意平台运行，从本地数据中心到混合多云再
 请确保您的集群满足安装的[前提条件](https://kubesphere.io/zh/docs/quick-start/minimal-kubesphere-on-k8s/)，运行以下命令以在现有 Kubernetes 集群上安装 KubeSphere：
 
 ```yaml
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/kubesphere-installer.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.0/kubesphere-installer.yaml
    
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/cluster-configuration.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.0/cluster-configuration.yaml
 ```
 #### All-in-one（Linux 单节点安装）
 
@@ -138,21 +138,19 @@ kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3
 
 ```yaml
 # 下载 KubeKey
-curl -sfL https://get-kk.kubesphere.io | VERSION=v1.2.0 sh -
+curl -sfL https://get-kk.kubesphere.io | VERSION=v2.2.1 sh -
 # 为 kk 赋予可执行权限
 chmod +x kk
 # 创建集群
-./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.2.1
+./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.3.0
 ```
 
 可使用以下命令查看安装日志。如果安装成功，可使用 `http://IP:30880` 访问 KubeSphere Console，管理员登录帐密为 `admin/P@88w0rd`。
 
 ```yaml
-kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
-``` 
-### 🐯 使用 Katacoda 在线安装体验 KubeSphere
+kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l 'app in (ks-install, ks-installer)' -o jsonpath='{.items[0].metadata.name}') -f
+```
 
-[Katacoda](https://www.katacoda.com/) 是一个在线的云原生技术学习实验平台，你可以使用它在浏览器中快速 [安装体验 KubeSphere](https://www.katacoda.com/kubesphere/scenarios/install-kubesphere-on-kubernetes) 。
 ### 在托管 Kubernetes 上部署 KubeSphere
 
 KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kubernetes 服务上一键安装来部署 KubeSphere。

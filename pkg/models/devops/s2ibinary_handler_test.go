@@ -39,7 +39,6 @@ import (
 
 const (
 	fileaContents = "This is a test file."
-	fileaKey      = "binary"
 	fileaName     = "filea.txt"
 	boundary      = `MyBoundary`
 	ns            = "testns"
@@ -63,6 +62,7 @@ func TestS2iBinaryUploader(t *testing.T) {
 	informerFactory := ksinformers.NewSharedInformerFactory(fakeKubeClient, 0)
 	stopCh := make(chan struct{})
 	s2iInformer := informerFactory.Devops().V1alpha1().S2iBinaries()
+	//nolint:ineffassign,staticcheck
 	err := s2iInformer.Informer().GetIndexer().Add(s2ib)
 	defer close(stopCh)
 	informerFactory.Start(stopCh)

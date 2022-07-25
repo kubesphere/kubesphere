@@ -365,9 +365,9 @@ func (c *routerOperator) createOrUpdateRouterWorkload(namespace string, publishS
 	}
 
 	if createDeployment {
-		deployment, err = c.client.AppsV1().Deployments(ingressControllerNamespace).Create(context.Background(), deployment, metav1.CreateOptions{})
+		_, err = c.client.AppsV1().Deployments(ingressControllerNamespace).Create(context.Background(), deployment, metav1.CreateOptions{})
 	} else {
-		deployment, err = c.client.AppsV1().Deployments(ingressControllerNamespace).Update(context.Background(), deployment, metav1.UpdateOptions{})
+		_, err = c.client.AppsV1().Deployments(ingressControllerNamespace).Update(context.Background(), deployment, metav1.UpdateOptions{})
 	}
 
 	if err != nil {

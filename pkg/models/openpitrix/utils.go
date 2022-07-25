@@ -165,7 +165,7 @@ func matchPackageFailedError(err error, res *ValidatePackageResponse) {
 
 	case strings.HasPrefix(errStr, "missing file ["):
 
-		matched := regexp.MustCompile("missing file \\[(.+)]").FindStringSubmatch(errStr)
+		matched := regexp.MustCompile(`missing file \\[(.+)]`).FindStringSubmatch(errStr)
 		if len(matched) > 0 {
 			errorDetails[matched[1]] = "not found"
 		}
@@ -258,10 +258,8 @@ func convertApplication(rls *v1alpha1.HelmRelease, rlsInfos []*resource.Info) *A
 	}
 
 	app.ReleaseInfo = make([]runtime.Object, 0, len(rlsInfos))
-	if rlsInfos != nil {
-		for _, info := range rlsInfos {
-			app.ReleaseInfo = append(app.ReleaseInfo, info.Object)
-		}
+	for _, info := range rlsInfos {
+		app.ReleaseInfo = append(app.ReleaseInfo, info.Object)
 	}
 
 	return app
@@ -605,10 +603,7 @@ func filterAppByName(app *v1alpha1.HelmApplication, namePart string) bool {
 	}
 
 	name := app.GetTrueName()
-	if strings.Contains(strings.ToLower(name), strings.ToLower(namePart)) {
-		return true
-	}
-	return false
+	return strings.Contains(strings.ToLower(name), strings.ToLower(namePart))
 }
 
 func filterAppByStates(app *v1alpha1.HelmApplication, state []string) bool {
@@ -749,7 +744,7 @@ func filterReleaseByStates(rls *v1alpha1.HelmRelease, state []string) bool {
 }
 
 func filterReleasesWithAppVersions(releases []*v1alpha1.HelmRelease, appVersions map[string]*v1alpha1.HelmApplicationVersion) []*v1alpha1.HelmRelease {
-	if appVersions == nil || len(appVersions) == 0 || len(releases) == 0 {
+	if len(appVersions) == 0 || len(releases) == 0 {
 		return []*v1alpha1.HelmRelease{}
 	}
 
@@ -801,10 +796,6 @@ func filterReleases(releases []*v1alpha1.HelmRelease, conditions *params.Conditi
 
 func dataKeyInStorage(workspace, id string) string {
 	return path.Join(workspace, id)
-}
-
-func attachmentKeyInStorage(ws, id string) string {
-	return path.Join(ws, id)
 }
 
 func convertAppVersionReview(app *v1alpha1.HelmApplication, appVersion *v1alpha1.HelmApplicationVersion) *AppVersionReview {

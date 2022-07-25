@@ -28,6 +28,8 @@ import (
 )
 
 var sf *sonyflake.Sonyflake
+
+//nolint:unused
 var upperMachineID uint16
 
 func init() {

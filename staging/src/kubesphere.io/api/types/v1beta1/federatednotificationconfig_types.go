@@ -62,3 +62,5 @@ type FederatedNotificationConfigList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedNotificationConfig `json:"items"`
 }
+
+func (_ *FederatedNotificationConfig) Hub() {}

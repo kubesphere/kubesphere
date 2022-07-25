@@ -28,7 +28,6 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	kubeinformers "k8s.io/client-go/informers"
-	informerv1 "k8s.io/client-go/informers/core/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
 
@@ -37,21 +36,15 @@ import (
 
 	ksfake "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	nsnppolicyinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"
-	workspaceinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	options "kubesphere.io/kubesphere/pkg/simple/client/network"
 )
 
 var (
-	c                 *NSNetworkPolicyController
-	stopCh            chan struct{}
-	nsnpInformer      nsnppolicyinformer.NamespaceNetworkPolicyInformer
-	serviceInformer   informerv1.ServiceInformer
-	workspaceInformer workspaceinformer.WorkspaceInformer
-	namespaceInformer informerv1.NamespaceInformer
-	alwaysReady       = func() bool { return true }
+	c           *NSNetworkPolicyController
+	stopCh      chan struct{}
+	alwaysReady = func() bool { return true }
 )
 
 const (

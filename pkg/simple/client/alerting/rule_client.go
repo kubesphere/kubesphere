@@ -15,9 +15,6 @@ const (
 	epRules        = apiPrefix + "/rules"
 	statusAPIError = 422
 
-	statusSuccess status = "success"
-	statusError   status = "error"
-
 	ErrBadData     ErrorType = "bad_data"
 	ErrTimeout     ErrorType = "timeout"
 	ErrCanceled    ErrorType = "canceled"
@@ -84,10 +81,11 @@ func (c *ruleClient) rules(client api.Client, ctx context.Context) ([]*RuleGroup
 		return nil, errors.Wrap(err, "error creating request: ")
 	}
 
-	_, body, _, err := c.do(client, ctx, req)
+	resp, body, _, err := c.do(client, ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err, "error doing request: ")
 	}
+	defer resp.Body.Close()
 
 	var result struct {
 		Groups []*RuleGroup

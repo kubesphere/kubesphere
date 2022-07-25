@@ -32,12 +32,14 @@ import (
 	v1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
 	v2beta1 "kubesphere.io/api/notification/v2beta1"
+	v2beta2 "kubesphere.io/api/notification/v2beta2"
 	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
 	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
 	storagev1alpha1 "kubesphere.io/api/storage/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 	v1beta1 "kubesphere.io/api/types/v1beta1"
+	v1beta2 "kubesphere.io/api/types/v1beta2"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -154,6 +156,18 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	case v2beta1.SchemeGroupVersion.WithResource("receivers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta1().Receivers().Informer()}, nil
 
+		// Group=notification.kubesphere.io, Version=v2beta2
+	case v2beta2.SchemeGroupVersion.WithResource("configs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta2().Configs().Informer()}, nil
+	case v2beta2.SchemeGroupVersion.WithResource("notificationmanagers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta2().NotificationManagers().Informer()}, nil
+	case v2beta2.SchemeGroupVersion.WithResource("receivers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta2().Receivers().Informer()}, nil
+	case v2beta2.SchemeGroupVersion.WithResource("routers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta2().Routers().Informer()}, nil
+	case v2beta2.SchemeGroupVersion.WithResource("silences"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Notification().V2beta2().Silences().Informer()}, nil
+
 		// Group=quota.kubesphere.io, Version=v1alpha2
 	case quotav1alpha2.SchemeGroupVersion.WithResource("resourcequotas"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Quota().V1alpha2().ResourceQuotas().Informer()}, nil
@@ -209,6 +223,18 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedServices().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatedstatefulsets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedStatefulSets().Informer()}, nil
+
+		// Group=types.kubefed.io, Version=v1beta2
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationconfigs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationConfigs().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationmanagers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationManagers().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationreceivers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationReceivers().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationrouters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationRouters().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("federatednotificationsilences"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta2().FederatedNotificationSilences().Informer()}, nil
 
 	}
 
