@@ -338,6 +338,17 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions, stopCh))
 	}
 
+	jsBundleDispatcher := dispatch.NewJSBundleDispatcher(s.InformerFactory.KubeSphereSharedInformerFactory().Extensions().V1alpha1().JSBundles(),
+		s.InformerFactory.KubernetesSharedInformerFactory().Core().V1().ConfigMaps(),
+		s.InformerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
+	handler = filters.WithDispatcher(handler, jsBundleDispatcher)
+
+	apiServiceDispatcher := dispatch.NewAPIServiceDispatcher(s.InformerFactory.KubeSphereSharedInformerFactory().Extensions().V1alpha1().APIServices())
+	handler = filters.WithDispatcher(handler, apiServiceDispatcher)
+
+	reverseProxyDispatcher := dispatch.NewReverseProxyDispatcher(s.InformerFactory.KubeSphereSharedInformerFactory().Extensions().V1alpha1().ReverseProxies())
+	handler = filters.WithDispatcher(handler, reverseProxyDispatcher)
+
 	var authorizers authorizer.Authorizer
 
 	switch s.Config.AuthorizationOptions.Mode {
@@ -356,8 +367,8 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 
 	handler = filters.WithAuthorization(handler, authorizers)
 	if s.Config.MultiClusterOptions.Enable {
-		clusterDispatcher := dispatch.NewClusterDispatch(s.ClusterClient)
-		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
+		clusterDispatcher := dispatch.NewClusterDispatcher(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters())
+		handler = filters.WithDispatcher(handler, clusterDispatcher)
 	}
 
 	userLister := s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister()
@@ -401,7 +412,11 @@ func waitForCacheSync(discoveryClient discovery.DiscoveryInterface, sharedInform
 			return err
 		})
 		if err != nil {
-			return fmt.Errorf("failed to fetch group version resources %s: %s", groupVersion, err)
+			if errors.IsNotFound(err) {
+				klog.Warningf("group version %s not exists in the cluster", groupVersion)
+				continue
+			}
+			return fmt.Errorf("failed to fetch group version %s: %s", groupVersion, err)
 		}
 		for _, resourceName := range resourceNames {
 			groupVersionResource := groupVersion.WithResource(resourceName)
@@ -511,6 +526,11 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 			notificationv2beta2.ResourcesPluralReceiver,
 			notificationv2beta2.ResourcesPluralRouter,
 			notificationv2beta2.ResourcesPluralSilence,
+		},
+		{Group: "extensions.kubesphere.io", Version: "v1alpha1"}: {
+			"jsbundles",
+			"reverseproxies",
+			"apiservices",
 		},
 	}
 

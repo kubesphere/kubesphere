@@ -17,6 +17,13 @@
 */
 package v1alpha1
 
+import "fmt"
+
+const (
+	StateEnabled  = "Enabled"
+	StateDisabled = "Disabled"
+)
+
 // ServiceReference holds a reference to Service.legacy.k8s.io
 type ServiceReference struct {
 	// namespace is the namespace of the service.
@@ -46,4 +53,25 @@ type Endpoint struct {
 	CABundle []byte `json:"caBundle,omitempty"`
 	// +optional
 	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
+}
+
+func (in Endpoint) RawURL() string {
+	var rawURL string
+	if in.URL != nil {
+		rawURL = *in.URL
+	} else if in.Service != nil {
+		var port int32 = 443
+		var path = ""
+		if in.Service.Port != nil {
+			port = *in.Service.Port
+		}
+		if in.Service.Path != nil {
+			path = *in.Service.Path
+		}
+		rawURL = fmt.Sprintf("https://%s.%s.svc:%d%s",
+			in.Service.Name,
+			in.Service.Namespace,
+			port, path)
+	}
+	return rawURL
 }
