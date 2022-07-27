@@ -142,7 +142,7 @@ func (r *SubscriptionReconciler) doReconcile(ctx context.Context, sub *extension
 				return nil, ctrl.Result{}, err
 			}
 		}
-	} else {
+	} else { //nolint:staticcheck
 		// TODO: Upgrade the release.
 	}
 
