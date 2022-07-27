@@ -38,7 +38,13 @@ image:
 config:
   # Specifies whether the kubesphere-config configmap should be created
   create: true
-  authentication: {}
+  authentication:
+    oauthOptions:
+      clients:
+      - name: kubesphere
+        secret: kubesphere
+        redirectURIs:
+        - '*'
   # Jwt Secret is required by ks-apiserver, a random string would be generated if it's empty
   jwtSecret: ""
   multicluster: {}
