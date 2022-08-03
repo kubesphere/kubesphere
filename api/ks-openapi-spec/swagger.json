@@ -12711,7 +12711,7 @@
         "tags": [
           "Namespace"
         ],
-        "summary": "List the namespaces of the specified workspace for the current user",
+        "summary": "Create the namespaces of the specified workspace for the current user",
         "operationId": "CreateNamespace",
         "parameters": [
           {
