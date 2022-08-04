@@ -47,7 +47,7 @@ func AddToContainer(container *restful.Container, ksclient kubesphere.Interface,
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup based on its rules, one of `firing`, `pending`, `inactive`")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup, one of `firing`, `pending`, `inactive` depending on its rules")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
@@ -64,7 +64,7 @@ func AddToContainer(container *restful.Container, ksclient kubesphere.Interface,
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, one of `activeAt`. e.g. orderBy=activeAt")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`, `inactive`")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelFilters, "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
@@ -77,7 +77,7 @@ func AddToContainer(container *restful.Container, ksclient kubesphere.Interface,
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup based on its rules, one of `firing`, `pending`, `inactive`")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup, one of `firing`, `pending`, `inactive` depending on its rules")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
@@ -94,7 +94,7 @@ func AddToContainer(container *restful.Container, ksclient kubesphere.Interface,
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, one of `activeAt`. e.g. orderBy=activeAt")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`, `inactive`")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelFilters, "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
@@ -107,7 +107,7 @@ func AddToContainer(container *restful.Container, ksclient kubesphere.Interface,
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup based on its rules, one of `firing`, `pending`, `inactive`")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup, one of `firing`, `pending`, `inactive` depending on its rules")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
@@ -124,7 +124,7 @@ func AddToContainer(container *restful.Container, ksclient kubesphere.Interface,
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, one of `activeAt`. e.g. orderBy=activeAt")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`, `inactive`")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelFilters, "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))

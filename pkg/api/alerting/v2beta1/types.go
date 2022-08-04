@@ -62,28 +62,28 @@ type GlobalRuleGroup struct {
 }
 
 type RuleGroupStatus struct {
-	State          string       `json:"state,omitempty" description:"state of a rule based on its alerts, one of firing, pending, inactive"`
-	EvaluationTime *float64     `json:"evaluationTime,omitempty" description:"taken seconds for evaluation"`
-	LastEvaluation *time.Time   `json:"lastEvaluation,omitempty" description:"time for last evaluation"`
-	RuleStatuses   []RuleStatus `json:"ruleStatuses,omitempty" description:"rule statuses"`
+	State          string       `json:"state,omitempty" description:"state of a rulegroup, one of firing, pending or inactive depending on its rules"`
+	EvaluationTime *float64     `json:"evaluationTime,omitempty" description:"time spent on rule group evaluation in seconds"`
+	LastEvaluation *time.Time   `json:"lastEvaluation,omitempty" description:"time of last evaluation"`
+	RulesStatus    []RuleStatus `json:"rulesStatus,omitempty" description:"status of rules in one RuleGroup"`
 }
 
 type RuleStatus struct {
-	State                     string     `json:"state,omitempty" description:"state of a rule based on its alerts, one of firing, pending, inactive"`
-	Health                    string     `json:"health,omitempty" description:"health state of a rule based on the last execution, one of ok, err, unknown"`
-	LastError                 string     `json:"lastError,omitempty" description:"error for the last execution"`
-	EvaluationDurationSeconds float64    `json:"evaluationTime,omitempty" description:"taken seconds for evaluation of query expression"`
-	LastEvaluation            *time.Time `json:"lastEvaluation,omitempty" description:"time for last evaluation of query expression"`
+	State          string     `json:"state,omitempty" description:"state of a rule, one of firing, pending or inactive depending on its alerts"`
+	Health         string     `json:"health,omitempty" description:"health state of a rule, one of ok, err, unknown depending on the last execution result"`
+	LastError      string     `json:"lastError,omitempty" description:"error of the last evaluation"`
+	EvaluationTime *float64   `json:"evaluationTime,omitempty" description:"time spent on the expression evaluation in seconds"`
+	LastEvaluation *time.Time `json:"lastEvaluation,omitempty" description:"time of last evaluation"`
 
 	Alerts []*Alert `json:"alerts,omitempty" description:"alerts"`
 }
 
 type Alert struct {
-	ActiveAt    *time.Time        `json:"activeAt,omitempty" description:"time when alert is active"`
+	ActiveAt    *time.Time        `json:"activeAt,omitempty" description:"time when this alert became active"`
 	Annotations map[string]string `json:"annotations,omitempty" description:"annotations"`
 	Labels      map[string]string `json:"labels,omitempty" description:"labels"`
 	State       string            `json:"state,omitempty" description:"state"`
-	Value       string            `json:"value,omitempty" description:"the value at the last evaluation of the query expression"`
+	Value       string            `json:"value,omitempty" description:"the value from the last expression evaluation"`
 }
 
 type LabelFilterOperator string

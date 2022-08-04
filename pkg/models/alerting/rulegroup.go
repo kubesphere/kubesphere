@@ -190,10 +190,10 @@ func (o *ruleGroupOperator) ListAlerts(ctx context.Context, namespace string,
 	var alerts []runtime.Object
 	for i := range groups {
 		g := groups[i].(*kapialertingv2beta1.RuleGroup)
-		for j := range g.Status.RuleStatuses {
-			statuses := g.Status.RuleStatuses[j]
-			for k := range statuses.Alerts {
-				alerts = append(alerts, &wrapAlert{Alert: *statuses.Alerts[k]})
+		for j := range g.Status.RulesStatus {
+			ruleStatus := g.Status.RulesStatus[j]
+			for k := range ruleStatus.Alerts {
+				alerts = append(alerts, &wrapAlert{Alert: *ruleStatus.Alerts[k]})
 			}
 		}
 	}
@@ -367,10 +367,10 @@ func (o *ruleGroupOperator) ListClusterAlerts(ctx context.Context,
 	var alerts []runtime.Object
 	for i := range groups {
 		g := groups[i].(*kapialertingv2beta1.ClusterRuleGroup)
-		for j := range g.Status.RuleStatuses {
-			statuses := g.Status.RuleStatuses[j]
-			for k := range statuses.Alerts {
-				alerts = append(alerts, &wrapAlert{Alert: *statuses.Alerts[k]})
+		for j := range g.Status.RulesStatus {
+			ruleStatus := g.Status.RulesStatus[j]
+			for k := range ruleStatus.Alerts {
+				alerts = append(alerts, &wrapAlert{Alert: *ruleStatus.Alerts[k]})
 			}
 		}
 	}
@@ -506,10 +506,10 @@ func (o *ruleGroupOperator) ListGlobalAlerts(ctx context.Context,
 	var alerts []runtime.Object
 	for i := range groups {
 		wrapg := groups[i].(*kapialertingv2beta1.GlobalRuleGroup)
-		for j := range wrapg.Status.RuleStatuses {
-			statuses := wrapg.Status.RuleStatuses[j]
-			for k := range statuses.Alerts {
-				alerts = append(alerts, &wrapAlert{Alert: *statuses.Alerts[k]})
+		for j := range wrapg.Status.RulesStatus {
+			ruleStatus := wrapg.Status.RulesStatus[j]
+			for k := range ruleStatus.Alerts {
+				alerts = append(alerts, &wrapAlert{Alert: *ruleStatus.Alerts[k]})
 			}
 		}
 	}
@@ -582,13 +582,13 @@ func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1
 				Value:       alert.Value,
 			})
 		}
-		target.RuleStatuses = append(target.RuleStatuses, kapialertingv2beta1.RuleStatus{
-			State:                     rule.State,
-			Health:                    rule.Health,
-			LastError:                 rule.LastError,
-			EvaluationDurationSeconds: rule.EvaluationTime,
-			LastEvaluation:            rule.LastEvaluation,
-			Alerts:                    alerts,
+		target.RulesStatus = append(target.RulesStatus, kapialertingv2beta1.RuleStatus{
+			State:          rule.State,
+			Health:         rule.Health,
+			LastError:      rule.LastError,
+			EvaluationTime: rule.EvaluationTime,
+			LastEvaluation: rule.LastEvaluation,
+			Alerts:         alerts,
 		})
 	}
 	target.State = groupState.String()
