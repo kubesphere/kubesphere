@@ -8,6 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/api"
+	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 )
 
 const (
@@ -48,7 +50,7 @@ type response struct {
 
 type RuleClient interface {
 	PrometheusRules(ctx context.Context) ([]*RuleGroup, error)
-	ThanosRules(ctx context.Context) ([]*RuleGroup, error)
+	ThanosRules(ctx context.Context, matchers ...[]*labels.Matcher) ([]*RuleGroup, error)
 }
 
 type ruleClient struct {
@@ -63,17 +65,25 @@ func (c *ruleClient) PrometheusRules(ctx context.Context) ([]*RuleGroup, error) 
 	return nil, nil
 }
 
-func (c *ruleClient) ThanosRules(ctx context.Context) ([]*RuleGroup, error) {
+func (c *ruleClient) ThanosRules(ctx context.Context, matchers ...[]*labels.Matcher) ([]*RuleGroup, error) {
 	if c.thanosruler != nil {
-		return c.rules(c.thanosruler, ctx)
+		return c.rules(c.thanosruler, ctx, matchers...)
 	}
 	return nil, nil
 }
 
-func (c *ruleClient) rules(client api.Client, ctx context.Context) ([]*RuleGroup, error) {
+func (c *ruleClient) rules(client api.Client, ctx context.Context, matchers ...[]*labels.Matcher) ([]*RuleGroup, error) {
 	u := client.URL(epRules, nil)
 	q := u.Query()
 	q.Add("type", "alert")
+
+	for _, ms := range matchers {
+		vs := parser.VectorSelector{
+			LabelMatchers: ms,
+		}
+		q.Add("match[]", vs.String())
+	}
+
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
