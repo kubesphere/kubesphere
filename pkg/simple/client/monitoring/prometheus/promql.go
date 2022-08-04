@@ -177,7 +177,7 @@ var promQLTemplates = map[string]string{
 	"ingress_success_rate":                  `sum(rate(nginx_ingress_controller_requests{$1,$2,status!~"[4-5].*"}[$3])) / sum(rate(nginx_ingress_controller_requests{$1,$2}[$3]))`,
 	"ingress_request_duration_average":      `sum_over_time(nginx_ingress_controller_request_duration_seconds_sum{$1,$2}[$3])/sum_over_time(nginx_ingress_controller_request_duration_seconds_count{$1,$2}[$3])`,
 	"ingress_request_duration_50percentage": `histogram_quantile(0.50, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{$1,$2}[$3])))`,
-	"ingress_request_duration_95percentage": `histogram_quantile(0.90, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{$1,$2}[$3])))`,
+	"ingress_request_duration_95percentage": `histogram_quantile(0.95, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{$1,$2}[$3])))`,
 	"ingress_request_duration_99percentage": `histogram_quantile(0.99, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{$1,$2}[$3])))`,
 	"ingress_request_volume":                `round(sum(irate(nginx_ingress_controller_requests{$1,$2}[$3])), 0.001)`,
 	"ingress_request_volume_by_ingress":     `round(sum(irate(nginx_ingress_controller_requests{$1,$2}[$3])) by (ingress), 0.001)`,
