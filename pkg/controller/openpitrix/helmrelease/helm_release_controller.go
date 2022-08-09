@@ -36,7 +36,6 @@ import (
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmwrapper"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
@@ -339,7 +338,6 @@ func (r *ReconcileHelmRelease) createOrUpgradeHelmRelease(rls *v1alpha1.HelmRele
 
 	// If clusterConfig is empty, this application will be installed in current host.
 	hw := helmwrapper.NewHelmWrapper(clusterConfig, rls.GetRlsNamespace(), rls.Spec.Name,
-		helmwrapper.SetAnnotations(map[string]string{constants.CreatorAnnotationKey: rls.GetCreator()}),
 		helmwrapper.SetLabels(map[string]string{
 			v1alpha1.ApplicationInstance: rls.GetTrueName(),
 		}),
