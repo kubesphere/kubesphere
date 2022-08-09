@@ -53,10 +53,13 @@ const (
 	SourceGroupResourceLabelValueEnableTrue  = "true"
 	SourceGroupResourceLabelValueEnableFalse = "false"
 
-	// label keys in PrometheusRule.metadata.labels
+	// for PrometheusRule.metadata.labels
 	PrometheusRuleResourceLabelKeyOwnerNamespace = "alerting.kubesphere.io/owner_namespace"
 	PrometheusRuleResourceLabelKeyOwnerCluster   = "alerting.kubesphere.io/owner_cluster"
 	PrometheusRuleResourceLabelKeyRuleLevel      = "alerting.kubesphere.io/rule_level"
+	PrometheusRuleResourceLabelKeyBuiltin        = "alerting.kubesphere.io/builtin"
+	PrometheusRuleResourceLabelValueBuiltinTrue  = "true"
+	PrometheusRuleResourceLabelValueBuiltinFalse = "false"
 
 	// name prefix for PrometheusRule
 	PrometheusRulePrefix               = "alertrules-"
@@ -73,23 +76,40 @@ var maxConfigMapDataSize = int(float64(corev1.MaxSecretSize) * 0.5)
 
 type enforceRuleFunc func(rule *promresourcesv1.Rule) error
 
+type EnforceExprFunc func(expr string) (string, error)
+
+var emptyEnforceExprFunc = func(expr string) (string, error) {
+	return expr, nil
+}
+
+func CreateEnforceExprFunc(enforceRuleMatchers []*promlabels.Matcher) EnforceExprFunc {
+	if len(enforceRuleMatchers) > 0 {
+		enforcer := injectproxy.NewEnforcer(enforceRuleMatchers...)
+		return func(expr string) (string, error) {
+			parsedExpr, err := parser.ParseExpr(expr)
+			if err != nil {
+				return expr, err
+			}
+			if err := enforcer.EnforceNode(parsedExpr); err != nil {
+				return expr, err
+			}
+			return parsedExpr.String(), nil
+		}
+	}
+	return emptyEnforceExprFunc
+}
+
 func createEnforceRuleFuncs(enforceRuleMatchers []*promlabels.Matcher, enforceRuleLabels map[string]string) []enforceRuleFunc {
 	var enforceFuncs []enforceRuleFunc
 	// enforce func for rule.expr
 	if len(enforceRuleMatchers) > 0 {
-		enforcer := injectproxy.NewEnforcer(enforceRuleMatchers...)
+		enforceExprFunc := CreateEnforceExprFunc(enforceRuleMatchers)
 		enforceFuncs = append(enforceFuncs, func(rule *promresourcesv1.Rule) error {
-			if enforcer != nil {
-				expr := rule.Expr.String()
-				parsedExpr, err := parser.ParseExpr(expr)
-				if err != nil {
-					return err
-				}
-				if err = enforcer.EnforceNode(parsedExpr); err != nil {
-					return err
-				}
-				rule.Expr = intstr.FromString(parsedExpr.String())
+			expr, err := enforceExprFunc(rule.Expr.String())
+			if err != nil {
+				return err
 			}
+			rule.Expr = intstr.FromString(expr)
 			return nil
 		})
 	}
@@ -109,10 +129,10 @@ func createEnforceRuleFuncs(enforceRuleMatchers []*promlabels.Matcher, enforceRu
 }
 
 func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
-	enforceFuncs ...enforceRuleFunc) ([]*promresourcesv1.RuleGroup, error) {
+	commonEnforceFuncs ...enforceRuleFunc) ([]*promresourcesv1.RuleGroup, error) {
 	var rulegroups []*promresourcesv1.RuleGroup
 
-	convertRule := func(rule *alertingv2beta1.Rule) (*promresourcesv1.Rule, error) {
+	convertRule := func(rule *alertingv2beta1.Rule, enforceFuncs ...enforceRuleFunc) (*promresourcesv1.Rule, error) {
 		if rule.Disable { // ignoring disabled rule
 			return nil, nil
 		}
@@ -134,6 +154,8 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 			Labels:      rule.Labels,
 			Annotations: rule.Annotations,
 		}
+
+		enforceFuncs = append(enforceFuncs, commonEnforceFuncs...)
 
 		for _, f := range enforceFuncs {
 			if f == nil {
@@ -193,7 +215,8 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 		for _, group := range list.Items {
 			var prules []promresourcesv1.Rule
 			for _, rule := range group.Spec.Rules {
-				prule, err := convertRule(&rule.Rule)
+
+				prule, err := convertRule(&rule.Rule, createEnforceRuleFuncs(ParseGlobalRuleEnforceMatchers(&rule), nil)...)
 				if err != nil {
 					log.WithValues("globalrulegroup", group.Name).Error(err, "failed to convert")
 					continue
@@ -212,6 +235,23 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 	}
 
 	return rulegroups, nil
+}
+
+func ParseGlobalRuleEnforceMatchers(rule *alertingv2beta1.GlobalRule) []*promlabels.Matcher {
+	var enforceRuleMatchers []*promlabels.Matcher
+	if rule.ClusterSelector != nil {
+		matcher := rule.ClusterSelector.ParseToMatcher(RuleLabelKeyCluster)
+		if matcher != nil {
+			enforceRuleMatchers = append(enforceRuleMatchers, matcher)
+		}
+	}
+	if rule.NamespaceSelector != nil {
+		matcher := rule.NamespaceSelector.ParseToMatcher(RuleLabelKeyNamespace)
+		if matcher != nil {
+			enforceRuleMatchers = append(enforceRuleMatchers, matcher)
+		}
+	}
+	return enforceRuleMatchers
 }
 
 func makePrometheusRuleResources(rulegroups []*promresourcesv1.RuleGroup, namespace, namePrefix string,
