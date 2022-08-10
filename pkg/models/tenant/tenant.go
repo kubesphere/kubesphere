@@ -24,6 +24,10 @@ import (
 	"strings"
 	"time"
 
+	typed_v1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/application/v1alpha1"
+	listers_v1alpha1 "kubesphere.io/kubesphere/pkg/client/listers/application/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 
 	corev1 "k8s.io/api/core/v1"
@@ -88,6 +92,7 @@ type Interface interface {
 	Auditing(user user.Info, queryParam *auditingv1alpha1.Query) (*auditingv1alpha1.APIResponse, error)
 	DescribeNamespace(workspace, namespace string) (*corev1.Namespace, error)
 	DeleteNamespace(workspace, namespace string) error
+	DeleteRls(workspace, namespace string) error
 	UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	PatchWorkspace(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error)
@@ -111,6 +116,8 @@ type tenantOperator struct {
 	auditing       auditing.Interface
 	mo             monitoring.MonitoringOperator
 	opRelease      openpitrix.ReleaseInterface
+	rlsLister      listers_v1alpha1.HelmReleaseLister
+	rlsClient      typed_v1alpha1.HelmReleaseInterface
 }
 
 func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter) Interface {
@@ -130,6 +137,8 @@ func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ks
 		auditing:       auditing.NewEventsOperator(auditingclient),
 		mo:             monitoring.NewMonitoringOperator(monitoringclient, nil, k8sclient, informers, resourceGetter, nil),
 		opRelease:      openpitrixRelease,
+		rlsLister:      informers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmReleases().Lister(),
+		rlsClient:      ksclient.ApplicationV1alpha1().HelmReleases(),
 	}
 }
 
@@ -370,6 +379,29 @@ func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
 		return err
 	}
 	return t.k8sclient.CoreV1().Namespaces().Delete(context.Background(), namespace, *metav1.NewDeleteOptions(0))
+}
+
+func (t *tenantOperator) DeleteRls(workspace, namespace string) error {
+
+	ls := map[string]string{}
+	ls[constants.WorkspaceLabelKey] = workspace
+	ls[constants.NamespaceLabelKey] = namespace
+	releases, err := t.rlsLister.List(labels.SelectorFromSet(ls))
+	if err != nil && !errors.IsNotFound(err) {
+		klog.Errorf("list app release failed, error: %v", err)
+		return err
+	}
+	for i := 0; i < len(releases); i++ {
+		rlsId := releases[i].Name
+		err := t.rlsClient.Delete(context.TODO(), rlsId, metav1.DeleteOptions{})
+		if err != nil {
+			klog.Errorf("delete release %s/%s failed, error: %s", namespace, rlsId, err)
+			return err
+		} else {
+			klog.V(2).Infof("delete release %s/%s", namespace, rlsId)
+		}
+	}
+	return nil
 }
 
 func (t *tenantOperator) UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
