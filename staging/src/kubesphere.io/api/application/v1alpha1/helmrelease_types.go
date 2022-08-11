@@ -117,7 +117,7 @@ func init() {
 }
 
 func (in *HelmRelease) GetCreator() string {
-	return getValue(in.Annotations, constants.CreatorAnnotationKey)
+	return getValue(in.Annotations, constants.APPCreatorAnnotationKey)
 }
 
 func (in *HelmRelease) GetTrueName() string {

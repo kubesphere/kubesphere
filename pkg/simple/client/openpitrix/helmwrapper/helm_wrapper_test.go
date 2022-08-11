@@ -29,7 +29,7 @@ import (
 
 func TestHelmInstall(t *testing.T) {
 	wr := NewHelmWrapper("", "dummy", "dummy",
-		SetAnnotations(map[string]string{constants.CreatorAnnotationKey: "1234"}),
+		SetAnnotations(map[string]string{constants.APPCreatorAnnotationKey: "1234"}),
 		SetMock(true))
 	charData := GenerateChartData(t, "dummy-chart")
 	chartValues := `helm-wrapper: "test-val"`

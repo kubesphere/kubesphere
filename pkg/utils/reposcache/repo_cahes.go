@@ -231,7 +231,7 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: appName,
 				Annotations: map[string]string{
-					constants.CreatorAnnotationKey: repo.GetCreator(),
+					constants.APPCreatorAnnotationKey: repo.GetCreator(),
 				},
 				Labels:            appLabels,
 				CreationTimestamp: metav1.Time{Time: app.Created},
@@ -260,7 +260,7 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 			version := &v1alpha1.HelmApplicationVersion{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        appVerName,
-					Annotations: map[string]string{constants.CreatorAnnotationKey: repo.GetCreator()},
+					Annotations: map[string]string{constants.APPCreatorAnnotationKey: repo.GetCreator()},
 					Labels: map[string]string{
 						constants.ChartApplicationIdLabelKey: appName,
 						constants.ChartRepoIdLabelKey:        repo.GetHelmRepoId(),

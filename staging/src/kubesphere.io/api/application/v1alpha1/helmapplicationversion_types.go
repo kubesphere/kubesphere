@@ -180,7 +180,7 @@ func init() {
 }
 
 func (in *HelmApplicationVersion) GetCreator() string {
-	return getValue(in.Annotations, constants.CreatorAnnotationKey)
+	return getValue(in.Annotations, constants.APPCreatorAnnotationKey)
 }
 
 func (in *HelmApplicationVersion) GetHelmApplicationVersionId() string {

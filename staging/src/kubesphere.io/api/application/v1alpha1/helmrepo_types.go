@@ -137,5 +137,5 @@ func (in *HelmRepo) GetWorkspace() string {
 }
 
 func (in *HelmRepo) GetCreator() string {
-	return getValue(in.Annotations, constants.CreatorAnnotationKey)
+	return getValue(in.Annotations, constants.APPCreatorAnnotationKey)
 }

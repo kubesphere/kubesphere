@@ -551,7 +551,7 @@ func buildApplicationVersion(app *v1alpha1.HelmApplication, chrt helmrepoindex.V
 	ver := &v1alpha1.HelmApplicationVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				constants.CreatorAnnotationKey: creator,
+				constants.APPCreatorAnnotationKey: creator,
 			},
 			Name: idutils.GetUuid36(v1alpha1.HelmApplicationVersionIdPrefix),
 			Labels: map[string]string{

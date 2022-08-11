@@ -167,7 +167,7 @@ func (c *releaseOperator) CreateApplication(workspace, clusterName, namespace st
 		ObjectMeta: metav1.ObjectMeta{
 			Name: idutils.GetUuid36(v1alpha1.HelmReleasePrefix),
 			Annotations: map[string]string{
-				constants.CreatorAnnotationKey: request.Username,
+				constants.APPCreatorAnnotationKey: request.Username,
 			},
 			Labels: map[string]string{
 				constants.ChartApplicationVersionIdLabelKey: request.VersionId,

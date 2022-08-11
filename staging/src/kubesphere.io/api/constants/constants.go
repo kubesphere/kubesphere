@@ -21,6 +21,7 @@ const (
 	NameLabelKey                      = "kubesphere.io/name"
 	NamespaceLabelKey                 = "kubesphere.io/namespace"
 	CreatorAnnotationKey              = "kubesphere.io/creator"
+	APPCreatorAnnotationKey           = "apps.kubesphere.io/creator"
 	ClusterNameLabelKey               = "kubesphere.io/cluster"
 	ChartRepoIdLabelKey               = "application.kubesphere.io/repo-id"
 	ChartApplicationIdLabelKey        = "application.kubesphere.io/app-id"

@@ -108,7 +108,7 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 		ObjectMeta: metav1.ObjectMeta{
 			Name: idutils.GetUuid36(v1alpha1.HelmRepoIdPrefix),
 			Annotations: map[string]string{
-				constants.CreatorAnnotationKey: creator,
+				constants.APPCreatorAnnotationKey: creator,
 			},
 			Labels: map[string]string{
 				constants.WorkspaceLabelKey: *createRepoRequest.Workspace,

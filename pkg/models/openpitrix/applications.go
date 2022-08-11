@@ -240,7 +240,7 @@ func (c *applicationOperator) CreateApp(req *CreateAppRequest) (*CreateAppRespon
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
-				constants.CreatorAnnotationKey: req.Username,
+				constants.APPCreatorAnnotationKey: req.Username,
 			},
 			Labels: map[string]string{
 				constants.WorkspaceLabelKey: req.Isv,
