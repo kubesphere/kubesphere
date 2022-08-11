@@ -21,6 +21,8 @@ import (
 	"errors"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/flowcontrol"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -338,6 +340,7 @@ func (r *ReconcileHelmRelease) createOrUpgradeHelmRelease(rls *v1alpha1.HelmRele
 
 	// If clusterConfig is empty, this application will be installed in current host.
 	hw := helmwrapper.NewHelmWrapper(clusterConfig, rls.GetRlsNamespace(), rls.Spec.Name,
+		helmwrapper.SetAnnotations(map[string]string{constants.APPCreatorAnnotationKey: rls.GetCreator()}),
 		helmwrapper.SetLabels(map[string]string{
 			v1alpha1.ApplicationInstance: rls.GetTrueName(),
 		}),

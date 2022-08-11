@@ -45,6 +45,7 @@ const (
 	CategoryIdLabelKey                = "application.kubesphere.io/app-category-id"
 	DanglingAppCleanupKey             = "application.kubesphere.io/app-cleanup"
 	CreatorAnnotationKey              = "kubesphere.io/creator"
+	APPCreatorAnnotationKey           = "apps.kubesphere.io/creator"
 	UsernameLabelKey                  = "kubesphere.io/username"
 	DevOpsProjectLabelKey             = "kubesphere.io/devopsproject"
 	KubefedManagedLabel               = "kubefed.io/managed"
