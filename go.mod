@@ -33,7 +33,7 @@ require (
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr v0.4.0
 	github.com/go-openapi/loads v0.19.5
-	github.com/go-openapi/spec v0.19.7
+	github.com/go-openapi/spec v0.19.8
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/validate v0.19.8
 	github.com/go-redis/redis v6.15.2+incompatible
@@ -55,6 +55,7 @@ require (
 	github.com/onsi/gomega v1.15.0
 	github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest v1.0.0
+	github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/opensearch-project/opensearch-go/v2 v2.0.0
 	github.com/operator-framework/helm-operator-plugins v0.0.8-0.20210810182245-240cc447b3de
 	github.com/pkg/errors v0.9.1
@@ -64,7 +65,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator v0.42.2-0.20200928114327-fbd01683839a
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.42.1
 	github.com/prometheus/client_golang v1.11.0
-	github.com/prometheus/common v0.26.0
+	github.com/prometheus/common v0.37.0
 	github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible

@@ -365,7 +365,7 @@ github.com/go-openapi/runtime/middleware/denco
 github.com/go-openapi/runtime/middleware/header
 github.com/go-openapi/runtime/middleware/untyped
 github.com/go-openapi/runtime/security
-# github.com/go-openapi/spec v0.19.7 => github.com/go-openapi/spec v0.19.7
+# github.com/go-openapi/spec v0.19.8 => github.com/go-openapi/spec v0.19.7
 ## explicit; go 1.13
 github.com/go-openapi/spec
 # github.com/go-openapi/strfmt v0.19.5 => github.com/go-openapi/strfmt v0.19.5
@@ -754,6 +754,13 @@ github.com/opencontainers/image-spec/specs-go/v1
 # github.com/opencontainers/runc v0.1.1 => github.com/opencontainers/runc v0.1.1
 ## explicit
 github.com/opencontainers/runc/libcontainer/system
+# github.com/opensearch-project/opensearch-go v1.1.0
+## explicit; go 1.11
+github.com/opensearch-project/opensearch-go
+github.com/opensearch-project/opensearch-go/internal/version
+github.com/opensearch-project/opensearch-go/opensearchapi
+github.com/opensearch-project/opensearch-go/opensearchtransport
+github.com/opensearch-project/opensearch-go/signer
 # github.com/opensearch-project/opensearch-go/v2 v2.0.0 => github.com/opensearch-project/opensearch-go/v2 v2.0.0
 ## explicit; go 1.11
 github.com/opensearch-project/opensearch-go/v2
@@ -873,7 +880,7 @@ github.com/prometheus/client_golang/prometheus/testutil/promlint
 # github.com/prometheus/client_model v0.2.0 => github.com/prometheus/client_model v0.2.0
 ## explicit; go 1.9
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.26.0 => github.com/prometheus/common v0.10.0
+# github.com/prometheus/common v0.37.0 => github.com/prometheus/common v0.10.0
 ## explicit; go 1.11
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
@@ -2132,6 +2139,7 @@ k8s.io/utils/strings
 k8s.io/utils/trace
 # kubesphere.io/api v0.0.0 => ./staging/src/kubesphere.io/api
 ## explicit; go 1.18
+kubesphere.io/api/alerting/v2beta1
 kubesphere.io/api/application/crdinstall
 kubesphere.io/api/application/v1alpha1
 kubesphere.io/api/auditing/v1alpha1
