@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	kapialertingv2beta1 "kubesphere.io/kubesphere/pkg/api/alerting/v2beta1"
@@ -106,6 +107,14 @@ func (o *ruleGroupOperator) listRuleGroups(ctx context.Context, namespace string
 		statusg, ok := statusRuleGroupMap[g.Name]
 		if ok && len(statusg.Rules) == len(g.Spec.Rules) { // assure that they are the same rulegroups
 			copyRuleGroupStatus(statusg, &g.Status)
+		} else {
+			// for rules not loaded by rule reloader (eg.thanos) yet
+			for range g.Spec.Rules {
+				g.Status.RulesStatus = append(g.Status.RulesStatus, kapialertingv2beta1.RuleStatus{
+					State:  stateInactiveString,
+					Health: string(promrules.HealthUnknown),
+				})
+			}
 		}
 		groups[i] = g
 	}
@@ -272,10 +281,21 @@ func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name st
 		return nil, err
 	}
 
+	var setStatus bool
 	for _, g := range statusRuleGroups {
 		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(resourceRuleGroup.Spec.Rules) {
 			copyRuleGroupStatus(g, &ret.Status)
+			setStatus = true
 			break
+		}
+	}
+	if !setStatus {
+		// for rules not loaded by rule reloader (eg.thanos) yet
+		for range ret.Spec.Rules {
+			ret.Status.RulesStatus = append(ret.Status.RulesStatus, kapialertingv2beta1.RuleStatus{
+				State:  stateInactiveString,
+				Health: string(promrules.HealthUnknown),
+			})
 		}
 	}
 
@@ -324,6 +344,14 @@ func (o *ruleGroupOperator) listClusterRuleGroups(ctx context.Context, selector 
 		statusg, ok := statusRuleGroupMap[g.Name]
 		if ok && len(statusg.Rules) == len(g.Spec.Rules) {
 			copyRuleGroupStatus(statusg, &g.Status)
+		} else {
+			// for rules not loaded by rule reloader (eg.thanos) yet
+			for range g.Spec.Rules {
+				g.Status.RulesStatus = append(g.Status.RulesStatus, kapialertingv2beta1.RuleStatus{
+					State:  stateInactiveString,
+					Health: string(promrules.HealthUnknown),
+				})
+			}
 		}
 		groups[i] = g
 	}
@@ -410,10 +438,21 @@ func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string
 		return nil, err
 	}
 
+	var setStatus bool
 	for _, g := range statusRuleGroups {
 		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(resourceRuleGroup.Spec.Rules) {
 			copyRuleGroupStatus(g, &ret.Status)
+			setStatus = true
 			break
+		}
+	}
+	if !setStatus {
+		// for rules not loaded by rule reloader (eg.thanos) yet
+		for range ret.Spec.Rules {
+			ret.Status.RulesStatus = append(ret.Status.RulesStatus, kapialertingv2beta1.RuleStatus{
+				State:  stateInactiveString,
+				Health: string(promrules.HealthUnknown),
+			})
 		}
 	}
 
@@ -463,6 +502,21 @@ func (o *ruleGroupOperator) listGlobalRuleGroups(ctx context.Context, selector l
 		statusg, ok := statusRuleGroupMap[g.Name]
 		if ok && len(statusg.Rules) == len(g.Spec.Rules) {
 			copyRuleGroupStatus(statusg, &g.Status)
+		} else {
+			// for rules not loaded by rule reloader (eg.thanos) yet
+			for _, rule := range g.Spec.Rules {
+				ruleStatus := kapialertingv2beta1.RuleStatus{
+					State:  stateInactiveString,
+					Health: string(promrules.HealthUnknown),
+				}
+				enforceExprFunc := controller.CreateEnforceExprFunc(controller.ParseGlobalRuleEnforceMatchers(&rule))
+				expr, err := enforceExprFunc(rule.Expr.String())
+				if err != nil {
+					return nil, err
+				}
+				ruleStatus.Expr = expr
+				g.Status.RulesStatus = append(g.Status.RulesStatus, ruleStatus)
+			}
 		}
 		groups[i] = g
 	}
@@ -472,7 +526,22 @@ func (o *ruleGroupOperator) listGlobalRuleGroups(ctx context.Context, selector l
 func (o *ruleGroupOperator) ListGlobalRuleGroups(ctx context.Context,
 	queryParam *query.Query) (*api.ListResult, error) {
 
-	groups, err := o.listGlobalRuleGroups(ctx, queryParam.Selector())
+	selector := queryParam.Selector()
+	if val, ok := queryParam.Filters[kapialertingv2beta1.FieldBuiltin]; ok {
+		// add match requirement to the selector to select only builtin or custom rulegroups
+		var operator selection.Operator
+		if val == controller.PrometheusRuleResourceLabelValueBuiltinTrue {
+			operator = selection.Equals
+		} else {
+			operator = selection.NotEquals
+		}
+		requirement, _ := labels.NewRequirement(
+			controller.PrometheusRuleResourceLabelKeyBuiltin,
+			operator,
+			[]string{controller.PrometheusRuleResourceLabelValueBuiltinTrue})
+		selector = selector.Add(*requirement)
+	}
+	groups, err := o.listGlobalRuleGroups(ctx, selector)
 	if err != nil {
 		return nil, err
 	}
@@ -486,6 +555,9 @@ func (o *ruleGroupOperator) ListGlobalRuleGroups(ctx context.Context,
 		return resources.DefaultObjectMetaCompare(
 			left.(*kapialertingv2beta1.GlobalRuleGroup).ObjectMeta, right.(*kapialertingv2beta1.GlobalRuleGroup).ObjectMeta, field)
 	}, func(obj runtime.Object, filter query.Filter) bool {
+		if filter.Field == kapialertingv2beta1.FieldBuiltin { // ignoring this filter because it is filtered at the front
+			return true
+		}
 		hit, selected := o.filterRuleGroupStatus(&obj.(*kapialertingv2beta1.GlobalRuleGroup).Status, filter)
 		if hit {
 			return selected
@@ -497,7 +569,22 @@ func (o *ruleGroupOperator) ListGlobalRuleGroups(ctx context.Context,
 func (o *ruleGroupOperator) ListGlobalAlerts(ctx context.Context,
 	queryParam *query.Query) (*api.ListResult, error) {
 
-	groups, err := o.listGlobalRuleGroups(ctx, labels.Everything())
+	selector := labels.Everything()
+	if val, ok := queryParam.Filters[kapialertingv2beta1.FieldBuiltin]; ok {
+		// add match requirement to the selector to select only builtin or custom rulegroups
+		var operator selection.Operator
+		if val == controller.PrometheusRuleResourceLabelValueBuiltinTrue {
+			operator = selection.Equals
+		} else {
+			operator = selection.NotEquals
+		}
+		requirement, _ := labels.NewRequirement(
+			controller.PrometheusRuleResourceLabelKeyBuiltin,
+			operator,
+			[]string{controller.PrometheusRuleResourceLabelValueBuiltinTrue})
+		selector = selector.Add(*requirement)
+	}
+	groups, err := o.listGlobalRuleGroups(ctx, selector)
 	if err != nil {
 		return nil, err
 	}
@@ -549,10 +636,28 @@ func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string)
 		return nil, err
 	}
 
+	var setStatus bool
 	for _, g := range statusRuleGroups {
 		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(resourceRuleGroup.Spec.Rules) {
 			copyRuleGroupStatus(g, &ret.Status)
+			setStatus = true
 			break
+		}
+	}
+	if !setStatus {
+		// for rules not loaded by rule reloader (eg.thanos) yet
+		for _, rule := range ret.Spec.Rules {
+			ruleStatus := kapialertingv2beta1.RuleStatus{
+				State:  stateInactiveString,
+				Health: string(promrules.HealthUnknown),
+			}
+			enforceExprFunc := controller.CreateEnforceExprFunc(controller.ParseGlobalRuleEnforceMatchers(&rule))
+			expr, err := enforceExprFunc(rule.Expr.String())
+			if err != nil {
+				return nil, err
+			}
+			ruleStatus.Expr = expr
+			ret.Status.RulesStatus = append(ret.Status.RulesStatus, ruleStatus)
 		}
 	}
 
@@ -582,14 +687,21 @@ func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1
 				Value:       alert.Value,
 			})
 		}
-		target.RulesStatus = append(target.RulesStatus, kapialertingv2beta1.RuleStatus{
+		ruleStatus := kapialertingv2beta1.RuleStatus{
 			State:          rule.State,
 			Health:         rule.Health,
 			LastError:      rule.LastError,
 			EvaluationTime: rule.EvaluationTime,
 			LastEvaluation: rule.LastEvaluation,
 			Alerts:         alerts,
-		})
+		}
+		if len(rule.Labels) > 0 {
+			if level, ok := rule.Labels[controller.RuleLabelKeyRuleLevel]; ok &&
+				level == string(controller.RuleLevelGlobal) { // provided only for global rules
+				ruleStatus.Expr = rule.Query
+			}
+		}
+		target.RulesStatus = append(target.RulesStatus, ruleStatus)
 	}
 	target.State = groupState.String()
 }

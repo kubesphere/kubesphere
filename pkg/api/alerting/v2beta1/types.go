@@ -25,11 +25,13 @@ import (
 
 const (
 	// for rulegroup/alert
-	FieldState = "state"
+	FieldState   = "state"
+	FieldBuiltin = "builtin"
 
 	// for rulegroup
 	FieldRuleGroupEvaluationTime = "evaluationTime"
 	FieldRuleGroupLastEvaluation = "lastEvalution"
+
 	// for alert
 	FieldAlertLabelFilters = "label_filters"
 	FieldAlertActiveAt     = "activeAt"
@@ -69,6 +71,7 @@ type RuleGroupStatus struct {
 }
 
 type RuleStatus struct {
+	Expr           string     `json:"expr,omitempty" description:"expression evaluated, for global rules only"`
 	State          string     `json:"state,omitempty" description:"state of a rule, one of firing, pending or inactive depending on its alerts"`
 	Health         string     `json:"health,omitempty" description:"health state of a rule, one of ok, err, unknown depending on the last execution result"`
 	LastError      string     `json:"lastError,omitempty" description:"error of the last evaluation"`
