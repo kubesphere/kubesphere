@@ -122,8 +122,7 @@ apiserver:
   #    emptyDir: {}
 
 console:
-  port: 30880
-  type: NodePort
+  nodePort: 30880
   defaultClusterName: "default"
   resources:
     limits:
