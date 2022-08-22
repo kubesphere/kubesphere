@@ -43,10 +43,10 @@ type ReverseProxyStatus struct {
 // +genclient:nonNamespaced
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:categories="plugin",scope="Cluster"
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
 
 // ReverseProxy defines the rules for reverse proxies,
-// it's useful to exposing APIs to ks-console or other plugins.
+// it's useful to exposing APIs to ks-console or other extensions.
 type ReverseProxy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -39,7 +39,7 @@ type APIServiceStatus struct {
 // +genclient:nonNamespaced
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:categories="plugin",scope="Cluster"
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
 
 // APIService is a special resource used in Ks-apiserver
 // declares a directional proxy path for a resource type API，

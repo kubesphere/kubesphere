@@ -6,23 +6,24 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: subscriptions.extensions.kubesphere.io
+  name: apiservices.kubesphere.io
 spec:
-  group: extensions.kubesphere.io
+  group: kubesphere.io
   names:
     categories:
-    - plugin
-    kind: Subscription
-    listKind: SubscriptionList
-    plural: subscriptions
-    singular: subscription
+    - extensions
+    kind: APIService
+    listKind: APIServiceList
+    plural: apiservices
+    singular: apiservice
   scope: Cluster
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Subscription describes the configuration and the plugin version
-          to be subscribed.
+        description: APIService is a special resource used in Ks-apiserver declares
+          a directional proxy path for a resource type API， it's similar to Kubernetes
+          API Aggregation Layer.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -38,27 +39,44 @@ spec:
             type: object
           spec:
             properties:
-              config:
+              caBundle:
+                format: byte
                 type: string
-              enabled:
+              group:
+                type: string
+              insecureSkipVerify:
                 type: boolean
-              plugin:
+              nonResourceURLs:
+                items:
+                  type: string
+                type: array
+              service:
+                description: ServiceReference holds a reference to Service.legacy.k8s.io
                 properties:
                   name:
+                    description: name is the name of the service. Required
                     type: string
-                  version:
+                  namespace:
+                    description: namespace is the namespace of the service. Required
                     type: string
+                  path:
+                    description: path is an optional URL path at which the webhook
+                      will be contacted.
+                    type: string
+                  port:
+                    description: port is an optional service port at which the webhook
+                      will be contacted. `port` should be a valid port number (1-65535,
+                      inclusive). Defaults to 443 for backward compatibility.
+                    format: int32
+                    type: integer
                 required:
                 - name
-                - version
+                - namespace
                 type: object
-              releaseName:
+              url:
                 type: string
-              targetNamespace:
+              version:
                 type: string
-            required:
-            - enabled
-            - plugin
             type: object
           status:
             properties:

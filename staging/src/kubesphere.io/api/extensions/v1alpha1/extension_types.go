@@ -25,7 +25,7 @@ type Maintainer struct {
 	URL   string `json:"url,omitempty"`
 }
 
-type PluginInfo struct {
+type ExtensionInfo struct {
 	DisplayName string       `json:"displayName,omitempty"`
 	Description string       `json:"description,omitempty"`
 	Icon        string       `json:"icon,omitempty"`
@@ -33,12 +33,12 @@ type PluginInfo struct {
 	Version     string       `json:"version,omitempty"`
 }
 
-type PluginSpec struct {
-	*PluginInfo `json:",inline"`
+type ExtensionSpec struct {
+	*ExtensionInfo `json:",inline"`
 }
 
-type PluginVersionSpec struct {
-	*PluginInfo    `json:",inline"`
+type ExtensionVersionSpec struct {
+	*ExtensionInfo `json:",inline"`
 	Keywords       []string `json:"keywords,omitempty"`
 	Sources        []string `json:"sources,omitempty"`
 	Repo           string   `json:"repo,omitempty"`
@@ -50,12 +50,12 @@ type PluginVersionSpec struct {
 
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:categories="plugin",scope="Cluster"
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
 
-type PluginVersion struct {
+type ExtensionVersion struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              PluginVersionSpec `json:"spec,omitempty"`
+	Spec              ExtensionVersionSpec `json:"spec,omitempty"`
 }
 
 type CategorySpec struct {
@@ -68,25 +68,25 @@ type CategorySpec struct {
 // +genclient:nonNamespaced
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:categories="plugin",scope="Cluster"
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
 
-// Category can help us group the plugins.
+// Category can help us group the extensions.
 type Category struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              CategorySpec `json:"spec,omitempty"`
 }
 
-type PluginVersionInfo struct {
+type ExtensionVersionInfo struct {
 	Version           string      `json:"version"`
 	CreationTimestamp metav1.Time `json:"creationTimestamp,omitempty"`
 }
 
-type PluginStatus struct {
-	State             string              `json:"state,omitempty"`
-	SubscribedVersion string              `json:"subscribedVersion,omitempty"`
-	RecommendVersion  string              `json:"recommendVersion,omitempty"`
-	Versions          []PluginVersionInfo `json:"versions,omitempty"`
+type ExtensionStatus struct {
+	State             string                 `json:"state,omitempty"`
+	SubscribedVersion string                 `json:"subscribedVersion,omitempty"`
+	RecommendVersion  string                 `json:"recommendVersion,omitempty"`
+	Versions          []ExtensionVersionInfo `json:"versions,omitempty"`
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
@@ -97,15 +97,15 @@ type PluginStatus struct {
 
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:categories="plugin",scope="Cluster"
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
 
-// Plugin is synchronized from the Repository.
-// A plugin can contain multiple versions.
-type Plugin struct {
+// Extension is synchronized from the Repository.
+// An extension can contain multiple versions.
+type Extension struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              PluginSpec   `json:"spec,omitempty"`
-	Status            PluginStatus `json:"status,omitempty"`
+	Spec              ExtensionSpec   `json:"spec,omitempty"`
+	Status            ExtensionStatus `json:"status,omitempty"`
 }
 
 type UpdateStrategy struct {
@@ -125,18 +125,18 @@ type RepositorySpec struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type PluginList struct {
+type ExtensionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Plugin `json:"items"`
+	Items           []Extension `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type PluginVersionList struct {
+type ExtensionVersionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PluginVersion `json:"items"`
+	Items           []ExtensionVersion `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

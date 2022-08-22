@@ -1,4 +1,4 @@
-package util
+package extension
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ func GeneratePodName(repoName string) string {
 	return fmt.Sprintf("%s-%s", "catalog", repoName)
 }
 
-func GetRecommendedPluginVersion(versions []extensionsv1alpha1.PluginVersion, k8sVersion string) *extensionsv1alpha1.PluginVersion {
+func GetRecommendedExtensionVersion(versions []extensionsv1alpha1.ExtensionVersion, k8sVersion string) *extensionsv1alpha1.ExtensionVersion {
 	if len(versions) == 0 {
 		return nil
 	}
@@ -23,7 +23,7 @@ func GetRecommendedPluginVersion(versions []extensionsv1alpha1.PluginVersion, k8
 		return nil
 	}
 
-	var latestVersion *extensionsv1alpha1.PluginVersion
+	var latestVersion *extensionsv1alpha1.ExtensionVersion
 	var latestSemver *semver.Version
 
 	for i := range versions {
@@ -42,19 +42,19 @@ func GetRecommendedPluginVersion(versions []extensionsv1alpha1.PluginVersion, k8
 			}
 		} else {
 			// If the semver is invalid, just ignore it.
-			klog.V(2).Infof("parse version failed, plugin version: %s, err: %s", versions[i].Name, err)
+			klog.V(2).Infof("parse version failed, extension version: %s, err: %s", versions[i].Name, err)
 		}
 	}
 
 	return latestVersion
 }
 
-func GetLatestPluginVersion(versions []extensionsv1alpha1.PluginVersion) *extensionsv1alpha1.PluginVersion {
+func GetLatestExtensionVersion(versions []extensionsv1alpha1.ExtensionVersion) *extensionsv1alpha1.ExtensionVersion {
 	if len(versions) == 0 {
 		return nil
 	}
 
-	var latestVersion *extensionsv1alpha1.PluginVersion
+	var latestVersion *extensionsv1alpha1.ExtensionVersion
 	var latestSemver *semver.Version
 
 	for i := range versions {
@@ -71,14 +71,14 @@ func GetLatestPluginVersion(versions []extensionsv1alpha1.PluginVersion) *extens
 			}
 		} else {
 			// If the semver is invalid, just ignore it.
-			klog.V(2).Infof("parse version failed, plugin version: %s, err: %s", versions[i].Name, err)
+			klog.V(2).Infof("parse version failed, extension version: %s, err: %s", versions[i].Name, err)
 		}
 	}
 	return latestVersion
 }
 
-type PluginVersionList []extensionsv1alpha1.PluginVersionInfo
+type VersionList []extensionsv1alpha1.ExtensionVersionInfo
 
-func (pvl PluginVersionList) Len() int           { return len(pvl) }
-func (pvl PluginVersionList) Less(i, j int) bool { return pvl[i].Version < pvl[j].Version }
-func (pvl PluginVersionList) Swap(i, j int)      { pvl[i], pvl[j] = pvl[j], pvl[i] }
+func (pvl VersionList) Len() int           { return len(pvl) }
+func (pvl VersionList) Less(i, j int) bool { return pvl[i].Version < pvl[j].Version }
+func (pvl VersionList) Swap(i, j int)      { pvl[i], pvl[j] = pvl[j], pvl[i] }

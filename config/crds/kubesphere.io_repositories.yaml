@@ -6,23 +6,24 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: plugins.extensions.kubesphere.io
+  name: repositories.kubesphere.io
 spec:
-  group: extensions.kubesphere.io
+  group: kubesphere.io
   names:
     categories:
-    - plugin
-    kind: Plugin
-    listKind: PluginList
-    plural: plugins
-    singular: plugin
+    - extensions
+    kind: Repository
+    listKind: RepositoryList
+    plural: repositories
+    singular: repository
   scope: Cluster
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Plugin is synchronized from the Repository. A plugin can contain
-          multiple versions.
+        description: Repository declared a docker image containing the extension helm
+          chart. The extension manager controller will deploy and synchronizes the
+          extensions from the image repository.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -42,21 +43,18 @@ spec:
                 type: string
               displayName:
                 type: string
-              icon:
+              image:
                 type: string
-              maintainers:
-                items:
-                  properties:
-                    email:
-                      type: string
-                    name:
-                      type: string
-                    url:
-                      type: string
-                  type: object
-                type: array
-              version:
-                type: string
+              updateStrategy:
+                properties:
+                  registryPoll:
+                    properties:
+                      interval:
+                        type: string
+                    type: object
+                type: object
+            required:
+            - image
             type: object
           status:
             properties:
@@ -132,24 +130,8 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
-              recommendVersion:
-                type: string
               state:
                 type: string
-              subscribedVersion:
-                type: string
-              versions:
-                items:
-                  properties:
-                    creationTimestamp:
-                      format: date-time
-                      type: string
-                    version:
-                      type: string
-                  required:
-                  - version
-                  type: object
-                type: array
             type: object
         type: object
     served: true

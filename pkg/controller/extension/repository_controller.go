@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package repository
+package extension
 
 import (
 	"context"
@@ -36,12 +36,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/controller/extension/util"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
 )
 
 const (
-	RepositoryFinalizer = "repository.extensions.kubesphere.io"
+	RepositoryFinalizer = "extensions.kubesphere.io"
 	ContainerName       = "catalog"
 
 	RepoStateInstalled = "installed"
@@ -61,7 +60,7 @@ type RepositoryReconciler struct {
 // reconcileDelete delete the repository and pod.
 func (r *RepositoryReconciler) reconcileDelete(ctx context.Context, repo *extensionsv1alpha1.Repository) (ctrl.Result, error) {
 	pod := &corev1.Pod{}
-	podName := util.GeneratePodName(repo.Name)
+	podName := GeneratePodName(repo.Name)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: podName}, pod); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
@@ -94,7 +93,7 @@ func (r *RepositoryReconciler) reconcileDelete(ctx context.Context, repo *extens
 
 func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1alpha1.Repository) (ctrl.Result, error) {
 	pod := &corev1.Pod{}
-	podName := util.GeneratePodName(repo.Name)
+	podName := GeneratePodName(repo.Name)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: podName}, pod); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
@@ -142,7 +141,7 @@ func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1
 			repoCopy.Status.State = RepoStateUpdating
 		} else {
 			if pod.Status.Phase == corev1.PodRunning {
-				if err := r.syncPlugins(ctx, repo, pod); err != nil {
+				if err := r.syncExtensions(ctx, repo, pod); err != nil {
 					return ctrl.Result{}, err
 				}
 				repoCopy.Status.State = RepoStateReady
@@ -165,99 +164,99 @@ func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1
 	}
 }
 
-// syncPlugins fetch the index.yaml from pod and create plugins that belong to the repo.
-func (r *RepositoryReconciler) syncPlugins(ctx context.Context, repo *extensionsv1alpha1.Repository, pod *corev1.Pod) error {
+// syncExtensions fetch the index.yaml from pod and create extensions that belong to the repo.
+func (r *RepositoryReconciler) syncExtensions(ctx context.Context, repo *extensionsv1alpha1.Repository, pod *corev1.Pod) error {
 	newCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	index, err := helmrepoindex.LoadRepoIndex(newCtx, fmt.Sprintf("http://%s:8080", pod.Status.PodIP), &v1alpha1.HelmRepoCredential{})
 	if err != nil {
 		return err
 	} else {
-		return r.createPlugins(ctx, index, repo)
+		return r.createExtensions(ctx, index, repo)
 	}
 }
 
-// updateOrCreatePlugin create a new plugin if the plugin does not exist.
-// Or it will update info of the plugin.
-func (r *RepositoryReconciler) updateOrCreatePlugin(ctx context.Context, repo *extensionsv1alpha1.Repository, pluginName string, latestPluginVersion *extensionsv1alpha1.PluginVersion) (*extensionsv1alpha1.Plugin, error) {
-	plugin := &extensionsv1alpha1.Plugin{}
+// updateOrCreateExtension create a new extension if the extension does not exist.
+// Or it will update info of the extension.
+func (r *RepositoryReconciler) updateOrCreateExtension(ctx context.Context, repo *extensionsv1alpha1.Repository, extensionName string, latestExtensionVersion *extensionsv1alpha1.ExtensionVersion) (*extensionsv1alpha1.Extension, error) {
+	extension := &extensionsv1alpha1.Extension{}
 	var err error
-	klog.V(2).Infof("update or create plugin: %s/%s ", repo.Name, pluginName)
-	if err = r.Get(ctx, types.NamespacedName{Name: pluginName}, plugin); err == nil {
-		if plugin.ObjectMeta.Labels[constants.ExtensionRepositoryLabel] != repo.Name {
-			err = fmt.Errorf("plugin: %s/%s already exists", repo.Name, pluginName)
+	klog.V(2).Infof("update or create extension: %s/%s ", repo.Name, extensionName)
+	if err = r.Get(ctx, types.NamespacedName{Name: extensionName}, extension); err == nil {
+		if extension.ObjectMeta.Labels[extensionsv1alpha1.RepositoryLabel] != repo.Name {
+			err = fmt.Errorf("extension: %s/%s already exists", repo.Name, extensionName)
 			klog.Error(err)
 			return nil, err
 		}
-		pluginCopy := plugin.DeepCopy()
-		if latestPluginVersion != nil {
-			pluginCopy.Spec = extensionsv1alpha1.PluginSpec{
-				PluginInfo: &extensionsv1alpha1.PluginInfo{
-					Description: latestPluginVersion.Spec.Description,
-					Icon:        latestPluginVersion.Spec.Icon,
-					Maintainers: latestPluginVersion.Spec.Maintainers,
-					Version:     latestPluginVersion.Spec.Version,
+		extensionCopy := extension.DeepCopy()
+		if latestExtensionVersion != nil {
+			extensionCopy.Spec = extensionsv1alpha1.ExtensionSpec{
+				ExtensionInfo: &extensionsv1alpha1.ExtensionInfo{
+					Description: latestExtensionVersion.Spec.Description,
+					Icon:        latestExtensionVersion.Spec.Icon,
+					Maintainers: latestExtensionVersion.Spec.Maintainers,
+					Version:     latestExtensionVersion.Spec.Version,
 				},
 			}
-			if !reflect.DeepEqual(plugin.Spec, pluginCopy.Spec) {
-				klog.Infof("update plugin: %s/%s ", repo.Name, pluginName)
-				return pluginCopy, r.Update(ctx, pluginCopy)
+			if !reflect.DeepEqual(extension.Spec, extensionCopy.Spec) {
+				klog.Infof("update extension: %s/%s ", repo.Name, extensionName)
+				return extensionCopy, r.Update(ctx, extensionCopy)
 			}
 		}
-		return plugin, nil
+		return extension, nil
 	} else if apierrors.IsNotFound(err) {
-		plugin = &extensionsv1alpha1.Plugin{
+		extension = &extensionsv1alpha1.Extension{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: pluginName,
+				Name: extensionName,
 				Labels: map[string]string{
-					constants.ExtensionRepositoryLabel: repo.Name,
+					extensionsv1alpha1.RepositoryLabel: repo.Name,
 				},
 			},
 		}
-		if latestPluginVersion != nil {
-			plugin.Spec = extensionsv1alpha1.PluginSpec{
-				PluginInfo: &extensionsv1alpha1.PluginInfo{
-					Description: latestPluginVersion.Spec.Description,
-					Icon:        latestPluginVersion.Spec.Icon,
-					Maintainers: latestPluginVersion.Spec.Maintainers,
-					Version:     latestPluginVersion.Spec.Version,
+		if latestExtensionVersion != nil {
+			extension.Spec = extensionsv1alpha1.ExtensionSpec{
+				ExtensionInfo: &extensionsv1alpha1.ExtensionInfo{
+					Description: latestExtensionVersion.Spec.Description,
+					Icon:        latestExtensionVersion.Spec.Icon,
+					Maintainers: latestExtensionVersion.Spec.Maintainers,
+					Version:     latestExtensionVersion.Spec.Version,
 				},
 			}
 		}
-		if err := controllerutil.SetControllerReference(repo, plugin, r.Scheme()); err != nil {
+		if err := controllerutil.SetControllerReference(repo, extension, r.Scheme()); err != nil {
 			return nil, err
 		}
-		klog.V(2).Infof("create new plugin: %s/%s", repo.Name, pluginName)
-		if err := r.Create(ctx, plugin, &client.CreateOptions{}); err != nil {
-			klog.Errorf("failed to create plugin: %s/%s", repo.Name, pluginName)
+		klog.V(2).Infof("create new extension: %s/%s", repo.Name, extensionName)
+		if err := r.Create(ctx, extension, &client.CreateOptions{}); err != nil {
+			klog.Errorf("failed to create extension: %s/%s", repo.Name, extensionName)
 			return nil, err
 		}
-		return plugin, nil
+		return extension, nil
 	}
 
 	return nil, err
 }
 
-func (r *RepositoryReconciler) updateOrCreatePluginVersion(ctx context.Context, repo *extensionsv1alpha1.Repository, plugin *extensionsv1alpha1.Plugin, pluginVersion *extensionsv1alpha1.PluginVersion) error {
-	version := &extensionsv1alpha1.PluginVersion{}
-	klog.V(2).Infof("update or create plugin version: %s/%s ", repo.Name, pluginVersion.Name)
-	if err := r.Get(ctx, types.NamespacedName{Name: pluginVersion.Name}, version); err == nil {
-		if !reflect.DeepEqual(version.Spec, pluginVersion.Spec) {
-			version.Spec = pluginVersion.Spec
-			klog.V(2).Infof("update plugin version: %s in repo: %s", repo.Name, pluginVersion.Name)
+func (r *RepositoryReconciler) updateOrCreateExtensionVersion(ctx context.Context, repo *extensionsv1alpha1.Repository, extension *extensionsv1alpha1.Extension, extensionVersion *extensionsv1alpha1.ExtensionVersion) error {
+	version := &extensionsv1alpha1.ExtensionVersion{}
+	klog.V(2).Infof("update or create extension version: %s/%s ", repo.Name, extensionVersion.Name)
+	if err := r.Get(ctx, types.NamespacedName{Name: extensionVersion.Name}, version); err == nil {
+		if !reflect.DeepEqual(version.Spec, extensionVersion.Spec) {
+			version.Spec = extensionVersion.Spec
+			klog.V(2).Infof("update extension version: %s in repo: %s", repo.Name, extensionVersion.Name)
 			if err := r.Update(ctx, version); err != nil {
-				klog.Errorf("failed to update plugin version: %s/%s, error: %s", repo.Name, pluginVersion.Name, err)
+				klog.Errorf("failed to update extension version: %s/%s, error: %s", repo.Name, extensionVersion.Name, err)
 				return err
 			}
 		}
 		return nil
 	} else if apierrors.IsNotFound(err) {
-		if err := controllerutil.SetControllerReference(plugin, pluginVersion, r.Scheme()); err != nil {
+		if err := controllerutil.SetControllerReference(extension, extensionVersion, r.Scheme()); err != nil {
 			return err
 		}
-		klog.V(2).Infof("create new plugin version: %s in repo: ", pluginVersion.Name)
-		if err := r.Create(ctx, pluginVersion, &client.CreateOptions{}); err != nil {
-			klog.Errorf("failed to create plugin version: %s/%s, error: %s", repo.Name, pluginVersion.Name, err)
+		klog.V(2).Infof("create new extension version: %s in repo: ", extensionVersion.Name)
+		if err := r.Create(ctx, extensionVersion, &client.CreateOptions{}); err != nil {
+			klog.Errorf("failed to create extension version: %s/%s, error: %s", repo.Name, extensionVersion.Name, err)
 			return err
 		}
 		return nil
@@ -266,10 +265,10 @@ func (r *RepositoryReconciler) updateOrCreatePluginVersion(ctx context.Context, 
 	}
 }
 
-// createPlugins create all the plugins that belong to the repo.
-func (r *RepositoryReconciler) createPlugins(ctx context.Context, index *helmrepo.IndexFile, repo *extensionsv1alpha1.Repository) error {
+// createExtensions create all the extensions that belong to the repo.
+func (r *RepositoryReconciler) createExtensions(ctx context.Context, index *helmrepo.IndexFile, repo *extensionsv1alpha1.Repository) error {
 	for key, versions := range index.Entries {
-		pluginVersions := make([]extensionsv1alpha1.PluginVersion, 0, len(versions))
+		extensionVersions := make([]extensionsv1alpha1.ExtensionVersion, 0, len(versions))
 		for _, version := range versions {
 			if version.Metadata == nil {
 				klog.Warningf("version metadata is empty in repo: %s", repo.Name)
@@ -280,22 +279,22 @@ func (r *RepositoryReconciler) createPlugins(ctx context.Context, index *helmrep
 			for _, m := range version.Maintainers {
 				maintainers = append(maintainers, extensionsv1alpha1.Maintainer{Name: m.Name, Email: m.Email, URL: m.URL})
 			}
-			pluginVersions = append(pluginVersions, extensionsv1alpha1.PluginVersion{
+			extensionVersions = append(extensionVersions, extensionsv1alpha1.ExtensionVersion{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("%s-%s", version.Name, version.Version),
 					Labels: map[string]string{
-						constants.ExtensionRepositoryLabel: repo.Name,
-						constants.ExtensionPluginLabel:     key,
+						extensionsv1alpha1.RepositoryLabel: repo.Name,
+						extensionsv1alpha1.ExtensionLabel:  key,
 					},
 				},
-				Spec: extensionsv1alpha1.PluginVersionSpec{
+				Spec: extensionsv1alpha1.ExtensionVersionSpec{
 					Keywords:       version.Keywords,
 					Repo:           repo.Name,
 					MinKubeVersion: version.KubeVersion,
 					Home:           version.Home,
 					Digest:         version.Digest,
 					Sources:        version.Sources,
-					PluginInfo: &extensionsv1alpha1.PluginInfo{
+					ExtensionInfo: &extensionsv1alpha1.ExtensionInfo{
 						Description: version.Description,
 						Icon:        version.Icon,
 						Maintainers: maintainers,
@@ -306,12 +305,12 @@ func (r *RepositoryReconciler) createPlugins(ctx context.Context, index *helmrep
 			})
 		}
 
-		latestPluginVersion := util.GetLatestPluginVersion(pluginVersions)
-		if plugin, err := r.updateOrCreatePlugin(ctx, repo, key, latestPluginVersion); err != nil {
+		latestExtensionVersion := GetLatestExtensionVersion(extensionVersions)
+		if extension, err := r.updateOrCreateExtension(ctx, repo, key, latestExtensionVersion); err != nil {
 			return err
 		} else {
-			for _, pluginVersion := range pluginVersions {
-				if err := r.updateOrCreatePluginVersion(ctx, repo, plugin, &pluginVersion); err != nil {
+			for _, extensionVersion := range extensionVersions {
+				if err := r.updateOrCreateExtensionVersion(ctx, repo, extension, &extensionVersion); err != nil {
 					return err
 				}
 			}

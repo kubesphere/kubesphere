@@ -23,19 +23,22 @@ import (
 	"net/url"
 	"regexp"
 
-	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
-
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
+	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	extensionsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/extensions/v1alpha1"
 )
 
 type reverseProxyDispatcher struct {
-	reverseProxyInformer extensionsinformers.ReverseProxyInformer
+	cache cache.Cache
+}
+
+func NewReverseProxyDispatcher(cache cache.Cache) Dispatcher {
+	return &reverseProxyDispatcher{cache: cache}
 }
 
 func (s *reverseProxyDispatcher) Dispatch(w http.ResponseWriter, req *http.Request) bool {
@@ -43,14 +46,14 @@ func (s *reverseProxyDispatcher) Dispatch(w http.ResponseWriter, req *http.Reque
 	if info.IsKubernetesRequest {
 		return false
 	}
-	reverseProxies, err := s.reverseProxyInformer.Lister().List(labels.Everything())
-	if err != nil {
+	var reverseProxies extensionsv1alpha1.ReverseProxyList
+	if err := s.cache.List(req.Context(), &reverseProxies, &client.ListOptions{}); err != nil {
 		responsewriters.InternalError(w, req, err)
 		return true
 	}
 
-	for _, reverseProxy := range reverseProxies {
-		if reverseProxy.Status.State != extensionsv1alpha1.StateEnabled {
+	for _, reverseProxy := range reverseProxies.Items {
+		if reverseProxy.Status.State != extensionsv1alpha1.StateAvailable {
 			continue
 		}
 
@@ -84,8 +87,4 @@ func (s *reverseProxyDispatcher) Dispatch(w http.ResponseWriter, req *http.Reque
 
 func (s *reverseProxyDispatcher) Error(w http.ResponseWriter, req *http.Request, err error) {
 	responsewriters.InternalError(w, req, err)
-}
-
-func NewReverseProxyDispatcher(reverseProxyInformer extensionsinformers.ReverseProxyInformer) Dispatcher {
-	return &reverseProxyDispatcher{reverseProxyInformer: reverseProxyInformer}
 }

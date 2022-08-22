@@ -20,9 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/controller/extension/plugin"
-	"kubesphere.io/kubesphere/pkg/controller/extension/repository"
-	"kubesphere.io/kubesphere/pkg/controller/extension/subscription"
+	"kubesphere.io/kubesphere/pkg/controller/extension"
 
 	"github.com/kubesphere/pvc-autoresizer/runners"
 	"k8s.io/apimachinery/pkg/labels"
@@ -193,27 +191,27 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 	}
 
 	var k8sVersion string
-	if cmOptions.IsControllerEnabled("plugin") {
+	if cmOptions.IsControllerEnabled("extension") {
 		info, err := client.Kubernetes().Discovery().ServerVersion()
 		if err == nil {
 			k8sVersion = info.GitVersion
 		} else {
 			return err
 		}
-		pluginReconciler := &plugin.PluginReconciler{K8sVersion: k8sVersion}
-		addControllerWithSetup(mgr, "plugin", pluginReconciler)
+		extensionReconciler := &extension.ExtensionReconciler{K8sVersion: k8sVersion}
+		addControllerWithSetup(mgr, "extension", extensionReconciler)
 
-		pluginVersionReconciler := &plugin.PluginVersionReconciler{K8sVersion: k8sVersion}
-		addControllerWithSetup(mgr, "pluginversion", pluginVersionReconciler)
+		extensionVersionReconciler := &extension.ExtensionVersionReconciler{K8sVersion: k8sVersion}
+		addControllerWithSetup(mgr, "extensionversion", extensionVersionReconciler)
 	}
 
-	if cmOptions.IsControllerEnabled("repo") {
-		repoReconciler := &repository.RepositoryReconciler{}
-		addControllerWithSetup(mgr, "repo", repoReconciler)
+	if cmOptions.IsControllerEnabled("repository") {
+		repoReconciler := &extension.RepositoryReconciler{}
+		addControllerWithSetup(mgr, "repository", repoReconciler)
 	}
 
 	if cmOptions.IsControllerEnabled("subscription") {
-		subscriptionReconciler := &subscription.SubscriptionReconciler{}
+		subscriptionReconciler := &extension.SubscriptionReconciler{}
 		addControllerWithSetup(mgr, "subscription", subscriptionReconciler)
 	}
 

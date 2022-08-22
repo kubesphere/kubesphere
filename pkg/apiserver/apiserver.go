@@ -340,15 +340,13 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions, stopCh))
 	}
 
-	jsBundleDispatcher := dispatch.NewJSBundleDispatcher(s.InformerFactory.KubeSphereSharedInformerFactory().Extensions().V1alpha1().JSBundles(),
-		s.InformerFactory.KubernetesSharedInformerFactory().Core().V1().ConfigMaps(),
-		s.InformerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
+	jsBundleDispatcher := dispatch.NewJSBundleDispatcher(s.RuntimeCache)
 	handler = filters.WithDispatcher(handler, jsBundleDispatcher)
 
-	apiServiceDispatcher := dispatch.NewAPIServiceDispatcher(s.InformerFactory.KubeSphereSharedInformerFactory().Extensions().V1alpha1().APIServices())
+	apiServiceDispatcher := dispatch.NewAPIServiceDispatcher(s.RuntimeCache)
 	handler = filters.WithDispatcher(handler, apiServiceDispatcher)
 
-	reverseProxyDispatcher := dispatch.NewReverseProxyDispatcher(s.InformerFactory.KubeSphereSharedInformerFactory().Extensions().V1alpha1().ReverseProxies())
+	reverseProxyDispatcher := dispatch.NewReverseProxyDispatcher(s.RuntimeCache)
 	handler = filters.WithDispatcher(handler, reverseProxyDispatcher)
 
 	var authorizers authorizer.Authorizer
@@ -528,11 +526,6 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 			notificationv2beta2.ResourcesPluralReceiver,
 			notificationv2beta2.ResourcesPluralRouter,
 			notificationv2beta2.ResourcesPluralSilence,
-		},
-		{Group: "extensions.kubesphere.io", Version: "v1alpha1"}: {
-			"jsbundles",
-			"reverseproxies",
-			"apiservices",
 		},
 	}
 
