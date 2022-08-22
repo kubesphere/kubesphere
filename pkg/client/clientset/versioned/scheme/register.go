@@ -30,7 +30,6 @@ import (
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	devopsv1alpha1 "kubesphere.io/api/devops/v1alpha1"
 	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
-	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/api/network/v1alpha1"
 	notificationv2beta1 "kubesphere.io/api/notification/v2beta1"
@@ -54,7 +53,6 @@ var localSchemeBuilder = runtime.SchemeBuilder{
 	clusterv1alpha1.AddToScheme,
 	devopsv1alpha1.AddToScheme,
 	devopsv1alpha3.AddToScheme,
-	extensionsv1alpha1.AddToScheme,
 	iamv1alpha2.AddToScheme,
 	networkv1alpha1.AddToScheme,
 	notificationv2beta1.AddToScheme,

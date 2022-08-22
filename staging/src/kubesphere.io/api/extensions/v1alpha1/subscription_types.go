@@ -20,17 +20,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type PluginRef struct {
+type ExtensionRef struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 }
 
 type SubscriptionSpec struct {
-	Plugin          PluginRef `json:"plugin"`
-	Enabled         bool      `json:"enabled"`
-	ReleaseName     string    `json:"releaseName,omitempty"`
-	TargetNamespace string    `json:"targetNamespace,omitempty"`
-	Config          string    `json:"config,omitempty"`
+	Extension       ExtensionRef `json:"extension"`
+	Enabled         bool         `json:"enabled"`
+	ReleaseName     string       `json:"releaseName,omitempty"`
+	TargetNamespace string       `json:"targetNamespace,omitempty"`
+	Config          string       `json:"config,omitempty"`
 }
 
 type SubscriptionStatus struct {
@@ -47,9 +47,9 @@ type SubscriptionStatus struct {
 // +genclient:nonNamespaced
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:categories="plugin",scope="Cluster"
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
 
-// Subscription describes the configuration and the plugin version to be subscribed.
+// Subscription describes the configuration and the extension version to be subscribed.
 type Subscription struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

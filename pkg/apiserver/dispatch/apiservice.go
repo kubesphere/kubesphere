@@ -22,18 +22,22 @@ import (
 	"net/http"
 	"net/url"
 
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	extensionsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/extensions/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 type apiServiceDispatcher struct {
-	apiServiceInformer extensionsinformers.APIServiceInformer
+	cache cache.Cache
+}
+
+func NewAPIServiceDispatcher(cache cache.Cache) Dispatcher {
+	return &apiServiceDispatcher{cache: cache}
 }
 
 func (s *apiServiceDispatcher) Dispatch(w http.ResponseWriter, req *http.Request) bool {
@@ -41,13 +45,13 @@ func (s *apiServiceDispatcher) Dispatch(w http.ResponseWriter, req *http.Request
 	if requestInfo.IsKubernetesRequest {
 		return false
 	}
-	apiServices, err := s.apiServiceInformer.Lister().List(labels.Everything())
-	if err != nil {
+	var apiServices extensionsv1alpha1.APIServiceList
+	if err := s.cache.List(req.Context(), &apiServices, &client.ListOptions{}); err != nil {
 		responsewriters.InternalError(w, req, err)
 		return true
 	}
-	for _, apiService := range apiServices {
-		if apiService.Status.State == extensionsv1alpha1.StateEnabled && (sliceutil.HasString(apiService.Spec.NonResourceURLs, requestInfo.Path) ||
+	for _, apiService := range apiServices.Items {
+		if apiService.Status.State == extensionsv1alpha1.StateAvailable && (sliceutil.HasString(apiService.Spec.NonResourceURLs, requestInfo.Path) ||
 			(apiService.Spec.Group == requestInfo.APIGroup && apiService.Spec.Version == requestInfo.APIVersion)) {
 			endpoint, err := url.Parse(apiService.Spec.Endpoint.RawURL())
 			if err != nil {
@@ -69,8 +73,4 @@ func (s *apiServiceDispatcher) Dispatch(w http.ResponseWriter, req *http.Request
 
 func (s *apiServiceDispatcher) Error(w http.ResponseWriter, req *http.Request, err error) {
 	responsewriters.InternalError(w, req, err)
-}
-
-func NewAPIServiceDispatcher(apiServiceInformer extensionsinformers.APIServiceInformer) Dispatcher {
-	return &apiServiceDispatcher{apiServiceInformer: apiServiceInformer}
 }

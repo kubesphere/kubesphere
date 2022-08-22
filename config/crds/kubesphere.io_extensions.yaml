@@ -6,23 +6,23 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: jsbundles.extensions.kubesphere.io
+  name: extensions.kubesphere.io
 spec:
-  group: extensions.kubesphere.io
+  group: kubesphere.io
   names:
     categories:
-    - plugin
-    kind: JSBundle
-    listKind: JSBundleList
-    plural: jsbundles
-    singular: jsbundle
+    - extensions
+    kind: Extension
+    listKind: ExtensionList
+    plural: extensions
+    singular: extension
   scope: Cluster
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: JSBundle declares a js bundle that needs to be injected into
-          ks-console, the endpoint can be provided by a service or a static file.
+        description: Extension is synchronized from the Repository. An extension can
+          contain multiple versions.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -38,86 +38,25 @@ spec:
             type: object
           spec:
             properties:
-              filenameOverride:
+              description:
                 type: string
-              raw:
-                format: byte
+              displayName:
                 type: string
-              rawFrom:
-                properties:
-                  caBundle:
-                    format: byte
-                    type: string
-                  configMapKeyRef:
-                    description: Selects a key of a ConfigMap.
-                    properties:
-                      key:
-                        description: The key to select.
-                        type: string
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
-                        type: string
-                      namespace:
-                        type: string
-                      optional:
-                        description: Specify whether the ConfigMap or its key must
-                          be defined
-                        type: boolean
-                    required:
-                    - key
-                    - namespace
-                    type: object
-                  insecureSkipVerify:
-                    type: boolean
-                  secretKeyRef:
-                    description: Selects a key of a Secret.
-                    properties:
-                      key:
-                        description: The key of the secret to select from.  Must be
-                          a valid secret key.
-                        type: string
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
-                        type: string
-                      namespace:
-                        type: string
-                      optional:
-                        description: Specify whether the Secret or its key must be
-                          defined
-                        type: boolean
-                    required:
-                    - key
-                    - namespace
-                    type: object
-                  service:
-                    description: ServiceReference holds a reference to Service.legacy.k8s.io
-                    properties:
-                      name:
-                        description: name is the name of the service. Required
-                        type: string
-                      namespace:
-                        description: namespace is the namespace of the service. Required
-                        type: string
-                      path:
-                        description: path is an optional URL path at which the webhook
-                          will be contacted.
-                        type: string
-                      port:
-                        description: port is an optional service port at which the
-                          webhook will be contacted. `port` should be a valid port
-                          number (1-65535, inclusive). Defaults to 443 for backward
-                          compatibility.
-                        format: int32
-                        type: integer
-                    required:
-                    - name
-                    - namespace
-                    type: object
-                  url:
-                    type: string
-                type: object
+              icon:
+                type: string
+              maintainers:
+                items:
+                  properties:
+                    email:
+                      type: string
+                    name:
+                      type: string
+                    url:
+                      type: string
+                  type: object
+                type: array
+              version:
+                type: string
             type: object
           status:
             properties:
@@ -193,10 +132,24 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
-              link:
+              recommendVersion:
                 type: string
               state:
                 type: string
+              subscribedVersion:
+                type: string
+              versions:
+                items:
+                  properties:
+                    creationTimestamp:
+                      format: date-time
+                      type: string
+                    version:
+                      type: string
+                  required:
+                  - version
+                  type: object
+                type: array
             type: object
         type: object
     served: true

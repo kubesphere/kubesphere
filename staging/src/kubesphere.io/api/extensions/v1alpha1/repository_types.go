@@ -32,10 +32,10 @@ type RepositoryStatus struct {
 // +genclient:nonNamespaced
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:categories="plugin",scope="Cluster"
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
 
-// Repository declared a docker image containing the plugin helm chart.
-// The plugin manager controller will deploy and synchronizes the plugins from the image repository.
+// Repository declared a docker image containing the extension helm chart.
+// The extension manager controller will deploy and synchronizes the extensions from the image repository.
 type Repository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

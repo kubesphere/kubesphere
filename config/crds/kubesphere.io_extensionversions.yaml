@@ -6,22 +6,21 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: categories.extensions.kubesphere.io
+  name: extensionversions.kubesphere.io
 spec:
-  group: extensions.kubesphere.io
+  group: kubesphere.io
   names:
     categories:
-    - plugin
-    kind: Category
-    listKind: CategoryList
-    plural: categories
-    singular: category
+    - extensions
+    kind: ExtensionVersion
+    listKind: ExtensionVersionList
+    plural: extensionversions
+    singular: extensionversion
   scope: Cluster
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Category can help us group the plugins.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -39,10 +38,45 @@ spec:
             properties:
               description:
                 type: string
+              digest:
+                type: string
               displayName:
+                type: string
+              home:
                 type: string
               icon:
                 type: string
+              keywords:
+                items:
+                  type: string
+                type: array
+              maintainers:
+                items:
+                  properties:
+                    email:
+                      type: string
+                    name:
+                      type: string
+                    url:
+                      type: string
+                  type: object
+                type: array
+              minKubeVersion:
+                type: string
+              repo:
+                type: string
+              sources:
+                items:
+                  type: string
+                type: array
+              urls:
+                items:
+                  type: string
+                type: array
+              version:
+                type: string
+            required:
+            - urls
             type: object
         type: object
     served: true

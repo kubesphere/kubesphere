@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package subscription
+package extension
 
 import (
 	"context"
@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/controller/extension/util"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmrepoindex"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix/helmwrapper"
 )
@@ -78,25 +77,25 @@ func (r *SubscriptionReconciler) reconcileDelete(ctx context.Context, sub *exten
 	return ctrl.Result{}, nil
 }
 
-func (r *SubscriptionReconciler) loadChartData(ctx context.Context, pluginRef *extensionsv1alpha1.PluginRef) (string, error) {
-	pluginVer := &extensionsv1alpha1.PluginVersion{}
-	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", pluginRef.Name, pluginRef.Version)}, pluginVer)
+func (r *SubscriptionReconciler) loadChartData(ctx context.Context, ref *extensionsv1alpha1.ExtensionRef) (string, error) {
+	extensionVersion := &extensionsv1alpha1.ExtensionVersion{}
+	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", ref.Name, ref.Version)}, extensionVersion)
 	if err != nil {
 		return "", err
 	}
 	repo := &extensionsv1alpha1.Repository{}
-	err = r.Get(ctx, types.NamespacedName{Name: pluginVer.Spec.Repo}, repo)
+	err = r.Get(ctx, types.NamespacedName{Name: extensionVersion.Spec.Repo}, repo)
 	if err != nil {
 		return "", err
 	}
 	po := &corev1.Pod{}
-	podName := util.GeneratePodName(repo.Name)
+	podName := GeneratePodName(repo.Name)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: podName}, po); err != nil {
 		return "", err
 	}
 
 	var url string
-	for _, d := range pluginVer.Spec.URLs {
+	for _, d := range extensionVersion.Spec.URLs {
 		d = strings.TrimPrefix(d, "/")
 		if len(d) > 0 {
 			url = d
@@ -129,9 +128,9 @@ func (r *SubscriptionReconciler) doReconcile(ctx context.Context, sub *extension
 		if !strings.Contains(s, "release: not found") {
 			return sub, ctrl.Result{}, err
 		} else {
-			charData, err := r.loadChartData(ctx, &sub.Spec.Plugin)
+			charData, err := r.loadChartData(ctx, &sub.Spec.Extension)
 			if err == nil {
-				if err := wrapper.Install(sub.Spec.Plugin.Name, charData, string(sub.Spec.Config)); err != nil {
+				if err := wrapper.Install(sub.Spec.Extension.Name, charData, string(sub.Spec.Config)); err != nil {
 					klog.Errorf("install helm release %s/%s failed, error: %s", sub.Spec.TargetNamespace, sub.Spec.ReleaseName, err)
 					return sub, ctrl.Result{}, err
 				} else {

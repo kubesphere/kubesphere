@@ -22,28 +22,23 @@ import (
 	"net/http"
 	"net/url"
 
-	"k8s.io/apimachinery/pkg/labels"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
-	corev1 "k8s.io/client-go/informers/core/v1"
 	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	extensionsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/extensions/v1alpha1"
 )
 
 type jsBundleDispatcher struct {
-	jsBundleInformer  extensionsinformers.JSBundleInformer
-	configMapInformer corev1.ConfigMapInformer
-	secretInformer    corev1.SecretInformer
+	cache cache.Cache
 }
 
-func NewJSBundleDispatcher(jsBundleInformer extensionsinformers.JSBundleInformer,
-	configMapInformer corev1.ConfigMapInformer,
-	secretInformer corev1.SecretInformer) Dispatcher {
-	return &jsBundleDispatcher{jsBundleInformer: jsBundleInformer,
-		configMapInformer: configMapInformer,
-		secretInformer:    secretInformer}
+func NewJSBundleDispatcher(cache cache.Cache) Dispatcher {
+	return &jsBundleDispatcher{cache: cache}
 }
 
 func (s *jsBundleDispatcher) Dispatch(w http.ResponseWriter, req *http.Request) bool {
@@ -51,22 +46,25 @@ func (s *jsBundleDispatcher) Dispatch(w http.ResponseWriter, req *http.Request) 
 	if requestInfo.IsKubernetesRequest {
 		return false
 	}
-	jsBundles, err := s.jsBundleInformer.Lister().List(labels.Everything())
-	if err != nil {
+	var jsBundles extensionsv1alpha1.JSBundleList
+	if err := s.cache.List(req.Context(), &jsBundles, &client.ListOptions{}); err != nil {
 		responsewriters.InternalError(w, req, err)
 		return true
 	}
 
-	for _, jsBundle := range jsBundles {
-		if jsBundle.Status.State == extensionsv1alpha1.StateEnabled && jsBundle.Status.Link == requestInfo.Path {
+	for _, jsBundle := range jsBundles.Items {
+		if jsBundle.Status.State == extensionsv1alpha1.StateAvailable && jsBundle.Status.Link == requestInfo.Path {
 			w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 			if jsBundle.Spec.Raw != nil {
 				w.Write(jsBundle.Spec.Raw)
 				return true
 			}
 			if jsBundle.Spec.RawFrom.ConfigMapKeyRef != nil {
-				cm, err := s.configMapInformer.Lister().ConfigMaps(jsBundle.Spec.RawFrom.ConfigMapKeyRef.Namespace).Get(jsBundle.Spec.RawFrom.ConfigMapKeyRef.Name)
-				if err != nil {
+				var cm v1.ConfigMap
+				if err := s.cache.Get(req.Context(), types.NamespacedName{
+					Namespace: jsBundle.Spec.RawFrom.ConfigMapKeyRef.Namespace,
+					Name:      jsBundle.Spec.RawFrom.ConfigMapKeyRef.Name,
+				}, &cm); err != nil {
 					responsewriters.InternalError(w, req, err)
 					return true
 				}
@@ -74,12 +72,15 @@ func (s *jsBundleDispatcher) Dispatch(w http.ResponseWriter, req *http.Request) 
 				return true
 			}
 			if jsBundle.Spec.RawFrom.SecretKeyRef != nil {
-				secret, err := s.secretInformer.Lister().Secrets(jsBundle.Spec.RawFrom.SecretKeyRef.Namespace).Get(jsBundle.Spec.RawFrom.SecretKeyRef.Name)
-				if err != nil {
+				var secret v1.Secret
+				if err := s.cache.Get(req.Context(), types.NamespacedName{
+					Namespace: jsBundle.Spec.RawFrom.SecretKeyRef.Namespace,
+					Name:      jsBundle.Spec.RawFrom.SecretKeyRef.Name,
+				}, &secret); err != nil {
 					responsewriters.InternalError(w, req, err)
 					return true
 				}
-				w.Write(secret.Data[jsBundle.Spec.RawFrom.ConfigMapKeyRef.Key])
+				w.Write(secret.Data[jsBundle.Spec.RawFrom.SecretKeyRef.Key])
 				return true
 			}
 			var rawURL = jsBundle.Spec.RawFrom.RawURL()

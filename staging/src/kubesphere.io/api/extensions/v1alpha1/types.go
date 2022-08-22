@@ -20,8 +20,13 @@ package v1alpha1
 import "fmt"
 
 const (
-	StateEnabled  = "Enabled"
-	StateDisabled = "Disabled"
+	StateEnabled     = "Enabled"
+	StateDisabled    = "Disabled"
+	StateAvailable   = "Available"
+	StateUnavailable = "Unavailable"
+
+	RepositoryLabel = "kubesphere.io/repo"
+	ExtensionLabel  = "kubesphere.io/extension"
 )
 
 // ServiceReference holds a reference to Service.legacy.k8s.io

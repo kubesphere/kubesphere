@@ -6,23 +6,23 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: reverseproxies.extensions.kubesphere.io
+  name: subscriptions.kubesphere.io
 spec:
-  group: extensions.kubesphere.io
+  group: kubesphere.io
   names:
     categories:
-    - plugin
-    kind: ReverseProxy
-    listKind: ReverseProxyList
-    plural: reverseproxies
-    singular: reverseproxy
+    - extensions
+    kind: Subscription
+    listKind: SubscriptionList
+    plural: subscriptions
+    singular: subscription
   scope: Cluster
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ReverseProxy defines the rules for reverse proxies, it's useful
-          to exposing APIs to ks-console or other plugins.
+        description: Subscription describes the configuration and the extension version
+          to be subscribed.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -38,52 +38,27 @@ spec:
             type: object
           spec:
             properties:
+              config:
+                type: string
               enabled:
                 type: boolean
-              matcher:
+              extension:
                 properties:
-                  method:
+                  name:
                     type: string
-                  path:
+                  version:
                     type: string
                 required:
-                - method
-                - path
+                - name
+                - version
                 type: object
-              upstream:
-                properties:
-                  caBundle:
-                    format: byte
-                    type: string
-                  insecureSkipVerify:
-                    type: boolean
-                  service:
-                    description: ServiceReference holds a reference to Service.legacy.k8s.io
-                    properties:
-                      name:
-                        description: name is the name of the service. Required
-                        type: string
-                      namespace:
-                        description: namespace is the namespace of the service. Required
-                        type: string
-                      path:
-                        description: path is an optional URL path at which the webhook
-                          will be contacted.
-                        type: string
-                      port:
-                        description: port is an optional service port at which the
-                          webhook will be contacted. `port` should be a valid port
-                          number (1-65535, inclusive). Defaults to 443 for backward
-                          compatibility.
-                        format: int32
-                        type: integer
-                    required:
-                    - name
-                    - namespace
-                    type: object
-                  url:
-                    type: string
-                type: object
+              releaseName:
+                type: string
+              targetNamespace:
+                type: string
+            required:
+            - enabled
+            - extension
             type: object
           status:
             properties:

@@ -63,7 +63,7 @@ type JSBundleStatus struct {
 // +genclient:nonNamespaced
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:categories="plugin",scope="Cluster"
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
 
 // JSBundle declares a js bundle that needs to be injected into ks-console,
 // the endpoint can be provided by a service or a static file.
