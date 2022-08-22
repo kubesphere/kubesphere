@@ -713,7 +713,7 @@ type Repo struct {
 	// selectors
 	Selectors RepoSelectors `json:"selectors"`
 
-	// status eg.[active|deleted]
+	// status eg.[successful|failed|syncing]
 	Status string `json:"status,omitempty"`
 
 	// record status changed time
