@@ -380,6 +380,7 @@ func (h *iamHandler) ListWorkspaceRoles(request *restful.Request, response *rest
 	queryParam.Filters[iamv1alpha2.ScopeWorkspace] = query.Value(workspace)
 	// shared workspace role template
 	if string(queryParam.Filters[query.FieldLabel]) == fmt.Sprintf("%s=%s", iamv1alpha2.RoleTemplateLabel, "true") ||
+		strings.Contains(queryParam.LabelSelector, iamv1alpha2.RoleTemplateLabel) ||
 		queryParam.Filters[iamv1alpha2.AggregateTo] != "" {
 		delete(queryParam.Filters, iamv1alpha2.ScopeWorkspace)
 	}
