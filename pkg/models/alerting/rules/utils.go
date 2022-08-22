@@ -298,7 +298,9 @@ func getAlertingRuleStatus(resRule *ResourceRuleItem, epRule *alerting.AlertingR
 		}
 		rule.LastError = epRule.LastError
 		rule.LastEvaluation = epRule.LastEvaluation
-		rule.EvaluationDurationSeconds = epRule.EvaluationTime
+		if epRule.EvaluationTime != nil {
+			rule.EvaluationDurationSeconds = *epRule.EvaluationTime
+		}
 
 		rState := strings.ToLower(epRule.State)
 		cliRuleStateEmpty := rState == ""
@@ -349,11 +351,13 @@ func ParseAlertingRules(epRuleGroups []*alerting.RuleGroup, custom bool, level v
 						Labels:      r.Labels,
 						Annotations: r.Annotations,
 					},
-					State:                     r.State,
-					Health:                    string(r.Health),
-					LastError:                 r.LastError,
-					LastEvaluation:            r.LastEvaluation,
-					EvaluationDurationSeconds: r.EvaluationTime,
+					State:          r.State,
+					Health:         string(r.Health),
+					LastError:      r.LastError,
+					LastEvaluation: r.LastEvaluation,
+				}
+				if r.EvaluationTime != nil {
+					rule.EvaluationDurationSeconds = *r.EvaluationTime
 				}
 				if rule.Health != "" {
 					rule.Health = string(rules.HealthUnknown)

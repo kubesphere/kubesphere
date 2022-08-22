@@ -212,6 +212,20 @@ func (r *GlobalRuleGroup) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &GlobalRuleGroup{}
 
 func (r *GlobalRuleGroup) Default() {
+	log := globalrulegrouplog.WithValues("name", r.Name)
+	log.Info("default")
+
+	for i := range r.Spec.Rules {
+		rule := r.Spec.Rules[i]
+		if rule.ExprBuilder != nil {
+			if rule.ExprBuilder.Node != nil {
+				rule.Expr = intstr.FromString(rule.ExprBuilder.Node.Build())
+			} else if rule.ExprBuilder.Workload != nil {
+				rule.Expr = intstr.FromString(rule.ExprBuilder.Workload.Build())
+			}
+		}
+		r.Spec.Rules[i] = rule
+	}
 }
 
 var _ webhook.Validator = &GlobalRuleGroup{}
@@ -231,6 +245,16 @@ func (r *GlobalRuleGroup) Validate() error {
 
 	var rules []Rule
 	for _, r := range r.Spec.Rules {
+		if r.ClusterSelector != nil {
+			if err := r.ClusterSelector.Validate(); err != nil {
+				return err
+			}
+		}
+		if r.NamespaceSelector != nil {
+			if err := r.NamespaceSelector.Validate(); err != nil {
+				return err
+			}
+		}
 		rules = append(rules, r.Rule)
 	}
 	var err = validateRules(log, r.Name, r.Spec.Interval, rules)

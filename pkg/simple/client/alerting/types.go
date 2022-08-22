@@ -25,7 +25,7 @@ type AlertingRule struct {
 	// Health can be "ok", "err", "unknown".
 	Health         string     `json:"health"`
 	LastError      string     `json:"lastError,omitempty"`
-	EvaluationTime float64    `json:"evaluationTime"`
+	EvaluationTime *float64   `json:"evaluationTime"`
 	LastEvaluation *time.Time `json:"lastEvaluation"`
 	// Type of an alertingRule is always "alerting".
 	Type string `json:"type"`
