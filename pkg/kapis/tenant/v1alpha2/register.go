@@ -190,7 +190,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 	ws.Route(ws.POST("/workspaces/{workspace}/namespaces").
 		To(handler.CreateNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Doc("List the namespaces of the specified workspace for the current user").
+		Doc("Create the namespaces of the specified workspace for the current user").
 		Reads(corev1.Namespace{}).
 		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceTag}))

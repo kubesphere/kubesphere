@@ -33,7 +33,6 @@ rules:
       - 'list'
 
 ---
-
 apiVersion: iam.kubesphere.io/v1alpha2
 kind: GlobalRoleBinding
 metadata:

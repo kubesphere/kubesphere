@@ -27,6 +27,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/simple/client/es/query"
 	"kubesphere.io/kubesphere/pkg/simple/client/es/versions"
+	v1 "kubesphere.io/kubesphere/pkg/simple/client/es/versions/opensearchv1"
 	v2 "kubesphere.io/kubesphere/pkg/simple/client/es/versions/opensearchv2"
 	v5 "kubesphere.io/kubesphere/pkg/simple/client/es/versions/v5"
 	v6 "kubesphere.io/kubesphere/pkg/simple/client/es/versions/v6"
@@ -38,6 +39,7 @@ const (
 	ElasticV5    = "5"
 	ElasticV6    = "6"
 	ElasticV7    = "7"
+	OpenSearchV1 = "opensearchv1"
 	OpenSearchV2 = "opensearchv2"
 )
 
@@ -66,6 +68,8 @@ func NewClient(host string, basicAuth bool, username, password, indexPrefix, ver
 	}
 
 	switch es.version {
+	case OpenSearchV1:
+		es.c, err = v1.New(es.host, es.basicAuth, es.username, es.password, es.index)
 	case OpenSearchV2:
 		es.c, err = v2.New(es.host, es.basicAuth, es.username, es.password, es.index)
 	case ElasticV5:
@@ -139,6 +143,8 @@ func (c *Client) loadClient() error {
 		v = "opensearchv" + v
 	}
 	switch v {
+	case OpenSearchV1:
+		vc, err = v1.New(c.host, c.basicAuth, c.username, c.password, c.index)
 	case OpenSearchV2:
 		vc, err = v2.New(c.host, c.basicAuth, c.username, c.password, c.index)
 	case ElasticV5:

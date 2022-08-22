@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/prometheus/prometheus/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -33,6 +34,8 @@ type Comparator string
 
 type Severity string
 
+type MatchType string
+
 const (
 	ComparatorLT Comparator = "<"
 	ComparatorLE Comparator = "<="
@@ -42,6 +45,11 @@ const (
 	SeverityWarning  Severity = "warning"
 	SeverityError    Severity = "error"
 	SeverityCritical Severity = "critical"
+
+	MatchEqual     = "="
+	MatchNotEqual  = "!="
+	MatchRegexp    = "=~"
+	MatchNotRegexp = "!~"
 )
 
 type Rule struct {
@@ -71,7 +79,91 @@ type ClusterRule struct {
 }
 
 type GlobalRule struct {
-	Rule `json:",inline"`
+	ClusterSelector   *MetricLabelSelector `json:"clusterSelector,omitempty"`
+	NamespaceSelector *MetricLabelSelector `json:"namespaceSelector,omitempty"`
+	Rule              `json:",inline"`
+	// If ExprBuilder is not nil, the configured Expr will be ignored
+	ExprBuilder *GlobalRuleExprBuilder `json:"exprBuilder,omitempty"`
+}
+
+// Only one of its members may be specified.
+type MetricLabelSelector struct {
+	InValues []string `json:"inValues,omitempty"`
+	Matcher  *Matcher `json:"matcher,omitempty"`
+}
+
+func (s *MetricLabelSelector) ParseToMatcher(labelName string) *labels.Matcher {
+	if s == nil {
+		return nil
+	}
+	if len(s.InValues) == 1 {
+		return &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  labelName,
+			Value: s.InValues[0],
+		}
+	}
+	if len(s.InValues) > 1 {
+		return &labels.Matcher{
+			Type:  labels.MatchRegexp,
+			Name:  labelName,
+			Value: fmt.Sprintf("(%s)", strings.Join(s.InValues, "|")),
+		}
+	}
+	if s.Matcher != nil {
+		var mtype labels.MatchType
+		switch s.Matcher.Type {
+		case MatchEqual:
+			mtype = labels.MatchEqual
+		case MatchNotEqual:
+			mtype = labels.MatchNotEqual
+		case MatchRegexp:
+			mtype = labels.MatchRegexp
+		case MatchNotRegexp:
+			mtype = labels.MatchNotRegexp
+		default:
+			return nil
+		}
+		return &labels.Matcher{
+			Type:  mtype,
+			Name:  labelName,
+			Value: s.Matcher.Value,
+		}
+	}
+	return nil
+}
+
+func (s *MetricLabelSelector) Validate() error {
+	if s.Matcher != nil {
+		return s.Matcher.Validate()
+	}
+	return nil
+}
+
+type Matcher struct {
+	Type  MatchType `json:"type"`
+	Value string    `json:"value,omitempty"`
+}
+
+func (m *Matcher) Validate() error {
+	var mtype labels.MatchType
+	switch m.Type {
+	case MatchEqual:
+		mtype = labels.MatchEqual
+	case MatchNotEqual:
+		mtype = labels.MatchNotEqual
+	case MatchRegexp:
+		mtype = labels.MatchRegexp
+	case MatchNotRegexp:
+		mtype = labels.MatchNotRegexp
+	default:
+		return fmt.Errorf("unsupported match type [%s]", m.Type)
+	}
+	_, err := labels.NewMatcher(mtype, "name", m.Value)
+	if err != nil {
+		return fmt.Errorf("invalid matcher: %v", err)
+	}
+	return nil
 }
 
 type NamespaceRuleExprBuilder struct {
@@ -80,6 +172,12 @@ type NamespaceRuleExprBuilder struct {
 
 type ClusterRuleExprBuilder struct {
 	Node *NodeExprBuilder `json:"node,omitempty"`
+}
+
+// Only one of its members may be specified.
+type GlobalRuleExprBuilder struct {
+	Workload *WorkloadExprBuilder `json:"workload,omitempty"`
+	Node     *NodeExprBuilder     `json:"node,omitempty"`
 }
 
 type WorkloadKind string
@@ -438,6 +536,7 @@ type ClusterRuleGroupStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 // +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Cluster
 
@@ -477,6 +576,7 @@ type GlobalRuleGroupStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 // +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Cluster
 

@@ -421,6 +421,15 @@ func (c *clusterController) syncCluster(key string) error {
 				Message:            "Cluster can not join federation control plane",
 			}
 			c.updateClusterCondition(cluster, federationNotReadyCondition)
+			notReadyCondition := clusterv1alpha1.ClusterCondition{
+				Type:               clusterv1alpha1.ClusterReady,
+				Status:             v1.ConditionFalse,
+				LastUpdateTime:     metav1.Now(),
+				LastTransitionTime: metav1.Now(),
+				Reason:             "Cluster join federation control plane failed",
+				Message:            "Cluster is Not Ready now",
+			}
+			c.updateClusterCondition(cluster, notReadyCondition)
 
 			_, err = c.ksClient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{})
 			if err != nil {
