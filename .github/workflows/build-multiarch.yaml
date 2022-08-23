@@ -5,12 +5,14 @@ on:
     branches:
       - 'master'
       - 'release-*'
+      - 'feature-pluggable'
     tags:
       - 'v*'
   pull_request:
     branches:
       - 'master'
       - 'release-*'
+      - 'feature-pluggable'
 
 jobs:
   build:
