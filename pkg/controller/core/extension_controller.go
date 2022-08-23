@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package extension
+package core
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	"sort"
 
 	"k8s.io/klog"
-	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
+	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -41,7 +41,7 @@ type ExtensionReconciler struct {
 }
 
 // reconcileDelete delete the extension.
-func (r *ExtensionReconciler) reconcileDelete(ctx context.Context, extension *extensionsv1alpha1.Extension) (ctrl.Result, error) {
+func (r *ExtensionReconciler) reconcileDelete(ctx context.Context, extension *corev1alpha1.Extension) (ctrl.Result, error) {
 	klog.V(4).Infof("remove the finalizer from extension %s", extension.Name)
 	// Remove the finalizer from the extension
 	controllerutil.RemoveFinalizer(extension, ExtensionFinalizer)
@@ -52,18 +52,18 @@ func (r *ExtensionReconciler) reconcileDelete(ctx context.Context, extension *ex
 	return ctrl.Result{}, nil
 }
 
-func reconcileExtensionStatus(ctx context.Context, c client.Client, extension *extensionsv1alpha1.Extension, k8sVersion string) (*extensionsv1alpha1.Extension, error) {
-	versionList := extensionsv1alpha1.ExtensionVersionList{}
+func reconcileExtensionStatus(ctx context.Context, c client.Client, extension *corev1alpha1.Extension, k8sVersion string) (*corev1alpha1.Extension, error) {
+	versionList := corev1alpha1.ExtensionVersionList{}
 
 	if err := c.List(ctx, &versionList, client.MatchingLabels{
-		extensionsv1alpha1.ExtensionLabel: extension.Name,
+		corev1alpha1.ExtensionLabel: extension.Name,
 	}); err != nil {
 		return extension, err
 	}
-	versionInfo := make([]extensionsv1alpha1.ExtensionVersionInfo, 0, len(versionList.Items))
+	versionInfo := make([]corev1alpha1.ExtensionVersionInfo, 0, len(versionList.Items))
 	for i := range versionList.Items {
 		if versionList.Items[i].DeletionTimestamp == nil {
-			versionInfo = append(versionInfo, extensionsv1alpha1.ExtensionVersionInfo{
+			versionInfo = append(versionInfo, corev1alpha1.ExtensionVersionInfo{
 				Version:           versionList.Items[i].Spec.Version,
 				CreationTimestamp: versionList.Items[i].CreationTimestamp,
 			})
@@ -73,7 +73,7 @@ func reconcileExtensionStatus(ctx context.Context, c client.Client, extension *e
 
 	extensionCopy := extension.DeepCopy()
 
-	if recommended := GetRecommendedExtensionVersion(versionList.Items, k8sVersion); recommended != nil {
+	if recommended := getRecommendedExtensionVersion(versionList.Items, k8sVersion); recommended != nil {
 		extensionCopy.Status.RecommendVersion = recommended.Spec.Version
 	}
 	extensionCopy.Status.Versions = versionInfo
@@ -90,7 +90,7 @@ func reconcileExtensionStatus(ctx context.Context, c client.Client, extension *e
 func (r *ExtensionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).Infof("sync extension: %s ", req.String())
 
-	extension := &extensionsv1alpha1.Extension{}
+	extension := &corev1alpha1.Extension{}
 	if err := r.Client.Get(ctx, req.NamespacedName, extension); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -118,5 +118,5 @@ func (r *ExtensionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("extension-controller").
-		For(&extensionsv1alpha1.Extension{}).Complete(r)
+		For(&corev1alpha1.Extension{}).Complete(r)
 }

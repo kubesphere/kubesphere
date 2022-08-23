@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package extension
+package core
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	"kubesphere.io/api/application/v1alpha1"
-	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
+	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -58,9 +58,9 @@ type RepositoryReconciler struct {
 }
 
 // reconcileDelete delete the repository and pod.
-func (r *RepositoryReconciler) reconcileDelete(ctx context.Context, repo *extensionsv1alpha1.Repository) (ctrl.Result, error) {
+func (r *RepositoryReconciler) reconcileDelete(ctx context.Context, repo *corev1alpha1.Repository) (ctrl.Result, error) {
 	pod := &corev1.Pod{}
-	podName := GeneratePodName(repo.Name)
+	podName := generatePodName(repo.Name)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: podName}, pod); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
@@ -91,9 +91,9 @@ func (r *RepositoryReconciler) reconcileDelete(ctx context.Context, repo *extens
 	return ctrl.Result{}, nil
 }
 
-func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1alpha1.Repository) (ctrl.Result, error) {
+func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *corev1alpha1.Repository) (ctrl.Result, error) {
 	pod := &corev1.Pod{}
-	podName := GeneratePodName(repo.Name)
+	podName := generatePodName(repo.Name)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: podName}, pod); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
@@ -165,7 +165,7 @@ func (r *RepositoryReconciler) reconcile(ctx context.Context, repo *extensionsv1
 }
 
 // syncExtensions fetch the index.yaml from pod and create extensions that belong to the repo.
-func (r *RepositoryReconciler) syncExtensions(ctx context.Context, repo *extensionsv1alpha1.Repository, pod *corev1.Pod) error {
+func (r *RepositoryReconciler) syncExtensions(ctx context.Context, repo *corev1alpha1.Repository, pod *corev1.Pod) error {
 	newCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	index, err := helmrepoindex.LoadRepoIndex(newCtx, fmt.Sprintf("http://%s:8080", pod.Status.PodIP), &v1alpha1.HelmRepoCredential{})
@@ -178,20 +178,20 @@ func (r *RepositoryReconciler) syncExtensions(ctx context.Context, repo *extensi
 
 // updateOrCreateExtension create a new extension if the extension does not exist.
 // Or it will update info of the extension.
-func (r *RepositoryReconciler) updateOrCreateExtension(ctx context.Context, repo *extensionsv1alpha1.Repository, extensionName string, latestExtensionVersion *extensionsv1alpha1.ExtensionVersion) (*extensionsv1alpha1.Extension, error) {
-	extension := &extensionsv1alpha1.Extension{}
+func (r *RepositoryReconciler) updateOrCreateExtension(ctx context.Context, repo *corev1alpha1.Repository, extensionName string, latestExtensionVersion *corev1alpha1.ExtensionVersion) (*corev1alpha1.Extension, error) {
+	extension := &corev1alpha1.Extension{}
 	var err error
 	klog.V(2).Infof("update or create extension: %s/%s ", repo.Name, extensionName)
 	if err = r.Get(ctx, types.NamespacedName{Name: extensionName}, extension); err == nil {
-		if extension.ObjectMeta.Labels[extensionsv1alpha1.RepositoryLabel] != repo.Name {
+		if extension.ObjectMeta.Labels[corev1alpha1.RepositoryLabel] != repo.Name {
 			err = fmt.Errorf("extension: %s/%s already exists", repo.Name, extensionName)
 			klog.Error(err)
 			return nil, err
 		}
 		extensionCopy := extension.DeepCopy()
 		if latestExtensionVersion != nil {
-			extensionCopy.Spec = extensionsv1alpha1.ExtensionSpec{
-				ExtensionInfo: &extensionsv1alpha1.ExtensionInfo{
+			extensionCopy.Spec = corev1alpha1.ExtensionSpec{
+				ExtensionInfo: &corev1alpha1.ExtensionInfo{
 					Description: latestExtensionVersion.Spec.Description,
 					Icon:        latestExtensionVersion.Spec.Icon,
 					Maintainers: latestExtensionVersion.Spec.Maintainers,
@@ -205,17 +205,17 @@ func (r *RepositoryReconciler) updateOrCreateExtension(ctx context.Context, repo
 		}
 		return extension, nil
 	} else if apierrors.IsNotFound(err) {
-		extension = &extensionsv1alpha1.Extension{
+		extension = &corev1alpha1.Extension{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: extensionName,
 				Labels: map[string]string{
-					extensionsv1alpha1.RepositoryLabel: repo.Name,
+					corev1alpha1.RepositoryLabel: repo.Name,
 				},
 			},
 		}
 		if latestExtensionVersion != nil {
-			extension.Spec = extensionsv1alpha1.ExtensionSpec{
-				ExtensionInfo: &extensionsv1alpha1.ExtensionInfo{
+			extension.Spec = corev1alpha1.ExtensionSpec{
+				ExtensionInfo: &corev1alpha1.ExtensionInfo{
 					Description: latestExtensionVersion.Spec.Description,
 					Icon:        latestExtensionVersion.Spec.Icon,
 					Maintainers: latestExtensionVersion.Spec.Maintainers,
@@ -237,8 +237,8 @@ func (r *RepositoryReconciler) updateOrCreateExtension(ctx context.Context, repo
 	return nil, err
 }
 
-func (r *RepositoryReconciler) updateOrCreateExtensionVersion(ctx context.Context, repo *extensionsv1alpha1.Repository, extension *extensionsv1alpha1.Extension, extensionVersion *extensionsv1alpha1.ExtensionVersion) error {
-	version := &extensionsv1alpha1.ExtensionVersion{}
+func (r *RepositoryReconciler) updateOrCreateExtensionVersion(ctx context.Context, repo *corev1alpha1.Repository, extension *corev1alpha1.Extension, extensionVersion *corev1alpha1.ExtensionVersion) error {
+	version := &corev1alpha1.ExtensionVersion{}
 	klog.V(2).Infof("update or create extension version: %s/%s ", repo.Name, extensionVersion.Name)
 	if err := r.Get(ctx, types.NamespacedName{Name: extensionVersion.Name}, version); err == nil {
 		if !reflect.DeepEqual(version.Spec, extensionVersion.Spec) {
@@ -266,35 +266,35 @@ func (r *RepositoryReconciler) updateOrCreateExtensionVersion(ctx context.Contex
 }
 
 // createExtensions create all the extensions that belong to the repo.
-func (r *RepositoryReconciler) createExtensions(ctx context.Context, index *helmrepo.IndexFile, repo *extensionsv1alpha1.Repository) error {
+func (r *RepositoryReconciler) createExtensions(ctx context.Context, index *helmrepo.IndexFile, repo *corev1alpha1.Repository) error {
 	for key, versions := range index.Entries {
-		extensionVersions := make([]extensionsv1alpha1.ExtensionVersion, 0, len(versions))
+		extensionVersions := make([]corev1alpha1.ExtensionVersion, 0, len(versions))
 		for _, version := range versions {
 			if version.Metadata == nil {
 				klog.Warningf("version metadata is empty in repo: %s", repo.Name)
 				continue
 			}
 			klog.V(2).Infof("find version: %s/%s", repo.Name, version.Name)
-			maintainers := make([]extensionsv1alpha1.Maintainer, 0, len(version.Maintainers))
+			maintainers := make([]corev1alpha1.Maintainer, 0, len(version.Maintainers))
 			for _, m := range version.Maintainers {
-				maintainers = append(maintainers, extensionsv1alpha1.Maintainer{Name: m.Name, Email: m.Email, URL: m.URL})
+				maintainers = append(maintainers, corev1alpha1.Maintainer{Name: m.Name, Email: m.Email, URL: m.URL})
 			}
-			extensionVersions = append(extensionVersions, extensionsv1alpha1.ExtensionVersion{
+			extensionVersions = append(extensionVersions, corev1alpha1.ExtensionVersion{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("%s-%s", version.Name, version.Version),
 					Labels: map[string]string{
-						extensionsv1alpha1.RepositoryLabel: repo.Name,
-						extensionsv1alpha1.ExtensionLabel:  key,
+						corev1alpha1.RepositoryLabel: repo.Name,
+						corev1alpha1.ExtensionLabel:  key,
 					},
 				},
-				Spec: extensionsv1alpha1.ExtensionVersionSpec{
+				Spec: corev1alpha1.ExtensionVersionSpec{
 					Keywords:       version.Keywords,
 					Repo:           repo.Name,
 					MinKubeVersion: version.KubeVersion,
 					Home:           version.Home,
 					Digest:         version.Digest,
 					Sources:        version.Sources,
-					ExtensionInfo: &extensionsv1alpha1.ExtensionInfo{
+					ExtensionInfo: &corev1alpha1.ExtensionInfo{
 						Description: version.Description,
 						Icon:        version.Icon,
 						Maintainers: maintainers,
@@ -305,7 +305,7 @@ func (r *RepositoryReconciler) createExtensions(ctx context.Context, index *helm
 			})
 		}
 
-		latestExtensionVersion := GetLatestExtensionVersion(extensionVersions)
+		latestExtensionVersion := getLatestExtensionVersion(extensionVersions)
 		if extension, err := r.updateOrCreateExtension(ctx, repo, key, latestExtensionVersion); err != nil {
 			return err
 		} else {
@@ -322,7 +322,7 @@ func (r *RepositoryReconciler) createExtensions(ctx context.Context, index *helm
 func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).Infof("sync repository: %s ", req.String())
 
-	repo := &extensionsv1alpha1.Repository{}
+	repo := &corev1alpha1.Repository{}
 	if err := r.Client.Get(ctx, req.NamespacedName, repo); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -348,5 +348,5 @@ func (r *RepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("repository-controller").
-		For(&extensionsv1alpha1.Repository{}).Complete(r)
+		For(&corev1alpha1.Repository{}).Complete(r)
 }

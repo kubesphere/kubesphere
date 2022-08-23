@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/controller/extension"
+	"kubesphere.io/kubesphere/pkg/controller/core"
 
 	"github.com/kubesphere/pvc-autoresizer/runners"
 	"k8s.io/apimachinery/pkg/labels"
@@ -198,20 +198,20 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 		} else {
 			return err
 		}
-		extensionReconciler := &extension.ExtensionReconciler{K8sVersion: k8sVersion}
+		extensionReconciler := &core.ExtensionReconciler{K8sVersion: k8sVersion}
 		addControllerWithSetup(mgr, "extension", extensionReconciler)
 
-		extensionVersionReconciler := &extension.ExtensionVersionReconciler{K8sVersion: k8sVersion}
+		extensionVersionReconciler := &core.ExtensionVersionReconciler{K8sVersion: k8sVersion}
 		addControllerWithSetup(mgr, "extensionversion", extensionVersionReconciler)
 	}
 
 	if cmOptions.IsControllerEnabled("repository") {
-		repoReconciler := &extension.RepositoryReconciler{}
+		repoReconciler := &core.RepositoryReconciler{}
 		addControllerWithSetup(mgr, "repository", repoReconciler)
 	}
 
 	if cmOptions.IsControllerEnabled("subscription") {
-		subscriptionReconciler := &extension.SubscriptionReconciler{}
+		subscriptionReconciler := &core.SubscriptionReconciler{}
 		addControllerWithSetup(mgr, "subscription", subscriptionReconciler)
 	}
 

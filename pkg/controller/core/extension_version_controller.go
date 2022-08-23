@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package extension
+package core
 
 import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
+	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -40,7 +40,7 @@ type ExtensionVersionReconciler struct {
 }
 
 // reconcileDelete delete the extension.
-func (r *ExtensionVersionReconciler) reconcileDelete(ctx context.Context, extensionVersion *extensionsv1alpha1.ExtensionVersion) (ctrl.Result, error) {
+func (r *ExtensionVersionReconciler) reconcileDelete(ctx context.Context, extensionVersion *corev1alpha1.ExtensionVersion) (ctrl.Result, error) {
 	klog.V(4).Infof("remove the finalizer from extension version %s", extensionVersion.Name)
 
 	// Remove the finalizer from the extension
@@ -52,9 +52,9 @@ func (r *ExtensionVersionReconciler) reconcileDelete(ctx context.Context, extens
 	return ctrl.Result{}, nil
 }
 
-func (r *ExtensionVersionReconciler) reconcile(ctx context.Context, extensionVersion *extensionsv1alpha1.ExtensionVersion) (ctrl.Result, error) {
-	extension := &extensionsv1alpha1.Extension{}
-	name := extensionVersion.Labels[extensionsv1alpha1.ExtensionLabel]
+func (r *ExtensionVersionReconciler) reconcile(ctx context.Context, extensionVersion *corev1alpha1.ExtensionVersion) (ctrl.Result, error) {
+	extension := &corev1alpha1.Extension{}
+	name := extensionVersion.Labels[corev1alpha1.ExtensionLabel]
 	if err := r.Get(ctx, types.NamespacedName{Name: name}, extension); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -69,7 +69,7 @@ func (r *ExtensionVersionReconciler) reconcile(ctx context.Context, extensionVer
 func (r *ExtensionVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).Infof("sync extension version: %s ", req.String())
 
-	extensionVersion := &extensionsv1alpha1.ExtensionVersion{}
+	extensionVersion := &corev1alpha1.ExtensionVersion{}
 	if err := r.Client.Get(ctx, req.NamespacedName, extensionVersion); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -99,5 +99,5 @@ func (r *ExtensionVersionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("extension-version-controller").
-		For(&extensionsv1alpha1.ExtensionVersion{}).Complete(r)
+		For(&corev1alpha1.ExtensionVersion{}).Complete(r)
 }

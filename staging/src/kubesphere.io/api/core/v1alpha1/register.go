@@ -21,7 +21,7 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=kubesphere.io/kubesphere/pkg/apis/extensions
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=extensions.kubesphere.io
+// +groupName=kubesphere.io
 package v1alpha1
 
 import (
@@ -31,7 +31,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "extensions.kubesphere.io", Version: "v1alpha1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "kubesphere.io", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
@@ -47,11 +47,15 @@ func Resource(resource string) schema.GroupResource {
 
 func init() {
 	SchemeBuilder.Register(
-		&APIService{},
-		&APIServiceList{},
-		&JSBundle{},
-		&JSBundleList{},
-		&ReverseProxy{},
-		&ReverseProxyList{},
+		&Repository{},
+		&RepositoryList{},
+		&Extension{},
+		&ExtensionList{},
+		&ExtensionVersion{},
+		&ExtensionVersionList{},
+		&Subscription{},
+		&SubscriptionList{},
+		&Category{},
+		&CategoryList{},
 	)
 }

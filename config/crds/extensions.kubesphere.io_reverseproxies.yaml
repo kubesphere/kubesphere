@@ -4,26 +4,25 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: (devel)
+    controller-gen.kubebuilder.io/version: ""
   creationTimestamp: null
-  name: apiservices.kubesphere.io
+  name: reverseproxies.extensions.kubesphere.io
 spec:
-  group: kubesphere.io
+  group: extensions.kubesphere.io
   names:
     categories:
     - extensions
-    kind: APIService
-    listKind: APIServiceList
-    plural: apiservices
-    singular: apiservice
+    kind: ReverseProxy
+    listKind: ReverseProxyList
+    plural: reverseproxies
+    singular: reverseproxy
   scope: Cluster
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: APIService is a special resource used in Ks-apiserver declares
-          a directional proxy path for a resource type API， it's similar to Kubernetes
-          API Aggregation Layer.
+        description: ReverseProxy defines the rules for reverse proxies, it's useful
+          to exposing APIs to ks-console or other extensions.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -39,44 +38,52 @@ spec:
             type: object
           spec:
             properties:
-              caBundle:
-                format: byte
-                type: string
-              group:
-                type: string
-              insecureSkipVerify:
+              enabled:
                 type: boolean
-              nonResourceURLs:
-                items:
-                  type: string
-                type: array
-              service:
-                description: ServiceReference holds a reference to Service.legacy.k8s.io
+              matcher:
                 properties:
-                  name:
-                    description: name is the name of the service. Required
-                    type: string
-                  namespace:
-                    description: namespace is the namespace of the service. Required
+                  method:
                     type: string
                   path:
-                    description: path is an optional URL path at which the webhook
-                      will be contacted.
                     type: string
-                  port:
-                    description: port is an optional service port at which the webhook
-                      will be contacted. `port` should be a valid port number (1-65535,
-                      inclusive). Defaults to 443 for backward compatibility.
-                    format: int32
-                    type: integer
                 required:
-                - name
-                - namespace
+                - method
+                - path
                 type: object
-              url:
-                type: string
-              version:
-                type: string
+              upstream:
+                properties:
+                  caBundle:
+                    format: byte
+                    type: string
+                  insecureSkipVerify:
+                    type: boolean
+                  service:
+                    description: ServiceReference holds a reference to Service.legacy.k8s.io
+                    properties:
+                      name:
+                        description: name is the name of the service. Required
+                        type: string
+                      namespace:
+                        description: namespace is the namespace of the service. Required
+                        type: string
+                      path:
+                        description: path is an optional URL path at which the webhook
+                          will be contacted.
+                        type: string
+                      port:
+                        description: port is an optional service port at which the
+                          webhook will be contacted. `port` should be a valid port
+                          number (1-65535, inclusive). Defaults to 443 for backward
+                          compatibility.
+                        format: int32
+                        type: integer
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  url:
+                    type: string
+                type: object
             type: object
           status:
             properties:
