@@ -1,39 +1,21 @@
 # Copyright 2020 The KubeSphere Authors. All rights reserved.
 # Use of this source code is governed by an Apache license
 # that can be found in the LICENSE file.
-
-# Download dependencies
-FROM alpine:3.11 as base_os_context
-
-
-ENV OUTDIR=/out
-RUN mkdir -p ${OUTDIR}/usr/local/bin/
-
-WORKDIR /tmp
-
-RUN apk add --no-cache ca-certificates
-
-
 # Build
-FROM golang:1.18.4 as build_context
+FROM golang:1.18.4 as builder
 
-ENV OUTDIR=/out
-RUN mkdir -p ${OUTDIR}/usr/local/bin/
-
-WORKDIR /workspace
-ADD . /workspace/
+WORKDIR /src
+ADD . /src/
 
 RUN make ks-apiserver
-RUN mv /workspace/bin/cmd/ks-apiserver ${OUTDIR}/usr/local/bin/
 
 ##############
 # Final image
 #############
 
-FROM alpine:3.11
+FROM alpine:3.16
 
-COPY --from=base_os_context /out/ /
-COPY --from=build_context /out/ /
+COPY --from=builder /src/bin/cmd/ks-apiserver /usr/local/bin/ks-apiserver
 
 WORKDIR /
 
