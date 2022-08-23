@@ -25,22 +25,17 @@ import (
 	"strconv"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/apimachinery/pkg/labels"
-
 	storagev1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	storageinformersv1 "k8s.io/client-go/informers/storage/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	storageclient "k8s.io/client-go/kubernetes/typed/storage/v1"
 	storagelistersv1 "k8s.io/client-go/listers/storage/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-
-	crdscheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 )
 
 const (
@@ -66,9 +61,6 @@ func NewController(
 	storageClassInformer storageinformersv1.StorageClassInformer,
 	csiDriverInformer storageinformersv1.CSIDriverInformer,
 ) *StorageCapabilityController {
-
-	utilruntime.Must(crdscheme.AddToScheme(scheme.Scheme))
-
 	controller := &StorageCapabilityController{
 		storageClassClient:    storageClassClient,
 		storageClassLister:    storageClassInformer.Lister(),

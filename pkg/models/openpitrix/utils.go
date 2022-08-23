@@ -429,6 +429,10 @@ func convertRepo(in *v1alpha1.HelmRepo) *Repo {
 	out.Name = in.GetTrueName()
 
 	out.Status = in.Status.State
+	// set default status `syncing` when helmrepo not reconcile yet
+	if out.Status == "" {
+		out.Status = v1alpha1.RepoStateSyncing
+	}
 	date := strfmt.DateTime(time.Unix(in.CreationTimestamp.Unix(), 0))
 	out.CreateTime = &date
 
