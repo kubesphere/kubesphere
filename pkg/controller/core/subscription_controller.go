@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package extension
+package core
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	"kubesphere.io/api/application/v1alpha1"
-	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
+	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -47,7 +47,7 @@ type SubscriptionReconciler struct {
 }
 
 // reconcileDelete delete the helm release involved and remove finalizer from subscription.
-func (r *SubscriptionReconciler) reconcileDelete(ctx context.Context, sub *extensionsv1alpha1.Subscription) (ctrl.Result, error) {
+func (r *SubscriptionReconciler) reconcileDelete(ctx context.Context, sub *corev1alpha1.Subscription) (ctrl.Result, error) {
 	wrapper := helmwrapper.NewHelmWrapper("", sub.Spec.TargetNamespace, sub.Spec.ReleaseName)
 
 	// TODO: Refactor with helm controller or helm client
@@ -77,19 +77,19 @@ func (r *SubscriptionReconciler) reconcileDelete(ctx context.Context, sub *exten
 	return ctrl.Result{}, nil
 }
 
-func (r *SubscriptionReconciler) loadChartData(ctx context.Context, ref *extensionsv1alpha1.ExtensionRef) (string, error) {
-	extensionVersion := &extensionsv1alpha1.ExtensionVersion{}
+func (r *SubscriptionReconciler) loadChartData(ctx context.Context, ref *corev1alpha1.ExtensionRef) (string, error) {
+	extensionVersion := &corev1alpha1.ExtensionVersion{}
 	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", ref.Name, ref.Version)}, extensionVersion)
 	if err != nil {
 		return "", err
 	}
-	repo := &extensionsv1alpha1.Repository{}
+	repo := &corev1alpha1.Repository{}
 	err = r.Get(ctx, types.NamespacedName{Name: extensionVersion.Spec.Repo}, repo)
 	if err != nil {
 		return "", err
 	}
 	po := &corev1.Pod{}
-	podName := GeneratePodName(repo.Name)
+	podName := generatePodName(repo.Name)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: podName}, po); err != nil {
 		return "", err
 	}
@@ -119,7 +119,7 @@ func (r *SubscriptionReconciler) loadChartData(ctx context.Context, ref *extensi
 	}
 }
 
-func (r *SubscriptionReconciler) doReconcile(ctx context.Context, sub *extensionsv1alpha1.Subscription) (*extensionsv1alpha1.Subscription, ctrl.Result, error) {
+func (r *SubscriptionReconciler) doReconcile(ctx context.Context, sub *corev1alpha1.Subscription) (*corev1alpha1.Subscription, ctrl.Result, error) {
 	wrapper := helmwrapper.NewHelmWrapper("", sub.Spec.TargetNamespace, sub.Spec.ReleaseName)
 	// TODO: Refactor with helm controller or helm client
 	_, err := wrapper.Manifest()
@@ -157,7 +157,7 @@ func (r *SubscriptionReconciler) doReconcile(ctx context.Context, sub *extension
 func (r *SubscriptionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).Infof("sync subscription: %s ", req.String())
 
-	sub := &extensionsv1alpha1.Subscription{}
+	sub := &corev1alpha1.Subscription{}
 	if err := r.Client.Get(ctx, req.NamespacedName, sub); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -186,5 +186,5 @@ func (r *SubscriptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("subscription-controller").
-		For(&extensionsv1alpha1.Subscription{}).Complete(r)
+		For(&corev1alpha1.Subscription{}).Complete(r)
 }

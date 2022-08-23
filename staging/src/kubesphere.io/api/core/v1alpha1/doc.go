@@ -19,5 +19,5 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=kubesphere.io/kubesphere/pkg/apis/extensions
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=extensions.kubesphere.io
+// +groupName=kubesphere.io
 package v1alpha1

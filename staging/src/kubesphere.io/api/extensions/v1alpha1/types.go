@@ -24,9 +24,6 @@ const (
 	StateDisabled    = "Disabled"
 	StateAvailable   = "Available"
 	StateUnavailable = "Unavailable"
-
-	RepositoryLabel = "kubesphere.io/repo"
-	ExtensionLabel  = "kubesphere.io/extension"
 )
 
 // ServiceReference holds a reference to Service.legacy.k8s.io

@@ -1,18 +1,18 @@
-package extension
+package core
 
 import (
 	"fmt"
 
 	"github.com/Masterminds/semver/v3"
 	"k8s.io/klog"
-	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
+	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 )
 
-func GeneratePodName(repoName string) string {
+func generatePodName(repoName string) string {
 	return fmt.Sprintf("%s-%s", "catalog", repoName)
 }
 
-func GetRecommendedExtensionVersion(versions []extensionsv1alpha1.ExtensionVersion, k8sVersion string) *extensionsv1alpha1.ExtensionVersion {
+func getRecommendedExtensionVersion(versions []corev1alpha1.ExtensionVersion, k8sVersion string) *corev1alpha1.ExtensionVersion {
 	if len(versions) == 0 {
 		return nil
 	}
@@ -23,7 +23,7 @@ func GetRecommendedExtensionVersion(versions []extensionsv1alpha1.ExtensionVersi
 		return nil
 	}
 
-	var latestVersion *extensionsv1alpha1.ExtensionVersion
+	var latestVersion *corev1alpha1.ExtensionVersion
 	var latestSemver *semver.Version
 
 	for i := range versions {
@@ -49,12 +49,12 @@ func GetRecommendedExtensionVersion(versions []extensionsv1alpha1.ExtensionVersi
 	return latestVersion
 }
 
-func GetLatestExtensionVersion(versions []extensionsv1alpha1.ExtensionVersion) *extensionsv1alpha1.ExtensionVersion {
+func getLatestExtensionVersion(versions []corev1alpha1.ExtensionVersion) *corev1alpha1.ExtensionVersion {
 	if len(versions) == 0 {
 		return nil
 	}
 
-	var latestVersion *extensionsv1alpha1.ExtensionVersion
+	var latestVersion *corev1alpha1.ExtensionVersion
 	var latestSemver *semver.Version
 
 	for i := range versions {
@@ -77,7 +77,7 @@ func GetLatestExtensionVersion(versions []extensionsv1alpha1.ExtensionVersion) *
 	return latestVersion
 }
 
-type VersionList []extensionsv1alpha1.ExtensionVersionInfo
+type VersionList []corev1alpha1.ExtensionVersionInfo
 
 func (pvl VersionList) Len() int           { return len(pvl) }
 func (pvl VersionList) Less(i, j int) bool { return pvl[i].Version < pvl[j].Version }
