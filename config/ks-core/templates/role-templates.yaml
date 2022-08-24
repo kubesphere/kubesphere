@@ -31,6 +31,10 @@ rules:
     verbs:
       - 'get'
       - 'list'
+  - nonResourceURLs:
+      - '/dist/*'
+    verbs:
+      - 'GET'
 
 ---
 apiVersion: iam.kubesphere.io/v1alpha2
