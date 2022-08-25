@@ -99,6 +99,9 @@ func MergeRepoIndex(repo *v1alpha1.HelmRepo, index *helmrepo.IndexFile, existsSa
 
 	allAppNames := make(map[string]struct{}, len(index.Entries))
 	for name, versions := range index.Entries {
+		if len(versions) == 0 {
+			continue
+		}
 		// add new applications
 		if application, exists := saved.Applications[name]; !exists {
 			application = &Application{
