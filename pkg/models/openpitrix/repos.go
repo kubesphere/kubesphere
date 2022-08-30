@@ -298,8 +298,8 @@ func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, 
 	}
 
 	totalCount := len(repos)
-	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
-	repos = repos[start:end]
+	//start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
+	//repos = repos[start:end]
 	items := make([]interface{}, 0, len(repos))
 	for i, j := offset, 0; i < len(repos) && j < limit; i, j = i+1, j+1 {
 		items = append(items, convertRepo(repos[i]))
