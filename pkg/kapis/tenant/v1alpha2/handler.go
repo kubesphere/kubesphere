@@ -520,33 +520,44 @@ func (h *tenantHandler) PatchNamespace(request *restful.Request, response *restf
 	response.WriteEntity(patched)
 }
 
-func (h *tenantHandler) PatchWorkspaceTemplate(request *restful.Request, response *restful.Response) {
-	workspaceName := request.PathParameter("workspace")
+func (h *tenantHandler) PatchWorkspaceTemplate(req *restful.Request, resp *restful.Response) {
+	workspaceName := req.PathParameter("workspace")
 	var data json.RawMessage
-	err := request.ReadEntity(&data)
+	err := req.ReadEntity(&data)
 	if err != nil {
 		klog.Error(err)
-		api.HandleBadRequest(response, request, err)
+		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
-	patched, err := h.tenant.PatchWorkspaceTemplate(workspaceName, data)
+	requestUser, ok := request.UserFrom(req.Request.Context())
+	if !ok {
+		err := fmt.Errorf("cannot obtain user info")
+		klog.Errorln(err)
+		api.HandleForbidden(resp, req, err)
+	}
+
+	patched, err := h.tenant.PatchWorkspaceTemplate(requestUser, workspaceName, data)
 
 	if err != nil {
 		klog.Error(err)
 		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
+			api.HandleNotFound(resp, req, err)
 			return
 		}
 		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
+			api.HandleBadRequest(resp, req, err)
 			return
 		}
-		api.HandleInternalError(response, request, err)
+		if errors.IsNotFound(err) {
+			api.HandleForbidden(resp, req, err)
+			return
+		}
+		api.HandleInternalError(resp, req, err)
 		return
 	}
 
-	response.WriteEntity(patched)
+	resp.WriteEntity(patched)
 }
 
 func (h *tenantHandler) ListClusters(r *restful.Request, response *restful.Response) {
