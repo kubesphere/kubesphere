@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	jsonpatch "github.com/evanphx/json-patch"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,6 +71,7 @@ import (
 	loggingclient "kubesphere.io/kubesphere/pkg/simple/client/logging"
 	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
@@ -81,7 +84,7 @@ type Interface interface {
 	CreateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
 	DeleteWorkspaceTemplate(workspace string, opts metav1.DeleteOptions) error
 	UpdateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
-	PatchWorkspaceTemplate(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error)
+	PatchWorkspaceTemplate(user user.Info, workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error)
 	DescribeWorkspaceTemplate(workspace string) (*tenantv1alpha2.WorkspaceTemplate, error)
 	ListNamespaces(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
 	ListDevOpsProjects(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
@@ -117,6 +120,7 @@ type tenantOperator struct {
 	auditing       auditing.Interface
 	mo             monitoring.MonitoringOperator
 	opRelease      openpitrix.ReleaseInterface
+	clusterClient  clusterclient.ClusterClients
 }
 
 func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, im im.IdentityManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter, opClient openpitrix.Interface) Interface {
@@ -132,6 +136,7 @@ func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ks
 		auditing:       auditing.NewEventsOperator(auditingclient),
 		mo:             monitoring.NewMonitoringOperator(monitoringclient, nil, k8sclient, informers, resourceGetter, nil),
 		opRelease:      opClient,
+		clusterClient:  clusterclient.NewClusterClient(informers.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters()),
 	}
 }
 
@@ -470,8 +475,102 @@ func (t *tenantOperator) PatchNamespace(workspace string, namespace *corev1.Name
 	return t.k8sclient.CoreV1().Namespaces().Patch(context.Background(), namespace.Name, types.MergePatchType, data, metav1.PatchOptions{})
 }
 
-func (t *tenantOperator) PatchWorkspaceTemplate(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error) {
-	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(context.Background(), workspace, types.MergePatchType, data, metav1.PatchOptions{})
+func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error) {
+	clusterNames := sets.NewString()
+
+	patchObj, err := jsonpatch.DecodePatch(data)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	if len(patchObj) > 0 {
+		for _, patch := range patchObj {
+			path, err := patch.Path()
+			if err != nil {
+				klog.Error(err)
+				return nil, err
+			}
+
+			// If the request path is not cluster, it means that want to manage the workspace templates.
+			// So check if user has the permission to manage workspace templates,
+			// or just collect cluster name to be a set and continue to check cluster permission later.
+			if !strings.HasPrefix(path, "/spec/placement/clusters/") {
+				deleteWST := authorizer.AttributesRecord{
+					User:            user,
+					Verb:            "delete",
+					APIGroup:        tenantv1alpha2.SchemeGroupVersion.Group,
+					APIVersion:      tenantv1alpha2.SchemeGroupVersion.Version,
+					Resource:        tenantv1alpha2.ResourcePluralWorkspaceTemplate,
+					ResourceRequest: true,
+					ResourceScope:   request.GlobalScope,
+				}
+				authorize, reason, err := t.authorizer.Authorize(deleteWST)
+				if err != nil {
+					klog.Error(err)
+					return nil, err
+				}
+				if authorize != authorizer.DecisionAllow {
+					err := errors.NewForbidden(tenantv1alpha2.Resource(tenantv1alpha2.ResourcePluralWorkspaceTemplate), workspace, fmt.Errorf(reason))
+					klog.Error(err)
+					return nil, err
+				}
+			} else {
+				if patch.Kind() != "add" && patch.Kind() != "remove" {
+					err := errors.NewBadRequest("not support operation type")
+					klog.Error(err)
+					return nil, err
+				}
+				valueInterface, err := patch.ValueInterface()
+				if err != nil {
+					klog.Error(err)
+					return nil, err
+				}
+
+				clusterName := valueInterface.(map[string]interface{})["name"]
+				if clusterName != "" {
+					clusterNames.Insert(clusterName.(string))
+				}
+			}
+		}
+	}
+
+	// Checking whether the user can manage the cluster requires authentication from two aspects.
+	// First check whether the user has relevant global permissions,
+	// and then check whether the user has relevant cluster permissions in the target cluster
+	if clusterNames.Len() > 0 {
+		for _, clusterName := range clusterNames.List() {
+			deleteCluster := authorizer.AttributesRecord{
+				User:            user,
+				Verb:            "delete",
+				APIGroup:        clusterv1alpha1.SchemeGroupVersion.Version,
+				APIVersion:      clusterv1alpha1.SchemeGroupVersion.Version,
+				Resource:        clusterv1alpha1.ResourcesPluralCluster,
+				Cluster:         clusterName,
+				ResourceRequest: true,
+				ResourceScope:   request.GlobalScope,
+			}
+			authorize, reason, err := t.authorizer.Authorize(deleteCluster)
+			if err != nil {
+				klog.Error(err)
+				return nil, err
+			}
+
+			if authorize != authorizer.DecisionAllow {
+				if exist, err := t.checkClusterAdminByUser(clusterName, user.GetName()); err != nil {
+					klog.Error(err)
+					return nil, err
+				} else if exist {
+					continue
+				}
+				err = errors.NewForbidden(clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster), clusterName, fmt.Errorf(reason))
+				klog.Error(err)
+				return nil, err
+			}
+		}
+	}
+
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(context.Background(), workspace, types.JSONPatchType, data, metav1.PatchOptions{})
 }
 
 func (t *tenantOperator) CreateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
@@ -1079,6 +1178,26 @@ func (t *tenantOperator) MeteringHierarchy(user user.Info, queryParam *meteringv
 	}
 
 	return resourceStats, nil
+}
+
+func (t *tenantOperator) checkClusterAdminByUser(clusterName, user string) (exist bool, err error) {
+	kubernetesClientSet, err := t.clusterClient.GetKubernetesClientSet(clusterName)
+	if err != nil {
+		return false, err
+	}
+	clusterRoleBindingList, err := kubernetesClientSet.RbacV1().ClusterRoleBindings().
+		List(context.Background(),
+			metav1.ListOptions{LabelSelector: labels.FormatLabels(map[string]string{"iam.kubesphere.io/user-ref": user})})
+	if err != nil {
+		return false, err
+	}
+
+	for _, clusterRoleBinding := range clusterRoleBindingList.Items {
+		if clusterRoleBinding.RoleRef.Name == "cluster-admin" {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func contains(objects []runtime.Object, object runtime.Object) bool {
