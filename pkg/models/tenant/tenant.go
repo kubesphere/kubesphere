@@ -471,7 +471,7 @@ func (t *tenantOperator) PatchNamespace(workspace string, namespace *corev1.Name
 }
 
 func (t *tenantOperator) PatchWorkspaceTemplate(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error) {
-	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(context.Background(), workspace, types.MergePatchType, data, metav1.PatchOptions{})
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(context.Background(), workspace, types.JSONPatchType, data, metav1.PatchOptions{})
 }
 
 func (t *tenantOperator) CreateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
