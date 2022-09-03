@@ -22,6 +22,13 @@ import (
 	"net/http"
 	"net/url"
 
+	"k8s.io/client-go/transport"
+
+	"k8s.io/apimachinery/pkg/util/httpstream"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
+
+	"kubesphere.io/kubesphere/pkg/api"
+
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	extensionsv1alpha1 "kubesphere.io/api/extensions/v1alpha1"
@@ -29,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 type apiServiceDispatcher struct {
@@ -51,24 +57,41 @@ func (s *apiServiceDispatcher) Dispatch(w http.ResponseWriter, req *http.Request
 		return true
 	}
 	for _, apiService := range apiServices.Items {
-		if apiService.Status.State == extensionsv1alpha1.StateAvailable && (sliceutil.HasString(apiService.Spec.NonResourceURLs, requestInfo.Path) ||
-			(apiService.Spec.Group == requestInfo.APIGroup && apiService.Spec.Version == requestInfo.APIVersion)) {
-			endpoint, err := url.Parse(apiService.Spec.Endpoint.RawURL())
-			if err != nil {
-				responsewriters.InternalError(w, req, err)
-				return true
-			}
-			location := req.URL
-			location.Host = endpoint.Host
-			location.Scheme = endpoint.Scheme
-			location.Path = endpoint.Path + location.Path
-			// TODO support TLS transport
-			httpProxy := proxy.NewUpgradeAwareHandler(req.URL, http.DefaultTransport, false, false, s)
-			httpProxy.ServeHTTP(w, req)
-			return true
+		if apiService.Status.State != extensionsv1alpha1.StateAvailable {
+			continue
 		}
+		if apiService.Spec.Group != requestInfo.APIGroup || apiService.Spec.Version != requestInfo.APIVersion {
+			continue
+		}
+		s.handleProxyRequest(apiService, w, req)
+		return true
 	}
 	return false
+}
+
+func (s *apiServiceDispatcher) handleProxyRequest(apiService extensionsv1alpha1.APIService, w http.ResponseWriter, req *http.Request) {
+	endpoint, err := url.Parse(apiService.Spec.RawURL())
+	if err != nil {
+		api.HandleServiceUnavailable(w, nil, err)
+		return
+	}
+	location := &url.URL{}
+	location.Scheme = endpoint.Scheme
+	location.Host = endpoint.Host
+	location.Path = req.URL.Path
+	location.RawQuery = req.URL.Query().Encode()
+
+	newReq := req.WithContext(req.Context())
+	newReq.Header = utilnet.CloneHeader(req.Header)
+	newReq.URL = location
+	newReq.Host = location.Host
+
+	user, _ := request.UserFrom(req.Context())
+	proxyRoundTripper := transport.NewAuthProxyRoundTripper(user.GetName(), user.GetGroups(), user.GetExtra(), http.DefaultTransport)
+
+	upgrade := httpstream.IsUpgradeRequest(req)
+	handler := proxy.NewUpgradeAwareHandler(location, proxyRoundTripper, true, upgrade, s)
+	handler.ServeHTTP(w, newReq)
 }
 
 func (s *apiServiceDispatcher) Error(w http.ResponseWriter, req *http.Request, err error) {

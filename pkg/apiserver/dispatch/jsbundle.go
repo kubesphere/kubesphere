@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"kubesphere.io/kubesphere/pkg/api"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/proxy"
@@ -87,11 +89,11 @@ func (s *jsBundleDispatcher) Dispatch(w http.ResponseWriter, req *http.Request) 
 			if rawURL != "" {
 				location, err := url.Parse(rawURL)
 				if err != nil {
-					responsewriters.InternalError(w, req, err)
+					api.HandleServiceUnavailable(w, nil, err)
 					return true
 				}
-				httpProxy := proxy.NewUpgradeAwareHandler(location, http.DefaultTransport, false, false, s)
-				httpProxy.ServeHTTP(w, req)
+				handler := proxy.NewUpgradeAwareHandler(location, http.DefaultTransport, false, false, s)
+				handler.ServeHTTP(w, req)
 				return true
 			}
 		}

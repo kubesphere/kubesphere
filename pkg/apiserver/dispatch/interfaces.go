@@ -16,9 +16,7 @@ limitations under the License.
 
 package dispatch
 
-import (
-	"net/http"
-)
+import "net/http"
 
 // Dispatcher defines how to forward request
 type Dispatcher interface {

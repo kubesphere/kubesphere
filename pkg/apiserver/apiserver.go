@@ -26,6 +26,8 @@ import (
 	"sync"
 	"time"
 
+	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
+
 	"github.com/emicklei/go-restful"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +36,6 @@ import (
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
-	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
@@ -47,7 +48,6 @@ import (
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwt"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
@@ -190,7 +190,9 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 
 	s.Server.Handler = s.container
 
-	s.buildHandlerChain(stopCh)
+	if err := s.buildHandlerChain(stopCh); err != nil {
+		return fmt.Errorf("failed to build handler chain: %v", err)
+	}
 
 	return nil
 }
@@ -309,7 +311,7 @@ func (s *APIServer) Run(ctx context.Context) (err error) {
 	return err
 }
 
-func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
+func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) error {
 	requestInfoResolver := &request.RequestInfoFactory{
 		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
 		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
@@ -333,13 +335,6 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	}
 
 	handler := s.Server.Handler
-	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
-
-	if s.Config.AuditingOptions.Enable {
-		handler = filters.WithAuditing(handler,
-			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions, stopCh))
-	}
-
 	jsBundleDispatcher := dispatch.NewJSBundleDispatcher(s.RuntimeCache)
 	handler = filters.WithDispatcher(handler, jsBundleDispatcher)
 
@@ -349,8 +344,18 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	reverseProxyDispatcher := dispatch.NewReverseProxyDispatcher(s.RuntimeCache)
 	handler = filters.WithDispatcher(handler, reverseProxyDispatcher)
 
-	var authorizers authorizer.Authorizer
+	kubernetesAPIDispatcher, err := dispatch.NewKubernetesAPIDispatcher(s.KubernetesClient.Config())
+	if err != nil {
+		return fmt.Errorf("failed to create kubernetes API dispatcher: %v", err)
+	}
+	handler = filters.WithDispatcher(handler, kubernetesAPIDispatcher)
 
+	if s.Config.AuditingOptions.Enable {
+		handler = filters.WithAuditing(handler,
+			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions, stopCh))
+	}
+
+	var authorizers authorizer.Authorizer
 	switch s.Config.AuthorizationOptions.Mode {
 	case authorization.AlwaysAllow:
 		authorizers = authorizerfactory.NewAlwaysAllowAuthorizer()
@@ -366,6 +371,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	}
 
 	handler = filters.WithAuthorization(handler, authorizers)
+
 	if s.Config.MultiClusterOptions.Enable {
 		clusterDispatcher := dispatch.NewClusterDispatcher(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters())
 		handler = filters.WithDispatcher(handler, clusterDispatcher)
@@ -388,6 +394,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 
 	s.Server.Handler = handler
+	return nil
 }
 
 func isResourceExists(apiResources []v1.APIResource, resource schema.GroupVersionResource) bool {
@@ -672,11 +679,4 @@ func logRequestAndResponse(req *restful.Request, resp *restful.Response, chain *
 		resp.ContentLength(),
 		time.Since(start)/time.Millisecond,
 	)
-}
-
-type errorResponder struct{}
-
-func (e *errorResponder) Error(w http.ResponseWriter, req *http.Request, err error) {
-	klog.Error(err)
-	responsewriters.InternalError(w, req, err)
 }

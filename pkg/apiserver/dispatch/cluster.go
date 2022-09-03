@@ -129,10 +129,9 @@ func (c *clusterDispatcher) Dispatch(w http.ResponseWriter, req *http.Request) b
 		u.Host = innCluster.KubesphereURL.Host
 		u.Scheme = innCluster.KubesphereURL.Scheme
 	}
-
-	httpProxy := proxy.NewUpgradeAwareHandler(&u, transport, false, false, c)
-	httpProxy.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(transport, transport)
-	httpProxy.ServeHTTP(w, req)
+	handler := proxy.NewUpgradeAwareHandler(&u, transport, false, false, c)
+	handler.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(transport, transport)
+	handler.ServeHTTP(w, req)
 
 	return true
 }

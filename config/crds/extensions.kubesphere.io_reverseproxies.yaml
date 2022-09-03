@@ -38,8 +38,63 @@ spec:
             type: object
           spec:
             properties:
-              enabled:
-                type: boolean
+              directives:
+                properties:
+                  authProxy:
+                    description: Add auth proxy header to requests
+                    type: boolean
+                  changeOrigin:
+                    description: Change Host header for name-based virtual hosted
+                      sites.
+                    type: boolean
+                  headerDown:
+                    description: Sets, adds (with the + prefix), deletes (with the
+                      - prefix), or performs a replacement (by using two arguments,
+                      a search and replacement) in a response header coming downstream
+                      from the backend.
+                    items:
+                      type: string
+                    type: array
+                  headerUp:
+                    description: Sets, adds (with the + prefix), deletes (with the
+                      - prefix), or performs a replacement (by using two arguments,
+                      a search and replacement) in a request header going upstream
+                      to the backend.
+                    items:
+                      type: string
+                    type: array
+                  interceptRedirects:
+                    description: InterceptRedirects determines whether the proxy should
+                      sniff backend responses for redirects, only allows redirects
+                      to the same host.
+                    type: boolean
+                  method:
+                    description: Changes the request's HTTP verb.
+                    type: string
+                  pathRegexp:
+                    description: Performs regular expression replacements on the URI
+                      path.
+                    items:
+                      type: string
+                    type: array
+                  stripPathPrefix:
+                    description: Strips the given prefix from the beginning of the
+                      URI path.
+                    type: string
+                  stripPathSuffix:
+                    description: Strips the given suffix from the end of the URI path.
+                    type: string
+                  uriSubstring:
+                    description: Performs substring replacements on the URI.
+                    items:
+                      type: string
+                    type: array
+                  wrapTransport:
+                    description: ' WrapTransport indicates whether the provided Transport
+                      should be wrapped with default proxy transport behavior (URL
+                      rewriting, X-Forwarded-* header setting)'
+                    type: boolean
+                type: object
               matcher:
                 properties:
                   method:

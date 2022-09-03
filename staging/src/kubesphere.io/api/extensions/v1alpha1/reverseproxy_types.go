@@ -16,7 +16,9 @@ limitations under the License.
 
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 type Matcher struct {
 	Path   string `json:"path"`
@@ -24,9 +26,34 @@ type Matcher struct {
 }
 
 type ReverseProxySpec struct {
-	Enabled  bool     `json:"enabled,omitempty"`
-	Matcher  Matcher  `json:"matcher,omitempty"`
-	Upstream Endpoint `json:"upstream,omitempty"`
+	Matcher    Matcher    `json:"matcher,omitempty"`
+	Upstream   Endpoint   `json:"upstream,omitempty"`
+	Directives Directives `json:"directives,omitempty"`
+}
+
+type Directives struct {
+	// Changes the request's HTTP verb.
+	Method string `json:"method,omitempty"`
+	// Strips the given prefix from the beginning of the URI path.
+	StripPathPrefix string `json:"stripPathPrefix,omitempty"`
+	// Strips the given suffix from the end of the URI path.
+	StripPathSuffix string `json:"stripPathSuffix,omitempty"`
+	// Performs substring replacements on the URI.
+	URISubstring []string `json:"uriSubstring,omitempty"`
+	// Performs regular expression replacements on the URI path.
+	PathRegexp []string `json:"pathRegexp,omitempty"`
+	// Sets, adds (with the + prefix), deletes (with the - prefix), or performs a replacement (by using two arguments, a search and replacement) in a request header going upstream to the backend.
+	HeaderUp []string `json:"headerUp,omitempty"`
+	// Sets, adds (with the + prefix), deletes (with the - prefix), or performs a replacement (by using two arguments, a search and replacement) in a response header coming downstream from the backend.
+	HeaderDown []string `json:"headerDown,omitempty"`
+	// Change Host header for name-based virtual hosted sites.
+	ChangeOrigin bool `json:"changeOrigin,omitempty"`
+	// InterceptRedirects determines whether the proxy should sniff backend responses for redirects, only allows redirects to the same host.
+	InterceptRedirects bool `json:"interceptRedirects,omitempty"`
+	//  WrapTransport indicates whether the provided Transport should be wrapped with default proxy transport behavior (URL rewriting, X-Forwarded-* header setting)
+	WrapTransport bool `json:"wrapTransport,omitempty"`
+	// Add auth proxy header to requests
+	AuthProxy bool `json:"authProxy,omitempty"`
 }
 
 type ReverseProxyStatus struct {

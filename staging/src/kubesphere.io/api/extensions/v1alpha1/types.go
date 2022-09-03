@@ -57,7 +57,7 @@ type Endpoint struct {
 	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
-func (in Endpoint) RawURL() string {
+func (in *Endpoint) RawURL() string {
 	var rawURL string
 	if in.URL != nil {
 		rawURL = *in.URL
@@ -70,7 +70,12 @@ func (in Endpoint) RawURL() string {
 		if in.Service.Path != nil {
 			path = *in.Service.Path
 		}
-		rawURL = fmt.Sprintf("https://%s.%s.svc:%d%s",
+		var scheme = "http"
+		if in.InsecureSkipVerify || len(in.CABundle) > 0 {
+			scheme = "https"
+		}
+		rawURL = fmt.Sprintf("%s://%s.%s.svc:%d%s",
+			scheme,
 			in.Service.Name,
 			in.Service.Namespace,
 			port, path)

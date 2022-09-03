@@ -46,10 +46,6 @@ spec:
                 type: string
               insecureSkipVerify:
                 type: boolean
-              nonResourceURLs:
-                items:
-                  type: string
-                type: array
               service:
                 description: ServiceReference holds a reference to Service.legacy.k8s.io
                 properties:

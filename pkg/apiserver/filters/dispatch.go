@@ -22,12 +22,12 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 )
 
-func WithDispatcher(handler http.Handler, dispatch dispatch.Dispatcher) http.Handler {
-	if dispatch == nil {
+func WithDispatcher(handler http.Handler, dispatcher dispatch.Dispatcher) http.Handler {
+	if dispatcher == nil {
 		return handler
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if !dispatch.Dispatch(w, req) {
+		if !dispatcher.Dispatch(w, req) {
 			handler.ServeHTTP(w, req)
 		}
 	})
