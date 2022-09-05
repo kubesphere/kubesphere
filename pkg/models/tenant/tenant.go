@@ -24,8 +24,6 @@ import (
 	"strings"
 	"time"
 
-	jsonpatch "github.com/evanphx/json-patch"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,6 +70,7 @@ import (
 	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
+	jsonpatchutil "kubesphere.io/kubesphere/pkg/utils/josnpatchutil"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
@@ -478,14 +477,14 @@ func (t *tenantOperator) PatchNamespace(workspace string, namespace *corev1.Name
 func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error) {
 	clusterNames := sets.NewString()
 
-	patchObj, err := jsonpatch.DecodePatch(data)
+	patchs, err := jsonpatchutil.Parse(data)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	if len(patchObj) > 0 {
-		for _, patch := range patchObj {
+	if len(patchs) > 0 {
+		for _, patch := range patchs {
 			path, err := patch.Path()
 			if err != nil {
 				klog.Error(err)
@@ -521,20 +520,13 @@ func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string
 					klog.Error(err)
 					return nil, err
 				}
-				valueInterface, err := patch.ValueInterface()
+				clusterValue := make(map[string]string)
+				err := jsonpatchutil.GetValue(patch, &clusterValue)
 				if err != nil {
 					klog.Error(err)
 					return nil, err
 				}
-
-				clusterName := valueInterface.(map[string]interface{})["name"]
-				if clusterName != nil {
-					cName, ok := clusterName.(string)
-					if !ok {
-						err := errors.NewBadRequest(fmt.Sprintf("invalid value type of value: %v", clusterName))
-						klog.Error(err)
-						return nil, err
-					}
+				if cName := clusterValue["name"]; cName != "" {
 					clusterNames.Insert(cName)
 				}
 			}
