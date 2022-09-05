@@ -498,7 +498,7 @@ func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string
 			if !strings.HasPrefix(path, "/spec/placement/clusters/") {
 				deleteWST := authorizer.AttributesRecord{
 					User:            user,
-					Verb:            "delete",
+					Verb:            authorizer.VerbDelete,
 					APIGroup:        tenantv1alpha2.SchemeGroupVersion.Group,
 					APIVersion:      tenantv1alpha2.SchemeGroupVersion.Version,
 					Resource:        tenantv1alpha2.ResourcePluralWorkspaceTemplate,
@@ -528,8 +528,14 @@ func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string
 				}
 
 				clusterName := valueInterface.(map[string]interface{})["name"]
-				if clusterName != "" {
-					clusterNames.Insert(clusterName.(string))
+				if clusterName != nil {
+					cName, ok := clusterName.(string)
+					if !ok {
+						err := errors.NewBadRequest(fmt.Sprintf("invalid value type of value: %v", clusterName))
+						klog.Error(err)
+						return nil, err
+					}
+					clusterNames.Insert(cName)
 				}
 			}
 		}
@@ -542,7 +548,7 @@ func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string
 		for _, clusterName := range clusterNames.List() {
 			deleteCluster := authorizer.AttributesRecord{
 				User:            user,
-				Verb:            "delete",
+				Verb:            authorizer.VerbDelete,
 				APIGroup:        clusterv1alpha1.SchemeGroupVersion.Version,
 				APIVersion:      clusterv1alpha1.SchemeGroupVersion.Version,
 				Resource:        clusterv1alpha1.ResourcesPluralCluster,
