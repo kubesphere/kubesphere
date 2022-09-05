@@ -25,12 +25,12 @@ func (fc *fakeCacheFactory) Type() string {
 	return typeFakeCache
 }
 
-// Create a fake cache. Just used for debug, compared to simpleCache,
+// Create a fake cache. Just used for debug, compared to inMemoryCache,
 // the fake cache has no timed memory cleanup. Do not use the fake cache
 // in production environment or multi-replicas apiserver,
 // which will cause risk of memory leaks and data inconsistency.
 func (fc *fakeCacheFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
-	return NewSimpleCache(nil, nil)
+	return NewInMemoryCache(nil, nil)
 }
 
 func init() {

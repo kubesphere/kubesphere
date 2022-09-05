@@ -29,7 +29,7 @@ import (
 
 var ErrNoSuchKey = errors.New("no such key")
 
-const typeInMemoryCache = "inMemoryCache"
+const typeInMemoryCache = "InMemoryCache"
 
 type simpleObject struct {
 	value       string
@@ -47,25 +47,25 @@ func (so *simpleObject) IsExpired() bool {
 	return false
 }
 
-// simpleCacheOptions used to create simpleCache in memory.
+// InMemoryCacheOptions used to create inMemoryCache in memory.
 // CleanupPeriod specifies cleans up expired token every period.
 // Note the SimpleCache cannot be used in multi-replicas apiserver,
 // which will lead to data inconsistency.
-type simpleCacheOptions struct {
+type InMemoryCacheOptions struct {
 	CleanupPeriod time.Duration `json:"cleanupPeriod" yaml:"cleanupPeriod" mapstructure:"cleanupperiod"`
 }
 
 // SimpleCache implements cache.Interface use memory objects, it should be used only for testing
-type simpleCache struct {
+type inMemoryCache struct {
 	cleanupPeriod time.Duration
 	store         map[string]simpleObject
 }
 
-func NewSimpleCache(options *simpleCacheOptions, stopCh <-chan struct{}) (Interface, error) {
+func NewInMemoryCache(options *InMemoryCacheOptions, stopCh <-chan struct{}) (Interface, error) {
 	if options == nil {
-		return &simpleCache{store: make(map[string]simpleObject)}, nil
+		return &inMemoryCache{store: make(map[string]simpleObject)}, nil
 	}
-	cache := &simpleCache{
+	cache := &inMemoryCache{
 		store:         make(map[string]simpleObject),
 		cleanupPeriod: options.CleanupPeriod,
 	}
@@ -74,7 +74,7 @@ func NewSimpleCache(options *simpleCacheOptions, stopCh <-chan struct{}) (Interf
 	return cache, nil
 }
 
-func (s *simpleCache) cleanInvalidToken() {
+func (s *inMemoryCache) cleanInvalidToken() {
 	for k, v := range s.store {
 		if v.IsExpired() {
 			delete(s.store, k)
@@ -82,7 +82,7 @@ func (s *simpleCache) cleanInvalidToken() {
 	}
 }
 
-func (s *simpleCache) Keys(pattern string) ([]string, error) {
+func (s *inMemoryCache) Keys(pattern string) ([]string, error) {
 	// There is a little difference between go regexp and redis key pattern
 	// In redis, * means any character, while in go . means match everything.
 	pattern = strings.Replace(pattern, "*", ".", -1)
@@ -101,7 +101,7 @@ func (s *simpleCache) Keys(pattern string) ([]string, error) {
 	return keys, nil
 }
 
-func (s *simpleCache) Set(key string, value string, duration time.Duration) error {
+func (s *inMemoryCache) Set(key string, value string, duration time.Duration) error {
 	sobject := simpleObject{
 		value:       value,
 		neverExpire: false,
@@ -116,14 +116,14 @@ func (s *simpleCache) Set(key string, value string, duration time.Duration) erro
 	return nil
 }
 
-func (s *simpleCache) Del(keys ...string) error {
+func (s *inMemoryCache) Del(keys ...string) error {
 	for _, key := range keys {
 		delete(s.store, key)
 	}
 	return nil
 }
 
-func (s *simpleCache) Get(key string) (string, error) {
+func (s *inMemoryCache) Get(key string) (string, error) {
 	if sobject, ok := s.store[key]; ok {
 		if sobject.neverExpire || time.Now().Before(sobject.expiredAt) {
 			return sobject.value, nil
@@ -133,7 +133,7 @@ func (s *simpleCache) Get(key string) (string, error) {
 	return "", ErrNoSuchKey
 }
 
-func (s *simpleCache) Exists(keys ...string) (bool, error) {
+func (s *inMemoryCache) Exists(keys ...string) (bool, error) {
 	for _, key := range keys {
 		if _, ok := s.store[key]; !ok {
 			return false, nil
@@ -143,7 +143,7 @@ func (s *simpleCache) Exists(keys ...string) (bool, error) {
 	return true, nil
 }
 
-func (s *simpleCache) Expire(key string, duration time.Duration) error {
+func (s *inMemoryCache) Expire(key string, duration time.Duration) error {
 	value, err := s.Get(key)
 	if err != nil {
 		return err
@@ -163,15 +163,15 @@ func (s *simpleCache) Expire(key string, duration time.Duration) error {
 	return nil
 }
 
-type simpleCacheFactory struct {
+type inMemoryCacheFactory struct {
 }
 
-func (sf *simpleCacheFactory) Type() string {
+func (sf *inMemoryCacheFactory) Type() string {
 	return typeInMemoryCache
 }
 
-func (sf *simpleCacheFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
-	var sOptions simpleCacheOptions
+func (sf *inMemoryCacheFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
+	var sOptions InMemoryCacheOptions
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
@@ -185,9 +185,9 @@ func (sf *simpleCacheFactory) Create(options DynamicOptions, stopCh <-chan struc
 		return nil, err
 	}
 
-	return NewSimpleCache(&sOptions, stopCh)
+	return NewInMemoryCache(&sOptions, stopCh)
 }
 
 func init() {
-	RegisterCacheFactory(&simpleCacheFactory{})
+	RegisterCacheFactory(&inMemoryCacheFactory{})
 }

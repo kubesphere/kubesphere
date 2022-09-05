@@ -102,7 +102,7 @@ func TestDeleteAndExpireCache(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		cacheClient, _ := NewSimpleCache(nil, nil)
+		cacheClient, _ := NewInMemoryCache(nil, nil)
 
 		t.Run(testCase.description, func(t *testing.T) {
 			err := load(cacheClient, dataSet)
