@@ -39,7 +39,7 @@ func TestClient_Get(t *testing.T) {
 		url string
 	}
 
-	simpleCache, err := cache.NewSimpleCache(nil, nil)
+	inMemoryCache, err := cache.NewInMemoryCache(nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestClient_Get(t *testing.T) {
 			name: "Token",
 			fields: fields{
 				Strategy: AuthStrategyToken,
-				cache:    simpleCache,
+				cache:    inMemoryCache,
 				client: &MockClient{
 					TokenResult:   token,
 					RequestResult: "fake",
