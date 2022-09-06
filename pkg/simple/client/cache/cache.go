@@ -50,7 +50,8 @@ type Interface interface {
 	Expire(key string, duration time.Duration) error
 }
 
-// DynamicOptions the options of the cache. For redis, options key is "host, port, db, password",
+// DynamicOptions the options of the cache. For redis, options key can be  "host", "port", "db", "password".
+// For InMemoryCache, options key can be "cleanupperiod"
 type DynamicOptions map[string]interface{}
 
 func (o DynamicOptions) MarshalJSON() ([]byte, error) {
