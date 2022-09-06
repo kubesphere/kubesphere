@@ -29,7 +29,12 @@ import (
 
 var ErrNoSuchKey = errors.New("no such key")
 
-const typeInMemoryCache = "InMemoryCache"
+const (
+	typeInMemoryCache = "InMemoryCache"
+	DefaultCacheType  = typeInMemoryCache
+
+	defaultCleanupPeriod = 2 * time.Hour
+)
 
 type simpleObject struct {
 	value       string
@@ -55,21 +60,23 @@ type InMemoryCacheOptions struct {
 	CleanupPeriod time.Duration `json:"cleanupPeriod" yaml:"cleanupPeriod" mapstructure:"cleanupperiod"`
 }
 
-// SimpleCache implements cache.Interface use memory objects, it should be used only for testing
+// imMemoryCache implements cache.Interface use memory objects, it should be used only for testing
 type inMemoryCache struct {
-	cleanupPeriod time.Duration
-	store         map[string]simpleObject
+	store map[string]simpleObject
 }
 
 func NewInMemoryCache(options *InMemoryCacheOptions, stopCh <-chan struct{}) (Interface, error) {
-	if options == nil {
-		return &inMemoryCache{store: make(map[string]simpleObject)}, nil
-	}
+	var cleanupPeriod time.Duration
 	cache := &inMemoryCache{
-		store:         make(map[string]simpleObject),
-		cleanupPeriod: options.CleanupPeriod,
+		store: make(map[string]simpleObject),
 	}
-	go wait.Until(cache.cleanInvalidToken, options.CleanupPeriod, stopCh)
+
+	if options == nil || options.CleanupPeriod == 0 {
+		cleanupPeriod = defaultCleanupPeriod
+	} else {
+		cleanupPeriod = options.CleanupPeriod
+	}
+	go wait.Until(cache.cleanInvalidToken, cleanupPeriod, stopCh)
 
 	return cache, nil
 }

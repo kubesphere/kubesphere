@@ -168,9 +168,9 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	// If debug mode is on or CacheOptions is nil, will create a fake cache.
-	if s.CacheOptions != nil {
+	if s.CacheOptions.Type != "" {
 		if s.DebugMode {
-			s.CacheOptions.Type = fakeInterface
+			s.CacheOptions.Type = cache.DefaultCacheType
 		}
 		cacheClient, err := cache.New(s.CacheOptions, stopCh)
 		if err != nil {
@@ -178,7 +178,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		}
 		apiServer.CacheClient = cacheClient
 	} else {
-		s.CacheOptions = &cache.Options{Type: fakeInterface}
+		s.CacheOptions = &cache.Options{Type: cache.DefaultCacheType}
 		// fake cache has no error to return
 		cacheClient, _ := cache.New(s.CacheOptions, stopCh)
 		apiServer.CacheClient = cacheClient
