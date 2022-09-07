@@ -301,7 +301,7 @@ func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, 
 	start, end := (&query.Pagination{Limit: limit, Offset: offset}).GetValidPagination(totalCount)
 	repos = repos[start:end]
 	items := make([]interface{}, 0, len(repos))
-	for i, j := offset, 0; i < len(repos) && j < limit; i, j = i+1, j+1 {
+	for i := range repos {
 		items = append(items, convertRepo(repos[i]))
 	}
 	return &models.PageableResponse{Items: items, TotalCount: totalCount}, nil
