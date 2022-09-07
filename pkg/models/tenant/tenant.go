@@ -568,15 +568,15 @@ func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string
 				return nil, err
 			}
 
-			allowd := false
+			allowed := false
 			for _, clusterRolebinding := range list.Items {
 				if clusterRolebinding.RoleRef.Name == iamv1alpha2.ClusterAdmin {
-					allowd = true
+					allowed = true
 					break
 				}
 			}
 
-			if !allowd {
+			if !allowed {
 				err = errors.NewForbidden(clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster), clusterName, fmt.Errorf(reason))
 				klog.Error(err)
 				return nil, err
