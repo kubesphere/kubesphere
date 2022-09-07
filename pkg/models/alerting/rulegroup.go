@@ -16,6 +16,7 @@ package alerting
 
 import (
 	"context"
+	"time"
 
 	promlabels "github.com/prometheus/prometheus/pkg/labels"
 	promrules "github.com/prometheus/prometheus/rules"
@@ -129,7 +130,7 @@ func (o *ruleGroupOperator) ListRuleGroups(ctx context.Context, namespace string
 		return nil, err
 	}
 
-	return resources.DefaultList(groups, queryParam, func(left, right runtime.Object, field query.Field) bool {
+	listResult := resources.DefaultList(groups, queryParam, func(left, right runtime.Object, field query.Field) bool {
 		hit, great := o.compareRuleGroupStatus(
 			&(left.(*kapialertingv2beta1.RuleGroup).Status), &(right.(*kapialertingv2beta1.RuleGroup).Status), field)
 		if hit {
@@ -143,7 +144,32 @@ func (o *ruleGroupOperator) ListRuleGroups(ctx context.Context, namespace string
 			return selected
 		}
 		return resources.DefaultObjectMetaFilter(obj.(*kapialertingv2beta1.RuleGroup).ObjectMeta, filter)
-	}), nil
+	})
+
+	for i := range listResult.Items {
+		item := listResult.Items[i].(*kapialertingv2beta1.RuleGroup)
+		for j, ruleStatus := range item.Status.RulesStatus {
+			updateRulesStats(&item.Status.RulesStats, item.Spec.Rules[j].Disable, ruleStatus.State)
+		}
+		listResult.Items[i] = item
+	}
+
+	return listResult, nil
+}
+
+func updateRulesStats(rulesStats *kapialertingv2beta1.RulesStats, ruleDisable bool, ruleState string) {
+	if ruleDisable {
+		rulesStats.Disabled++
+		return
+	}
+	switch ruleState {
+	case stateInactiveString:
+		rulesStats.Inactive++
+	case statePendingString:
+		rulesStats.Pending++
+	case stateFiringString:
+		rulesStats.Firing++
+	}
 }
 
 // compareRuleGroupStatus compare rulegroup status.
@@ -299,6 +325,10 @@ func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name st
 		}
 	}
 
+	for j, ruleStatus := range ret.Status.RulesStatus {
+		updateRulesStats(&ret.Status.RulesStats, ret.Spec.Rules[j].Disable, ruleStatus.State)
+	}
+
 	return ret, nil
 }
 
@@ -366,7 +396,7 @@ func (o *ruleGroupOperator) ListClusterRuleGroups(ctx context.Context,
 		return nil, err
 	}
 
-	return resources.DefaultList(groups, queryParam, func(left, right runtime.Object, field query.Field) bool {
+	listResult := resources.DefaultList(groups, queryParam, func(left, right runtime.Object, field query.Field) bool {
 		hit, great := o.compareRuleGroupStatus(
 			&(left.(*kapialertingv2beta1.ClusterRuleGroup).Status), &(right.(*kapialertingv2beta1.ClusterRuleGroup).Status), field)
 		if hit {
@@ -380,7 +410,17 @@ func (o *ruleGroupOperator) ListClusterRuleGroups(ctx context.Context,
 			return selected
 		}
 		return resources.DefaultObjectMetaFilter(obj.(*kapialertingv2beta1.ClusterRuleGroup).ObjectMeta, filter)
-	}), nil
+	})
+
+	for i := range listResult.Items {
+		item := listResult.Items[i].(*kapialertingv2beta1.ClusterRuleGroup)
+		for j, ruleStatus := range item.Status.RulesStatus {
+			updateRulesStats(&item.Status.RulesStats, item.Spec.Rules[j].Disable, ruleStatus.State)
+		}
+		listResult.Items[i] = item
+	}
+
+	return listResult, nil
 }
 
 func (o *ruleGroupOperator) ListClusterAlerts(ctx context.Context,
@@ -454,6 +494,10 @@ func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string
 				Health: string(promrules.HealthUnknown),
 			})
 		}
+	}
+
+	for j, ruleStatus := range ret.Status.RulesStatus {
+		updateRulesStats(&ret.Status.RulesStats, ret.Spec.Rules[j].Disable, ruleStatus.State)
 	}
 
 	return ret, nil
@@ -546,7 +590,7 @@ func (o *ruleGroupOperator) ListGlobalRuleGroups(ctx context.Context,
 		return nil, err
 	}
 
-	return resources.DefaultList(groups, queryParam, func(left, right runtime.Object, field query.Field) bool {
+	listResult := resources.DefaultList(groups, queryParam, func(left, right runtime.Object, field query.Field) bool {
 		hit, great := o.compareRuleGroupStatus(
 			&(left.(*kapialertingv2beta1.GlobalRuleGroup).Status), &(right.(*kapialertingv2beta1.GlobalRuleGroup).Status), field)
 		if hit {
@@ -563,7 +607,17 @@ func (o *ruleGroupOperator) ListGlobalRuleGroups(ctx context.Context,
 			return selected
 		}
 		return resources.DefaultObjectMetaFilter(obj.(*kapialertingv2beta1.GlobalRuleGroup).ObjectMeta, filter)
-	}), nil
+	})
+
+	for i := range listResult.Items {
+		item := listResult.Items[i].(*kapialertingv2beta1.GlobalRuleGroup)
+		for j, ruleStatus := range item.Status.RulesStatus {
+			updateRulesStats(&item.Status.RulesStats, item.Spec.Rules[j].Disable, ruleStatus.State)
+		}
+		listResult.Items[i] = item
+	}
+
+	return listResult, nil
 }
 
 func (o *ruleGroupOperator) ListGlobalAlerts(ctx context.Context,
@@ -661,6 +715,10 @@ func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string)
 		}
 	}
 
+	for j, ruleStatus := range ret.Status.RulesStatus {
+		updateRulesStats(&ret.Status.RulesStats, ret.Spec.Rules[j].Disable, ruleStatus.State)
+	}
+
 	return ret, nil
 }
 
@@ -677,6 +735,7 @@ func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1
 		if ruleState := parseAlertState(rule.State); ruleState > groupState {
 			groupState = ruleState
 		}
+		var ruleActiveAt *time.Time
 		alerts := []*kapialertingv2beta1.Alert{}
 		for _, alert := range rule.Alerts {
 			alerts = append(alerts, &kapialertingv2beta1.Alert{
@@ -686,6 +745,9 @@ func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1
 				State:       alert.State,
 				Value:       alert.Value,
 			})
+			if alert.ActiveAt != nil && (ruleActiveAt == nil || alert.ActiveAt.Before(*ruleActiveAt)) {
+				ruleActiveAt = alert.ActiveAt
+			}
 		}
 		ruleStatus := kapialertingv2beta1.RuleStatus{
 			State:          rule.State,
@@ -693,6 +755,7 @@ func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1
 			LastError:      rule.LastError,
 			EvaluationTime: rule.EvaluationTime,
 			LastEvaluation: rule.LastEvaluation,
+			ActiveAt:       ruleActiveAt,
 			Alerts:         alerts,
 		}
 		if len(rule.Labels) > 0 {

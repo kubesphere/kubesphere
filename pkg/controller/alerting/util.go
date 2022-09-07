@@ -42,11 +42,14 @@ const (
 	RuleLevelCluster   RuleLevel = "cluster"
 	RuleLevelGlobal    RuleLevel = "global"
 
-	// label keys in rule.labels
-	RuleLabelKeyRuleLevel = "rule_level"
-	RuleLabelKeyCluster   = "cluster"
-	RuleLabelKeyNamespace = "namespace"
-	RuleLabelKeySeverity  = "severity"
+	// for rule.labels
+	RuleLabelKeyRuleLevel         = "rule_level"
+	RuleLabelKeyRuleGroup         = "rule_group"
+	RuleLabelKeyCluster           = "cluster"
+	RuleLabelKeyNamespace         = "namespace"
+	RuleLabelKeySeverity          = "severity"
+	RuleLabelKeyAlertType         = "alerttype"
+	RuleLabelValueAlertTypeMetric = "metric"
 
 	// label keys in RuleGroup/ClusterRuleGroup/GlobalRuleGroup.metadata.labels
 	SourceGroupResourceLabelKeyEnable        = "alerting.kubesphere.io/enable"
@@ -132,7 +135,7 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 	commonEnforceFuncs ...enforceRuleFunc) ([]*promresourcesv1.RuleGroup, error) {
 	var rulegroups []*promresourcesv1.RuleGroup
 
-	convertRule := func(rule *alertingv2beta1.Rule, enforceFuncs ...enforceRuleFunc) (*promresourcesv1.Rule, error) {
+	convertRule := func(rule *alertingv2beta1.Rule, groupName string, enforceFuncs ...enforceRuleFunc) (*promresourcesv1.Rule, error) {
 		if rule.Disable { // ignoring disabled rule
 			return nil, nil
 		}
@@ -156,6 +159,15 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 		}
 
 		enforceFuncs = append(enforceFuncs, commonEnforceFuncs...)
+		// enforce rule group label and alert type label
+		enforceFuncs = append(enforceFuncs, func(rule *promresourcesv1.Rule) error {
+			if rule.Labels == nil {
+				rule.Labels = make(map[string]string)
+			}
+			rule.Labels[RuleLabelKeyRuleGroup] = groupName
+			rule.Labels[RuleLabelKeyAlertType] = RuleLabelValueAlertTypeMetric
+			return nil
+		})
 
 		for _, f := range enforceFuncs {
 			if f == nil {
@@ -175,7 +187,7 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 		for _, group := range list.Items {
 			var prules []promresourcesv1.Rule
 			for _, rule := range group.Spec.Rules {
-				prule, err := convertRule(&rule.Rule)
+				prule, err := convertRule(&rule.Rule, group.Name)
 				if err != nil {
 					log.WithValues("rulegroup", group.Namespace+"/"+group.Name).Error(err, "failed to convert")
 					continue
@@ -195,7 +207,7 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 		for _, group := range list.Items {
 			var prules []promresourcesv1.Rule
 			for _, rule := range group.Spec.Rules {
-				prule, err := convertRule(&rule.Rule)
+				prule, err := convertRule(&rule.Rule, group.Name)
 				if err != nil {
 					log.WithValues("clusterrulegroup", group.Name).Error(err, "failed to convert")
 					continue
@@ -216,7 +228,8 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 			var prules []promresourcesv1.Rule
 			for _, rule := range group.Spec.Rules {
 
-				prule, err := convertRule(&rule.Rule, createEnforceRuleFuncs(ParseGlobalRuleEnforceMatchers(&rule), nil)...)
+				prule, err := convertRule(&rule.Rule, group.Name,
+					createEnforceRuleFuncs(ParseGlobalRuleEnforceMatchers(&rule), nil)...)
 				if err != nil {
 					log.WithValues("globalrulegroup", group.Name).Error(err, "failed to convert")
 					continue

@@ -68,6 +68,14 @@ type RuleGroupStatus struct {
 	EvaluationTime *float64     `json:"evaluationTime,omitempty" description:"time spent on rule group evaluation in seconds"`
 	LastEvaluation *time.Time   `json:"lastEvaluation,omitempty" description:"time of last evaluation"`
 	RulesStatus    []RuleStatus `json:"rulesStatus,omitempty" description:"status of rules in one RuleGroup"`
+	RulesStats     RulesStats   `json:"rulesStats,omitempty" description:"statistics of rules in one RuleGroup"`
+}
+
+type RulesStats struct {
+	Inactive int `json:"inactive" description:"count of rules in the inactive state"`
+	Pending  int `json:"pending" description:"count of rules in the pending state"`
+	Firing   int `json:"firing" description:"count of rules in the firing state"`
+	Disabled int `json:"disabled" description:"count of disabled rules"`
 }
 
 type RuleStatus struct {
@@ -77,6 +85,7 @@ type RuleStatus struct {
 	LastError      string     `json:"lastError,omitempty" description:"error of the last evaluation"`
 	EvaluationTime *float64   `json:"evaluationTime,omitempty" description:"time spent on the expression evaluation in seconds"`
 	LastEvaluation *time.Time `json:"lastEvaluation,omitempty" description:"time of last evaluation"`
+	ActiveAt       *time.Time `json:"activeAt,omitempty" description:"time when this rule became active"`
 
 	Alerts []*Alert `json:"alerts,omitempty" description:"alerts"`
 }
