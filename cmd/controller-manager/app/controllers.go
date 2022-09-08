@@ -130,19 +130,19 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 	stopCh <-chan struct{}) error {
 	var err error
 
-	////////////////////////////////////
+	// //////////////////////////////////
 	// begin init necessary informers
-	////////////////////////////////////
+	// //////////////////////////////////
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
 	istioInformer := informerFactory.IstioSharedInformerFactory()
 	kubesphereInformer := informerFactory.KubeSphereSharedInformerFactory()
-	////////////////////////////////////
+	// //////////////////////////////////
 	// end informers
-	////////////////////////////////////
+	// //////////////////////////////////
 
-	////////////////////////////////////
+	// //////////////////////////////////
 	// begin init necessary clients
-	////////////////////////////////////
+	// //////////////////////////////////
 	kubeconfigClient := kubeconfig.NewOperator(client.Kubernetes(),
 		informerFactory.KubernetesSharedInformerFactory().Core().V1().ConfigMaps().Lister(),
 		client.Config())
@@ -169,13 +169,13 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 	} else {
 		klog.Warning("ks-controller-manager starts without ldap provided, it will not sync user into ldap")
 	}
-	////////////////////////////////////
+	// //////////////////////////////////
 	// end init clients
-	////////////////////////////////////
+	// //////////////////////////////////
 
-	////////////////////////////////////////////////////////
+	// //////////////////////////////////////////////////////
 	// begin init controller and add to manager one by one
-	////////////////////////////////////////////////////////
+	// //////////////////////////////////////////////////////
 
 	// "user" controller
 	if cmOptions.IsControllerEnabled("user") {
@@ -514,16 +514,15 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 	// "cluster" controller
 	if cmOptions.IsControllerEnabled("cluster") {
 		if cmOptions.MultiClusterOptions.Enable {
-			clusterController := cluster.NewClusterController(
-				client.Kubernetes(),
-				client.KubeSphere(),
-				client.Config(),
-				kubesphereInformer.Cluster().V1alpha1().Clusters(),
-				kubesphereInformer.Iam().V1alpha2().Users().Lister(),
-				cmOptions.MultiClusterOptions.ClusterControllerResyncPeriod,
-				cmOptions.MultiClusterOptions.HostClusterName,
-			)
-			addController(mgr, "cluster", clusterController)
+			clusterReconciler := &cluster.Reconciler{
+				HostConfig:      client.Config(),
+				HostClusterName: cmOptions.MultiClusterOptions.HostClusterName,
+				ResyncPeriod:    cmOptions.MultiClusterOptions.ClusterControllerResyncPeriod,
+			}
+			// Register reconciler
+			addControllerWithSetup(mgr, "cluster", clusterReconciler)
+			// Register timed tasker
+			addController(mgr, "cluster", clusterReconciler)
 		}
 	}
 
