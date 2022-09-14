@@ -20,16 +20,18 @@ import (
 
 	promlabels "github.com/prometheus/prometheus/pkg/labels"
 	promrules "github.com/prometheus/prometheus/rules"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 
+	alertingv2beta1 "kubesphere.io/api/alerting/v2beta1"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	kapialertingv2beta1 "kubesphere.io/kubesphere/pkg/api/alerting/v2beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	alertinglisters "kubesphere.io/kubesphere/pkg/client/listers/alerting/v2beta1"
 	controller "kubesphere.io/kubesphere/pkg/controller/alerting"
+	"kubesphere.io/kubesphere/pkg/informers"
 	resources "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 )
@@ -48,23 +50,24 @@ type RuleGroupOperator interface {
 	ListClusterAlerts(ctx context.Context, queryParam *query.Query) (*api.ListResult, error)
 }
 
-func NewRuleGroupOperator(ksclient kubesphere.Interface, ruleClient alerting.RuleClient) RuleGroupOperator {
+func NewRuleGroupOperator(informers informers.InformerFactory, ruleClient alerting.RuleClient) RuleGroupOperator {
 	return &ruleGroupOperator{
-		ksclient:   ksclient,
-		ruleClient: ruleClient,
+		ruleClient:             ruleClient,
+		ruleGroupLister:        informers.KubeSphereSharedInformerFactory().Alerting().V2beta1().RuleGroups().Lister(),
+		clusterRuleGroupLister: informers.KubeSphereSharedInformerFactory().Alerting().V2beta1().ClusterRuleGroups().Lister(),
+		globalRuleGroupLister:  informers.KubeSphereSharedInformerFactory().Alerting().V2beta1().GlobalRuleGroups().Lister(),
 	}
 }
 
 type ruleGroupOperator struct {
-	ruleClient alerting.RuleClient
-	ksclient   kubesphere.Interface
+	ruleClient             alerting.RuleClient
+	ruleGroupLister        alertinglisters.RuleGroupLister
+	clusterRuleGroupLister alertinglisters.ClusterRuleGroupLister
+	globalRuleGroupLister  alertinglisters.GlobalRuleGroupLister
 }
 
 func (o *ruleGroupOperator) listRuleGroups(ctx context.Context, namespace string, selector labels.Selector) ([]runtime.Object, error) {
-	resourceRuleGroups, err := o.ksclient.AlertingV2beta1().RuleGroups(namespace).List(ctx,
-		metav1.ListOptions{
-			LabelSelector: selector.String(),
-		})
+	resourceRuleGroups, err := o.ruleGroupLister.RuleGroups(namespace).List(selector)
 	if err != nil {
 		return nil, err
 	}
@@ -97,17 +100,25 @@ func (o *ruleGroupOperator) listRuleGroups(ctx context.Context, namespace string
 	}
 
 	// copy status info of statusRuleGroups to matched rulegroups
-	var groups = make([]runtime.Object, len(resourceRuleGroups.Items))
-	for i := range resourceRuleGroups.Items {
+	var groups = make([]runtime.Object, len(resourceRuleGroups))
+	for i := range resourceRuleGroups {
 		g := &kapialertingv2beta1.RuleGroup{
-			RuleGroup: resourceRuleGroups.Items[i],
+			RuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
 				State: promrules.StateInactive.String(),
 			},
 		}
 		statusg, ok := statusRuleGroupMap[g.Name]
-		if ok && len(statusg.Rules) == len(g.Spec.Rules) { // assure that they are the same rulegroups
-			copyRuleGroupStatus(statusg, &g.Status)
+		specRules := g.Spec.Rules
+		if ok && len(statusg.Rules) == len(specRules) { // assure that they are the same rulegroups
+			var ruleIds = make([]string, len(specRules))
+			for i := range specRules {
+				if specRules[i].Labels != nil {
+					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+				}
+			}
+
+			copyRuleGroupStatus(statusg, &g.Status, ruleIds)
 		} else {
 			// for rules not loaded by rule reloader (eg.thanos) yet
 			for range g.Spec.Rules {
@@ -281,7 +292,7 @@ func (d *ruleGroupOperator) createFilterAlertFunc(queryParam *query.Query) func(
 }
 
 func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name string) (*kapialertingv2beta1.RuleGroup, error) {
-	resourceRuleGroup, err := o.ksclient.AlertingV2beta1().RuleGroups(namespace).Get(ctx, name, metav1.GetOptions{})
+	resourceRuleGroup, err := o.ruleGroupLister.RuleGroups(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
@@ -308,9 +319,17 @@ func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name st
 	}
 
 	var setStatus bool
+	specRules := resourceRuleGroup.Spec.Rules
 	for _, g := range statusRuleGroups {
-		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(resourceRuleGroup.Spec.Rules) {
-			copyRuleGroupStatus(g, &ret.Status)
+		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(specRules) {
+			var ruleIds = make([]string, len(specRules))
+			for i := range specRules {
+				if specRules[i].Labels != nil {
+					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+				}
+			}
+
+			copyRuleGroupStatus(g, &ret.Status, ruleIds)
 			setStatus = true
 			break
 		}
@@ -333,9 +352,7 @@ func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name st
 }
 
 func (o *ruleGroupOperator) listClusterRuleGroups(ctx context.Context, selector labels.Selector) ([]runtime.Object, error) {
-	resourceRuleGroups, err := o.ksclient.AlertingV2beta1().ClusterRuleGroups().List(ctx, metav1.ListOptions{
-		LabelSelector: selector.String(),
-	})
+	resourceRuleGroups, err := o.clusterRuleGroupLister.List(selector)
 	if err != nil {
 		return nil, err
 	}
@@ -363,17 +380,25 @@ func (o *ruleGroupOperator) listClusterRuleGroups(ctx context.Context, selector 
 		}
 	}
 	// copy status info of statusRuleGroups to matched rulegroups
-	var groups = make([]runtime.Object, len(resourceRuleGroups.Items))
-	for i := range resourceRuleGroups.Items {
+	var groups = make([]runtime.Object, len(resourceRuleGroups))
+	for i := range resourceRuleGroups {
 		g := &kapialertingv2beta1.ClusterRuleGroup{
-			ClusterRuleGroup: resourceRuleGroups.Items[i],
+			ClusterRuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
 				State: promrules.StateInactive.String(),
 			},
 		}
 		statusg, ok := statusRuleGroupMap[g.Name]
-		if ok && len(statusg.Rules) == len(g.Spec.Rules) {
-			copyRuleGroupStatus(statusg, &g.Status)
+		specRules := g.Spec.Rules
+		if ok && len(statusg.Rules) == len(specRules) {
+			var ruleIds = make([]string, len(specRules))
+			for i := range specRules {
+				if specRules[i].Labels != nil {
+					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+				}
+			}
+
+			copyRuleGroupStatus(statusg, &g.Status, ruleIds)
 		} else {
 			// for rules not loaded by rule reloader (eg.thanos) yet
 			for range g.Spec.Rules {
@@ -456,7 +481,7 @@ func (o *ruleGroupOperator) ListClusterAlerts(ctx context.Context,
 }
 
 func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string) (*kapialertingv2beta1.ClusterRuleGroup, error) {
-	resourceRuleGroup, err := o.ksclient.AlertingV2beta1().ClusterRuleGroups().Get(ctx, name, metav1.GetOptions{})
+	resourceRuleGroup, err := o.clusterRuleGroupLister.Get(name)
 	if err != nil {
 		return nil, err
 	}
@@ -479,9 +504,17 @@ func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string
 	}
 
 	var setStatus bool
+	specRules := resourceRuleGroup.Spec.Rules
 	for _, g := range statusRuleGroups {
-		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(resourceRuleGroup.Spec.Rules) {
-			copyRuleGroupStatus(g, &ret.Status)
+		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(specRules) {
+			var ruleIds = make([]string, len(specRules))
+			for i := range specRules {
+				if specRules[i].Labels != nil {
+					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+				}
+			}
+
+			copyRuleGroupStatus(g, &ret.Status, ruleIds)
 			setStatus = true
 			break
 		}
@@ -504,10 +537,7 @@ func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string
 }
 
 func (o *ruleGroupOperator) listGlobalRuleGroups(ctx context.Context, selector labels.Selector) ([]runtime.Object, error) {
-	resourceRuleGroups, err := o.ksclient.AlertingV2beta1().GlobalRuleGroups().List(ctx,
-		metav1.ListOptions{
-			LabelSelector: selector.String(),
-		})
+	resourceRuleGroups, err := o.globalRuleGroupLister.List(selector)
 	if err != nil {
 		return nil, err
 	}
@@ -535,17 +565,25 @@ func (o *ruleGroupOperator) listGlobalRuleGroups(ctx context.Context, selector l
 		}
 	}
 	// copy status info of statusRuleGroups to matched rulegroups
-	var groups = make([]runtime.Object, len(resourceRuleGroups.Items))
-	for i := range resourceRuleGroups.Items {
+	var groups = make([]runtime.Object, len(resourceRuleGroups))
+	for i := range resourceRuleGroups {
 		g := &kapialertingv2beta1.GlobalRuleGroup{
-			GlobalRuleGroup: resourceRuleGroups.Items[i],
+			GlobalRuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
 				State: promrules.StateInactive.String(),
 			},
 		}
 		statusg, ok := statusRuleGroupMap[g.Name]
-		if ok && len(statusg.Rules) == len(g.Spec.Rules) {
-			copyRuleGroupStatus(statusg, &g.Status)
+		specRules := g.Spec.Rules
+		if ok && len(statusg.Rules) == len(specRules) {
+			var ruleIds = make([]string, len(specRules))
+			for i := range specRules {
+				if specRules[i].Labels != nil {
+					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+				}
+			}
+
+			copyRuleGroupStatus(statusg, &g.Status, ruleIds)
 		} else {
 			// for rules not loaded by rule reloader (eg.thanos) yet
 			for _, rule := range g.Spec.Rules {
@@ -668,7 +706,7 @@ func (o *ruleGroupOperator) ListGlobalAlerts(ctx context.Context,
 }
 
 func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string) (*kapialertingv2beta1.GlobalRuleGroup, error) {
-	resourceRuleGroup, err := o.ksclient.AlertingV2beta1().GlobalRuleGroups().Get(ctx, name, metav1.GetOptions{})
+	resourceRuleGroup, err := o.globalRuleGroupLister.Get(name)
 	if err != nil {
 		return nil, err
 	}
@@ -692,8 +730,16 @@ func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string)
 
 	var setStatus bool
 	for _, g := range statusRuleGroups {
-		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(resourceRuleGroup.Spec.Rules) {
-			copyRuleGroupStatus(g, &ret.Status)
+		specRules := resourceRuleGroup.Spec.Rules
+		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(specRules) {
+			var ruleIds = make([]string, len(specRules))
+			for i := range specRules {
+				if specRules[i].Labels != nil {
+					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+				}
+			}
+
+			copyRuleGroupStatus(g, &ret.Status, ruleIds)
 			setStatus = true
 			break
 		}
@@ -723,14 +769,32 @@ func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string)
 }
 
 // copyRuleGroupStatus copies group/rule status and alerts from source to target
-func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1.RuleGroupStatus) {
+func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1.RuleGroupStatus, ruleIds []string) {
 	target.LastEvaluation = source.LastEvaluation
 	if source.EvaluationTime > 0 {
 		target.EvaluationTime = &source.EvaluationTime
 	}
+	target.RulesStatus = make([]kapialertingv2beta1.RuleStatus, len(source.Rules))
 	groupState := promrules.StateInactive
+	sourceRuleMap := make(map[string]*alerting.AlertingRule, len(source.Rules))
 	for i := range source.Rules {
 		rule := source.Rules[i]
+		if len(rule.Labels) > 0 {
+			if ruleId, ok := rule.Labels[alertingv2beta1.RuleLabelKeyRuleId]; ok {
+				sourceRuleMap[ruleId] = rule
+			}
+		}
+	}
+	for i, ruleId := range ruleIds {
+		rule, ok := sourceRuleMap[ruleId]
+		if !ok {
+			target.RulesStatus[i] = kapialertingv2beta1.RuleStatus{
+				State:  stateInactiveString,
+				Health: string(promrules.HealthUnknown),
+			}
+			continue
+		}
+
 		// the group state takes the max state of its rules
 		if ruleState := parseAlertState(rule.State); ruleState > groupState {
 			groupState = ruleState
@@ -764,7 +828,7 @@ func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1
 				ruleStatus.Expr = rule.Query
 			}
 		}
-		target.RulesStatus = append(target.RulesStatus, ruleStatus)
+		target.RulesStatus[i] = ruleStatus
 	}
 	target.State = groupState.String()
 }

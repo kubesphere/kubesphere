@@ -28,16 +28,16 @@ import (
 	kapialertingv2beta1 "kubesphere.io/kubesphere/pkg/api/alerting/v2beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 )
 
-func AddToContainer(container *restful.Container, ksclient kubesphere.Interface, ruleClient alerting.RuleClient) error {
+func AddToContainer(container *restful.Container, informers informers.InformerFactory, ruleClient alerting.RuleClient) error {
 
 	ws := runtime.NewWebService(alertingv2beta1.SchemeGroupVersion)
 
-	handler := newHandler(ksclient, ruleClient)
+	handler := newHandler(informers, ruleClient)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/rulegroups").
 		To(handler.handleListRuleGroups).

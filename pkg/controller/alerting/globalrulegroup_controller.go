@@ -21,6 +21,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -57,6 +58,28 @@ func (r *GlobalRuleGroupReconciler) Reconcile(ctx context.Context, req reconcile
 	})
 	if err != nil {
 		return reconcile.Result{}, err
+	}
+
+	// add rule_id label that may have been missed
+	var updated bool
+	for i := range globalrulegroupList.Items {
+		g := globalrulegroupList.Items[i]
+		for j := range g.Spec.Rules {
+			if g.Spec.Rules[j].Labels == nil {
+				g.Spec.Rules[j].Labels = make(map[string]string)
+			}
+			if _, ok := g.Spec.Rules[j].Labels[alertingv2beta1.RuleLabelKeyRuleId]; !ok {
+				g.Spec.Rules[j].Labels[alertingv2beta1.RuleLabelKeyRuleId] = string(uuid.NewUUID())
+				err = r.Client.Update(ctx, &g)
+				if err != nil {
+					return reconcile.Result{}, err
+				}
+				updated = true
+			}
+		}
+	}
+	if updated {
+		return reconcile.Result{}, nil
 	}
 
 	// labels added to rule.labels

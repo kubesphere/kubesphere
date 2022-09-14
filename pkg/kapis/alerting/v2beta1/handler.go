@@ -22,7 +22,7 @@ import (
 
 	kapi "kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	"kubesphere.io/kubesphere/pkg/informers"
 	alertingmodels "kubesphere.io/kubesphere/pkg/models/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 )
@@ -31,9 +31,9 @@ type handler struct {
 	operator alertingmodels.RuleGroupOperator
 }
 
-func newHandler(ksclient kubesphere.Interface, ruleClient alerting.RuleClient) *handler {
+func newHandler(informers informers.InformerFactory, ruleClient alerting.RuleClient) *handler {
 	return &handler{
-		operator: alertingmodels.NewRuleGroupOperator(ksclient, ruleClient),
+		operator: alertingmodels.NewRuleGroupOperator(informers, ruleClient),
 	}
 }
 
