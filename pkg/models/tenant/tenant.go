@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -495,21 +496,37 @@ func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string
 
 			// If the request path is cluster, just collecting cluster name to set and continue to check cluster permission later.
 			// Or indicate that want to manage the workspace templates, so check if user has the permission to manage workspace templates.
-			if strings.HasPrefix(path, "/spec/placement/clusters/") {
+			if strings.HasPrefix(path, "/spec/placement") {
 				if patch.Kind() != "add" && patch.Kind() != "remove" {
 					err := errors.NewBadRequest("not support operation type")
 					klog.Error(err)
 					return nil, err
 				}
-				clusterValue := make(map[string]string)
+				clusterValue := make(map[string]interface{})
 				err := jsonpatchutil.GetValue(patch, &clusterValue)
 				if err != nil {
 					klog.Error(err)
 					return nil, err
 				}
-				if cName := clusterValue["name"]; cName != "" {
-					clusterNames.Insert(cName)
+
+				// if the placement is empty, the first patch need fill with "clusters" field.
+				if cName := clusterValue["name"]; cName != nil {
+					cn, ok := cName.(string)
+					if ok {
+						clusterNames.Insert(cn)
+					}
+				} else if cluster := clusterValue["clusters"]; cluster != nil {
+					clusterRefrences := []typesv1beta1.GenericClusterReference{}
+					err := mapstructure.Decode(cluster, &clusterRefrences)
+					if err != nil {
+						klog.Error(err)
+						return nil, err
+					}
+					for _, v := range clusterRefrences {
+						clusterNames.Insert(v.Name)
+					}
 				}
+
 			} else {
 				manageWorkspaceTemplateRequest = true
 			}
