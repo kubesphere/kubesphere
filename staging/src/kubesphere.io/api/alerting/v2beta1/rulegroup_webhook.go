@@ -25,12 +25,15 @@ import (
 	yaml "gopkg.in/yaml.v3"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var rulegrouplog = logf.Log.WithName("rulegroup")
+
+const RuleLabelKeyRuleId = "rule_id"
 
 func (r *RuleGroup) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -50,7 +53,23 @@ func (r *RuleGroup) Default() {
 				rule.Expr = intstr.FromString(rule.ExprBuilder.Workload.Build())
 			}
 		}
+		setRuleId(&rule.Rule)
 		r.Spec.Rules[i] = rule
+	}
+}
+
+func setRuleId(rule *Rule) {
+	var setRuleId = true
+	if len(rule.Labels) > 0 {
+		if _, ok := rule.Labels[RuleLabelKeyRuleId]; ok {
+			setRuleId = false
+		}
+	}
+	if setRuleId {
+		if rule.Labels == nil {
+			rule.Labels = make(map[string]string)
+		}
+		rule.Labels[RuleLabelKeyRuleId] = string(uuid.NewUUID())
 	}
 }
 
@@ -171,6 +190,7 @@ func (r *ClusterRuleGroup) Default() {
 				rule.Expr = intstr.FromString(rule.ExprBuilder.Node.Build())
 			}
 		}
+		setRuleId(&rule.Rule)
 		r.Spec.Rules[i] = rule
 	}
 }
@@ -224,6 +244,7 @@ func (r *GlobalRuleGroup) Default() {
 				rule.Expr = intstr.FromString(rule.ExprBuilder.Workload.Build())
 			}
 		}
+		setRuleId(&rule.Rule)
 		r.Spec.Rules[i] = rule
 	}
 }
