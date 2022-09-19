@@ -110,7 +110,7 @@ func (c *config) watchConfig() <-chan Config {
 		viper.OnConfigChange(func(in fsnotify.Event) {
 			cfg := New()
 			if err := viper.Unmarshal(cfg); err != nil {
-				klog.Warning("config reload error", err)
+				klog.Warningf("config reload error: %v", err)
 			} else {
 				c.cfgChangeCh <- *cfg
 			}
@@ -123,9 +123,7 @@ func (c *config) loadFromDisk() (*Config, error) {
 	var err error
 	c.loadOnce.Do(func() {
 		if err = viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-				err = fmt.Errorf("error parsing configuration file %s", err)
-			}
+			return
 		}
 		err = viper.Unmarshal(c.cfg)
 	})

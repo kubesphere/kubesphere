@@ -43,7 +43,7 @@ func NewAPIServerCommand() *cobra.Command {
 	if err == nil {
 		s.Config = conf
 	} else {
-		klog.Fatal("Failed to load configuration from disk", err)
+		klog.Fatalf("Failed to load configuration from disk: %v", err)
 	}
 
 	cmd := &cobra.Command{
