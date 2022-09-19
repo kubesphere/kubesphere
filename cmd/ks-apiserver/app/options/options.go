@@ -87,7 +87,6 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.AuthorizationOptions.AddFlags(fss.FlagSet("authorization"), s.AuthorizationOptions)
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"), s.SonarQubeOptions)
-	s.RedisOptions.AddFlags(fss.FlagSet("redis"), s.RedisOptions)
 	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
 	s.NetworkOptions.AddFlags(fss.FlagSet("network"), s.NetworkOptions)
@@ -176,21 +175,23 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		apiServer.SonarClient = sonarqube.NewSonar(sonarClient.SonarQube())
 	}
 
-	var cacheClient cache.Interface
-	if s.RedisOptions != nil && len(s.RedisOptions.Host) != 0 {
-		if s.RedisOptions.Host == fakeInterface && s.DebugMode {
-			apiServer.CacheClient = cache.NewSimpleCache()
-		} else {
-			cacheClient, err = cache.NewRedisClient(s.RedisOptions, stopCh)
-			if err != nil {
-				return nil, fmt.Errorf("failed to connect to redis service, please check redis status, error: %v", err)
-			}
-			apiServer.CacheClient = cacheClient
+	// If debug mode is on or CacheOptions is nil, will create a fake cache.
+	if s.CacheOptions.Type != "" {
+		if s.DebugMode {
+			s.CacheOptions.Type = cache.DefaultCacheType
 		}
+		cacheClient, err := cache.New(s.CacheOptions, stopCh)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create cache, error: %v", err)
+		}
+		apiServer.CacheClient = cacheClient
 	} else {
-		klog.Warning("ks-apiserver starts without redis provided, it will use in memory cache. " +
-			"This may cause inconsistencies when running ks-apiserver with multiple replicas.")
-		apiServer.CacheClient = cache.NewSimpleCache()
+		s.CacheOptions = &cache.Options{Type: cache.DefaultCacheType}
+		// fake cache has no error to return
+		cacheClient, _ := cache.New(s.CacheOptions, stopCh)
+		apiServer.CacheClient = cacheClient
+		klog.Warning("ks-apiserver starts without cache provided, it will use in memory cache. " +
+			"This may cause inconsistencies when running ks-apiserver with multiple replicas, and memory leak risk")
 	}
 
 	if s.EventsOptions.Host != "" {
