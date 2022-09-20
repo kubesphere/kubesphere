@@ -73,7 +73,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			WebhookCertDir:        s.WebhookCertDir,
 		}
 	} else {
-		klog.Fatal("Failed to load configuration from disk", err)
+		klog.Fatalf("Failed to load configuration from disk: %v", err)
 	}
 
 	cmd := &cobra.Command{
