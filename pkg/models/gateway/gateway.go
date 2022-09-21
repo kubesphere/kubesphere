@@ -331,7 +331,7 @@ func (c *gatewayOperator) UpgradeGateway(namespace string) (*v1alpha1.Gateway, e
 	if l == nil {
 		return nil, fmt.Errorf("invalid operation, no legacy gateway was found")
 	}
-	if l.Namespace != c.options.Namespace {
+	if l.Namespace != c.getWorkingNamespace(namespace) {
 		return nil, fmt.Errorf("invalid operation, can't upgrade legacy gateway when working namespace changed")
 	}
 
