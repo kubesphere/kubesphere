@@ -27,3 +27,11 @@ rules:
     # assumes GO111MODULE=on
     go build ./...
     go test ./...
+
+- destination: utils
+  library: true
+  branches:
+  - source:
+      branch: master
+      dir: staging/src/kubesphere.io/utils
+    name: master
