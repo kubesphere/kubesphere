@@ -2,18 +2,6 @@
 # Use of this source code is governed by an Apache license
 # that can be found in the LICENSE file.
 
-# Download dependencies
-FROM alpine:3.11 as base_os_context
-
-
-ENV OUTDIR=/out
-RUN mkdir -p ${OUTDIR}/usr/local/bin/
-
-WORKDIR /tmp
-
-RUN apk add --no-cache ca-certificates
-
-
 # Build
 FROM golang:1.18.4 as build_context
 
@@ -30,9 +18,8 @@ RUN mv /workspace/bin/cmd/ks-apiserver ${OUTDIR}/usr/local/bin/
 # Final image
 #############
 
-FROM alpine:3.11
+FROM alpine:3.16.2
 
-COPY --from=base_os_context /out/ /
 COPY --from=build_context /out/ /
 
 WORKDIR /
