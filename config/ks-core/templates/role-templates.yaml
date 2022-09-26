@@ -18,6 +18,26 @@ rules:
     verbs:
       - '*'
 
+---
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: GlobalRole
+metadata:
+  name: anonymous
+rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: GlobalRoleBinding
+metadata:
+  name: anonymous
+roleRef:
+  apiGroup: iam.kubesphere.io/v1alpha2
+  kind: GlobalRole
+  name: anonymous
+subjects:
+  - apiGroup: iam.kubesphere.io/v1alpha2
+    kind: Group
+    name: system:unauthenticated
 
 ---
 apiVersion: iam.kubesphere.io/v1alpha2
