@@ -98,11 +98,15 @@ spec:
     port: 80
     protocol: TCP
     targetPort: 8000
-    {{- with .Values.console.port }}
+    {{- with .Values.console.nodePort }}
     nodePort:
       {{- toYaml . | nindent 6 }}
     {{- end }}    
   selector:
     app: ks-console
     tier: frontend
-  type: {{ .Values.console.type }}
+{{- if .Values.console.nodePort }}
+  type: NodePort
+{{- else}}
+  type: ClusterIP
+{{- end}}

@@ -17,8 +17,6 @@ image:
 
   nginx_ingress_controller_repo: kubesphere/nginx-ingress-controller
   nginx_ingress_controller_tag: "v1.1.0"
-  defaultbackend_repo: "mirrorgooglecontainers/defaultbackend-amd64"
-  defaultbackend_tag: "1.4"
 
   bookinfo_productpage_v1_repo: kubesphere/examples-bookinfo-productpage-v1
   bookinfo_productpage_v1_tag: "1.16.2"
@@ -122,8 +120,7 @@ apiserver:
   #    emptyDir: {}
 
 console:
-  port: 30880
-  type: NodePort
+  nodePort: 30880
   defaultClusterName: "default"
   resources:
     limits:
