@@ -47,12 +47,13 @@ import (
 )
 
 const (
-	MasterLabel       = "node-role.kubernetes.io/master"
-	SidecarInject     = "sidecar.istio.io/inject"
-	gatewayPrefix     = "kubesphere-router-"
-	workingNamespace  = "kubesphere-controls-system"
-	globalGatewayname = gatewayPrefix + "kubesphere-system"
-	helmPatch         = `{"metadata":{"annotations":{"meta.helm.sh/release-name":"%s-ingress","meta.helm.sh/release-namespace":"%s"},"labels":{"helm.sh/chart":"ingress-nginx-3.35.0","app.kubernetes.io/managed-by":"Helm","app":null,"component":null,"tier":null}},"spec":{"selector":null}}`
+	MasterLabel             = "node-role.kubernetes.io/master"
+	SidecarInject           = "sidecar.istio.io/inject"
+	gatewayPrefix           = "kubesphere-router-"
+	workingNamespace        = "kubesphere-controls-system"
+	globalGatewayNameSuffix = "kubesphere-system"
+	globalGatewayName       = gatewayPrefix + globalGatewayNameSuffix
+	helmPatch               = `{"metadata":{"annotations":{"meta.helm.sh/release-name":"%s-ingress","meta.helm.sh/release-namespace":"%s"},"labels":{"helm.sh/chart":"ingress-nginx-3.35.0","app.kubernetes.io/managed-by":"Helm","app":null,"component":null,"tier":null}},"spec":{"selector":null}}`
 )
 
 type GatewayOperator interface {
@@ -90,6 +91,10 @@ func (c *gatewayOperator) getWorkingNamespace(namespace string) string {
 	if ns == "" {
 		ns = namespace
 	}
+	// Convert the global gateway query parameter
+	if namespace == globalGatewayNameSuffix {
+		ns = workingNamespace
+	}
 	return ns
 }
 
@@ -97,7 +102,7 @@ func (c *gatewayOperator) getWorkingNamespace(namespace string) string {
 func (c *gatewayOperator) overrideDefaultValue(gateway *v1alpha1.Gateway, namespace string) *v1alpha1.Gateway {
 	// override default name
 	gateway.Name = fmt.Sprint(gatewayPrefix, namespace)
-	if gateway.Name != globalGatewayname {
+	if gateway.Name != globalGatewayName {
 		gateway.Spec.Controller.Scope = v1alpha1.Scope{Enabled: true, Namespace: namespace}
 	}
 	gateway.Namespace = c.getWorkingNamespace(namespace)
@@ -108,7 +113,7 @@ func (c *gatewayOperator) overrideDefaultValue(gateway *v1alpha1.Gateway, namesp
 func (c *gatewayOperator) getGlobalGateway() *v1alpha1.Gateway {
 	globalkey := types.NamespacedName{
 		Namespace: workingNamespace,
-		Name:      globalGatewayname,
+		Name:      globalGatewayName,
 	}
 
 	global := &v1alpha1.Gateway{}
