@@ -40,8 +40,6 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         name: ks-controller-manager
         ports:
-        - containerPort: 8080
-          protocol: TCP
         - containerPort: 8443
           protocol: TCP
         resources:
