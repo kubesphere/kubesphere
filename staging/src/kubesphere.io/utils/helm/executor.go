@@ -33,10 +33,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/types"
 )
 
@@ -44,9 +44,9 @@ import (
 // or get the status and manifest data of the release, etc.
 type Executor interface {
 	// Install installs the specified chart and returns the name of the Job that executed the task.
-	Install(ctx context.Context, chartName, chartData, values string) (string, error)
+	Install(ctx context.Context, chartName string, chartData, values []byte) (string, error)
 	// Upgrade upgrades the specified chart and returns the name of the Job that executed the task.
-	Upgrade(ctx context.Context, chartName, chartData, values string) (string, error)
+	Upgrade(ctx context.Context, chartName string, chartData, values []byte) (string, error)
 	// Uninstall is used to uninstall the specified chart and returns the name of the Job that executed the task.
 	Uninstall(ctx context.Context) (string, error)
 	// Manifest returns the manifest data for this release.
@@ -78,7 +78,7 @@ var (
 
 type executor struct {
 	// target cluster client
-	client.Client
+	client     kubernetes.Interface
 	kubeConfig string
 	namespace  string
 	// helm release name
@@ -156,11 +156,11 @@ func NewExecutor(namespace, releaseName string, options ...Option) (Executor, er
 	if err != nil {
 		return nil, err
 	}
-	clusterClient, err := client.New(restConfig, client.Options{})
+	clusterClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
-	e.Client = clusterClient
+	e.client = clusterClient
 
 	klog.V(8).Infof("namespace: %s, release name: %s, kube config:%s", e.namespace, e.releaseName, e.kubeConfig)
 
@@ -176,7 +176,7 @@ func NewExecutor(namespace, releaseName string, options ...Option) (Executor, er
 				Name: e.namespace,
 			},
 		}
-		if err = e.Create(context.Background(), ns); err != nil && !apierrors.IsAlreadyExists(err) {
+		if _, err = e.client.CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 			return e, err
 		}
 	}
@@ -184,7 +184,7 @@ func NewExecutor(namespace, releaseName string, options ...Option) (Executor, er
 }
 
 // Install installs the specified chart, returns the name of the Job that executed the task.
-func (e *executor) Install(ctx context.Context, chartName, chartData, values string) (string, error) {
+func (e *executor) Install(ctx context.Context, chartName string, chartData, values []byte) (string, error) {
 	sts, err := e.status()
 	if err == nil {
 		// helm release has been installed
@@ -202,7 +202,7 @@ func (e *executor) Install(ctx context.Context, chartName, chartData, values str
 }
 
 // Upgrade upgrades the specified chart, returns the name of the Job that executed the task.
-func (e *executor) Upgrade(ctx context.Context, chartName, chartData, values string) (string, error) {
+func (e *executor) Upgrade(ctx context.Context, chartName string, chartData, values []byte) (string, error) {
 	sts, err := e.status()
 	if err != nil {
 		return "", err
@@ -225,7 +225,7 @@ func (e *executor) chartPath(chartName string) string {
 	return fmt.Sprintf("%s.tgz", chartName)
 }
 
-func (e *executor) setupChartData(chartName, chartData, values string) (map[string]string, error) {
+func (e *executor) setupChartData(chartName string, chartData, values []byte) (map[string][]byte, error) {
 	if len(e.labels) == 0 && len(e.annotations) == 0 {
 		return nil, nil
 	}
@@ -240,14 +240,14 @@ func (e *executor) setupChartData(chartName, chartData, values string) (map[stri
 		return nil, err
 	}
 
-	data := map[string]string{
-		postRenderExecFile:     kustomizeBuild,
-		kustomizationFile:      string(kustomizationData),
+	data := map[string][]byte{
+		postRenderExecFile:     []byte(kustomizeBuild),
+		kustomizationFile:      kustomizationData,
 		e.chartPath(chartName): chartData,
 		"values.yaml":          values,
 	}
 	if e.kubeConfigPath() != "" {
-		data[e.kubeConfigPath()] = e.kubeConfig
+		data[e.kubeConfigPath()] = []byte(e.kubeConfig)
 	}
 	return data, nil
 }
@@ -256,7 +256,7 @@ func generateName(name string) string {
 	return fmt.Sprintf("helm-executor-%s-%s", name, rand.String(6))
 }
 
-func (e *executor) createConfigMap(ctx context.Context, chartName, chartData, values string) (string, error) {
+func (e *executor) createConfigMap(ctx context.Context, chartName string, chartData, values []byte) (string, error) {
 	data, err := e.setupChartData(chartName, chartData, values)
 	if err != nil {
 		return "", err
@@ -268,15 +268,17 @@ func (e *executor) createConfigMap(ctx context.Context, chartName, chartData, va
 			Name:      name,
 			Namespace: e.namespace,
 		},
-		Data: data,
+		// we can't use `Data` here because creating it with client-go will cause our compressed file to be in the
+		// wrong format (application/octet-stream)
+		BinaryData: data,
 	}
-	if err = e.Create(ctx, configMap); err != nil {
+	if _, err = e.client.CoreV1().ConfigMaps(e.namespace).Create(ctx, configMap, metav1.CreateOptions{}); err != nil {
 		return "", err
 	}
 	return name, nil
 }
 
-func (e *executor) createInstallJob(ctx context.Context, chartName, chartData, values string, upgrade bool) (string, error) {
+func (e *executor) createInstallJob(ctx context.Context, chartName string, chartData, values []byte, upgrade bool) (string, error) {
 	args := make([]string, 0, 10)
 	if upgrade {
 		args = append(args, "upgrade")
@@ -374,7 +376,7 @@ func (e *executor) createInstallJob(ctx context.Context, chartName, chartData, v
 		},
 	}
 
-	if err = e.Create(ctx, job); err != nil {
+	if _, err = e.client.BatchV1().Jobs(e.namespace).Create(ctx, job, metav1.CreateOptions{}); err != nil {
 		return "", err
 	}
 	return name, nil
@@ -410,7 +412,7 @@ func (e *executor) Uninstall(ctx context.Context) (string, error) {
 				e.kubeConfigPath(): e.kubeConfig,
 			},
 		}
-		if err := e.Create(ctx, configMap); err != nil {
+		if _, err := e.client.CoreV1().ConfigMaps(e.namespace).Create(ctx, configMap, metav1.CreateOptions{}); err != nil {
 			return "", err
 		}
 	}
@@ -462,7 +464,7 @@ func (e *executor) Uninstall(ctx context.Context) (string, error) {
 		}
 	}
 
-	if err := e.Create(ctx, job); err != nil {
+	if _, err := e.client.BatchV1().Jobs(e.namespace).Create(ctx, job, metav1.CreateOptions{}); err != nil {
 		return "", err
 	}
 	return name, nil
