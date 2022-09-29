@@ -29,7 +29,6 @@ import (
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -90,8 +89,9 @@ type executor struct {
 	// add labels to helm chart
 	labels map[string]string
 	// add annotations to helm chart
-	annotations map[string]string
-	dryRun      bool
+	annotations     map[string]string
+	createNamespace bool
+	dryRun          bool
 }
 
 type Option func(*executor)
@@ -131,6 +131,13 @@ func SetKubeConfig(kubeConfig string) Option {
 	}
 }
 
+// SetCreateNamespace sets the createNamespace option.
+func SetCreateNamespace(createNamespace bool) Option {
+	return func(e *executor) {
+		e.createNamespace = createNamespace
+	}
+}
+
 // NewExecutor generates a new Executor instance with the following parameters:
 //   - namespace: the namespace of the helm release
 //   - releaseName: the helm release name
@@ -163,54 +170,17 @@ func NewExecutor(namespace, releaseName string, options ...Option) (Executor, er
 		return nil, err
 	}
 
-	if err = e.ensureNamespaceAndServiceAccount(context.Background(), e.namespace); err != nil {
-		return nil, fmt.Errorf("ensureNamespaceAndServiceAccount failed: %v", err)
+	if e.createNamespace {
+		ns := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: e.namespace,
+			},
+		}
+		if err = e.Create(context.Background(), ns); err != nil && !apierrors.IsAlreadyExists(err) {
+			return e, err
+		}
 	}
 	return e, nil
-}
-
-func (e *executor) ensureNamespaceAndServiceAccount(ctx context.Context, chartNamespace string) error {
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: chartNamespace,
-		},
-	}
-	if err := e.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-
-	rb := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("helm-%s", chartNamespace),
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			APIGroup: "rbac.authorization.k8s.io",
-			Name:     "cluster-admin",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Name:      fmt.Sprintf("helm-%s", chartNamespace),
-				Kind:      "ServiceAccount",
-				Namespace: chartNamespace,
-			},
-		},
-	}
-	if err := e.Create(ctx, rb); err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-
-	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("helm-%s", chartNamespace),
-			Namespace: chartNamespace,
-		},
-		AutomountServiceAccountToken: pointer.Bool(true),
-	}
-	if err := e.Create(ctx, sa); err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-	return nil
 }
 
 // Install installs the specified chart, returns the name of the Job that executed the task.
@@ -399,7 +369,6 @@ func (e *executor) createInstallJob(ctx context.Context, chartName, chartData, v
 					},
 					RestartPolicy:                 corev1.RestartPolicyNever,
 					TerminationGracePeriodSeconds: new(int64),
-					ServiceAccountName:            fmt.Sprintf("helm-%s", e.namespace),
 				},
 			},
 		},
@@ -467,7 +436,6 @@ func (e *executor) Uninstall(ctx context.Context) (string, error) {
 					},
 					RestartPolicy:                 corev1.RestartPolicyNever,
 					TerminationGracePeriodSeconds: new(int64),
-					ServiceAccountName:            fmt.Sprintf("helm-%s", e.namespace),
 				},
 			},
 		},
