@@ -17,8 +17,27 @@ limitations under the License.
 package helm
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"fmt"
+	"path/filepath"
 	"time"
+
+	"gopkg.in/yaml.v3"
+	"helm.sh/helm/v3/pkg/action"
+	helmrelease "helm.sh/helm/v3/pkg/release"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kustomize/api/types"
 )
 
 // Executor is used to manage a helm release, you can install/uninstall and upgrade a chart
@@ -36,41 +55,465 @@ type Executor interface {
 	IsReleaseReady(timeout time.Duration) (bool, error)
 }
 
+const (
+	workspaceBaseSource = "/tmp/helm-executor-source"
+	workspaceBase       = "/tmp/helm-executor"
+
+	statusNotFoundFormat = "release: not found"
+	releaseExists        = "release exists"
+
+	kustomizationFile  = "kustomization.yaml"
+	postRenderExecFile = "helm-post-render.sh"
+	// kustomize cannot read stdio now, so we save helm stdout to file, then kustomize reads that file and build the resources
+	kustomizeBuild = `#!/bin/sh
+# save helm stdout to file, then kustomize read this file
+cat > ./.local-helm-output.yaml
+kustomize build
+`
+)
+
+var (
+	errorTimedOutToWaitResource = errors.New("timed out waiting for resources to be ready")
+)
+
 type executor struct {
+	// target cluster client
+	client.Client
+	kubeConfig string
+	namespace  string
+	// helm release name
+	releaseName string
+	// helm action Config
+	helmConf  *action.Configuration
+	helmImage string
+	// add labels to helm chart
+	labels map[string]string
+	// add annotations to helm chart
+	annotations     map[string]string
+	createNamespace bool
+	dryRun          bool
 }
 
 type Option func(*executor)
 
+// SetDryRun sets the dryRun option.
+func SetDryRun(dryRun bool) Option {
+	return func(e *executor) {
+		e.dryRun = dryRun
+	}
+}
+
+// SetAnnotations sets extra annotations added to all resources in chart.
+func SetAnnotations(annotations map[string]string) Option {
+	return func(e *executor) {
+		e.annotations = annotations
+	}
+}
+
+// SetLabels sets extra labels added to all resources in chart.
+func SetLabels(labels map[string]string) Option {
+	return func(e *executor) {
+		e.labels = labels
+	}
+}
+
+// SetHelmImage sets the helmImage option.
+func SetHelmImage(helmImage string) Option {
+	return func(e *executor) {
+		e.helmImage = helmImage
+	}
+}
+
+// SetKubeConfig sets the kube config data of the target cluster.
+func SetKubeConfig(kubeConfig string) Option {
+	return func(e *executor) {
+		e.kubeConfig = kubeConfig
+	}
+}
+
+// SetCreateNamespace sets the createNamespace option.
+func SetCreateNamespace(createNamespace bool) Option {
+	return func(e *executor) {
+		e.createNamespace = createNamespace
+	}
+}
+
 // NewExecutor generates a new Executor instance with the following parameters:
-//   - kubeConfig: kube config data of the target cluster
 //   - namespace: the namespace of the helm release
 //   - releaseName: the helm release name
 //   - options: functions to set optional parameters
-func NewExecutor(kubeConfig, namespace, releaseName string, options ...Option) (Executor, error) {
-	return &executor{}, nil
+func NewExecutor(namespace, releaseName string, options ...Option) (Executor, error) {
+	e := &executor{
+		namespace:   namespace,
+		releaseName: releaseName,
+		helmImage:   "kubesphere/helm:latest",
+	}
+	for _, option := range options {
+		option(e)
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(e.kubeConfig))
+	if err != nil {
+		return nil, err
+	}
+	clusterClient, err := client.New(restConfig, client.Options{})
+	if err != nil {
+		return nil, err
+	}
+	e.Client = clusterClient
+
+	klog.V(8).Infof("namespace: %s, release name: %s, kube config:%s", e.namespace, e.releaseName, e.kubeConfig)
+
+	getter := NewClusterRESTClientGetter(e.kubeConfig, e.namespace)
+	e.helmConf = new(action.Configuration)
+	if err = e.helmConf.Init(getter, e.namespace, "", klog.Infof); err != nil {
+		return nil, err
+	}
+
+	if e.createNamespace {
+		ns := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: e.namespace,
+			},
+		}
+		if err = e.Create(context.Background(), ns); err != nil && !apierrors.IsAlreadyExists(err) {
+			return e, err
+		}
+	}
+	return e, nil
 }
 
 // Install installs the specified chart, returns the name of the Job that executed the task.
 func (e *executor) Install(ctx context.Context, chartName, chartData, values string) (string, error) {
-	return "", nil
+	sts, err := e.status()
+	if err == nil {
+		// helm release has been installed
+		if sts.Info != nil && sts.Info.Status == "deployed" {
+			return "", nil
+		}
+		return "", errors.New(releaseExists)
+	} else {
+		if err.Error() == statusNotFoundFormat {
+			// continue to install
+			return e.createInstallJob(ctx, chartName, chartData, values, false)
+		}
+		return "", err
+	}
 }
 
 // Upgrade upgrades the specified chart, returns the name of the Job that executed the task.
 func (e *executor) Upgrade(ctx context.Context, chartName, chartData, values string) (string, error) {
-	return "", nil
+	sts, err := e.status()
+	if err != nil {
+		return "", err
+	}
+
+	if sts.Info.Status == "deployed" {
+		return e.createInstallJob(ctx, chartName, chartData, values, true)
+	}
+	return "", fmt.Errorf("cannot upgrade release %s/%s, current state is %s", e.namespace, e.releaseName, sts.Info.Status)
+}
+
+func (e *executor) kubeConfigPath() string {
+	if len(e.kubeConfig) == 0 {
+		return ""
+	}
+	return "kube.config"
+}
+
+func (e *executor) chartPath(chartName string) string {
+	return fmt.Sprintf("%s.tgz", chartName)
+}
+
+func (e *executor) setupChartData(chartName, chartData, values string) (map[string]string, error) {
+	if len(e.labels) == 0 && len(e.annotations) == 0 {
+		return nil, nil
+	}
+
+	kustomizationConfig := types.Kustomization{
+		Resources:         []string{"./.local-helm-output.yaml"},
+		CommonAnnotations: e.annotations,                    // add extra annotations to output
+		Labels:            []types.Label{{Pairs: e.labels}}, // Labels to add to all objects but not selectors.
+	}
+	kustomizationData, err := yaml.Marshal(kustomizationConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	data := map[string]string{
+		postRenderExecFile:     kustomizeBuild,
+		kustomizationFile:      string(kustomizationData),
+		e.chartPath(chartName): chartData,
+		"values.yaml":          values,
+	}
+	if e.kubeConfigPath() != "" {
+		data[e.kubeConfigPath()] = e.kubeConfig
+	}
+	return data, nil
+}
+
+func generateName(name string) string {
+	return fmt.Sprintf("helm-executor-%s-%s", name, rand.String(6))
+}
+
+func (e *executor) createConfigMap(ctx context.Context, chartName, chartData, values string) (string, error) {
+	data, err := e.setupChartData(chartName, chartData, values)
+	if err != nil {
+		return "", err
+	}
+
+	name := generateName(chartName)
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: e.namespace,
+		},
+		Data: data,
+	}
+	if err = e.Create(ctx, configMap); err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func (e *executor) createInstallJob(ctx context.Context, chartName, chartData, values string, upgrade bool) (string, error) {
+	args := make([]string, 0, 10)
+	if upgrade {
+		args = append(args, "upgrade")
+	} else {
+		args = append(args, "install")
+	}
+
+	args = append(args, "--wait", e.releaseName, e.chartPath(chartName), "--namespace", e.namespace)
+
+	if len(values) > 0 {
+		args = append(args, "--values", "values.yaml")
+	}
+
+	if e.dryRun {
+		args = append(args, "--dry-run")
+	}
+
+	if e.kubeConfigPath() != "" {
+		args = append(args, "--kubeconfig", e.kubeConfigPath())
+	}
+
+	// Post render, add annotations or labels to resources
+	if len(e.labels) > 0 || len(e.annotations) > 0 {
+		args = append(args, "--post-renderer", filepath.Join(workspaceBase, postRenderExecFile))
+	}
+
+	if klog.V(8) {
+		// output debug info
+		args = append(args, "--debug")
+	}
+
+	name, err := e.createConfigMap(ctx, chartName, chartData, values)
+	if err != nil {
+		return "", err
+	}
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: e.namespace,
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit: pointer.Int32(1),
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:            "helm",
+							Image:           e.helmImage,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Command:         []string{"helm"},
+							Args:            args,
+							WorkingDir:      workspaceBase,
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "source",
+									MountPath: workspaceBaseSource,
+								},
+								{
+									Name:      "data",
+									MountPath: workspaceBase,
+								},
+							},
+							Lifecycle: &corev1.Lifecycle{
+								PostStart: &corev1.LifecycleHandler{
+									Exec: &corev1.ExecAction{
+										Command: []string{"/bin/sh", "-c", fmt.Sprintf("cp -r %s/. %s", workspaceBaseSource, workspaceBase)},
+									},
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "source",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: name,
+									},
+									DefaultMode: pointer.Int32(0755),
+								},
+							},
+						},
+						{
+							Name: "data",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+						},
+					},
+					RestartPolicy:                 corev1.RestartPolicyNever,
+					TerminationGracePeriodSeconds: new(int64),
+				},
+			},
+		},
+	}
+
+	if err = e.Create(ctx, job); err != nil {
+		return "", err
+	}
+	return name, nil
 }
 
 // Uninstall uninstalls the specified chart, returns the name of the Job that executed the task.
 func (e *executor) Uninstall(ctx context.Context) (string, error) {
-	return "", nil
+	if _, err := e.status(); err != nil && err.Error() == statusNotFoundFormat {
+		// already uninstalled
+		return "", nil
+	}
+
+	args := []string{
+		"uninstall",
+		e.releaseName,
+		"--namespace",
+		e.namespace,
+	}
+	if e.dryRun {
+		args = append(args, "--dry-run")
+	}
+
+	name := generateName(e.releaseName)
+	if e.kubeConfigPath() != "" {
+		args = append(args, "--kubeconfig", e.kubeConfigPath())
+
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: e.namespace,
+			},
+			Data: map[string]string{
+				e.kubeConfigPath(): e.kubeConfig,
+			},
+		}
+		if err := e.Create(ctx, configMap); err != nil {
+			return "", err
+		}
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: e.namespace,
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit: pointer.Int32(1),
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:            "helm",
+							Image:           e.helmImage,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Command:         []string{"helm"},
+							Args:            args,
+							WorkingDir:      workspaceBase,
+						},
+					},
+					RestartPolicy:                 corev1.RestartPolicyNever,
+					TerminationGracePeriodSeconds: new(int64),
+				},
+			},
+		},
+	}
+	if e.kubeConfigPath() != "" {
+		job.Spec.Template.Spec.Volumes = []corev1.Volume{
+			{
+				Name: "data",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: name,
+						},
+						DefaultMode: pointer.Int32(0755),
+					},
+				},
+			},
+		}
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+			{
+				Name:      "data",
+				MountPath: workspaceBase,
+			},
+		}
+	}
+
+	if err := e.Create(ctx, job); err != nil {
+		return "", err
+	}
+	return name, nil
 }
 
 // Manifest returns the manifest data for this release.
 func (e *executor) Manifest() (string, error) {
-	return "", nil
+	get := action.NewGet(e.helmConf)
+	rel, err := get.Run(e.releaseName)
+	if err != nil {
+		klog.Errorf("namespace: %s, name: %s, run command failed, error: %v", e.namespace, e.releaseName, err)
+		return "", err
+	}
+	klog.V(2).Infof("namespace: %s, name: %s, run command success", e.namespace, e.releaseName)
+	klog.V(8).Infof("namespace: %s, name: %s, run command success, manifest: %s", e.namespace, e.releaseName, rel.Manifest)
+	return rel.Manifest, nil
 }
 
 // IsReleaseReady checks if the helm release is ready.
 func (e *executor) IsReleaseReady(timeout time.Duration) (bool, error) {
-	return false, nil
+	// Get the manifest to build resources
+	manifest, err := e.Manifest()
+	if err != nil {
+		return false, err
+	}
+	kubeClient := e.helmConf.KubeClient
+	resources, _ := kubeClient.Build(bytes.NewBufferString(manifest), true)
+
+	err = kubeClient.Wait(resources, timeout)
+	if err == nil {
+		return true, nil
+	}
+	if err == wait.ErrWaitTimeout {
+		return false, errorTimedOutToWaitResource
+	}
+	return false, err
+}
+
+func (e *executor) status() (*helmrelease.Release, error) {
+	helmStatus := action.NewStatus(e.helmConf)
+	rel, err := helmStatus.Run(e.releaseName)
+	if err != nil {
+		if err.Error() == statusNotFoundFormat {
+			klog.V(2).Infof("namespace: %s, name: %s, run command failed, error: %v", e.namespace, e.releaseName, err)
+			return nil, err
+		}
+		klog.Errorf("namespace: %s, name: %s, run command failed, error: %v", e.namespace, e.releaseName, err)
+		return nil, err
+	}
+
+	klog.V(2).Infof("namespace: %s, name: %s, run command success", e.namespace, e.releaseName)
+	klog.V(8).Infof("namespace: %s, name: %s, run command success, manifest: %s", e.namespace, e.releaseName, rel.Manifest)
+	return rel, nil
 }
