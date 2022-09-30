@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -849,7 +848,7 @@ func (j *Jenkins) CheckCron(projectName string, httpParameters *devops.HttpParam
 
 	reader = httpParameters.Body
 	//nolint:ineffassign,staticcheck
-	cronData, err := ioutil.ReadAll(reader)
+	cronData, err := io.ReadAll(reader)
 	err = json.Unmarshal(cronData, cron)
 	if err != nil {
 		klog.Error(err)

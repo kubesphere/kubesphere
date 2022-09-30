@@ -19,7 +19,7 @@ package aliyunidaas
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/mitchellh/mapstructure"
@@ -134,7 +134,7 @@ func (a *aliyunIDaaS) IdentityExchangeCallback(req *http.Request) (identityprovi
 		return nil, err
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

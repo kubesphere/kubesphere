@@ -17,7 +17,6 @@ limitations under the License.
 package helmwrapper
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -42,7 +41,7 @@ func TestHelmInstall(t *testing.T) {
 
 func TempDir(t *testing.T) string {
 	t.Helper()
-	d, err := ioutil.TempDir("", "kubesphere")
+	d, err := os.MkdirTemp("", "kubesphere")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +65,7 @@ func GenerateChartData(t *testing.T, name string) string {
 	if err != nil {
 		t.Fatalf("Error creating chart for test: %v", err)
 	}
-	charData, err := ioutil.ReadFile(filename)
+	charData, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("Error loading chart data %v", err)
 	}

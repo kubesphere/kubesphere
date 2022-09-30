@@ -16,7 +16,7 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/url"
 	"strconv"
@@ -987,7 +987,7 @@ func (h *openpitrixHandler) CreateAttachment(req *restful.Request, resp *restful
 			api.HandleBadRequest(resp, nil, err)
 			return
 		}
-		data, _ := ioutil.ReadAll(f)
+		data, _ := io.ReadAll(f)
 		f.Close()
 
 		att, err = h.openpitrix.CreateAttachment(data)

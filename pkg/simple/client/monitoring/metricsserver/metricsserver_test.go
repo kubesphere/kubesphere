@@ -2,10 +2,9 @@ package metricsserver
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
-
-	"io/ioutil"
 
 	"github.com/google/go-cmp/cmp"
 	jsoniter "github.com/json-iterator/go"
@@ -514,7 +513,7 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 }
 
 func jsonFromFile(expectedFile string, expectedJsonPtr interface{}) error {
-	json, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
+	json, err := os.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
 	if err != nil {
 		return err
 	}

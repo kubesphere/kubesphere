@@ -22,7 +22,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -82,7 +82,7 @@ func (e *Elastic) Search(indices string, body []byte, scroll bool) ([]byte, erro
 		return nil, parseError(response)
 	}
 
-	return ioutil.ReadAll(response.Body)
+	return io.ReadAll(response.Body)
 }
 
 func (e *Elastic) Scroll(id string) ([]byte, error) {
@@ -99,7 +99,7 @@ func (e *Elastic) Scroll(id string) ([]byte, error) {
 		return nil, parseError(response)
 	}
 
-	b, err := ioutil.ReadAll(response.Body)
+	b, err := io.ReadAll(response.Body)
 	return b, err
 }
 

@@ -23,7 +23,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -102,7 +102,7 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 	if len(o.config.CAData) > 0 {
 		ca = o.config.CAData
 	} else {
-		ca, err = ioutil.ReadFile(inClusterCAFilePath)
+		ca, err = os.ReadFile(inClusterCAFilePath)
 		if err != nil {
 			klog.Errorln(err)
 			return err

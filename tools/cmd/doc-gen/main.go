@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/loads"
@@ -255,7 +255,7 @@ func generateSwaggerJson() []byte {
 	})
 
 	data, _ := json.MarshalIndent(swagger, "", "  ")
-	err := ioutil.WriteFile(output, data, 0644)
+	err := os.WriteFile(output, data, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}

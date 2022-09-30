@@ -18,7 +18,6 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -198,7 +197,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = ioutil.WriteFile(output, []byte(spec), 0644)
+	err = os.WriteFile(output, []byte(spec), 0644)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -18,7 +18,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -64,7 +63,7 @@ func getRespBody(resp *http.Response) ([]byte, error) {
 	} else {
 		reader = resp.Body
 	}
-	resBody, err := ioutil.ReadAll(reader)
+	resBody, err := io.ReadAll(reader)
 	if err != nil {
 		klog.Error(err)
 		return nil, err

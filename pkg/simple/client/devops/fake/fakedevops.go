@@ -18,7 +18,7 @@ package fake
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -113,7 +113,7 @@ func (d *Devops) DeleteDevOpsProject(projectId string) error {
 				Header: http.Header{
 					"Foo": []string{"Bar"},
 				},
-				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Body: io.NopCloser(strings.NewReader("foo")), // shouldn't be used
 			},
 			Message: "",
 		}
@@ -136,7 +136,7 @@ func (d *Devops) GetDevOpsProject(projectId string) (string, error) {
 				Header: http.Header{
 					"Foo": []string{"Bar"},
 				},
-				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Body: io.NopCloser(strings.NewReader("foo")), // shouldn't be used
 				Request: &http.Request{
 					Method: "",
 					URL: &url.URL{
@@ -211,7 +211,7 @@ func (d *Devops) SubmitInputStep(projectName, pipelineName, runId, nodeId, stepI
 	return nil, nil
 }
 
-//BranchPipelinne operator interface
+// BranchPipelinne operator interface
 func (d *Devops) GetBranchPipeline(projectName, pipelineName, branchName string, httpParameters *devops.HttpParameters) (*devops.BranchPipeline, error) {
 	return nil, nil
 }
@@ -283,7 +283,7 @@ func (d *Devops) Validate(scmId string, httpParameters *devops.HttpParameters) (
 	return nil, nil
 }
 
-//Webhook operator interface
+// Webhook operator interface
 func (d *Devops) GetNotifyCommit(httpParameters *devops.HttpParameters) ([]byte, error) {
 	return nil, nil
 }
@@ -327,7 +327,7 @@ func (d *Devops) UpdateCredentialInProject(projectId string, credential *v1.Secr
 				Header: http.Header{
 					"Foo": []string{"Bar"},
 				},
-				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Body: io.NopCloser(strings.NewReader("foo")), // shouldn't be used
 				Request: &http.Request{
 					Method: "",
 					URL: &url.URL{
@@ -365,7 +365,7 @@ func (d *Devops) GetCredentialInProject(projectId, id string) (*devops.Credentia
 				Header: http.Header{
 					"Foo": []string{"Bar"},
 				},
-				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Body: io.NopCloser(strings.NewReader("foo")), // shouldn't be used
 				Request: &http.Request{
 					Method: "",
 					URL: &url.URL{
@@ -404,7 +404,7 @@ func (d *Devops) DeleteCredentialInProject(projectId, id string) (string, error)
 				Header: http.Header{
 					"Foo": []string{"Bar"},
 				},
-				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Body: io.NopCloser(strings.NewReader("foo")), // shouldn't be used
 				Request: &http.Request{
 					Method: "",
 					URL: &url.URL{
@@ -460,7 +460,7 @@ func (d *Devops) DeleteProjectPipeline(projectId string, pipelineId string) (str
 				Header: http.Header{
 					"Foo": []string{"Bar"},
 				},
-				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Body: io.NopCloser(strings.NewReader("foo")), // shouldn't be used
 				Request: &http.Request{
 					Method: "",
 					URL: &url.URL{
@@ -498,7 +498,7 @@ func (d *Devops) UpdateProjectPipeline(projectId string, pipeline *devopsv1alpha
 				Header: http.Header{
 					"Foo": []string{"Bar"},
 				},
-				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Body: io.NopCloser(strings.NewReader("foo")), // shouldn't be used
 				Request: &http.Request{
 					Method: "",
 					URL: &url.URL{
@@ -536,7 +536,7 @@ func (d *Devops) GetProjectPipelineConfig(projectId, pipelineId string) (*devops
 				Header: http.Header{
 					"Foo": []string{"Bar"},
 				},
-				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Body: io.NopCloser(strings.NewReader("foo")), // shouldn't be used
 				Request: &http.Request{
 					Method: "",
 					URL: &url.URL{

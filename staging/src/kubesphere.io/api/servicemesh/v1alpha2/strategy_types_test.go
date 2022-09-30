@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 	"testing"
 
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
@@ -89,7 +89,7 @@ func TestStrategyRead(t *testing.T) {
 	//g := gomega.NewGomegaWithT(t)
 
 	var str []byte
-	file, err := ioutil.ReadFile("/Users/zry/go/src/kubesphere.io/kubesphere/config/samples/servicemesh_v1alpha2_strategy.yaml")
+	file, err := os.ReadFile("/Users/zry/go/src/kubesphere.io/kubesphere/config/samples/servicemesh_v1alpha2_strategy.yaml")
 	if err == nil {
 		obj, _, _ := scheme.Codecs.UniversalDeserializer().Decode(file, nil, &Strategy{})
 		switch obj.(type) {

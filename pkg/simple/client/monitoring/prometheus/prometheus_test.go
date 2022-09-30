@@ -18,9 +18,9 @@ package prometheus
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -176,14 +176,14 @@ func TestGetMetricLabelSet(t *testing.T) {
 func mockPrometheusService(pattern, fakeResp string) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc(pattern, func(res http.ResponseWriter, req *http.Request) {
-		b, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", fakeResp))
+		b, _ := os.ReadFile(fmt.Sprintf("./testdata/%s", fakeResp))
 		res.Write(b)
 	})
 	return httptest.NewServer(mux)
 }
 
 func jsonFromFile(expectedFile string, expectedJsonPtr interface{}) error {
-	json, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
+	json, err := os.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
 	if err != nil {
 		return err
 	}

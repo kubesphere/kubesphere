@@ -17,7 +17,6 @@ limitations under the License.
 package ldap
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -74,7 +73,7 @@ func TestLdapProvider_Authenticate(t *testing.T) {
 	if configFile == "" {
 		t.Skip("Skipped")
 	}
-	options, err := ioutil.ReadFile(configFile)
+	options, err := os.ReadFile(configFile)
 	if err != nil {
 		t.Fatal(err)
 	}

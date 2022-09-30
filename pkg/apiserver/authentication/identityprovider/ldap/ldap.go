@@ -21,7 +21,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/go-ldap/ldap"
@@ -186,7 +186,7 @@ func (l *ldapProvider) newConn() (*ldap.Conn, error) {
 	var err error
 	// Load CA cert
 	if l.RootCA != "" {
-		if caCert, err = ioutil.ReadFile(l.RootCA); err != nil {
+		if caCert, err = os.ReadFile(l.RootCA); err != nil {
 			klog.Error(err)
 			return nil, err
 		}

@@ -18,7 +18,7 @@ package v1alpha2
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -54,7 +54,7 @@ func (h *handler) getNamespaceTopology(request *restful.Request, response *restf
 		return
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
 		klog.Errorf("read response error : %v", err)
@@ -86,7 +86,7 @@ func (h *handler) getNamespaceNodeTopology(request *restful.Request, response *r
 		return
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
 		klog.Errorf("read response error : %v", err)

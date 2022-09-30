@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -179,7 +178,7 @@ func GetRespBody(resp *http.Response) ([]byte, error) {
 	} else {
 		reader = resp.Body
 	}
-	resBody, err := ioutil.ReadAll(reader)
+	resBody, err := io.ReadAll(reader)
 	if err != nil {
 		log.Error(err)
 		return nil, err
