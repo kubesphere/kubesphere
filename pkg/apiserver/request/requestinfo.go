@@ -246,8 +246,6 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	// parsing successful, so we now know the proper value for .Parts
 	requestInfo.Parts = currentParts
 
-	requestInfo.ResourceScope = r.resolveResourceScope(requestInfo)
-
 	// parts look like: resource/resourceName/subresource/other/stuff/we/don't/interpret
 	switch {
 	case len(requestInfo.Parts) >= 3 && !specialVerbsNoSubresources.Has(requestInfo.Verb):
@@ -259,6 +257,8 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	case len(requestInfo.Parts) >= 1:
 		requestInfo.Resource = requestInfo.Parts[0]
 	}
+
+	requestInfo.ResourceScope = r.resolveResourceScope(requestInfo)
 
 	// if there's no name on the request and we thought it was a get before, then the actual verb is a list or a watch
 	if len(requestInfo.Name) == 0 && requestInfo.Verb == "get" {
