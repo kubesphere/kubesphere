@@ -531,8 +531,8 @@ github.com/kubesphere/pvc-autoresizer v0.1.1 h1:Q0VrvLfTiE1f38EvmFpJdBevwN21X7Br
 github.com/kubesphere/pvc-autoresizer v0.1.1/go.mod h1:88qz9L1Ov2bvw7L/i5mUT8g5DvBwRCZ60JA2d1WLgB0=
 github.com/kubesphere/sonargo v0.0.2 h1:hsSRE3sv3mkPcUAeSABdp7rtfcNW2zzeHXzFa01CTkU=
 github.com/kubesphere/sonargo v0.0.2/go.mod h1:ww8n9ANlDXhX5PBZ18iaRnCgEkXN0GMml3/KZXOZ11w=
-github.com/kubesphere/storageclass-accessor v0.2.0 h1:rnzKafhneo8160dh6REm3z1yAEaQWz1x/Lwi3QFVLWE=
-github.com/kubesphere/storageclass-accessor v0.2.0/go.mod h1:jqZ3tCiw09yOiPkZ3rDmf6QIpbZJx55McnyRaS0ayCY=
+github.com/kubesphere/storageclass-accessor v0.2.2 h1:FzKRQwwOYYwccZyG6z3ENFiONWAQ03d6SGs7H9N6gfI=
+github.com/kubesphere/storageclass-accessor v0.2.2/go.mod h1:jqZ3tCiw09yOiPkZ3rDmf6QIpbZJx55McnyRaS0ayCY=
 github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28/go.mod h1:T/T7jsxVqf9k/zYOqbgNAsANsjxTd1Yq3htjDhQ1H0c=
 github.com/kylelemons/godebug v0.0.0-20160406211939-eadb3ce320cb/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 h1:SOEGU9fKiNWd/HOJuq6+3iTQz8KNCLtVX6idSoTLdUw=
