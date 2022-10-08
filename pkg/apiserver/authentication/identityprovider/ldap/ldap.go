@@ -45,7 +45,7 @@ func init() {
 type ldapProvider struct {
 	// Host and optional port of the LDAP server in the form "host:port".
 	// If the port is not supplied, 389 for insecure or StartTLS connections, 636
-	Host string `json:"host,omitempty" yaml:"managerDN"`
+	Host string `json:"host,omitempty" yaml:"host"`
 	// Timeout duration when reading data from remote server. Default to 15s.
 	ReadTimeout int `json:"readTimeout" yaml:"readTimeout"`
 	// If specified, connections will use the ldaps:// protocol
