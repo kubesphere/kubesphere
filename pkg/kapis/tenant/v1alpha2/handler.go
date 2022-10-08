@@ -433,18 +433,7 @@ func (h *tenantHandler) DeleteNamespace(request *restful.Request, response *rest
 	workspaceName := request.PathParameter("workspace")
 	namespaceName := request.PathParameter("namespace")
 
-	//delete rls first
-	err := h.tenant.DeleteRls(workspaceName, namespaceName)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
-		return
-	}
-
-	err = h.tenant.DeleteNamespace(workspaceName, namespaceName)
+	err := h.tenant.DeleteNamespace(workspaceName, namespaceName)
 
 	if err != nil {
 		if errors.IsNotFound(err) {

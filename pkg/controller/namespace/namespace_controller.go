@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	applicationv1alpha1 "kubesphere.io/api/application/v1alpha1"
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 
@@ -118,6 +119,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// The object is being deleted
 		if sliceutil.HasString(namespace.ObjectMeta.Finalizers, finalizer) {
 			if err := r.deleteRouter(rootCtx, logger, namespace.Name); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.deleteHelmRelease(rootCtx, logger, namespace.Name); err != nil {
 				return ctrl.Result{}, err
 			}
 			// remove our finalizer from the list and update it.
@@ -242,6 +246,23 @@ func (r *Reconciler) deleteRouter(ctx context.Context, logger logr.Logger, names
 		return client.IgnoreNotFound(err)
 	}
 
+	return nil
+}
+
+func (r *Reconciler) deleteHelmRelease(ctx context.Context, logger logr.Logger, namespace string) error {
+	helmReleaseList := applicationv1alpha1.HelmReleaseList{}
+	err := r.List(ctx, &helmReleaseList, client.MatchingLabels{constants.NamespaceLabelKey: namespace})
+	if err != nil {
+		logger.Error(err, "list helmRelease failed")
+		return err
+	}
+	for _, helmRealse := range helmReleaseList.Items {
+		err := r.Delete(ctx, &helmRealse)
+		if err != nil {
+			logger.Error(err, "delete helmRelease failed")
+			return err
+		}
+	}
 	return nil
 }
 
