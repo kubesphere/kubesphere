@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: (devel)
+    controller-gen.kubebuilder.io/version: ""
   creationTimestamp: null
   name: globalrulegroups.alerting.kubesphere.io
 spec:
@@ -149,11 +149,22 @@ spec:
                               type: object
                             names:
                               items:
-                                type: string
+                                description: The cluster to which the node belongs
+                                  must be specified.
+                                properties:
+                                  cluster:
+                                    type: string
+                                  names:
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - cluster
+                                - names
+                                type: object
                               type: array
                           required:
                           - comparator
-                          - metricThreshold
                           - names
                           type: object
                         workload:
@@ -203,7 +214,22 @@ spec:
                               type: object
                             names:
                               items:
-                                type: string
+                                description: The cluster and namespace to which the
+                                  workloads belongs must be specified.
+                                properties:
+                                  cluster:
+                                    type: string
+                                  names:
+                                    items:
+                                      type: string
+                                    type: array
+                                  namespace:
+                                    type: string
+                                required:
+                                - cluster
+                                - names
+                                - namespace
+                                type: object
                               type: array
                           required:
                           - comparator

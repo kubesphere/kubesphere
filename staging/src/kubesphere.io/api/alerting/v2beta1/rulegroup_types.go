@@ -176,8 +176,8 @@ type ClusterRuleExprBuilder struct {
 
 // Only one of its members may be specified.
 type GlobalRuleExprBuilder struct {
-	Workload *WorkloadExprBuilder `json:"workload,omitempty"`
-	Node     *NodeExprBuilder     `json:"node,omitempty"`
+	Workload *ScopedWorkloadExprBuilder `json:"workload,omitempty"`
+	Node     *ScopedNodeExprBuilder     `json:"node,omitempty"`
 }
 
 type WorkloadKind string
@@ -194,6 +194,21 @@ type WorkloadExprBuilder struct {
 	Comparator    Comparator   `json:"comparator"`
 
 	MetricThreshold WorkloadMetricThreshold `json:"metricThreshold,omitempty"`
+}
+
+type ScopedWorkloadExprBuilder struct {
+	WorkloadKind  WorkloadKind          `json:"kind"`
+	WorkloadNames []ScopedWorkloadNames `json:"names"`
+	Comparator    Comparator            `json:"comparator"`
+
+	MetricThreshold WorkloadMetricThreshold `json:"metricThreshold,omitempty"`
+}
+
+// The cluster and namespace to which the workloads belongs must be specified.
+type ScopedWorkloadNames struct {
+	Cluster   string   `json:"cluster"`
+	Namespace string   `json:"namespace"`
+	Names     []string `json:"names"`
 }
 
 const (
@@ -266,6 +281,29 @@ func (b *WorkloadExprBuilder) Build() string {
 	return ""
 }
 
+func (b *ScopedWorkloadExprBuilder) Build() string {
+	// include the workload names into builded expr only.
+	// the limited clusters and namespaces will be set to the clusterSelector and namespaceSelector separately.
+
+	var names = make(map[string]struct{})
+	for _, snames := range b.WorkloadNames {
+		for _, name := range snames.Names {
+			names[name] = struct{}{}
+		}
+	}
+
+	var eb = WorkloadExprBuilder{
+		WorkloadKind:    b.WorkloadKind,
+		Comparator:      b.Comparator,
+		MetricThreshold: b.MetricThreshold,
+	}
+	for name := range names {
+		eb.WorkloadNames = append(eb.WorkloadNames, name)
+	}
+
+	return eb.Build()
+}
+
 // Only one of its members may be specified.
 type WorkloadMetricThreshold struct {
 	Cpu     *WorkloadCpuThreshold     `json:"cpu,omitempty"`
@@ -308,6 +346,19 @@ type NodeExprBuilder struct {
 	Comparator Comparator `json:"comparator"`
 
 	MetricThreshold NodeMetricThreshold `json:"metricThreshold"`
+}
+
+type ScopedNodeExprBuilder struct {
+	NodeNames  []ScopedNodeNames `json:"names"`
+	Comparator Comparator        `json:"comparator"`
+
+	MetricThreshold NodeMetricThreshold `json:"metricThreshold,omitempty"`
+}
+
+// The cluster to which the node belongs must be specified.
+type ScopedNodeNames struct {
+	Cluster string   `json:"cluster"`
+	Names   []string `json:"names"`
 }
 
 const (
@@ -425,6 +476,28 @@ func (b *NodeExprBuilder) Build() string {
 	}
 
 	return ""
+}
+
+func (b *ScopedNodeExprBuilder) Build() string {
+	// include the node names into builded expr only.
+	// the limited clusters will be set to the clusterSelector.
+
+	var names = make(map[string]struct{})
+	for _, snames := range b.NodeNames {
+		for _, name := range snames.Names {
+			names[name] = struct{}{}
+		}
+	}
+
+	var eb = NodeExprBuilder{
+		Comparator:      b.Comparator,
+		MetricThreshold: b.MetricThreshold,
+	}
+	for name := range names {
+		eb.NodeNames = append(eb.NodeNames, name)
+	}
+
+	return eb.Build()
 }
 
 // Only one of its members may be specified.
