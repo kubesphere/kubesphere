@@ -240,8 +240,51 @@ func (r *GlobalRuleGroup) Default() {
 		if rule.ExprBuilder != nil {
 			if rule.ExprBuilder.Node != nil {
 				rule.Expr = intstr.FromString(rule.ExprBuilder.Node.Build())
+				// limiting the clusters will take the union result for clusters from scoped nodes.
+				// eg. if specify nodeA of cluster1 and nodeB of cluster2 in rule.ExprBuilder.Node.NodeNames,
+				// the nodeA and nodeB in cluster1 and cluster2 are selected.
+				var clusters = make(map[string]struct{})
+				for _, sname := range rule.ExprBuilder.Node.NodeNames {
+					if sname.Cluster != "" {
+						clusters[sname.Cluster] = struct{}{}
+					}
+				}
+				if len(clusters) > 0 {
+					clusterSelector := &MetricLabelSelector{}
+					for cluster := range clusters {
+						clusterSelector.InValues = append(clusterSelector.InValues, cluster)
+					}
+					rule.ClusterSelector = clusterSelector
+				}
 			} else if rule.ExprBuilder.Workload != nil {
 				rule.Expr = intstr.FromString(rule.ExprBuilder.Workload.Build())
+				// limiting the clusters and namespaces will take the union result for clusters from scoped workloads.
+				// eg. if specify worloadA of cluster1-namespace1 and worloadB of cluster2-namespace2 in rule.ExprBuilder.Workload.WorkloadNames,
+				// the worloadA and worloadB in cluster1-namespace1, cluster1-namespace2 and cluster2-namespace1, cluster2-namespace2 are selected.
+				var clusters = make(map[string]struct{})
+				var namespaces = make(map[string]struct{})
+				for _, sname := range rule.ExprBuilder.Workload.WorkloadNames {
+					if sname.Cluster != "" {
+						clusters[sname.Cluster] = struct{}{}
+					}
+					if sname.Namespace != "" {
+						namespaces[sname.Namespace] = struct{}{}
+					}
+				}
+				if len(clusters) > 0 {
+					clusterSelector := &MetricLabelSelector{}
+					for cluster := range clusters {
+						clusterSelector.InValues = append(clusterSelector.InValues, cluster)
+					}
+					rule.ClusterSelector = clusterSelector
+				}
+				if len(namespaces) > 0 {
+					nsSelector := &MetricLabelSelector{}
+					for ns := range namespaces {
+						nsSelector.InValues = append(nsSelector.InValues, ns)
+					}
+					rule.NamespaceSelector = nsSelector
+				}
 			}
 		}
 		setRuleId(&rule.Rule)
