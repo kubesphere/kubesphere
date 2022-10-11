@@ -20,11 +20,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type Channel struct {
+	Tenant string `json:"tenant"`
+	// Receiver type, known values are dingtalk, email, feishu, slack, sms, pushover, webhook, wechat.
+	Type []string `json:"type,omitempty"`
+}
+
 type ReceiverSelector struct {
 	Name      []string              `json:"name,omitempty"`
 	RegexName string                `json:"regexName,omitempty"`
 	Selector  *metav1.LabelSelector `json:"selector,omitempty"`
-	// Receiver type, known values are dingtalk, email, slack, sms, pushover, webhook, wechat.
+	Channels  []Channel             `json:"channels,omitempty"`
+	// Receiver type, known values are dingtalk, email, feishu, slack, sms, pushover, webhook, wechat.
 	Type string `json:"type,omitempty"`
 }
 
