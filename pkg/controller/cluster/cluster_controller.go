@@ -179,7 +179,14 @@ func NewClusterController(
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			oldCluster := oldObj.(*clusterv1alpha1.Cluster)
 			newCluster := newObj.(*clusterv1alpha1.Cluster)
-			if !reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) || newCluster.DeletionTimestamp != nil {
+
+			oldConfig, oldErr := clientcmd.Load(oldCluster.Spec.Connection.KubeConfig)
+			newConfig, newErr := clientcmd.Load(oldCluster.Spec.Connection.KubeConfig)
+			if oldErr != nil || newErr != nil {
+				return
+			}
+			if oldConfig.Clusters[oldConfig.CurrentContext].Server == newConfig.Clusters[newConfig.CurrentContext].Server ||
+				!reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) || newCluster.DeletionTimestamp != nil {
 				c.enqueueCluster(newObj)
 			}
 		},
