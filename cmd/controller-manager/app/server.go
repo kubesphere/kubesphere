@@ -39,6 +39,7 @@ import (
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	clusterwebhook "kubesphere.io/kubesphere/pkg/controller/cluster/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/quota"
 	"kubesphere.io/kubesphere/pkg/controller/user"
@@ -237,6 +238,7 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 	hookServer := mgr.GetWebhookServer()
 
 	klog.V(2).Info("registering webhooks to the webhook server")
+	hookServer.Register("/validate-cluster-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &clusterwebhook.ValidatingHandler{C: mgr.GetClient()}})
 	hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
 	hookServer.Register("/validate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.ValidatingHandler{C: mgr.GetClient()}})
 	hookServer.Register("/mutate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.MutatingHandler{C: mgr.GetClient()}})

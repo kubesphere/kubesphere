@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"reflect"
 	"strings"
@@ -57,6 +58,7 @@ import (
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
+	clusterwebhook "kubesphere.io/kubesphere/pkg/controller/cluster/webhooks"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
@@ -142,6 +144,28 @@ type clusterController struct {
 	hostClusterName string
 }
 
+func (c *clusterController) ValidateUpdate(old runtime.Object, new runtime.Object) error {
+	oldCluster := old.(*clusterv1alpha1.Cluster)
+	newCluster := new.(*clusterv1alpha1.Cluster)
+
+	clusterConfig, err := clientcmd.RESTConfigFromKubeConfig(newCluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		return fmt.Errorf("failed to load cluster config for %s: %s", newCluster.Name, err)
+	}
+
+	clusterClient, err := kubernetes.NewForConfig(clusterConfig)
+	kubeSystem, err := clusterClient.CoreV1().Namespaces().Get(context.TODO(), metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if oldCluster.Status.UID != kubeSystem.UID {
+		return fmt.Errorf("this kubeconfig corresponds to a different cluster than the previous one, you need to make sure that kubeconfig is not from another cluster")
+	}
+
+	return nil
+}
+
 func NewClusterController(
 	k8sClient kubernetes.Interface,
 	ksClient kubesphere.Interface,
@@ -179,18 +203,16 @@ func NewClusterController(
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			oldCluster := oldObj.(*clusterv1alpha1.Cluster)
 			newCluster := newObj.(*clusterv1alpha1.Cluster)
-			oldConfig, oldErr := clientcmd.Load(oldCluster.Spec.Connection.KubeConfig)
-			newConfig, newErr := clientcmd.Load(newCluster.Spec.Connection.KubeConfig)
-			if oldErr != nil || newErr != nil ||
-				oldConfig.Clusters[oldConfig.CurrentContext].Server != newConfig.Clusters[newConfig.CurrentContext].Server {
-				return
-			}
 			if !reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) || newCluster.DeletionTimestamp != nil {
 				c.enqueueCluster(newObj)
 			}
 		},
 		DeleteFunc: c.enqueueCluster,
 	}, resyncPeriod)
+
+	//register cluster webhook
+	clusterwebhook.RegisterValidator(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindCluster).String(),
+		&clusterwebhook.ValidatorWrap{Obj: &clusterv1alpha1.Cluster{}, Helper: c})
 
 	return c
 }
