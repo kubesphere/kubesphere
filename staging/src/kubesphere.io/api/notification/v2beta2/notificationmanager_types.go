@@ -315,7 +315,7 @@ type NotificationManagerStatus struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 
 // NotificationManager is the Schema for the notificationmanagers API
@@ -327,7 +327,7 @@ type NotificationManager struct {
 	Status NotificationManagerStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 
 // NotificationManagerList contains a list of NotificationManager

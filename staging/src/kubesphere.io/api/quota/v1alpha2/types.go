@@ -33,12 +33,12 @@ func init() {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:categories="quota",scope="Cluster",path=resourcequotas
 // +kubebuilder:subresource:status
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // WorkspaceResourceQuota sets aggregate quota restrictions enforced per workspace
 type ResourceQuota struct {
 	metav1.TypeMeta `json:",inline"`
@@ -83,7 +83,7 @@ type ResourceQuotaStatusByNamespace struct {
 }
 
 // +kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // ResourceQuotaList is a list of WorkspaceResourceQuota items.
 type ResourceQuotaList struct {
 	metav1.TypeMeta `json:",inline"`

@@ -38,7 +38,7 @@ type GroupStatus struct {
 
 // +genclient:nonNamespaced
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
 // +kubebuilder:resource:categories="group",scope="Cluster"
@@ -52,7 +52,7 @@ type Group struct {
 	Status GroupStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 
 // GroupList contains a list of Group

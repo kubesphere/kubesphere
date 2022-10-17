@@ -32,7 +32,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
@@ -57,7 +57,7 @@ type NotificationConfigTemplate struct {
 	Spec              v2beta2.ConfigSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 
 // FederatedNotificationConfigList contains a list of federatednotificationconfiglists

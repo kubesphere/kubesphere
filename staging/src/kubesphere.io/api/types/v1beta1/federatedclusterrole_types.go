@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedClusterRole struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -52,7 +52,7 @@ type ClusterRoleTemplate struct {
 	AggregationRule *v1.AggregationRule `json:"aggregationRule,omitempty" protobuf:"bytes,3,opt,name=aggregationRule"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedClusterRoleList contains a list of federatedclusterrolelists
 type FederatedClusterRoleList struct {

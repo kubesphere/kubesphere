@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedClusterRoleBinding struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -53,7 +53,7 @@ type ClusterRoleBindingTemplate struct {
 	RoleRef v1.RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedClusterRoleBindingList contains a list of federatedclusterrolebindinglists
 type FederatedClusterRoleBindingList struct {

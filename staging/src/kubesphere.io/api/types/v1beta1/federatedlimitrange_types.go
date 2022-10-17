@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedLimitRange struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -48,7 +48,7 @@ type LimitRangeTemplate struct {
 	Spec corev1.LimitRangeSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedLimitRangeList contains a list of federatedlimitrangelists
 type FederatedLimitRangeList struct {

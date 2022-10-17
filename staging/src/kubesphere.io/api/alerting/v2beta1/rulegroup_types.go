@@ -567,11 +567,10 @@ type RuleGroupStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 // +genclient
 // +k8s:openapi-gen=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // RuleGroup is the Schema for the RuleGroup API
 type RuleGroup struct {
@@ -582,8 +581,7 @@ type RuleGroup struct {
 	Status RuleGroupStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // RuleGroupList contains a list of RuleGroup
 type RuleGroupList struct {
@@ -606,11 +604,10 @@ type ClusterRuleGroupStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Cluster
 
 // ClusterRuleGroup is the Schema for the ClusterRuleGroup API
@@ -622,8 +619,7 @@ type ClusterRuleGroup struct {
 	Status ClusterRuleGroupStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // ClusterRuleGroupList contains a list of ClusterRuleGroup
 type ClusterRuleGroupList struct {
@@ -646,11 +642,10 @@ type GlobalRuleGroupStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Cluster
 
 // GlobalRuleGroup is the Schema for the GlobalRuleGroup API
@@ -662,8 +657,7 @@ type GlobalRuleGroup struct {
 	Status GlobalRuleGroupStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // GlobalRuleGroupList contains a list of GlobalRuleGroup
 type GlobalRuleGroupList struct {

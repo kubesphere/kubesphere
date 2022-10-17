@@ -23,7 +23,7 @@ import (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
@@ -33,7 +33,7 @@ type IPAMBlock struct {
 	Spec              v3.IPAMBlockSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // IPAMBlockList contains a list of IPAMBlock resources.
 type IPAMBlockList struct {

@@ -27,7 +27,7 @@ const (
 	FederatedWorkspaceRoleKind             = "FederatedWorkspaceRole"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedWorkspaceRole struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -50,7 +50,7 @@ type WorkspaceRoleTemplate struct {
 	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedWorkspaceRoleList contains a list of FederatedWorkspaceRole
 type FederatedWorkspaceRoleList struct {

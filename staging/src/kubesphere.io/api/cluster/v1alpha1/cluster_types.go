@@ -175,7 +175,7 @@ type ClusterStatus struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +genclient:nonNamespaced
 // +kubebuilder:printcolumn:name="Federated",type="boolean",JSONPath=".spec.joinFederation"
@@ -193,7 +193,7 @@ type Cluster struct {
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`

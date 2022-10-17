@@ -27,7 +27,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedConfigMap struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -52,7 +52,7 @@ type ConfigMapTemplate struct {
 	BinaryData map[string][]byte `json:"binaryData,omitempty" protobuf:"bytes,3,rep,name=binaryData"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedConfigmapList contains a list of federatedconfigmaplists
 type FederatedConfigMapList struct {

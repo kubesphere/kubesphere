@@ -28,7 +28,7 @@ const (
 	FederatedWorkspaceKind             = "FederatedWorkspace"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedWorkspace struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -49,7 +49,7 @@ type WorkspaceTemplate struct {
 	Spec              workspacev1alpha1.WorkspaceSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedWorkspaceList contains a list of FederatedWorkspace
 type FederatedWorkspaceList struct {

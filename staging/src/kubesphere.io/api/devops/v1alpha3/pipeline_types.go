@@ -52,7 +52,7 @@ type PipelineStatus struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // Pipeline is the Schema for the pipelines API
 // +k8s:openapi-gen=true
@@ -64,7 +64,7 @@ type Pipeline struct {
 	Status PipelineStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // PipelineList contains a list of Pipeline
 type PipelineList struct {

@@ -43,7 +43,7 @@ type WorkspaceStatus struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 
 // Workspace is the Schema for the workspaces API
@@ -56,7 +56,7 @@ type Workspace struct {
 	Status            WorkspaceStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 
 // WorkspaceList contains a list of Workspace

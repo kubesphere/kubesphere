@@ -61,7 +61,7 @@ type S2iBinaryStatus struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // S2iBinary is the Schema for the s2ibinaries API
 // +k8s:openapi-gen=true
@@ -77,7 +77,7 @@ type S2iBinary struct {
 	Status S2iBinaryStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // S2iBinaryList contains a list of S2iBinary
 type S2iBinaryList struct {

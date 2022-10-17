@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedStatefulSet struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -50,7 +50,7 @@ type StatefulSetTemplate struct {
 	Spec              appsv1.StatefulSetSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedStatefulSetList contains a list of federatedstatefulsetlists
 type FederatedStatefulSetList struct {

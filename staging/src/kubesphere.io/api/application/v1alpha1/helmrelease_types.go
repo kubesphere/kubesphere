@@ -91,7 +91,7 @@ type HelmReleaseStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // HelmRelease is the Schema for the helmreleases API
 type HelmRelease struct {
@@ -103,7 +103,7 @@ type HelmRelease struct {
 }
 
 // +kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // HelmReleaseList contains a list of HelmRelease
 type HelmReleaseList struct {

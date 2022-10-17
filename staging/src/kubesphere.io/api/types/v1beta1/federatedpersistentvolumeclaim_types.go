@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedPersistentVolumeClaim struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -50,7 +50,7 @@ type PersistentVolumeClaimTemplate struct {
 	Spec              corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedPersistentVolumeClaimList contains a list of federatedpersistentvolumeclaimlists
 type FederatedPersistentVolumeClaimList struct {

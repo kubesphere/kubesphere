@@ -152,7 +152,7 @@ type StrategyCondition struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // Strategy is the Schema for the strategies API
 // +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".spec.type",description="type of strategy"
@@ -167,7 +167,7 @@ type Strategy struct {
 	Status StrategyStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // StrategyList contains a list of Strategy
 type StrategyList struct {

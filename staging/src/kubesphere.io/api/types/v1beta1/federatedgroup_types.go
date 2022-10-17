@@ -30,7 +30,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedGroup struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -51,7 +51,7 @@ type GroupTemplate struct {
 	Spec              v1alpha2.GroupSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedGroupList contains a list of federateduserlists
 type FederatedGroupList struct {

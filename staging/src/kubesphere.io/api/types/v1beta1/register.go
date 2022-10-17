@@ -17,7 +17,7 @@ limitations under the License.
 // NOTE: Boilerplate only. Ignore this file.
 
 // +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
+// +kubebuilder:object:generate=true
 // +kubebuilder:object:generate=true
 // +groupName=types.kubefed.io
 package v1beta1

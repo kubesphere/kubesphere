@@ -29,7 +29,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
@@ -54,7 +54,7 @@ type NotificationRouterTemplate struct {
 	Spec              v2beta2.RouterSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 
 // FederatedNotificationRouterList contains a list of federatednotificationrouterlists

@@ -201,7 +201,7 @@ type WebhookStatus struct {
 // +genclient:noStatus
 // +genclient:nonNamespaced
 // +kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // Webhook is the Schema for the webhooks API
 type Webhook struct {
@@ -213,7 +213,7 @@ type Webhook struct {
 }
 
 // +kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // WebhookList contains a list of Webhook
 type WebhookList struct {

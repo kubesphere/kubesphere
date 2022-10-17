@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedJob struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -48,7 +48,7 @@ type JobTemplate struct {
 	Spec v1.JobSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedJobList contains a list of federatedjoblists
 type FederatedJobList struct {
