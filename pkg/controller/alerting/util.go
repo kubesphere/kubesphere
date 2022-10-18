@@ -196,6 +196,9 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 					prules = append(prules, *prule)
 				}
 			}
+			if len(prules) == 0 {
+				continue
+			}
 			rulegroups = append(rulegroups, &promresourcesv1.RuleGroup{
 				Name:                    group.Name,
 				Interval:                group.Spec.Interval,
@@ -215,6 +218,9 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 				if prule != nil {
 					prules = append(prules, *prule)
 				}
+			}
+			if len(prules) == 0 {
+				continue
 			}
 			rulegroups = append(rulegroups, &promresourcesv1.RuleGroup{
 				Name:                    group.Name,
@@ -237,6 +243,9 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 				if prule != nil {
 					prules = append(prules, *prule)
 				}
+			}
+			if len(prules) == 0 {
+				continue
 			}
 			rulegroups = append(rulegroups, &promresourcesv1.RuleGroup{
 				Name:                    group.Name,
