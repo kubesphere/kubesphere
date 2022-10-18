@@ -19,7 +19,7 @@ package kiali
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
@@ -70,7 +70,7 @@ func TestClient_Get(t *testing.T) {
 			args: args{url: "http://kiali.istio-system.svc"},
 			wantResp: &http.Response{
 				StatusCode: 200,
-				Body:       ioutil.NopCloser(bytes.NewReader([]byte("fake"))),
+				Body:       io.NopCloser(bytes.NewReader([]byte("fake"))),
 			},
 			wantErr: false,
 		},
@@ -89,7 +89,7 @@ func TestClient_Get(t *testing.T) {
 			args: args{url: "http://kiali.istio-system.svc"},
 			wantResp: &http.Response{
 				StatusCode: 200,
-				Body:       ioutil.NopCloser(bytes.NewReader([]byte("fake"))),
+				Body:       io.NopCloser(bytes.NewReader([]byte("fake"))),
 			},
 			wantErr: false,
 		},
@@ -108,7 +108,7 @@ func TestClient_Get(t *testing.T) {
 			args: args{url: "http://kiali.istio-system.svc"},
 			wantResp: &http.Response{
 				StatusCode: 200,
-				Body:       ioutil.NopCloser(bytes.NewReader([]byte("fake"))),
+				Body:       io.NopCloser(bytes.NewReader([]byte("fake"))),
 			},
 			wantErr: false,
 		},

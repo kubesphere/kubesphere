@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"reflect"
 
@@ -524,7 +523,7 @@ func (o *operator) Verify(request *restful.Request, response *restful.Response) 
 		return
 	}
 
-	reqBody, err := ioutil.ReadAll(request.Request.Body)
+	reqBody, err := io.ReadAll(request.Request.Body)
 	if err != nil {
 		klog.Error(err)
 		_ = response.WriteHeaderAndEntity(http.StatusBadRequest, err)

@@ -19,7 +19,6 @@ package fake
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -66,7 +65,7 @@ func (s *FakeS3) Delete(key string) error {
 
 func (s *FakeS3) Read(key string) ([]byte, error) {
 	if o, ok := s.Storage[key]; ok && o.Body != nil {
-		data, err := ioutil.ReadAll(o.Body)
+		data, err := io.ReadAll(o.Body)
 		if err != nil {
 			return nil, err
 		}

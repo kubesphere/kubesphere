@@ -17,7 +17,7 @@ limitations under the License.
 package cluster
 
 import (
-	"io/ioutil"
+	"os"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -35,7 +35,7 @@ func buildKubeconfigFromRestConfig(config *rest.Config) ([]byte, error) {
 	// generated kubeconfig will be used by cluster federation, CAFile is not
 	// accepted by kubefed, so we need read CAFile
 	if len(apiCluster.CertificateAuthorityData) == 0 && len(config.CAFile) != 0 {
-		caData, err := ioutil.ReadFile(config.CAFile)
+		caData, err := os.ReadFile(config.CAFile)
 		if err != nil {
 			return nil, err
 		}

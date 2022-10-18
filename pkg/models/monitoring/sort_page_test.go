@@ -18,8 +18,8 @@ package monitoring
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -161,7 +161,7 @@ func jsonFromFile(sourceFile, expectedFile string) (*Metrics, *Metrics, error) {
 	sourceJson := &Metrics{}
 	expectedJson := &Metrics{}
 
-	json, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", sourceFile))
+	json, err := os.ReadFile(fmt.Sprintf("./testdata/%s", sourceFile))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -170,7 +170,7 @@ func jsonFromFile(sourceFile, expectedFile string) (*Metrics, *Metrics, error) {
 		return nil, nil, err
 	}
 
-	json, err = ioutil.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
+	json, err = os.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
 	if err != nil {
 		return nil, nil, err
 	}

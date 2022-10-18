@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -423,10 +422,10 @@ func validateKubeSphereAPIServer(config *rest.Config) (*version.Info, error) {
 	}
 	defer response.Body.Close()
 
-	responseBytes, _ := ioutil.ReadAll(response.Body)
+	responseBytes, _ := io.ReadAll(response.Body)
 	responseBody := string(responseBytes)
 
-	response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBytes))
+	response.Body = io.NopCloser(bytes.NewBuffer(responseBytes))
 
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("invalid response: %s , please make sure %s.%s.svc of member cluster is up and running", KubeSphereApiServer, constants.KubeSphereNamespace, responseBody)

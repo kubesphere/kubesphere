@@ -21,7 +21,7 @@ package v1alpha3
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -364,7 +364,7 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 
 			defer r.Body.Close()
 
-			c, err := ioutil.ReadAll(r.Body)
+			c, err := io.ReadAll(r.Body)
 			if err != nil {
 				return nil, err
 			}

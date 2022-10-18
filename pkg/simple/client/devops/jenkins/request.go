@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -185,7 +184,8 @@ func (r *Requester) SetClient(client *http.Client) *Requester {
 	return r
 }
 
-//Add auth on redirect if required.
+// Add auth on redirect if required.
+//
 //nolint:unused
 func (r *Requester) redirectPolicyFunc(req *http.Request, via []*http.Request) error {
 	if r.BasicAuth != nil {
@@ -448,7 +448,7 @@ func (r *Requester) DoPostForm(ar *APIRequest, responseStruct interface{}, form 
 func (r *Requester) ReadRawResponse(response *http.Response, responseStruct interface{}) (*http.Response, error) {
 	defer response.Body.Close()
 
-	content, err := ioutil.ReadAll(response.Body)
+	content, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -478,7 +478,7 @@ func CheckResponse(r *http.Response) error {
 	}
 	defer r.Body.Close()
 	errorResponse := &devops.ErrorResponse{Response: r}
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err == nil && data != nil {
 		errorResponse.Body = data
 		errorResponse.Message = string(data)

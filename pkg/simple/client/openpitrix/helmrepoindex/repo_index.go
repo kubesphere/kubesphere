@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"time"
 
@@ -275,7 +274,7 @@ func ByteArrayToSavedIndex(data []byte) (*SavedIndex, error) {
 		return nil, err
 	}
 	r.Close()
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 
 	if err != nil && err != io.EOF {
 		return nil, err

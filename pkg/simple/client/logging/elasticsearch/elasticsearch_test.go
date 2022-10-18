@@ -18,9 +18,9 @@ package elasticsearch
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -274,7 +274,7 @@ func TestParseToQueryPart(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 
-			expected, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", test.expected))
+			expected, err := os.ReadFile(fmt.Sprintf("./testdata/%s", test.expected))
 			if err != nil {
 				t.Fatalf("read expected error, %s", err.Error())
 			}
@@ -290,7 +290,7 @@ func TestParseToQueryPart(t *testing.T) {
 func mockElasticsearchService(pattern, fakeResp string, fakeCode int) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc(pattern, func(res http.ResponseWriter, req *http.Request) {
-		b, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", fakeResp))
+		b, _ := os.ReadFile(fmt.Sprintf("./testdata/%s", fakeResp))
 		res.WriteHeader(fakeCode)
 		_, _ = res.Write(b)
 	})
@@ -298,7 +298,7 @@ func mockElasticsearchService(pattern, fakeResp string, fakeCode int) *httptest.
 }
 
 func JsonFromFile(expectedFile string, expectedJsonPtr interface{}) error {
-	json, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
+	json, err := os.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
 	if err != nil {
 		return err
 	}

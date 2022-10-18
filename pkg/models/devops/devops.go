@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sort"
 	"strings"
@@ -306,7 +305,7 @@ func (d devopsOperator) ListPipelineObj(projectName string, filterFunc PipelineF
 	return api.ListResult{TotalItems: len(result), Items: items}, nil
 }
 
-//credentialobj in crd
+// credentialobj in crd
 func (d devopsOperator) CreateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
 	if err != nil {
@@ -837,7 +836,7 @@ func (d devopsOperator) GetOrgRepo(scmId, organizationId string, req *http.Reque
 // CreateSCMServers creates a Bitbucket server config item in Jenkins configuration if there's no same API address exist
 func (d devopsOperator) CreateSCMServers(scmId string, req *http.Request) (*devops.SCMServer, error) {
 
-	requestBody, err := ioutil.ReadAll(req.Body)
+	requestBody, err := io.ReadAll(req.Body)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -861,7 +860,7 @@ func (d devopsOperator) CreateSCMServers(scmId string, req *http.Request) (*devo
 			return &server, nil
 		}
 	}
-	req.Body = ioutil.NopCloser(bytes.NewReader(requestBody))
+	req.Body = io.NopCloser(bytes.NewReader(requestBody))
 
 	req.Method = http.MethodPost
 	resBody, err := d.devopsClient.CreateSCMServers(scmId, convertToHttpParameters(req))
@@ -977,7 +976,7 @@ func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error
 		Abort      bool                             `json:"abort,omitempty" description:"abort or not"`
 	}
 
-	Body, err := ioutil.ReadAll(reqBody)
+	Body, err := io.ReadAll(reqBody)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -1002,7 +1001,7 @@ func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error
 func parseBody(body io.Reader) (newReqBody io.ReadCloser) {
 	rc, ok := body.(io.ReadCloser)
 	if !ok && body != nil {
-		rc = ioutil.NopCloser(body)
+		rc = io.NopCloser(body)
 	}
 	return rc
 }

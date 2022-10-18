@@ -17,7 +17,7 @@ limitations under the License.
 package helm
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -73,8 +73,8 @@ var _ = Context("Helm reconcier", func() {
 	Describe("Gateway", func() {
 		It("Should setup gateway helm reconcier", func() {
 			data := "- group: gateway.kubesphere.io\n  version: v1alpha1\n  kind: Gateway\n  chart: ../../../config/gateway\n"
-			f, _ := ioutil.TempFile("", "watch")
-			ioutil.WriteFile(f.Name(), []byte(data), 0)
+			f, _ := os.CreateTemp("", "watch")
+			os.WriteFile(f.Name(), []byte(data), 0)
 
 			mgr, err := ctrl.NewManager(cfg, ctrl.Options{MetricsBindAddress: "0"})
 			Expect(err).NotTo(HaveOccurred(), "failed to create a manager")
