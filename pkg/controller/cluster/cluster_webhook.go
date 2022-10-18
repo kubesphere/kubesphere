@@ -45,33 +45,35 @@ func (h *ValidatingHandler) InjectDecoder(d *admission.Decoder) error {
 // Handle handles admission requests.
 func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
 
-	if req.Operation == v1.Update {
-		newCluster := &clusterv1alpha1.Cluster{}
-		err := h.decoder.DecodeRaw(req.Object, newCluster)
-		if err != nil {
-			return admission.Errored(http.StatusBadRequest, err)
-		}
+	if req.Operation != v1.Update {
+		return admission.Allowed("")
+	}
 
-		oldCluster := &clusterv1alpha1.Cluster{}
-		err = h.decoder.DecodeRaw(req.OldObject, oldCluster)
-		if err != nil {
-			return admission.Errored(http.StatusBadRequest, err)
-		}
+	newCluster := &clusterv1alpha1.Cluster{}
+	err := h.decoder.DecodeRaw(req.Object, newCluster)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
 
-		clusterConfig, err := clientcmd.RESTConfigFromKubeConfig(newCluster.Spec.Connection.KubeConfig)
-		if err != nil {
-			return admission.Denied(fmt.Sprintf("failed to load cluster config for %s: %s", newCluster.Name, err))
-		}
+	oldCluster := &clusterv1alpha1.Cluster{}
+	err = h.decoder.DecodeRaw(req.OldObject, oldCluster)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
 
-		clusterClient, err := kubernetes.NewForConfig(clusterConfig)
-		kubeSystem, err := clusterClient.CoreV1().Namespaces().Get(ctx, metav1.NamespaceSystem, metav1.GetOptions{})
-		if err != nil {
-			return admission.Denied(err.Error())
-		}
+	clusterConfig, err := clientcmd.RESTConfigFromKubeConfig(newCluster.Spec.Connection.KubeConfig)
+	if err != nil {
+		return admission.Denied(fmt.Sprintf("failed to load cluster config for %s: %s", newCluster.Name, err))
+	}
 
-		if oldCluster.Status.UID != kubeSystem.UID {
-			return admission.Denied("this kubeconfig corresponds to a different cluster than the previous one, you need to make sure that kubeconfig is not from another cluster")
-		}
+	clusterClient, err := kubernetes.NewForConfig(clusterConfig)
+	kubeSystem, err := clusterClient.CoreV1().Namespaces().Get(ctx, metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		return admission.Denied(err.Error())
+	}
+
+	if oldCluster.Status.UID != kubeSystem.UID {
+		return admission.Denied("this kubeconfig corresponds to a different cluster than the previous one, you need to make sure that kubeconfig is not from another cluster")
 	}
 
 	return admission.Allowed("")
