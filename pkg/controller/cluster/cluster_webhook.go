@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,10 +61,6 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) a
 	err = h.decoder.DecodeRaw(req.OldObject, oldCluster)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
-	}
-
-	if reflect.DeepEqual(oldCluster.Spec, newCluster.Spec) {
-		return admission.Allowed("")
 	}
 
 	clusterConfig, err := clientcmd.RESTConfigFromKubeConfig(newCluster.Spec.Connection.KubeConfig)
