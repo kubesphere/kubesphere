@@ -1,0 +1,17 @@
+Please wait for several seconds for KubeSphere deployment to complete.
+
+1. Make sure KubeSphere components are running:
+
+     kubectl get pods -n {{ .Release.Namespace }}
+
+2. Then you should be able to visit the console NodePort:
+
+     Console: http://{{ include "getNodeAddress" . }}:{{ .Values.console.nodePort }}
+
+3. To login to your KubeSphere console:
+
+     Account: admin
+     Password: {{ include "printOrDefaultPass" . | quote }}
+     NOTE: Please change the default password after login.
+
+For more details, please visit https://kubesphere.io.

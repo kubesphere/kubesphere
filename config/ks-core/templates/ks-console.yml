@@ -32,8 +32,6 @@ spec:
         - mountPath: /opt/kubesphere/console/server/local_config.yaml
           name: ks-console-config
           subPath: local_config.yaml
-        - mountPath: /opt/kubesphere/console/server/sample
-          name: sample-bookinfo
         - mountPath: /etc/localtime
           name: host-time
           readOnly: true
@@ -70,10 +68,6 @@ spec:
           - key: local_config.yaml
             path: local_config.yaml
         name: ks-console-config
-      - configMap:
-          defaultMode: 420
-          name: sample-bookinfo
-        name: sample-bookinfo
       - hostPath:
           path: /etc/localtime
           type: ""
