@@ -66,10 +66,36 @@ Create the name of the service account to use
 Returns user's password or use default
 */}}
 {{- define "getOrDefaultPass" }}
-{{- $pws := (lookup "iam.kubesphere.io/v1alpha2" "User" "" .Name) -}}
-{{- if $pws }}
-{{- $pws.spec.password  -}}
+{{- if not .Values.adminPassword -}}
+{{- printf "$2a$10$zcHepmzfKPoxCVCYZr5K7ORPZZ/ySe9p/7IUb/8u./xHrnSX2LOCO" -}}
 {{- else -}}
-{{- .Default -}}
+{{- printf "%s" .Values.adminPassword -}}
 {{- end -}}
+{{- end }}
+
+{{/*
+Returns user's password or use default. Used by NOTES.txt
+*/}}
+{{- define "printOrDefaultPass" }}
+{{- if not .Values.adminPassword -}}
+{{- printf "P@88w0rd" -}}
+{{- else -}}
+{{- printf "%s" .Values.adminPassword -}}
+{{- end -}}
+{{- end }}
+
+{{- define "getNodeAddress" -}}
+{{- $address := "127.0.0.1"}}
+{{- range $index, $node := (lookup "v1" "Node" "" "").items -}}
+  {{- range $k, $v := $node.status.addresses }}
+    {{- if (eq $v.type "InternalIP") }}
+      {{- $address = $v.address }}
+      {{- break }}
+    {{- end }}
+  {{- end }}
+  {{- if (ne $address "127.0.0.1") }}
+    {{- break }}
+  {{- end }}
+{{- end }}
+{{- printf "%s" $address }}
 {{- end }}
