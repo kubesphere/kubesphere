@@ -1245,6 +1245,15 @@ func (t *tenantOperator) checkClusterPermission(user user.Info, clusters []strin
 	// and then check whether the user has relevant cluster permissions in the target cluster
 
 	for _, clusterName := range clusters {
+
+		cluster, err := t.ksclient.ClusterV1alpha1().Clusters().Get(context.Background(), clusterName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if cluster.Labels["cluster.kubesphere.io/visibility"] == "public" {
+			continue
+		}
+
 		deleteCluster := authorizer.AttributesRecord{
 			User:            user,
 			Verb:            authorizer.VerbDelete,
