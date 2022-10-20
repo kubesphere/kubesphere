@@ -51,7 +51,7 @@ type DevOpsProjectStatus struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // DevOpsProject is the Schema for the devopsprojects API
 // +kubebuilder:resource:categories="devops",scope="Cluster"
@@ -64,7 +64,7 @@ type DevOpsProject struct {
 	Status DevOpsProjectStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // DevOpsProjectList contains a list of DevOpsProject
 type DevOpsProjectList struct {

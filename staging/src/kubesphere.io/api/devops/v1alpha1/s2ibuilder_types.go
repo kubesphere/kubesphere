@@ -461,7 +461,7 @@ type S2iBuilderStatus struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // S2iBuilder is the Schema for the s2ibuilders API
 // +k8s:openapi-gen=true
@@ -479,7 +479,7 @@ type S2iBuilder struct {
 	Status S2iBuilderStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // S2iBuilderList contains a list of S2iBuilder
 type S2iBuilderList struct {

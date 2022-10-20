@@ -56,7 +56,6 @@ type HelmApplicationStatus struct {
 	StatusTime *metav1.Time `json:"statusTime"`
 }
 
-// +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=happ
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="application name",type=string,JSONPath=`.spec.name`
@@ -65,7 +64,7 @@ type HelmApplicationStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // HelmApplication is the Schema for the helmapplications API
 type HelmApplication struct {
@@ -77,7 +76,6 @@ type HelmApplication struct {
 }
 
 // +kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HelmApplicationList contains a list of HelmApplication
 type HelmApplicationList struct {

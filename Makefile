@@ -96,9 +96,9 @@ deploy: manifests ;$(info $(M)...Begin to deploy.)  @ ## Deploy.
 mockgen: ;$(info $(M)...Begin to mockgen.)  @ ## Mockgen.
 	mockgen -package=openpitrix -source=pkg/simple/client/openpitrix/openpitrix.go -destination=pkg/simple/client/openpitrix/mock.go
 
-# Deprecated deepcopy cause we will replace deepcopy-gen with controller-gen
+# Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 deepcopy: ;$(info $(M)...Begin to deepcopy.)  @ ## Deepcopy.
-	hack/generate_group.sh "deepcopy" kubesphere.io/api kubesphere.io/api ${GV} --output-base=staging/src/  -h "hack/boilerplate.go.txt"
+	hack/generate_manifests.sh ${CRD_OPTIONS} ${MANIFESTS} "deepcopy"
 
 openapi: ;$(info $(M)...Begin to openapi.)  @ ## Openapi.
 	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./vendor/kubesphere.io/api/tenant/v1alpha1 -p kubesphere.io/api/tenant/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list  --output-base=staging/src/

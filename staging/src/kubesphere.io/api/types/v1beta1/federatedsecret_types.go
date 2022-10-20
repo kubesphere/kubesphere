@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedSecret struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -56,7 +56,7 @@ type SecretTemplate struct {
 	Type corev1.SecretType `json:"type,omitempty" protobuf:"bytes,3,opt,name=type,casttype=SecretType"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedConfigmapList contains a list of federatedsecretlists
 type FederatedSecretList struct {

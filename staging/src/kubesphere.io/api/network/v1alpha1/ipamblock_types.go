@@ -47,7 +47,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
 type IPAMBlock struct {
@@ -72,7 +72,7 @@ type AllocationAttribute struct {
 	AttrSecondary map[string]string `json:"secondary,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 type IPAMBlockList struct {
 	metav1.TypeMeta `json:",inline"`

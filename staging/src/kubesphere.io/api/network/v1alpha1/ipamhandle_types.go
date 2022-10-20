@@ -34,7 +34,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
 type IPAMHandle struct {
@@ -51,7 +51,7 @@ type IPAMHandleSpec struct {
 	Deleted  bool           `json:"deleted"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 type IPAMHandleList struct {
 	metav1.TypeMeta `json:",inline"`

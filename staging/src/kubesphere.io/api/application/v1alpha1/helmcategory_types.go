@@ -35,7 +35,6 @@ type HelmCategorySpec struct {
 	Locale      string `json:"locale,omitempty"`
 }
 
-// +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=hctg
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="name",type=string,JSONPath=`.spec.name`
@@ -43,7 +42,7 @@ type HelmCategorySpec struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // HelmCategory is the Schema for the helmcategories API
 type HelmCategory struct {
@@ -60,7 +59,6 @@ type HelmCategoryStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HelmCategoryList contains a list of HelmCategory
 type HelmCategoryList struct {

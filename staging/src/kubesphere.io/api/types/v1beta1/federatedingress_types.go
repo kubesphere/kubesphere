@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedIngress struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -48,7 +48,7 @@ type IngressTemplate struct {
 	Spec networkingv1.IngressSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedIngressList contains a list of federatedingresslists
 type FederatedIngressList struct {

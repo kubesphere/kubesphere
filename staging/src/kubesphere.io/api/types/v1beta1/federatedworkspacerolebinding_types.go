@@ -27,7 +27,7 @@ const (
 	FederatedWorkspaceRoleBindingKind             = "FederatedWorkspaceRoleBinding"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedWorkspaceRoleBinding struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -54,7 +54,7 @@ type WorkspaceRoleBindingTemplate struct {
 	RoleRef rbacv1.RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedWorkspaceRoleBindingList contains a list of FederatedWorkspaceRoleBinding
 type FederatedWorkspaceRoleBindingList struct {

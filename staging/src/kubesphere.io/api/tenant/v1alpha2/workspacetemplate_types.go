@@ -29,7 +29,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 
 // WorkspaceTemplate is the Schema for the workspacetemplates API
@@ -41,7 +41,7 @@ type WorkspaceTemplate struct {
 	Spec              typesv1alpha1.FederatedWorkspaceSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 
 // WorkspaceTemplateList contains a list of WorkspaceTemplate

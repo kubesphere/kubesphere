@@ -17,7 +17,7 @@ limitations under the License.
 // NOTE: Boilerplate only.  Ignore this file.
 
 // Package v1alpha1 contains API Schema definitions for the audit v1alpha1 API group
-// +k8s:deepcopy-gen=package,register
+// +kubebuilder:object:generate=true
 // +groupName=auditing.kubesphere.io
 package v1alpha1
 

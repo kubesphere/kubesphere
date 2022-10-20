@@ -30,7 +30,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedGroupBinding struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -54,7 +54,7 @@ type GroupBindingTemplate struct {
 	Users []string `json:"users,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedGroupBindingList contains a list of federateduserlists
 type FederatedGroupBindingList struct {

@@ -108,7 +108,7 @@ type S2iBuildSource struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // S2iRun is the Schema for the s2iruns API
 // +k8s:openapi-gen=true
@@ -127,7 +127,7 @@ type S2iRun struct {
 	Status S2iRunStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // S2iRunList contains a list of S2iRun
 type S2iRunList struct {

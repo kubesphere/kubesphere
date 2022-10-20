@@ -16,5 +16,5 @@ limitations under the License.
 
 // Package v2beta1 contains API Schema definitions for the alerting v2beta1 API group
 // +groupName=alerting.kubesphere.io
-// +k8s:deepcopy-gen=package,register
+// +kubebuilder:object:generate=true
 package v2beta1

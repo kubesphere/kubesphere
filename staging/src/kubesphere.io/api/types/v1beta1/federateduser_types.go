@@ -28,7 +28,7 @@ const (
 	FederatedUserKind             = "FederatedUser"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedUser struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -51,7 +51,7 @@ type UserTemplate struct {
 	Status v1alpha2.UserStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedUserList contains a list of FederatedUser
 type FederatedUserList struct {

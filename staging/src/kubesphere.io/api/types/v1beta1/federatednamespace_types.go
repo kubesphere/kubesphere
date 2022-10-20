@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedNamespace struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -48,7 +48,7 @@ type NamespaceTemplate struct {
 	Spec corev1.NamespaceSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedNamespaceList contains a list of federatednamespacelists
 type FederatedNamespaceList struct {

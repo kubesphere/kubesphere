@@ -58,7 +58,7 @@ type PluginInfo struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:noStatus
 // +genclient:nonNamespaced
 // +kubebuilder:printcolumn:name="Provisioner",type="string",JSONPath=".spec.provisioner"
@@ -84,7 +84,7 @@ type StorageClassCapabilitySpec struct {
 	Features    CapabilityFeatures `json:"features"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 
 // StorageClassCapabilityList contains a list of StorageClassCapability
@@ -95,7 +95,7 @@ type StorageClassCapabilityList struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:noStatus
 // +genclient:nonNamespaced
 // +kubebuilder:printcolumn:name="Provisioner",type="string",JSONPath=".spec.pluginInfo.name"
@@ -118,7 +118,7 @@ type ProvisionerCapabilitySpec struct {
 	Features   CapabilityFeatures `json:"features"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 type ProvisionerCapabilityList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`

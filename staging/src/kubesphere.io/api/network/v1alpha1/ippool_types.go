@@ -43,7 +43,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
@@ -113,7 +113,7 @@ type IPPoolSpec struct {
 	DNS     DNS     `json:"dns,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 type IPPoolList struct {
 	metav1.TypeMeta `json:",inline"`

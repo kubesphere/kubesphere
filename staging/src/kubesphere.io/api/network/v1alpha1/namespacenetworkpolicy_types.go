@@ -128,7 +128,7 @@ type NetworkPolicyPeer struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // NamespaceNetworkPolicy is the Schema for the namespacenetworkpolicies API
 // +k8s:openapi-gen=true
@@ -140,7 +140,7 @@ type NamespaceNetworkPolicy struct {
 	Spec NamespaceNetworkPolicySpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // NamespaceNetworkPolicyList contains a list of NamespaceNetworkPolicy
 type NamespaceNetworkPolicyList struct {

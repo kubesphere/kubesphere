@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
+// +kubebuilder:object:generate=true
 // +k8s:conversion-gen=kubesphere.io/api/types
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=types.kubefed.io

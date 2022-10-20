@@ -30,7 +30,7 @@ fi
 
 cd "${KUBE_ROOT}" || exit 1
 
-IFS=$'\n' read -r -d '' -a files < <( find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./pkg/apis/*" -not -path "./pkg/client/*" && printf '\0' )
+IFS=$'\n' read -r -d '' -a files < <( find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./pkg/apis/*" -not -path "./pkg/client/*" -not -name "zz_generated.deepcopy.go" && printf '\0' )
 
 output=$(goimports -local kubesphere.io/kubesphere -l "${files[@]}")
 

@@ -33,7 +33,7 @@ type GroupRef struct {
 
 // +genclient:nonNamespaced
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 // +kubebuilder:printcolumn:name="Group",type="string",JSONPath=".groupRef.name"
 // +kubebuilder:printcolumn:name="Users",type="string",JSONPath=".users"
@@ -48,7 +48,7 @@ type GroupBinding struct {
 	Users    []string `json:"users,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 
 // GroupBindingList contains a list of GroupBinding

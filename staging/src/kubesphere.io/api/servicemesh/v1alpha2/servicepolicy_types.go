@@ -107,7 +107,7 @@ type ServicePolicyStatus struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // ServicePolicy is the Schema for the servicepolicies API
 // +k8s:openapi-gen=true
@@ -119,7 +119,7 @@ type ServicePolicy struct {
 	Status ServicePolicyStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // ServicePolicyList contains a list of ServicePolicy
 type ServicePolicyList struct {

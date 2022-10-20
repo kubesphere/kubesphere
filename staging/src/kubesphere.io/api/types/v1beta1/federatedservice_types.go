@@ -28,7 +28,7 @@ const (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
 type FederatedService struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -50,7 +50,7 @@ type ServiceTemplate struct {
 	Spec              corev1.ServiceSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedServiceList contains a list of federatedservicelists
 type FederatedServiceList struct {

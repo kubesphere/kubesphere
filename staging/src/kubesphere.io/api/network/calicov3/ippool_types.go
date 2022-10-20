@@ -22,7 +22,7 @@ import (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 // +genclient:nonNamespaced
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
@@ -32,7 +32,7 @@ type IPPool struct {
 	Spec              v3.IPPoolSpec `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // IPPoolList contains a list of IPPool resources.
 type IPPoolList struct {

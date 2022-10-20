@@ -17,7 +17,7 @@ limitations under the License.
 // NOTE: Boilerplate only.  Ignore this file.
 
 // Package v2beta1 contains API Schema definitions for the notification v2beta1 API group
-// +k8s:deepcopy-gen=package,register
+// +kubebuilder:object:generate=true
 // +groupName=notification.kubesphere.io
 package v2beta1
 
