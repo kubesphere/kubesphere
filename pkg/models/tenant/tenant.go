@@ -1255,7 +1255,7 @@ func (t *tenantOperator) checkClusterPermission(user user.Info, clusters []strin
 			ResourceRequest: true,
 			ResourceScope:   request.GlobalScope,
 		}
-		authorize, reason, err := t.authorizer.Authorize(deleteCluster)
+		authorize, _, err := t.authorizer.Authorize(deleteCluster)
 		if err != nil {
 			return err
 		}
@@ -1278,7 +1278,7 @@ func (t *tenantOperator) checkClusterPermission(user user.Info, clusters []strin
 		}
 
 		if !allowed {
-			return errors.NewForbidden(clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster), clusterName, fmt.Errorf(reason))
+			return errors.NewForbidden(clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster), clusterName, fmt.Errorf("user is not allowed to use the cluster %s", clusterName))
 		}
 	}
 
