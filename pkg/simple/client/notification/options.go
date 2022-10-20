@@ -37,3 +37,7 @@ func (s *Options) ApplyTo(options *Options) {
 		options.Endpoint = s.Endpoint
 	}
 }
+
+func (s *Options) IsEnabled() bool {
+	return s.Endpoint != ""
+}
