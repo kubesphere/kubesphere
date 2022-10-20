@@ -202,30 +202,40 @@ func (h *tenantHandler) CreateNamespace(request *restful.Request, response *rest
 	response.WriteEntity(created)
 }
 
-func (h *tenantHandler) CreateWorkspaceTemplate(request *restful.Request, response *restful.Response) {
+func (h *tenantHandler) CreateWorkspaceTemplate(req *restful.Request, resp *restful.Response) {
 	var workspace tenantv1alpha2.WorkspaceTemplate
 
-	err := request.ReadEntity(&workspace)
+	err := req.ReadEntity(&workspace)
 
 	if err != nil {
 		klog.Error(err)
-		api.HandleBadRequest(response, request, err)
+		api.HandleBadRequest(resp, req, err)
 		return
 	}
+	requestUser, ok := request.UserFrom(req.Request.Context())
+	if !ok {
+		err := fmt.Errorf("cannot obtain user info")
+		klog.Errorln(err)
+		api.HandleForbidden(resp, req, err)
+	}
 
-	created, err := h.tenant.CreateWorkspaceTemplate(&workspace)
+	created, err := h.tenant.CreateWorkspaceTemplate(requestUser, &workspace)
 
 	if err != nil {
 		klog.Error(err)
 		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
+			api.HandleNotFound(resp, req, err)
 			return
 		}
-		api.HandleBadRequest(response, request, err)
+		if errors.IsForbidden(err) {
+			api.HandleForbidden(resp, req, err)
+			return
+		}
+		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
-	response.WriteEntity(created)
+	resp.WriteEntity(created)
 }
 
 func (h *tenantHandler) DeleteWorkspaceTemplate(request *restful.Request, response *restful.Response) {
@@ -253,42 +263,53 @@ func (h *tenantHandler) DeleteWorkspaceTemplate(request *restful.Request, respon
 	response.WriteEntity(servererr.None)
 }
 
-func (h *tenantHandler) UpdateWorkspaceTemplate(request *restful.Request, response *restful.Response) {
-	workspaceName := request.PathParameter("workspace")
+func (h *tenantHandler) UpdateWorkspaceTemplate(req *restful.Request, resp *restful.Response) {
+	workspaceName := req.PathParameter("workspace")
 	var workspace tenantv1alpha2.WorkspaceTemplate
 
-	err := request.ReadEntity(&workspace)
+	err := req.ReadEntity(&workspace)
 
 	if err != nil {
 		klog.Error(err)
-		api.HandleBadRequest(response, request, err)
+		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
 	if workspaceName != workspace.Name {
 		err := fmt.Errorf("the name of the object (%s) does not match the name on the URL (%s)", workspace.Name, workspaceName)
 		klog.Errorf("%+v", err)
-		api.HandleBadRequest(response, request, err)
+		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
-	updated, err := h.tenant.UpdateWorkspaceTemplate(&workspace)
+	requestUser, ok := request.UserFrom(req.Request.Context())
+	if !ok {
+		err := fmt.Errorf("cannot obtain user info")
+		klog.Errorln(err)
+		api.HandleForbidden(resp, req, err)
+	}
+
+	updated, err := h.tenant.UpdateWorkspaceTemplate(requestUser, &workspace)
 
 	if err != nil {
 		klog.Error(err)
 		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
+			api.HandleNotFound(resp, req, err)
 			return
 		}
 		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
+			api.HandleBadRequest(resp, req, err)
 			return
 		}
-		api.HandleInternalError(response, request, err)
+		if errors.IsForbidden(err) {
+			api.HandleForbidden(resp, req, err)
+			return
+		}
+		api.HandleInternalError(resp, req, err)
 		return
 	}
 
-	response.WriteEntity(updated)
+	resp.WriteEntity(updated)
 }
 
 func (h *tenantHandler) DescribeWorkspaceTemplate(request *restful.Request, response *restful.Response) {

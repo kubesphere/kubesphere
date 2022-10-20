@@ -82,9 +82,9 @@ type Interface interface {
 	ListWorkspaces(user user.Info, queryParam *query.Query) (*api.ListResult, error)
 	GetWorkspace(workspace string) (*tenantv1alpha1.Workspace, error)
 	ListWorkspaceTemplates(user user.Info, query *query.Query) (*api.ListResult, error)
-	CreateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
+	CreateWorkspaceTemplate(user user.Info, workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
 	DeleteWorkspaceTemplate(workspace string, opts metav1.DeleteOptions) error
-	UpdateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
+	UpdateWorkspaceTemplate(user user.Info, workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
 	PatchWorkspaceTemplate(user user.Info, workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error)
 	DescribeWorkspaceTemplate(workspace string) (*tenantv1alpha2.WorkspaceTemplate, error)
 	ListNamespaces(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
@@ -534,81 +534,53 @@ func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string
 	}
 
 	if manageWorkspaceTemplateRequest {
-		deleteWST := authorizer.AttributesRecord{
-			User:            user,
-			Verb:            authorizer.VerbDelete,
-			APIGroup:        tenantv1alpha2.SchemeGroupVersion.Group,
-			APIVersion:      tenantv1alpha2.SchemeGroupVersion.Version,
-			Resource:        tenantv1alpha2.ResourcePluralWorkspaceTemplate,
-			ResourceRequest: true,
-			ResourceScope:   request.GlobalScope,
-		}
-		authorize, reason, err := t.authorizer.Authorize(deleteWST)
+		err := t.checkWorkspaceTemplatePermission(user, workspace)
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-		if authorize != authorizer.DecisionAllow {
-			err := errors.NewForbidden(tenantv1alpha2.Resource(tenantv1alpha2.ResourcePluralWorkspaceTemplate), workspace, fmt.Errorf(reason))
+	}
+
+	if clusterNames.Len() > 0 {
+		err := t.checkClusterPermission(user, clusterNames.List())
+		if err != nil {
 			klog.Error(err)
 			return nil, err
-		}
-	}
-	// Checking whether the user can manage the cluster requires authentication from two aspects.
-	// First check whether the user has relevant global permissions,
-	// and then check whether the user has relevant cluster permissions in the target cluster
-	if clusterNames.Len() > 0 {
-		for _, clusterName := range clusterNames.List() {
-			deleteCluster := authorizer.AttributesRecord{
-				User:            user,
-				Verb:            authorizer.VerbDelete,
-				APIGroup:        clusterv1alpha1.SchemeGroupVersion.Version,
-				APIVersion:      clusterv1alpha1.SchemeGroupVersion.Version,
-				Resource:        clusterv1alpha1.ResourcesPluralCluster,
-				Cluster:         clusterName,
-				ResourceRequest: true,
-				ResourceScope:   request.GlobalScope,
-			}
-			authorize, reason, err := t.authorizer.Authorize(deleteCluster)
-			if err != nil {
-				klog.Error(err)
-				return nil, err
-			}
-
-			if authorize == authorizer.DecisionAllow {
-				continue
-			}
-
-			list, err := t.getClusterRoleBindingsByUser(clusterName, user.GetName())
-			if err != nil {
-				klog.Error(err)
-				return nil, err
-			}
-
-			allowed := false
-			for _, clusterRolebinding := range list.Items {
-				if clusterRolebinding.RoleRef.Name == iamv1alpha2.ClusterAdmin {
-					allowed = true
-					break
-				}
-			}
-
-			if !allowed {
-				err = errors.NewForbidden(clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster), clusterName, fmt.Errorf(reason))
-				klog.Error(err)
-				return nil, err
-			}
 		}
 	}
 
 	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(context.Background(), workspace, types.JSONPatchType, data, metav1.PatchOptions{})
 }
 
-func (t *tenantOperator) CreateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
+func (t *tenantOperator) CreateWorkspaceTemplate(user user.Info, workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
+	if len(workspace.Spec.Placement.Clusters) != 0 {
+		clusters := make([]string, 0)
+		for _, v := range workspace.Spec.Placement.Clusters {
+			clusters = append(clusters, v.Name)
+		}
+		err := t.checkClusterPermission(user, clusters)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+	}
 	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Create(context.Background(), workspace, metav1.CreateOptions{})
 }
 
-func (t *tenantOperator) UpdateWorkspaceTemplate(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
+func (t *tenantOperator) UpdateWorkspaceTemplate(user user.Info, workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
+	if len(workspace.Spec.Placement.Clusters) != 0 {
+		clusters := make([]string, 0)
+		for _, v := range workspace.Spec.Placement.Clusters {
+			clusters = append(clusters, v.Name)
+		}
+		err := t.checkClusterPermission(user, clusters)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+	}
 	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Update(context.Background(), workspace, metav1.UpdateOptions{})
 }
 
@@ -1245,4 +1217,79 @@ func stringContains(str string, subStrs []string) bool {
 		}
 	}
 	return false
+}
+
+func (t *tenantOperator) checkWorkspaceTemplatePermission(user user.Info, workspace string) error {
+	deleteWST := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            authorizer.VerbDelete,
+		APIGroup:        tenantv1alpha2.SchemeGroupVersion.Group,
+		APIVersion:      tenantv1alpha2.SchemeGroupVersion.Version,
+		Resource:        tenantv1alpha2.ResourcePluralWorkspaceTemplate,
+		ResourceRequest: true,
+		ResourceScope:   request.GlobalScope,
+	}
+	authorize, reason, err := t.authorizer.Authorize(deleteWST)
+	if err != nil {
+		return err
+	}
+	if authorize != authorizer.DecisionAllow {
+		return errors.NewForbidden(tenantv1alpha2.Resource(tenantv1alpha2.ResourcePluralWorkspaceTemplate), workspace, fmt.Errorf(reason))
+	}
+	return nil
+}
+
+func (t *tenantOperator) checkClusterPermission(user user.Info, clusters []string) error {
+	// Checking whether the user can manage the cluster requires authentication from two aspects.
+	// First check whether the user has relevant global permissions,
+	// and then check whether the user has relevant cluster permissions in the target cluster
+
+	for _, clusterName := range clusters {
+
+		cluster, err := t.ksclient.ClusterV1alpha1().Clusters().Get(context.Background(), clusterName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if cluster.Labels["cluster.kubesphere.io/visibility"] == "public" {
+			continue
+		}
+
+		deleteCluster := authorizer.AttributesRecord{
+			User:            user,
+			Verb:            authorizer.VerbDelete,
+			APIGroup:        clusterv1alpha1.SchemeGroupVersion.Version,
+			APIVersion:      clusterv1alpha1.SchemeGroupVersion.Version,
+			Resource:        clusterv1alpha1.ResourcesPluralCluster,
+			Cluster:         clusterName,
+			ResourceRequest: true,
+			ResourceScope:   request.GlobalScope,
+		}
+		authorize, _, err := t.authorizer.Authorize(deleteCluster)
+		if err != nil {
+			return err
+		}
+
+		if authorize == authorizer.DecisionAllow {
+			continue
+		}
+
+		list, err := t.getClusterRoleBindingsByUser(clusterName, user.GetName())
+		if err != nil {
+			return err
+		}
+
+		allowed := false
+		for _, clusterRolebinding := range list.Items {
+			if clusterRolebinding.RoleRef.Name == iamv1alpha2.ClusterAdmin {
+				allowed = true
+				break
+			}
+		}
+
+		if !allowed {
+			return errors.NewForbidden(clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster), clusterName, fmt.Errorf("user is not allowed to use the cluster %s", clusterName))
+		}
+	}
+
+	return nil
 }
