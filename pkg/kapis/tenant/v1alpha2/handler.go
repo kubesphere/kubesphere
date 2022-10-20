@@ -227,6 +227,10 @@ func (h *tenantHandler) CreateWorkspaceTemplate(req *restful.Request, resp *rest
 			api.HandleNotFound(resp, req, err)
 			return
 		}
+		if errors.IsForbidden(err) {
+			api.HandleForbidden(resp, req, err)
+			return
+		}
 		api.HandleBadRequest(resp, req, err)
 		return
 	}
@@ -295,6 +299,10 @@ func (h *tenantHandler) UpdateWorkspaceTemplate(req *restful.Request, resp *rest
 		}
 		if errors.IsBadRequest(err) {
 			api.HandleBadRequest(resp, req, err)
+			return
+		}
+		if errors.IsForbidden(err) {
+			api.HandleForbidden(resp, req, err)
 			return
 		}
 		api.HandleInternalError(resp, req, err)
