@@ -697,6 +697,9 @@ func (o *ruleGroupOperator) ListGlobalAlerts(ctx context.Context,
 	listResult := resources.DefaultList(alerts, queryParam, func(left, right runtime.Object, field query.Field) bool {
 		return o.compareAlert(&left.(*wrapAlert).Alert, &right.(*wrapAlert).Alert, field)
 	}, func(obj runtime.Object, filter query.Filter) bool {
+		if filter.Field == kapialertingv2beta1.FieldBuiltin { // ignoring this filter because it is filtered at the front
+			return true
+		}
 		return filterAlert(&obj.(*wrapAlert).Alert, filter)
 	})
 	for i := range listResult.Items {
