@@ -671,6 +671,9 @@ github.com/nxadm/tail/winfile
 # github.com/oklog/ulid v1.3.1 => github.com/oklog/ulid v1.3.1
 ## explicit
 github.com/oklog/ulid
+# github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
+## explicit
+github.com/oliveagle/jsonpath
 # github.com/onsi/ginkgo v1.16.4 => github.com/onsi/ginkgo v1.14.0
 ## explicit; go 1.13
 github.com/onsi/ginkgo

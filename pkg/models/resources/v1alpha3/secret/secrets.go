@@ -17,13 +17,18 @@ limitations under the License.
 package secret
 
 import (
+	"encoding/json"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
+	"k8s.io/klog"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 
+	"github.com/oliveagle/jsonpath"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -74,5 +79,35 @@ func (s *secretSearcher) filter(object runtime.Object, filter query.Filter) bool
 		return false
 	}
 
+	if filter.Field == query.ParameterFieldSelector {
+		return contains(secret, filter.Value)
+	}
+
 	return v1alpha3.DefaultObjectMetaFilter(secret.ObjectMeta, filter)
+}
+
+// implement a generic query filter with jsonpath.JsonPathLookup
+// https://github.com/oliveagle/jsonpath/blob/master/readme.md
+func contains(secret *v1.Secret, value query.Value) bool {
+	data, err := json.Marshal(secret)
+	if err != nil {
+		klog.Error(err)
+		return false
+	}
+	var jsonData interface{}
+	if err = json.Unmarshal(data, &jsonData); err != nil {
+		klog.Error(err)
+		return false
+	}
+
+	strValues := strings.Split(string(value), "=")
+	res, err := jsonpath.JsonPathLookup(jsonData, "$."+strValues[0])
+	if err != nil {
+		klog.Error(err)
+		return false
+	}
+	if res != strValues[1] {
+		return false
+	}
+	return true
 }
