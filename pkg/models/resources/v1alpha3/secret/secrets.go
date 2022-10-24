@@ -18,6 +18,7 @@ package secret
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -86,28 +87,46 @@ func (s *secretSearcher) filter(object runtime.Object, filter query.Filter) bool
 	return v1alpha3.DefaultObjectMetaFilter(secret.ObjectMeta, filter)
 }
 
-// implement a generic query filter with jsonpath.JsonPathLookup
+// implement a generic query filter to support multiple field selectors with "jsonpath.JsonPathLookup"
 // https://github.com/oliveagle/jsonpath/blob/master/readme.md
-func contains(secret *v1.Secret, value query.Value) bool {
-	data, err := json.Marshal(secret)
-	if err != nil {
-		klog.Error(err)
-		return false
-	}
-	var jsonData interface{}
-	if err = json.Unmarshal(data, &jsonData); err != nil {
-		klog.Error(err)
-		return false
-	}
-
-	strValues := strings.Split(string(value), "=")
-	res, err := jsonpath.JsonPathLookup(jsonData, "$."+strValues[0])
-	if err != nil {
-		klog.Error(err)
-		return false
-	}
-	if res != strValues[1] {
-		return false
+func contains(secret *v1.Secret, fieldSelector query.Value) bool {
+	selectors := strings.Split(string(fieldSelector), ",")
+	for _, selector := range selectors {
+		var negative bool
+		var key string
+		var value string
+		// supports '=', and '!='.(e.g. ?fieldSelector=key1=value1,key2=value2)
+		if strings.Contains(selector, "!=") {
+			negative = true
+			keyValues := strings.Split(selector, "!=")
+			key = keyValues[0]
+			value = keyValues[1]
+		} else {
+			negative = false
+			keyValues := strings.Split(selector, "=")
+			key = keyValues[0]
+			value = keyValues[1]
+		}
+		var input map[string]interface{}
+		data, err := json.Marshal(secret)
+		if err != nil {
+			klog.V(4).Infof("failed marshal to JSON string: %s", err)
+			return false
+		}
+		if err = json.Unmarshal(data, &input); err != nil {
+			klog.V(4).Infof("failed unmarshal to map object: %s", err)
+			return false
+		}
+		rawValue, err := jsonpath.JsonPathLookup(input, "$."+key)
+		if err != nil {
+			klog.V(4).Infof("failed to lookup jsonpath: %s", err)
+			return false
+		}
+		if (negative && fmt.Sprintf("%v", rawValue) != value) || (!negative && fmt.Sprintf("%v", rawValue) == value) {
+			continue
+		} else {
+			return false
+		}
 	}
 	return true
 }

@@ -88,7 +88,7 @@ func AddToContainer(c *restful.Container, informerFactory informers.InformerFact
 		Param(webservice.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(webservice.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(webservice.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Param(webservice.QueryParameter(query.ParameterFieldSelector, "field selector used for filtering, e.g. fieldSelector=type%3Dkubernetes.io%2Fdockerconfigjson").Required(false)).
+		Param(webservice.QueryParameter(query.ParameterFieldSelector, "field selector used for filtering, e.g. fieldSelector=type=kubernetes.io/dockerconfigjson, multiple separated by comma").Required(false)).
 		Returns(http.StatusOK, ok, api.ListResult{}))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}/{name}").
