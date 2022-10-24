@@ -8,7 +8,6 @@ import (
 // Common errors
 var (
 	ErrResolverUndefined = errors.New("resolver undefined")
-	ErrEmptyDescriptors  = errors.New("empty descriptors")
 )
 
 // Path validation related errors

@@ -86,7 +86,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 
 	resp, err := req.doWithRetries(ctx, nil)
 	if err != nil {
-		if errors.Cause(err) != ErrInvalidAuthorization {
+		if !errors.Is(err, ErrInvalidAuthorization) {
 			return nil, err
 		}
 		log.G(ctx).WithError(err).Debugf("Unable to check existence, continuing with push")
@@ -109,12 +109,15 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 						// TODO: Set updated time?
 					},
 				})
+				resp.Body.Close()
 				return nil, errors.Wrapf(errdefs.ErrAlreadyExists, "content %v on remote", desc.Digest)
 			}
 		} else if resp.StatusCode != http.StatusNotFound {
+			resp.Body.Close()
 			// TODO: log error
 			return nil, errors.Errorf("unexpected response: %s", resp.Status)
 		}
+		resp.Body.Close()
 	}
 
 	if isManifest {
@@ -136,7 +139,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 			//
 			// for the private repo, we should remove mount-from
 			// query and send the request again.
-			resp, err = preq.do(pctx)
+			resp, err = preq.doWithRetries(pctx, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -155,6 +158,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 				return nil, err
 			}
 		}
+		defer resp.Body.Close()
 
 		switch resp.StatusCode {
 		case http.StatusOK, http.StatusAccepted, http.StatusNoContent:
@@ -204,6 +208,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 		q.Add("digest", desc.Digest.String())
 
 		req = p.request(lhost, http.MethodPut)
+		req.header.Set("Content-Type", "application/octet-stream")
 		req.path = lurl.Path + "?" + q.Encode()
 	}
 	p.tracker.SetStatus(ref, Status{
@@ -234,7 +239,7 @@ func (p dockerPusher) Push(ctx context.Context, desc ocispec.Descriptor) (conten
 
 	go func() {
 		defer close(respC)
-		resp, err = req.do(ctx)
+		resp, err := req.doWithRetries(ctx, nil)
 		if err != nil {
 			pr.CloseWithError(err)
 			return
@@ -337,11 +342,12 @@ func (pw *pushWriter) Commit(ctx context.Context, size int64, expected digest.Di
 	if resp == nil {
 		return errors.New("no response")
 	}
+	defer resp.Body.Close()
 
 	// 201 is specified return status, some registries return
-	// 200 or 204.
+	// 200, 202 or 204.
 	switch resp.StatusCode {
-	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
+	case http.StatusOK, http.StatusCreated, http.StatusNoContent, http.StatusAccepted:
 	default:
 		return errors.Errorf("unexpected status: %s", resp.Status)
 	}

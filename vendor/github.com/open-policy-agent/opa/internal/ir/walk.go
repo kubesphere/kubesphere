@@ -26,7 +26,9 @@ type walkerImpl struct {
 }
 
 func (w *walkerImpl) walk(x interface{}) {
-
+	if w.err != nil { // abort on error
+		return
+	}
 	if x == nil {
 		return
 	}
@@ -45,7 +47,7 @@ func (w *walkerImpl) walk(x interface{}) {
 	switch x := x.(type) {
 	case *Policy:
 		w.walk(x.Static)
-		w.walk(x.Plan)
+		w.walk(x.Plans)
 		w.walk(x.Funcs)
 	case *Static:
 		for _, s := range x.Strings {
@@ -53,6 +55,13 @@ func (w *walkerImpl) walk(x interface{}) {
 		}
 		for _, f := range x.BuiltinFuncs {
 			w.walk(f)
+		}
+		for _, f := range x.Files {
+			w.walk(f)
+		}
+	case *Plans:
+		for _, pl := range x.Plans {
+			w.walk(pl)
 		}
 	case *Funcs:
 		for _, fn := range x.Funcs {

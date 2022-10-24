@@ -20,7 +20,7 @@ func builtinTypeName(a ast.Value) (ast.Value, error) {
 		return ast.String("number"), nil
 	case ast.String:
 		return ast.String("string"), nil
-	case ast.Array:
+	case *ast.Array:
 		return ast.String("array"), nil
 	case ast.Object:
 		return ast.String("object"), nil

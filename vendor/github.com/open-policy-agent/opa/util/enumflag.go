@@ -41,6 +41,11 @@ func (f *EnumFlag) String() string {
 	return f.vs[f.i]
 }
 
+// IsSet will return true if the EnumFlag has been set.
+func (f *EnumFlag) IsSet() bool {
+	return f.i != -1
+}
+
 // Set sets the enum value. If s is not a valid enum value, an error is
 // returned.
 func (f *EnumFlag) Set(s string) error {

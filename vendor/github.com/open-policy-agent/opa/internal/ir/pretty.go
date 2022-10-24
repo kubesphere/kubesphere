@@ -11,13 +11,13 @@ import (
 )
 
 // Pretty writes a human-readable representation of an IR object to w.
-func Pretty(w io.Writer, x interface{}) {
+func Pretty(w io.Writer, x interface{}) error {
 
 	pp := &prettyPrinter{
 		depth: -1,
 		w:     w,
 	}
-	Walk(pp, x)
+	return Walk(pp, x)
 }
 
 type prettyPrinter struct {

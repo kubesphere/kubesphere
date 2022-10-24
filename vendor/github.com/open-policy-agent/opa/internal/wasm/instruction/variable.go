@@ -36,3 +36,19 @@ func (SetLocal) Op() opcode.Opcode {
 func (i SetLocal) ImmediateArgs() []interface{} {
 	return []interface{}{i.Index}
 }
+
+// TeeLocal represents the WASM tee_local instruction.
+type TeeLocal struct {
+	Index uint32
+}
+
+// Op returns the opcode of the instruction.
+func (TeeLocal) Op() opcode.Opcode {
+	return opcode.TeeLocal
+}
+
+// ImmediateArgs returns the index of the local variable to "tee" with the top of
+// the stack (like set, but retaining the top of the stack).
+func (i TeeLocal) ImmediateArgs() []interface{} {
+	return []interface{}{i.Index}
+}

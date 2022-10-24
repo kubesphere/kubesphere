@@ -1,8 +1,12 @@
 package oras
 
 import (
+	"context"
+	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/containerd/containerd/images"
 	orascontent "github.com/deislabs/oras/pkg/content"
@@ -126,4 +130,21 @@ func WithPushBaseHandler(handlers ...images.Handler) PushOpt {
 		o.baseHandlers = append(o.baseHandlers, handlers...)
 		return nil
 	}
+}
+
+// WithPushStatusTrack report results to a provided writer
+func WithPushStatusTrack(writer io.Writer) PushOpt {
+	return WithPushBaseHandler(pushStatusTrack(writer))
+}
+
+func pushStatusTrack(writer io.Writer) images.Handler {
+	var printLock sync.Mutex
+	return images.HandlerFunc(func(ctx context.Context, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
+		if name, ok := orascontent.ResolveName(desc); ok {
+			printLock.Lock()
+			defer printLock.Unlock()
+			fmt.Fprintln(writer, "Uploading", desc.Digest.Encoded()[:12], name)
+		}
+		return nil, nil
+	})
 }

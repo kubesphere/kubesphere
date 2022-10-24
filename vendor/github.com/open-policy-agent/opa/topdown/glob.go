@@ -1,7 +1,7 @@
 package topdown
 
 import (
-	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/gobwas/glob"
@@ -33,7 +33,13 @@ func builtinGlobMatch(a, b, c ast.Value) (ast.Value, error) {
 		return nil, err
 	}
 
-	id := fmt.Sprintf("%s-%v", pattern, delimiters)
+	builder := strings.Builder{}
+	builder.WriteString(string(pattern))
+	builder.WriteRune('-')
+	for _, v := range delimiters {
+		builder.WriteRune(v)
+	}
+	id := builder.String()
 
 	globCacheLock.Lock()
 	defer globCacheLock.Unlock()
@@ -46,7 +52,8 @@ func builtinGlobMatch(a, b, c ast.Value) (ast.Value, error) {
 		globCache[id] = p
 	}
 
-	return ast.Boolean(p.Match(string(match))), nil
+	m := p.Match(string(match))
+	return ast.Boolean(m), nil
 }
 
 func builtinGlobQuoteMeta(a ast.Value) (ast.Value, error) {

@@ -61,7 +61,7 @@ func fetchContent(ctx context.Context, fetcher remotes.Fetcher, desc ocispec.Des
 
 	store := opts.contentProvideIngester
 	if store == nil {
-		store = newHybridStoreFromIngester(ingester)
+		store = newHybridStoreFromIngester(ingester, opts.cachedMediaTypes)
 	}
 	handlers := []images.Handler{
 		filterHandler(opts, opts.allowedMediaTypes...),

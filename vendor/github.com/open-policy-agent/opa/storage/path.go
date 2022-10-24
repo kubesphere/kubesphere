@@ -70,7 +70,7 @@ func NewPathForRef(ref ast.Ref) (path Path, err error) {
 				Code:    NotFoundErr,
 				Message: fmt.Sprintf("%v: does not exist", ref),
 			}
-		case ast.Array, ast.Object, ast.Set:
+		case *ast.Array, ast.Object, ast.Set:
 			return nil, fmt.Errorf("composites cannot be base document keys: %v", ref)
 		default:
 			return nil, fmt.Errorf("unresolved reference (indicates error in caller): %v", ref)
@@ -127,7 +127,7 @@ func (p Path) Ref(head *ast.Term) (ref ast.Ref) {
 	for i := range p {
 		idx, err := strconv.ParseInt(p[i], 10, 64)
 		if err == nil {
-			ref[i+1] = ast.IntNumberTerm(int(idx))
+			ref[i+1] = ast.UIntNumberTerm(uint64(idx))
 		} else {
 			ref[i+1] = ast.StringTerm(p[i])
 		}

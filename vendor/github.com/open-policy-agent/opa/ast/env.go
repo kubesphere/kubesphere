@@ -11,14 +11,17 @@ import (
 
 // TypeEnv contains type info for static analysis such as type checking.
 type TypeEnv struct {
-	tree *typeTreeNode
-	next *TypeEnv
+	tree       *typeTreeNode
+	next       *TypeEnv
+	newChecker func() *typeChecker
 }
 
-// NewTypeEnv returns an empty TypeEnv.
-func NewTypeEnv() *TypeEnv {
+// newTypeEnv returns an empty TypeEnv. The constructor is not exported because
+// type environments should only be created by the type checker.
+func newTypeEnv(f func() *typeChecker) *TypeEnv {
 	return &TypeEnv{
-		tree: newTypeTree(),
+		tree:       newTypeTree(),
+		newChecker: f,
 	}
 }
 
@@ -42,10 +45,10 @@ func (env *TypeEnv) Get(x interface{}) types.Type {
 		return types.NewString()
 
 	// Composites.
-	case Array:
-		static := make([]types.Type, len(x))
+	case *Array:
+		static := make([]types.Type, x.Len())
 		for i := range static {
-			tpe := env.Get(x[i].Value)
+			tpe := env.Get(x.Elem(i).Value)
 			static[i] = tpe
 		}
 
@@ -56,7 +59,7 @@ func (env *TypeEnv) Get(x interface{}) types.Type {
 
 		return types.NewArray(static, dynamic)
 
-	case Object:
+	case *object:
 		static := []*types.StaticProperty{}
 		var dynamic *types.DynamicProperty
 
@@ -94,22 +97,19 @@ func (env *TypeEnv) Get(x interface{}) types.Type {
 
 	// Comprehensions.
 	case *ArrayComprehension:
-		checker := newTypeChecker()
-		cpy, errs := checker.CheckBody(env, x.Body)
+		cpy, errs := env.newChecker().CheckBody(env, x.Body)
 		if len(errs) == 0 {
 			return types.NewArray(nil, cpy.Get(x.Term))
 		}
 		return nil
 	case *ObjectComprehension:
-		checker := newTypeChecker()
-		cpy, errs := checker.CheckBody(env, x.Body)
+		cpy, errs := env.newChecker().CheckBody(env, x.Body)
 		if len(errs) == 0 {
 			return types.NewObject(nil, types.NewDynamicProperty(cpy.Get(x.Key), cpy.Get(x.Value)))
 		}
 		return nil
 	case *SetComprehension:
-		checker := newTypeChecker()
-		cpy, errs := checker.CheckBody(env, x.Body)
+		cpy, errs := env.newChecker().CheckBody(env, x.Body)
 		if len(errs) == 0 {
 			return types.NewSet(cpy.Get(x.Term))
 		}
@@ -127,6 +127,10 @@ func (env *TypeEnv) Get(x interface{}) types.Type {
 		if env.next != nil {
 			return env.next.Get(x)
 		}
+		return nil
+
+	// Calls.
+	case Call:
 		return nil
 
 	default:
@@ -315,7 +319,7 @@ func selectRef(tpe types.Type, ref Ref) types.Type {
 	head, tail := ref[0], ref[1:]
 
 	switch head.Value.(type) {
-	case Var, Ref, Array, Object, Set:
+	case Var, Ref, *Array, Object, Set:
 		return selectRef(types.Values(tpe), tail)
 	default:
 		return selectRef(selectConstant(tpe, head), tail)

@@ -4,6 +4,29 @@
 
 package ast
 
+func isRefSafe(ref Ref, safe VarSet) bool {
+	switch head := ref[0].Value.(type) {
+	case Var:
+		return safe.Contains(head)
+	case Call:
+		return isCallSafe(head, safe)
+	default:
+		for v := range ref[0].Vars() {
+			if !safe.Contains(v) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+func isCallSafe(call Call, safe VarSet) bool {
+	vis := NewVarVisitor().WithParams(SafetyCheckVisitorParams)
+	vis.Walk(call)
+	unsafe := vis.Vars().Diff(safe)
+	return len(unsafe) == 0
+}
+
 // Unify returns a set of variables that will be unified when the equality expression defined by
 // terms a and b is evaluated. The unifier assumes that variables in the VarSet safe are already
 // unified.
@@ -42,10 +65,14 @@ func (u *unifier) unify(a *Term, b *Term) {
 				u.markUnknown(a, b)
 				u.markUnknown(b, a)
 			}
-		case Array, Object:
+		case *Array, Object:
 			u.unifyAll(a, b)
 		case Ref:
-			if u.isSafe(b[0].Value.(Var)) {
+			if isRefSafe(b, u.safe) {
+				u.markSafe(a)
+			}
+		case Call:
+			if isCallSafe(b, u.safe) {
 				u.markSafe(a)
 			}
 		default:
@@ -53,11 +80,21 @@ func (u *unifier) unify(a *Term, b *Term) {
 		}
 
 	case Ref:
-		if u.isSafe(a[0].Value.(Var)) {
+		if isRefSafe(a, u.safe) {
 			switch b := b.Value.(type) {
 			case Var:
 				u.markSafe(b)
-			case Array, Object:
+			case *Array, Object:
+				u.markAllSafe(b)
+			}
+		}
+
+	case Call:
+		if isCallSafe(a, u.safe) {
+			switch b := b.Value.(type) {
+			case Var:
+				u.markSafe(b)
+			case *Array, Object:
 				u.markAllSafe(b)
 			}
 		}
@@ -66,14 +103,14 @@ func (u *unifier) unify(a *Term, b *Term) {
 		switch b := b.Value.(type) {
 		case Var:
 			u.markSafe(b)
-		case Array:
+		case *Array:
 			u.markAllSafe(b)
 		}
 	case *ObjectComprehension:
 		switch b := b.Value.(type) {
 		case Var:
 			u.markSafe(b)
-		case Object:
+		case *object:
 			u.markAllSafe(b)
 		}
 	case *SetComprehension:
@@ -82,34 +119,48 @@ func (u *unifier) unify(a *Term, b *Term) {
 			u.markSafe(b)
 		}
 
-	case Array:
+	case *Array:
 		switch b := b.Value.(type) {
 		case Var:
 			u.unifyAll(b, a)
-		case Ref, *ArrayComprehension, *ObjectComprehension, *SetComprehension:
+		case *ArrayComprehension, *ObjectComprehension, *SetComprehension:
 			u.markAllSafe(a)
-		case Array:
-			if len(a) == len(b) {
-				for i := range a {
-					u.unify(a[i], b[i])
+		case Ref:
+			if isRefSafe(b, u.safe) {
+				u.markAllSafe(a)
+			}
+		case Call:
+			if isCallSafe(b, u.safe) {
+				u.markAllSafe(a)
+			}
+		case *Array:
+			if a.Len() == b.Len() {
+				for i := 0; i < a.Len(); i++ {
+					u.unify(a.Elem(i), b.Elem(i))
 				}
 			}
 		}
 
-	case Object:
+	case *object:
 		switch b := b.Value.(type) {
 		case Var:
 			u.unifyAll(b, a)
 		case Ref:
-			u.markAllSafe(a)
-		case Object:
+			if isRefSafe(b, u.safe) {
+				u.markAllSafe(a)
+			}
+		case Call:
+			if isCallSafe(b, u.safe) {
+				u.markAllSafe(a)
+			}
+		case *object:
 			if a.Len() == b.Len() {
-				a.Iter(func(k, v *Term) error {
+				_ = a.Iter(func(k, v *Term) error {
 					if v2 := b.Get(k); v2 != nil {
 						u.unify(v, v2)
 					}
 					return nil
-				})
+				}) // impossible to return error
 			}
 		}
 

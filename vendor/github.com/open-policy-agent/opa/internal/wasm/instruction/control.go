@@ -9,7 +9,12 @@ import (
 	"github.com/open-policy-agent/opa/internal/wasm/types"
 )
 
-// Unreachable reprsents an unreachable opcode.
+// !!! If you find yourself adding support for more control
+//     instructions (br_table, if, ...), please adapt the
+//     `withControlInstr` functions of
+//     `compiler/wasm/optimizations.go`
+
+// Unreachable represents a WASM unreachable instruction.
 type Unreachable struct {
 	NoImmediateArgs
 }
@@ -48,6 +53,29 @@ func (i Block) BlockType() *types.ValueType {
 
 // Instructions returns the instructions contained in the block.
 func (i Block) Instructions() []Instruction {
+	return i.Instrs
+}
+
+// If represents a WASM if instruction.
+// NOTE(sr): we only use if with one branch so far!
+type If struct {
+	NoImmediateArgs
+	Type   *types.ValueType
+	Instrs []Instruction
+}
+
+// Op returns the opcode of the instruction.
+func (If) Op() opcode.Opcode {
+	return opcode.If
+}
+
+// BlockType returns the type of the if's THEN branch.
+func (i If) BlockType() *types.ValueType {
+	return i.Type
+}
+
+// Instructions represents the instructions contained in the if's THEN branch.
+func (i If) Instructions() []Instruction {
 	return i.Instrs
 }
 
@@ -116,6 +144,22 @@ func (Call) Op() opcode.Opcode {
 // ImmediateArgs returns the function index.
 func (i Call) ImmediateArgs() []interface{} {
 	return []interface{}{i.Index}
+}
+
+// CallIndirect represents a WASM call_indirect instruction.
+type CallIndirect struct {
+	Index    uint32 // type index
+	Reserved byte   // zero for now
+}
+
+// Op returns the opcode of the instruction.
+func (CallIndirect) Op() opcode.Opcode {
+	return opcode.CallIndirect
+}
+
+// ImmediateArgs returns the function index.
+func (i CallIndirect) ImmediateArgs() []interface{} {
+	return []interface{}{i.Index, i.Reserved}
 }
 
 // Return represents a WASM return instruction.

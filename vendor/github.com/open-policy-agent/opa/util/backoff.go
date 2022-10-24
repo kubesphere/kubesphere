@@ -22,7 +22,7 @@ func Backoff(base, max, jitter, factor float64, retries int) time.Duration {
 		return 0
 	}
 
-	backoff, max := float64(base), float64(max)
+	backoff, max := base, max
 	for backoff < max && retries > 0 {
 		backoff *= factor
 		retries--
