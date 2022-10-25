@@ -19,9 +19,10 @@ package secret
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/informers"
 	"k8s.io/klog"
 
@@ -89,24 +90,26 @@ func (s *secretSearcher) filter(object runtime.Object, filter query.Filter) bool
 
 // implement a generic query filter to support multiple field selectors with "jsonpath.JsonPathLookup"
 // https://github.com/oliveagle/jsonpath/blob/master/readme.md
-func contains(secret *v1.Secret, fieldSelector query.Value) bool {
-	selectors := strings.Split(string(fieldSelector), ",")
-	for _, selector := range selectors {
+func contains(secret *v1.Secret, queryValue query.Value) bool {
+	// call the ParseSelector function of "k8s.io/apimachinery/pkg/fields/selector.go" to validate and parse the selector
+	fieldSelector, err := fields.ParseSelector(string(queryValue))
+	if err != nil {
+		klog.V(4).Infof("failed parse selector error: %s", err)
+		return false
+	}
+	for _, requirement := range fieldSelector.Requirements() {
 		var negative bool
-		var key string
-		var value string
-		// supports '=', and '!='.(e.g. ?fieldSelector=key1=value1,key2=value2)
-		if strings.Contains(selector, "!=") {
+		// supports '=', '==' and '!='.(e.g. ?fieldSelector=key1=value1,key2=value2)
+		switch requirement.Operator {
+		case selection.NotEquals:
 			negative = true
-			keyValues := strings.Split(selector, "!=")
-			key = keyValues[0]
-			value = keyValues[1]
-		} else {
+		case selection.DoubleEquals:
+		case selection.Equals:
 			negative = false
-			keyValues := strings.Split(selector, "=")
-			key = keyValues[0]
-			value = keyValues[1]
 		}
+		key := requirement.Field
+		value := requirement.Value
+
 		var input map[string]interface{}
 		data, err := json.Marshal(secret)
 		if err != nil {
