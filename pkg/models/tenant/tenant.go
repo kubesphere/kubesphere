@@ -1257,7 +1257,7 @@ func (t *tenantOperator) checkClusterPermission(user user.Info, clusters []strin
 		deleteCluster := authorizer.AttributesRecord{
 			User:            user,
 			Verb:            authorizer.VerbDelete,
-			APIGroup:        clusterv1alpha1.SchemeGroupVersion.Version,
+			APIGroup:        clusterv1alpha1.SchemeGroupVersion.Group,
 			APIVersion:      clusterv1alpha1.SchemeGroupVersion.Version,
 			Resource:        clusterv1alpha1.ResourcesPluralCluster,
 			Cluster:         clusterName,
