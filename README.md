@@ -47,10 +47,9 @@ The following screenshots give a close insight into KubeSphere. Please check [Wh
 
 ## Demo environment
 
-🎮 Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted view access. 
+🎮 [KubeSphere Lite](https://kubesphere.cloud/en/console/managed-cluster/) provides you with free, stable, and out-of-the-box managed cluster service. After registration and login, you can easily create a K8s cluster with KubeSphere installed in only 5 seconds and experience feature-rich KubeSphere.
 
-🖥 You can also have a quick view of [Demo video](https://youtu.be/YxZ1YUv0CYs).
-
+🖥 You can view the [Demo Video](https://youtu.be/YxZ1YUv0CYs) to get started with KubeSphere.
 ## Features
 
 <details>
@@ -65,7 +64,7 @@ The following screenshots give a close insight into KubeSphere. Please check [Wh
 
 <details>
   <summary><b>🤖 Kubernetes DevOps</b></summary>
-  Provide out-of-box CI/CD based on Jenkins, and offers automated workflow tools including binary-to-image (B2I) and source-to-image (S2I), <a href="https://kubesphere.io/devops/">learn more</a>.
+  Provide GitOps-based CD solutions and use Argo CD to provide the underlying support, collecting CD status information in real time. Additionally, the mainstream CI engine Jenkins makes DevOps more user-friendly. <a href="https://kubesphere.io/devops/">learn more</a>.
   </details>
 
 <details>
@@ -119,19 +118,19 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 ## Latest release
 
-🎉 KubeSphere 3.3.0 was released on June 24! It brought enhancements and better user experience, see the [Release Notes For 3.3.0](https://kubesphere.io/docs/release/release-v330/) for the updates.
+🎉 KubeSphere 3.3.1 was released! It brought enhancements and better user experience, see the [Release Notes For 3.3.1](https://kubesphere.io/docs/release/release-v330/) for the updates.
 ## Installation
 
 KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster. The installer will start a minimal installation by default, you can [enable other pluggable components before or after installation](https://kubesphere.io/docs/quick-start/enable-pluggable-components/).
 ### Quick start
 #### Installing on K8s/K3s
 
-If your cluster meets the [prerequisites](https://kubesphere.io/docs/quick-start/minimal-kubesphere-on-k8s/#prerequisites), then run the following commands to install KubeSphere on an exiting Kubernetes cluster:
+If your cluster meets the [prerequisites](https://kubesphere.io/docs/quick-start/minimal-kubesphere-on-k8s/#prerequisites), then run the following commands to install KubeSphere on an existing Kubernetes cluster:
 
 ```yaml
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.0/kubesphere-installer.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.1/kubesphere-installer.yaml
    
-kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.0/cluster-configuration.yaml
+kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.1/cluster-configuration.yaml
 ```
 #### All-in-one
 
@@ -139,11 +138,11 @@ kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3
 
 ```yaml
 # Download KubeKey
-curl -sfL https://get-kk.kubesphere.io | VERSION=v2.2.1 sh -
+curl -sfL https://get-kk.kubesphere.io | VERSION=v2.3.0 sh -
 # Make kk executable
 chmod +x kk
 # Create a cluster
-./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.3.0
+./kk create cluster --with-kubernetes v1.21.4-k3s --with-kubesphere v3.3.1
 ```
 
 You can run the following command to view the installation logs. After KubeSphere is successfully installed, you can access the KubeSphere web console at `http://IP:30880` and log in using the default administrator account (admin/P@88w0rd).
@@ -163,7 +162,7 @@ KubeSphere is hosted on the following cloud providers, and you can try KubeSpher
 You can also install KubeSphere on other hosted Kubernetes services within minutes, see the [step-by-step guides](https://kubesphere.io/docs/installing-on-kubernetes/) to get started.
 
 > 👨‍💻 No internet access? Refer to the [Air-gapped Installation on Kubernetes](https://kubesphere.io/docs/installing-on-kubernetes/on-prem-kubernetes/install-ks-on-linux-airgapped/) or [Air-gapped Installation on Linux](https://kubesphere.io/docs/installing-on-linux/introduction/air-gapped-installation/) for instructions on how to use private registry to install KubeSphere.
-## Contributing, support, discussion, and community
+## Guidance, discussion, contribution, and support
 
 We :heart: your contribution. The [community](https://github.com/kubesphere/community) walks you through how to get started contributing KubeSphere. The [development guide](https://github.com/kubesphere/community/tree/master/developer-guide/development) explains how to set up development environment.
 
@@ -171,7 +170,7 @@ We :heart: your contribution. The [community](https://github.com/kubesphere/comm
 - [Youtube](https://www.youtube.com/channel/UCyTdUQUYjf7XLjxECx63Hpw)
 - [Follow us on Twitter](https://twitter.com/KubeSphere)
 
-Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues).
+Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues). We also provide efficient official ticket support to respond in hours. For more information, click [KubeSphere Online Support](https://kubesphere.cloud/en/ticket/)。
 ## Who are using KubeSphere
 
 The [user case studies](https://kubesphere.io/case/) page includes the user list of the project. You can [leave a comment](https://github.com/kubesphere/kubesphere/issues/4123) to let us know your use case.
