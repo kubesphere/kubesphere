@@ -47,7 +47,7 @@
 
 ## Demo 环境
 
-🎮 [KubeSphere Cloud 轻量集群](https://kubesphere.cloud/console/managed-cluster/)为您提供免费、稳定且开箱即用的 KubeSphere 集群托管服务。注册账号并登录后，可在 5 秒内新建一个安装 KubeSphere 的 K8s 集群，进而进入 KubeSphere 交互式体验各项功能。
+🎮 [KubeSphere Cloud 轻量集群](https://kubesphere.cloud/console/managed-cluster/)为您提供免费、稳定且开箱即用的 KubeSphere 托管集群服务。注册账号并登录后，可在 5 秒内新建一个安装 KubeSphere 的 K8s 集群，进而进入 KubeSphere 交互式体验各项功能。
 
 🖥 您还可以通过 [Demo 视频](https://youtu.be/YxZ1YUv0CYs)快速了解使用操作。
 
@@ -172,9 +172,11 @@ KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kuber
 - [社区微信群（见官网底部）](https://kubesphere.com.cn/)
 - [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
 - [Bilibili](https://space.bilibili.com/438908638)
-- [在推特上关注我们](https://twitter.com/KubeSphere)
+- [Twitter](https://twitter.com/KubeSphere)
 
-请将任何 KubeSphere 的 Bug、问题和需求提交到 [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues)。若您期待官方、高效的技术服务，青云科技也为 KubeSphere 开源版本提供全程可靠、小时响应的工单支持，详情垂询 [KubeSphere 在线技术支持](https://kubesphere.cloud/ticket/)。
+:hugs: 请将任何 KubeSphere 的 Bug、问题和需求提交到 [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues)。
+
+:heart_decoration: 若您期待官方、高效的技术服务，青云科技也为 KubeSphere 开源版本提供全程可靠、小时响应的工单支持，详情垂询 [KubeSphere 在线技术支持](https://kubesphere.cloud/ticket/)。
 
 ## 谁在使用 KubeSphere
 

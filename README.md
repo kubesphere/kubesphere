@@ -54,42 +54,42 @@ The following screenshots give a close insight into KubeSphere. Please check [Wh
 
 <details>
   <summary><b>🕸 Provisioning Kubernetes Cluster</b></summary>
-  Support deploy Kubernetes on any infrastructure, support online and air-gapped installation, <a href="https://kubesphere.io/docs/installing-on-linux/introduction/intro/">learn more</a>.
+  Support deploy Kubernetes on any infrastructure, support online and air-gapped installation. <a href="https://kubesphere.io/docs/installing-on-linux/introduction/intro/">Learn more</a>.
   </details>
 
 <details>
   <summary><b>🔗 Kubernetes Multi-cluster Management</b></summary>
-  Provide a centralized control plane to manage multiple Kubernetes clusters, support propagate an app to multiple K8s clusters across different cloud providers.
+  Provide a centralized control plane to manage multiple Kubernetes clusters, and support the ability to propagate an app to multiple K8s clusters across different cloud providers.
   </details>
 
 <details>
   <summary><b>🤖 Kubernetes DevOps</b></summary>
-  Provide GitOps-based CD solutions and use Argo CD to provide the underlying support, collecting CD status information in real time. Additionally, the mainstream CI engine Jenkins makes DevOps more user-friendly. <a href="https://kubesphere.io/devops/">learn more</a>.
+  Provide GitOps-based CD solutions and use Argo CD to provide the underlying support, collecting CD status information in real time. With the mainstream CI engine Jenkins integrated, DevOps has never been easier. <a href="https://kubesphere.io/devops/">Learn more</a>.
   </details>
 
 <details>
   <summary><b>🔎 Cloud Native Observability</b></summary>
-  Multi-dimensional monitoring, events and auditing logs are supported; multi-tenant log query and collection, alerting and notification are built-in, <a href="https://kubesphere.io/observability/">learn more</a>.
+  Multi-dimensional monitoring, events and auditing logs are supported; multi-tenant log query and collection, alerting and notification are built-in. <a href="https://kubesphere.io/observability/">Learn more</a>.
   </details>
 
 <details>
   <summary><b>🧩 Service Mesh (Istio-based)</b></summary>
-  Provide fine-grained traffic management, observability and tracing for distributed microservice applications, provides visualization for traffic topology, <a href="https://kubesphere.io/service-mesh/">learn more</a>.
+  Provide fine-grained traffic management, observability and tracing for distributed microservice applications, provides visualization for traffic topology. <a href="https://kubesphere.io/service-mesh/">Learn more</a>.
   </details>
 
 <details>
   <summary><b>💻 App Store</b></summary>
-  Provide an App Store for Helm-based applications, and offer application lifecycle management on Kubernetes platform, <a href="https://kubesphere.io/docs/pluggable-components/app-store/">learn more</a>.
+  Provide an App Store for Helm-based applications, and offer application lifecycle management on Kubernetes platform. <a href="https://kubesphere.io/docs/pluggable-components/app-store/">Learn more</a>.
   </details>
 
 <details>
   <summary><b>💡 Edge Computing Platform</b></summary>
-  KubeSphere integrates <a href="https://kubeedge.io/en/">KubeEdge</a> to enable users to deploy applications on the edge devices and view logs and monitoring metrics of them on the console, <a href="https://kubesphere.io/docs/pluggable-components/kubeedge/">learn more</a>.
+  KubeSphere integrates <a href="https://kubeedge.io/en/">KubeEdge</a> to enable users to deploy applications on the edge devices and view logs and monitoring metrics of them on the console. <a href="https://kubesphere.io/docs/pluggable-components/kubeedge/">Learn more</a>.
   </details>
 
 <details>
   <summary><b>📊 Metering and Billing</b></summary>
-  Track resource consumption at different levels on a unified dashboard, which helps you make better-informed decisions on planning and reduce the cost, <a href="https://kubesphere.io/docs/toolbox/metering-and-billing/view-resource-consumption/">learn more</a>.
+  Track resource consumption at different levels on a unified dashboard, which helps you make better-informed decisions on planning and reduce the cost. <a href="https://kubesphere.io/docs/toolbox/metering-and-billing/view-resource-consumption/">Learn more</a>.
   </details>
 
 <details>
@@ -118,7 +118,7 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 ## Latest release
 
-🎉 KubeSphere 3.3.1 was released! It brought enhancements and better user experience, see the [Release Notes For 3.3.1](https://kubesphere.io/docs/release/release-v330/) for the updates.
+🎉 KubeSphere 3.3.1 was released! It brings enhancements and better user experience, see the [Release Notes For 3.3.1](https://kubesphere.io/docs/release/release-v330/) for the updates.
 ## Installation
 
 KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster. The installer will start a minimal installation by default, you can [enable other pluggable components before or after installation](https://kubesphere.io/docs/quick-start/enable-pluggable-components/).
@@ -168,9 +168,12 @@ We :heart: your contribution. The [community](https://github.com/kubesphere/comm
 
 - [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
 - [Youtube](https://www.youtube.com/channel/UCyTdUQUYjf7XLjxECx63Hpw)
-- [Follow us on Twitter](https://twitter.com/KubeSphere)
+- [Twitter](https://twitter.com/KubeSphere)
 
-Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues). We also provide efficient official ticket support to respond in hours. For more information, click [KubeSphere Online Support](https://kubesphere.cloud/en/ticket/)。
+:hugs: Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues).
+
+:heart_decoration: The KubeSphere team also provides efficient official ticket support to respond in hours. For more information, click [KubeSphere Online Support](https://kubesphere.cloud/en/ticket/).
+
 ## Who are using KubeSphere
 
 The [user case studies](https://kubesphere.io/case/) page includes the user list of the project. You can [leave a comment](https://github.com/kubesphere/kubesphere/issues/4123) to let us know your use case.
