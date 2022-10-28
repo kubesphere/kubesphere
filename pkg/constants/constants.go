@@ -47,6 +47,7 @@ const (
 	CreatorAnnotationKey              = "kubesphere.io/creator"
 	UsernameLabelKey                  = "kubesphere.io/username"
 	DevOpsProjectLabelKey             = "kubesphere.io/devopsproject"
+	KsvProjectLabelKey                = "virtualization.kubesphere.io/enable"
 	KubefedManagedLabel               = "kubefed.io/managed"
 
 	UserNameHeader = "X-Token-Username"

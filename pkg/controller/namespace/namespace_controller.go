@@ -154,7 +154,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	// Initialize roles for devops/project namespaces if created by kubesphere
 	_, hasDevOpsProjectLabel := namespace.Labels[constants.DevOpsProjectLabelKey]
-	if hasDevOpsProjectLabel || hasWorkspaceLabel {
+	_, hasKsvProjectLabel := namespace.Labels[constants.KsvProjectLabelKey]
+	if hasDevOpsProjectLabel || hasKsvProjectLabel || hasWorkspaceLabel {
 		if err := r.initRoles(rootCtx, logger, namespace); err != nil {
 			return ctrl.Result{}, err
 		}
