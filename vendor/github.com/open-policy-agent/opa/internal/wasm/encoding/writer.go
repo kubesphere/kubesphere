@@ -50,11 +50,19 @@ func WriteModule(w io.Writer, module *module.Module) error {
 		return err
 	}
 
+	if err := writeMemorySection(w, module.Memory); err != nil {
+		return err
+	}
+
 	if err := writeGlobalSection(w, module.Global); err != nil {
 		return err
 	}
 
 	if err := writeExportSection(w, module.Export); err != nil {
+		return err
+	}
+
+	if err := writeStartSection(w, module.Start); err != nil {
 		return err
 	}
 
@@ -68,6 +76,16 @@ func WriteModule(w io.Writer, module *module.Module) error {
 
 	if err := writeDataSection(w, module.Data); err != nil {
 		return err
+	}
+
+	if err := writeNameSection(w, module.Names); err != nil {
+		return err
+	}
+
+	for _, custom := range module.Customs {
+		if err := writeCustomSection(w, custom); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -100,6 +118,23 @@ func writeMagic(w io.Writer) error {
 
 func writeVersion(w io.Writer) error {
 	return binary.Write(w, binary.LittleEndian, constant.Version)
+}
+
+func writeStartSection(w io.Writer, s module.StartSection) error {
+
+	if s.FuncIndex == nil {
+		return nil
+	}
+
+	if err := writeByte(w, constant.StartSectionID); err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	if err := leb128.WriteVarUint32(&buf, *s.FuncIndex); err != nil {
+		return err
+	}
+	return writeRawSection(w, &buf)
 }
 
 func writeTypeSection(w io.Writer, s module.TypeSection) error {
@@ -233,7 +268,31 @@ func writeTableSection(w io.Writer, s module.TableSection) error {
 	}
 
 	return writeRawSection(w, &buf)
+}
 
+func writeMemorySection(w io.Writer, s module.MemorySection) error {
+
+	if len(s.Memories) == 0 {
+		return nil
+	}
+
+	if err := writeByte(w, constant.MemorySectionID); err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+
+	if err := leb128.WriteVarUint32(&buf, uint32(len(s.Memories))); err != nil {
+		return err
+	}
+
+	for _, mem := range s.Memories {
+		if err := writeLimits(&buf, mem.Lim); err != nil {
+			return err
+		}
+	}
+
+	return writeRawSection(w, &buf)
 }
 
 func writeExportSection(w io.Writer, s module.ExportSection) error {
@@ -370,6 +429,111 @@ func writeDataSection(w io.Writer, s module.DataSection) error {
 	return writeRawSection(w, &buf)
 }
 
+func writeNameSection(w io.Writer, s module.NameSection) error {
+	if s.Module == "" && len(s.Functions) == 0 && len(s.Locals) == 0 {
+		return nil
+	}
+
+	if err := writeByte(w, constant.CustomSectionID); err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	if err := writeByteVector(&buf, []byte(constant.NameSectionCustomID)); err != nil {
+		return err
+	}
+
+	// "module" subsection
+	if s.Module != "" {
+		if err := writeByte(&buf, constant.NameSectionModuleType); err != nil {
+			return err
+		}
+		var mbuf bytes.Buffer
+		if err := writeByteVector(&mbuf, []byte(s.Module)); err != nil {
+			return err
+		}
+		if err := writeRawSection(&buf, &mbuf); err != nil {
+			return err
+		}
+	}
+
+	// "functions" subsection
+	if len(s.Functions) != 0 {
+		if err := writeByte(&buf, constant.NameSectionFunctionsType); err != nil {
+			return err
+		}
+
+		var fbuf bytes.Buffer
+		if err := writeNameMap(&fbuf, s.Functions); err != nil {
+			return err
+		}
+		if err := writeRawSection(&buf, &fbuf); err != nil {
+			return err
+		}
+	}
+
+	// "locals" subsection
+	if len(s.Locals) != 0 {
+		if err := writeByte(&buf, constant.NameSectionLocalsType); err != nil {
+			return err
+		}
+		funs := map[uint32][]module.NameMap{}
+		for _, e := range s.Locals {
+			funs[e.FuncIndex] = append(funs[e.FuncIndex], module.NameMap{Index: e.Index, Name: e.Name})
+		}
+		var lbuf bytes.Buffer
+		if err := leb128.WriteVarUint32(&lbuf, uint32(len(funs))); err != nil {
+			return err
+		}
+		for fidx, e := range funs {
+			if err := leb128.WriteVarUint32(&lbuf, fidx); err != nil {
+				return err
+			}
+			if err := writeNameMap(&lbuf, e); err != nil {
+				return err
+			}
+		}
+		if err := writeRawSection(&buf, &lbuf); err != nil {
+			return err
+		}
+	}
+
+	return writeRawSection(w, &buf)
+}
+
+func writeNameMap(buf io.Writer, nm []module.NameMap) error {
+	if err := leb128.WriteVarUint32(buf, uint32(len(nm))); err != nil {
+		return err
+	}
+	for _, m := range nm {
+		if err := leb128.WriteVarUint32(buf, m.Index); err != nil {
+			return err
+		}
+		if err := writeByteVector(buf, []byte(m.Name)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeCustomSection(w io.Writer, s module.CustomSection) error {
+
+	if err := writeByte(w, constant.CustomSectionID); err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	if err := writeByteVector(&buf, []byte(s.Name)); err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(&buf, bytes.NewReader(s.Data)); err != nil {
+		return err
+	}
+
+	return writeRawSection(w, &buf)
+}
+
 func writeFunctionType(w io.Writer, fsig module.FunctionType) error {
 
 	if err := writeByte(w, constant.FunctionTypeID); err != nil {
@@ -446,11 +610,7 @@ func writeGlobal(w io.Writer, global module.Global) error {
 		return err
 	}
 
-	if err := writeInstructions(w, global.Init.Instrs); err != nil {
-		return err
-	}
-
-	return nil
+	return writeInstructions(w, global.Init.Instrs)
 }
 
 func writeInstructions(w io.Writer, instrs []instruction.Instruction) error {
@@ -479,6 +639,8 @@ func writeInstructions(w io.Writer, instrs []instruction.Instruction) error {
 			case float64:
 				u64 := math.Float64bits(arg)
 				err = binary.Write(w, binary.LittleEndian, u64)
+			case byte:
+				_, err = w.Write([]byte{arg})
 			default:
 				return fmt.Errorf("illegal immediate argument type on instruction %d", i)
 			}

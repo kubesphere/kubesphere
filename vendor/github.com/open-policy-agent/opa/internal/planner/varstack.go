@@ -6,7 +6,7 @@ package planner
 
 import (
 	"github.com/open-policy-agent/opa/ast"
-	"github.com/open-policy-agent/opa/internal/ir"
+	"github.com/open-policy-agent/opa/ir"
 )
 
 type varstack []map[ast.Var]ir.Local
@@ -40,6 +40,19 @@ func (vs varstack) Get(k ast.Var) (ir.Local, bool) {
 		}
 	}
 	return 0, false
+}
+
+func (vs varstack) GetOpOrEmpty(k ast.Var) ir.Operand {
+	l := vs.GetOrEmpty(k)
+	return ir.Operand{Value: l}
+}
+
+func (vs varstack) GetOp(k ast.Var) (ir.Operand, bool) {
+	l, ok := vs.Get(k)
+	if !ok {
+		return ir.Operand{}, false
+	}
+	return ir.Operand{Value: l}, true
 }
 
 func (vs varstack) Put(k ast.Var, v ir.Local) {

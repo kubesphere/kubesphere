@@ -1,7 +1,7 @@
 package topdown
 
 import (
-	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/gobwas/glob"
@@ -18,22 +18,34 @@ func builtinGlobMatch(a, b, c ast.Value) (ast.Value, error) {
 	if err != nil {
 		return nil, err
 	}
+	var delimiters []rune
+	switch b.(type) {
+	case ast.Null:
+		delimiters = []rune{}
+	case *ast.Array:
+		delimiters, err = builtins.RuneSliceOperand(b, 2)
+		if err != nil {
+			return nil, err
+		}
 
-	delimiters, err := builtins.RuneSliceOperand(b, 2)
-	if err != nil {
-		return nil, err
+		if len(delimiters) == 0 {
+			delimiters = []rune{'.'}
+		}
+	default:
+		return nil, builtins.NewOperandTypeErr(2, b, "array", "null")
 	}
-
-	if len(delimiters) == 0 {
-		delimiters = []rune{'.'}
-	}
-
 	match, err := builtins.StringOperand(c, 3)
 	if err != nil {
 		return nil, err
 	}
 
-	id := fmt.Sprintf("%s-%v", pattern, delimiters)
+	builder := strings.Builder{}
+	builder.WriteString(string(pattern))
+	builder.WriteRune('-')
+	for _, v := range delimiters {
+		builder.WriteRune(v)
+	}
+	id := builder.String()
 
 	globCacheLock.Lock()
 	defer globCacheLock.Unlock()
@@ -46,7 +58,8 @@ func builtinGlobMatch(a, b, c ast.Value) (ast.Value, error) {
 		globCache[id] = p
 	}
 
-	return ast.Boolean(p.Match(string(match))), nil
+	m := p.Match(string(match))
+	return ast.Boolean(m), nil
 }
 
 func builtinGlobQuoteMeta(a ast.Value) (ast.Value, error) {

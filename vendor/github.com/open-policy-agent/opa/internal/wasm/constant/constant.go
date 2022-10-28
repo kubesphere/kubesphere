@@ -65,3 +65,13 @@ const (
 	Const byte = iota
 	Mutable
 )
+
+// NameSectionCustomID is the ID of the "Name" section Custom Section
+const NameSectionCustomID = "name"
+
+// Subtypes of the 'name' custom section
+const (
+	NameSectionModuleType byte = iota
+	NameSectionFunctionsType
+	NameSectionLocalsType
+)

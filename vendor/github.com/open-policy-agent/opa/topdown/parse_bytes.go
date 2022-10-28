@@ -7,147 +7,137 @@ package topdown
 import (
 	"fmt"
 	"math/big"
-	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
 
 const (
-	none int64 = 1
-	kb         = 1000
-	ki         = 1024
-	mb         = kb * 1000
-	mi         = ki * 1024
-	gb         = mb * 1000
-	gi         = mi * 1024
-	tb         = gb * 1000
-	ti         = gi * 1024
+	none uint64 = 1 << (10 * iota)
+	ki
+	mi
+	gi
+	ti
+	pi
+	ei
+
+	kb uint64 = 1000
+	mb        = kb * 1000
+	gb        = mb * 1000
+	tb        = gb * 1000
+	pb        = tb * 1000
+	eb        = pb * 1000
 )
 
-// The rune values for 0..9 as well as the period symbol (for parsing floats)
-var numRunes = []rune("0123456789.")
-
 func parseNumBytesError(msg string) error {
-	return fmt.Errorf("%s error: %s", ast.UnitsParseBytes.Name, msg)
+	return fmt.Errorf("%s: %s", ast.UnitsParseBytes.Name, msg)
 }
 
-func errUnitNotRecognized(unit string) error {
+func errBytesUnitNotRecognized(unit string) error {
 	return parseNumBytesError(fmt.Sprintf("byte unit %s not recognized", unit))
 }
 
 var (
-	errNoAmount       = parseNumBytesError("no byte amount provided")
-	errIntConv        = parseNumBytesError("could not parse byte amount to integer")
-	errIncludesSpaces = parseNumBytesError("spaces not allowed in resource strings")
+	errBytesValueNoAmount       = parseNumBytesError("no byte amount provided")
+	errBytesValueNumConv        = parseNumBytesError("could not parse byte amount to a number")
+	errBytesValueIncludesSpaces = parseNumBytesError("spaces not allowed in resource strings")
 )
 
-func builtinNumBytes(a ast.Value) (ast.Value, error) {
-	var m int64
+func builtinNumBytes(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	var m big.Float
 
-	raw, err := builtins.StringOperand(a, 1)
+	raw, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	s := formatString(raw)
 
 	if strings.Contains(s, " ") {
-		return nil, errIncludesSpaces
+		return errBytesValueIncludesSpaces
 	}
 
-	numStr, unitStr := extractNumAndUnit(s)
-
-	if numStr == "" {
-		return nil, errNoAmount
+	num, unit := extractNumAndUnit(s)
+	if num == "" {
+		return errBytesValueNoAmount
 	}
 
-	switch unitStr {
+	switch unit {
 	case "":
-		m = none
-	case "kb":
-		m = kb
-	case "kib":
-		m = ki
-	case "mb":
-		m = mb
-	case "mib":
-		m = mi
-	case "gb":
-		m = gb
-	case "gib":
-		m = gi
-	case "tb":
-		m = tb
-	case "tib":
-		m = ti
+		m.SetUint64(none)
+	case "kb", "k":
+		m.SetUint64(kb)
+	case "kib", "ki":
+		m.SetUint64(ki)
+	case "mb", "m":
+		m.SetUint64(mb)
+	case "mib", "mi":
+		m.SetUint64(mi)
+	case "gb", "g":
+		m.SetUint64(gb)
+	case "gib", "gi":
+		m.SetUint64(gi)
+	case "tb", "t":
+		m.SetUint64(tb)
+	case "tib", "ti":
+		m.SetUint64(ti)
+	case "pb", "p":
+		m.SetUint64(pb)
+	case "pib", "pi":
+		m.SetUint64(pi)
+	case "eb", "e":
+		m.SetUint64(eb)
+	case "eib", "ei":
+		m.SetUint64(ei)
 	default:
-		return nil, errUnitNotRecognized(unitStr)
+		return errBytesUnitNotRecognized(unit)
 	}
 
-	num, err := strconv.ParseInt(numStr, 10, 64)
-	if err != nil {
-		return nil, errIntConv
+	numFloat, ok := new(big.Float).SetString(num)
+	if !ok {
+		return errBytesValueNumConv
 	}
 
-	total := num * m
-
-	return builtins.IntToNumber(big.NewInt(total)), nil
+	var total big.Int
+	numFloat.Mul(numFloat, &m).Int(&total)
+	return iter(ast.NewTerm(builtins.IntToNumber(&total)))
 }
 
-// Makes the string lower case and removes spaces and quotation marks
+// Makes the string lower case and removes quotation marks
 func formatString(s ast.String) string {
 	str := string(s)
 	lower := strings.ToLower(str)
 	return strings.Replace(lower, "\"", "", -1)
 }
 
-// Splits the string into a number string à la "10" or "10.2" and a unit string à la "gb" or "MiB" or "foo". Either
-// can be an empty string (error handling is provided elsewhere).
+// Splits the string into a number string à la "10" or "10.2" and a unit
+// string à la "gb" or "MiB" or "foo". Either can be an empty string
+// (error handling is provided elsewhere).
 func extractNumAndUnit(s string) (string, string) {
-	isNum := func(r rune) (isNum bool) {
-		for _, nr := range numRunes {
-			if nr == r {
-				return true
-			}
+	isNum := func(r rune) bool {
+		return unicode.IsDigit(r) || r == '.'
+	}
+
+	firstNonNumIdx := -1
+	for idx, r := range s {
+		if !isNum(r) {
+			firstNonNumIdx = idx
+			break
 		}
-
-		return false
 	}
 
-	// Returns the index of the first rune that's not a number (or 0 if there are only numbers)
-	getFirstNonNumIdx := func(s string) int {
-		for idx, r := range s {
-			if !isNum(r) {
-				return idx
-			}
-		}
-
-		return 0
-	}
-
-	firstRuneIsNum := func(s string) bool {
-		return isNum(rune(s[0]))
-	}
-
-	firstNonNumIdx := getFirstNonNumIdx(s)
-
-	// The string contains only a number
-	numOnly := firstNonNumIdx == 0 && firstRuneIsNum(s)
-
-	// The string contains only a unit
-	unitOnly := firstNonNumIdx == 0 && !firstRuneIsNum(s)
-
-	if numOnly {
+	if firstNonNumIdx == -1 { // only digits and '.'
 		return s, ""
-	} else if unitOnly {
-		return "", s
-	} else {
-		return s[0:firstNonNumIdx], s[firstNonNumIdx:]
 	}
+	if firstNonNumIdx == 0 { // only units (starts with non-digit)
+		return "", s
+	}
+
+	return s[0:firstNonNumIdx], s[firstNonNumIdx:]
 }
 
 func init() {
-	RegisterFunctionalBuiltin1(ast.UnitsParseBytes.Name, builtinNumBytes)
+	RegisterBuiltinFunc(ast.UnitsParseBytes.Name, builtinNumBytes)
 }

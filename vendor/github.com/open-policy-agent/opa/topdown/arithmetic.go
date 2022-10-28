@@ -32,6 +32,28 @@ func arithRound(a *big.Float) (*big.Float, error) {
 	return new(big.Float).SetInt(i), nil
 }
 
+func arithCeil(a *big.Float) (*big.Float, error) {
+	i, _ := a.Int(nil)
+	f := new(big.Float).SetInt(i)
+
+	if f.Signbit() || a.Cmp(f) == 0 {
+		return f, nil
+	}
+
+	return new(big.Float).Add(f, big.NewFloat(1.0)), nil
+}
+
+func arithFloor(a *big.Float) (*big.Float, error) {
+	i, _ := a.Int(nil)
+	f := new(big.Float).SetInt(i)
+
+	if !f.Signbit() || a.Cmp(f) == 0 {
+		return f, nil
+	}
+
+	return new(big.Float).Sub(f, big.NewFloat(1.0)), nil
+}
+
 func arithPlus(a, b *big.Float) (*big.Float, error) {
 	return new(big.Float).Add(a, b), nil
 }
@@ -115,7 +137,11 @@ func builtinMinus(a, b ast.Value) (ast.Value, error) {
 		return nil, builtins.NewOperandTypeErr(1, a, "number", "set")
 	}
 
-	return nil, builtins.NewOperandTypeErr(2, b, "number", "set")
+	if ok2 {
+		return nil, builtins.NewOperandTypeErr(2, b, "set")
+	}
+
+	return nil, builtins.NewOperandTypeErr(2, b, "number")
 }
 
 func builtinRem(a, b ast.Value) (ast.Value, error) {
@@ -148,6 +174,8 @@ func builtinRem(a, b ast.Value) (ast.Value, error) {
 func init() {
 	RegisterFunctionalBuiltin1(ast.Abs.Name, builtinArithArity1(arithAbs))
 	RegisterFunctionalBuiltin1(ast.Round.Name, builtinArithArity1(arithRound))
+	RegisterFunctionalBuiltin1(ast.Ceil.Name, builtinArithArity1(arithCeil))
+	RegisterFunctionalBuiltin1(ast.Floor.Name, builtinArithArity1(arithFloor))
 	RegisterFunctionalBuiltin2(ast.Plus.Name, builtinArithArity2(arithPlus))
 	RegisterFunctionalBuiltin2(ast.Minus.Name, builtinMinus)
 	RegisterFunctionalBuiltin2(ast.Multiply.Name, builtinArithArity2(arithMultiply))

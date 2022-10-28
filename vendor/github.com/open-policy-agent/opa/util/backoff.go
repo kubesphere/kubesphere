@@ -9,6 +9,15 @@ import (
 	"time"
 )
 
+func init() {
+	// NOTE(sr): We don't need good random numbers here; it's used for jittering
+	// the backup timing a bit. But anyways, let's make it random enough; without
+	// a call to rand.Seed() we'd get the same stream of numbers for each program
+	// run. (Or not, if some other packages happens to seed the global randomness
+	// source.)
+	rand.Seed(time.Now().UnixNano())
+}
+
 // DefaultBackoff returns a delay with an exponential backoff based on the
 // number of retries.
 func DefaultBackoff(base, max float64, retries int) time.Duration {
@@ -22,7 +31,7 @@ func Backoff(base, max, jitter, factor float64, retries int) time.Duration {
 		return 0
 	}
 
-	backoff, max := float64(base), float64(max)
+	backoff, max := base, max
 	for backoff < max && retries > 0 {
 		backoff *= factor
 		retries--

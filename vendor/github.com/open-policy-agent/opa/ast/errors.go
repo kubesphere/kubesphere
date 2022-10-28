@@ -24,9 +24,9 @@ func (e Errors) Error() string {
 		return fmt.Sprintf("1 error occurred: %v", e[0].Error())
 	}
 
-	s := []string{}
-	for _, err := range e {
-		s = append(s, err.Error())
+	s := make([]string, len(e))
+	for i, err := range e {
+		s[i] = err.Error()
 	}
 
 	return fmt.Sprintf("%d errors occurred:\n%s", len(e), strings.Join(s, "\n"))
@@ -120,14 +120,4 @@ func NewError(code string, loc *Location, f string, a ...interface{}) *Error {
 		Location: loc,
 		Message:  fmt.Sprintf(f, a...),
 	}
-}
-
-var (
-	errPartialRuleAssignOperator = fmt.Errorf("partial rules must use = operator (not := operator)")
-	errElseAssignOperator        = fmt.Errorf("else keyword cannot be used on rule declared with := operator")
-	errFunctionAssignOperator    = fmt.Errorf("functions must use = operator (not := operator)")
-)
-
-func errTermAssignOperator(x interface{}) error {
-	return fmt.Errorf("cannot assign to %v", TypeName(x))
 }
