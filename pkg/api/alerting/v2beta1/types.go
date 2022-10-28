@@ -64,7 +64,6 @@ type GlobalRuleGroup struct {
 }
 
 type RuleGroupStatus struct {
-	State          string       `json:"state,omitempty" description:"state of a rulegroup, one of firing, pending or inactive depending on its rules"`
 	EvaluationTime *float64     `json:"evaluationTime,omitempty" description:"time spent on rule group evaluation in seconds"`
 	LastEvaluation *time.Time   `json:"lastEvaluation,omitempty" description:"time of last evaluation"`
 	RulesStatus    []RuleStatus `json:"rulesStatus,omitempty" description:"status of rules in one RuleGroup"`
@@ -80,7 +79,7 @@ type RulesStats struct {
 
 type RuleStatus struct {
 	Expr           string     `json:"expr,omitempty" description:"expression evaluated, for global rules only"`
-	State          string     `json:"state,omitempty" description:"state of a rule, one of firing, pending or inactive depending on its alerts"`
+	State          string     `json:"state,omitempty" description:"state of a rule, one of firing, pending, inactive or disabled depending on the rule and its alerts"`
 	Health         string     `json:"health,omitempty" description:"health state of a rule, one of ok, err, unknown depending on the last execution result"`
 	LastError      string     `json:"lastError,omitempty" description:"error of the last evaluation"`
 	EvaluationTime *float64   `json:"evaluationTime,omitempty" description:"time spent on the expression evaluation in seconds"`

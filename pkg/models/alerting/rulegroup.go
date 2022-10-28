@@ -105,27 +105,35 @@ func (o *ruleGroupOperator) listRuleGroups(ctx context.Context, namespace string
 		g := &kapialertingv2beta1.RuleGroup{
 			RuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
-				State: promrules.StateInactive.String(),
+				RulesStatus: make([]kapialertingv2beta1.RuleStatus, len(resourceRuleGroups[i].Spec.Rules)),
+				RulesStats:  kapialertingv2beta1.RulesStats{},
 			},
 		}
 		statusg, ok := statusRuleGroupMap[g.Name]
 		specRules := g.Spec.Rules
-		if ok && len(statusg.Rules) == len(specRules) { // assure that they are the same rulegroups
+		if ok && len(statusg.Rules) > 0 {
 			var ruleIds = make([]string, len(specRules))
-			for i := range specRules {
-				if specRules[i].Labels != nil {
-					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+			var ruleDisableFlags = make([]bool, len(specRules))
+			for j := range specRules {
+				if specRules[j].Labels != nil {
+					ruleIds[j] = specRules[j].Labels[alertingv2beta1.RuleLabelKeyRuleId]
 				}
+				ruleDisableFlags[j] = specRules[j].Disable
 			}
 
-			copyRuleGroupStatus(statusg, &g.Status, ruleIds)
+			copyRuleGroupStatus(statusg, &g.Status, ruleIds, ruleDisableFlags)
 		} else {
 			// for rules not loaded by rule reloader (eg.thanos) yet
-			for range g.Spec.Rules {
-				g.Status.RulesStatus = append(g.Status.RulesStatus, kapialertingv2beta1.RuleStatus{
-					State:  stateInactiveString,
-					Health: string(promrules.HealthUnknown),
-				})
+			for j := range specRules {
+				ruleStatus := kapialertingv2beta1.RuleStatus{Health: string(promrules.HealthUnknown)}
+				if specRules[j].Disable {
+					ruleStatus.State = stateDisabledString
+					g.Status.RulesStats.Disabled++
+				} else {
+					ruleStatus.State = stateInactiveString
+					g.Status.RulesStats.Inactive++
+				}
+				g.Status.RulesStatus[j] = ruleStatus
 			}
 		}
 		groups[i] = g
@@ -157,30 +165,7 @@ func (o *ruleGroupOperator) ListRuleGroups(ctx context.Context, namespace string
 		return resources.DefaultObjectMetaFilter(obj.(*kapialertingv2beta1.RuleGroup).ObjectMeta, filter)
 	})
 
-	for i := range listResult.Items {
-		item := listResult.Items[i].(*kapialertingv2beta1.RuleGroup)
-		for j, ruleStatus := range item.Status.RulesStatus {
-			updateRulesStats(&item.Status.RulesStats, item.Spec.Rules[j].Disable, ruleStatus.State)
-		}
-		listResult.Items[i] = item
-	}
-
 	return listResult, nil
-}
-
-func updateRulesStats(rulesStats *kapialertingv2beta1.RulesStats, ruleDisable bool, ruleState string) {
-	if ruleDisable {
-		rulesStats.Disabled++
-		return
-	}
-	switch ruleState {
-	case stateInactiveString:
-		rulesStats.Inactive++
-	case statePendingString:
-		rulesStats.Pending++
-	case stateFiringString:
-		rulesStats.Firing++
-	}
 }
 
 // compareRuleGroupStatus compare rulegroup status.
@@ -219,7 +204,20 @@ func (d *ruleGroupOperator) filterRuleGroupStatus(status *kapialertingv2beta1.Ru
 	switch filter.Field {
 	case kapialertingv2beta1.FieldState:
 		hit = true
-		selected = status.State == string(filter.Value)
+		switch string(filter.Value) {
+		case stateDisabledString:
+			selected = status.RulesStats.Disabled > 0
+		case stateInactiveString:
+			selected = status.RulesStats.Inactive > 0
+		case statePendingString:
+			selected = status.RulesStats.Pending > 0
+		case stateFiringString:
+			selected = status.RulesStats.Firing > 0
+		case "":
+			selected = true
+		default:
+			selected = false
+		}
 	}
 	return
 }
@@ -300,7 +298,8 @@ func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name st
 	ret := &kapialertingv2beta1.RuleGroup{
 		RuleGroup: *resourceRuleGroup,
 		Status: kapialertingv2beta1.RuleGroupStatus{
-			State: promrules.StateInactive.String(),
+			RulesStatus: make([]kapialertingv2beta1.RuleStatus, len(resourceRuleGroup.Spec.Rules)),
+			RulesStats:  kapialertingv2beta1.RulesStats{},
 		},
 	}
 
@@ -321,31 +320,34 @@ func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name st
 	var setStatus bool
 	specRules := resourceRuleGroup.Spec.Rules
 	for _, g := range statusRuleGroups {
-		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(specRules) {
+		if g.Name == resourceRuleGroup.Name && len(g.Rules) > 0 {
 			var ruleIds = make([]string, len(specRules))
-			for i := range specRules {
-				if specRules[i].Labels != nil {
-					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+			var ruleDisableFlags = make([]bool, len(specRules))
+			for j := range specRules {
+				if specRules[j].Labels != nil {
+					ruleIds[j] = specRules[j].Labels[alertingv2beta1.RuleLabelKeyRuleId]
 				}
+				ruleDisableFlags[j] = specRules[j].Disable
 			}
 
-			copyRuleGroupStatus(g, &ret.Status, ruleIds)
+			copyRuleGroupStatus(g, &ret.Status, ruleIds, ruleDisableFlags)
 			setStatus = true
 			break
 		}
 	}
 	if !setStatus {
 		// for rules not loaded by rule reloader (eg.thanos) yet
-		for range ret.Spec.Rules {
-			ret.Status.RulesStatus = append(ret.Status.RulesStatus, kapialertingv2beta1.RuleStatus{
-				State:  stateInactiveString,
-				Health: string(promrules.HealthUnknown),
-			})
+		for j := range ret.Spec.Rules {
+			ruleStatus := kapialertingv2beta1.RuleStatus{Health: string(promrules.HealthUnknown)}
+			if specRules[j].Disable {
+				ruleStatus.State = stateDisabledString
+				ret.Status.RulesStats.Disabled++
+			} else {
+				ruleStatus.State = stateInactiveString
+				ret.Status.RulesStats.Inactive++
+			}
+			ret.Status.RulesStatus[j] = ruleStatus
 		}
-	}
-
-	for j, ruleStatus := range ret.Status.RulesStatus {
-		updateRulesStats(&ret.Status.RulesStats, ret.Spec.Rules[j].Disable, ruleStatus.State)
 	}
 
 	return ret, nil
@@ -385,27 +387,35 @@ func (o *ruleGroupOperator) listClusterRuleGroups(ctx context.Context, selector 
 		g := &kapialertingv2beta1.ClusterRuleGroup{
 			ClusterRuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
-				State: promrules.StateInactive.String(),
+				RulesStatus: make([]kapialertingv2beta1.RuleStatus, len(resourceRuleGroups[i].Spec.Rules)),
+				RulesStats:  kapialertingv2beta1.RulesStats{},
 			},
 		}
 		statusg, ok := statusRuleGroupMap[g.Name]
 		specRules := g.Spec.Rules
 		if ok && len(statusg.Rules) == len(specRules) {
 			var ruleIds = make([]string, len(specRules))
-			for i := range specRules {
-				if specRules[i].Labels != nil {
-					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+			var ruleDisableFlags = make([]bool, len(specRules))
+			for j := range specRules {
+				if specRules[j].Labels != nil {
+					ruleIds[j] = specRules[j].Labels[alertingv2beta1.RuleLabelKeyRuleId]
 				}
+				ruleDisableFlags[j] = specRules[j].Disable
 			}
 
-			copyRuleGroupStatus(statusg, &g.Status, ruleIds)
+			copyRuleGroupStatus(statusg, &g.Status, ruleIds, ruleDisableFlags)
 		} else {
 			// for rules not loaded by rule reloader (eg.thanos) yet
-			for range g.Spec.Rules {
-				g.Status.RulesStatus = append(g.Status.RulesStatus, kapialertingv2beta1.RuleStatus{
-					State:  stateInactiveString,
-					Health: string(promrules.HealthUnknown),
-				})
+			for j := range g.Spec.Rules {
+				ruleStatus := kapialertingv2beta1.RuleStatus{Health: string(promrules.HealthUnknown)}
+				if specRules[j].Disable {
+					ruleStatus.State = stateDisabledString
+					g.Status.RulesStats.Disabled++
+				} else {
+					ruleStatus.State = stateInactiveString
+					g.Status.RulesStats.Inactive++
+				}
+				g.Status.RulesStatus[j] = ruleStatus
 			}
 		}
 		groups[i] = g
@@ -436,14 +446,6 @@ func (o *ruleGroupOperator) ListClusterRuleGroups(ctx context.Context,
 		}
 		return resources.DefaultObjectMetaFilter(obj.(*kapialertingv2beta1.ClusterRuleGroup).ObjectMeta, filter)
 	})
-
-	for i := range listResult.Items {
-		item := listResult.Items[i].(*kapialertingv2beta1.ClusterRuleGroup)
-		for j, ruleStatus := range item.Status.RulesStatus {
-			updateRulesStats(&item.Status.RulesStats, item.Spec.Rules[j].Disable, ruleStatus.State)
-		}
-		listResult.Items[i] = item
-	}
 
 	return listResult, nil
 }
@@ -489,7 +491,8 @@ func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string
 	ret := &kapialertingv2beta1.ClusterRuleGroup{
 		ClusterRuleGroup: *resourceRuleGroup,
 		Status: kapialertingv2beta1.RuleGroupStatus{
-			State: promrules.StateInactive.String(),
+			RulesStatus: make([]kapialertingv2beta1.RuleStatus, len(resourceRuleGroup.Spec.Rules)),
+			RulesStats:  kapialertingv2beta1.RulesStats{},
 		},
 	}
 
@@ -508,29 +511,32 @@ func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string
 	for _, g := range statusRuleGroups {
 		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(specRules) {
 			var ruleIds = make([]string, len(specRules))
-			for i := range specRules {
-				if specRules[i].Labels != nil {
-					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+			var ruleDisableFlags = make([]bool, len(specRules))
+			for j := range specRules {
+				if specRules[j].Labels != nil {
+					ruleIds[j] = specRules[j].Labels[alertingv2beta1.RuleLabelKeyRuleId]
 				}
+				ruleDisableFlags[j] = specRules[j].Disable
 			}
 
-			copyRuleGroupStatus(g, &ret.Status, ruleIds)
+			copyRuleGroupStatus(g, &ret.Status, ruleIds, ruleDisableFlags)
 			setStatus = true
 			break
 		}
 	}
 	if !setStatus {
 		// for rules not loaded by rule reloader (eg.thanos) yet
-		for range ret.Spec.Rules {
-			ret.Status.RulesStatus = append(ret.Status.RulesStatus, kapialertingv2beta1.RuleStatus{
-				State:  stateInactiveString,
-				Health: string(promrules.HealthUnknown),
-			})
+		for j := range ret.Spec.Rules {
+			ruleStatus := kapialertingv2beta1.RuleStatus{Health: string(promrules.HealthUnknown)}
+			if specRules[j].Disable {
+				ruleStatus.State = stateDisabledString
+				ret.Status.RulesStats.Disabled++
+			} else {
+				ruleStatus.State = stateInactiveString
+				ret.Status.RulesStats.Inactive++
+			}
+			ret.Status.RulesStatus[j] = ruleStatus
 		}
-	}
-
-	for j, ruleStatus := range ret.Status.RulesStatus {
-		updateRulesStats(&ret.Status.RulesStats, ret.Spec.Rules[j].Disable, ruleStatus.State)
 	}
 
 	return ret, nil
@@ -570,26 +576,45 @@ func (o *ruleGroupOperator) listGlobalRuleGroups(ctx context.Context, selector l
 		g := &kapialertingv2beta1.GlobalRuleGroup{
 			GlobalRuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
-				State: promrules.StateInactive.String(),
+				RulesStatus: make([]kapialertingv2beta1.RuleStatus, len(resourceRuleGroups[i].Spec.Rules)),
+				RulesStats:  kapialertingv2beta1.RulesStats{},
 			},
 		}
 		statusg, ok := statusRuleGroupMap[g.Name]
 		specRules := g.Spec.Rules
 		if ok && len(statusg.Rules) == len(specRules) {
 			var ruleIds = make([]string, len(specRules))
-			for i := range specRules {
-				if specRules[i].Labels != nil {
-					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+			var ruleDisableFlags = make([]bool, len(specRules))
+			for j := range specRules {
+				if specRules[j].Labels != nil {
+					ruleIds[j] = specRules[j].Labels[alertingv2beta1.RuleLabelKeyRuleId]
 				}
+				ruleDisableFlags[j] = specRules[j].Disable
 			}
 
-			copyRuleGroupStatus(statusg, &g.Status, ruleIds)
+			copyRuleGroupStatus(statusg, &g.Status, ruleIds, ruleDisableFlags)
+			for j := range g.Status.RulesStatus {
+				// for rules disabled and etc.
+				if g.Status.RulesStatus[j].Expr == "" {
+					rule := g.Spec.Rules[j]
+					enforceExprFunc := controller.CreateEnforceExprFunc(controller.ParseGlobalRuleEnforceMatchers(&rule))
+					expr, err := enforceExprFunc(rule.Expr.String())
+					if err != nil {
+						return nil, err
+					}
+					g.Status.RulesStatus[j].Expr = expr
+				}
+			}
 		} else {
 			// for rules not loaded by rule reloader (eg.thanos) yet
-			for _, rule := range g.Spec.Rules {
-				ruleStatus := kapialertingv2beta1.RuleStatus{
-					State:  stateInactiveString,
-					Health: string(promrules.HealthUnknown),
+			for j, rule := range specRules {
+				ruleStatus := kapialertingv2beta1.RuleStatus{Health: string(promrules.HealthUnknown)}
+				if specRules[j].Disable {
+					ruleStatus.State = stateDisabledString
+					g.Status.RulesStats.Disabled++
+				} else {
+					ruleStatus.State = stateInactiveString
+					g.Status.RulesStats.Inactive++
 				}
 				enforceExprFunc := controller.CreateEnforceExprFunc(controller.ParseGlobalRuleEnforceMatchers(&rule))
 				expr, err := enforceExprFunc(rule.Expr.String())
@@ -597,7 +622,7 @@ func (o *ruleGroupOperator) listGlobalRuleGroups(ctx context.Context, selector l
 					return nil, err
 				}
 				ruleStatus.Expr = expr
-				g.Status.RulesStatus = append(g.Status.RulesStatus, ruleStatus)
+				g.Status.RulesStatus[j] = ruleStatus
 			}
 		}
 		groups[i] = g
@@ -646,14 +671,6 @@ func (o *ruleGroupOperator) ListGlobalRuleGroups(ctx context.Context,
 		}
 		return resources.DefaultObjectMetaFilter(obj.(*kapialertingv2beta1.GlobalRuleGroup).ObjectMeta, filter)
 	})
-
-	for i := range listResult.Items {
-		item := listResult.Items[i].(*kapialertingv2beta1.GlobalRuleGroup)
-		for j, ruleStatus := range item.Status.RulesStatus {
-			updateRulesStats(&item.Status.RulesStats, item.Spec.Rules[j].Disable, ruleStatus.State)
-		}
-		listResult.Items[i] = item
-	}
 
 	return listResult, nil
 }
@@ -717,7 +734,8 @@ func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string)
 	ret := &kapialertingv2beta1.GlobalRuleGroup{
 		GlobalRuleGroup: *resourceRuleGroup,
 		Status: kapialertingv2beta1.RuleGroupStatus{
-			State: promrules.StateInactive.String(),
+			RulesStatus: make([]kapialertingv2beta1.RuleStatus, len(resourceRuleGroup.Spec.Rules)),
+			RulesStats:  kapialertingv2beta1.RulesStats{},
 		},
 	}
 
@@ -732,53 +750,67 @@ func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string)
 	}
 
 	var setStatus bool
+	specRules := resourceRuleGroup.Spec.Rules
 	for _, g := range statusRuleGroups {
-		specRules := resourceRuleGroup.Spec.Rules
 		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(specRules) {
 			var ruleIds = make([]string, len(specRules))
-			for i := range specRules {
-				if specRules[i].Labels != nil {
-					ruleIds[i] = specRules[i].Labels[alertingv2beta1.RuleLabelKeyRuleId]
+			var ruleDisableFlags = make([]bool, len(specRules))
+			for j := range specRules {
+				if specRules[j].Labels != nil {
+					ruleIds[j] = specRules[j].Labels[alertingv2beta1.RuleLabelKeyRuleId]
 				}
+				ruleDisableFlags[j] = specRules[j].Disable
 			}
 
-			copyRuleGroupStatus(g, &ret.Status, ruleIds)
+			copyRuleGroupStatus(g, &ret.Status, ruleIds, ruleDisableFlags)
+			for j := range ret.Status.RulesStatus {
+				// for rules disabled and etc.
+				if ret.Status.RulesStatus[j].Expr == "" {
+					rule := ret.Spec.Rules[j]
+					enforceExprFunc := controller.CreateEnforceExprFunc(controller.ParseGlobalRuleEnforceMatchers(&rule))
+					expr, err := enforceExprFunc(rule.Expr.String())
+					if err != nil {
+						return nil, err
+					}
+					ret.Status.RulesStatus[j].Expr = expr
+				}
+			}
 			setStatus = true
 			break
 		}
 	}
 	if !setStatus {
 		// for rules not loaded by rule reloader (eg.thanos) yet
-		for _, rule := range ret.Spec.Rules {
-			ruleStatus := kapialertingv2beta1.RuleStatus{
-				State:  stateInactiveString,
-				Health: string(promrules.HealthUnknown),
+		for j, rule := range ret.Spec.Rules {
+			ruleStatus := kapialertingv2beta1.RuleStatus{Health: string(promrules.HealthUnknown)}
+			if specRules[j].Disable {
+				ruleStatus.State = stateDisabledString
+				ret.Status.RulesStats.Disabled++
+			} else {
+				ruleStatus.State = stateInactiveString
+				ret.Status.RulesStats.Inactive++
 			}
+			ret.Status.RulesStatus = append(ret.Status.RulesStatus, ruleStatus)
 			enforceExprFunc := controller.CreateEnforceExprFunc(controller.ParseGlobalRuleEnforceMatchers(&rule))
 			expr, err := enforceExprFunc(rule.Expr.String())
 			if err != nil {
 				return nil, err
 			}
 			ruleStatus.Expr = expr
-			ret.Status.RulesStatus = append(ret.Status.RulesStatus, ruleStatus)
+			ret.Status.RulesStatus[j] = ruleStatus
 		}
-	}
-
-	for j, ruleStatus := range ret.Status.RulesStatus {
-		updateRulesStats(&ret.Status.RulesStats, ret.Spec.Rules[j].Disable, ruleStatus.State)
 	}
 
 	return ret, nil
 }
 
 // copyRuleGroupStatus copies group/rule status and alerts from source to target
-func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1.RuleGroupStatus, ruleIds []string) {
+func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1.RuleGroupStatus, ruleIds []string, ruleDisableFlags []bool) {
 	target.LastEvaluation = source.LastEvaluation
 	if source.EvaluationTime > 0 {
 		target.EvaluationTime = &source.EvaluationTime
 	}
-	target.RulesStatus = make([]kapialertingv2beta1.RuleStatus, len(source.Rules))
-	groupState := promrules.StateInactive
+
 	sourceRuleMap := make(map[string]*alerting.AlertingRule, len(source.Rules))
 	for i := range source.Rules {
 		rule := source.Rules[i]
@@ -791,17 +823,28 @@ func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1
 	for i, ruleId := range ruleIds {
 		rule, ok := sourceRuleMap[ruleId]
 		if !ok {
-			target.RulesStatus[i] = kapialertingv2beta1.RuleStatus{
-				State:  stateInactiveString,
-				Health: string(promrules.HealthUnknown),
+			ruleStatus := kapialertingv2beta1.RuleStatus{Health: string(promrules.HealthUnknown)}
+			if ruleDisableFlags[i] {
+				ruleStatus.State = stateDisabledString
+				target.RulesStats.Disabled++
+			} else {
+				// rules are being loaded
+				ruleStatus.State = stateInactiveString
+				target.RulesStats.Inactive++
 			}
+			target.RulesStatus[i] = ruleStatus
 			continue
 		}
 
-		// the group state takes the max state of its rules
-		if ruleState := parseAlertState(rule.State); ruleState > groupState {
-			groupState = ruleState
+		switch rule.State {
+		case statePendingString:
+			target.RulesStats.Pending++
+		case stateFiringString:
+			target.RulesStats.Firing++
+		case stateInactiveString:
+			target.RulesStats.Inactive++
 		}
+
 		var ruleActiveAt *time.Time
 		alerts := []*kapialertingv2beta1.Alert{}
 		for _, alert := range rule.Alerts {
@@ -833,28 +876,14 @@ func copyRuleGroupStatus(source *alerting.RuleGroup, target *kapialertingv2beta1
 		}
 		target.RulesStatus[i] = ruleStatus
 	}
-	target.State = groupState.String()
 }
 
 var (
 	statePendingString  = promrules.StatePending.String()
 	stateFiringString   = promrules.StateFiring.String()
 	stateInactiveString = promrules.StateInactive.String()
+	stateDisabledString = "disabled"
 )
-
-// parseAlertState parses state string to the AlertState type
-func parseAlertState(state string) promrules.AlertState {
-	switch state {
-	case statePendingString:
-		return promrules.StatePending
-	case stateFiringString:
-		return promrules.StateFiring
-	case stateInactiveString:
-		fallthrough
-	default:
-		return promrules.StateInactive
-	}
-}
 
 type wrapAlert struct {
 	kapialertingv2beta1.Alert
