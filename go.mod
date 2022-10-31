@@ -220,7 +220,6 @@ require (
 	github.com/nxadm/tail v1.4.4 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799 // indirect
-	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/operator-framework/operator-lib v0.3.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -412,9 +411,12 @@ replace (
 	github.com/cockroachdb/cockroach-go => github.com/cockroachdb/cockroach-go v0.0.0-20181001143604-e0a95dfd547c
 	github.com/cockroachdb/datadriven => github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa
 	github.com/codahale/hdrhistogram => github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd
-	github.com/containerd/containerd => github.com/containerd/containerd v1.3.0
+	github.com/containerd/containerd => github.com/containerd/containerd v1.4.13
 	github.com/containerd/continuity => github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
+	github.com/containerd/fifo => github.com/containerd/fifo v1.0.0
 	github.com/containerd/stargz-snapshotter/estargz => github.com/containerd/stargz-snapshotter/estargz v0.7.0
+	github.com/containerd/ttrpc => github.com/containerd/ttrpc v1.1.0
+	github.com/containerd/typeurl => github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni => github.com/containernetworking/cni v0.8.0
 	github.com/coreos/bbolt => github.com/coreos/bbolt v1.3.3
 	github.com/coreos/etcd => github.com/coreos/etcd v3.3.17+incompatible
@@ -777,6 +779,7 @@ replace (
 	github.com/opencontainers/go-digest => github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
 	github.com/opencontainers/runc => github.com/opencontainers/runc v0.1.1
+	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.2
 	github.com/opensearch-project/opensearch-go => github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/opensearch-project/opensearch-go/v2 => github.com/opensearch-project/opensearch-go/v2 v2.0.0
 	github.com/opentracing-contrib/go-grpc => github.com/opentracing-contrib/go-grpc v0.0.0-20180928155321-4b5a12d3ff02
@@ -872,6 +875,7 @@ replace (
 	github.com/streadway/handy => github.com/streadway/handy v0.0.0-20190108123426-d5acb3125c2a
 	github.com/stretchr/objx => github.com/stretchr/objx v0.2.0
 	github.com/stretchr/testify => github.com/stretchr/testify v1.4.0
+	github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/tchap/go-patricia/v2 => github.com/tchap/go-patricia/v2 v2.3.1
 	github.com/thanos-io/thanos => github.com/thanos-io/thanos v0.13.1-0.20200910143741-e0b7f7b32e9c
 	github.com/tidwall/pretty => github.com/tidwall/pretty v1.0.0

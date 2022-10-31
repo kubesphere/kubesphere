@@ -29,7 +29,6 @@ import (
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/log"
-	"github.com/docker/distribution/registry/api/errcode"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
@@ -59,6 +58,10 @@ func (r dockerFetcher) Fetch(ctx context.Context, desc ocispec.Descriptor) (io.R
 			u, err := url.Parse(us)
 			if err != nil {
 				log.G(ctx).WithError(err).Debug("failed to parse")
+				continue
+			}
+			if u.Scheme != "http" && u.Scheme != "https" {
+				log.G(ctx).Debug("non-http(s) alternative url is unsupported")
 				continue
 			}
 			log.G(ctx).Debug("trying alternative url")
@@ -96,46 +99,60 @@ func (r dockerFetcher) Fetch(ctx context.Context, desc ocispec.Descriptor) (io.R
 			images.MediaTypeDockerSchema1Manifest,
 			ocispec.MediaTypeImageManifest, ocispec.MediaTypeImageIndex:
 
+			var firstErr error
 			for _, host := range r.hosts {
 				req := r.request(host, http.MethodGet, "manifests", desc.Digest.String())
+				if err := req.addNamespace(r.refspec.Hostname()); err != nil {
+					return nil, err
+				}
 
 				rc, err := r.open(ctx, req, desc.MediaType, offset)
 				if err != nil {
-					if errdefs.IsNotFound(err) {
-						continue // try another host
+					// Store the error for referencing later
+					if firstErr == nil {
+						firstErr = err
 					}
-
-					return nil, err
+					continue // try another host
 				}
 
 				return rc, nil
 			}
+
+			return nil, firstErr
 		}
 
 		// Finally use blobs endpoints
+		var firstErr error
 		for _, host := range r.hosts {
 			req := r.request(host, http.MethodGet, "blobs", desc.Digest.String())
+			if err := req.addNamespace(r.refspec.Hostname()); err != nil {
+				return nil, err
+			}
 
 			rc, err := r.open(ctx, req, desc.MediaType, offset)
 			if err != nil {
-				if errdefs.IsNotFound(err) {
-					continue // try another host
+				// Store the error for referencing later
+				if firstErr == nil {
+					firstErr = err
 				}
-
-				return nil, err
+				continue // try another host
 			}
 
 			return rc, nil
 		}
 
-		return nil, errors.Wrapf(errdefs.ErrNotFound,
-			"could not fetch content descriptor %v (%v) from remote",
-			desc.Digest, desc.MediaType)
+		if errdefs.IsNotFound(firstErr) {
+			firstErr = errors.Wrapf(errdefs.ErrNotFound,
+				"could not fetch content descriptor %v (%v) from remote",
+				desc.Digest, desc.MediaType)
+		}
+
+		return nil, firstErr
 
 	})
 }
 
-func (r dockerFetcher) open(ctx context.Context, req *request, mediatype string, offset int64) (io.ReadCloser, error) {
+func (r dockerFetcher) open(ctx context.Context, req *request, mediatype string, offset int64) (_ io.ReadCloser, retErr error) {
 	req.header.Set("Accept", strings.Join([]string{mediatype, `*/*`}, ", "))
 
 	if offset > 0 {
@@ -149,18 +166,22 @@ func (r dockerFetcher) open(ctx context.Context, req *request, mediatype string,
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if retErr != nil {
+			resp.Body.Close()
+		}
+	}()
 
 	if resp.StatusCode > 299 {
 		// TODO(stevvooe): When doing a offset specific request, we should
 		// really distinguish between a 206 and a 200. In the case of 200, we
 		// can discard the bytes, hiding the seek behavior from the
 		// implementation.
-		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusNotFound {
 			return nil, errors.Wrapf(errdefs.ErrNotFound, "content at %v not found", req.String())
 		}
-		var registryErr errcode.Errors
+		var registryErr Errors
 		if err := json.NewDecoder(resp.Body).Decode(&registryErr); err != nil || registryErr.Len() < 1 {
 			return nil, errors.Errorf("unexpected status code %v: %v", req.String(), resp.Status)
 		}

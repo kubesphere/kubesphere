@@ -105,7 +105,6 @@ require (
 	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799 // indirect
-	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -179,7 +178,7 @@ replace (
 	github.com/blang/semver => github.com/blang/semver v3.5.0+incompatible
 	github.com/bshuster-repo/logrus-logstash-hook => github.com/bshuster-repo/logrus-logstash-hook v0.4.1
 	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.1
-	github.com/containerd/containerd => github.com/containerd/containerd v1.3.0
+	github.com/containerd/containerd => github.com/containerd/containerd v1.4.13
 	github.com/containerd/continuity => github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/creack/pty => github.com/creack/pty v1.1.7

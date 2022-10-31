@@ -16,21 +16,20 @@
 
 package sys
 
-const (
-	// OOMScoreAdjMax is not implemented on Windows
-	OOMScoreAdjMax = 0
-)
+import "os"
 
-// SetOOMScore sets the oom score for the process
-//
-// Not implemented on Windows
-func SetOOMScore(pid, score int) error {
-	return nil
-}
-
-// GetOOMScoreAdj gets the oom score for a process
-//
-// Not implemented on Windows
-func GetOOMScoreAdj(pid int) (int, error) {
-	return 0, nil
+// IsFifo checks if a file is a (named pipe) fifo
+// if the file does not exist then it returns false
+func IsFifo(path string) (bool, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if stat.Mode()&os.ModeNamedPipe == os.ModeNamedPipe {
+		return true, nil
+	}
+	return false, nil
 }
