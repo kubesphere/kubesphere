@@ -60,9 +60,3 @@ type mergeError string
 func (e mergeError) Error() string {
 	return string(e) + ": merge error"
 }
-
-type emptyModuleError string
-
-func (e emptyModuleError) Error() string {
-	return string(e) + ": empty policy"
-}

@@ -137,3 +137,63 @@ type I32LeS struct {
 func (I32LeS) Op() opcode.Opcode {
 	return opcode.I32LeS
 }
+
+// I32Add represents the WASM i32.add instruction.
+type I32Add struct {
+	NoImmediateArgs
+}
+
+// Op returns the opcode of the instruction.
+func (I32Add) Op() opcode.Opcode {
+	return opcode.I32Add
+}
+
+// I64Add represents the WASM i64.add instruction.
+type I64Add struct {
+	NoImmediateArgs
+}
+
+// Op returns the opcode of the instruction.
+func (I64Add) Op() opcode.Opcode {
+	return opcode.I64Add
+}
+
+// F32Add represents the WASM f32.add instruction.
+type F32Add struct {
+	NoImmediateArgs
+}
+
+// Op returns the opcode of the instruction.
+func (F32Add) Op() opcode.Opcode {
+	return opcode.F32Add
+}
+
+// F64Add represents the WASM f64.add instruction.
+type F64Add struct {
+	NoImmediateArgs
+}
+
+// Op returns the opcode of the instruction.
+func (F64Add) Op() opcode.Opcode {
+	return opcode.F64Add
+}
+
+// I32Mul represents the WASM i32.mul instruction.
+type I32Mul struct {
+	NoImmediateArgs
+}
+
+// Op returns the opcode of the instruction.
+func (I32Mul) Op() opcode.Opcode {
+	return opcode.I32Mul
+}
+
+// I32Sub represents the WASM i32.sub instruction.
+type I32Sub struct {
+	NoImmediateArgs
+}
+
+// Op returns the opcode of the instruction.
+func (I32Sub) Op() opcode.Opcode {
+	return opcode.I32Sub
+}

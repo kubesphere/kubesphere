@@ -8,20 +8,21 @@ package loader
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
-
-	"github.com/open-policy-agent/opa/metrics"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/bundle"
 	fileurl "github.com/open-policy-agent/opa/internal/file/url"
 	"github.com/open-policy-agent/opa/internal/merge"
+	"github.com/open-policy-agent/opa/loader/filter"
+	"github.com/open-policy-agent/opa/metrics"
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/storage/inmem"
 	"github.com/open-policy-agent/opa/util"
@@ -56,7 +57,13 @@ func (l *Result) Compiler() (*ast.Compiler, error) {
 
 // Store returns a Store object with the documents from this loader result.
 func (l *Result) Store() (storage.Store, error) {
-	return inmem.NewFromObject(l.Documents), nil
+	return l.StoreWithOpts()
+}
+
+// StoreWithOpts returns a Store object with the documents from this loader result,
+// instantiated with the passed options.
+func (l *Result) StoreWithOpts(opts ...inmem.Opt) (storage.Store, error) {
+	return inmem.NewFromObjectWithOpts(l.Documents, opts...), nil
 }
 
 // RegoFile represents the result of loading a single Rego source file.
@@ -68,12 +75,12 @@ type RegoFile struct {
 
 // Filter defines the interface for filtering files during loading. If the
 // filter returns true, the file should be excluded from the result.
-type Filter func(abspath string, info os.FileInfo, depth int) bool
+type Filter = filter.LoaderFilter
 
 // GlobExcludeName excludes files and directories whose names do not match the
 // shell style pattern at minDepth or greater.
 func GlobExcludeName(pattern string, minDepth int) Filter {
-	return func(abspath string, info os.FileInfo, depth int) bool {
+	return func(abspath string, info fs.FileInfo, depth int) bool {
 		match, _ := filepath.Match(pattern, info.Name())
 		return match && depth >= minDepth
 	}
@@ -85,24 +92,67 @@ type FileLoader interface {
 	All(paths []string) (*Result, error)
 	Filtered(paths []string, filter Filter) (*Result, error)
 	AsBundle(path string) (*bundle.Bundle, error)
-
+	WithFS(fsys fs.FS) FileLoader
 	WithMetrics(m metrics.Metrics) FileLoader
+	WithFilter(filter Filter) FileLoader
+	WithBundleVerificationConfig(*bundle.VerificationConfig) FileLoader
+	WithSkipBundleVerification(skipVerify bool) FileLoader
+	WithProcessAnnotation(processAnnotation bool) FileLoader
 }
 
 // NewFileLoader returns a new FileLoader instance.
 func NewFileLoader() FileLoader {
 	return &fileLoader{
 		metrics: metrics.New(),
+		files:   make(map[string]bundle.FileInfo),
 	}
 }
 
 type fileLoader struct {
-	metrics metrics.Metrics
+	metrics    metrics.Metrics
+	filter     Filter
+	bvc        *bundle.VerificationConfig
+	skipVerify bool
+	files      map[string]bundle.FileInfo
+	opts       ast.ParserOptions
+	fsys       fs.FS
+}
+
+// WithFS provides an fs.FS to use for loading files. You can pass nil to
+// use plain IO calls (e.g. os.Open, os.Stat, etc.), this is the default
+// behaviour.
+func (fl *fileLoader) WithFS(fsys fs.FS) FileLoader {
+	fl.fsys = fsys
+	return fl
 }
 
 // WithMetrics provides the metrics instance to use while loading
 func (fl *fileLoader) WithMetrics(m metrics.Metrics) FileLoader {
 	fl.metrics = m
+	return fl
+}
+
+// WithFilter specifies the filter object to use to filter files while loading
+func (fl *fileLoader) WithFilter(filter Filter) FileLoader {
+	fl.filter = filter
+	return fl
+}
+
+// WithBundleVerificationConfig sets the key configuration used to verify a signed bundle
+func (fl *fileLoader) WithBundleVerificationConfig(config *bundle.VerificationConfig) FileLoader {
+	fl.bvc = config
+	return fl
+}
+
+// WithSkipBundleVerification skips verification of a signed bundle
+func (fl *fileLoader) WithSkipBundleVerification(skipVerify bool) FileLoader {
+	fl.skipVerify = skipVerify
+	return fl
+}
+
+// WithProcessAnnotation enables or disables processing of schema annotations on rules
+func (fl *fileLoader) WithProcessAnnotation(processAnnotation bool) FileLoader {
+	fl.opts.ProcessAnnotation = processAnnotation
 	return fl
 }
 
@@ -115,14 +165,22 @@ func (fl fileLoader) All(paths []string) (*Result, error) {
 // paths while applying the given filters. If any filter returns true, the
 // file/directory is excluded.
 func (fl fileLoader) Filtered(paths []string, filter Filter) (*Result, error) {
-	return all(paths, filter, func(curr *Result, path string, depth int) error {
+	return all(fl.fsys, paths, filter, func(curr *Result, path string, depth int) error {
 
-		bs, err := ioutil.ReadFile(path)
+		var (
+			bs  []byte
+			err error
+		)
+		if fl.fsys != nil {
+			bs, err = fs.ReadFile(fl.fsys, path)
+		} else {
+			bs, err = ioutil.ReadFile(path)
+		}
 		if err != nil {
 			return err
 		}
 
-		result, err := loadKnownTypes(path, bs, fl.metrics)
+		result, err := loadKnownTypes(path, bs, fl.metrics, fl.opts)
 		if err != nil {
 			if !isUnrecognizedFile(err) {
 				return err
@@ -130,7 +188,7 @@ func (fl fileLoader) Filtered(paths []string, filter Filter) (*Result, error) {
 			if depth > 0 {
 				return nil
 			}
-			result, err = loadFileForAnyType(path, bs, fl.metrics)
+			result, err = loadFileForAnyType(path, bs, fl.metrics, fl.opts)
 			if err != nil {
 				return err
 			}
@@ -148,10 +206,42 @@ func (fl fileLoader) AsBundle(path string) (*bundle.Bundle, error) {
 	if err != nil {
 		return nil, err
 	}
+	bundleLoader, isDir, err := GetBundleDirectoryLoaderWithFilter(path, fl.filter)
+	if err != nil {
+		return nil, err
+	}
+
+	br := bundle.NewCustomReader(bundleLoader).
+		WithMetrics(fl.metrics).
+		WithBundleVerificationConfig(fl.bvc).
+		WithSkipBundleVerification(fl.skipVerify).
+		WithProcessAnnotations(fl.opts.ProcessAnnotation)
+
+	// For bundle directories add the full path in front of module file names
+	// to simplify debugging.
+	if isDir {
+		br.WithBaseDir(path)
+	}
+
+	b, err := br.Read()
+	if err != nil {
+		err = fmt.Errorf("bundle %s: %w", path, err)
+	}
+
+	return &b, err
+}
+
+// GetBundleDirectoryLoader returns a bundle directory loader which can be used to load
+// files in the directory.
+func GetBundleDirectoryLoader(path string) (bundle.DirectoryLoader, bool, error) {
+	path, err := fileurl.Clean(path)
+	if err != nil {
+		return nil, false, err
+	}
 
 	fi, err := os.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("error reading %q: %s", path, err)
+		return nil, false, fmt.Errorf("error reading %q: %s", path, err)
 	}
 
 	var bundleLoader bundle.DirectoryLoader
@@ -161,25 +251,170 @@ func (fl fileLoader) AsBundle(path string) (*bundle.Bundle, error) {
 	} else {
 		fh, err := os.Open(path)
 		if err != nil {
+			return nil, false, err
+		}
+		bundleLoader = bundle.NewTarballLoaderWithBaseURL(fh, path)
+	}
+	return bundleLoader, fi.IsDir(), nil
+}
+
+// GetBundleDirectoryLoaderWithFilter returns a bundle directory loader which can be used to load
+// files in the directory after applying the given filter.
+func GetBundleDirectoryLoaderWithFilter(path string, filter Filter) (bundle.DirectoryLoader, bool, error) {
+	path, err := fileurl.Clean(path)
+	if err != nil {
+		return nil, false, err
+	}
+
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, false, fmt.Errorf("error reading %q: %s", path, err)
+	}
+
+	var bundleLoader bundle.DirectoryLoader
+
+	if fi.IsDir() {
+		bundleLoader = bundle.NewDirectoryLoader(path).WithFilter(filter)
+	} else {
+		fh, err := os.Open(path)
+		if err != nil {
+			return nil, false, err
+		}
+		bundleLoader = bundle.NewTarballLoaderWithBaseURL(fh, path).WithFilter(filter)
+	}
+	return bundleLoader, fi.IsDir(), nil
+}
+
+// FilteredPaths is the same as FilterPathsFS using the current diretory file
+// system
+func FilteredPaths(paths []string, filter Filter) ([]string, error) {
+	return FilteredPathsFS(nil, paths, filter)
+}
+
+// FilteredPathsFS return a list of files from the specified
+// paths while applying the given filters. If any filter returns true, the
+// file/directory is excluded.
+func FilteredPathsFS(fsys fs.FS, paths []string, filter Filter) ([]string, error) {
+	result := []string{}
+
+	_, err := all(fsys, paths, filter, func(_ *Result, path string, _ int) error {
+		result = append(result, path)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// Schemas loads a schema set from the specified file path.
+func Schemas(schemaPath string) (*ast.SchemaSet, error) {
+
+	var errs Errors
+	ss, err := loadSchemas(schemaPath)
+	if err != nil {
+		errs.add(err)
+		return nil, errs
+	}
+
+	return ss, nil
+}
+
+func loadSchemas(schemaPath string) (*ast.SchemaSet, error) {
+
+	if schemaPath == "" {
+		return nil, nil
+	}
+
+	ss := ast.NewSchemaSet()
+	path, err := fileurl.Clean(schemaPath)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Handle single file case.
+	if !info.IsDir() {
+		schema, err := loadOneSchema(path)
+		if err != nil {
 			return nil, err
 		}
-		bundleLoader = bundle.NewTarballLoader(fh)
+		ss.Put(ast.SchemaRootRef, schema)
+		return ss, nil
+
 	}
 
-	br := bundle.NewCustomReader(bundleLoader).WithMetrics(fl.metrics)
+	// Handle directory case.
+	rootDir := path
 
-	// For bundle directories add the full path in front of module file names
-	// to simplify debugging.
-	if fi.IsDir() {
-		br.WithBaseDir(path)
-	}
+	err = filepath.Walk(path,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			} else if info.IsDir() {
+				return nil
+			}
 
-	b, err := br.Read()
+			schema, err := loadOneSchema(path)
+			if err != nil {
+				return err
+			}
+
+			relPath, err := filepath.Rel(rootDir, path)
+			if err != nil {
+				return err
+			}
+
+			key := getSchemaSetByPathKey(relPath)
+			ss.Put(key, schema)
+			return nil
+		})
+
 	if err != nil {
-		err = errors.Wrap(err, fmt.Sprintf("bundle %s", path))
+		return nil, err
 	}
 
-	return &b, err
+	return ss, nil
+}
+
+func getSchemaSetByPathKey(path string) ast.Ref {
+
+	front := filepath.Dir(path)
+	last := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+
+	var parts []string
+
+	if front != "." {
+		parts = append(strings.Split(filepath.ToSlash(front), "/"), last)
+	} else {
+		parts = []string{last}
+	}
+
+	key := make(ast.Ref, 1+len(parts))
+	key[0] = ast.SchemaRootDocument
+	for i := range parts {
+		key[i+1] = ast.StringTerm(parts[i])
+	}
+
+	return key
+}
+
+func loadOneSchema(path string) (interface{}, error) {
+	bs, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var schema interface{}
+	if err := util.Unmarshal(bs, &schema); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+
+	return schema, nil
 }
 
 // All returns a Result object loaded (recursively) from the specified paths.
@@ -212,8 +447,13 @@ func AllRegos(paths []string) (*Result, error) {
 	})
 }
 
-// Rego returns a RegoFile object loaded from the given path.
+// Rego is deprecated. Use RegoWithOpts instead.
 func Rego(path string) (*RegoFile, error) {
+	return RegoWithOpts(path, ast.ParserOptions{})
+}
+
+// RegoWithOpts returns a RegoFile object loaded from the given path.
+func RegoWithOpts(path string, opts ast.ParserOptions) (*RegoFile, error) {
 	path, err := fileurl.Clean(path)
 	if err != nil {
 		return nil, err
@@ -222,7 +462,7 @@ func Rego(path string) (*RegoFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	return loadRego(path, bs, metrics.New())
+	return loadRego(path, bs, metrics.New(), opts)
 }
 
 // CleanPath returns the normalized version of a path that can be used as an identifier.
@@ -248,6 +488,25 @@ func Paths(path string, recurse bool) (paths []string, err error) {
 		return nil
 	})
 	return paths, err
+}
+
+// Dirs resolves filepaths to directories. It will return a list of unique
+// directories.
+func Dirs(paths []string) []string {
+	unique := map[string]struct{}{}
+
+	for _, path := range paths {
+		// TODO: /dir/dir will register top level directory /dir
+		dir := filepath.Dir(path)
+		unique[dir] = struct{}{}
+	}
+
+	u := make([]string, 0, len(unique))
+	for k := range unique {
+		u = append(u, k)
+	}
+	sort.Strings(u)
+	return u
 }
 
 // SplitPrefix returns a tuple specifying the document prefix and the file
@@ -315,8 +574,8 @@ func newResult() *Result {
 	}
 }
 
-func all(paths []string, filter Filter, f func(*Result, string, int) error) (*Result, error) {
-	errors := Errors{}
+func all(fsys fs.FS, paths []string, filter Filter, f func(*Result, string, int) error) (*Result, error) {
+	errs := Errors{}
 	root := newResult()
 
 	for _, path := range paths {
@@ -332,17 +591,17 @@ func all(paths []string, filter Filter, f func(*Result, string, int) error) (*Re
 			}
 		}
 
-		allRec(path, filter, &errors, loaded, 0, f)
+		allRec(fsys, path, filter, &errs, loaded, 0, f)
 	}
 
-	if len(errors) > 0 {
-		return nil, errors
+	if len(errs) > 0 {
+		return nil, errs
 	}
 
 	return root, nil
 }
 
-func allRec(path string, filter Filter, errors *Errors, loaded *Result, depth int, f func(*Result, string, int) error) {
+func allRec(fsys fs.FS, path string, filter Filter, errors *Errors, loaded *Result, depth int, f func(*Result, string, int) error) {
 
 	path, err := fileurl.Clean(path)
 	if err != nil {
@@ -350,7 +609,12 @@ func allRec(path string, filter Filter, errors *Errors, loaded *Result, depth in
 		return
 	}
 
-	info, err := os.Stat(path)
+	var info fs.FileInfo
+	if fsys != nil {
+		info, err = fs.Stat(fsys, path)
+	} else {
+		info, err = os.Stat(path)
+	}
 	if err != nil {
 		errors.add(err)
 		return
@@ -373,30 +637,35 @@ func allRec(path string, filter Filter, errors *Errors, loaded *Result, depth in
 		loaded = loaded.withParent(info.Name())
 	}
 
-	files, err := ioutil.ReadDir(path)
+	var files []fs.DirEntry
+	if fsys != nil {
+		files, err = fs.ReadDir(fsys, path)
+	} else {
+		files, err = os.ReadDir(path)
+	}
 	if err != nil {
 		errors.add(err)
 		return
 	}
 
 	for _, file := range files {
-		allRec(filepath.Join(path, file.Name()), filter, errors, loaded, depth+1, f)
+		allRec(fsys, filepath.Join(path, file.Name()), filter, errors, loaded, depth+1, f)
 	}
 }
 
-func loadKnownTypes(path string, bs []byte, m metrics.Metrics) (interface{}, error) {
+func loadKnownTypes(path string, bs []byte, m metrics.Metrics, opts ast.ParserOptions) (interface{}, error) {
 	switch filepath.Ext(path) {
 	case ".json":
 		return loadJSON(path, bs, m)
 	case ".rego":
-		return loadRego(path, bs, m)
+		return loadRego(path, bs, m, opts)
 	case ".yaml", ".yml":
 		return loadYAML(path, bs, m)
 	default:
 		if strings.HasSuffix(path, ".tar.gz") {
-			r, err := loadBundleFile(bs, m)
+			r, err := loadBundleFile(path, bs, m)
 			if err != nil {
-				err = errors.Wrap(err, fmt.Sprintf("bundle %s", path))
+				err = fmt.Errorf("bundle %s: %w", path, err)
 			}
 			return r, err
 		}
@@ -404,8 +673,8 @@ func loadKnownTypes(path string, bs []byte, m metrics.Metrics) (interface{}, err
 	return nil, unrecognizedFile(path)
 }
 
-func loadFileForAnyType(path string, bs []byte, m metrics.Metrics) (interface{}, error) {
-	module, err := loadRego(path, bs, m)
+func loadFileForAnyType(path string, bs []byte, m metrics.Metrics, opts ast.ParserOptions) (interface{}, error) {
+	module, err := loadRego(path, bs, m, opts)
 	if err == nil {
 		return module, nil
 	}
@@ -420,15 +689,17 @@ func loadFileForAnyType(path string, bs []byte, m metrics.Metrics) (interface{},
 	return nil, unrecognizedFile(path)
 }
 
-func loadBundleFile(bs []byte, m metrics.Metrics) (bundle.Bundle, error) {
-	tl := bundle.NewTarballLoader(bytes.NewBuffer(bs))
-	br := bundle.NewCustomReader(tl).WithMetrics(m).IncludeManifestInData(true)
+func loadBundleFile(path string, bs []byte, m metrics.Metrics) (bundle.Bundle, error) {
+	tl := bundle.NewTarballLoaderWithBaseURL(bytes.NewBuffer(bs), path)
+	br := bundle.NewCustomReader(tl).WithMetrics(m).WithSkipBundleVerification(true).IncludeManifestInData(true)
 	return br.Read()
 }
 
-func loadRego(path string, bs []byte, m metrics.Metrics) (*RegoFile, error) {
+func loadRego(path string, bs []byte, m metrics.Metrics, opts ast.ParserOptions) (*RegoFile, error) {
 	m.Timer(metrics.RegoModuleParse).Start()
-	module, err := ast.ParseModule(path, string(bs))
+	var module *ast.Module
+	var err error
+	module, err = ast.ParseModuleWithOpts(path, string(bs), opts)
 	m.Timer(metrics.RegoModuleParse).Stop()
 	if err != nil {
 		return nil, err
@@ -449,7 +720,7 @@ func loadJSON(path string, bs []byte, m metrics.Metrics) (interface{}, error) {
 	err := decoder.Decode(&x)
 	m.Timer(metrics.RegoDataParse).Stop()
 	if err != nil {
-		return nil, errors.Wrap(err, path)
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return x, nil
 }

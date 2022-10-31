@@ -58,22 +58,26 @@ func builtinSetIntersection(a ast.Value) (ast.Value, error) {
 
 // builtinSetUnion returns the union of the given input sets
 func builtinSetUnion(a ast.Value) (ast.Value, error) {
+	// The set union logic here is duplicated and manually inlined on
+	// purpose. By lifting this logic up a level, and not doing pairwise
+	// set unions, we avoid a number of heap allocations. This improves
+	// performance dramatically over the naive approach.
+	result := ast.NewSet()
 
 	inputSet, err := builtins.SetOperand(a, 1)
 	if err != nil {
 		return nil, err
 	}
 
-	result := ast.NewSet()
-
 	err = inputSet.Iter(func(x *ast.Term) error {
-		n, err := builtins.SetOperand(x.Value, 1)
+		item, err := builtins.SetOperand(x.Value, 1)
 		if err != nil {
 			return err
 		}
-		result = result.Union(n)
+		item.Foreach(result.Add)
 		return nil
 	})
+
 	return result, err
 }
 
