@@ -47,7 +47,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup, one of `firing`, `pending`, `inactive` depending on its rules")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "filter rule groups which contain rules in specified state, one of `firing`, `pending`, `inactive`, `disabled`")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
@@ -77,7 +77,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup, one of `firing`, `pending`, `inactive` depending on its rules")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "filter rule groups which contain rules in specified state, one of `firing`, `pending`, `inactive`, `disabled`")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
@@ -107,7 +107,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
-		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state of a rulegroup, one of `firing`, `pending`, `inactive` depending on its rules")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "filter rule groups which contain rules in specified state, one of `firing`, `pending`, `inactive`, `disabled`")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldBuiltin, "filter rule groups, `true` for built-in rule groups and `false` for custom rule groups")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
