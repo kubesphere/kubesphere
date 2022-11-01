@@ -125,7 +125,7 @@ KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In 
 ### Quick start
 #### Installing on K8s/K3s
 
-If your cluster meets the [prerequisites](https://kubesphere.io/docs/quick-start/minimal-kubesphere-on-k8s/#prerequisites), then run the following commands to install KubeSphere on an existing Kubernetes cluster:
+Ensure that your cluster has installed Kubernetes v1.19.x, v1.20.x, v1.21.x, v1.22.x (experimental support), and v1.23.x (experimental support). Run the following commands to install KubeSphere on an existing Kubernetes cluster:
 
 ```yaml
 kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.1/kubesphere-installer.yaml
