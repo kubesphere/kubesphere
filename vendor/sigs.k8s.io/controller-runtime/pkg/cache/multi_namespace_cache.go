@@ -55,7 +55,7 @@ func MultiNamespacedCacheBuilder(namespaces []string) NewCacheFunc {
 		// create a cache for cluster scoped resources
 		gCache, err := New(config, opts)
 		if err != nil {
-			return nil, fmt.Errorf("error creating global cache %v", err)
+			return nil, fmt.Errorf("error creating global cache: %w", err)
 		}
 
 		for _, ns := range namespaces {

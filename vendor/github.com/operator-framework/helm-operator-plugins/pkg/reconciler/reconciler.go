@@ -42,13 +42,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	ctrlpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/operator-framework/helm-operator-plugins/internal/sdk/controllerutil"
 	"github.com/operator-framework/helm-operator-plugins/pkg/annotation"
 	helmclient "github.com/operator-framework/helm-operator-plugins/pkg/client"
 	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
-	"github.com/operator-framework/helm-operator-plugins/pkg/internal/sdk/controllerutil"
 	"github.com/operator-framework/helm-operator-plugins/pkg/reconciler/internal/conditions"
+	"github.com/operator-framework/helm-operator-plugins/pkg/reconciler/internal/diff"
 	internalhook "github.com/operator-framework/helm-operator-plugins/pkg/reconciler/internal/hook"
 	"github.com/operator-framework/helm-operator-plugins/pkg/reconciler/internal/updater"
 	internalvalues "github.com/operator-framework/helm-operator-plugins/pkg/reconciler/internal/values"
@@ -61,18 +64,22 @@ const uninstallFinalizer = "uninstall-helm-release"
 type Reconciler struct {
 	client             client.Client
 	actionClientGetter helmclient.ActionClientGetter
-	valueMapper        values.Mapper
+	valueTranslator    values.Translator
+	valueMapper        values.Mapper // nolint:staticcheck
 	eventRecorder      record.EventRecorder
 	preHooks           []hook.PreHook
 	postHooks          []hook.PostHook
 
-	log                     logr.Logger
-	gvk                     *schema.GroupVersionKind
-	chrt                    *chart.Chart
-	overrideValues          map[string]string
-	skipDependentWatches    bool
-	maxConcurrentReconciles int
-	reconcilePeriod         time.Duration
+	log                              logr.Logger
+	gvk                              *schema.GroupVersionKind
+	chrt                             *chart.Chart
+	selectorPredicate                predicate.Predicate
+	overrideValues                   map[string]string
+	skipDependentWatches             bool
+	maxConcurrentReconciles          int
+	reconcilePeriod                  time.Duration
+	maxHistory                       int
+	skipPrimaryGVKSchemeRegistration bool
 
 	annotSetupOnce       sync.Once
 	annotations          map[string]struct{}
@@ -126,7 +133,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	controllerName := fmt.Sprintf("%v-controller", strings.ToLower(r.gvk.Kind))
 
 	r.addDefaults(mgr, controllerName)
-	r.setupScheme(mgr)
+	if !r.skipPrimaryGVKSchemeRegistration {
+		r.setupScheme(mgr)
+	}
 
 	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r, MaxConcurrentReconciles: r.maxConcurrentReconciles})
 	if err != nil {
@@ -230,8 +239,8 @@ func WithOverrideValues(overrides map[string]string) Option {
 		// Validate that overrides can be parsed and applied
 		// so that we fail fast during operator setup rather
 		// than during the first reconciliation.
-		m := internalvalues.New(map[string]interface{}{})
-		if err := m.ApplyOverrides(overrides); err != nil {
+		obj := &unstructured.Unstructured{Object: map[string]interface{}{"spec": map[string]interface{}{}}}
+		if err := internalvalues.ApplyOverrides(overrides, obj); err != nil {
 			return err
 		}
 
@@ -248,6 +257,52 @@ func WithOverrideValues(overrides map[string]string) Option {
 func SkipDependentWatches(skip bool) Option {
 	return func(r *Reconciler) error {
 		r.skipDependentWatches = skip
+		return nil
+	}
+}
+
+// SkipPrimaryGVKSchemeRegistration is an Option that allows to disable the default behaviour of
+// registering unstructured.Unstructured as underlying type for the GVK scheme.
+//
+// Disabling this built-in registration is necessary when building operators
+// for which it is desired to have the underlying GVK scheme backed by a
+// custom struct type.
+//
+// Example for using a custom type for the GVK scheme instead of unstructured.Unstructured:
+//
+//   // Define custom type for GVK scheme.
+//   //+kubebuilder:object:root=true
+//   type Custom struct {
+//     // [...]
+//   }
+//
+//   // Register custom type along with common meta types in scheme.
+//   scheme := runtime.NewScheme()
+//   scheme.AddKnownTypes(SchemeGroupVersion, &Custom{})
+//   metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+//
+//   // Create new manager using the controller-runtime, injecting above scheme.
+//   options := ctrl.Options{
+//     Scheme = scheme,
+//     // [...]
+//   }
+//   mgr, err := ctrl.NewManager(config, options)
+//
+//   // Create reconciler with generic scheme registration being disabled.
+//   r, err := reconciler.New(
+//     reconciler.WithChart(chart),
+//     reconciler.SkipPrimaryGVKSchemeRegistration(true),
+//     // [...]
+//   )
+//
+//   // Setup reconciler with above manager.
+//   err = r.SetupWithManager(mgr)
+//
+// By default, skipping of the generic scheme setup is disabled, which means that
+// unstructured.Unstructured is used for the GVK scheme.
+func SkipPrimaryGVKSchemeRegistration(skip bool) Option {
+	return func(r *Reconciler) error {
+		r.skipPrimaryGVKSchemeRegistration = skip
 		return nil
 	}
 }
@@ -276,6 +331,18 @@ func WithReconcilePeriod(rp time.Duration) Option {
 			return errors.New("reconcile period must not be negative")
 		}
 		r.reconcilePeriod = rp
+		return nil
+	}
+}
+
+// WithMaxReleaseHistory specifies the maximum size of the Helm release history maintained
+// on upgrades/rollbacks. Zero (default) means unlimited.
+func WithMaxReleaseHistory(maxHistory int) Option {
+	return func(r *Reconciler) error {
+		if maxHistory < 0 {
+			return errors.New("maximum Helm release history size must not be negative")
+		}
+		r.maxHistory = maxHistory
 		return nil
 	}
 }
@@ -362,11 +429,52 @@ func WithPostHook(h hook.PostHook) Option {
 	}
 }
 
+// WithValueTranslator is an Option that configures a function that translates a
+// custom resource to the values passed to Helm.
+// Use this if you need to customize the logic that translates your custom resource to Helm values.
+// If you wish to, you can convert the Unstructured that is passed to your Translator to your own
+// Custom Resource struct like this:
+//
+//   import "k8s.io/apimachinery/pkg/runtime"
+//   foo := your.Foo{}
+//   if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &foo); err != nil {
+//     return nil, err
+//   }
+//   // work with the type-safe foo
+//
+// Alternatively, your translator can also work similarly to a Mapper, by accessing the spec with:
+//
+//   u.Object["spec"].(map[string]interface{})
+func WithValueTranslator(t values.Translator) Option {
+	return func(r *Reconciler) error {
+		r.valueTranslator = t
+		return nil
+	}
+}
+
 // WithValueMapper is an Option that configures a function that maps values
-// from a custom resource spec to the values passed to Helm
+// from a custom resource spec to the values passed to Helm.
+// Use this if you want to apply a transformation on the values obtained from your custom resource, before
+// they are passed to Helm.
+//
+// Deprecated: Use WithValueTranslator instead.
+// WithValueMapper will be removed in a future release.
 func WithValueMapper(m values.Mapper) Option {
 	return func(r *Reconciler) error {
 		r.valueMapper = m
+		return nil
+	}
+}
+
+// WithSelector is an Option that configures the reconciler to creates a
+// predicate that is used to filter resources based on the specified selector
+func WithSelector(s metav1.LabelSelector) Option {
+	return func(r *Reconciler) error {
+		p, err := ctrlpredicate.LabelSelectorPredicate(s)
+		if err != nil {
+			return err
+		}
+		r.selectorPredicate = p
 		return nil
 	}
 }
@@ -397,11 +505,13 @@ func WithValueMapper(m values.Mapper) Option {
 //   - Irreconcilable - an error occurred during reconciliation
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, err error) {
 	log := r.log.WithValues(strings.ToLower(r.gvk.Kind), req.NamespacedName)
+	log.V(1).Info("Reconciliation triggered")
 
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(*r.gvk)
 	err = r.client.Get(ctx, req.NamespacedName, obj)
 	if apierrors.IsNotFound(err) {
+		log.V(1).Info("Resource %s/%s not found, nothing to do", req.NamespacedName.Namespace, req.NamespacedName.Name)
 		return ctrl.Result{}, nil
 	}
 	if err != nil {
@@ -458,7 +568,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, err
 	}
 
-	vals, err := r.getValues(obj)
+	vals, err := r.getValues(ctx, obj)
 	if err != nil {
 		u.UpdateStatus(
 			updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionTrue, conditions.ReasonErrorGettingValues, err)),
@@ -521,15 +631,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	return ctrl.Result{RequeueAfter: r.reconcilePeriod}, nil
 }
 
-func (r *Reconciler) getValues(obj *unstructured.Unstructured) (chartutil.Values, error) {
-	crVals, err := internalvalues.FromUnstructured(obj)
+func (r *Reconciler) getValues(ctx context.Context, obj *unstructured.Unstructured) (chartutil.Values, error) {
+	if err := internalvalues.ApplyOverrides(r.overrideValues, obj); err != nil {
+		return chartutil.Values{}, err
+	}
+	vals, err := r.valueTranslator.Translate(ctx, obj)
 	if err != nil {
 		return chartutil.Values{}, err
 	}
-	if err := crVals.ApplyOverrides(r.overrideValues); err != nil {
-		return chartutil.Values{}, err
-	}
-	vals := r.valueMapper.Map(crVals.Map())
+	vals = r.valueMapper.Map(vals)
 	vals, err = chartutil.CoalesceValues(r.chrt, vals)
 	if err != nil {
 		return chartutil.Values{}, err
@@ -592,6 +702,12 @@ func (r *Reconciler) getReleaseState(client helmclient.ActionInterface, obj meta
 	}
 
 	var opts []helmclient.UpgradeOption
+	if r.maxHistory > 0 {
+		opts = append(opts, func(u *action.Upgrade) error {
+			u.MaxHistory = r.maxHistory
+			return nil
+		})
+	}
 	for name, annot := range r.upgradeAnnotations {
 		if v, ok := obj.GetAnnotations()[name]; ok {
 			opts = append(opts, annot.UpgradeOption(v))
@@ -631,15 +747,33 @@ func (r *Reconciler) doInstall(actionClient helmclient.ActionInterface, u *updat
 	r.reportOverrideEvents(obj)
 
 	log.Info("Release installed", "name", rel.Name, "version", rel.Version)
+
+	// If log verbosity is higher, output Helm Release Manifest that was installed
+	if log.V(4).Enabled() {
+		fmt.Println(diff.Generate("", rel.Manifest))
+	}
+
 	return rel, nil
 }
 
 func (r *Reconciler) doUpgrade(actionClient helmclient.ActionInterface, u *updater.Updater, obj *unstructured.Unstructured, vals map[string]interface{}, log logr.Logger) (*release.Release, error) {
 	var opts []helmclient.UpgradeOption
+	if r.maxHistory > 0 {
+		opts = append(opts, func(u *action.Upgrade) error {
+			u.MaxHistory = r.maxHistory
+			return nil
+		})
+	}
 	for name, annot := range r.upgradeAnnotations {
 		if v, ok := obj.GetAnnotations()[name]; ok {
 			opts = append(opts, annot.UpgradeOption(v))
 		}
+	}
+
+	// Get the current release so we can compare the new release in the diff if the diff is being logged.
+	curRel, err := actionClient.Get(obj.GetName())
+	if err != nil {
+		return nil, fmt.Errorf("could not get the current Helm Release: %w", err)
 	}
 
 	rel, err := actionClient.Upgrade(obj.GetName(), obj.GetNamespace(), r.chrt, vals, opts...)
@@ -653,6 +787,11 @@ func (r *Reconciler) doUpgrade(actionClient helmclient.ActionInterface, u *updat
 	r.reportOverrideEvents(obj)
 
 	log.Info("Release upgraded", "name", rel.Name, "version", rel.Version)
+
+	// If log verbosity is higher, output upgraded Helm Release Manifest
+	if log.V(4).Enabled() {
+		fmt.Println(diff.Generate(curRel.Manifest, rel.Manifest))
+	}
 	return rel, nil
 }
 
@@ -702,6 +841,11 @@ func (r *Reconciler) doUninstall(actionClient helmclient.ActionInterface, u *upd
 		return err
 	} else {
 		log.Info("Release uninstalled", "name", resp.Release.Name, "version", resp.Release.Version)
+
+		// If log verbosity is higher, output Helm Release Manifest that was uninstalled
+		if log.V(4).Enabled() {
+			fmt.Println(diff.Generate(resp.Release.Manifest, ""))
+		}
 	}
 	u.Update(updater.RemoveFinalizer(uninstallFinalizer))
 	u.UpdateStatus(
@@ -726,7 +870,7 @@ func (r *Reconciler) addDefaults(mgr ctrl.Manager, controllerName string) {
 	if r.client == nil {
 		r.client = mgr.GetClient()
 	}
-	if r.log == nil {
+	if r.log.GetSink() == nil {
 		r.log = ctrl.Log.WithName("controllers").WithName("Helm")
 	}
 	if r.actionClientGetter == nil {
@@ -735,6 +879,9 @@ func (r *Reconciler) addDefaults(mgr ctrl.Manager, controllerName string) {
 	}
 	if r.eventRecorder == nil {
 		r.eventRecorder = mgr.GetEventRecorderFor(controllerName)
+	}
+	if r.valueTranslator == nil {
+		r.valueTranslator = internalvalues.DefaultTranslator
 	}
 	if r.valueMapper == nil {
 		r.valueMapper = internalvalues.DefaultMapper
@@ -749,9 +896,16 @@ func (r *Reconciler) setupScheme(mgr ctrl.Manager) {
 func (r *Reconciler) setupWatches(mgr ctrl.Manager, c controller.Controller) error {
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(*r.gvk)
+
+	var preds []ctrlpredicate.Predicate
+	if r.selectorPredicate != nil {
+		preds = append(preds, r.selectorPredicate)
+	}
+
 	if err := c.Watch(
 		&source.Kind{Type: obj},
 		&sdkhandler.InstrumentedEnqueueRequestForObject{},
+		preds...,
 	); err != nil {
 		return err
 	}

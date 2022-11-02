@@ -19,7 +19,7 @@ package v2alpha1
 import (
 	"github.com/emicklei/go-restful"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	ksapi "kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/alerting/v2alpha1"

@@ -37,7 +37,7 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	notificationv2beta1 "kubesphere.io/api/notification/v2beta1"

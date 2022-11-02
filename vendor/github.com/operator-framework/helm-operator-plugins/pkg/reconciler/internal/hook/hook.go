@@ -25,15 +25,16 @@ import (
 	"helm.sh/helm/v3/pkg/releaseutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/yaml"
 
+	"github.com/operator-framework/helm-operator-plugins/internal/sdk/controllerutil"
 	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
-	"github.com/operator-framework/helm-operator-plugins/pkg/internal/sdk/controllerutil"
-	"github.com/operator-framework/helm-operator-plugins/pkg/internal/sdk/predicate"
+	"github.com/operator-framework/helm-operator-plugins/pkg/internal/predicate"
 	"github.com/operator-framework/helm-operator-plugins/pkg/manifestutil"
 )
 
@@ -69,32 +70,65 @@ func (d *dependentResourceWatcher) Exec(owner *unstructured.Unstructured, rel re
 		}
 
 		depGVK := obj.GroupVersionKind()
-		if _, ok := d.watches[depGVK]; ok || depGVK.Empty() {
+		if depGVK.Empty() {
 			continue
 		}
 
-		useOwnerRef, err := controllerutil.SupportsOwnerReference(d.restMapper, owner, &obj)
-		if err != nil {
-			return err
+		var setWatchOnResource = func(dependent runtime.Object) error {
+			unstructuredObj := dependent.(*unstructured.Unstructured)
+			gvkDependent := unstructuredObj.GroupVersionKind()
+
+			if gvkDependent.Empty() {
+				return nil
+			}
+
+			_, ok := d.watches[gvkDependent]
+			if ok {
+				return nil
+			}
+
+			useOwnerRef, err := controllerutil.SupportsOwnerReference(d.restMapper, owner, unstructuredObj)
+			if err != nil {
+				return err
+			}
+
+			if useOwnerRef && !manifestutil.HasResourcePolicyKeep(unstructuredObj.GetAnnotations()) { // Setup watch using owner references.
+				if err := d.controller.Watch(&source.Kind{Type: unstructuredObj}, &handler.EnqueueRequestForOwner{
+					OwnerType:    owner,
+					IsController: true,
+				}, dependentPredicate); err != nil {
+					return err
+				}
+			} else { // Setup watch using annotations.
+				if err := d.controller.Watch(&source.Kind{Type: unstructuredObj}, &sdkhandler.EnqueueRequestForAnnotation{
+					Type: owner.GetObjectKind().GroupVersionKind().GroupKind(),
+				}, dependentPredicate); err != nil {
+					return err
+				}
+			}
+
+			d.watches[depGVK] = struct{}{}
+			log.V(1).Info("Watching dependent resource", "dependentAPIVersion", depGVK.GroupVersion(), "dependentKind", depGVK.Kind)
+			return nil
 		}
 
-		if useOwnerRef && !manifestutil.HasResourcePolicyKeep(obj.GetAnnotations()) {
-			if err := d.controller.Watch(&source.Kind{Type: &obj}, &handler.EnqueueRequestForOwner{
-				OwnerType:    owner,
-				IsController: true,
-			}, dependentPredicate); err != nil {
-				return err
+		// List is not actually a resource and therefore cannot have a
+		// watch on it. The watch will be on the kinds listed in the list
+		// and will therefore need to be handled individually.
+		listGVK := schema.GroupVersionKind{Group: "", Version: "v1", Kind: "List"}
+		if depGVK == listGVK {
+			errListItem := obj.EachListItem(func(o runtime.Object) error {
+				return setWatchOnResource(o)
+			})
+			if errListItem != nil {
+				return errListItem
 			}
 		} else {
-			if err := d.controller.Watch(&source.Kind{Type: &obj}, &sdkhandler.EnqueueRequestForAnnotation{
-				Type: owner.GetObjectKind().GroupVersionKind().GroupKind(),
-			}, dependentPredicate); err != nil {
+			err := setWatchOnResource(&obj)
+			if err != nil {
 				return err
 			}
 		}
-
-		d.watches[depGVK] = struct{}{}
-		log.V(1).Info("Watching dependent resource", "dependentAPIVersion", depGVK.GroupVersion(), "dependentKind", depGVK.Kind)
 	}
 	return nil
 }

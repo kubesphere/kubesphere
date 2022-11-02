@@ -31,7 +31,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 
 	"github.com/form3tech-oss/jwt-go"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 

@@ -26,8 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -205,7 +204,7 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 	}
 
 	klog.V(0).Info("setting up manager")
-	ctrl.SetLogger(klogr.New())
+	ctrl.SetLogger(klog.NewKlogr())
 	// Use 8443 instead of 443 cause we need root permission to bind port 443
 	mgr, err := manager.New(kubernetesClient.Config(), mgrOptions)
 	if err != nil {

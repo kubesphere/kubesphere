@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 

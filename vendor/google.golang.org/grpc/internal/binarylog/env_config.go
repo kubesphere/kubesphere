@@ -24,8 +24,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"google.golang.org/grpc/grpclog"
 )
 
 // NewLoggerFromConfigString reads the string and build a logger. It can be used
@@ -52,7 +50,7 @@ func NewLoggerFromConfigString(s string) Logger {
 	methods := strings.Split(s, ",")
 	for _, method := range methods {
 		if err := l.fillMethodLoggerWithConfigString(method); err != nil {
-			grpclog.Warningf("failed to parse binary log config: %v", err)
+			grpclogLogger.Warningf("failed to parse binary log config: %v", err)
 			return nil
 		}
 	}
@@ -91,7 +89,7 @@ func (l *logger) fillMethodLoggerWithConfigString(config string) error {
 		if err != nil {
 			return fmt.Errorf("invalid config: %q, %v", config, err)
 		}
-		if err := l.setDefaultMethodLogger(&methodLoggerConfig{hdr: hdr, msg: msg}); err != nil {
+		if err := l.setDefaultMethodLogger(&MethodLoggerConfig{Header: hdr, Message: msg}); err != nil {
 			return fmt.Errorf("invalid config: %v", err)
 		}
 		return nil
@@ -106,11 +104,11 @@ func (l *logger) fillMethodLoggerWithConfigString(config string) error {
 		return fmt.Errorf("invalid header/message length config: %q, %v", suffix, err)
 	}
 	if m == "*" {
-		if err := l.setServiceMethodLogger(s, &methodLoggerConfig{hdr: hdr, msg: msg}); err != nil {
+		if err := l.setServiceMethodLogger(s, &MethodLoggerConfig{Header: hdr, Message: msg}); err != nil {
 			return fmt.Errorf("invalid config: %v", err)
 		}
 	} else {
-		if err := l.setMethodMethodLogger(s+"/"+m, &methodLoggerConfig{hdr: hdr, msg: msg}); err != nil {
+		if err := l.setMethodMethodLogger(s+"/"+m, &MethodLoggerConfig{Header: hdr, Message: msg}); err != nil {
 			return fmt.Errorf("invalid config: %v", err)
 		}
 	}

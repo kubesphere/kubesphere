@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -48,7 +48,7 @@ func TestApplicationController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(klogr.New())
+	logf.SetLogger(klog.NewKlogr())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{

@@ -19,7 +19,6 @@ package controlplane
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -385,10 +384,10 @@ func (s *APIServer) populateAPIServerCerts() error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(s.CertDir, "apiserver.crt"), certData, 0640); err != nil { //nolint:gosec
+	if err := os.WriteFile(filepath.Join(s.CertDir, "apiserver.crt"), certData, 0640); err != nil { //nolint:gosec
 		return err
 	}
-	if err := ioutil.WriteFile(filepath.Join(s.CertDir, "apiserver.key"), keyData, 0640); err != nil { //nolint:gosec
+	if err := os.WriteFile(filepath.Join(s.CertDir, "apiserver.key"), keyData, 0640); err != nil { //nolint:gosec
 		return err
 	}
 
@@ -405,19 +404,19 @@ func (s *APIServer) populateAPIServerCerts() error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(s.CertDir, saCertFile), saCert, 0640); err != nil { //nolint:gosec
+	if err := os.WriteFile(filepath.Join(s.CertDir, saCertFile), saCert, 0640); err != nil { //nolint:gosec
 		return err
 	}
-	return ioutil.WriteFile(filepath.Join(s.CertDir, saKeyFile), saKey, 0640) //nolint:gosec
+	return os.WriteFile(filepath.Join(s.CertDir, saKeyFile), saKey, 0640) //nolint:gosec
 }
 
 // Stop stops this process gracefully, waits for its termination, and cleans up
 // the CertDir if necessary.
 func (s *APIServer) Stop() error {
-	if s.processState.DirNeedsCleaning {
-		s.CertDir = "" // reset the directory if it was randomly allocated, so that we can safely restart
-	}
 	if s.processState != nil {
+		if s.processState.DirNeedsCleaning {
+			s.CertDir = "" // reset the directory if it was randomly allocated, so that we can safely restart
+		}
 		if err := s.processState.Stop(); err != nil {
 			return err
 		}

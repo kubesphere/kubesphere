@@ -24,8 +24,9 @@ package certs
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	crand "crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -38,8 +39,8 @@ import (
 )
 
 var (
-	rsaKeySize = 2048 // a decent number, as of 2019
-	bigOne     = big.NewInt(1)
+	ellipticCurve = elliptic.P256()
+	bigOne        = big.NewInt(1)
 )
 
 // CertPair is a private key and certificate for use for client auth, as a CA, or serving.
@@ -63,7 +64,7 @@ func (k CertPair) AsBytes() (cert []byte, key []byte, err error) {
 
 	rawKeyData, err := x509.MarshalPKCS8PrivateKey(k.Key)
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to encode private key: %v", err)
+		return nil, nil, fmt.Errorf("unable to encode private key: %w", err)
 	}
 
 	key = pem.EncodeToMemory(&pem.Block{
@@ -86,7 +87,7 @@ type TinyCA struct {
 // newPrivateKey generates a new private key of a relatively sane size (see
 // rsaKeySize).
 func newPrivateKey() (crypto.Signer, error) {
-	return rsa.GenerateKey(crand.Reader, rsaKeySize)
+	return ecdsa.GenerateKey(ellipticCurve, crand.Reader)
 }
 
 // NewTinyCA creates a new a tiny CA utility for provisioning serving certs and client certs FOR TESTING ONLY.
@@ -94,12 +95,12 @@ func newPrivateKey() (crypto.Signer, error) {
 func NewTinyCA() (*TinyCA, error) {
 	caPrivateKey, err := newPrivateKey()
 	if err != nil {
-		return nil, fmt.Errorf("unable to generate private key for CA: %v", err)
+		return nil, fmt.Errorf("unable to generate private key for CA: %w", err)
 	}
 	caCfg := certutil.Config{CommonName: "envtest-environment", Organization: []string{"envtest"}}
 	caCert, err := certutil.NewSelfSignedCACert(caCfg, caPrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("unable to generate certificate for CA: %v", err)
+		return nil, fmt.Errorf("unable to generate certificate for CA: %w", err)
 	}
 
 	return &TinyCA{
@@ -114,7 +115,7 @@ func (c *TinyCA) makeCert(cfg certutil.Config) (CertPair, error) {
 
 	key, err := newPrivateKey()
 	if err != nil {
-		return CertPair{}, fmt.Errorf("unable to create private key: %v", err)
+		return CertPair{}, fmt.Errorf("unable to create private key: %w", err)
 	}
 
 	serial := new(big.Int).Set(c.nextSerial)
@@ -139,12 +140,12 @@ func (c *TinyCA) makeCert(cfg certutil.Config) (CertPair, error) {
 
 	certRaw, err := x509.CreateCertificate(crand.Reader, &template, c.CA.Cert, key.Public(), c.CA.Key)
 	if err != nil {
-		return CertPair{}, fmt.Errorf("unable to create certificate: %v", err)
+		return CertPair{}, fmt.Errorf("unable to create certificate: %w", err)
 	}
 
 	cert, err := x509.ParseCertificate(certRaw)
 	if err != nil {
-		return CertPair{}, fmt.Errorf("generated invalid certificate, could not parse: %v", err)
+		return CertPair{}, fmt.Errorf("generated invalid certificate, could not parse: %w", err)
 	}
 
 	return CertPair{

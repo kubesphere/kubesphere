@@ -23,7 +23,7 @@ import (
 
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/emicklei/go-restful"
-	log "k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var statusUnauthorized = "Not found or unauthorized"
@@ -52,10 +52,10 @@ func (r *Registry) ImageManifest(image Image, token string) (*ImageManifest, err
 
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusUnauthorized {
-			log.Error(statusUnauthorized)
+			klog.Error(statusUnauthorized)
 			return nil, restful.NewError(resp.StatusCode, statusUnauthorized)
 		}
-		log.Errorf("got response: statusCode is '%d', body is '%s'\n", resp.StatusCode, respBody)
+		klog.Errorf("got response: statusCode is '%d', body is '%s'\n", resp.StatusCode, respBody)
 		return nil, restful.NewError(resp.StatusCode, "got image manifest failed")
 	}
 

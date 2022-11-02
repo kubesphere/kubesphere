@@ -45,7 +45,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"

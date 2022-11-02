@@ -23,6 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -148,9 +149,9 @@ func (blder *Builder) WithOptions(options controller.Options) *Builder {
 	return blder
 }
 
-// WithLogger overrides the controller options's logger used.
-func (blder *Builder) WithLogger(log logr.Logger) *Builder {
-	blder.ctrlOptions.Log = log
+// WithLogConstructor overrides the controller options's LogConstructor.
+func (blder *Builder) WithLogConstructor(logConstructor func(*reconcile.Request) logr.Logger) *Builder {
+	blder.ctrlOptions.LogConstructor = logConstructor
 	return blder
 }
 
@@ -304,13 +305,31 @@ func (blder *Builder) doController(r reconcile.Reconciler) error {
 		ctrlOptions.CacheSyncTimeout = *globalOpts.CacheSyncTimeout
 	}
 
+	controllerName := blder.getControllerName(gvk)
+
 	// Setup the logger.
-	if ctrlOptions.Log == nil {
-		ctrlOptions.Log = blder.mgr.GetLogger()
+	if ctrlOptions.LogConstructor == nil {
+		log = blder.mgr.GetLogger().WithValues(
+			"controller", controllerName,
+			"controllerGroup", gvk.Group,
+			"controllerKind", gvk.Kind,
+		)
+
+		lowerCamelCaseKind := strings.ToLower(gvk.Kind[:1]) + gvk.Kind[1:]
+
+		ctrlOptions.LogConstructor = func(req *reconcile.Request) logr.Logger {
+			log := log
+			if req != nil {
+				log = log.WithValues(
+					lowerCamelCaseKind, klog.KRef(req.Namespace, req.Name),
+					"namespace", req.Namespace, "name", req.Name,
+				)
+			}
+			return log
+		}
 	}
-	ctrlOptions.Log = ctrlOptions.Log.WithValues("reconciler group", gvk.Group, "reconciler kind", gvk.Kind)
 
 	// Build the controller and return.
-	blder.ctrl, err = newController(blder.getControllerName(gvk), blder.mgr, ctrlOptions)
+	blder.ctrl, err = newController(controllerName, blder.mgr, ctrlOptions)
 	return err
 }

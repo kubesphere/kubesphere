@@ -146,9 +146,7 @@ func (mc *metadataClient) List(ctx context.Context, obj ObjectList, opts ...List
 	}
 
 	gvk := metadata.GroupVersionKind()
-	if strings.HasSuffix(gvk.Kind, "List") {
-		gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
-	}
+	gvk.Kind = strings.TrimSuffix(gvk.Kind, "List")
 
 	listOpts := ListOptions{}
 	listOpts.ApplyOptions(opts)

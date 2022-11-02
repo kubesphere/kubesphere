@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-logr/logr"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics"
@@ -83,8 +84,14 @@ type Controller struct {
 	// startWatches maintains a list of sources, handlers, and predicates to start when the controller is started.
 	startWatches []watchDescription
 
-	// Log is used to log messages to users during reconciliation, or for example when a watch is started.
-	Log logr.Logger
+	// LogConstructor is used to construct a logger to then log messages to users during reconciliation,
+	// or for example when a watch is started.
+	// Note: LogConstructor has to be able to handle nil requests as we are also using it
+	// outside the context of a reconciliation.
+	LogConstructor func(request *reconcile.Request) logr.Logger
+
+	// RecoverPanic indicates whether the panic caused by reconcile should be recovered.
+	RecoverPanic bool
 }
 
 // watchDescription contains all the information necessary to start a watch.
@@ -95,9 +102,22 @@ type watchDescription struct {
 }
 
 // Reconcile implements reconcile.Reconciler.
-func (c *Controller) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	log := c.Log.WithValues("name", req.Name, "namespace", req.Namespace)
-	ctx = logf.IntoContext(ctx, log)
+func (c *Controller) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if c.RecoverPanic {
+				for _, fn := range utilruntime.PanicHandlers {
+					fn(r)
+				}
+				err = fmt.Errorf("panic: %v [recovered]", r)
+				return
+			}
+
+			log := logf.FromContext(ctx)
+			log.Info(fmt.Sprintf("Observed a panic in reconciler: %v", r))
+			panic(r)
+		}
+	}()
 	return c.Do.Reconcile(ctx, req)
 }
 
@@ -127,7 +147,7 @@ func (c *Controller) Watch(src source.Source, evthdler handler.EventHandler, prc
 		return nil
 	}
 
-	c.Log.Info("Starting EventSource", "source", src)
+	c.LogConstructor(nil).Info("Starting EventSource", "source", src)
 	return src.Start(c.ctx, evthdler, c.Queue, prct...)
 }
 
@@ -162,7 +182,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		// caches to sync so that they have a chance to register their intendeded
 		// caches.
 		for _, watch := range c.startWatches {
-			c.Log.Info("Starting EventSource", "source", watch.src)
+			c.LogConstructor(nil).Info("Starting EventSource", "source", fmt.Sprintf("%s", watch.src))
 
 			if err := watch.src.Start(ctx, watch.handler, c.Queue, watch.predicates...); err != nil {
 				return err
@@ -170,7 +190,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		}
 
 		// Start the SharedIndexInformer factories to begin populating the SharedIndexInformer caches
-		c.Log.Info("Starting Controller")
+		c.LogConstructor(nil).Info("Starting Controller")
 
 		for _, watch := range c.startWatches {
 			syncingSource, ok := watch.src.(source.SyncingSource)
@@ -187,7 +207,7 @@ func (c *Controller) Start(ctx context.Context) error {
 				// is an error or a timeout
 				if err := syncingSource.WaitForSync(sourceStartCtx); err != nil {
 					err := fmt.Errorf("failed to wait for %s caches to sync: %w", c.Name, err)
-					c.Log.Error(err, "Could not wait for Cache to sync")
+					c.LogConstructor(nil).Error(err, "Could not wait for Cache to sync")
 					return err
 				}
 
@@ -204,7 +224,7 @@ func (c *Controller) Start(ctx context.Context) error {
 		c.startWatches = nil
 
 		// Launch workers to process resources
-		c.Log.Info("Starting workers", "worker count", c.MaxConcurrentReconciles)
+		c.LogConstructor(nil).Info("Starting workers", "worker count", c.MaxConcurrentReconciles)
 		wg.Add(c.MaxConcurrentReconciles)
 		for i := 0; i < c.MaxConcurrentReconciles; i++ {
 			go func() {
@@ -224,9 +244,9 @@ func (c *Controller) Start(ctx context.Context) error {
 	}
 
 	<-ctx.Done()
-	c.Log.Info("Shutdown signal received, waiting for all workers to finish")
+	c.LogConstructor(nil).Info("Shutdown signal received, waiting for all workers to finish")
 	wg.Wait()
-	c.Log.Info("All workers finished")
+	c.LogConstructor(nil).Info("All workers finished")
 	return nil
 }
 
@@ -278,24 +298,26 @@ func (c *Controller) reconcileHandler(ctx context.Context, obj interface{}) {
 		c.updateMetrics(time.Since(reconcileStartTS))
 	}()
 
-	// Make sure that the the object is a valid request.
+	// Make sure that the object is a valid request.
 	req, ok := obj.(reconcile.Request)
 	if !ok {
 		// As the item in the workqueue is actually invalid, we call
 		// Forget here else we'd go into a loop of attempting to
 		// process a work item that is invalid.
 		c.Queue.Forget(obj)
-		c.Log.Error(nil, "Queue item was not a Request", "type", fmt.Sprintf("%T", obj), "value", obj)
+		c.LogConstructor(nil).Error(nil, "Queue item was not a Request", "type", fmt.Sprintf("%T", obj), "value", obj)
 		// Return true, don't take a break
 		return
 	}
 
-	log := c.Log.WithValues("name", req.Name, "namespace", req.Namespace)
+	log := c.LogConstructor(&req)
+
+	log = log.WithValues("reconcileID", uuid.NewUUID())
 	ctx = logf.IntoContext(ctx, log)
 
 	// RunInformersAndControllers the syncHandler, passing it the Namespace/Name string of the
 	// resource to be synced.
-	result, err := c.Do.Reconcile(ctx, req)
+	result, err := c.Reconcile(ctx, req)
 	switch {
 	case err != nil:
 		c.Queue.AddRateLimited(req)
@@ -323,7 +345,7 @@ func (c *Controller) reconcileHandler(ctx context.Context, obj interface{}) {
 
 // GetLogger returns this controller's logger.
 func (c *Controller) GetLogger() logr.Logger {
-	return c.Log
+	return c.LogConstructor(nil)
 }
 
 // InjectFunc implement SetFields.Injector.

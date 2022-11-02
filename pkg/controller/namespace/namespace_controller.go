@@ -66,7 +66,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.Client == nil {
 		r.Client = mgr.GetClient()
 	}
-	if r.Logger == nil {
+	if r.Logger.GetSink() == nil {
 		r.Logger = ctrl.Log.WithName("controllers").WithName(controllerName)
 	}
 	if r.Recorder == nil {

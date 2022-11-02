@@ -19,7 +19,7 @@ package resmap
 import (
 	"sort"
 
-	"sigs.k8s.io/kustomize/api/resid"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 )
 
 // IdSlice implements the sort interface.
@@ -33,5 +33,5 @@ func (a IdSlice) Less(i, j int) bool {
 	if !a[i].Gvk.Equals(a[j].Gvk) {
 		return a[i].Gvk.IsLessThan(a[j].Gvk)
 	}
-	return a[i].String() < a[j].String()
+	return a[i].LegacySortString() < a[j].LegacySortString()
 }

@@ -14,7 +14,7 @@ limitations under the License.
 package v2alpha1
 
 import (
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/api/application/v1alpha1"
 

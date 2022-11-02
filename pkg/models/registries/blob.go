@@ -22,7 +22,7 @@ import (
 	"net/http"
 
 	"github.com/docker/distribution/manifest/schema2"
-	log "k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Digest returns the digest for an image.
@@ -50,7 +50,7 @@ func (r *Registry) ImageBlob(image Image, token string) (*ImageBlob, error) {
 	respBody, _ := GetRespBody(resp)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
-		log.Errorf("got response: statusCode is '%d', body is '%s'\n", resp.StatusCode, respBody)
+		klog.Errorf("got response: statusCode is '%d', body is '%s'\n", resp.StatusCode, respBody)
 		return nil, fmt.Errorf("got image blob faild")
 	}
 

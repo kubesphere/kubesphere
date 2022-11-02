@@ -56,58 +56,71 @@ type Manager interface {
 	// Update is used when the object has already been merged (non-apply
 	// use-case), and simply updates the managed fields in the output
 	// object.
+	//  * `liveObj` is not mutated by this function
+	//  * `newObj` may be mutated by this function
+	// Returns the new object with managedFields removed, and the object's new
+	// proposed managedFields separately.
 	Update(liveObj, newObj runtime.Object, managed Managed, manager string) (runtime.Object, Managed, error)
 
 	// Apply is used when server-side apply is called, as it merges the
 	// object and updates the managed fields.
+	//  * `liveObj` is not mutated by this function
+	//  * `newObj` may be mutated by this function
+	// Returns the new object with managedFields removed, and the object's new
+	// proposed managedFields separately.
 	Apply(liveObj, appliedObj runtime.Object, managed Managed, fieldManager string, force bool) (runtime.Object, Managed, error)
 }
 
 // FieldManager updates the managed fields and merge applied
 // configurations.
 type FieldManager struct {
-	fieldManager                         Manager
-	ignoreManagedFieldsFromRequestObject bool
+	fieldManager Manager
+	subresource  string
 }
 
 // NewFieldManager creates a new FieldManager that decodes, manages, then re-encodes managedFields
 // on update and apply requests.
-func NewFieldManager(f Manager, ignoreManagedFieldsFromRequestObject bool) *FieldManager {
-	return &FieldManager{fieldManager: f, ignoreManagedFieldsFromRequestObject: ignoreManagedFieldsFromRequestObject}
+func NewFieldManager(f Manager, subresource string) *FieldManager {
+	return &FieldManager{fieldManager: f, subresource: subresource}
 }
 
 // NewDefaultFieldManager creates a new FieldManager that merges apply requests
 // and update managed fields for other types of requests.
-func NewDefaultFieldManager(typeConverter TypeConverter, objectConverter runtime.ObjectConvertor, objectDefaulter runtime.ObjectDefaulter, objectCreater runtime.ObjectCreater, kind schema.GroupVersionKind, hub schema.GroupVersion, ignoreManagedFieldsFromRequestObject bool, resetFields map[fieldpath.APIVersion]*fieldpath.Set) (*FieldManager, error) {
+func NewDefaultFieldManager(typeConverter TypeConverter, objectConverter runtime.ObjectConvertor, objectDefaulter runtime.ObjectDefaulter, objectCreater runtime.ObjectCreater, kind schema.GroupVersionKind, hub schema.GroupVersion, subresource string, resetFields map[fieldpath.APIVersion]*fieldpath.Set) (*FieldManager, error) {
 	f, err := NewStructuredMergeManager(typeConverter, objectConverter, objectDefaulter, kind.GroupVersion(), hub, resetFields)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create field manager: %v", err)
 	}
-	return newDefaultFieldManager(f, typeConverter, objectConverter, objectCreater, kind, ignoreManagedFieldsFromRequestObject), nil
+	return newDefaultFieldManager(f, typeConverter, objectConverter, objectCreater, kind, subresource), nil
 }
 
 // NewDefaultCRDFieldManager creates a new FieldManager specifically for
 // CRDs. This allows for the possibility of fields which are not defined
 // in models, as well as having no models defined at all.
-func NewDefaultCRDFieldManager(typeConverter TypeConverter, objectConverter runtime.ObjectConvertor, objectDefaulter runtime.ObjectDefaulter, objectCreater runtime.ObjectCreater, kind schema.GroupVersionKind, hub schema.GroupVersion, ignoreManagedFieldsFromRequestObject bool, resetFields map[fieldpath.APIVersion]*fieldpath.Set) (_ *FieldManager, err error) {
+func NewDefaultCRDFieldManager(typeConverter TypeConverter, objectConverter runtime.ObjectConvertor, objectDefaulter runtime.ObjectDefaulter, objectCreater runtime.ObjectCreater, kind schema.GroupVersionKind, hub schema.GroupVersion, subresource string, resetFields map[fieldpath.APIVersion]*fieldpath.Set) (_ *FieldManager, err error) {
 	f, err := NewCRDStructuredMergeManager(typeConverter, objectConverter, objectDefaulter, kind.GroupVersion(), hub, resetFields)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create field manager: %v", err)
 	}
-	return newDefaultFieldManager(f, typeConverter, objectConverter, objectCreater, kind, ignoreManagedFieldsFromRequestObject), nil
+	return newDefaultFieldManager(f, typeConverter, objectConverter, objectCreater, kind, subresource), nil
 }
 
 // newDefaultFieldManager is a helper function which wraps a Manager with certain default logic.
-func newDefaultFieldManager(f Manager, typeConverter TypeConverter, objectConverter runtime.ObjectConvertor, objectCreater runtime.ObjectCreater, kind schema.GroupVersionKind, ignoreManagedFieldsFromRequestObject bool) *FieldManager {
-	f = NewStripMetaManager(f)
-	f = NewManagedFieldsUpdater(f)
-	f = NewBuildManagerInfoManager(f, kind.GroupVersion())
-	f = NewCapManagersManager(f, DefaultMaxUpdateManagers)
-	f = NewProbabilisticSkipNonAppliedManager(f, objectCreater, kind, DefaultTrackOnCreateProbability)
-	f = NewLastAppliedManager(f, typeConverter, objectConverter, kind.GroupVersion())
-	f = NewLastAppliedUpdater(f)
-
-	return NewFieldManager(f, ignoreManagedFieldsFromRequestObject)
+func newDefaultFieldManager(f Manager, typeConverter TypeConverter, objectConverter runtime.ObjectConvertor, objectCreater runtime.ObjectCreater, kind schema.GroupVersionKind, subresource string) *FieldManager {
+	return NewFieldManager(
+		NewLastAppliedUpdater(
+			NewLastAppliedManager(
+				NewProbabilisticSkipNonAppliedManager(
+					NewCapManagersManager(
+						NewBuildManagerInfoManager(
+							NewManagedFieldsUpdater(
+								NewStripMetaManager(f),
+							), kind.GroupVersion(), subresource,
+						), DefaultMaxUpdateManagers,
+					), objectCreater, kind, DefaultTrackOnCreateProbability,
+				), typeConverter, objectConverter, kind.GroupVersion()),
+		), subresource,
+	)
 }
 
 // DecodeManagedFields converts ManagedFields from the wire format (api format)
@@ -162,12 +175,12 @@ func emptyManagedFieldsOnErr(managed Managed, err error) (Managed, error) {
 func (f *FieldManager) Update(liveObj, newObj runtime.Object, manager string) (object runtime.Object, err error) {
 	// First try to decode the managed fields provided in the update,
 	// This is necessary to allow directly updating managed fields.
-	managed, err := decodeLiveOrNew(liveObj, newObj, f.ignoreManagedFieldsFromRequestObject)
+	isSubresource := f.subresource != ""
+	managed, err := decodeLiveOrNew(liveObj, newObj, isSubresource)
 	if err != nil {
 		return newObj, nil
 	}
 
-	internal.RemoveObjectManagedFields(liveObj)
 	internal.RemoveObjectManagedFields(newObj)
 
 	if object, managed, err = f.fieldManager.Update(liveObj, newObj, managed, manager); err != nil {
@@ -188,8 +201,15 @@ func (f *FieldManager) UpdateNoErrors(liveObj, newObj runtime.Object, manager st
 	obj, err := f.Update(liveObj, newObj, manager)
 	if err != nil {
 		atMostEverySecond.Do(func() {
+			ns, name := "unknown", "unknown"
+			accessor, err := meta.Accessor(newObj)
+			if err == nil {
+				ns = accessor.GetNamespace()
+				name = accessor.GetName()
+			}
+
 			klog.ErrorS(err, "[SHOULD NOT HAPPEN] failed to update managedFields", "VersionKind",
-				newObj.GetObjectKind().GroupVersionKind())
+				newObj.GetObjectKind().GroupVersionKind(), "namespace", ns, "name", name)
 		})
 		// Explicitly remove managedFields on failure, so that
 		// we can't have garbage in it.
@@ -228,8 +248,6 @@ func (f *FieldManager) Apply(liveObj, appliedObj runtime.Object, manager string,
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode managed fields: %v", err)
 	}
-
-	internal.RemoveObjectManagedFields(liveObj)
 
 	object, managed, err = f.fieldManager.Apply(liveObj, appliedObj, managed, manager, force)
 	if err != nil {

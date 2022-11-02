@@ -120,7 +120,7 @@ func (c *FakeReplicaSets) UpdateStatus(ctx context.Context, replicaSet *v1beta1.
 // Delete takes name of the replicaSet and deletes it. Returns an error if one occurs.
 func (c *FakeReplicaSets) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(replicasetsResource, c.ns, name), &v1beta1.ReplicaSet{})
+		Invokes(testing.NewDeleteActionWithOptions(replicasetsResource, c.ns, name, opts), &v1beta1.ReplicaSet{})
 
 	return err
 }
@@ -204,6 +204,25 @@ func (c *FakeReplicaSets) GetScale(ctx context.Context, replicaSetName string, o
 func (c *FakeReplicaSets) UpdateScale(ctx context.Context, replicaSetName string, scale *v1beta1.Scale, opts v1.UpdateOptions) (result *v1beta1.Scale, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(replicasetsResource, "scale", c.ns, scale), &v1beta1.Scale{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1beta1.Scale), err
+}
+
+// ApplyScale takes top resource name and the apply declarative configuration for scale,
+// applies it and returns the applied scale, and an error, if there is any.
+func (c *FakeReplicaSets) ApplyScale(ctx context.Context, replicaSetName string, scale *extensionsv1beta1.ScaleApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.Scale, err error) {
+	if scale == nil {
+		return nil, fmt.Errorf("scale provided to ApplyScale must not be nil")
+	}
+	data, err := json.Marshal(scale)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(replicasetsResource, c.ns, replicaSetName, types.ApplyPatchType, data, "status"), &v1beta1.Scale{})
 
 	if obj == nil {
 		return nil, err

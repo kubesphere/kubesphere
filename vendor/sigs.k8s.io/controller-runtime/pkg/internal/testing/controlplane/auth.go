@@ -18,7 +18,7 @@ package controlplane
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"k8s.io/client-go/rest"
@@ -128,7 +128,7 @@ func (c *CertAuthn) Start() error {
 		return fmt.Errorf("start called before configure")
 	}
 	caCrt := c.ca.CA.CertBytes()
-	if err := ioutil.WriteFile(c.caCrtPath(), caCrt, 0640); err != nil { //nolint:gosec
+	if err := os.WriteFile(c.caCrtPath(), caCrt, 0640); err != nil { //nolint:gosec
 		return fmt.Errorf("unable to save the client certificate CA to %s: %w", c.caCrtPath(), err)
 	}
 

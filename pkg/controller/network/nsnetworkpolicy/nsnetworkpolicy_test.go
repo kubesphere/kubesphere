@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	kubeinformers "k8s.io/client-go/informers"
 	kubefake "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	netv1alpha1 "kubesphere.io/api/network/v1alpha1"
 	wkspv1alpha1 "kubesphere.io/api/tenant/v1alpha1"

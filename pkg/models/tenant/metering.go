@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 

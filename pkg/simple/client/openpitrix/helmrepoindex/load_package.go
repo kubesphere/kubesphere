@@ -26,7 +26,7 @@ import (
 	"kubesphere.io/api/application/v1alpha1"
 
 	"helm.sh/helm/v3/pkg/repo"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 )

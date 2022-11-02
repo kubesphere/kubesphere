@@ -18,7 +18,7 @@ package config
 
 import (
 	"fmt"
-	ioutil "io/ioutil"
+	"os"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,7 +96,7 @@ func (d *DeferredFileLoader) loadFile() {
 		return
 	}
 
-	content, err := ioutil.ReadFile(d.path)
+	content, err := os.ReadFile(d.path)
 	if err != nil {
 		d.err = fmt.Errorf("could not read file at %s", d.path)
 		return

@@ -32,7 +32,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/version"
 	"kubesphere.io/kubesphere/tools/lib"
 
-	"github.com/go-openapi/spec"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"

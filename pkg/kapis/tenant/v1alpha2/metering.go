@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"strconv"
 	"time"

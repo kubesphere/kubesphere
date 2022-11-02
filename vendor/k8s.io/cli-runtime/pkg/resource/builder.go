@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -38,13 +39,14 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
-	"sigs.k8s.io/kustomize/api/filesys"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
 
 var FileExtensions = []string{".json", ".yaml", ".yml"}
 var InputExtensions = append(FileExtensions, "stdin")
 
-const defaultHttpGetAttempts int = 3
+const defaultHttpGetAttempts = 3
+const pathNotExistError = "the path %q does not exist"
 
 // Builder provides convenience functions for taking arguments and parameters
 // from the command line and converting them to a list of resources to iterate
@@ -72,9 +74,10 @@ type Builder struct {
 
 	errs []error
 
-	paths  []Visitor
-	stream bool
-	dir    bool
+	paths      []Visitor
+	stream     bool
+	stdinInUse bool
+	dir        bool
 
 	labelSelector     *string
 	fieldSelector     *string
@@ -82,7 +85,8 @@ type Builder struct {
 	limitChunks       int64
 	requestTransforms []RequestTransform
 
-	resources []string
+	resources   []string
+	subresource string
 
 	namespace    string
 	allNamespace bool
@@ -120,6 +124,8 @@ var LocalResourceError = errors.New(`error: you must specify resources by --file
 Example resource specifications include:
    '-f rsrc.yaml'
    '--filename=rsrc.json'`)
+
+var StdinMultiUseError = errors.New("standard input cannot be used for multiple arguments")
 
 // TODO: expand this to include other errors.
 func IsUsageError(err error) bool {
@@ -209,7 +215,7 @@ func NewBuilder(restClientGetter RESTClientGetter) *Builder {
 
 	return newBuilder(
 		restClientGetter.ToRESTConfig,
-		(&cachingRESTMapperFunc{delegate: restClientGetter.ToRESTMapper}).ToRESTMapper,
+		restClientGetter.ToRESTMapper,
 		(&cachingCategoryExpanderFunc{delegate: categoryExpanderFn}).ToCategoryExpander,
 	)
 }
@@ -252,10 +258,15 @@ func (b *Builder) FilenameParam(enforceNamespace bool, filenameOptions *Filename
 			}
 			b.URL(defaultHttpGetAttempts, url)
 		default:
-			if !recursive {
+			matches, err := expandIfFilePattern(s)
+			if err != nil {
+				b.errs = append(b.errs, err)
+				continue
+			}
+			if !recursive && len(matches) == 1 {
 				b.singleItemImplied = true
 			}
-			b.Path(recursive, s)
+			b.Path(recursive, matches...)
 		}
 	}
 	if filenameOptions.Kustomize != "" {
@@ -362,10 +373,28 @@ func (b *Builder) URL(httpAttemptCount int, urls ...*url.URL) *Builder {
 
 // Stdin will read objects from the standard input. If ContinueOnError() is set
 // prior to this method being called, objects in the stream that are unrecognized
-// will be ignored (but logged at V(2)).
+// will be ignored (but logged at V(2)). If StdinInUse() is set prior to this method
+// being called, an error will be recorded as there are multiple entities trying to use
+// the single standard input stream.
 func (b *Builder) Stdin() *Builder {
 	b.stream = true
+	if b.stdinInUse {
+		b.errs = append(b.errs, StdinMultiUseError)
+	}
+	b.stdinInUse = true
 	b.paths = append(b.paths, FileVisitorForSTDIN(b.mapper, b.schema))
+	return b
+}
+
+// StdinInUse will mark standard input as in use by this Builder, and therefore standard
+// input should not be used by another entity. If Stdin() is set prior to this method
+// being called, an error will be recorded as there are multiple entities trying to use
+// the single standard input stream.
+func (b *Builder) StdinInUse() *Builder {
+	if b.stdinInUse {
+		b.errs = append(b.errs, StdinMultiUseError)
+	}
+	b.stdinInUse = true
 	return b
 }
 
@@ -388,7 +417,7 @@ func (b *Builder) Path(recursive bool, paths ...string) *Builder {
 	for _, p := range paths {
 		_, err := os.Stat(p)
 		if os.IsNotExist(err) {
-			b.errs = append(b.errs, fmt.Errorf("the path %q does not exist", p))
+			b.errs = append(b.errs, fmt.Errorf(pathNotExistError, p))
 			continue
 		}
 		if err != nil {
@@ -531,6 +560,13 @@ func (b *Builder) RequestChunksOf(chunkSize int64) *Builder {
 // an empty list to clear modifiers.
 func (b *Builder) TransformRequests(opts ...RequestTransform) *Builder {
 	b.requestTransforms = opts
+	return b
+}
+
+// Subresource instructs the builder to retrieve the object at the
+// subresource path instead of the main resource path.
+func (b *Builder) Subresource(subresource string) *Builder {
+	b.subresource = subresource
 	return b
 }
 
@@ -865,6 +901,10 @@ func (b *Builder) visitBySelector() *Result {
 	if len(b.resources) == 0 {
 		return result.withError(fmt.Errorf("at least one resource must be specified to use a selector"))
 	}
+	if len(b.subresource) != 0 {
+		return result.withError(fmt.Errorf("subresource cannot be used when bulk resources are specified"))
+	}
+
 	mappings, err := b.resourceMappings()
 	if err != nil {
 		result.err = err
@@ -911,9 +951,9 @@ func (b *Builder) getClient(gv schema.GroupVersion) (RESTClient, error) {
 	case b.fakeClientFn != nil:
 		client, err = b.fakeClientFn(gv)
 	case b.negotiatedSerializer != nil:
-		client, err = b.clientConfigFn.clientForGroupVersion(gv, b.negotiatedSerializer)
+		client, err = b.clientConfigFn.withStdinUnavailable(b.stdinInUse).clientForGroupVersion(gv, b.negotiatedSerializer)
 	default:
-		client, err = b.clientConfigFn.unstructuredClientForGroupVersion(gv)
+		client, err = b.clientConfigFn.withStdinUnavailable(b.stdinInUse).unstructuredClientForGroupVersion(gv)
 	}
 
 	if err != nil {
@@ -986,10 +1026,11 @@ func (b *Builder) visitByResource() *Result {
 		}
 
 		info := &Info{
-			Client:    client,
-			Mapping:   mapping,
-			Namespace: selectorNamespace,
-			Name:      tuple.Name,
+			Client:      client,
+			Mapping:     mapping,
+			Namespace:   selectorNamespace,
+			Name:        tuple.Name,
+			Subresource: b.subresource,
 		}
 		items = append(items, info)
 	}
@@ -1050,10 +1091,11 @@ func (b *Builder) visitByName() *Result {
 	visitors := []Visitor{}
 	for _, name := range b.names {
 		info := &Info{
-			Client:    client,
-			Mapping:   mapping,
-			Namespace: selectorNamespace,
-			Name:      name,
+			Client:      client,
+			Mapping:     mapping,
+			Namespace:   selectorNamespace,
+			Name:        name,
+			Subresource: b.subresource,
 		}
 		visitors = append(visitors, info)
 	}
@@ -1134,10 +1176,9 @@ func (b *Builder) Do() *Result {
 		helpers = append(helpers, RetrieveLazy)
 	}
 	if b.continueOnError {
-		r.visitor = NewDecoratedVisitor(ContinueOnErrorVisitor{r.visitor}, helpers...)
-	} else {
-		r.visitor = NewDecoratedVisitor(r.visitor, helpers...)
+		r.visitor = ContinueOnErrorVisitor{Visitor: r.visitor}
 	}
+	r.visitor = NewDecoratedVisitor(r.visitor, helpers...)
 	return r
 }
 
@@ -1166,26 +1207,21 @@ func HasNames(args []string) (bool, error) {
 	return hasCombinedTypes || len(args) > 1, nil
 }
 
-type cachingRESTMapperFunc struct {
-	delegate RESTMapperFunc
-
-	lock   sync.Mutex
-	cached meta.RESTMapper
-}
-
-func (c *cachingRESTMapperFunc) ToRESTMapper() (meta.RESTMapper, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if c.cached != nil {
-		return c.cached, nil
+// expandIfFilePattern returns all the filenames that match the input pattern
+// or the filename if it is a specific filename and not a pattern.
+// If the input is a pattern and it yields no result it will result in an error.
+func expandIfFilePattern(pattern string) ([]string, error) {
+	if _, err := os.Stat(pattern); os.IsNotExist(err) {
+		matches, err := filepath.Glob(pattern)
+		if err == nil && len(matches) == 0 {
+			return nil, fmt.Errorf(pathNotExistError, pattern)
+		}
+		if err == filepath.ErrBadPattern {
+			return nil, fmt.Errorf("pattern %q is not valid: %v", pattern, err)
+		}
+		return matches, err
 	}
-
-	ret, err := c.delegate()
-	if err != nil {
-		return nil, err
-	}
-	c.cached = ret
-	return c.cached, nil
+	return []string{pattern}, nil
 }
 
 type cachingCategoryExpanderFunc struct {

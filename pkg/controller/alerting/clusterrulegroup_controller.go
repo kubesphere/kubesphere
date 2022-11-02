@@ -136,7 +136,7 @@ func (r *ClusterRuleGroupReconciler) Reconcile(ctx context.Context, req reconcil
 }
 
 func (r *ClusterRuleGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if r.Log == nil {
+	if r.Log.GetSink() == nil {
 		r.Log = mgr.GetLogger()
 	}
 	if r.Client == nil {

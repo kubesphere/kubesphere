@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"helm.sh/helm/v3/internal/experimental/registry"
+	"helm.sh/helm/v3/pkg/registry"
 )
 
 // OCIGetter is the default HTTP(/S) backend handler
@@ -28,7 +28,7 @@ type OCIGetter struct {
 	opts options
 }
 
-//Get performs a Get from repo.Getter and returns the body.
+// Get performs a Get from repo.Getter and returns the body.
 func (g *OCIGetter) Get(href string, options ...Option) (*bytes.Buffer, error) {
 	for _, opt := range options {
 		opt(&g.opts)
@@ -39,22 +39,26 @@ func (g *OCIGetter) Get(href string, options ...Option) (*bytes.Buffer, error) {
 func (g *OCIGetter) get(href string) (*bytes.Buffer, error) {
 	client := g.opts.registryClient
 
-	ref := strings.TrimPrefix(href, "oci://")
-	if version := g.opts.version; version != "" {
-		ref = fmt.Sprintf("%s:%s", ref, version)
+	ref := strings.TrimPrefix(href, fmt.Sprintf("%s://", registry.OCIScheme))
+
+	var pullOpts []registry.PullOption
+	requestingProv := strings.HasSuffix(ref, ".prov")
+	if requestingProv {
+		ref = strings.TrimSuffix(ref, ".prov")
+		pullOpts = append(pullOpts,
+			registry.PullOptWithChart(false),
+			registry.PullOptWithProv(true))
 	}
 
-	r, err := registry.ParseReference(ref)
+	result, err := client.Pull(ref, pullOpts...)
 	if err != nil {
 		return nil, err
 	}
 
-	buf, err := client.PullChart(r)
-	if err != nil {
-		return nil, err
+	if requestingProv {
+		return bytes.NewBuffer(result.Prov.Data), nil
 	}
-
-	return buf, nil
+	return bytes.NewBuffer(result.Chart.Data), nil
 }
 
 // NewOCIGetter constructs a valid http/https client as a Getter

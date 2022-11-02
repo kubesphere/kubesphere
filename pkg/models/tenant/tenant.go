@@ -35,7 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"

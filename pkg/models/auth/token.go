@@ -25,7 +25,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"

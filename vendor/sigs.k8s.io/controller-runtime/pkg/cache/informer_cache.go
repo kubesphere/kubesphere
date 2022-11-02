@@ -96,11 +96,11 @@ func (ip *informerCache) objectTypeForListObject(list client.ObjectList) (*schem
 		return nil, nil, err
 	}
 
-	if !strings.HasSuffix(gvk.Kind, "List") {
-		return nil, nil, fmt.Errorf("non-list type %T (kind %q) passed as output", list, gvk)
-	}
 	// we need the non-list GVK, so chop off the "List" from the end of the kind
-	gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
+	if strings.HasSuffix(gvk.Kind, "List") && apimeta.IsListType(list) {
+		gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
+	}
+
 	_, isUnstructured := list.(*unstructured.UnstructuredList)
 	var cacheTypeObj runtime.Object
 	if isUnstructured {
@@ -193,8 +193,8 @@ func indexByField(indexer Informer, field string, extractor client.IndexerFunc) 
 		rawVals := extractor(obj)
 		var vals []string
 		if ns == "" {
-			// if we're not doubling the keys for the namespaced case, just re-use what was returned to us
-			vals = rawVals
+			// if we're not doubling the keys for the namespaced case, just create a new slice with same length
+			vals = make([]string, len(rawVals))
 		} else {
 			// if we need to add non-namespaced versions too, double the length
 			vals = make([]string, len(rawVals)*2)

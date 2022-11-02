@@ -38,7 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	log "k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
 
@@ -104,7 +104,7 @@ func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInfor
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
-		log.Info(fmt.Sprintf(format, args))
+		klog.Info(fmt.Sprintf(format, args))
 	})
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "destinationrule-controller"})
@@ -168,8 +168,8 @@ func (v *DestinationRuleController) Run(workers int, stopCh <-chan struct{}) err
 	defer utilruntime.HandleCrash()
 	defer v.queue.ShutDown()
 
-	log.Info("starting destinationrule controller")
-	defer log.Info("shutting down destinationrule controller")
+	klog.Info("starting destinationrule controller")
+	defer klog.Info("shutting down destinationrule controller")
 
 	if !cache.WaitForCacheSync(stopCh, v.serviceSynced, v.destinationRuleSynced, v.deploymentSynced, v.servicePolicySynced) {
 		return fmt.Errorf("failed to wait for caches to sync")
@@ -218,7 +218,7 @@ func (v *DestinationRuleController) processNextWorkItem() bool {
 func (v *DestinationRuleController) syncService(key string) error {
 	startTime := time.Now()
 	defer func() {
-		log.V(4).Infof("Finished syncing service destinationrule %s in %s.", key, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing service destinationrule %s in %s.", key, time.Since(startTime))
 	}()
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
@@ -231,14 +231,14 @@ func (v *DestinationRuleController) syncService(key string) error {
 		// delete the corresponding destinationrule if there is any, as the service has been deleted.
 		err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			log.Errorf("delete destination rule failed %s/%s, error %v.", namespace, name, err)
+			klog.Errorf("delete destination rule failed %s/%s, error %v.", namespace, name, err)
 			return err
 		}
 
 		// delete orphan service policy if there is any
 		err = v.servicemeshClient.ServicemeshV1alpha2().ServicePolicies(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			log.Errorf("delete orphan service policy %s/%s failed, %#v", namespace, name, err)
+			klog.Errorf("delete orphan service policy %s/%s failed, %#v", namespace, name, err)
 			return err
 		}
 
@@ -278,7 +278,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 		version := servicemesh.GetComponentVersion(&deployment.ObjectMeta)
 
 		if len(version) == 0 {
-			log.V(4).Infof("Deployment %s doesn't have a version label", types.NamespacedName{Namespace: deployment.Namespace, Name: deployment.Name}.String())
+			klog.V(4).Infof("Deployment %s doesn't have a version label", types.NamespacedName{Namespace: deployment.Namespace, Name: deployment.Name}.String())
 			continue
 		}
 
@@ -305,7 +305,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 				},
 			}
 		} else {
-			log.Error(err, "Couldn't get destinationrule for service", "key", key)
+			klog.Error(err, "Couldn't get destinationrule for service", "key", key)
 			return err
 		}
 	}
@@ -313,7 +313,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 	// fetch all servicepolicies associated to this service
 	servicePolicies, err := v.servicePolicyLister.ServicePolicies(namespace).List(labels.SelectorFromSet(map[string]string{servicemesh.AppLabel: appName}))
 	if err != nil {
-		log.Error(err, "could not list service policies is namespace with component name", "namespace", namespace, "name", appName)
+		klog.Error(err, "could not list service policies is namespace with component name", "namespace", namespace, "name", appName)
 		return err
 	}
 
@@ -324,7 +324,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 	if len(servicePolicies) > 0 {
 		if len(servicePolicies) > 1 {
 			err = fmt.Errorf("more than one service policy associated with service %s/%s is forbidden", namespace, name)
-			log.Error(err, "")
+			klog.Error(err, "")
 			return err
 		}
 
@@ -346,7 +346,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 
 	if !createDestinationRule && reflect.DeepEqual(currentDestinationRule.Spec, dr.Spec) &&
 		reflect.DeepEqual(currentDestinationRule.Labels, service.Labels) {
-		log.V(5).Info("destinationrule are equal, skipping update", "key", types.NamespacedName{Namespace: service.Namespace, Name: service.Name}.String())
+		klog.V(5).Info("destinationrule are equal, skipping update", "key", types.NamespacedName{Namespace: service.Namespace, Name: service.Name}.String())
 		return nil
 	}
 
@@ -369,7 +369,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 			// 1. namespace is terminating, endpoint creation is not allowed by default.
 			// 2. policy is misconfigured, in which case no service would function anywhere.
 			// Given the frequency of 1, we log at a lower level.
-			log.V(5).Info("Forbidden from creating endpoints", "error", err)
+			klog.V(5).Info("Forbidden from creating endpoints", "error", err)
 		}
 
 		if createDestinationRule {
@@ -462,7 +462,7 @@ func (v *DestinationRuleController) addServicePolicy(obj interface{}) {
 
 	services, err := v.serviceLister.Services(servicePolicy.Namespace).List(labels.SelectorFromSet(map[string]string{servicemesh.AppLabel: appName}))
 	if err != nil {
-		log.Error(err, "cannot list services", "namespace", servicePolicy.Namespace, "name", appName)
+		klog.Error(err, "cannot list services", "namespace", servicePolicy.Namespace, "name", appName)
 		utilruntime.HandleError(fmt.Errorf("cannot list services in namespace %s, with component name %v", servicePolicy.Namespace, appName))
 		return
 	}
@@ -490,12 +490,12 @@ func (v *DestinationRuleController) handleErr(err error, key interface{}) {
 	}
 
 	if v.queue.NumRequeues(key) < maxRetries {
-		log.V(2).Info("Error syncing virtualservice for service, retrying.", "key", key, "error", err)
+		klog.V(2).Info("Error syncing virtualservice for service, retrying.", "key", key, "error", err)
 		v.queue.AddRateLimited(key)
 		return
 	}
 
-	log.V(4).Info("Dropping service out of the queue", "key", key, "error", err)
+	klog.V(4).Info("Dropping service out of the queue", "key", key, "error", err)
 	v.queue.Forget(key)
 	utilruntime.HandleError(err)
 }

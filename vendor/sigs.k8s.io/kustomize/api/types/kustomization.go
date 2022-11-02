@@ -17,7 +17,13 @@ const (
 	ComponentVersion      = "kustomize.config.k8s.io/v1alpha1"
 	ComponentKind         = "Component"
 	MetadataNamespacePath = "metadata/namespace"
+
+	OriginAnnotations      = "originAnnotations"
+	TransformerAnnotations = "transformerAnnotations"
+	ManagedByLabelOption   = "managedByLabel"
 )
+
+var BuildMetadataOptions = []string{OriginAnnotations, TransformerAnnotations, ManagedByLabelOption}
 
 // Kustomization holds the information needed to generate customized k8s api resources.
 type Kustomization struct {
@@ -55,7 +61,7 @@ type Kustomization struct {
 
 	// PatchesStrategicMerge specifies the relative path to a file
 	// containing a strategic merge patch.  Format documented at
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/strategic-merge-patch.md
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md
 	// URLs and globs are not supported.
 	PatchesStrategicMerge []PatchStrategicMerge `json:"patchesStrategicMerge,omitempty" yaml:"patchesStrategicMerge,omitempty"`
 
@@ -73,6 +79,10 @@ type Kustomization struct {
 	// for changing image names, tags or digests. This can also be achieved with a
 	// patch, but this operator is simpler to specify.
 	Images []Image `json:"images,omitempty" yaml:"images,omitempty"`
+
+	// Replacements is a list of replacements, which will copy nodes from a
+	// specified source to N specified targets.
+	Replacements []ReplacementField `json:"replacements,omitempty" yaml:"replacements,omitempty"`
 
 	// Replicas is a list of {resourcename, count} that allows for simpler replica
 	// specification. This can also be done with a patch.
@@ -157,6 +167,9 @@ type Kustomization struct {
 	// Inventory appends an object that contains the record
 	// of all other objects, which can be used in apply, prune and delete
 	Inventory *Inventory `json:"inventory,omitempty" yaml:"inventory,omitempty"`
+
+	// BuildMetadata is a list of strings used to toggle different build options
+	BuildMetadata []string `json:"buildMetadata,omitempty" yaml:"buildMetadata,omitempty"`
 }
 
 // FixKustomizationPostUnmarshalling fixes things
@@ -179,14 +192,14 @@ func (k *Kustomization) FixKustomizationPostUnmarshalling() {
 	for i, g := range k.ConfigMapGenerator {
 		if g.EnvSource != "" {
 			k.ConfigMapGenerator[i].EnvSources =
-				append(g.EnvSources, g.EnvSource)
+				append(g.EnvSources, g.EnvSource) //nolint:gocritic
 			k.ConfigMapGenerator[i].EnvSource = ""
 		}
 	}
 	for i, g := range k.SecretGenerator {
 		if g.EnvSource != "" {
 			k.SecretGenerator[i].EnvSources =
-				append(g.EnvSources, g.EnvSource)
+				append(g.EnvSources, g.EnvSource) //nolint:gocritic
 			k.SecretGenerator[i].EnvSource = ""
 		}
 	}

@@ -22,15 +22,15 @@ import (
 	"strings"
 	"time"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 	"sigs.k8s.io/controller-runtime/pkg/internal/testing/controlplane"
 	"sigs.k8s.io/controller-runtime/pkg/internal/testing/process"
-
-	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 )
 
 var log = logf.RuntimeLog.WithName("test-env")
@@ -136,7 +136,7 @@ type Environment struct {
 	// CRDs is a list of CRDs to install.
 	// If both this field and CRDs field in CRDInstallOptions are specified, the
 	// values are merged.
-	CRDs []client.Object
+	CRDs []*apiextensionsv1.CustomResourceDefinition
 
 	// CRDDirectoryPaths is a list of paths containing CRD yaml or json configs.
 	// If both this field and Paths field in CRDInstallOptions are specified, the

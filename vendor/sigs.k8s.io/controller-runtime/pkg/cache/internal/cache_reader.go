@@ -46,6 +46,11 @@ type CacheReader struct {
 
 	// scopeName is the scope of the resource (namespaced or cluster-scoped).
 	scopeName apimeta.RESTScopeName
+
+	// disableDeepCopy indicates not to deep copy objects during get or list objects.
+	// Be very careful with this, when enabled you must DeepCopy any object before mutating it,
+	// otherwise you will mutate the object in the cache.
+	disableDeepCopy bool
 }
 
 // Get checks the indexer for the object and writes a copy of it if found.
@@ -76,9 +81,13 @@ func (c *CacheReader) Get(_ context.Context, key client.ObjectKey, out client.Ob
 		return fmt.Errorf("cache contained %T, which is not an Object", obj)
 	}
 
-	// deep copy to avoid mutating cache
-	// TODO(directxman12): revisit the decision to always deepcopy
-	obj = obj.(runtime.Object).DeepCopyObject()
+	if c.disableDeepCopy {
+		// skip deep copy which might be unsafe
+		// you must DeepCopy any object before mutating it outside
+	} else {
+		// deep copy to avoid mutating cache
+		obj = obj.(runtime.Object).DeepCopyObject()
+	}
 
 	// Copy the value of the item in the cache to the returned value
 	// TODO(directxman12): this is a terrible hack, pls fix (we should have deepcopyinto)
@@ -88,7 +97,9 @@ func (c *CacheReader) Get(_ context.Context, key client.ObjectKey, out client.Ob
 		return fmt.Errorf("cache had type %s, but %s was asked for", objVal.Type(), outVal.Type())
 	}
 	reflect.Indirect(outVal).Set(reflect.Indirect(objVal))
-	out.GetObjectKind().SetGroupVersionKind(c.groupVersionKind)
+	if !c.disableDeepCopy {
+		out.GetObjectKind().SetGroupVersionKind(c.groupVersionKind)
+	}
 
 	return nil
 }
@@ -129,10 +140,10 @@ func (c *CacheReader) List(_ context.Context, out client.ObjectList, opts ...cli
 	limitSet := listOpts.Limit > 0
 
 	runtimeObjs := make([]runtime.Object, 0, len(objs))
-	for i, item := range objs {
+	for _, item := range objs {
 		// if the Limit option is set and the number of items
 		// listed exceeds this limit, then stop reading.
-		if limitSet && int64(i) >= listOpts.Limit {
+		if limitSet && int64(len(runtimeObjs)) >= listOpts.Limit {
 			break
 		}
 		obj, isObj := item.(runtime.Object)
@@ -150,8 +161,15 @@ func (c *CacheReader) List(_ context.Context, out client.ObjectList, opts ...cli
 			}
 		}
 
-		outObj := obj.DeepCopyObject()
-		outObj.GetObjectKind().SetGroupVersionKind(c.groupVersionKind)
+		var outObj runtime.Object
+		if c.disableDeepCopy {
+			// skip deep copy which might be unsafe
+			// you must DeepCopy any object before mutating it outside
+			outObj = obj
+		} else {
+			outObj = obj.DeepCopyObject()
+			outObj.GetObjectKind().SetGroupVersionKind(c.groupVersionKind)
+		}
 		runtimeObjs = append(runtimeObjs, outObj)
 	}
 	return apimeta.SetList(out, runtimeObjs)

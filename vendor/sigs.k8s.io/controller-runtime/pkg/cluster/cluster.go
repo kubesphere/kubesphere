@@ -245,7 +245,7 @@ func setOptionsDefaults(options Options) Options {
 		}
 	}
 
-	if options.Logger == nil {
+	if options.Logger.GetSink() == nil {
 		options.Logger = logf.RuntimeLog.WithName("cluster")
 	}
 

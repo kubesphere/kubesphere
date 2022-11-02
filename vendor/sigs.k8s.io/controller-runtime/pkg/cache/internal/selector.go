@@ -26,6 +26,17 @@ import (
 // SelectorsByGVK associate a GroupVersionKind to a field/label selector.
 type SelectorsByGVK map[schema.GroupVersionKind]Selector
 
+func (s SelectorsByGVK) forGVK(gvk schema.GroupVersionKind) Selector {
+	if specific, found := s[gvk]; found {
+		return specific
+	}
+	if defaultSelector, found := s[schema.GroupVersionKind{}]; found {
+		return defaultSelector
+	}
+
+	return Selector{}
+}
+
 // Selector specify the label/field selector to fill in ListOptions.
 type Selector struct {
 	Label labels.Selector

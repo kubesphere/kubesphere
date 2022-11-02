@@ -17,7 +17,7 @@ import (
 	"bytes"
 
 	"github.com/go-openapi/strfmt"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/api/application/v1alpha1"
 

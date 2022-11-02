@@ -35,7 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/kustomize/api/types"
 )
@@ -305,7 +305,7 @@ func (e *executor) createInstallJob(ctx context.Context, chartName string, chart
 		args = append(args, "--post-renderer", filepath.Join(workspaceBase, postRenderExecFile))
 	}
 
-	if klog.V(8) {
+	if klog.V(8).Enabled() {
 		// output debug info
 		args = append(args, "--debug")
 	}

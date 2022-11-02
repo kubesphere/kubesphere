@@ -37,6 +37,7 @@ type ScaleStatus struct {
 
 	// label query over pods that should match the replicas count. More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
+	// +mapType=atomic
 	Selector map[string]string `json:"selector,omitempty" protobuf:"bytes,2,rep,name=selector"`
 
 	// label selector for pods that should match the replicas count. This is a serializated
@@ -73,6 +74,7 @@ type Scale struct {
 // +genclient
 // +genclient:method=GetScale,verb=get,subresource=scale,result=Scale
 // +genclient:method=UpdateScale,verb=update,subresource=scale,input=Scale,result=Scale
+// +genclient:method=ApplyScale,verb=apply,subresource=scale,input=Scale,result=Scale
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:prerelease-lifecycle-gen:introduced=1.1
 // +k8s:prerelease-lifecycle-gen:deprecated=1.8
@@ -327,6 +329,9 @@ type DeploymentList struct {
 	Items []Deployment `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// DaemonSetUpdateStrategy indicates the strategy that the DaemonSet
+// controller will use to perform updates. It includes any additional parameters
+// necessary to perform the update for the indicated strategy.
 type DaemonSetUpdateStrategy struct {
 	// Type of daemon set update. Can be "RollingUpdate" or "OnDelete".
 	// Default is OnDelete.
@@ -357,7 +362,7 @@ type RollingUpdateDaemonSet struct {
 	// The maximum number of DaemonSet pods that can be unavailable during the
 	// update. Value can be an absolute number (ex: 5) or a percentage of total
 	// number of DaemonSet pods at the start of the update (ex: 10%). Absolute
-	// number is calculated from percentage by rounding down to a minimum of one.
+	// number is calculated from percentage by rounding up.
 	// This cannot be 0 if MaxSurge is 0
 	// Default value is 1.
 	// Example: when this is set to 30%, at most 30% of the total number of nodes
@@ -729,7 +734,12 @@ type IngressRuleValue struct {
 	// 2. Consider adding fields for ingress-type specific global options
 	// usable by a loadbalancer, like http keep-alive.
 
-	// +optional
+	// http is a list of http selectors pointing to backends.
+	// A path is matched against the path of an incoming request. Currently it can
+	// contain characters disallowed from the conventional "path" part of a URL
+	// as defined by RFC 3986. Paths must begin with a '/'.
+	// A backend defines the referenced service endpoint to which the traffic
+	// will be forwarded to.
 	HTTP *HTTPIngressRuleValue `json:"http,omitempty" protobuf:"bytes,1,opt,name=http"`
 }
 
@@ -827,6 +837,7 @@ type IngressBackend struct {
 // +genclient
 // +genclient:method=GetScale,verb=get,subresource=scale,result=Scale
 // +genclient:method=UpdateScale,verb=update,subresource=scale,input=Scale,result=Scale
+// +genclient:method=ApplyScale,verb=apply,subresource=scale,input=Scale,result=Scale
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:prerelease-lifecycle-gen:introduced=1.2
 // +k8s:prerelease-lifecycle-gen:deprecated=1.8
@@ -1365,6 +1376,11 @@ type NetworkPolicy struct {
 	// Specification of the desired behavior for this NetworkPolicy.
 	// +optional
 	Spec NetworkPolicySpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+
+	// Status is the current state of the NetworkPolicy.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+	// +optional
+	Status NetworkPolicyStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // DEPRECATED 1.9 - This group version of PolicyType is deprecated by networking/v1/PolicyType.
@@ -1482,8 +1498,6 @@ type NetworkPolicyPort struct {
 	// should be allowed by the policy. This field cannot be defined if the port field
 	// is not defined or if the port field is defined as a named (string) port.
 	// The endPort must be equal or greater than port.
-	// This feature is in Alpha state and should be enabled using the Feature Gate
-	// "NetworkPolicyEndPort".
 	// +optional
 	EndPort *int32 `json:"endPort,omitempty" protobuf:"bytes,3,opt,name=endPort"`
 }
@@ -1527,6 +1541,48 @@ type NetworkPolicyPeer struct {
 	// neither of the other fields can be.
 	// +optional
 	IPBlock *IPBlock `json:"ipBlock,omitempty" protobuf:"bytes,3,rep,name=ipBlock"`
+}
+
+// NetworkPolicyConditionType is the type for status conditions on
+// a NetworkPolicy. This type should be used with the
+// NetworkPolicyStatus.Conditions field.
+type NetworkPolicyConditionType string
+
+const (
+	// NetworkPolicyConditionStatusAccepted represents status of a Network Policy that could be properly parsed by
+	// the Network Policy provider and will be implemented in the cluster
+	NetworkPolicyConditionStatusAccepted NetworkPolicyConditionType = "Accepted"
+
+	// NetworkPolicyConditionStatusPartialFailure represents status of a Network Policy that could be partially
+	// parsed by the Network Policy provider and may not be completely implemented due to a lack of a feature or some
+	// other condition
+	NetworkPolicyConditionStatusPartialFailure NetworkPolicyConditionType = "PartialFailure"
+
+	// NetworkPolicyConditionStatusFailure represents status of a Network Policy that could not be parsed by the
+	// Network Policy provider and will not be implemented in the cluster
+	NetworkPolicyConditionStatusFailure NetworkPolicyConditionType = "Failure"
+)
+
+// NetworkPolicyConditionReason defines the set of reasons that explain why a
+// particular NetworkPolicy condition type has been raised.
+type NetworkPolicyConditionReason string
+
+const (
+	// NetworkPolicyConditionReasonFeatureNotSupported represents a reason where the Network Policy may not have been
+	// implemented in the cluster due to a lack of some feature not supported by the Network Policy provider
+	NetworkPolicyConditionReasonFeatureNotSupported NetworkPolicyConditionReason = "FeatureNotSupported"
+)
+
+// NetworkPolicyStatus describe the current state of the NetworkPolicy.
+type NetworkPolicyStatus struct {
+	// Conditions holds an array of metav1.Condition that describe the state of the NetworkPolicy.
+	// Current service state
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

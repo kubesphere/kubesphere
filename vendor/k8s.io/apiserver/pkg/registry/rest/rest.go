@@ -56,6 +56,11 @@ type Storage interface {
 	// New returns an empty object that can be used with Create and Update after request data has been put into it.
 	// This object must be a pointer type for use with Codec.DecodeInto([]byte, runtime.Object)
 	New() runtime.Object
+
+	// Destroy cleans up its resources on shutdown.
+	// Destroy has to be implemented in thread-safe way and be prepared
+	// for being called more than once.
+	Destroy()
 }
 
 // Scoper indicates what scope the resource is at. It must be specified.
@@ -90,6 +95,13 @@ type CategoriesProvider interface {
 // TODO KindProvider (only used by federation) should be removed and replaced with this, but that presents greater risk late in 1.8.
 type GroupVersionKindProvider interface {
 	GroupVersionKind(containingGV schema.GroupVersion) schema.GroupVersionKind
+}
+
+// GroupVersionAcceptor is used to determine if a particular GroupVersion is acceptable to send to an endpoint.
+// This is used for endpoints which accept multiple versions (which is extremely rare).
+// The only known instance is pods/evictions which accepts policy/v1, but also policy/v1beta1 for backwards compatibility.
+type GroupVersionAcceptor interface {
+	AcceptsGroupVersion(gv schema.GroupVersion) bool
 }
 
 // Lister is an object that can retrieve resources that match the provided field and label criteria.
@@ -271,6 +283,11 @@ type StandardStorage interface {
 	GracefulDeleter
 	CollectionDeleter
 	Watcher
+
+	// Destroy cleans up its resources on shutdown.
+	// Destroy has to be implemented in thread-safe way and be prepared
+	// for being called more than once.
+	Destroy()
 }
 
 // Redirector know how to return a remote resource's location.

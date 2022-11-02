@@ -42,7 +42,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	log "k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
 
@@ -99,7 +99,7 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
-		log.Info(fmt.Sprintf(format, args))
+		klog.Info(fmt.Sprintf(format, args))
 	})
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "virtualservice-controller"})
@@ -163,8 +163,8 @@ func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) erro
 	defer utilruntime.HandleCrash()
 	defer v.queue.ShutDown()
 
-	log.V(0).Info("starting virtualservice controller")
-	defer log.Info("shutting down virtualservice controller")
+	klog.V(0).Info("starting virtualservice controller")
+	defer klog.Info("shutting down virtualservice controller")
 
 	if !cache.WaitForCacheSync(stopCh, v.serviceSynced, v.virtualServiceSynced, v.destinationRuleSynced, v.strategySynced) {
 		return fmt.Errorf("failed to wait for caches to sync")
@@ -222,7 +222,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	startTime := time.Now()
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		log.Error(err, "not a valid controller key", "key", key)
+		klog.Error(err, "not a valid controller key", "key", key)
 		return err
 	}
 
@@ -231,7 +231,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	appName := name
 
 	defer func() {
-		log.V(4).Infof("Finished syncing service virtualservice %s/%s in %s.", namespace, name, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing service virtualservice %s/%s in %s.", namespace, name, time.Since(startTime))
 	}()
 
 	service, err := v.serviceLister.Services(namespace).Get(name)
@@ -240,20 +240,20 @@ func (v *VirtualServiceController) syncService(key string) error {
 			// Delete the corresponding virtualservice, as the service has been deleted.
 			err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 			if err != nil && !errors.IsNotFound(err) {
-				log.Error(err, "delete orphan virtualservice failed", "namespace", namespace, "name", service.Name)
+				klog.Error(err, "delete orphan virtualservice failed", "namespace", namespace, "name", service.Name)
 				return err
 			}
 
 			// delete the orphan strategy if there is any
 			err = v.servicemeshClient.ServicemeshV1alpha2().Strategies(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 			if err != nil && !errors.IsNotFound(err) {
-				log.Error(err, "delete orphan strategy failed", "namespace", namespace, "name", service.Name)
+				klog.Error(err, "delete orphan strategy failed", "namespace", namespace, "name", service.Name)
 				return err
 			}
 
 			return nil
 		}
-		log.Error(err, "get service failed", "namespace", namespace, "name", name)
+		klog.Error(err, "get service failed", "namespace", namespace, "name", name)
 		return err
 	}
 
@@ -274,10 +274,10 @@ func (v *VirtualServiceController) syncService(key string) error {
 		if errors.IsNotFound(err) {
 			// there is no destinationrule for this service
 			// maybe corresponding workloads are not created yet
-			log.Info("destination rules for service not found, retrying.", "namespace", namespace, "name", name)
+			klog.Info("destination rules for service not found, retrying.", "namespace", namespace, "name", name)
 			return fmt.Errorf("destination rule for service %s/%s not found", namespace, name)
 		}
-		log.Error(err, "Couldn't get destinationrule for service.", "service", types.NamespacedName{Name: service.Name, Namespace: service.Namespace}.String())
+		klog.Error(err, "Couldn't get destinationrule for service.", "service", types.NamespacedName{Name: service.Name, Namespace: service.Namespace}.String())
 		return err
 	}
 
@@ -290,12 +290,12 @@ func (v *VirtualServiceController) syncService(key string) error {
 	// fetch all strategies applied to service
 	strategies, err := v.strategyLister.Strategies(namespace).List(labels.SelectorFromSet(map[string]string{servicemesh.AppLabel: appName}))
 	if err != nil {
-		log.Error(err, "list strategies for service failed", "namespace", namespace, "name", appName)
+		klog.Error(err, "list strategies for service failed", "namespace", namespace, "name", appName)
 		return err
 	} else if len(strategies) > 1 {
 		// more than one strategies are not allowed, it will cause collision
 		err = fmt.Errorf("more than one strategies applied to service %s/%s is forbbiden", namespace, appName)
-		log.Error(err, "")
+		klog.Error(err, "")
 		return err
 	}
 
@@ -311,7 +311,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 				},
 			}
 		} else {
-			log.Error(err, "cannot get virtualservice ", "namespace", namespace, "name", appName)
+			klog.Error(err, "cannot get virtualservice ", "namespace", namespace, "name", appName)
 			return err
 		}
 	}
@@ -360,7 +360,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	if !createVirtualService &&
 		reflect.DeepEqual(vs.Spec, currentVirtualService.Spec) &&
 		reflect.DeepEqual(service.Labels, currentVirtualService.Labels) {
-		log.V(4).Info("virtual service are equal, skipping update ")
+		klog.V(4).Info("virtual service are equal, skipping update ")
 		return nil
 	}
 
@@ -373,7 +373,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 
 	if len(newVirtualService.Spec.Http) == 0 && len(newVirtualService.Spec.Tcp) == 0 && len(newVirtualService.Spec.Tls) == 0 {
 		err = fmt.Errorf("service %s/%s doesn't have a valid port spec", namespace, name)
-		log.Error(err, "")
+		klog.Error(err, "")
 		return err
 	}
 
@@ -403,7 +403,7 @@ func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
 	service, err := v.serviceLister.Services(dr.Namespace).Get(dr.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.V(3).Info("service not created yet", "namespace", dr.Namespace, "service", dr.Name)
+			klog.V(3).Info("service not created yet", "namespace", dr.Namespace, "service", dr.Name)
 			return
 		}
 		utilruntime.HandleError(fmt.Errorf("unable to get service with name %s/%s", dr.Namespace, dr.Name))
@@ -426,14 +426,14 @@ func (v *VirtualServiceController) addStrategy(obj interface{}) {
 	lbs := servicemesh.ExtractApplicationLabels(&strategy.ObjectMeta)
 	if len(lbs) == 0 {
 		err := fmt.Errorf("invalid strategy %s/%s labels %s, not have required labels", strategy.Namespace, strategy.Name, strategy.Labels)
-		log.Error(err, "")
+		klog.Error(err, "")
 		utilruntime.HandleError(err)
 		return
 	}
 
 	allServices, err := v.serviceLister.Services(strategy.Namespace).List(labels.SelectorFromSet(lbs))
 	if err != nil {
-		log.Error(err, "list services failed")
+		klog.Error(err, "list services failed")
 		utilruntime.HandleError(err)
 		return
 	}
@@ -468,12 +468,12 @@ func (v *VirtualServiceController) handleErr(err error, key interface{}) {
 	}
 
 	if v.queue.NumRequeues(key) < maxRetries {
-		log.V(2).Info("Error syncing virtualservice for service retrying.", "key", key, "error", err)
+		klog.V(2).Info("Error syncing virtualservice for service retrying.", "key", key, "error", err)
 		v.queue.AddRateLimited(key)
 		return
 	}
 
-	log.V(4).Info("Dropping service out of the queue.", "key", key, "error", err)
+	klog.V(4).Info("Dropping service out of the queue.", "key", key, "error", err)
 	v.queue.Forget(key)
 	utilruntime.HandleError(err)
 }

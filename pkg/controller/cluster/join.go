@@ -34,7 +34,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fedapis "sigs.k8s.io/kubefed/pkg/apis"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"

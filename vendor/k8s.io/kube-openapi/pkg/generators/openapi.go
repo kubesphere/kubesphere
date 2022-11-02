@@ -103,7 +103,7 @@ func apiTypeFilterFunc(c *generator.Context, t *types.Type) bool {
 }
 
 const (
-	specPackagePath          = "github.com/go-openapi/spec"
+	specPackagePath          = "k8s.io/kube-openapi/pkg/validation/spec"
 	openAPICommonPackagePath = "k8s.io/kube-openapi/pkg/common"
 )
 
@@ -225,6 +225,7 @@ type openAPITypeWriter struct {
 	*generator.SnippetWriter
 	context                *generator.Context
 	refTypes               map[string]*types.Type
+	enumContext            *enumContext
 	GetDefinitionInterface *types.Type
 }
 
@@ -233,6 +234,7 @@ func newOpenAPITypeWriter(sw *generator.SnippetWriter, c *generator.Context) ope
 		SnippetWriter: sw,
 		context:       c,
 		refTypes:      map[string]*types.Type{},
+		enumContext:   newEnumContext(c),
 	}
 }
 
@@ -275,6 +277,16 @@ func hasOpenAPIDefinitionMethods(t *types.Type) bool {
 		}
 	}
 	return hasSchemaTypeMethod && hasOpenAPISchemaFormat
+}
+
+func hasOpenAPIV3OneOfMethod(t *types.Type) bool {
+	for mn, mt := range t.Methods {
+		if mn != "OpenAPIV3OneOfTypes" {
+			continue
+		}
+		return methodReturnsValue(mt, "", "[]string")
+	}
+	return false
 }
 
 // typeShortName returns short package name (e.g. the name x appears in package x definition) dot type name.
@@ -346,6 +358,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	case types.Struct:
 		hasV2Definition := hasOpenAPIDefinitionMethod(t)
 		hasV2DefinitionTypeAndFormat := hasOpenAPIDefinitionMethods(t)
+		hasV3OneOfTypes := hasOpenAPIV3OneOfMethod(t)
 		hasV3Definition := hasOpenAPIV3DefinitionMethod(t)
 
 		if hasV2Definition || (hasV3Definition && !hasV2DefinitionTypeAndFormat) {
@@ -367,6 +380,28 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				"},\n"+
 				"})\n}\n\n", args)
 			return nil
+		case hasV2DefinitionTypeAndFormat && hasV3OneOfTypes:
+			// generate v3 def.
+			g.Do("return common.EmbedOpenAPIDefinitionIntoV2Extension($.OpenAPIDefinition|raw${\n"+
+				"Schema: spec.Schema{\n"+
+				"SchemaProps: spec.SchemaProps{\n", args)
+			g.generateDescription(t.CommentLines)
+			g.Do("OneOf:common.GenerateOpenAPIV3OneOfSchema($.type|raw${}.OpenAPIV3OneOfTypes()),\n"+
+				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n"+
+				"},\n"+
+				"},\n"+
+				"},", args)
+			// generate v2 def.
+			g.Do("$.OpenAPIDefinition|raw${\n"+
+				"Schema: spec.Schema{\n"+
+				"SchemaProps: spec.SchemaProps{\n", args)
+			g.generateDescription(t.CommentLines)
+			g.Do("Type:$.type|raw${}.OpenAPISchemaType(),\n"+
+				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n"+
+				"},\n"+
+				"},\n"+
+				"})\n}\n\n", args)
+			return nil
 		case hasV2DefinitionTypeAndFormat:
 			g.Do("return $.OpenAPIDefinition|raw${\n"+
 				"Schema: spec.Schema{\n"+
@@ -378,6 +413,9 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				"},\n"+
 				"}\n}\n\n", args)
 			return nil
+		case hasV3OneOfTypes:
+			// having v3 oneOf types without custom v2 type or format does not make sense.
+			return fmt.Errorf("type %q has v3 one of types but not v2 type or format", t.Name)
 		}
 		g.Do("return $.OpenAPIDefinition|raw${\nSchema: spec.Schema{\nSchemaProps: spec.SchemaProps{\n", args)
 		g.generateDescription(t.CommentLines)
@@ -548,7 +586,7 @@ func mustEnforceDefault(t *types.Type, omitEmpty bool) (interface{}, error) {
 }
 
 func (g openAPITypeWriter) generateDefault(comments []string, t *types.Type, omitEmpty bool) error {
-	t = resolveAliasType(t)
+	t = resolveAliasAndEmbeddedType(t)
 	def, err := defaultFromComments(comments)
 	if err != nil {
 		return err
@@ -601,7 +639,8 @@ func (g openAPITypeWriter) generateDescription(CommentLines []string) {
 		}
 	}
 
-	postDoc := strings.TrimRight(buffer.String(), "\n")
+	postDoc := strings.TrimLeft(buffer.String(), "\n")
+	postDoc = strings.TrimRight(postDoc, "\n")
 	postDoc = strings.Replace(postDoc, "\\\"", "\"", -1) // replace user's \" to "
 	postDoc = strings.Replace(postDoc, "\"", "\\\"", -1) // Escape "
 	postDoc = strings.Replace(postDoc, "\n", "\\n", -1)
@@ -625,7 +664,11 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 		return err
 	}
 	g.Do("SchemaProps: spec.SchemaProps{\n", nil)
-	g.generateDescription(m.CommentLines)
+	var extraComments []string
+	if enumType, isEnum := g.enumContext.EnumType(m.Type); isEnum {
+		extraComments = enumType.DescriptionLines()
+	}
+	g.generateDescription(append(m.CommentLines, extraComments...))
 	jsonTags := getJsonTags(m)
 	if len(jsonTags) > 1 && jsonTags[1] == "string" {
 		g.generateSimpleProperty("string", "")
@@ -641,6 +684,10 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	typeString, format := openapi.OpenAPITypeFormat(t.String())
 	if typeString != "" {
 		g.generateSimpleProperty(typeString, format)
+		if enumType, isEnum := g.enumContext.EnumType(m.Type); isEnum {
+			// original type is an enum, add "Enum: " and the values
+			g.Do("Enum: []interface{}{$.$}", strings.Join(enumType.ValueStrings(), ", "))
+		}
 		g.Do("},\n},\n", nil)
 		return nil
 	}
@@ -674,12 +721,17 @@ func (g openAPITypeWriter) generateReferenceProperty(t *types.Type) {
 	g.Do("Ref: ref(\"$.$\"),\n", t.Name.String())
 }
 
-func resolveAliasType(t *types.Type) *types.Type {
+func resolveAliasAndEmbeddedType(t *types.Type) *types.Type {
 	var prev *types.Type
 	for prev != t {
 		prev = t
 		if t.Kind == types.Alias {
 			t = t.Underlying
+		}
+		if t.Kind == types.Struct {
+			if len(t.Members) == 1 && t.Members[0].Embedded {
+				t = t.Members[0].Type
+			}
 		}
 	}
 	return t

@@ -5,18 +5,18 @@ package krusty
 
 import (
 	"fmt"
-	"path/filepath"
 
-	"sigs.k8s.io/kustomize/api/builtins"
-	"sigs.k8s.io/kustomize/api/filesys"
+	"sigs.k8s.io/kustomize/api/internal/builtins"
 	pLdr "sigs.k8s.io/kustomize/api/internal/plugins/loader"
 	"sigs.k8s.io/kustomize/api/internal/target"
+	"sigs.k8s.io/kustomize/api/internal/utils"
 	"sigs.k8s.io/kustomize/api/konfig"
 	fLdr "sigs.k8s.io/kustomize/api/loader"
 	"sigs.k8s.io/kustomize/api/provenance"
 	"sigs.k8s.io/kustomize/api/provider"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/types"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 )
 
@@ -26,7 +26,7 @@ import (
 // used instead of performing an exec to a kustomize CLI subprocess.
 // To use, load a filesystem with kustomization files (any
 // number of overlays and bases), then make a Kustomizer
-// injected with the given fileystem, then call Run.
+// injected with the given filesystem, then call Run.
 type Kustomizer struct {
 	options     *Options
 	depProvider *provider.DepProvider
@@ -75,7 +75,7 @@ func (b *Kustomizer) Run(
 	}
 	var bytes []byte
 	if openApiPath, exists := kt.Kustomization().OpenAPI["path"]; exists {
-		bytes, err = ldr.Load(filepath.Join(ldr.Root(), openApiPath))
+		bytes, err = ldr.Load(openApiPath)
 		if err != nil {
 			return nil, err
 		}
@@ -90,20 +90,32 @@ func (b *Kustomizer) Run(
 		return nil, err
 	}
 	if b.options.DoLegacyResourceSort {
-		builtins.NewLegacyOrderTransformerPlugin().Transform(m)
+		err = builtins.NewLegacyOrderTransformerPlugin().Transform(m)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if b.options.AddManagedbyLabel {
+	if b.options.AddManagedbyLabel || utils.StringSliceContains(kt.Kustomization().BuildMetadata, types.ManagedByLabelOption) {
 		t := builtins.LabelTransformerPlugin{
 			Labels: map[string]string{
-				konfig.ManagedbyLabelKey: fmt.Sprintf(
-					"kustomize-%s", provenance.GetProvenance().Semver())},
+				konfig.ManagedbyLabelKey: fmt.Sprintf("kustomize-%s", provenance.GetProvenance().Semver()),
+			},
 			FieldSpecs: []types.FieldSpec{{
 				Path:               "metadata/labels",
 				CreateIfNotPresent: true,
 			}},
 		}
-		t.Transform(m)
+		err = t.Transform(m)
+		if err != nil {
+			return nil, err
+		}
 	}
 	m.RemoveBuildAnnotations()
+	if !utils.StringSliceContains(kt.Kustomization().BuildMetadata, types.OriginAnnotations) {
+		m.RemoveOriginAnnotations()
+	}
+	if !utils.StringSliceContains(kt.Kustomization().BuildMetadata, types.TransformerAnnotations) {
+		m.RemoveTransformerAnnotations()
+	}
 	return m, nil
 }

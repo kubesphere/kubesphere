@@ -30,7 +30,7 @@ import (
 func ParseCIDRs(cidrsString []string) ([]*net.IPNet, error) {
 	cidrs := make([]*net.IPNet, 0, len(cidrsString))
 	for _, cidrString := range cidrsString {
-		_, cidr, err := net.ParseCIDR(cidrString)
+		_, cidr, err := ParseCIDRSloppy(cidrString)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse cidr value:%q with error:%v", cidrString, err)
 		}
@@ -71,7 +71,7 @@ func IsDualStackIPs(ips []net.IP) (bool, error) {
 func IsDualStackIPStrings(ips []string) (bool, error) {
 	parsedIPs := make([]net.IP, 0, len(ips))
 	for _, ip := range ips {
-		parsedIP := net.ParseIP(ip)
+		parsedIP := ParseIPSloppy(ip)
 		parsedIPs = append(parsedIPs, parsedIP)
 	}
 	return IsDualStackIPs(parsedIPs)
@@ -120,14 +120,14 @@ func IsIPv6(netIP net.IP) bool {
 
 // IsIPv6String returns if ip is IPv6.
 func IsIPv6String(ip string) bool {
-	netIP := net.ParseIP(ip)
+	netIP := ParseIPSloppy(ip)
 	return IsIPv6(netIP)
 }
 
 // IsIPv6CIDRString returns if cidr is IPv6.
 // This assumes cidr is a valid CIDR.
 func IsIPv6CIDRString(cidr string) bool {
-	ip, _, _ := net.ParseCIDR(cidr)
+	ip, _, _ := ParseCIDRSloppy(cidr)
 	return IsIPv6(ip)
 }
 
@@ -135,6 +135,30 @@ func IsIPv6CIDRString(cidr string) bool {
 func IsIPv6CIDR(cidr *net.IPNet) bool {
 	ip := cidr.IP
 	return IsIPv6(ip)
+}
+
+// IsIPv4 returns if netIP is IPv4.
+func IsIPv4(netIP net.IP) bool {
+	return netIP != nil && netIP.To4() != nil
+}
+
+// IsIPv4String returns if ip is IPv4.
+func IsIPv4String(ip string) bool {
+	netIP := ParseIPSloppy(ip)
+	return IsIPv4(netIP)
+}
+
+// IsIPv4CIDR returns if a cidr is ipv4
+func IsIPv4CIDR(cidr *net.IPNet) bool {
+	ip := cidr.IP
+	return IsIPv4(ip)
+}
+
+// IsIPv4CIDRString returns if cidr is IPv4.
+// This assumes cidr is a valid CIDR.
+func IsIPv4CIDRString(cidr string) bool {
+	ip, _, _ := ParseCIDRSloppy(cidr)
+	return IsIPv4(ip)
 }
 
 // ParsePort parses a string representing an IP port.  If the string is not a

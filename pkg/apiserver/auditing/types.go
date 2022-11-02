@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/apis/audit"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
 	"kubesphere.io/api/iam/v1alpha2"
 

@@ -20,7 +20,7 @@ import (
 	"net/http"
 
 	"github.com/emicklei/go-restful"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"

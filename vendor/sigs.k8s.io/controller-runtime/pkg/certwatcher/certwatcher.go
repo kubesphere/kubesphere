@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher/metrics"
 	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 )
 
@@ -116,8 +117,10 @@ func (cw *CertWatcher) Watch() {
 // and updates the current certificate on the watcher.  If a callback is set, it
 // is invoked with the new certificate.
 func (cw *CertWatcher) ReadCertificate() error {
+	metrics.ReadCertificateTotal.Inc()
 	cert, err := tls.LoadX509KeyPair(cw.certPath, cw.keyPath)
 	if err != nil {
+		metrics.ReadCertificateErrors.Inc()
 		return err
 	}
 

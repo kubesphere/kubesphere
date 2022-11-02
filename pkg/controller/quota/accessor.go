@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
@@ -33,7 +33,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	etcd "k8s.io/apiserver/pkg/storage/etcd3"
+	"k8s.io/apiserver/pkg/storage"
 
 	utilquota "kubesphere.io/kubesphere/kube/pkg/quota/v1"
 )
@@ -113,7 +113,7 @@ func (a *accessor) UpdateQuotaStatus(newQuota *corev1.ResourceQuota) error {
 	return nil
 }
 
-var etcdVersioner = etcd.APIObjectVersioner{}
+var storageVersioner = storage.APIObjectVersioner{}
 
 // checkCache compares the passed quota against the value in the look-aside cache and returns the newer
 // if the cache is out of date, it deletes the stale entry.  This only works because of etcd resourceVersions
@@ -125,7 +125,7 @@ func (a *accessor) checkCache(resourceQuota *quotav1alpha2.ResourceQuota) *quota
 	}
 	cachedQuota := uncastCachedQuota.(*quotav1alpha2.ResourceQuota)
 
-	if etcdVersioner.CompareResourceVersion(resourceQuota, cachedQuota) >= 0 {
+	if storageVersioner.CompareResourceVersion(resourceQuota, cachedQuota) >= 0 {
 		a.updatedResourceQuotas.Remove(resourceQuota.Name)
 		return resourceQuota
 	}
