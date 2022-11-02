@@ -125,7 +125,7 @@ KubeSphere 支持在任意平台运行，从本地数据中心到混合多云再
 ### 快速入门
 #### 在 K8s/K3s 上安装
 
-请确保您的集群满足安装的[前提条件](https://kubesphere.io/zh/docs/quick-start/minimal-kubesphere-on-k8s/)，运行以下命令以在现有 Kubernetes 集群上安装 KubeSphere：
+请确保您的集群已经安装 Kubernetes v1.19.x, v1.20.x, v1.21.x, v1.22.x（实验性支持）和 v1.23.x（实验性支持），运行以下命令以在现有 Kubernetes 集群上安装 KubeSphere：
 
 ```yaml
 kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3.3.1/kubesphere-installer.yaml
