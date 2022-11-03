@@ -185,10 +185,9 @@ func (b *Backend) sendEvents(events *v1alpha1.EventList) {
 	go send()
 
 	defer func() {
-		if skipReturnSender {
-			return
+		if !skipReturnSender {
+			<-b.senderCh
 		}
-		<-b.senderCh
 	}()
 
 	select {
