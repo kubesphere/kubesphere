@@ -16,7 +16,17 @@ limitations under the License.
 
 package cache
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"k8s.io/klog"
+)
+
+var (
+	cacheFactories = make(map[string]CacheFactory)
+)
 
 var NeverExpire = time.Duration(0)
 
@@ -38,4 +48,33 @@ type Interface interface {
 
 	// Expires updates object's expiration time, return err if key doesn't exist
 	Expire(key string, duration time.Duration) error
+}
+
+// DynamicOptions the options of the cache. For redis, options key can be  "host", "port", "db", "password".
+// For InMemoryCache, options key can be "cleanupperiod"
+type DynamicOptions map[string]interface{}
+
+func (o DynamicOptions) MarshalJSON() ([]byte, error) {
+
+	data, err := json.Marshal(o)
+	return data, err
+}
+
+func RegisterCacheFactory(factory CacheFactory) {
+	cacheFactories[factory.Type()] = factory
+}
+
+func New(option *Options, stopCh <-chan struct{}) (Interface, error) {
+	if cacheFactories[option.Type] == nil {
+		err := fmt.Errorf("cache with type %s is not supported", option.Type)
+		klog.Error(err)
+		return nil, err
+	}
+
+	cache, err := cacheFactories[option.Type].Create(option.Options, stopCh)
+	if err != nil {
+		klog.Errorf("failed to create cache, error: %v", err)
+		return nil, err
+	}
+	return cache, nil
 }

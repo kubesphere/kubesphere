@@ -88,11 +88,9 @@ func newTestConfig() (*Config, error) {
 			MaxCap:          100,
 			PoolName:        "ldap",
 		},
-		RedisOptions: &cache.Options{
-			Host:     "localhost",
-			Port:     6379,
-			Password: "KUBESPHERE_REDIS_PASSWORD",
-			DB:       0,
+		CacheOptions: &cache.Options{
+			Type:    "redis",
+			Options: map[string]interface{}{},
 		},
 		S3Options: &s3.Options{
 			Endpoint:        "http://minio.openpitrix-system.svc",
@@ -236,9 +234,6 @@ func TestGet(t *testing.T) {
 	saveTestConfig(t, conf)
 	defer cleanTestConfig(t)
 
-	conf.RedisOptions.Password = "P@88w0rd"
-	os.Setenv("KUBESPHERE_REDIS_PASSWORD", "P@88w0rd")
-
 	conf2, err := TryLoadFromDisk()
 	if err != nil {
 		t.Fatal(err)
@@ -251,7 +246,7 @@ func TestGet(t *testing.T) {
 func TestStripEmptyOptions(t *testing.T) {
 	var config Config
 
-	config.RedisOptions = &cache.Options{Host: ""}
+	config.CacheOptions = &cache.Options{Type: ""}
 	config.DevopsOptions = &jenkins.Options{Host: ""}
 	config.MonitoringOptions = &prometheus.Options{Endpoint: ""}
 	config.SonarQubeOptions = &sonarqube.Options{Host: ""}
@@ -284,7 +279,7 @@ func TestStripEmptyOptions(t *testing.T) {
 
 	config.stripEmptyOptions()
 
-	if config.RedisOptions != nil ||
+	if config.CacheOptions != nil ||
 		config.DevopsOptions != nil ||
 		config.MonitoringOptions != nil ||
 		config.SonarQubeOptions != nil ||
