@@ -33,7 +33,10 @@ import (
 
 var rulegrouplog = logf.Log.WithName("rulegroup")
 
-const RuleLabelKeyRuleId = "rule_id"
+const (
+	RuleLabelKeyRuleId   = "rule_id"
+	MaxRuleCountPerGroup = 40
+)
 
 func (r *RuleGroup) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -87,6 +90,10 @@ func (r *RuleGroup) ValidateDelete() error {
 func (r *RuleGroup) Validate() error {
 	log := rulegrouplog.WithValues("name", r.Namespace+"/"+r.Name)
 	log.Info("validate")
+
+	if len(r.Spec.Rules) > MaxRuleCountPerGroup {
+		return fmt.Errorf("the rule group has %d rules, exceeding the max count (%d)", len(r.Spec.Rules), MaxRuleCountPerGroup)
+	}
 
 	var rules []Rule
 	for _, r := range r.Spec.Rules {
@@ -210,6 +217,10 @@ func (r *ClusterRuleGroup) Validate() error {
 	log := clusterrulegrouplog.WithValues("name", r.Name)
 	log.Info("validate")
 
+	if len(r.Spec.Rules) > MaxRuleCountPerGroup {
+		return fmt.Errorf("the rule group has %d rules, exceeding the max count (%d)", len(r.Spec.Rules), MaxRuleCountPerGroup)
+	}
+
 	var rules []Rule
 	for _, r := range r.Spec.Rules {
 		rules = append(rules, r.Rule)
@@ -306,6 +317,10 @@ func (r *GlobalRuleGroup) ValidateDelete() error {
 func (r *GlobalRuleGroup) Validate() error {
 	log := globalrulegrouplog.WithValues("name", r.Name)
 	log.Info("validate")
+
+	if len(r.Spec.Rules) > MaxRuleCountPerGroup {
+		return fmt.Errorf("the rule group has %d rules, exceeding the max count (%d)", len(r.Spec.Rules), MaxRuleCountPerGroup)
+	}
 
 	var rules []Rule
 	for _, r := range r.Spec.Rules {
