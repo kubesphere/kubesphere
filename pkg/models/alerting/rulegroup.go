@@ -102,6 +102,7 @@ func (o *ruleGroupOperator) listRuleGroups(ctx context.Context, namespace string
 	// copy status info of statusRuleGroups to matched rulegroups
 	var groups = make([]runtime.Object, len(resourceRuleGroups))
 	for i := range resourceRuleGroups {
+		setRuleGroupResourceTypeMeta(resourceRuleGroups[i])
 		g := &kapialertingv2beta1.RuleGroup{
 			RuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
@@ -295,6 +296,8 @@ func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name st
 		return nil, err
 	}
 
+	setRuleGroupResourceTypeMeta(resourceRuleGroup)
+
 	ret := &kapialertingv2beta1.RuleGroup{
 		RuleGroup: *resourceRuleGroup,
 		Status: kapialertingv2beta1.RuleGroupStatus{
@@ -384,6 +387,7 @@ func (o *ruleGroupOperator) listClusterRuleGroups(ctx context.Context, selector 
 	// copy status info of statusRuleGroups to matched rulegroups
 	var groups = make([]runtime.Object, len(resourceRuleGroups))
 	for i := range resourceRuleGroups {
+		setRuleGroupResourceTypeMeta(resourceRuleGroups[i])
 		g := &kapialertingv2beta1.ClusterRuleGroup{
 			ClusterRuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
@@ -488,6 +492,8 @@ func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string
 		return nil, err
 	}
 
+	setRuleGroupResourceTypeMeta(resourceRuleGroup)
+
 	ret := &kapialertingv2beta1.ClusterRuleGroup{
 		ClusterRuleGroup: *resourceRuleGroup,
 		Status: kapialertingv2beta1.RuleGroupStatus{
@@ -573,6 +579,7 @@ func (o *ruleGroupOperator) listGlobalRuleGroups(ctx context.Context, selector l
 	// copy status info of statusRuleGroups to matched rulegroups
 	var groups = make([]runtime.Object, len(resourceRuleGroups))
 	for i := range resourceRuleGroups {
+		setRuleGroupResourceTypeMeta(resourceRuleGroups[i])
 		g := &kapialertingv2beta1.GlobalRuleGroup{
 			GlobalRuleGroup: *resourceRuleGroups[i],
 			Status: kapialertingv2beta1.RuleGroupStatus{
@@ -731,6 +738,8 @@ func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string)
 		return nil, err
 	}
 
+	setRuleGroupResourceTypeMeta(resourceRuleGroup)
+
 	ret := &kapialertingv2beta1.GlobalRuleGroup{
 		GlobalRuleGroup: *resourceRuleGroup,
 		Status: kapialertingv2beta1.RuleGroupStatus{
@@ -888,4 +897,24 @@ var (
 type wrapAlert struct {
 	kapialertingv2beta1.Alert
 	runtime.Object
+}
+
+var (
+	apiVersion = alertingv2beta1.SchemeGroupVersion.String()
+)
+
+// set TypeMeta info because the objects getted by lister.List() and lister.Get() may have no TypeMeta
+// related issue: https://github.com/kubernetes/client-go/issues/541
+func setRuleGroupResourceTypeMeta(obj runtime.Object) {
+	switch o := obj.(type) {
+	case *alertingv2beta1.RuleGroup:
+		o.APIVersion = apiVersion
+		o.Kind = alertingv2beta1.ResourceKindRuleGroup
+	case *alertingv2beta1.ClusterRuleGroup:
+		o.APIVersion = apiVersion
+		o.Kind = alertingv2beta1.ResourceKindClusterRuleGroup
+	case *alertingv2beta1.GlobalRuleGroup:
+		o.APIVersion = apiVersion
+		o.Kind = alertingv2beta1.ResourceKindGlobalRuleGroup
+	}
 }

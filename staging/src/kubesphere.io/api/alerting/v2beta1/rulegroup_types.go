@@ -25,6 +25,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+const (
+	ResourceKindRuleGroup        = "RuleGroup"
+	ResourceKindClusterRuleGroup = "ClusterRuleGroup"
+	ResourceKindGlobalRuleGroup  = "GlobalRuleGroup"
+)
+
 // Duration is a valid time unit
 // Supported units: y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`
 // +kubebuilder:validation:Pattern:="^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$"
