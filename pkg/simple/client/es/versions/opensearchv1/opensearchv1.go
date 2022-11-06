@@ -64,6 +64,7 @@ func (o *OpenSearch) Search(indices string, body []byte, scroll bool) ([]byte, e
 	opts := []func(*opensearchapi.SearchRequest){
 		o.client.Search.WithContext(context.Background()),
 		o.client.Search.WithIndex(indices),
+		o.client.Search.WithRestTotalHitsAsInt(true),
 		o.client.Search.WithIgnoreUnavailable(true),
 		o.client.Search.WithBody(bytes.NewBuffer(body)),
 	}
