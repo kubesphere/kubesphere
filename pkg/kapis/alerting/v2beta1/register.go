@@ -66,6 +66,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, one of `activeAt`. e.g. orderBy=activeAt")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelFilters, "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelMatcher, "label matcher to match alert labels, follow prometheus matcher format. e.g. `{label_name1=\"valueA\",label_name2=~\"valueB|valueC\"}`")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
@@ -96,6 +97,7 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, one of `activeAt`. e.g. orderBy=activeAt")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelFilters, "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelMatcher, "label matcher to match alert labels, follow prometheus matcher format. e.g. `{label_name1=\"valueA\",label_name2=~\"valueB|valueC\"}`")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))
 
@@ -120,13 +122,14 @@ func AddToContainer(container *restful.Container, informers informers.InformerFa
 
 	ws.Route(ws.GET("/globalalerts").
 		To(handler.handleListGlobalAlerts).
-		Doc("list the alerts of globalrulegroups in the cluster").
+		Doc("list the alerts of globalrulegroups").
 		Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d").DefaultValue("page=1")).
 		Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
 		Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, one of `activeAt`. e.g. orderBy=activeAt")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldState, "state, one of `firing`, `pending`")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelFilters, "label filters, concatenating multiple filters with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").DataFormat("key=%s,key~%s")).
+		Param(ws.QueryParameter(kapialertingv2beta1.FieldAlertLabelMatcher, "label matcher to match alert labels, follow prometheus matcher format. e.g. `{label_name1=\"valueA\",label_name2=~\"valueB|valueC\"}`")).
 		Param(ws.QueryParameter(kapialertingv2beta1.FieldBuiltin, "filter alerts, `true` for alerts from built-in rule groups and `false` for alerts from custom rule groups")).
 		Returns(http.StatusOK, kapi.StatusOK, kapi.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AlertingTag}))

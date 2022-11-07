@@ -16,9 +16,11 @@ package alerting
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	promlabels "github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 	promrules "github.com/prometheus/prometheus/rules"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -243,7 +245,10 @@ func (o *ruleGroupOperator) ListAlerts(ctx context.Context, namespace string,
 		}
 	}
 
-	filterAlert := o.createFilterAlertFunc(queryParam)
+	filterAlert, err := o.createFilterAlertFunc(queryParam)
+	if err != nil {
+		return nil, err
+	}
 	listResult := resources.DefaultList(alerts, queryParam, func(left, right runtime.Object, field query.Field) bool {
 		return o.compareAlert(&left.(*wrapAlert).Alert, &right.(*wrapAlert).Alert, field)
 	}, func(obj runtime.Object, filter query.Filter) bool {
@@ -269,11 +274,19 @@ func (d *ruleGroupOperator) compareAlert(left, right *kapialertingv2beta1.Alert,
 	return false
 }
 
-func (d *ruleGroupOperator) createFilterAlertFunc(queryParam *query.Query) func(alert *kapialertingv2beta1.Alert, filter query.Filter) bool {
+func (d *ruleGroupOperator) createFilterAlertFunc(queryParam *query.Query) (func(alert *kapialertingv2beta1.Alert, filter query.Filter) bool, error) {
 	var labelFilters kapialertingv2beta1.LabelFilters
+	var labelMatchers []*promlabels.Matcher
+	var err error
 	if len(queryParam.Filters) > 0 {
 		if filters, ok := queryParam.Filters[kapialertingv2beta1.FieldAlertLabelFilters]; ok {
 			labelFilters = kapialertingv2beta1.ParseLabelFilters(string(filters))
+		}
+		if matcherStr, ok := queryParam.Filters[kapialertingv2beta1.FieldAlertLabelMatcher]; ok {
+			labelMatchers, err = parser.ParseMetricSelector(string(matcherStr))
+			if err != nil {
+				return nil, fmt.Errorf("invalid %s param: %v", kapialertingv2beta1.FieldAlertLabelMatcher, err)
+			}
 		}
 	}
 	return func(alert *kapialertingv2beta1.Alert, filter query.Filter) bool {
@@ -283,11 +296,22 @@ func (d *ruleGroupOperator) createFilterAlertFunc(queryParam *query.Query) func(
 				return true
 			}
 			return labelFilters.Matches(alert.Labels)
+		case kapialertingv2beta1.FieldAlertLabelMatcher:
+			for _, m := range labelMatchers {
+				var v string
+				if len(alert.Labels) > 0 {
+					v = alert.Labels[m.Name]
+				}
+				if !m.Matches(v) {
+					return false
+				}
+			}
+			return true
 		case kapialertingv2beta1.FieldState:
 			return alert.State == string(filter.Value)
 		}
 		return false
-	}
+	}, nil
 }
 
 func (o *ruleGroupOperator) GetRuleGroup(ctx context.Context, namespace, name string) (*kapialertingv2beta1.RuleGroup, error) {
@@ -474,7 +498,10 @@ func (o *ruleGroupOperator) ListClusterAlerts(ctx context.Context,
 		}
 	}
 
-	filterAlert := o.createFilterAlertFunc(queryParam)
+	filterAlert, err := o.createFilterAlertFunc(queryParam)
+	if err != nil {
+		return nil, err
+	}
 	listResult := resources.DefaultList(alerts, queryParam, func(left, right runtime.Object, field query.Field) bool {
 		return o.compareAlert(&left.(*wrapAlert).Alert, &right.(*wrapAlert).Alert, field)
 	}, func(obj runtime.Object, filter query.Filter) bool {
@@ -717,7 +744,10 @@ func (o *ruleGroupOperator) ListGlobalAlerts(ctx context.Context,
 		}
 	}
 
-	filterAlert := o.createFilterAlertFunc(queryParam)
+	filterAlert, err := o.createFilterAlertFunc(queryParam)
+	if err != nil {
+		return nil, err
+	}
 	listResult := resources.DefaultList(alerts, queryParam, func(left, right runtime.Object, field query.Field) bool {
 		return o.compareAlert(&left.(*wrapAlert).Alert, &right.(*wrapAlert).Alert, field)
 	}, func(obj runtime.Object, filter query.Filter) bool {
