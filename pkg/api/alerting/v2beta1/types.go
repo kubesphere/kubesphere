@@ -35,6 +35,7 @@ const (
 	// for alert
 	FieldAlertLabelFilters = "label_filters"
 	FieldAlertActiveAt     = "activeAt"
+	FieldAlertLabelMatcher = "label_matcher"
 )
 
 var SortableFields = []string{
