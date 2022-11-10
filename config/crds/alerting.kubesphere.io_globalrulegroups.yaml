@@ -87,11 +87,11 @@ spec:
                                 cpu:
                                   description: Only one of its members may be specified.
                                   properties:
+                                    load1m:
+                                      type: number
                                     load5m:
                                       type: number
                                     load15m:
-                                      type: number
-                                    load1m:
                                       type: number
                                     utilization:
                                       type: number

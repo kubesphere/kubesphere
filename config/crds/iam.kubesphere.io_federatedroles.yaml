@@ -67,7 +67,8 @@ spec:
                           description: APIGroups is the name of the APIGroup that
                             contains the resources.  If multiple API groups are specified,
                             any action requested against one of the enumerated resources
-                            in any API group will be allowed.
+                            in any API group will be allowed. "" represents the core
+                            API group and "*" represents all API groups.
                           items:
                             type: string
                           type: array
@@ -92,14 +93,14 @@ spec:
                           type: array
                         resources:
                           description: Resources is a list of resources this rule
-                            applies to.  ResourceAll represents all resources.
+                            applies to. '*' represents all resources.
                           items:
                             type: string
                           type: array
                         verbs:
                           description: Verbs is a list of Verbs that apply to ALL
-                            the ResourceKinds and AttributeRestrictions contained
-                            in this rule.  VerbAll represents all kinds.
+                            the ResourceKinds contained in this rule. '*' represents
+                            all verbs.
                           items:
                             type: string
                           type: array

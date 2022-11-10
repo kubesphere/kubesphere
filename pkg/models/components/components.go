@@ -71,7 +71,6 @@ func (c *componentsGetter) GetComponentStatus(name string) (v1alpha2.ComponentSt
 	component := v1alpha2.ComponentStatus{
 		Name:            service.Name,
 		Namespace:       service.Namespace,
-		SelfLink:        service.SelfLink,
 		Label:           service.Spec.Selector,
 		StartedAt:       service.CreationTimestamp.Time,
 		HealthyBackends: 0,
@@ -156,7 +155,6 @@ func (c *componentsGetter) GetAllComponentsStatus() ([]v1alpha2.ComponentStatus,
 			component := v1alpha2.ComponentStatus{
 				Name:            service.Name,
 				Namespace:       service.Namespace,
-				SelfLink:        service.SelfLink,
 				Label:           service.Spec.Selector,
 				StartedAt:       service.CreationTimestamp.Time,
 				HealthyBackends: 0,

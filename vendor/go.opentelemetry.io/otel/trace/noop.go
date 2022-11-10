@@ -42,14 +42,9 @@ type noopTracer struct{}
 
 var _ Tracer = noopTracer{}
 
-// Start carries forward a non-recording Span, if one is present in the context, otherwise it
-// creates a no-op Span.
-func (t noopTracer) Start(ctx context.Context, name string, _ ...SpanStartOption) (context.Context, Span) {
-	span := SpanFromContext(ctx)
-	if _, ok := span.(nonRecordingSpan); !ok {
-		// span is likely already a noopSpan, but let's be sure
-		span = noopSpan{}
-	}
+// Start starts a noop span.
+func (t noopTracer) Start(ctx context.Context, name string, _ ...SpanOption) (context.Context, Span) {
+	span := noopSpan{}
 	return ContextWithSpan(ctx, span), span
 }
 
@@ -74,16 +69,16 @@ func (noopSpan) SetError(bool) {}
 func (noopSpan) SetAttributes(...attribute.KeyValue) {}
 
 // End does nothing.
-func (noopSpan) End(...SpanEndOption) {}
+func (noopSpan) End(...SpanOption) {}
 
 // RecordError does nothing.
 func (noopSpan) RecordError(error, ...EventOption) {}
+
+// Tracer returns the Tracer that created this Span.
+func (noopSpan) Tracer() Tracer { return noopTracer{} }
 
 // AddEvent does nothing.
 func (noopSpan) AddEvent(string, ...EventOption) {}
 
 // SetName does nothing.
 func (noopSpan) SetName(string) {}
-
-// TracerProvider returns a no-op TracerProvider.
-func (noopSpan) TracerProvider() TracerProvider { return noopTracerProvider{} }

@@ -292,7 +292,7 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/evanphx/json-patch v4.12.0+incompatible => github.com/evanphx/json-patch v4.9.0+incompatible
+# github.com/evanphx/json-patch v4.12.0+incompatible => github.com/evanphx/json-patch v4.12.0+incompatible
 ## explicit
 github.com/evanphx/json-patch
 # github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d => github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d
@@ -420,6 +420,7 @@ github.com/golang/glog
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.5.2 => github.com/golang/protobuf v1.4.2
 ## explicit; go 1.9
+github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
@@ -427,6 +428,7 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
+github.com/golang/protobuf/ptypes/wrappers
 # github.com/golang/snappy v0.0.4 => github.com/golang/snappy v0.0.1
 ## explicit
 github.com/golang/snappy
@@ -505,11 +507,11 @@ github.com/gregjones/httpcache
 # github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 => github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 ## explicit
 github.com/grpc-ecosystem/go-grpc-prometheus
-# github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 => github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0
+# github.com/grpc-ecosystem/grpc-gateway v1.16.0 => github.com/grpc-ecosystem/grpc-gateway v1.16.0
 ## explicit; go 1.14
-github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
-github.com/grpc-ecosystem/grpc-gateway/v2/runtime
-github.com/grpc-ecosystem/grpc-gateway/v2/utilities
+github.com/grpc-ecosystem/grpc-gateway/internal
+github.com/grpc-ecosystem/grpc-gateway/runtime
+github.com/grpc-ecosystem/grpc-gateway/utilities
 # github.com/hashicorp/golang-lru v0.5.4 => github.com/hashicorp/golang-lru v0.5.4
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru
@@ -1139,11 +1141,11 @@ go.opentelemetry.io/otel/sdk/metric/controller/basic
 go.opentelemetry.io/otel/sdk/metric/controller/time
 go.opentelemetry.io/otel/sdk/metric/processor/basic
 go.opentelemetry.io/otel/sdk/metric/selector/simple
-# go.opentelemetry.io/otel/trace v1.7.0 => go.opentelemetry.io/otel/trace v1.7.0
-## explicit; go 1.16
-go.opentelemetry.io/otel/trace
-# go.opentelemetry.io/proto/otlp v0.16.0 => go.opentelemetry.io/proto/otlp v0.16.0
+# go.opentelemetry.io/otel/trace v1.7.0 => go.opentelemetry.io/otel/trace v0.20.0
 ## explicit; go 1.14
+go.opentelemetry.io/otel/trace
+# go.opentelemetry.io/proto/otlp v0.16.0 => go.opentelemetry.io/proto/otlp v0.7.0
+## explicit; go 1.15
 go.opentelemetry.io/proto/otlp/collector/metrics/v1
 go.opentelemetry.io/proto/otlp/collector/trace/v1
 go.opentelemetry.io/proto/otlp/common/v1
@@ -1308,8 +1310,8 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 => google.golang.org/genproto v0.0.0-20200420144010-e5e8543f8aeb
-## explicit; go 1.11
+# google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 => google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21
+## explicit; go 1.15
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/status
@@ -1391,6 +1393,7 @@ google.golang.org/protobuf/internal/set
 google.golang.org/protobuf/internal/strs
 google.golang.org/protobuf/internal/version
 google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protodesc
 google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
@@ -1398,6 +1401,7 @@ google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
+google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/alecthomas/kingpin.v2 v2.2.6 => gopkg.in/alecthomas/kingpin.v2 v2.2.6
@@ -2217,8 +2221,8 @@ k8s.io/component-base/metrics/testutil
 k8s.io/component-base/tracing
 k8s.io/component-base/tracing/api/v1
 k8s.io/component-base/version
-# k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 => k8s.io/gengo v0.0.0-20200114144118-36b2048a9120
-## explicit
+# k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 => k8s.io/gengo v0.0.0-20211129171323-c02415ce4185
+## explicit; go 1.13
 k8s.io/gengo/args
 k8s.io/gengo/examples/deepcopy-gen/generators
 k8s.io/gengo/examples/set-gen/sets
@@ -2226,9 +2230,6 @@ k8s.io/gengo/generator
 k8s.io/gengo/namer
 k8s.io/gengo/parser
 k8s.io/gengo/types
-# k8s.io/klog v1.0.0 => k8s.io/klog v1.0.0
-## explicit; go 1.12
-k8s.io/klog
 # k8s.io/klog/v2 v2.70.1 => k8s.io/klog/v2 v2.70.1
 ## explicit; go 1.13
 k8s.io/klog/v2
@@ -2357,8 +2358,8 @@ oras.land/oras-go/pkg/registry/remote/auth
 oras.land/oras-go/pkg/registry/remote/internal/errutil
 oras.land/oras-go/pkg/registry/remote/internal/syncutil
 oras.land/oras-go/pkg/target
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.33 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
-## explicit; go 1.13
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.33 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.33
+## explicit; go 1.17
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
 # sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0 => sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
@@ -2450,7 +2451,6 @@ sigs.k8s.io/kubefed/pkg/kubefedctl/util
 sigs.k8s.io/kubefed/pkg/metrics
 # sigs.k8s.io/kustomize/api v0.12.1 => sigs.k8s.io/kustomize/api v0.12.1
 ## explicit; go 1.18
-sigs.k8s.io/kustomize/api/filesys
 sigs.k8s.io/kustomize/api/filters/annotations
 sigs.k8s.io/kustomize/api/filters/fieldspec
 sigs.k8s.io/kustomize/api/filters/filtersutil
@@ -2739,7 +2739,7 @@ sigs.k8s.io/yaml
 # github.com/emirpasic/gods => github.com/emirpasic/gods v1.12.0
 # github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473
 # github.com/envoyproxy/protoc-gen-validate => github.com/envoyproxy/protoc-gen-validate v0.1.0
-# github.com/evanphx/json-patch => github.com/evanphx/json-patch v4.9.0+incompatible
+# github.com/evanphx/json-patch => github.com/evanphx/json-patch v4.12.0+incompatible
 # github.com/evanphx/json-patch/v5 => github.com/evanphx/json-patch/v5 v5.0.0
 # github.com/exponent-io/jsonpath => github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d
 # github.com/facette/natsort => github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb
@@ -2864,7 +2864,7 @@ sigs.k8s.io/yaml
 # github.com/gregjones/httpcache => github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f
 # github.com/grpc-ecosystem/go-grpc-middleware => github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 # github.com/grpc-ecosystem/go-grpc-prometheus => github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-# github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.14.4
+# github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.16.0
 # github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0
 # github.com/hailocab/go-hostpool => github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 # github.com/hashicorp/consul/api => github.com/hashicorp/consul/api v1.4.0
@@ -3197,8 +3197,8 @@ sigs.k8s.io/yaml
 # go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v0.20.0
 # go.opentelemetry.io/otel/sdk/export/metric => go.opentelemetry.io/otel/sdk/export/metric v0.20.0
 # go.opentelemetry.io/otel/sdk/metric => go.opentelemetry.io/otel/sdk/metric v0.20.0
-# go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.7.0
-# go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v0.16.0
+# go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v0.20.0
+# go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v0.7.0
 # go.starlark.net => go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5
 # go.uber.org/atomic => go.uber.org/atomic v1.6.0
 # go.uber.org/automaxprocs => go.uber.org/automaxprocs v1.2.0
@@ -3227,7 +3227,7 @@ sigs.k8s.io/yaml
 # google.golang.org/api => google.golang.org/api v0.22.0
 # google.golang.org/appengine => google.golang.org/appengine v1.6.6
 # google.golang.org/cloud => google.golang.org/cloud v0.0.0-20151119220103-975617b05ea8
-# google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200420144010-e5e8543f8aeb
+# google.golang.org/genproto => google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21
 # google.golang.org/grpc => google.golang.org/grpc v1.49.0
 # google.golang.org/protobuf => google.golang.org/protobuf v1.28.1
 # gopkg.in/airbrake/gobrake.v2 => gopkg.in/airbrake/gobrake.v2 v2.0.9
@@ -3276,7 +3276,7 @@ sigs.k8s.io/yaml
 # k8s.io/code-generator => k8s.io/code-generator v0.25.3
 # k8s.io/component-base => k8s.io/component-base v0.25.3
 # k8s.io/component-helpers => k8s.io/component-helpers v0.25.3
-# k8s.io/gengo => k8s.io/gengo v0.0.0-20200114144118-36b2048a9120
+# k8s.io/gengo => k8s.io/gengo v0.0.0-20211129171323-c02415ce4185
 # k8s.io/klog => k8s.io/klog v1.0.0
 # k8s.io/klog/v2 => k8s.io/klog/v2 v2.70.1
 # k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1
@@ -3294,7 +3294,7 @@ sigs.k8s.io/yaml
 # rsc.io/pdf => rsc.io/pdf v0.1.1
 # rsc.io/quote/v3 => rsc.io/quote/v3 v3.1.0
 # rsc.io/sampler => rsc.io/sampler v1.3.0
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.33
 # sigs.k8s.io/application => sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 # sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.12.1
 # sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.6.2
@@ -3306,7 +3306,6 @@ sigs.k8s.io/yaml
 # sigs.k8s.io/kustomize/cmd/config => sigs.k8s.io/kustomize/cmd/config v0.9.10
 # sigs.k8s.io/kustomize/kustomize/v4 => sigs.k8s.io/kustomize/kustomize/v4 v4.1.2
 # sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.13.9
-# sigs.k8s.io/logtools => sigs.k8s.io/logtools v0.1.0
 # sigs.k8s.io/structured-merge-diff => sigs.k8s.io/structured-merge-diff v1.0.1-0.20191108220359-b1b620dd3f06
 # sigs.k8s.io/structured-merge-diff/v3 => sigs.k8s.io/structured-merge-diff/v3 v3.0.0
 # sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.2.3

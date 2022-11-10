@@ -50,4 +50,4 @@ $(GOBIN)/staticcheck: deps
 	go install honnef.co/go/tools/cmd/staticcheck
 
 $(GOBIN)/logcheck: deps
-	go install k8s.io/klog/hack/tools/logcheck
+	go install sigs.k8s.io/logtools/logcheck
