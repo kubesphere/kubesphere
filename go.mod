@@ -342,6 +342,7 @@ replace (
 	github.com/Shopify/logrus-bugsnag => github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d
 	github.com/Shopify/sarama => github.com/Shopify/sarama v1.19.0
 	github.com/Shopify/toxiproxy => github.com/Shopify/toxiproxy v2.1.4+incompatible
+	github.com/Sirupsen/logrus => github.com/Sirupsen/logrus v1.0.6
 	github.com/StackExchange/wmi => github.com/StackExchange/wmi v1.2.1
 	github.com/VividCortex/gohistogram => github.com/VividCortex/gohistogram v1.0.0
 	github.com/afex/hystrix-go => github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
@@ -399,6 +400,7 @@ replace (
 	github.com/cespare/xxhash => github.com/cespare/xxhash v1.1.0
 	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.1
 	github.com/chai2010/gettext-go => github.com/chai2010/gettext-go v1.0.2
+	github.com/checkpoint-restore/go-criu/v5 => github.com/checkpoint-restore/go-criu/v5 v5.3.0
 	github.com/chromedp/cdproto => github.com/chromedp/cdproto v0.0.0-20200424080200-0de008e41fa0
 	github.com/chromedp/chromedp => github.com/chromedp/chromedp v0.5.3
 	github.com/chzyer/logex => github.com/chzyer/logex v1.1.10
@@ -418,7 +420,9 @@ replace (
 	github.com/cockroachdb/cockroach-go => github.com/cockroachdb/cockroach-go v0.0.0-20181001143604-e0a95dfd547c
 	github.com/cockroachdb/datadriven => github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa
 	github.com/codahale/hdrhistogram => github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd
+	github.com/codegangsta/cli => github.com/codegangsta/cli v1.20.0
 	github.com/containerd/cgroups => github.com/containerd/cgroups v1.0.2
+	github.com/containerd/console => github.com/containerd/console v1.0.3
 	github.com/containerd/containerd => github.com/containerd/containerd v1.4.13
 	github.com/containerd/continuity => github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
 	github.com/containerd/stargz-snapshotter/estargz => github.com/containerd/stargz-snapshotter/estargz v0.7.0
@@ -751,6 +755,7 @@ replace (
 	github.com/mitchellh/reflectwalk => github.com/mitchellh/reflectwalk v1.0.0
 	github.com/moby/locker => github.com/moby/locker v1.0.1
 	github.com/moby/spdystream => github.com/moby/spdystream v0.2.0
+	github.com/moby/sys/mountinfo => github.com/moby/sys/mountinfo v0.5.0
 	github.com/moby/term => github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
 	github.com/modern-go/concurrent => github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 	github.com/modern-go/reflect2 => github.com/modern-go/reflect2 v1.0.2
@@ -760,6 +765,7 @@ replace (
 	github.com/mozillazg/go-cos => github.com/mozillazg/go-cos v0.13.0
 	github.com/mozillazg/go-httpheader => github.com/mozillazg/go-httpheader v0.2.1
 	github.com/mreiferson/go-httpclient => github.com/mreiferson/go-httpclient v0.0.0-20160630210159-31f0106b4474
+	github.com/mrunalp/fileutils => github.com/mrunalp/fileutils v0.5.0
 	github.com/mschoch/smat => github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae
 	github.com/munnerz/goautoneg => github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/mwitkow/go-conntrack => github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f
@@ -786,8 +792,9 @@ replace (
 	github.com/open-policy-agent/opa => github.com/open-policy-agent/opa v0.45.0
 	github.com/opencontainers/go-digest => github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
-	github.com/opencontainers/runc => github.com/opencontainers/runc v0.1.1
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.2
+	github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.10.0
 	github.com/opensearch-project/opensearch-go => github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/opensearch-project/opensearch-go/v2 => github.com/opensearch-project/opensearch-go/v2 v2.0.0
 	github.com/opentracing-contrib/go-grpc => github.com/opentracing-contrib/go-grpc v0.0.0-20180928155321-4b5a12d3ff02
@@ -852,6 +859,7 @@ replace (
 	github.com/santhosh-tekuri/jsonschema => github.com/santhosh-tekuri/jsonschema v1.2.4
 	github.com/satori/go.uuid => github.com/satori/go.uuid v1.2.0
 	github.com/sean-/seed => github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529
+	github.com/seccomp/libseccomp-golang => github.com/seccomp/libseccomp-golang v0.10.0
 	github.com/segmentio/fasthash => github.com/segmentio/fasthash v0.0.0-20180216231524-a72b379d632e
 	github.com/segmentio/kafka-go => github.com/segmentio/kafka-go v0.2.0
 	github.com/sercand/kuberesolver => github.com/sercand/kuberesolver v2.4.0+incompatible
@@ -883,6 +891,7 @@ replace (
 	github.com/streadway/handy => github.com/streadway/handy v0.0.0-20190108123426-d5acb3125c2a
 	github.com/stretchr/objx => github.com/stretchr/objx v0.2.0
 	github.com/stretchr/testify => github.com/stretchr/testify v1.4.0
+	github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/tchap/go-patricia/v2 => github.com/tchap/go-patricia/v2 v2.3.1
 	github.com/thanos-io/thanos => github.com/thanos-io/thanos v0.13.1-0.20200910143741-e0b7f7b32e9c
 	github.com/tidwall/pretty => github.com/tidwall/pretty v1.0.0
@@ -899,6 +908,8 @@ replace (
 	github.com/valyala/bytebufferpool => github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.0.1
 	github.com/vektah/gqlparser => github.com/vektah/gqlparser v1.1.2
+	github.com/vishvananda/netlink => github.com/vishvananda/netlink v1.1.0
+	github.com/vishvananda/netns => github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df
 	github.com/weaveworks/common => github.com/weaveworks/common v0.0.0-20200820123129-280614068c5e
 	github.com/weaveworks/promrus => github.com/weaveworks/promrus v1.2.0
 	github.com/weppos/publicsuffix-go => github.com/weppos/publicsuffix-go v0.13.0
