@@ -52,7 +52,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.Client == nil {
 		r.Client = mgr.GetClient()
 	}
-	if r.logger == nil {
+	if r.logger.GetSink() == nil {
 		r.logger = ctrl.Log.WithName("controllers").WithName(controllerName)
 	}
 	if r.scheme == nil {

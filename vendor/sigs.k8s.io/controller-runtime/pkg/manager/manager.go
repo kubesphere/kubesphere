@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
@@ -97,9 +98,9 @@ type Manager interface {
 
 // Options are the arguments for creating a new Manager.
 type Options struct {
-	// Scheme is the scheme used to resolve runtime.Objects to GroupVersionKinds / Resources
+	// Scheme is the scheme used to resolve runtime.Objects to GroupVersionKinds / Resources.
 	// Defaults to the kubernetes/client-go scheme.Scheme, but it's almost always better
-	// idea to pass your own scheme in.  See the documentation in pkg/scheme for more information.
+	// to pass your own scheme in. See the documentation in pkg/scheme for more information.
 	Scheme *runtime.Scheme
 
 	// MapperProvider provides the rest mapper used to map go types to Kubernetes APIs
@@ -185,11 +186,11 @@ type Options struct {
 	// between tries of actions. Default is 2 seconds.
 	RetryPeriod *time.Duration
 
-	// Namespace if specified restricts the manager's cache to watch objects in
-	// the desired namespace Defaults to all namespaces
+	// Namespace, if specified, restricts the manager's cache to watch objects in
+	// the desired namespace. Defaults to all namespaces.
 	//
 	// Note: If a namespace is specified, controllers can still Watch for a
-	// cluster-scoped resource (e.g Node).  For namespaced resources the cache
+	// cluster-scoped resource (e.g Node). For namespaced resources, the cache
 	// will only hold objects from the desired namespace.
 	Namespace string
 
@@ -227,7 +228,7 @@ type Options struct {
 	// if this is set, the Manager will use this server instead.
 	WebhookServer *webhook.Server
 
-	// Functions to all for a user to customize the values that will be injected.
+	// Functions to allow for a user to customize values that will be injected.
 
 	// NewCache is the function that will create the cache to be used
 	// by the manager. If not set this will use the default new cache function.
@@ -237,6 +238,11 @@ type Options struct {
 	// If not set this will create the default DelegatingClient that will
 	// use the cache for reads and the client for writes.
 	NewClient cluster.NewClientFunc
+
+	// BaseContext is the function that provides Context values to Runnables
+	// managed by the Manager. If a BaseContext function isn't provided, Runnables
+	// will receive a new Background Context instead.
+	BaseContext BaseContextFunc
 
 	// ClientDisableCacheFor tells the client that, if any cache is used, to bypass it
 	// for the given objects.
@@ -276,6 +282,10 @@ type Options struct {
 	newMetricsListener     func(addr string) (net.Listener, error)
 	newHealthProbeListener func(addr string) (net.Listener, error)
 }
+
+// BaseContextFunc is a function used to provide a base Context to Runnables
+// managed by a Manager.
+type BaseContextFunc func() context.Context
 
 // Runnable allows a component to be started.
 // It's very important that Start blocks until
@@ -334,11 +344,21 @@ func New(config *rest.Config, options Options) (Manager, error) {
 	}
 
 	// Create the resource lock to enable leader election)
-	leaderConfig := options.LeaderElectionConfig
-	if leaderConfig == nil {
+	var leaderConfig *rest.Config
+	var leaderRecorderProvider *intrec.Provider
+
+	if options.LeaderElectionConfig == nil {
 		leaderConfig = rest.CopyConfig(config)
+		leaderRecorderProvider = recorderProvider
+	} else {
+		leaderConfig = rest.CopyConfig(options.LeaderElectionConfig)
+		leaderRecorderProvider, err = options.newRecorderProvider(leaderConfig, cluster.GetScheme(), options.Logger.WithName("events"), options.makeBroadcaster)
+		if err != nil {
+			return nil, err
+		}
 	}
-	resourceLock, err := options.newResourceLock(leaderConfig, recorderProvider, leaderelection.Options{
+
+	resourceLock, err := options.newResourceLock(leaderConfig, leaderRecorderProvider, leaderelection.Options{
 		LeaderElection:             options.LeaderElection,
 		LeaderElectionResourceLock: options.LeaderElectionResourceLock,
 		LeaderElectionID:           options.LeaderElectionID,
@@ -365,8 +385,14 @@ func New(config *rest.Config, options Options) (Manager, error) {
 		return nil, err
 	}
 
+	errChan := make(chan error)
+	runnables := newRunnables(options.BaseContext, errChan)
+
 	return &controllerManager{
+		stopProcedureEngaged:          pointer.Int64(0),
 		cluster:                       cluster,
+		runnables:                     runnables,
+		errChan:                       errChan,
 		recorderProvider:              recorderProvider,
 		resourceLock:                  resourceLock,
 		metricsListener:               metricsListener,
@@ -468,6 +494,11 @@ func (o Options) AndFromOrDie(loader config.ControllerManagerConfiguration) Opti
 }
 
 func (o Options) setLeaderElectionConfig(obj v1alpha1.ControllerManagerConfigurationSpec) Options {
+	if obj.LeaderElection == nil {
+		// The source does not have any configuration; noop
+		return o
+	}
+
 	if !o.LeaderElection && obj.LeaderElection.LeaderElect != nil {
 		o.LeaderElection = *obj.LeaderElection.LeaderElect
 	}
@@ -507,9 +538,15 @@ func defaultHealthProbeListener(addr string) (net.Listener, error) {
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("error listening on %s: %v", addr, err)
+		return nil, fmt.Errorf("error listening on %s: %w", addr, err)
 	}
 	return ln, nil
+}
+
+// defaultBaseContext is used as the BaseContext value in Options if one
+// has not already been set.
+func defaultBaseContext() context.Context {
+	return context.Background()
 }
 
 // setOptionsDefaults set default values for Options fields.
@@ -571,8 +608,12 @@ func setOptionsDefaults(options Options) Options {
 		options.GracefulShutdownTimeout = &gracefulShutdownTimeout
 	}
 
-	if options.Logger == nil {
+	if options.Logger.GetSink() == nil {
 		options.Logger = log.Log
+	}
+
+	if options.BaseContext == nil {
+		options.BaseContext = defaultBaseContext
 	}
 
 	return options

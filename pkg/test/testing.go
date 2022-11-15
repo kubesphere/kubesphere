@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/prometheus/common/log"
 	appsv1 "k8s.io/api/apps/v1"

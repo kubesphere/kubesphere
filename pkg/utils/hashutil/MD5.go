@@ -21,7 +21,7 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/bytefmt"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/utils/readerutils"
 )

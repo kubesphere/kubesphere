@@ -2,7 +2,7 @@ package es
 
 import (
 	jsoniter "github.com/json-iterator/go"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type Response struct {

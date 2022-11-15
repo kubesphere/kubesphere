@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	log "k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -86,7 +86,7 @@ func CreateRegistryClient(username, password, domain string, useSSL bool, insecu
 	authDomain := domain
 	auth, err := GetAuthConfig(username, password, authDomain)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -180,7 +180,7 @@ func GetRespBody(resp *http.Response) ([]byte, error) {
 	}
 	resBody, err := io.ReadAll(reader)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	return resBody, err

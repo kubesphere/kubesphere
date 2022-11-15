@@ -17,21 +17,37 @@ limitations under the License.
 package values
 
 import (
+	"context"
 	"fmt"
-	"os"
-
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"os"
 
 	"github.com/operator-framework/helm-operator-plugins/pkg/values"
 )
 
-type Values struct {
-	m map[string]interface{}
+var DefaultMapper = values.MapperFunc(func(v chartutil.Values) chartutil.Values { return v })
+
+var DefaultTranslator = values.TranslatorFunc(func(ctx context.Context, u *unstructured.Unstructured) (chartutil.Values, error) {
+	return getSpecMap(u)
+})
+
+func ApplyOverrides(overrideValues map[string]string, obj *unstructured.Unstructured) error {
+	specMap, err := getSpecMap(obj)
+	if err != nil {
+		return err
+	}
+	for inK, inV := range overrideValues {
+		val := fmt.Sprintf("%s=%s", inK, os.ExpandEnv(inV))
+		if err := strvals.ParseInto(val, specMap); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func FromUnstructured(obj *unstructured.Unstructured) (*Values, error) {
+func getSpecMap(obj *unstructured.Unstructured) (map[string]interface{}, error) {
 	if obj == nil || obj.Object == nil {
 		return nil, fmt.Errorf("nil object")
 	}
@@ -43,28 +59,5 @@ func FromUnstructured(obj *unstructured.Unstructured) (*Values, error) {
 	if !ok {
 		return nil, fmt.Errorf("spec must be a map")
 	}
-	return New(specMap), nil
+	return specMap, nil
 }
-
-func New(m map[string]interface{}) *Values {
-	return &Values{m: m}
-}
-
-func (v *Values) Map() map[string]interface{} {
-	if v == nil {
-		return nil
-	}
-	return v.m
-}
-
-func (v *Values) ApplyOverrides(in map[string]string) error {
-	for inK, inV := range in {
-		val := fmt.Sprintf("%s=%s", inK, os.ExpandEnv(inV))
-		if err := strvals.ParseInto(val, v.m); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-var DefaultMapper = values.MapperFunc(func(v chartutil.Values) chartutil.Values { return v })

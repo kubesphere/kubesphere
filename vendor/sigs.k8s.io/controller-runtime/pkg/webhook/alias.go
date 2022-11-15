@@ -29,6 +29,12 @@ type Defaulter = admission.Defaulter
 // Validator defines functions for validating an operation.
 type Validator = admission.Validator
 
+// CustomDefaulter defines functions for setting defaults on resources.
+type CustomDefaulter = admission.CustomDefaulter
+
+// CustomValidator defines functions for validating an operation.
+type CustomValidator = admission.CustomValidator
+
 // AdmissionRequest defines the input for an admission handler.
 // It contains information to identify the object in
 // question (group, version, kind, resource, subresource,

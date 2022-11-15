@@ -23,6 +23,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog/v2"
+
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/internal/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -45,13 +47,16 @@ type Options struct {
 	// The overall is a token bucket and the per-item is exponential.
 	RateLimiter ratelimiter.RateLimiter
 
-	// Log is the logger used for this controller and passed to each reconciliation
-	// request via the context field.
-	Log logr.Logger
+	// LogConstructor is used to construct a logger used for this controller and passed
+	// to each reconciliation via the context field.
+	LogConstructor func(request *reconcile.Request) logr.Logger
 
 	// CacheSyncTimeout refers to the time limit set to wait for syncing caches.
 	// Defaults to 2 minutes if not set.
 	CacheSyncTimeout time.Duration
+
+	// RecoverPanic indicates whether the panic caused by reconcile should be recovered.
+	RecoverPanic bool
 }
 
 // Controller implements a Kubernetes API.  A Controller manages a work queue fed reconcile.Requests
@@ -101,8 +106,20 @@ func NewUnmanaged(name string, mgr manager.Manager, options Options) (Controller
 		return nil, fmt.Errorf("must specify Name for Controller")
 	}
 
-	if options.Log == nil {
-		options.Log = mgr.GetLogger()
+	if options.LogConstructor == nil {
+		log := mgr.GetLogger().WithValues(
+			"controller", name,
+		)
+		options.LogConstructor = func(req *reconcile.Request) logr.Logger {
+			log := log
+			if req != nil {
+				log = log.WithValues(
+					"object", klog.KRef(req.Namespace, req.Name),
+					"namespace", req.Namespace, "name", req.Name,
+				)
+			}
+			return log
+		}
 	}
 
 	if options.MaxConcurrentReconciles <= 0 {
@@ -132,6 +149,7 @@ func NewUnmanaged(name string, mgr manager.Manager, options Options) (Controller
 		CacheSyncTimeout:        options.CacheSyncTimeout,
 		SetFields:               mgr.SetFields,
 		Name:                    name,
-		Log:                     options.Log.WithName("controller").WithName(name),
+		LogConstructor:          options.LogConstructor,
+		RecoverPanic:            options.RecoverPanic,
 	}, nil
 }

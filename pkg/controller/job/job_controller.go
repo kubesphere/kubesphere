@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	batchv1informers "k8s.io/client-go/informers/batch/v1"
 	batchv1listers "k8s.io/client-go/listers/batch/v1"
-	log "k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -92,8 +92,8 @@ func (v *JobController) Run(workers int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer v.queue.ShutDown()
 
-	log.Info("starting job controller")
-	defer log.Info("shutting down job controller")
+	klog.Info("starting job controller")
+	defer klog.Info("shutting down job controller")
 
 	if !cache.WaitForCacheSync(stopCh, v.jobSynced) {
 		return fmt.Errorf("failed to wait for caches to sync")
@@ -141,7 +141,7 @@ func (v *JobController) processNextWorkItem() bool {
 func (v *JobController) syncJob(key string) error {
 	startTime := time.Now()
 	defer func() {
-		log.V(4).Info("Finished syncing job.", "key", key, "duration", time.Since(startTime))
+		klog.V(4).Info("Finished syncing job.", "key", key, "duration", time.Since(startTime))
 	}()
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
@@ -155,14 +155,14 @@ func (v *JobController) syncJob(key string) error {
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		log.Error(err, "get job failed", "namespace", namespace, "name", name)
+		klog.Error(err, "get job failed", "namespace", namespace, "name", name)
 		return err
 	}
 
 	err = v.makeRevision(job)
 
 	if err != nil {
-		log.Error(err, "make job revision failed", "namespace", namespace, "name", name)
+		klog.Error(err, "make job revision failed", "namespace", namespace, "name", name)
 		return err
 	}
 
@@ -176,12 +176,12 @@ func (v *JobController) handleErr(err error, key interface{}) {
 	}
 
 	if v.queue.NumRequeues(key) < maxRetries {
-		log.V(2).Info("Error syncing job, retrying.", "key", key, "error", err)
+		klog.V(2).Info("Error syncing job, retrying.", "key", key, "error", err)
 		v.queue.AddRateLimited(key)
 		return
 	}
 
-	log.V(4).Info("Dropping job out of the queue", "key", key, "error", err)
+	klog.V(4).Info("Dropping job out of the queue", "key", key, "error", err)
 	v.queue.Forget(key)
 	utilruntime.HandleError(err)
 }
@@ -216,7 +216,7 @@ func (v *JobController) makeRevision(job *batchv1.Job) error {
 
 	revisionsByte, err := json.Marshal(revisions)
 	if err != nil {
-		log.Error("generate reversion string failed", err)
+		klog.Error("generate reversion string failed", err)
 		return nil
 	}
 

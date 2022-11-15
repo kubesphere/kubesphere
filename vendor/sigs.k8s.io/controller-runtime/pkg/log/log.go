@@ -29,7 +29,7 @@ limitations under the License.
 //
 // All logging in controller-runtime is structured, using a set of interfaces
 // defined by a package called logr
-// (https://godoc.org/github.com/go-logr/logr).  The sub-package zap provides
+// (https://pkg.go.dev/github.com/go-logr/logr).  The sub-package zap provides
 // helpers for setting up logr backed by Zap (go.uber.org/zap).
 package log
 
@@ -47,14 +47,14 @@ func SetLogger(l logr.Logger) {
 	defer loggerWasSetLock.Unlock()
 
 	loggerWasSet = true
-	Log.Fulfill(l)
+	dlog.Fulfill(l.GetSink())
 }
 
 // It is safe to assume that if this wasn't set within the first 30 seconds of a binaries
-// lifetime, it will never get set. The DelegatingLogger causes a high number of memory
-// allocations when not given an actual Logger, so we set a NullLogger to avoid that.
+// lifetime, it will never get set. The DelegatingLogSink causes a high number of memory
+// allocations when not given an actual Logger, so we set a NullLogSink to avoid that.
 //
-// We need to keep the DelegatingLogger because we have various inits() that get a logger from
+// We need to keep the DelegatingLogSink because we have various inits() that get a logger from
 // here. They will always get executed before any code that imports controller-runtime
 // has a chance to run and hence to set an actual logger.
 func init() {
@@ -64,7 +64,7 @@ func init() {
 		loggerWasSetLock.Lock()
 		defer loggerWasSetLock.Unlock()
 		if !loggerWasSet {
-			Log.Fulfill(NullLogger{})
+			dlog.Fulfill(NullLogSink{})
 		}
 	}()
 }
@@ -78,14 +78,17 @@ var (
 // to another logr.Logger. You *must* call SetLogger to
 // get any actual logging. If SetLogger is not called within
 // the first 30 seconds of a binaries lifetime, it will get
-// set to a NullLogger.
-var Log = NewDelegatingLogger(NullLogger{})
+// set to a NullLogSink.
+var (
+	dlog = NewDelegatingLogSink(NullLogSink{})
+	Log  = logr.New(dlog)
+)
 
 // FromContext returns a logger with predefined values from a context.Context.
 func FromContext(ctx context.Context, keysAndValues ...interface{}) logr.Logger {
-	var log logr.Logger = Log
+	log := Log
 	if ctx != nil {
-		if logger := logr.FromContext(ctx); logger != nil {
+		if logger, err := logr.FromContext(ctx); err == nil {
 			log = logger
 		}
 	}

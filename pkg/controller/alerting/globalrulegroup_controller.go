@@ -132,7 +132,7 @@ func (r *GlobalRuleGroupReconciler) Reconcile(ctx context.Context, req reconcile
 }
 
 func (r *GlobalRuleGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if r.Log == nil {
+	if r.Log.GetSink() == nil {
 		r.Log = mgr.GetLogger()
 	}
 	if r.Client == nil {

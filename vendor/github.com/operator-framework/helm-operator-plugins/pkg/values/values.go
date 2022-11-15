@@ -17,9 +17,14 @@ limitations under the License.
 package values
 
 import (
+	"context"
 	"helm.sh/helm/v3/pkg/chartutil"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// Mapper is an interface expected by the reconciler.WithValueMapper option.
+//
+// Deprecated: use Translator instead.
 type Mapper interface {
 	Map(chartutil.Values) chartutil.Values
 }
@@ -28,4 +33,21 @@ type MapperFunc func(chartutil.Values) chartutil.Values
 
 func (m MapperFunc) Map(v chartutil.Values) chartutil.Values {
 	return m(v)
+}
+
+// Translator is an interface expected by the reconciler.WithValueTranslator option.
+//
+// Translate should return helm values based on the content of the unstructured object
+// which is being reconciled.
+//
+// See also the option documentation.
+type Translator interface {
+	Translate(ctx context.Context, unstructured *unstructured.Unstructured) (chartutil.Values, error)
+}
+
+// TranslatorFunc is a helper type for passing a function as a Translator.
+type TranslatorFunc func(context.Context, *unstructured.Unstructured) (chartutil.Values, error)
+
+func (t TranslatorFunc) Translate(ctx context.Context, u *unstructured.Unstructured) (chartutil.Values, error) {
+	return t(ctx, u)
 }

@@ -20,7 +20,7 @@ import (
 	"runtime"
 	"time"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"

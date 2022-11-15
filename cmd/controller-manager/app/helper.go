@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // WaitForAPIServer waits for the API Server's /healthz endpoint to report "ok" before timeout.

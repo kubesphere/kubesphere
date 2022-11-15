@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -34,6 +33,7 @@ import (
 	kscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/internal/httpserver"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics"
 )
@@ -142,7 +142,7 @@ func (s *Server) Register(path string, hook http.Handler) {
 	s.WebhookMux.Handle(path, metrics.InstrumentedHook(path, hook))
 
 	regLog := log.WithValues("path", path)
-	regLog.Info("registering webhook")
+	regLog.Info("Registering webhook")
 
 	// we've already been "started", inject dependencies here.
 	// Otherwise, InjectFunc will do this for us later.
@@ -210,7 +210,7 @@ func (s *Server) Start(ctx context.Context) error {
 	s.defaultingOnce.Do(s.setDefaults)
 
 	baseHookLog := log.WithName("webhooks")
-	baseHookLog.Info("starting webhook server")
+	baseHookLog.Info("Starting webhook server")
 
 	certPath := filepath.Join(s.CertDir, s.CertName)
 	keyPath := filepath.Join(s.CertDir, s.KeyName)
@@ -240,9 +240,9 @@ func (s *Server) Start(ctx context.Context) error {
 	// load CA to verify client certificate
 	if s.ClientCAName != "" {
 		certPool := x509.NewCertPool()
-		clientCABytes, err := ioutil.ReadFile(filepath.Join(s.CertDir, s.ClientCAName))
+		clientCABytes, err := os.ReadFile(filepath.Join(s.CertDir, s.ClientCAName))
 		if err != nil {
-			return fmt.Errorf("failed to read client CA cert: %v", err)
+			return fmt.Errorf("failed to read client CA cert: %w", err)
 		}
 
 		ok := certPool.AppendCertsFromPEM(clientCABytes)
@@ -259,11 +259,9 @@ func (s *Server) Start(ctx context.Context) error {
 		return err
 	}
 
-	log.Info("serving webhook server", "host", s.Host, "port", s.Port)
+	log.Info("Serving webhook server", "host", s.Host, "port", s.Port)
 
-	srv := &http.Server{
-		Handler: s.WebhookMux,
-	}
+	srv := httpserver.New(s.WebhookMux)
 
 	idleConnsClosed := make(chan struct{})
 	go func() {
@@ -306,11 +304,11 @@ func (s *Server) StartedChecker() healthz.Checker {
 		d := &net.Dialer{Timeout: 10 * time.Second}
 		conn, err := tls.DialWithDialer(d, "tcp", net.JoinHostPort(s.Host, strconv.Itoa(s.Port)), config)
 		if err != nil {
-			return fmt.Errorf("webhook server is not reachable: %v", err)
+			return fmt.Errorf("webhook server is not reachable: %w", err)
 		}
 
 		if err := conn.Close(); err != nil {
-			return fmt.Errorf("webhook server is not reachable: closing connection: %v", err)
+			return fmt.Errorf("webhook server is not reachable: closing connection: %w", err)
 		}
 
 		return nil

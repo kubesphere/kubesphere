@@ -19,7 +19,7 @@ package basic
 import (
 	"context"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 

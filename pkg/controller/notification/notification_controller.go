@@ -34,7 +34,7 @@ import (
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"kubesphere.io/api/cluster/v1alpha1"
 	"kubesphere.io/api/notification/v2beta2"
 	"kubesphere.io/api/types/v1beta1"

@@ -31,7 +31,7 @@ import (
 
 	"helm.sh/helm/v3/pkg/chartutil"
 	helmrelease "helm.sh/helm/v3/pkg/release"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	kpath "k8s.io/utils/path"
 
 	"kubesphere.io/kubesphere/pkg/server/errors"
@@ -363,7 +363,7 @@ func (c *helmWrapper) helmInstall(chart *chart.Chart, values map[string]interfac
 }
 
 func (c *helmWrapper) writeAction(chartName, chartData, values string, upgrade bool) error {
-	if klog.V(2) {
+	if klog.V(2).Enabled() {
 		start := time.Now()
 		defer func() {
 			klog.V(2).Infof("run command end, namespace: %s, name: %s, upgrade: %t, elapsed: %v", c.Namespace, c.ReleaseName, upgrade, time.Since(start))

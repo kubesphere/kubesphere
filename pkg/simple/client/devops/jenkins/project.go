@@ -18,7 +18,7 @@ package jenkins
 
 import (
 	"github.com/emicklei/go-restful"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )

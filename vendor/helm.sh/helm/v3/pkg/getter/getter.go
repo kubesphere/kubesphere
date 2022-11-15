@@ -18,12 +18,13 @@ package getter
 
 import (
 	"bytes"
+	"net/http"
 	"time"
 
 	"github.com/pkg/errors"
 
-	"helm.sh/helm/v3/internal/experimental/registry"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/registry"
 )
 
 // options are generic parameters to be provided to the getter during instantiation.
@@ -43,6 +44,7 @@ type options struct {
 	version               string
 	registryClient        *registry.Client
 	timeout               time.Duration
+	transport             *http.Transport
 }
 
 // Option allows specifying various settings configurable by the user for overriding the defaults
@@ -119,6 +121,13 @@ func WithUntar() Option {
 	}
 }
 
+// WithTransport sets the http.Transport to allow overwriting the HTTPGetter default.
+func WithTransport(transport *http.Transport) Option {
+	return func(opts *options) {
+		opts.transport = transport
+	}
+}
+
 // Getter is an interface to support GET to the specified URL.
 type Getter interface {
 	// Get file content by url string
@@ -169,7 +178,7 @@ var httpProvider = Provider{
 }
 
 var ociProvider = Provider{
-	Schemes: []string{"oci"},
+	Schemes: []string{registry.OCIScheme},
 	New:     NewOCIGetter,
 }
 

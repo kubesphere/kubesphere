@@ -44,7 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
@@ -89,7 +89,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.Client == nil {
 		r.Client = mgr.GetClient()
 	}
-	if r.Logger == nil {
+	if r.Logger.GetSink() == nil {
 		r.Logger = ctrl.Log.WithName("controllers").WithName(controllerName)
 	}
 	if r.Scheme == nil {

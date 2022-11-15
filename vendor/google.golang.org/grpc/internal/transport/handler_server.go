@@ -39,6 +39,7 @@ import (
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/internal/grpcutil"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/stats"
@@ -48,7 +49,7 @@ import (
 // NewServerHandlerTransport returns a ServerTransport handling gRPC
 // from inside an http.Handler. It requires that the http Server
 // supports HTTP/2.
-func NewServerHandlerTransport(w http.ResponseWriter, r *http.Request, stats stats.Handler) (ServerTransport, error) {
+func NewServerHandlerTransport(w http.ResponseWriter, r *http.Request, stats []stats.Handler) (ServerTransport, error) {
 	if r.ProtoMajor != 2 {
 		return nil, errors.New("gRPC requires HTTP/2")
 	}
@@ -57,7 +58,7 @@ func NewServerHandlerTransport(w http.ResponseWriter, r *http.Request, stats sta
 	}
 	contentType := r.Header.Get("Content-Type")
 	// TODO: do we assume contentType is lowercase? we did before
-	contentSubtype, validContentType := contentSubtype(contentType)
+	contentSubtype, validContentType := grpcutil.ContentSubtype(contentType)
 	if !validContentType {
 		return nil, errors.New("invalid gRPC request content-type")
 	}
@@ -112,11 +113,10 @@ func NewServerHandlerTransport(w http.ResponseWriter, r *http.Request, stats sta
 // at this point to be speaking over HTTP/2, so it's able to speak valid
 // gRPC.
 type serverHandlerTransport struct {
-	rw               http.ResponseWriter
-	req              *http.Request
-	timeoutSet       bool
-	timeout          time.Duration
-	didCommonHeaders bool
+	rw         http.ResponseWriter
+	req        *http.Request
+	timeoutSet bool
+	timeout    time.Duration
 
 	headerMD metadata.MD
 
@@ -138,12 +138,11 @@ type serverHandlerTransport struct {
 	// TODO make sure this is consistent across handler_server and http2_server
 	contentSubtype string
 
-	stats stats.Handler
+	stats []stats.Handler
 }
 
-func (ht *serverHandlerTransport) Close() error {
+func (ht *serverHandlerTransport) Close() {
 	ht.closeOnce.Do(ht.closeCloseChanOnce)
-	return nil
 }
 
 func (ht *serverHandlerTransport) closeCloseChanOnce() { close(ht.closedCh) }
@@ -186,8 +185,11 @@ func (ht *serverHandlerTransport) WriteStatus(s *Stream, st *status.Status) erro
 	ht.writeStatusMu.Lock()
 	defer ht.writeStatusMu.Unlock()
 
+	headersWritten := s.updateHeaderSent()
 	err := ht.do(func() {
-		ht.writeCommonHeaders(s)
+		if !headersWritten {
+			ht.writePendingHeaders(s)
+		}
 
 		// And flush, in case no header or body has been sent yet.
 		// This forces a separation of headers and trailers if this is the
@@ -226,8 +228,10 @@ func (ht *serverHandlerTransport) WriteStatus(s *Stream, st *status.Status) erro
 	})
 
 	if err == nil { // transport has not been closed
-		if ht.stats != nil {
-			ht.stats.HandleRPC(s.Context(), &stats.OutTrailer{
+		// Note: The trailer fields are compressed with hpack after this call returns.
+		// No WireLength field is set here.
+		for _, sh := range ht.stats {
+			sh.HandleRPC(s.Context(), &stats.OutTrailer{
 				Trailer: s.trailer.Copy(),
 			})
 		}
@@ -236,14 +240,16 @@ func (ht *serverHandlerTransport) WriteStatus(s *Stream, st *status.Status) erro
 	return err
 }
 
+// writePendingHeaders sets common and custom headers on the first
+// write call (Write, WriteHeader, or WriteStatus)
+func (ht *serverHandlerTransport) writePendingHeaders(s *Stream) {
+	ht.writeCommonHeaders(s)
+	ht.writeCustomHeaders(s)
+}
+
 // writeCommonHeaders sets common headers on the first write
 // call (Write, WriteHeader, or WriteStatus).
 func (ht *serverHandlerTransport) writeCommonHeaders(s *Stream) {
-	if ht.didCommonHeaders {
-		return
-	}
-	ht.didCommonHeaders = true
-
 	h := ht.rw.Header()
 	h["Date"] = nil // suppress Date to make tests happy; TODO: restore
 	h.Set("Content-Type", ht.contentType)
@@ -262,9 +268,30 @@ func (ht *serverHandlerTransport) writeCommonHeaders(s *Stream) {
 	}
 }
 
+// writeCustomHeaders sets custom headers set on the stream via SetHeader
+// on the first write call (Write, WriteHeader, or WriteStatus).
+func (ht *serverHandlerTransport) writeCustomHeaders(s *Stream) {
+	h := ht.rw.Header()
+
+	s.hdrMu.Lock()
+	for k, vv := range s.header {
+		if isReservedHeader(k) {
+			continue
+		}
+		for _, v := range vv {
+			h.Add(k, encodeMetadataHeader(k, v))
+		}
+	}
+
+	s.hdrMu.Unlock()
+}
+
 func (ht *serverHandlerTransport) Write(s *Stream, hdr []byte, data []byte, opts *Options) error {
+	headersWritten := s.updateHeaderSent()
 	return ht.do(func() {
-		ht.writeCommonHeaders(s)
+		if !headersWritten {
+			ht.writePendingHeaders(s)
+		}
 		ht.rw.Write(hdr)
 		ht.rw.Write(data)
 		ht.rw.(http.Flusher).Flush()
@@ -272,27 +299,27 @@ func (ht *serverHandlerTransport) Write(s *Stream, hdr []byte, data []byte, opts
 }
 
 func (ht *serverHandlerTransport) WriteHeader(s *Stream, md metadata.MD) error {
+	if err := s.SetHeader(md); err != nil {
+		return err
+	}
+
+	headersWritten := s.updateHeaderSent()
 	err := ht.do(func() {
-		ht.writeCommonHeaders(s)
-		h := ht.rw.Header()
-		for k, vv := range md {
-			// Clients don't tolerate reading restricted headers after some non restricted ones were sent.
-			if isReservedHeader(k) {
-				continue
-			}
-			for _, v := range vv {
-				v = encodeMetadataHeader(k, v)
-				h.Add(k, v)
-			}
+		if !headersWritten {
+			ht.writePendingHeaders(s)
 		}
+
 		ht.rw.WriteHeader(200)
 		ht.rw.(http.Flusher).Flush()
 	})
 
 	if err == nil {
-		if ht.stats != nil {
-			ht.stats.HandleRPC(s.Context(), &stats.OutHeader{
-				Header: md.Copy(),
+		for _, sh := range ht.stats {
+			// Note: The header fields are compressed with hpack after this call returns.
+			// No WireLength field is set here.
+			sh.HandleRPC(s.Context(), &stats.OutHeader{
+				Header:      md.Copy(),
+				Compression: s.sendCompress,
 			})
 		}
 	}
@@ -338,18 +365,18 @@ func (ht *serverHandlerTransport) HandleStreams(startStream func(*Stream), trace
 		Addr: ht.RemoteAddr(),
 	}
 	if req.TLS != nil {
-		pr.AuthInfo = credentials.TLSInfo{State: *req.TLS, CommonAuthInfo: credentials.CommonAuthInfo{credentials.PrivacyAndIntegrity}}
+		pr.AuthInfo = credentials.TLSInfo{State: *req.TLS, CommonAuthInfo: credentials.CommonAuthInfo{SecurityLevel: credentials.PrivacyAndIntegrity}}
 	}
 	ctx = metadata.NewIncomingContext(ctx, ht.headerMD)
 	s.ctx = peer.NewContext(ctx, pr)
-	if ht.stats != nil {
-		s.ctx = ht.stats.TagRPC(s.ctx, &stats.RPCTagInfo{FullMethodName: s.method})
+	for _, sh := range ht.stats {
+		s.ctx = sh.TagRPC(s.ctx, &stats.RPCTagInfo{FullMethodName: s.method})
 		inHeader := &stats.InHeader{
 			FullMethod:  s.method,
 			RemoteAddr:  ht.RemoteAddr(),
 			Compression: s.recvCompress,
 		}
-		ht.stats.HandleRPC(s.ctx, inHeader)
+		sh.HandleRPC(s.ctx, inHeader)
 	}
 	s.trReader = &transportReader{
 		reader:        &recvBufferReader{ctx: s.ctx, ctxDone: s.ctx.Done(), recv: s.buf, freeBuffer: func(*bytes.Buffer) {}},

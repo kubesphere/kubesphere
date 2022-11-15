@@ -87,7 +87,7 @@ For example if responding to a Pod Delete Event, the Request won't contain that 
 instead the reconcile function observes this when reading the cluster state and seeing the Pod as missing.
 */
 type Reconciler interface {
-	// Reconciler performs a full reconciliation for the object referred to by the Request.
+	// Reconcile performs a full reconciliation for the object referred to by the Request.
 	// The Controller will requeue the Request to be processed again if an error is non-nil or
 	// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 	Reconcile(context.Context, Request) (Result, error)

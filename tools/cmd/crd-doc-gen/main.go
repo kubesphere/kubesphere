@@ -29,10 +29,11 @@ import (
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"
 
+	kubespec "k8s.io/kube-openapi/pkg/validation/spec"
+
 	"kubesphere.io/kubesphere/pkg/version"
 	"kubesphere.io/kubesphere/tools/lib"
 
-	"github.com/go-openapi/spec"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -145,21 +146,17 @@ func main() {
 	spec, err := lib.RenderOpenAPISpec(lib.Config{
 		Scheme: Scheme,
 		Codecs: Codecs,
-		Info: spec.InfoProps{
+		Info: kubespec.InfoProps{
 			Title:   "KubeSphere",
 			Version: version.Get().GitVersion,
-			Contact: &spec.ContactInfo{
-				ContactInfoProps: spec.ContactInfoProps{
-					Name:  "KubeSphere",
-					URL:   "https://kubesphere.io/",
-					Email: "kubesphere@yunify.com",
-				},
+			Contact: &kubespec.ContactInfo{
+				Name:  "KubeSphere",
+				URL:   "https://kubesphere.io/",
+				Email: "kubesphere@yunify.com",
 			},
-			License: &spec.License{
-				LicenseProps: spec.LicenseProps{
-					Name: "Apache 2.0",
-					URL:  "https://www.apache.org/licenses/LICENSE-2.0.html",
-				},
+			License: &kubespec.License{
+				Name: "Apache 2.0",
+				URL:  "https://www.apache.org/licenses/LICENSE-2.0.html",
 			},
 		},
 		OpenAPIDefinitions: []common.GetOpenAPIDefinitions{

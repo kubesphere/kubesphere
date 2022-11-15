@@ -23,7 +23,7 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"

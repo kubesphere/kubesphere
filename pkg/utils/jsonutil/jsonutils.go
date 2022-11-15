@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type JsonRawMessage []byte

@@ -165,7 +165,7 @@ func (r *RuleGroupReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 }
 
 func (r *RuleGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if r.Log == nil {
+	if r.Log.GetSink() == nil {
 		r.Log = mgr.GetLogger()
 	}
 	if r.Client == nil {

@@ -47,7 +47,7 @@ type KubeAPIWarningLogger struct {
 }
 
 // HandleWarningHeader handles logging for responses from API server that are
-// warnings with code being 299 and uses a logr.Logger for it's logging purposes.
+// warnings with code being 299 and uses a logr.Logger for its logging purposes.
 func (l *KubeAPIWarningLogger) HandleWarningHeader(code int, agent string, message string) {
 	if code != 299 || len(message) == 0 {
 		return

@@ -69,9 +69,7 @@ func (w *watchingClient) listOpts(opts ...ListOption) ListOptions {
 
 func (w *watchingClient) metadataWatch(ctx context.Context, obj *metav1.PartialObjectMetadataList, opts ...ListOption) (watch.Interface, error) {
 	gvk := obj.GroupVersionKind()
-	if strings.HasSuffix(gvk.Kind, "List") {
-		gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
-	}
+	gvk.Kind = strings.TrimSuffix(gvk.Kind, "List")
 
 	listOpts := w.listOpts(opts...)
 
@@ -85,9 +83,7 @@ func (w *watchingClient) metadataWatch(ctx context.Context, obj *metav1.PartialO
 
 func (w *watchingClient) unstructuredWatch(ctx context.Context, obj *unstructured.UnstructuredList, opts ...ListOption) (watch.Interface, error) {
 	gvk := obj.GroupVersionKind()
-	if strings.HasSuffix(gvk.Kind, "List") {
-		gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
-	}
+	gvk.Kind = strings.TrimSuffix(gvk.Kind, "List")
 
 	r, err := w.client.unstructuredClient.cache.getResource(obj)
 	if err != nil {

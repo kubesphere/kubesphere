@@ -21,8 +21,11 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -119,17 +122,39 @@ func (ks *Kind) Start(ctx context.Context, handler handler.EventHandler, queue w
 	ctx, ks.startCancel = context.WithCancel(ctx)
 	ks.started = make(chan error)
 	go func() {
-		// Lookup the Informer from the Cache and add an EventHandler which populates the Queue
-		i, err := ks.cache.GetInformer(ctx, ks.Type)
-		if err != nil {
-			kindMatchErr := &meta.NoKindMatchError{}
-			if errors.As(err, &kindMatchErr) {
-				log.Error(err, "if kind is a CRD, it should be installed before calling Start",
-					"kind", kindMatchErr.GroupKind)
+		var (
+			i       cache.Informer
+			lastErr error
+		)
+
+		// Tries to get an informer until it returns true,
+		// an error or the specified context is cancelled or expired.
+		if err := wait.PollImmediateUntilWithContext(ctx, 10*time.Second, func(ctx context.Context) (bool, error) {
+			// Lookup the Informer from the Cache and add an EventHandler which populates the Queue
+			i, lastErr = ks.cache.GetInformer(ctx, ks.Type)
+			if lastErr != nil {
+				kindMatchErr := &meta.NoKindMatchError{}
+				switch {
+				case errors.As(lastErr, &kindMatchErr):
+					log.Error(lastErr, "if kind is a CRD, it should be installed before calling Start",
+						"kind", kindMatchErr.GroupKind)
+				case runtime.IsNotRegisteredError(lastErr):
+					log.Error(lastErr, "kind must be registered to the Scheme")
+				default:
+					log.Error(lastErr, "failed to get informer from cache")
+				}
+				return false, nil // Retry.
+			}
+			return true, nil
+		}); err != nil {
+			if lastErr != nil {
+				ks.started <- fmt.Errorf("failed to get informer from cache: %w", lastErr)
+				return
 			}
 			ks.started <- err
 			return
 		}
+
 		i.AddEventHandler(internal.EventHandler{Queue: queue, EventHandler: handler, Predicates: prct})
 		if !ks.cache.WaitForCacheSync(ctx) {
 			// Would be great to return something more informative here
@@ -142,10 +167,10 @@ func (ks *Kind) Start(ctx context.Context, handler handler.EventHandler, queue w
 }
 
 func (ks *Kind) String() string {
-	if ks.Type != nil && ks.Type.GetObjectKind() != nil {
-		return fmt.Sprintf("kind source: %v", ks.Type.GetObjectKind().GroupVersionKind().String())
+	if ks.Type != nil {
+		return fmt.Sprintf("kind source: %T", ks.Type)
 	}
-	return "kind source: unknown GVK"
+	return "kind source: unknown type"
 }
 
 // WaitForSync implements SyncingSource to allow controllers to wait with starting
@@ -156,6 +181,9 @@ func (ks *Kind) WaitForSync(ctx context.Context) error {
 		return err
 	case <-ctx.Done():
 		ks.startCancel()
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return nil
+		}
 		return errors.New("timed out waiting for cache to be synced")
 	}
 }

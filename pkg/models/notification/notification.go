@@ -33,7 +33,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"kubesphere.io/api/notification/v2beta1"
 	"kubesphere.io/api/notification/v2beta2"
 

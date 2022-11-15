@@ -60,7 +60,7 @@ func (acg *actionConfigGetter) ActionConfigFor(obj client.Object) (*action.Confi
 
 	// Setup the debug log function that Helm will use
 	debugLog := func(format string, v ...interface{}) {
-		if acg.log != nil {
+		if acg.log.GetSink() != nil {
 			acg.log.V(1).Info(fmt.Sprintf(format, v...))
 		}
 	}

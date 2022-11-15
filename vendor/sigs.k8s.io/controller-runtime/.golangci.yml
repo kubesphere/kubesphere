@@ -7,6 +7,7 @@ linters:
   - depguard
   - dogsled
   - errcheck
+  - errorlint
   - exportloopref
   - goconst
   - gocritic
@@ -34,6 +35,7 @@ linters:
   - typecheck
   - unconvert
   - unparam
+  - unused
   - varcheck
   - whitespace
 
@@ -59,9 +61,13 @@ linters-settings:
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
   staticcheck:
-    go: "1.16"
+    go: "1.18"
   stylecheck:
-    go: "1.16"
+    go: "1.18"
+  depguard:
+    include-go-root: true
+    packages:
+      - io/ioutil # https://go.dev/doc/go1.16#ioutil
 
 issues:
   max-same-issues: 0
@@ -121,6 +127,11 @@ issues:
   - linters:
     - gocritic
     text: "singleCaseSwitch: should rewrite switch statement to if statement"
+  # It considers all file access to a filename that comes from a variable problematic,
+  # which is naiv at best.
+  - linters:
+    - gosec
+    text: "G304: Potential file inclusion via variable"
 
 run:
   timeout: 10m

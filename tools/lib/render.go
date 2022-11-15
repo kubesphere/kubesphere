@@ -23,26 +23,26 @@ import (
 	"net"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apiserver/pkg/registry/rest"
-
-	"github.com/go-openapi/spec"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	apiopenapi "k8s.io/apiserver/pkg/endpoints/openapi"
+	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 
 	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
+	kubespec "k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 type Config struct {
 	Scheme *runtime.Scheme
 	Codecs serializer.CodecFactory
 
-	Info               spec.InfoProps
+	Info               kubespec.InfoProps
 	OpenAPIDefinitions []common.GetOpenAPIDefinitions
 	Resources          []schema.GroupVersionResource
 	Mapper             *meta.DefaultRESTMapper
@@ -165,7 +165,7 @@ func RenderOpenAPISpec(cfg Config) (string, error) {
 		}
 	}
 
-	spec, err := builder.BuildOpenAPISpec(genericServer.Handler.GoRestfulContainer.RegisteredWebServices(), serverConfig.OpenAPIConfig)
+	spec, err := builder.BuildOpenAPISpecFromRoutes(restfuladapter.AdaptWebServices(genericServer.Handler.GoRestfulContainer.RegisteredWebServices()), serverConfig.OpenAPIConfig)
 	if err != nil {
 		log.Fatal(err)
 		return "", err

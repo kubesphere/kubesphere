@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"

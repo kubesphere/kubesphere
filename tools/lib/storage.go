@@ -42,8 +42,15 @@ type StandardStorage struct {
 	cfg ResourceInfo
 }
 
+// Destroy cleans up its resources on shutdown.
+func (r *StandardStorage) Destroy() {
+}
+
 type StatusStandardStorage struct {
 	cfg StatusResourceInfo
+}
+
+func (r *StatusStandardStorage) Destroy() {
 }
 
 var _ rest.GroupVersionKindProvider = &StandardStorage{}

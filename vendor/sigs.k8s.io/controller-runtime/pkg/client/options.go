@@ -318,7 +318,7 @@ func (p PropagationPolicy) ApplyToDeleteAllOf(opts *DeleteAllOfOptions) {
 // pre-parsed selectors (since generally, selectors will be executed
 // against the cache).
 type ListOptions struct {
-	// LabelSelector filters results by label.  Use SetLabelSelector to
+	// LabelSelector filters results by label. Use labels.Parse() to
 	// set from raw string form.
 	LabelSelector labels.Selector
 	// FieldSelector filters results by a particular field.  In order

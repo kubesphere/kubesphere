@@ -44,7 +44,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
-	"github.com/operator-framework/helm-operator-plugins/pkg/internal/sdk/controllerutil"
+	"github.com/operator-framework/helm-operator-plugins/internal/sdk/controllerutil"
 	"github.com/operator-framework/helm-operator-plugins/pkg/manifestutil"
 )
 
@@ -140,7 +140,7 @@ func (c *actionClient) Install(name, namespace string, chrt *chart.Chart, vals m
 			// Only return an error about a rollback failure if the failure was
 			// caused by something other than the release not being found.
 			_, uninstallErr := c.Uninstall(name)
-			if !errors.Is(uninstallErr, driver.ErrReleaseNotFound) {
+			if uninstallErr != nil && !errors.Is(uninstallErr, driver.ErrReleaseNotFound) {
 				return nil, fmt.Errorf("uninstall failed: %v: original install error: %w", uninstallErr, err)
 			}
 		}
@@ -163,6 +163,7 @@ func (c *actionClient) Upgrade(name, namespace string, chrt *chart.Chart, vals m
 		if rel != nil {
 			rollback := action.NewRollback(c.conf)
 			rollback.Force = true
+			rollback.MaxHistory = upgrade.MaxHistory
 
 			// As of Helm 2.13, if Upgrade returns a non-nil release, that
 			// means the release was also recorded in the release store.
@@ -263,9 +264,17 @@ func createPatch(existing runtime.Object, expected *resource.Info) ([]byte, apit
 	if err != nil {
 		return nil, apitypes.StrategicMergePatchType, err
 	}
-
 	patch, err := strategicpatch.CreateThreeWayMergePatch(expectedJSON, expectedJSON, existingJSON, patchMeta, true)
-	return patch, apitypes.StrategicMergePatchType, err
+	if err != nil {
+		return nil, apitypes.StrategicMergePatchType, err
+	}
+
+	// An empty patch could be in the form of "{}" which represents an empty map out of the 3-way merge;
+	// filter them out here too to avoid sending the apiserver empty patch requests.
+	if len(patch) == 0 || bytes.Equal(patch, []byte("{}")) {
+		return nil, apitypes.StrategicMergePatchType, nil
+	}
+	return patch, apitypes.StrategicMergePatchType, nil
 }
 
 func createJSONMergePatch(existingJSON, expectedJSON []byte) ([]byte, error) {

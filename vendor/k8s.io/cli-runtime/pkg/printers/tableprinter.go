@@ -208,7 +208,23 @@ func printTable(table *metav1.Table, output io.Writer, options PrintOptions) err
 				fmt.Fprint(output, "\t")
 			}
 			if cell != nil {
-				fmt.Fprint(output, cell)
+				switch val := cell.(type) {
+				case string:
+					print := val
+					truncated := false
+					// truncate at newlines
+					newline := strings.Index(print, "\n")
+					if newline >= 0 {
+						truncated = true
+						print = print[:newline]
+					}
+					fmt.Fprint(output, print)
+					if truncated {
+						fmt.Fprint(output, "...")
+					}
+				default:
+					fmt.Fprint(output, val)
+				}
 			}
 		}
 		fmt.Fprintln(output)
@@ -433,7 +449,7 @@ func formatEventType(eventType string) string {
 	if formatted, ok := formattedEventType[eventType]; ok {
 		return formatted
 	}
-	return string(eventType)
+	return eventType
 }
 
 // printRows writes the provided rows to output.
@@ -483,7 +499,7 @@ func formatLabelHeaders(columnLabels []string) []string {
 	formHead := make([]string, len(columnLabels))
 	for i, l := range columnLabels {
 		p := strings.Split(l, "/")
-		formHead[i] = strings.ToUpper((p[len(p)-1]))
+		formHead[i] = strings.ToUpper(p[len(p)-1])
 	}
 	return formHead
 }

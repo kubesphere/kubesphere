@@ -76,3 +76,22 @@ func copyLabelsAndAnnotations(
 	}
 	return nil
 }
+
+func setImmutable(
+	rn *yaml.RNode, opts *types.GeneratorOptions) error {
+	if opts == nil {
+		return nil
+	}
+	if opts.Immutable {
+		n := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Value: "true",
+			Tag:   yaml.NodeTagBool,
+		}
+		if _, err := rn.Pipe(yaml.FieldSetter{Name: "immutable", Value: yaml.NewRNode(n)}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

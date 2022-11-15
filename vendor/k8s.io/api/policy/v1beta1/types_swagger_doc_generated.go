@@ -96,9 +96,10 @@ func (IDRange) SwaggerDoc() map[string]string {
 }
 
 var map_PodDisruptionBudget = map[string]string{
-	"":       "PodDisruptionBudget is an object to define the max disruption that can be caused to a collection of pods",
-	"spec":   "Specification of the desired behavior of the PodDisruptionBudget.",
-	"status": "Most recently observed status of the PodDisruptionBudget.",
+	"":         "PodDisruptionBudget is an object to define the max disruption that can be caused to a collection of pods",
+	"metadata": "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "Specification of the desired behavior of the PodDisruptionBudget.",
+	"status":   "Most recently observed status of the PodDisruptionBudget.",
 }
 
 func (PodDisruptionBudget) SwaggerDoc() map[string]string {
@@ -106,7 +107,9 @@ func (PodDisruptionBudget) SwaggerDoc() map[string]string {
 }
 
 var map_PodDisruptionBudgetList = map[string]string{
-	"": "PodDisruptionBudgetList is a collection of PodDisruptionBudgets.",
+	"":         "PodDisruptionBudgetList is a collection of PodDisruptionBudgets.",
+	"metadata": "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "items list individual PodDisruptionBudget objects",
 }
 
 func (PodDisruptionBudgetList) SwaggerDoc() map[string]string {
@@ -180,7 +183,7 @@ var map_PodSecurityPolicySpec = map[string]string{
 	"allowPrivilegeEscalation":        "allowPrivilegeEscalation determines if a pod can request to allow privilege escalation. If unspecified, defaults to true.",
 	"allowedHostPaths":                "allowedHostPaths is an allowlist of host paths. Empty indicates that all host paths may be used.",
 	"allowedFlexVolumes":              "allowedFlexVolumes is an allowlist of Flexvolumes.  Empty or nil indicates that all Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes is allowed in the \"volumes\" field.",
-	"allowedCSIDrivers":               "AllowedCSIDrivers is an allowlist of inline CSI drivers that must be explicitly set to be embedded within a pod spec. An empty value indicates that any CSI driver can be used for inline ephemeral volumes. This is a beta field, and is only honored if the API server enables the CSIInlineVolume feature gate.",
+	"allowedCSIDrivers":               "AllowedCSIDrivers is an allowlist of inline CSI drivers that must be explicitly set to be embedded within a pod spec. An empty value indicates that any CSI driver can be used for inline ephemeral volumes.",
 	"allowedUnsafeSysctls":            "allowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none. Each entry is either a plain sysctl name or ends in \"*\" in which case it is considered as a prefix of allowed sysctls. Single * means all unsafe sysctls are allowed. Kubelet has to allowlist all allowed unsafe sysctls explicitly to avoid rejection.\n\nExamples: e.g. \"foo/*\" allows \"foo/bar\", \"foo/baz\", etc. e.g. \"foo.*\" allows \"foo.bar\", \"foo.baz\", etc.",
 	"forbiddenSysctls":                "forbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none. Each entry is either a plain sysctl name or ends in \"*\" in which case it is considered as a prefix of forbidden sysctls. Single * means all sysctls are forbidden.\n\nExamples: e.g. \"foo/*\" forbids \"foo/bar\", \"foo/baz\", etc. e.g. \"foo.*\" forbids \"foo.bar\", \"foo.baz\", etc.",
 	"allowedProcMountTypes":           "AllowedProcMountTypes is an allowlist of allowed ProcMountTypes. Empty or nil indicates that only the DefaultProcMountType may be used. This requires the ProcMountType feature flag to be enabled.",

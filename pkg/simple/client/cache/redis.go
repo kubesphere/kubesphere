@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/mitchellh/mapstructure"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const typeRedis = "redis"

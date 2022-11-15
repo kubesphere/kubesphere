@@ -16,7 +16,7 @@ package v2alpha1
 import (
 	restful "github.com/emicklei/go-restful"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"

@@ -30,13 +30,13 @@ on your situation.
   take this approach: the StatefulSet controller appends a specific number
   to each pod that it creates, while the Deployment controller hashes the
   pod template spec and appends that.
-  
+
 - In the few cases when you cannot take advantage of deterministic names
   (e.g. when using generateName), it may be useful in to track which
   actions you took, and assume that they need to be repeated if they don't
   occur after a given time (e.g. using a requeue result).  This is what
   the ReplicaSet controller does.
-  
+
 In general, write your controller with the assumption that information
 will eventually be correct, but may be slightly out of date. Make sure
 that your reconcile function enforces the entire state of the world each
@@ -48,17 +48,17 @@ generally cover most circumstances.
 ### Q: Where's the fake client?  How do I use it?
 
 **A**: The fake client
-[exists](https://godoc.org/sigs.k8s.io/controller-runtime/pkg/client/fake),
+[exists](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client/fake),
 but we generally recommend using
-[envtest.Environment](https://godoc.org/sigs.k8s.io/controller-runtime/pkg/envtest#Environment)
+[envtest.Environment](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#Environment)
 to test against a real API server.  In our experience, tests using fake
 clients gradually re-implement poorly-written impressions of a real API
 server, which leads to hard-to-maintain, complex test code.
 
-### Q: How should I write tests?  Any suggestions for getting started? 
+### Q: How should I write tests?  Any suggestions for getting started?
 
 - Use the aforementioned
-  [envtest.Environment](https://godoc.org/sigs.k8s.io/controller-runtime/pkg/envtest#Environment)
+  [envtest.Environment](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#Environment)
   to spin up a real API server instead of trying to mock one out.
 
 - Structure your tests to check that the state of the world is as you
@@ -77,5 +77,5 @@ mapping between Go types and group-version-kinds in Kubernetes. In
 general, your application should have its own Scheme containing the types
 from the API groups that it needs (be they Kubernetes types or your own).
 See the [scheme builder
-docs](https://godoc.org/sigs.k8s.io/controller-runtime/pkg/scheme) for
+docs](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/scheme) for
 more information.

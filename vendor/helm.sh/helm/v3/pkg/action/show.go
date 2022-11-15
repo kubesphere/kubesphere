@@ -17,6 +17,7 @@ limitations under the License.
 package action
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -41,6 +42,8 @@ const (
 	ShowValues ShowOutputFormat = "values"
 	// ShowReadme is the format which only shows the chart's README
 	ShowReadme ShowOutputFormat = "readme"
+	// ShowCRDs is the format which only shows the chart's CRDs
+	ShowCRDs ShowOutputFormat = "crds"
 )
 
 var readmeFileNames = []string{"readme.md", "readme.txt", "readme"}
@@ -61,10 +64,22 @@ type Show struct {
 }
 
 // NewShow creates a new Show object with the given configuration.
+// Deprecated: Use NewShowWithConfig
+// TODO Helm 4: Fold NewShowWithConfig back into NewShow
 func NewShow(output ShowOutputFormat) *Show {
 	return &Show{
 		OutputFormat: output,
 	}
+}
+
+// NewShowWithConfig creates a new Show object with the given configuration.
+func NewShowWithConfig(output ShowOutputFormat, cfg *Configuration) *Show {
+	sh := &Show{
+		OutputFormat: output,
+	}
+	sh.ChartPathOptions.registryClient = cfg.RegistryClient
+
+	return sh
 }
 
 // Run executes 'helm show' against the given release.
@@ -106,14 +121,25 @@ func (s *Show) Run(chartpath string) (string, error) {
 	}
 
 	if s.OutputFormat == ShowReadme || s.OutputFormat == ShowAll {
-		if s.OutputFormat == ShowAll {
-			fmt.Fprintln(&out, "---")
-		}
 		readme := findReadme(s.chart.Files)
-		if readme == nil {
-			return out.String(), nil
+		if readme != nil {
+			if s.OutputFormat == ShowAll {
+				fmt.Fprintln(&out, "---")
+			}
+			fmt.Fprintf(&out, "%s\n", readme.Data)
 		}
-		fmt.Fprintf(&out, "%s\n", readme.Data)
+	}
+
+	if s.OutputFormat == ShowCRDs || s.OutputFormat == ShowAll {
+		crds := s.chart.CRDObjects()
+		if len(crds) > 0 {
+			if s.OutputFormat == ShowAll && !bytes.HasPrefix(crds[0].File.Data, []byte("---")) {
+				fmt.Fprintln(&out, "---")
+			}
+			for _, crd := range crds {
+				fmt.Fprintf(&out, "%s\n", string(crd.File.Data))
+			}
+		}
 	}
 	return out.String(), nil
 }

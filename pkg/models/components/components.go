@@ -22,7 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/api/resource/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -71,7 +71,6 @@ func (c *componentsGetter) GetComponentStatus(name string) (v1alpha2.ComponentSt
 	component := v1alpha2.ComponentStatus{
 		Name:            service.Name,
 		Namespace:       service.Namespace,
-		SelfLink:        service.SelfLink,
 		Label:           service.Spec.Selector,
 		StartedAt:       service.CreationTimestamp.Time,
 		HealthyBackends: 0,
@@ -156,7 +155,6 @@ func (c *componentsGetter) GetAllComponentsStatus() ([]v1alpha2.ComponentStatus,
 			component := v1alpha2.ComponentStatus{
 				Name:            service.Name,
 				Namespace:       service.Namespace,
-				SelfLink:        service.SelfLink,
 				Label:           service.Spec.Selector,
 				StartedAt:       service.CreationTimestamp.Time,
 				HealthyBackends: 0,
