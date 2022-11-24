@@ -421,7 +421,7 @@ func (o *ruleGroupOperator) listClusterRuleGroups(ctx context.Context, selector 
 		}
 		statusg, ok := statusRuleGroupMap[g.Name]
 		specRules := g.Spec.Rules
-		if ok && len(statusg.Rules) == len(specRules) {
+		if ok && len(statusg.Rules) > 0 {
 			var ruleIds = make([]string, len(specRules))
 			var ruleDisableFlags = make([]bool, len(specRules))
 			for j := range specRules {
@@ -542,7 +542,7 @@ func (o *ruleGroupOperator) GetClusterRuleGroup(ctx context.Context, name string
 	var setStatus bool
 	specRules := resourceRuleGroup.Spec.Rules
 	for _, g := range statusRuleGroups {
-		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(specRules) {
+		if g.Name == resourceRuleGroup.Name && len(g.Rules) > 0 {
 			var ruleIds = make([]string, len(specRules))
 			var ruleDisableFlags = make([]bool, len(specRules))
 			for j := range specRules {
@@ -616,7 +616,7 @@ func (o *ruleGroupOperator) listGlobalRuleGroups(ctx context.Context, selector l
 		}
 		statusg, ok := statusRuleGroupMap[g.Name]
 		specRules := g.Spec.Rules
-		if ok && len(statusg.Rules) == len(specRules) {
+		if ok && len(statusg.Rules) > 0 {
 			var ruleIds = make([]string, len(specRules))
 			var ruleDisableFlags = make([]bool, len(specRules))
 			for j := range specRules {
@@ -791,7 +791,7 @@ func (o *ruleGroupOperator) GetGlobalRuleGroup(ctx context.Context, name string)
 	var setStatus bool
 	specRules := resourceRuleGroup.Spec.Rules
 	for _, g := range statusRuleGroups {
-		if g.Name == resourceRuleGroup.Name && len(g.Rules) == len(specRules) {
+		if g.Name == resourceRuleGroup.Name && len(g.Rules) > 0 {
 			var ruleIds = make([]string, len(specRules))
 			var ruleDisableFlags = make([]bool, len(specRules))
 			for j := range specRules {
