@@ -52,8 +52,6 @@ import (
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 
-	"kubesphere.io/kubesphere/pkg/controller/storage/snapshotclass"
-
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
@@ -100,7 +98,6 @@ var allControllers = []string{
 	"destinationrule",
 	"job",
 	"storagecapability",
-	"volumesnapshot",
 	"pvcautoresizer",
 	"workloadrestart",
 	"loginrecord",
@@ -341,16 +338,6 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 			kubernetesInformer.Storage().V1().CSIDrivers(),
 		)
 		addController(mgr, "storagecapability", storageCapabilityController)
-	}
-
-	// "volumesnapshot" controller
-	if cmOptions.IsControllerEnabled("volumesnapshot") {
-		volumeSnapshotController := snapshotclass.NewController(
-			kubernetesInformer.Storage().V1().StorageClasses(),
-			client.Snapshot().SnapshotV1().VolumeSnapshotClasses(),
-			informerFactory.SnapshotSharedInformerFactory().Snapshot().V1().VolumeSnapshotClasses(),
-		)
-		addController(mgr, "volumesnapshot", volumeSnapshotController)
 	}
 
 	// "pvc-autoresizer"
