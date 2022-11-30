@@ -26,27 +26,37 @@ import (
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
+// AddToContainer the api /kapis/version will be deprecated and instead with /version
 func AddToContainer(container *restful.Container, k8sDiscovery discovery.DiscoveryInterface) error {
 	webservice := runtime.NewWebService(schema.GroupVersion{})
+	rootPathWebservice := &restful.WebService{}
+	rootPathWebservice.Path("/").Produces(restful.MIME_JSON)
+
+	versionFunc := func(request *restful.Request, response *restful.Response) {
+		ksVersion := version.Get()
+
+		if k8sDiscovery != nil {
+			k8sVersion, err := k8sDiscovery.ServerVersion()
+			if err == nil {
+				ksVersion.Kubernetes = k8sVersion
+			} else {
+				klog.Errorf("Failed to get kubernetes version, error %v", err)
+			}
+		}
+
+		response.WriteAsJson(ksVersion)
+	}
 
 	webservice.Route(webservice.GET("/version").
-		To(func(request *restful.Request, response *restful.Response) {
-			ksVersion := version.Get()
+		Deprecate().
+		To(versionFunc)).
+		Doc("KubeSphere version. Deprecated: please use API `/version`")
 
-			if k8sDiscovery != nil {
-				k8sVersion, err := k8sDiscovery.ServerVersion()
-				if err == nil {
-					ksVersion.Kubernetes = k8sVersion
-				} else {
-					klog.Errorf("Failed to get kubernetes version, error %v", err)
-				}
-			}
-
-			response.WriteAsJson(ksVersion)
-		})).
-		Doc("KubeSphere version")
+	rootPathWebservice.Route(rootPathWebservice.GET("/version").
+		To(versionFunc)).Doc("KubeSphere version")
 
 	container.Add(webservice)
+	container.Add(rootPathWebservice)
 
 	return nil
 }
