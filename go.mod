@@ -74,7 +74,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	google.golang.org/grpc v1.49.0
 	gopkg.in/cas.v2 v2.2.0
@@ -160,9 +160,10 @@ require (
 	github.com/go-openapi/runtime v0.19.15 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/go-resty/resty/v2 v2.5.0 // indirect
-	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/flect v0.2.5 // indirect
+	github.com/gobuffalo/genny v0.1.1 // indirect
+	github.com/gobuffalo/gogen v0.1.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.0.0 // indirect
@@ -188,6 +189,7 @@ require (
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4 // indirect
+	github.com/karrick/godirwalk v1.10.3 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
@@ -249,7 +251,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.4 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.4 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.4 // indirect
-	go.mongodb.org/mongo-driver v1.3.2 // indirect
+	go.mongodb.org/mongo-driver v1.10.4 // indirect
 	go.opentelemetry.io/contrib v0.20.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.20.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.32.0 // indirect
@@ -916,6 +918,9 @@ replace (
 	github.com/willf/bitset => github.com/willf/bitset v1.1.3
 	github.com/xanzy/go-gitlab => github.com/xanzy/go-gitlab v0.15.0
 	github.com/xanzy/ssh-agent => github.com/xanzy/ssh-agent v0.2.1
+	github.com/xdg-go/pbkdf2 => github.com/xdg-go/pbkdf2 v1.0.0
+	github.com/xdg-go/scram => github.com/xdg-go/scram v1.1.1
+	github.com/xdg-go/stringprep => github.com/xdg-go/stringprep v1.0.3
 	github.com/xdg/scram => github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
 	github.com/xdg/stringprep => github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
 	github.com/xeipuuv/gojsonpointer => github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f
@@ -926,6 +931,7 @@ replace (
 	github.com/xlab/treeprint => github.com/xlab/treeprint v0.0.0-20180616005107-d6fb6747feb6
 	github.com/xordataexchange/crypt => github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77
 	github.com/yashtewari/glob-intersection => github.com/yashtewari/glob-intersection v0.0.0-20180916065949-5c77d914dd0b
+	github.com/youmark/pkcs8 => github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 	github.com/yvasiyarov/go-metrics => github.com/yvasiyarov/go-metrics v0.0.0-20150112132944-c25f46c4b940
 	github.com/yvasiyarov/gorelic => github.com/yvasiyarov/gorelic v0.0.6
 	github.com/yvasiyarov/newrelic_platform_go => github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f
@@ -948,7 +954,7 @@ replace (
 	go.etcd.io/etcd/pkg/v3 => go.etcd.io/etcd/pkg/v3 v3.5.4
 	go.etcd.io/etcd/raft/v3 => go.etcd.io/etcd/raft/v3 v3.5.4
 	go.etcd.io/etcd/server/v3 => go.etcd.io/etcd/server/v3 v3.5.4
-	go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.3.2
+	go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.10.4
 	go.opencensus.io => go.opencensus.io v0.22.3
 	go.opentelemetry.io/contrib => go.opentelemetry.io/contrib v0.20.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.20.0
