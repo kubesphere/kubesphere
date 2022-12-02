@@ -54,12 +54,6 @@ func (entme ErrNoTypeMapEntry) Error() string {
 // ErrNotInterface is returned when the provided type is not an interface.
 var ErrNotInterface = errors.New("The provided type is not an interface")
 
-var defaultRegistry *Registry
-
-func init() {
-	defaultRegistry = buildDefaultRegistry()
-}
-
 // A RegistryBuilder is used to build a Registry. This type is not goroutine
 // safe.
 type RegistryBuilder struct {
@@ -187,8 +181,9 @@ func (rb *RegistryBuilder) RegisterHookDecoder(t reflect.Type, dec ValueDecoder)
 	return rb
 }
 
-// RegisterEncoder has been deprecated and will be removed in a future major version release. Use RegisterTypeEncoder
-// or RegisterHookEncoder instead.
+// RegisterEncoder registers the provided type and encoder pair.
+//
+// Deprecated: Use RegisterTypeEncoder or RegisterHookEncoder instead.
 func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoder) *RegistryBuilder {
 	if t == tEmpty {
 		rb.typeEncoders[t] = enc
@@ -210,8 +205,9 @@ func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoder) *Re
 	return rb
 }
 
-// RegisterDecoder has been deprecated and will be removed in a future major version release. Use RegisterTypeDecoder
-// or RegisterHookDecoder instead.
+// RegisterDecoder registers the provided type and decoder pair.
+//
+// Deprecated: Use RegisterTypeDecoder or RegisterHookDecoder instead.
 func (rb *RegistryBuilder) RegisterDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
 	if t == nil {
 		rb.typeDecoders[nil] = dec
@@ -258,6 +254,7 @@ func (rb *RegistryBuilder) RegisterDefaultDecoder(kind reflect.Kind, dec ValueDe
 // By default, BSON documents will decode into interface{} values as bson.D. To change the default type for BSON
 // documents, a type map entry for bsontype.EmbeddedDocument should be registered. For example, to force BSON documents
 // to decode to bson.Raw, use the following code:
+//
 //	rb.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(bson.Raw{}))
 func (rb *RegistryBuilder) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Type) *RegistryBuilder {
 	rb.typeMap[bt] = rt
@@ -302,7 +299,7 @@ func (rb *RegistryBuilder) Build() *Registry {
 	return registry
 }
 
-// LookupEncoder inspects the registry for an encoder for the given type. The lookup precendence works as follows:
+// LookupEncoder inspects the registry for an encoder for the given type. The lookup precedence works as follows:
 //
 // 1. An encoder registered for the exact type. If the given type represents an interface, an encoder registered using
 // RegisterTypeEncoder for the interface will be selected.
@@ -325,7 +322,7 @@ func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
 		return enc, nil
 	}
 
-	enc, found = r.lookupInterfaceEncoder(t)
+	enc, found = r.lookupInterfaceEncoder(t, true)
 	if found {
 		r.mu.Lock()
 		r.typeEncoders[t] = enc
@@ -359,19 +356,28 @@ func (r *Registry) lookupTypeEncoder(t reflect.Type) (ValueEncoder, bool) {
 	return enc, found
 }
 
-func (r *Registry) lookupInterfaceEncoder(t reflect.Type) (ValueEncoder, bool) {
+func (r *Registry) lookupInterfaceEncoder(t reflect.Type, allowAddr bool) (ValueEncoder, bool) {
 	if t == nil {
 		return nil, false
 	}
 	for _, ienc := range r.interfaceEncoders {
-		if t.Implements(ienc.i) || reflect.PtrTo(t).Implements(ienc.i) {
+		if t.Implements(ienc.i) {
 			return ienc.ve, true
+		}
+		if allowAddr && t.Kind() != reflect.Ptr && reflect.PtrTo(t).Implements(ienc.i) {
+			// if *t implements an interface, this will catch if t implements an interface further ahead
+			// in interfaceEncoders
+			defaultEnc, found := r.lookupInterfaceEncoder(t, false)
+			if !found {
+				defaultEnc = r.kindEncoders[t.Kind()]
+			}
+			return newCondAddrEncoder(ienc.ve, defaultEnc), true
 		}
 	}
 	return nil, false
 }
 
-// LookupDecoder inspects the registry for an decoder for the given type. The lookup precendence works as follows:
+// LookupDecoder inspects the registry for an decoder for the given type. The lookup precedence works as follows:
 //
 // 1. A decoder registered for the exact type. If the given type represents an interface, a decoder registered using
 // RegisterTypeDecoder for the interface will be selected.
@@ -397,7 +403,7 @@ func (r *Registry) LookupDecoder(t reflect.Type) (ValueDecoder, error) {
 		return dec, nil
 	}
 
-	dec, found = r.lookupInterfaceDecoder(t)
+	dec, found = r.lookupInterfaceDecoder(t, true)
 	if found {
 		r.mu.Lock()
 		r.typeDecoders[t] = dec
@@ -424,13 +430,20 @@ func (r *Registry) lookupTypeDecoder(t reflect.Type) (ValueDecoder, bool) {
 	return dec, found
 }
 
-func (r *Registry) lookupInterfaceDecoder(t reflect.Type) (ValueDecoder, bool) {
+func (r *Registry) lookupInterfaceDecoder(t reflect.Type, allowAddr bool) (ValueDecoder, bool) {
 	for _, idec := range r.interfaceDecoders {
-		if !t.Implements(idec.i) && !reflect.PtrTo(t).Implements(idec.i) {
-			continue
+		if t.Implements(idec.i) {
+			return idec.vd, true
 		}
-
-		return idec.vd, true
+		if allowAddr && t.Kind() != reflect.Ptr && reflect.PtrTo(t).Implements(idec.i) {
+			// if *t implements an interface, this will catch if t implements an interface further ahead
+			// in interfaceDecoders
+			defaultDec, found := r.lookupInterfaceDecoder(t, false)
+			if !found {
+				defaultDec = r.kindDecoders[t.Kind()]
+			}
+			return newCondAddrDecoder(idec.vd, defaultDec), true
+		}
 	}
 	return nil, false
 }

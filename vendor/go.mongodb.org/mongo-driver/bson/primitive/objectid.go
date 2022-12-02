@@ -10,8 +10,8 @@
 package primitive
 
 import (
-	"bytes"
 	"crypto/rand"
+	"encoding"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -33,6 +33,9 @@ var NilObjectID ObjectID
 
 var objectIDCounter = readRandomUint32()
 var processUnique = processUniqueBytes()
+
+var _ encoding.TextMarshaler = ObjectID{}
+var _ encoding.TextUnmarshaler = &ObjectID{}
 
 // NewObjectID generates a new ObjectID.
 func NewObjectID() ObjectID {
@@ -67,25 +70,48 @@ func (id ObjectID) String() string {
 
 // IsZero returns true if id is the empty ObjectID.
 func (id ObjectID) IsZero() bool {
-	return bytes.Equal(id[:], NilObjectID[:])
+	return id == NilObjectID
 }
 
 // ObjectIDFromHex creates a new ObjectID from a hex string. It returns an error if the hex string is not a
 // valid ObjectID.
 func ObjectIDFromHex(s string) (ObjectID, error) {
+	if len(s) != 24 {
+		return NilObjectID, ErrInvalidHex
+	}
+
 	b, err := hex.DecodeString(s)
 	if err != nil {
 		return NilObjectID, err
 	}
 
-	if len(b) != 12 {
-		return NilObjectID, ErrInvalidHex
-	}
-
 	var oid [12]byte
-	copy(oid[:], b[:])
+	copy(oid[:], b)
 
 	return oid, nil
+}
+
+// IsValidObjectID returns true if the provided hex string represents a valid ObjectID and false if not.
+func IsValidObjectID(s string) bool {
+	_, err := ObjectIDFromHex(s)
+	return err == nil
+}
+
+// MarshalText returns the ObjectID as UTF-8-encoded text. Implementing this allows us to use ObjectID
+// as a map key when marshalling JSON. See https://pkg.go.dev/encoding#TextMarshaler
+func (id ObjectID) MarshalText() ([]byte, error) {
+	return []byte(id.Hex()), nil
+}
+
+// UnmarshalText populates the byte slice with the ObjectID. Implementing this allows us to use ObjectID
+// as a map key when unmarshalling JSON. See https://pkg.go.dev/encoding#TextUnmarshaler
+func (id *ObjectID) UnmarshalText(b []byte) error {
+	oid, err := ObjectIDFromHex(string(b))
+	if err != nil {
+		return err
+	}
+	*id = oid
+	return nil
 }
 
 // MarshalJSON returns the ObjectID as a string
@@ -93,11 +119,18 @@ func (id ObjectID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(id.Hex())
 }
 
-// UnmarshalJSON populates the byte slice with the ObjectID. If the byte slice is 64 bytes long, it
+// UnmarshalJSON populates the byte slice with the ObjectID. If the byte slice is 24 bytes long, it
 // will be populated with the hex representation of the ObjectID. If the byte slice is twelve bytes
-// long, it will be populated with the BSON representation of the ObjectID. Otherwise, it will
-// return an error.
+// long, it will be populated with the BSON representation of the ObjectID. This method also accepts empty strings and
+// decodes them as NilObjectID. For any other inputs, an error will be returned.
 func (id *ObjectID) UnmarshalJSON(b []byte) error {
+	// Ignore "null" to keep parity with the standard library. Decoding a JSON null into a non-pointer ObjectID field
+	// will leave the field unchanged. For pointer values, encoding/json will set the pointer to nil and will not
+	// enter the UnmarshalJSON hook.
+	if string(b) == "null" {
+		return nil
+	}
+
 	var err error
 	switch len(b) {
 	case 12:
@@ -123,6 +156,12 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 			if !ok {
 				return errors.New("not an extended JSON ObjectID")
 			}
+		}
+
+		// An empty string is not a valid ObjectID, but we treat it as a special value that decodes as NilObjectID.
+		if len(str) == 0 {
+			copy(id[:], NilObjectID[:])
+			return nil
 		}
 
 		if len(str) != 24 {
