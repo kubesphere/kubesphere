@@ -102,24 +102,6 @@ func TestRegistryerListRepoTags(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:      "Should fetch config from public registry with credential",
-			secret:    buildSecret("dockerhub.qingcloud.com", "guest", "guest", false),
-			image:     "dockerhub.qingcloud.com/calico/cni",
-			expectErr: false,
-			repositoryTags: RepositoryTags{
-				Registry: "dockerhub.qingcloud.com",
-				Tags: []string{
-					"v1.11.4",
-					"v3.1.3",
-					"v3.3.2",
-					"v3.3.3",
-					"v3.3.6",
-					"v3.7.3",
-					"v3.8.4",
-				},
-			},
-		},
 	}
 
 	for _, testCase := range testCases {
