@@ -57,6 +57,7 @@ import (
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
+	clusterutils "kubesphere.io/kubesphere/pkg/controller/cluster/utils"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
@@ -352,7 +353,7 @@ func (c *clusterController) syncCluster(key string) error {
 				return err
 			}
 
-			if cluster.Annotations[NotificationCleanup] == "true" {
+			if clusterutils.IsClusterReady(cluster) && cluster.Annotations[NotificationCleanup] == "true" {
 				if err := c.cleanupNotification(cluster); err != nil {
 					klog.Errorf("Failed to cleanup notification config in cluster %s: %v", name, err)
 					return err
