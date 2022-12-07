@@ -107,6 +107,7 @@ replace (
 	github.com/blang/semver => github.com/blang/semver v3.5.0+incompatible
 	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.1
 	github.com/creack/pty => github.com/creack/pty v1.1.7
+	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/docker/docker => github.com/docker/engine v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473
 	github.com/fatih/color => github.com/fatih/color v1.9.0
