@@ -82,18 +82,15 @@ var allControllers = []string{
 	"workspacerole",
 	"workspacerolebinding",
 	"namespace",
-
 	"helmrepo",
 	"helmcategory",
 	"helmapplication",
 	"helmapplicationversion",
 	"helmrelease",
 	"helm",
-
 	"application",
 	"serviceaccount",
 	"resourcequota",
-
 	"virtualservice",
 	"destinationrule",
 	"job",
@@ -105,18 +102,18 @@ var allControllers = []string{
 	"nsnp",
 	"ippool",
 	"csr",
-
 	"clusterrolebinding",
-
 	"fedglobalrolecache",
 	"globalrole",
 	"fedglobalrolebindingcache",
 	"globalrolebinding",
-
 	"groupbinding",
 	"group",
-
 	"notification",
+	"pvcworkloadrestarter",
+	"rulegroup",
+	"clusterrulegroup",
+	"globalrulegroup",
 }
 
 // setup all available controllers one by one
@@ -236,13 +233,13 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 
 		// "helmapplication" controller
 		if cmOptions.IsControllerEnabled("helmapplication") {
-			reconcileHelmApp := (&helmapplication.ReconcileHelmApplication{})
+			reconcileHelmApp := &helmapplication.ReconcileHelmApplication{}
 			addControllerWithSetup(mgr, "helmapplication", reconcileHelmApp)
 		}
 
 		// "helmapplicationversion" controller
 		if cmOptions.IsControllerEnabled("helmapplicationversion") {
-			reconcileHelmAppVersion := (&helmapplication.ReconcileHelmApplicationVersion{})
+			reconcileHelmAppVersion := &helmapplication.ReconcileHelmApplicationVersion{}
 			addControllerWithSetup(mgr, "helmapplicationversion", reconcileHelmAppVersion)
 		}
 	}
@@ -340,10 +337,10 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 		addController(mgr, "storagecapability", storageCapabilityController)
 	}
 
-	// "pvc-autoresizer"
+	// "pvcautoresizer" controller
 	monitoringOptionsEnable := cmOptions.MonitoringOptions != nil && len(cmOptions.MonitoringOptions.Endpoint) != 0
 	if monitoringOptionsEnable {
-		if cmOptions.IsControllerEnabled("pvc-autoresizer") {
+		if cmOptions.IsControllerEnabled("pvcautoresizer") {
 			if err := runners.SetupIndexer(mgr, false); err != nil {
 				return err
 			}
@@ -354,20 +351,21 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 			pvcAutoResizerController := runners.NewPVCAutoresizer(
 				promClient,
 				mgr.GetClient(),
-				ctrl.Log.WithName("pvc-autoresizer"),
+				ctrl.Log.WithName("pvcautoresizer"),
 				1*time.Minute,
-				mgr.GetEventRecorderFor("pvc-autoresizer"),
+				mgr.GetEventRecorderFor("pvcautoresizer"),
 			)
 			addController(mgr, "pvcautoresizer", pvcAutoResizerController)
 		}
 	}
 
-	if cmOptions.IsControllerEnabled("pvc-workload-restarter") {
+	// "pvcworkloadrestarter" controller
+	if cmOptions.IsControllerEnabled("pvcworkloadrestarter") {
 		restarter := runners.NewRestarter(
 			mgr.GetClient(),
-			ctrl.Log.WithName("pvc-workload-restarter"),
+			ctrl.Log.WithName("pvcworkloadrestarter"),
 			1*time.Minute,
-			mgr.GetEventRecorderFor("pvc-workload-restarter"),
+			mgr.GetEventRecorderFor("pvcworkloadrestarter"),
 		)
 		addController(mgr, "pvcworkloadrestarter", restarter)
 	}
