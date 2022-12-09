@@ -412,7 +412,7 @@ func waitForCacheSync(discoveryClient discovery.DiscoveryInterface, sharedInform
 		if err != nil {
 			if errors.IsNotFound(err) {
 				klog.Warningf("group version %s not exists in the cluster", groupVersion)
-				return nil
+				continue
 			}
 			return fmt.Errorf("failed to fetch group version %s: %s", groupVersion, err)
 		}
