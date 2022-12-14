@@ -89,6 +89,7 @@ import (
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha3"
+	resourcev1beta1 "kubesphere.io/kubesphere/pkg/kapis/resources/v1beta1"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	tenantv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha3"
@@ -280,6 +281,7 @@ func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 			s.KubernetesClient.KubeSphere(), s.Config.NotificationOptions))
 	}
 	urlruntime.Must(gatewayv1alpha1.AddToContainer(s.container, s.Config.GatewayOptions, s.RuntimeCache, s.RuntimeClient, s.InformerFactory, s.KubernetesClient.Kubernetes(), s.LoggingClient))
+	urlruntime.Must(resourcev1beta1.AddToContainer(s.container, s.RuntimeCache, s.RuntimeClient, s.InformerFactory))
 }
 
 // installCRDAPIs Install CRDs to the KAPIs with List and Get options

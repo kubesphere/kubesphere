@@ -1,26 +1,27 @@
-package reader
+package v1beta1
 
 import (
 	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type reader struct {
+type resourceCache struct {
 	cache cache.Cache
 }
 
-func NewReader(cache cache.Cache) Reader {
-	return &reader{cache: cache}
+func NewResourceCache(cache cache.Cache) Interface {
+	return &resourceCache{cache: cache}
 }
 
-func (u *reader) Get(namespace, name string, object client.Object) error {
+func (u *resourceCache) Get(name, namespace string, object client.Object) error {
 	return u.cache.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, object)
 }
 
-func (u *reader) List(namespace string, query *query.Query, list client.ObjectList) error {
+func (u *resourceCache) List(namespace string, query *query.Query, list client.ObjectList) error {
 	listOpt := &client.ListOptions{
 		LabelSelector: query.Selector(),
 		Namespace:     namespace,
@@ -34,10 +35,10 @@ func (u *reader) List(namespace string, query *query.Query, list client.ObjectLi
 	return nil
 }
 
-func (u *reader) compare(left, right metav1.Object, field query.Field) bool {
+func (u *resourceCache) compare(left, right metav1.Object, field query.Field) bool {
 	return DefaultObjectMetaCompare(left, right, field)
 }
 
-func (u *reader) filter(object metav1.Object, filter query.Filter) bool {
+func (u *resourceCache) filter(object metav1.Object, filter query.Filter) bool {
 	return DefaultObjectMetaFilter(object, filter)
 }

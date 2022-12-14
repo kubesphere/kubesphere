@@ -1,22 +1,30 @@
-package reader
+package v1beta1
 
 import (
+	"sort"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sort"
-	"strings"
 )
 
-type Reader interface {
+type Interface interface {
 	// Get retrieves a single object by its namespace and name
 	Get(namespace, name string, object client.Object) error
 
 	// List retrieves a collection of objects matches given query
 	List(namespace string, query *query.Query, object client.ObjectList) error
+}
+
+type ResourceLister interface {
+	GetResource(schema.GroupVersionResource, string, string) (client.Object, error)
+	ListResources(schema.GroupVersionResource, string, *query.Query) (client.ObjectList, error)
 }
 
 // CompareFunc return true is left great than right
