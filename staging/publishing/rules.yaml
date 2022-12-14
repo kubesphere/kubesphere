@@ -22,6 +22,7 @@ rules:
       branch: master
       dir: staging/src/kubesphere.io/api
     name: master
+    go: 1.18.9
 
   smoke-test: |
     # assumes GO111MODULE=on
@@ -35,3 +36,4 @@ rules:
       branch: master
       dir: staging/src/kubesphere.io/utils
     name: master
+    go: 1.18.9
