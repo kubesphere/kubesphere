@@ -24,7 +24,7 @@ import (
 	"net"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/current"
+	cnitypes040 "github.com/containernetworking/cni/pkg/types/040"
 	"github.com/davecgh/go-spew/spew"
 	cnet "github.com/projectcalico/libcalico-go/lib/net"
 	"github.com/projectcalico/libcalico-go/lib/set"
@@ -87,9 +87,9 @@ type IPAMClient struct {
 // and the list of the assigned IPv6 addresses.
 //
 // In case of error, returns the IPs allocated so far along with the error.
-func (c IPAMClient) AutoAssign(args AutoAssignArgs) (*current.Result, error) {
+func (c IPAMClient) AutoAssign(args AutoAssignArgs) (*cnitypes040.Result, error) {
 	var (
-		result current.Result
+		result cnitypes040.Result
 		err    error
 		ip     *cnet.IPNet
 		pool   *v1alpha1.IPPool
@@ -130,7 +130,7 @@ func (c IPAMClient) AutoAssign(args AutoAssignArgs) (*current.Result, error) {
 		version = 6
 	}
 
-	result.IPs = append(result.IPs, &current.IPConfig{
+	result.IPs = append(result.IPs, &cnitypes040.IPConfig{
 		Version: fmt.Sprintf("%d", version),
 		Address: net.IPNet{IP: ip.IP, Mask: ip.Mask},
 		Gateway: net.ParseIP(pool.Spec.Gateway),
@@ -151,7 +151,7 @@ func (c IPAMClient) AutoAssign(args AutoAssignArgs) (*current.Result, error) {
 	poolType := pool.Spec.Type
 	switch poolType {
 	case v1alpha1.VLAN:
-		result.Interfaces = append(result.Interfaces, &current.Interface{
+		result.Interfaces = append(result.Interfaces, &cnitypes040.Interface{
 			Mac: utils.EthRandomAddr(ip.IP),
 		})
 	}

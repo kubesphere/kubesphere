@@ -15,7 +15,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
 	github.com/aws/aws-sdk-go v1.43.16
 	github.com/beevik/etree v1.1.0
-	github.com/containernetworking/cni v0.8.0
+	github.com/containernetworking/cni v1.1.2
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.8.1+incompatible
@@ -428,7 +428,7 @@ replace (
 	github.com/containerd/containerd => github.com/containerd/containerd v1.4.13
 	github.com/containerd/continuity => github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
 	github.com/containerd/stargz-snapshotter/estargz => github.com/containerd/stargz-snapshotter/estargz v0.7.0
-	github.com/containernetworking/cni => github.com/containernetworking/cni v0.8.0
+	github.com/containernetworking/cni => github.com/containernetworking/cni v1.1.2
 	github.com/coreos/bbolt => github.com/coreos/bbolt v1.3.3
 	github.com/coreos/etcd => github.com/coreos/etcd v3.3.17+incompatible
 	github.com/coreos/go-etcd => github.com/coreos/go-etcd v2.0.0+incompatible
