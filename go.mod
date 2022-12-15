@@ -70,7 +70,7 @@ require (
 	github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.8.0
@@ -138,7 +138,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/deckarep/golang-set v1.7.1 // indirect
-	github.com/docker/cli v20.10.17+incompatible // indirect
+	github.com/docker/cli v20.10.21+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -185,7 +185,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4 // indirect
@@ -216,7 +216,7 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799 // indirect
+	github.com/opencontainers/image-spec v1.1.0-rc2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/operator-framework/operator-lib v0.11.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -457,7 +457,7 @@ replace (
 	github.com/davecgh/go-spew => github.com/davecgh/go-spew v1.1.1
 	github.com/daviddengcn/go-colortext => github.com/daviddengcn/go-colortext v0.0.0-20160507010035-511bcaf42ccd
 	github.com/deckarep/golang-set => github.com/deckarep/golang-set v1.7.1
-	github.com/deislabs/oras => github.com/deislabs/oras v0.8.1
+	github.com/deislabs/oras => oras.land/oras v0.16.0
 	github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20190204142019-df6d76eb9289
 	github.com/denverdino/aliyungo => github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba
 	github.com/dgraph-io/badger/v3 => github.com/dgraph-io/badger/v3 v3.2103.2
@@ -779,6 +779,7 @@ replace (
 	github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.1.3
 	github.com/nats-io/nuid => github.com/nats-io/nuid v1.0.1
 	github.com/ncw/swift => github.com/ncw/swift v1.0.50
+	github.com/need-being/go-tree => github.com/need-being/go-tree v0.1.0
 	github.com/niemeyer/pretty => github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e
 	github.com/nkovacs/streamquote => github.com/nkovacs/streamquote v0.0.0-20170412213628-49af9bddb229
 	github.com/nxadm/tail => github.com/nxadm/tail v1.4.4
@@ -1061,6 +1062,7 @@ replace (
 	kubesphere.io/monitoring-dashboard => kubesphere.io/monitoring-dashboard v0.2.2
 	kubesphere.io/utils => ./staging/src/kubesphere.io/utils
 	oras.land/oras-go => oras.land/oras-go v1.2.0
+	oras.land/oras-go/v2 => oras.land/oras-go/v2 v2.0.0-rc.4
 	rsc.io/binaryregexp => rsc.io/binaryregexp v0.2.0
 	rsc.io/goversion => rsc.io/goversion v1.2.0
 	rsc.io/letsencrypt => rsc.io/letsencrypt v0.0.1
