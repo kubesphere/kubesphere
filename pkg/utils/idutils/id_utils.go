@@ -29,9 +29,6 @@ import (
 
 var sf *sonyflake.Sonyflake
 
-//nolint:unused
-var upperMachineID uint16
-
 func init() {
 	var st sonyflake.Settings
 	sf = sonyflake.NewSonyflake(st)
@@ -100,16 +97,6 @@ func lower16BitIP() (uint16, error) {
 	}
 
 	return uint16(ip[2])<<8 + uint16(ip[3]), nil
-}
-
-//nolint:unused
-func upper16BitIP() (uint16, error) {
-	ip, err := IPv4()
-	if err != nil {
-		return 0, err
-	}
-
-	return uint16(ip[0])<<8 + uint16(ip[1]), nil
 }
 
 func IPv4() (net.IP, error) {
