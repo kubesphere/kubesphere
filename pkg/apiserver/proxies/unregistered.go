@@ -59,15 +59,16 @@ func (u *unregisteredMiddleware) Handle(w http.ResponseWriter, req *http.Request
 
 	parameter := u.parameterExtractor.Extract(requestPath)
 
-	if parameter[group] == "" ||
-		parameter[version] == "" ||
-		parameter[resources] == "" {
-		return false
-	}
 	gvr := schema.GroupVersionResource{
 		Group:    parameter[group],
 		Version:  parameter[version],
 		Resource: parameter[resources],
+	}
+
+	if gvr.Group == "" ||
+		gvr.Version == "" ||
+		gvr.Resource == "" {
+		return false
 	}
 
 	rootPath := fmt.Sprintf("/kapis/%s/%s", gvr.Group, gvr.Version)
