@@ -269,9 +269,15 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 				},
 				Spec: v1alpha1.HelmApplicationVersionSpec{
 					Metadata: &v1alpha1.Metadata{
-						Name:       hvw.GetName(),
-						AppVersion: hvw.GetAppVersion(),
-						Version:    hvw.GetVersion(),
+						Name:        hvw.GetName(),
+						AppVersion:  hvw.GetAppVersion(),
+						Version:     hvw.GetVersion(),
+						Description: hvw.GetDescription(),
+						Home:        hvw.GetHome(),
+						Icon:        hvw.GetIcon(),
+						Maintainers: hvw.GetRawMaintainers(),
+						Sources:     hvw.GetRawSources(),
+						Keywords:    hvw.GetRawKeywords(),
 					},
 					URLs:   chartVersion.URLs,
 					Digest: chartVersion.Digest,
