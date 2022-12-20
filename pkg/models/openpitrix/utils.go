@@ -397,6 +397,7 @@ func convertAppVersion(in *v1alpha1.HelmApplicationVersion) *AppVersion {
 	if in.Spec.Metadata != nil {
 		out.Description = in.Spec.Description
 		out.Icon = in.Spec.Icon
+		out.Home = in.Spec.Home
 	}
 
 	// The field Maintainers and Sources were a string field, so I encode the helm field's maintainers and sources,
