@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-ldap/ldap"
@@ -63,8 +62,6 @@ type ldapInterfaceImpl struct {
 	groupSearchBase string
 	managerDN       string
 	managerPassword string
-
-	once sync.Once
 }
 
 var _ Interface = &ldapInterfaceImpl{}
@@ -95,7 +92,6 @@ func NewLdapClient(options *Options, stopCh <-chan struct{}) (Interface, error) 
 		groupSearchBase: options.GroupSearchBase,
 		managerDN:       options.ManagerDN,
 		managerPassword: options.ManagerPassword,
-		once:            sync.Once{},
 	}
 
 	go func() {
@@ -103,9 +99,7 @@ func NewLdapClient(options *Options, stopCh <-chan struct{}) (Interface, error) 
 		client.close()
 	}()
 
-	client.once.Do(func() {
-		_ = client.createSearchBase()
-	})
+	_ = client.createSearchBase()
 
 	return client, nil
 }

@@ -46,7 +46,7 @@ type openpitrixOperator struct {
 	CategoryInterface
 }
 
-func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient versioned.Interface, s3Client s3.Interface, cc clusterclient.ClusterClients, stopCh <-chan struct{}) Interface {
+func NewOpenpitrixOperator(ksInformers ks_informers.InformerFactory, ksClient versioned.Interface, s3Client s3.Interface, cc clusterclient.ClusterClients) Interface {
 	klog.Infof("start helm repo informer")
 	cachedReposData := reposcache.NewReposCache()
 	helmReposInformer := ksInformers.KubeSphereSharedInformerFactory().Application().V1alpha1().HelmRepos().Informer()
