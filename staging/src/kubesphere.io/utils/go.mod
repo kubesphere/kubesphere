@@ -24,7 +24,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
 	github.com/Masterminds/squirrel v1.5.3 // indirect
-	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/Microsoft/hcsshim v0.9.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -35,7 +34,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/containerd/containerd v1.6.8 // indirect
-	github.com/containerd/continuity v0.0.0-20201208142359-180525291bb7 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v20.10.21+incompatible // indirect
@@ -79,6 +77,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/karrick/godirwalk v1.10.3 // indirect
+	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
@@ -87,11 +86,13 @@ require (
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
+	github.com/moby/sys/mountinfo v0.5.0 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -175,7 +176,9 @@ replace (
 	github.com/bshuster-repo/logrus-logstash-hook => github.com/bshuster-repo/logrus-logstash-hook v0.4.1
 	github.com/bugsnag/bugsnag-go => github.com/bugsnag/bugsnag-go v1.5.0
 	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.1
-	github.com/containerd/containerd => github.com/containerd/containerd v1.4.13
+	github.com/cilium/ebpf => github.com/cilium/ebpf v0.4.0
+	github.com/containerd/cgroups => github.com/containerd/cgroups v1.0.2
+	github.com/containerd/containerd => github.com/containerd/containerd v1.5.16
 	github.com/containerd/continuity => github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man/v2 => github.com/cpuguy83/go-md2man/v2 v2.0.0
@@ -198,6 +201,7 @@ replace (
 	github.com/gobuffalo/packr/v2 => github.com/gobuffalo/packr/v2 v2.2.0
 	github.com/gofrs/flock => github.com/gofrs/flock v0.7.1
 	github.com/gofrs/uuid => github.com/gofrs/uuid v3.2.0+incompatible
+	github.com/gogo/googleapis => github.com/gogo/googleapis v1.1.0
 	github.com/golang/groupcache => github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/golang/protobuf => github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy => github.com/golang/snappy v0.0.1
@@ -241,6 +245,9 @@ replace (
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
+	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.2
+	github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.10.0
+	github.com/pelletier/go-toml => github.com/pelletier/go-toml v1.7.0
 	github.com/phayes/freeport => github.com/phayes/freeport v0.0.0-20171002181615-b8543db493a5
 	github.com/pquerna/cachecontrol => github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.0
@@ -283,6 +290,7 @@ replace (
 	google.golang.org/api => google.golang.org/api v0.22.0
 	google.golang.org/appengine => google.golang.org/appengine v1.6.6
 	gopkg.in/check.v1 => gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
+	gopkg.in/square/go-jose.v2 => gopkg.in/square/go-jose.v2 v2.4.0
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 	k8s.io/client-go => k8s.io/client-go v0.25.3
 	kubesphere.io/utils => ../utils
