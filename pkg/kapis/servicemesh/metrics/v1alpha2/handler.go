@@ -48,15 +48,17 @@ func NewHandler(o *servicemesh.Options, client kubernetes.Interface, cache cache
 	if o != nil && o.KialiQueryHost != "" {
 		sa, err := client.CoreV1().ServiceAccounts(KubesphereNamespace).Get(context.TODO(), KubeSphereServiceAccount, metav1.GetOptions{})
 		if err == nil {
-			secret, err := client.CoreV1().Secrets(KubesphereNamespace).Get(context.TODO(), sa.Secrets[0].Name, metav1.GetOptions{})
-			if err == nil {
-				return &Handler{
-					opt: o,
-					client: kiali.NewDefaultClient(
-						cache,
-						string(secret.Data["token"]),
-						o.KialiQueryHost,
-					),
+			if len(sa.Secrets) > 0 {
+				secret, err := client.CoreV1().Secrets(KubesphereNamespace).Get(context.TODO(), sa.Secrets[0].Name, metav1.GetOptions{})
+				if err == nil {
+					return &Handler{
+						opt: o,
+						client: kiali.NewDefaultClient(
+							cache,
+							string(secret.Data["token"]),
+							o.KialiQueryHost,
+						),
+					}
 				}
 			}
 			klog.Warningf("get ServiceAccount's Secret failed %v", err)
