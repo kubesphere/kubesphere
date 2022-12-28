@@ -65,13 +65,13 @@ func (c *Collector) init() {
 //
 // - it's in the Godoc for that AST node
 //
-// - it's in the closest non-godoc comment group above that node,
-//   *and* that node is a type or field node, *and* [it's either
-//   registered as type-level *or* it's not registered as being
-//   package-level]
+//   - it's in the closest non-godoc comment group above that node,
+//     *and* that node is a type or field node, *and* [it's either
+//     registered as type-level *or* it's not registered as being
+//     package-level]
 //
-// - it's not in the Godoc of a node, doesn't meet the above criteria, and
-//   isn't in a struct definition (in which case it's package-level)
+//   - it's not in the Godoc of a node, doesn't meet the above criteria, and
+//     isn't in a struct definition (in which case it's package-level)
 func (c *Collector) MarkersInPackage(pkg *loader.Package) (map[ast.Node]MarkerValues, error) {
 	c.mu.Lock()
 	c.init()

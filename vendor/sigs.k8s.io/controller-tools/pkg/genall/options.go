@@ -30,6 +30,8 @@ var (
 // +controllertools:marker:generateHelp:category=""
 
 // InputPaths represents paths and go-style path patterns to use as package roots.
+//
+// Multiple paths can be specified using "{path1, path2, path3}".
 type InputPaths []string
 
 // RegisterOptionsMarkers registers "mandatory" options markers for FromOptions into the given registry.
