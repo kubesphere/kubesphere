@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -74,7 +74,8 @@ var KnownPackages = map[string]PackageOverride{
 	"k8s.io/apimachinery/pkg/runtime": func(p *Parser, pkg *loader.Package) {
 		p.Schemata[TypeIdent{Name: "RawExtension", Package: pkg}] = apiext.JSONSchemaProps{
 			// TODO(directxman12): regexp validation for this (or get kube to support it as a format value)
-			Type: "object",
+			Type:                   "object",
+			XPreserveUnknownFields: boolPtr(true),
 		}
 		p.AddPackage(pkg) // get the rest of the types
 	},

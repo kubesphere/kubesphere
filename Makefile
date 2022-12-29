@@ -4,7 +4,7 @@
 
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,allowDangerousTypes=true"
+CRD_OPTIONS ?= "crd:allowDangerousTypes=true"
 
 GV="network:v1alpha1 servicemesh:v1alpha2 tenant:v1alpha1 tenant:v1alpha2 devops:v1alpha1 iam:v1alpha2 devops:v1alpha3 cluster:v1alpha1 storage:v1alpha1 auditing:v1alpha1 types:v1beta1 types:v1beta2 quota:v1alpha2 application:v1alpha1 notification:v2beta1 notification:v2beta2 gateway:v1alpha1 alerting:v2beta1"
 MANIFESTS="application/* cluster/* iam/* network/v1alpha1 quota/* storage/* tenant/* gateway/* alerting/*"

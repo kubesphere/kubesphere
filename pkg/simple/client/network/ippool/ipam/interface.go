@@ -17,8 +17,7 @@ limitations under the License.
 package ipam
 
 import (
-	"github.com/containernetworking/cni/pkg/types/current"
-
+	cnitypes040 "github.com/containernetworking/cni/pkg/types/040"
 	"kubesphere.io/api/network/v1alpha1"
 )
 
@@ -31,7 +30,7 @@ type Interface interface {
 	// which is useful for dataplanes that need to know the subnet (such as Windows).
 	//
 	// In case of error, returns the IPs allocated so far along with the error.
-	AutoAssign(args AutoAssignArgs) (*current.Result, error)
+	AutoAssign(args AutoAssignArgs) (*cnitypes040.Result, error)
 
 	// ReleaseByHandle releases all IP addresses that have been assigned
 	// using the provided handle.  Returns an error if no addresses

@@ -133,9 +133,14 @@ func (c *referenceCollector) Visit(node ast.Node) ast.Visitor {
 		// local reference or dot-import, ignore
 		return nil
 	case *ast.SelectorExpr:
-		pkgName := typedNode.X.(*ast.Ident).Name
-		c.refs.external(pkgName)
-		return nil
+		switch x := typedNode.X.(type) {
+		case *ast.Ident:
+			pkgName := x.Name
+			c.refs.external(pkgName)
+			return nil
+		default:
+			return c
+		}
 	default:
 		return c
 	}
