@@ -12,29 +12,19 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
-	"kubesphere.io/kubesphere/pkg/utils/pathutil"
-)
-
-const (
-	group     = "group"
-	version   = "version"
-	resources = "resources"
-	namespace = "namespace"
-	name      = "name"
 )
 
 type unregisteredMiddleware struct {
-	registeredGv       map[string]bool
-	resourceGetter     v1beta1.ResourceGetter
-	parameterExtractor pathutil.PathParameterExtractor
+	registeredGv   map[string]bool
+	resourceGetter v1beta1.ResourceGetter
 }
 
 func NewUnregisteredMiddleware(c *restful.Container, resourceGetter v1beta1.ResourceGetter) filters.Middleware {
 	middleware := &unregisteredMiddleware{
-		registeredGv:       make(map[string]bool, 0),
-		resourceGetter:     resourceGetter,
-		parameterExtractor: pathutil.NewKapisPathParameterExtractor(),
+		registeredGv:   make(map[string]bool, 0),
+		resourceGetter: resourceGetter,
 	}
 
 	for _, ws := range c.RegisteredWebServices() {
@@ -52,17 +42,19 @@ func (u *unregisteredMiddleware) Handle(w http.ResponseWriter, req *http.Request
 		return false
 	}
 
-	requestPath := req.URL.Path
-	if !strings.HasPrefix(requestPath, "/kapis") {
+	reqInfo, exist := request.RequestInfoFrom(req.Context())
+	if !exist {
 		return false
 	}
 
-	parameter := u.parameterExtractor.Extract(requestPath)
+	if reqInfo.IsKubernetesRequest {
+		return false
+	}
 
 	gvr := schema.GroupVersionResource{
-		Group:    parameter[group],
-		Version:  parameter[version],
-		Resource: parameter[resources],
+		Group:    reqInfo.APIGroup,
+		Version:  reqInfo.APIVersion,
+		Resource: reqInfo.Resource,
 	}
 
 	if gvr.Group == "" ||
@@ -82,7 +74,7 @@ func (u *unregisteredMiddleware) Handle(w http.ResponseWriter, req *http.Request
 	)
 	restfulReq := restful.NewRequest(req)
 	restfulResp := restful.NewResponse(w)
-	if parameter[name] == "" {
+	if reqInfo.Name == "" {
 		listReq = true
 		q = query.ParseQueryParameter(restfulReq)
 	}
@@ -92,9 +84,9 @@ func (u *unregisteredMiddleware) Handle(w http.ResponseWriter, req *http.Request
 		err    error
 	)
 	if listReq {
-		result, err = u.resourceGetter.ListResources(gvr, parameter[namespace], q)
+		result, err = u.resourceGetter.ListResources(gvr, reqInfo.Namespace, q)
 	} else {
-		result, err = u.resourceGetter.GetResource(gvr, parameter[name], parameter[namespace])
+		result, err = u.resourceGetter.GetResource(gvr, reqInfo.Name, reqInfo.Namespace)
 	}
 	handleResponse(result, err, restfulResp, restfulReq)
 	return true
