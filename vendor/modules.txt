@@ -2300,7 +2300,7 @@ k8s.io/utils/strings
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
 # kubesphere.io/api v0.0.0 => ./staging/src/kubesphere.io/api
-## explicit; go 1.18
+## explicit; go 1.19
 kubesphere.io/api/alerting/v2beta1
 kubesphere.io/api/application/crdinstall
 kubesphere.io/api/application/v1alpha1
@@ -2327,7 +2327,7 @@ kubesphere.io/api/tenant/v1alpha2
 kubesphere.io/api/types/v1beta1
 kubesphere.io/api/types/v1beta2
 # kubesphere.io/client-go v0.0.0 => ./staging/src/kubesphere.io/client-go
-## explicit; go 1.18
+## explicit; go 1.19
 kubesphere.io/client-go/client
 kubesphere.io/client-go/client/generic
 kubesphere.io/client-go/restclient

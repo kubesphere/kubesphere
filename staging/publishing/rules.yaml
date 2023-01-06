@@ -9,6 +9,7 @@ rules:
       branch: master
       dir: staging/src/kubesphere.io/client-go
     name: master
+    go: 1.19.4
   - source:
       branch: release-3.1
       dir: staging/src/kubesphere.io/client-go
@@ -22,7 +23,7 @@ rules:
       branch: master
       dir: staging/src/kubesphere.io/api
     name: master
-    go: 1.18.9
+    go: 1.19.4
 
   smoke-test: |
     # assumes GO111MODULE=on
@@ -36,4 +37,4 @@ rules:
       branch: master
       dir: staging/src/kubesphere.io/utils
     name: master
-    go: 1.18.9
+    go: 1.19.4
