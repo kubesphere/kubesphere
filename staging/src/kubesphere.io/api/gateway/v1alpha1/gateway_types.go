@@ -38,6 +38,10 @@ type ControllerSpec struct {
 	Config map[string]string `json:"config,omitempty"`
 	// +optional
 	Scope Scope `json:"scope,omitempty"`
+	// +optional
+	TCP map[string]string `json:"tcp,omitempty"`
+	// +optional
+	UDP map[string]string `json:"udp,omitempty"`
 }
 
 type ServiceSpec struct {

@@ -56,6 +56,14 @@ spec:
                       namespace:
                         type: string
                     type: object
+                  tcp:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  udp:
+                    additionalProperties:
+                      type: string
+                    type: object
                 type: object
               deployment:
                 properties:

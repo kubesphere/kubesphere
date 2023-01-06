@@ -266,7 +266,22 @@ spec:
   imagePullSecrets: []
   # - name: secretName
 
+  # TCP service key:value pairs
+  # Ref: https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/exposing-tcp-udp-services.md
+  ##
+  {{- if .Values.controller.tcp }}
+  tcp: {{ toYaml .Values.controller.tcp | nindent 4 }}
+  {{- end }}
+  #  8080: "default/example-tcp-svc:9000"
 
+
+  # UDP service key:value pairs
+  # Ref: https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/exposing-tcp-udp-services.md
+  ##
+  {{- if .Values.controller.udp }}
+  udp: {{ toYaml .Values.controller.udp | nindent 4 }}
+  {{- end }}
+  #  53: "kube-system/kube-dns:53"
 
 
 
