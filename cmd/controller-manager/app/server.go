@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
 
 	alertingv2beta1 "kubesphere.io/api/alerting/v2beta1"
+	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
@@ -264,6 +265,11 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 	globalrulegroup := alertingv2beta1.GlobalRuleGroup{}
 	if err := globalrulegroup.SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("Unable to setup GlobalRuleGroup webhook: %v", err)
+	}
+
+	workspaceTemplate := tenantv1alpha2.WorkspaceTemplate{}
+	if err := workspaceTemplate.SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("Unable to setup WorkspaceTemplate webhook: %v", err)
 	}
 
 	klog.V(2).Info("registering metrics to the webhook server")

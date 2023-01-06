@@ -154,3 +154,32 @@ webhooks:
           - persistentvolumeclaims
         scope: '*'
     sideEffects: None
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: mutating-webhook-configuration
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: {{ b64enc $ca.Cert | quote }}
+      service:
+        name: ks-controller-manager
+        namespace: {{ .Release.Namespace }}
+        path: /mutate-tenant-kubesphere-io-v1alpha2-workspacetemplate
+    failurePolicy: Fail
+    name: workspacetemplate.tenant.kubesphere.io
+    rules:
+      - apiGroups:
+          - tenant.kubesphere.io
+        apiVersions:
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - workspacetemplates
+    sideEffects: None
