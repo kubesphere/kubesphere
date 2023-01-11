@@ -4,7 +4,6 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,53 +27,40 @@ type ResourceGetter interface {
 }
 
 // CompareFunc return true is left great than right
-type CompareFunc func(metav1.Object, metav1.Object, query.Field) bool
+type CompareFunc func(runtime.Object, runtime.Object, query.Field) bool
 
-type FilterFunc func(metav1.Object, query.Filter) bool
+type FilterFunc func(runtime.Object, query.Filter) bool
 
-type TransformFunc func(metav1.Object) runtime.Object
+type TransformFunc func(runtime.Object) runtime.Object
 
-func DefaultList(objList runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) *api.ListResult {
+func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) *api.ListResult {
 	// selected matched ones
 	var filtered []runtime.Object
+	if len(q.Filters) != 0 {
+		for _, object := range objects {
+			selected := true
+			for field, value := range q.Filters {
+				if !filterFunc(object, query.Filter{Field: field, Value: value}) {
+					selected = false
+					break
+				}
+			}
 
-	meta.EachListItem(objList, func(obj runtime.Object) error {
-		selected := true
-		o, err := meta.Accessor(obj)
-		if err != nil {
-			return err
-		}
-		for field, value := range q.Filters {
-
-			if !filterFunc(o, query.Filter{Field: field, Value: value}) {
-				selected = false
-				break
+			if selected {
+				for _, transform := range transformFuncs {
+					object = transform(object)
+				}
+				filtered = append(filtered, object)
 			}
 		}
-
-		if selected {
-			for _, transform := range transformFuncs {
-				obj = transform(o)
-			}
-			filtered = append(filtered, obj)
-		}
-		return nil
-	})
+	}
 
 	// sort by sortBy field
 	sort.Slice(filtered, func(i, j int) bool {
-		l, err := meta.Accessor(filtered[i])
-		if err != nil {
-			return false
-		}
-		r, err := meta.Accessor(filtered[j])
-		if err != nil {
-			return false
-		}
 		if !q.Ascending {
-			return compareFunc(l, r, q.SortBy)
+			return compareFunc(filtered[i], filtered[j], q.SortBy)
 		}
-		return !compareFunc(l, r, q.SortBy)
+		return !compareFunc(filtered[i], filtered[j], q.SortBy)
 	})
 
 	total := len(filtered)
@@ -154,6 +140,8 @@ func DefaultObjectMetaFilter(item metav1.Object, filter query.Filter) bool {
 		// /namespaces?page=1&limit=10&label=kubesphere.io/workspace:system-workspace
 	case query.FieldLabel:
 		return labelMatch(item.GetLabels(), string(filter.Value))
+	case query.ParameterFieldSelector:
+		return contains(item.(runtime.Object), filter.Value)
 	default:
 		return false
 	}
