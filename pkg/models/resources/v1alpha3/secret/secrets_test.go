@@ -44,26 +44,76 @@ func BenchmarkContains(b *testing.B) {
 
 }
 
-func BenchmarkDefaultList(b *testing.B) {
+func BenchmarkDefaultListWith1000(b *testing.B) {
 	s := &secretSearcher{}
-	secretList := make([]runtime.Object, 0)
-	secretList = append(secretList, testSecret)
-
-	for i := 0; i < 20; i++ {
-		ttt := testSecret.DeepCopy()
-		ttt.ObjectMeta.ResourceVersion = rand.String(10)
-		secretList = append(secretList, ttt)
-	}
 	q := query.New()
 	q.Filters[query.ParameterFieldSelector] = "metadata.resourceVersion=1234567"
+	expectedListCount := rand.Intn(20)
+	list := prepareList(testSecret, 1000, expectedListCount)
 
-	b.Run("", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			list := v1alpha3.DefaultList(secretList, q, s.compare, s.filter)
-			if list.TotalItems != 1 {
-				b.Error("test failed")
-			}
+	for i := 0; i < b.N; i++ {
+		list := v1alpha3.DefaultList(list, q, s.compare, s.filter)
+		if list.TotalItems != expectedListCount {
+			b.Error("test failed")
 		}
-	})
+	}
+}
 
+func BenchmarkDefaultListWith5000(b *testing.B) {
+	s := &secretSearcher{}
+	q := query.New()
+	q.Filters[query.ParameterFieldSelector] = "metadata.resourceVersion=1234567"
+	expectedListCount := rand.Intn(20)
+
+	list := prepareList(testSecret, 5000, expectedListCount)
+	for i := 0; i < b.N; i++ {
+		list := v1alpha3.DefaultList(list, q, s.compare, s.filter)
+		if list.TotalItems != expectedListCount {
+			b.Error("test failed")
+		}
+	}
+}
+
+func BenchmarkDefaultListWith10000(b *testing.B) {
+	s := &secretSearcher{}
+	q := query.New()
+	q.Filters[query.ParameterFieldSelector] = "metadata.resourceVersion=1234567"
+	expectedListCount := rand.Intn(20)
+	list := prepareList(testSecret, 100000, expectedListCount)
+	for i := 0; i < b.N; i++ {
+		list := v1alpha3.DefaultList(list, q, s.compare, s.filter)
+		if list.TotalItems != expectedListCount {
+			b.Error("test failed")
+		}
+	}
+}
+
+func BenchmarkDefaultListWith50000(b *testing.B) {
+	s := &secretSearcher{}
+	q := query.New()
+	q.Filters[query.ParameterFieldSelector] = "metadata.resourceVersion=1234567"
+	expectedListCount := rand.Intn(20)
+	for i := 0; i < b.N; i++ {
+		list := v1alpha3.DefaultList(prepareList(testSecret, 50000, expectedListCount), q, s.compare, s.filter)
+		if list.TotalItems != expectedListCount {
+			b.Error("test failed")
+		}
+	}
+}
+
+func prepareList(testSecret *v1.Secret, listLen, expected int) []runtime.Object {
+	secretList := make([]runtime.Object, listLen)
+
+	for i := 0; i < listLen; i++ {
+		secret := testSecret.DeepCopy()
+		secret.Name = rand.String(20)
+		secret.ObjectMeta.ResourceVersion = rand.String(10)
+		secretList[i] = secret
+	}
+
+	for i := 0; i < expected; i++ {
+		secretList[rand.Intn(listLen-1)] = testSecret
+	}
+
+	return secretList
 }
