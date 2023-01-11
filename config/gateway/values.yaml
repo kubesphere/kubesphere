@@ -15,6 +15,9 @@ controller:
     tag: "v1.1.0"
     pullPolicy: IfNotPresent
     digest: ""
+  # add configuration of forwarding tcp/udp traffic
+  tcp: {}
+  udp: {}
 
 
 service:
