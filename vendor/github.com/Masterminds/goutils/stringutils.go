@@ -222,3 +222,19 @@ func IndexOf(str string, sub string, start int) int {
 func IsEmpty(str string) bool {
 	return len(str) == 0
 }
+
+// Returns either the passed in string, or if the string is empty, the value of defaultStr.
+func DefaultString(str string, defaultStr string) string {
+	if IsEmpty(str) {
+		return defaultStr
+	}
+	return str
+}
+
+// Returns either the passed in string, or if the string is whitespace, empty (""), the value of defaultStr.
+func DefaultIfBlank(str string, defaultStr string) string {
+	if IsBlank(str) {
+		return defaultStr
+	}
+	return str
+}

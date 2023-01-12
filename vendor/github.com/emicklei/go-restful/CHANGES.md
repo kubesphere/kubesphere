@@ -1,21 +1,28 @@
-# Change history of go-restful
+# Change history of go-restful (v2 only)
 
+## v2.16.0 - 2022-07-11
 
-## [v2.14.3] - 2020-08-31
+- Backported CORS filter. #489 (#493) #503
+
+## v2.15.0 - 2020-11-10
+
+- Add OPTIONS in Webservice
+
+## v2.14.3 - 2020-08-31
 - Fixed duplicate compression in dispatch. #449
 
 
-## [v2.14.2] - 2020-08-31
+## v2.14.2 - 2020-08-31
 
 - Added check on writer to prevent compression of response twice. #447
 
-## [v2.14.0] - 2020-08-19
+## v2.14.0 - 2020-08-19
 
 - Enable content encoding on Handle and ServeHTTP (#446)
 - List available representations in 406 body (#437)
 - Convert to string using rune() (#443)
 
-## [v2.13.0] - 2020-06-21
+## v2.13.0 - 2020-06-21
 
 - 405 Method Not Allowed must have Allow header (#436)
 - add field allowedMethodsWithoutContentType (#424)

@@ -175,7 +175,7 @@ func (r *Response) WriteHeaderAndJson(status int, value interface{}, contentType
 }
 
 // WriteError writes the http status and the error string on the response. err can be nil.
-// Return an error if writing was not succesful.
+// Return an error if writing was not successful.
 func (r *Response) WriteError(httpStatus int, err error) (writeErr error) {
 	r.err = err
 	if err == nil {
