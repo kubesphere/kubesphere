@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
@@ -58,9 +59,8 @@ type ServerRunOptions struct {
 	ConfigFile              string
 	GenericServerRunOptions *genericoptions.ServerRunOptions
 	*apiserverconfig.Config
-
-	//
-	DebugMode bool
+	schemeOnce sync.Once
+	DebugMode  bool
 
 	// Enable gops or not.
 	GOPSEnabled bool
@@ -70,6 +70,7 @@ func NewServerRunOptions() *ServerRunOptions {
 	s := &ServerRunOptions{
 		GenericServerRunOptions: genericoptions.NewServerRunOptions(),
 		Config:                  apiserverconfig.New(),
+		schemeOnce:              sync.Once{},
 	}
 
 	return s
@@ -241,9 +242,11 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	sch := scheme.Scheme
-	if err := apis.AddToScheme(sch); err != nil {
-		klog.Fatalf("unable add APIs to scheme: %v", err)
-	}
+	s.schemeOnce.Do(func() {
+		if err := apis.AddToScheme(sch); err != nil {
+			klog.Fatalf("unable add APIs to scheme: %v", err)
+		}
+	})
 
 	apiServer.RuntimeCache, err = runtimecache.New(apiServer.KubernetesClient.Config(), runtimecache.Options{Scheme: sch})
 	if err != nil {
