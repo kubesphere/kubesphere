@@ -52,7 +52,7 @@ type openpitrixHandler struct {
 	openpitrix openpitrix.Interface
 }
 
-func NewOpenpitrixClient(ksInformers informers.InformerFactory, ksClient versioned.Interface, option *openpitrixoptions.Options, cc clusterclient.ClusterClients, stopCh <-chan struct{}) openpitrix.Interface {
+func NewOpenpitrixClient(ksInformers informers.InformerFactory, ksClient versioned.Interface, option *openpitrixoptions.Options, cc clusterclient.ClusterClients) openpitrix.Interface {
 	var s3Client s3.Interface
 	if option != nil && option.S3Options != nil && len(option.S3Options.Endpoint) != 0 {
 		var err error
@@ -62,7 +62,7 @@ func NewOpenpitrixClient(ksInformers informers.InformerFactory, ksClient version
 		}
 	}
 
-	return openpitrix.NewOpenpitrixOperator(ksInformers, ksClient, s3Client, cc, stopCh)
+	return openpitrix.NewOpenpitrixOperator(ksInformers, ksClient, s3Client, cc)
 }
 
 func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Response) {
