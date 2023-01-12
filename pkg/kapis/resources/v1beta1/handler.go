@@ -11,7 +11,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
 )
 
-func New(lister v1beta1.ResourceLister, componentsGetter components.ComponentsGetter) Handler {
+func New(lister v1beta1.ResourceGetter, componentsGetter components.ComponentsGetter) Handler {
 	return Handler{
 		lister:           lister,
 		registryHelper:   v2.NewRegistryHelper(),
@@ -20,7 +20,7 @@ func New(lister v1beta1.ResourceLister, componentsGetter components.ComponentsGe
 }
 
 type Handler struct {
-	lister           v1beta1.ResourceLister
+	lister           v1beta1.ResourceGetter
 	registryHelper   v2.RegistryHelper
 	componentsGetter components.ComponentsGetter
 }

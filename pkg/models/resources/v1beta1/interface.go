@@ -22,7 +22,7 @@ type Interface interface {
 	List(namespace string, query *query.Query, object client.ObjectList) error
 }
 
-type ResourceLister interface {
+type ResourceGetter interface {
 	GetResource(schema.GroupVersionResource, string, string) (client.Object, error)
 	ListResources(schema.GroupVersionResource, string, *query.Query) (client.ObjectList, error)
 }
