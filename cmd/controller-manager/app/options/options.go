@@ -242,4 +242,5 @@ func (s *KubeSphereControllerManagerOptions) MergeConfig(cfg *controllerconfig.C
 	s.MultiClusterOptions = cfg.MultiClusterOptions
 	s.ServiceMeshOptions = cfg.ServiceMeshOptions
 	s.GatewayOptions = cfg.GatewayOptions
+	s.MonitoringOptions = cfg.MonitoringOptions
 }
