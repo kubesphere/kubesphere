@@ -394,6 +394,10 @@ func waitForCacheSync(discoveryClient discovery.DiscoveryInterface, sharedInform
 			return err
 		})
 		if err != nil {
+			if errors.IsNotFound(err) {
+				klog.Warningf("group version %s not exists in the cluster", groupVersion)
+				continue
+			}
 			return fmt.Errorf("failed to fetch group version resources %s: %s", groupVersion, err)
 		}
 		for _, resourceName := range resourceNames {
