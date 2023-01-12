@@ -160,7 +160,7 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   creationTimestamp: null
-  name: mutating-webhook-configuration
+  name: worksapcetemplate.tenant.kubesphere.io
 webhooks:
   - admissionReviewVersions:
       - v1
