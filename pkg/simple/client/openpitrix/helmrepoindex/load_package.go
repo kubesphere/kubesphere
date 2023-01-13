@@ -74,6 +74,10 @@ func (h HelmVersionWrapper) GetKeywords() string {
 	return strings.Join(h.ChartVersion.Keywords, ",")
 }
 
+func (h HelmVersionWrapper) GetRawKeywords() []string {
+	return h.ChartVersion.Keywords
+}
+
 func (h HelmVersionWrapper) GetRawMaintainers() []*v1alpha1.Maintainer {
 	mt := make([]*v1alpha1.Maintainer, 0, len(h.Maintainers))
 	for _, value := range h.Maintainers {
