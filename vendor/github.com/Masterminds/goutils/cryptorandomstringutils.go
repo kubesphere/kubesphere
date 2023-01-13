@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"regexp"
 	"unicode"
 )
 
@@ -99,27 +98,7 @@ Returns:
 	error - an error stemming from an invalid parameter within underlying function, CryptoRandom(...)
 */
 func CryptoRandomAlphaNumeric(count int) (string, error) {
-	if count == 0 {
-		return "", nil
-	}
-	RandomString, err := CryptoRandom(count, 0, 0, true, true)
-	if err != nil {
-		return "", fmt.Errorf("Error: %s", err)
-	}
-	match, err := regexp.MatchString("([0-9]+)", RandomString)
-	if err != nil {
-		panic(err)
-	}
-
-	if !match {
-		//Get the position between 0 and the length of the string-1  to insert a random number
-		position := getCryptoRandomInt(count)
-		//Insert a random number between [0-9] in the position
-		RandomString = RandomString[:position] + string('0' + getCryptoRandomInt(10)) + RandomString[position + 1:]
-		return RandomString, err
-	}
-	return RandomString, err
-
+	return CryptoRandom(count, 0, 0, true, true)
 }
 
 /*
@@ -204,7 +183,7 @@ func CryptoRandom(count int, start int, end int, letters bool, numbers bool, cha
 		if chars == nil {
 			ch = rune(getCryptoRandomInt(gap) + int64(start))
 		} else {
-			ch = chars[getCryptoRandomInt(gap) + int64(start)]
+			ch = chars[getCryptoRandomInt(gap)+int64(start)]
 		}
 
 		if letters && unicode.IsLetter(ch) || numbers && unicode.IsDigit(ch) || !letters && !numbers {

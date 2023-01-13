@@ -36,11 +36,12 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/gomega v1.24.2 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
-	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	golang.org/x/tools v0.4.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
@@ -89,23 +90,19 @@ replace (
 	github.com/nxadm/tail => github.com/nxadm/tail v1.4.4
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.10.1
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common => github.com/prometheus/common v0.10.0
 	github.com/prometheus/procfs => github.com/prometheus/procfs v0.1.3
 	github.com/stretchr/testify => github.com/stretchr/testify v1.4.0
 	go.uber.org/atomic => go.uber.org/atomic v1.6.0
 	go.uber.org/goleak => go.uber.org/goleak v1.1.0
 	go.uber.org/multierr => go.uber.org/multierr v1.3.0
-	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20190121172915-509febef88a4
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
 	golang.org/x/mod => golang.org/x/mod v0.4.0
-	golang.org/x/net => golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d
 	golang.org/x/term => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
-	golang.org/x/text => golang.org/x/text v0.3.0
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
 	golang.org/x/xerrors => golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7

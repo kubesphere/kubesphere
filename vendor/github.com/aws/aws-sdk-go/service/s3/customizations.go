@@ -1,10 +1,12 @@
 package s3
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/internal/s3err"
-	"github.com/aws/aws-sdk-go/service/s3/internal/arn"
+	"github.com/aws/aws-sdk-go/internal/s3shared/arn"
+	"github.com/aws/aws-sdk-go/internal/s3shared/s3err"
 )
 
 func init() {
@@ -13,6 +15,14 @@ func init() {
 }
 
 func defaultInitClientFn(c *client.Client) {
+	if c.Config.UseDualStackEndpoint == endpoints.DualStackEndpointStateUnset {
+		if aws.BoolValue(c.Config.UseDualStack) {
+			c.Config.UseDualStackEndpoint = endpoints.DualStackEndpointStateEnabled
+		} else {
+			c.Config.UseDualStackEndpoint = endpoints.DualStackEndpointStateDisabled
+		}
+	}
+
 	// Support building custom endpoints based on config
 	c.Handlers.Build.PushFront(endpointHandler)
 
@@ -33,12 +43,6 @@ func defaultInitRequestFn(r *request.Request) {
 	platformRequestHandlers(r)
 
 	switch r.Operation.Name {
-	case opPutBucketCors, opPutBucketLifecycle, opPutBucketPolicy,
-		opPutBucketTagging, opDeleteObjects, opPutBucketLifecycleConfiguration,
-		opPutObjectLegalHold, opPutObjectRetention, opPutObjectLockConfiguration,
-		opPutBucketReplication:
-		// These S3 operations require Content-MD5 to be set
-		r.Handlers.Build.PushBack(contentMD5)
 	case opGetBucketLocation:
 		// GetBucketLocation has custom parsing logic
 		r.Handlers.Unmarshal.PushFront(buildGetBucketLocation)
@@ -46,7 +50,7 @@ func defaultInitRequestFn(r *request.Request) {
 		// Auto-populate LocationConstraint with current region
 		r.Handlers.Validate.PushFront(populateLocationConstraint)
 	case opCopyObject, opUploadPartCopy, opCompleteMultipartUpload:
-		r.Handlers.Unmarshal.PushFront(copyMultipartStatusOKUnmarhsalError)
+		r.Handlers.Unmarshal.PushFront(copyMultipartStatusOKUnmarshalError)
 		r.Handlers.Unmarshal.PushBackNamed(s3err.RequestFailureWrapperHandler())
 	case opPutObject, opUploadPart:
 		r.Handlers.Build.PushBack(computeBodyHashes)
@@ -54,6 +58,8 @@ func defaultInitRequestFn(r *request.Request) {
 		//	case opGetObject:
 		//		r.Handlers.Build.PushBack(askForTxEncodingAppendMD5)
 		//		r.Handlers.Unmarshal.PushBack(useMD5ValidationReader)
+	case opWriteGetObjectResponse:
+		r.Handlers.Build.PushFront(buildWriteGetObjectResponseEndpoint)
 	}
 }
 
@@ -75,6 +81,8 @@ type copySourceSSECustomerKeyGetter interface {
 	getCopySourceSSECustomerKey() string
 }
 
+// endpointARNGetter is an accessor interface to grab the
+// the field corresponding to an endpoint ARN input.
 type endpointARNGetter interface {
 	getEndpointARN() (arn.Resource, error)
 	hasEndpointARN() bool

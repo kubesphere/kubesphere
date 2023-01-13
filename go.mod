@@ -23,7 +23,7 @@ require (
 	github.com/elastic/go-elasticsearch/v5 v5.6.1
 	github.com/elastic/go-elasticsearch/v6 v6.8.2
 	github.com/elastic/go-elasticsearch/v7 v7.3.0
-	github.com/emicklei/go-restful v2.14.3+incompatible
+	github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/emicklei/go-restful-openapi v1.4.1
 	github.com/evanphx/json-patch v5.6.0+incompatible
 	github.com/fatih/structs v1.1.0
@@ -74,8 +74,8 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+	golang.org/x/crypto v0.5.0
+	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	google.golang.org/grpc v1.49.0
 	gopkg.in/cas.v2 v2.2.0
 	gopkg.in/square/go-jose.v2 v2.5.1
@@ -137,7 +137,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/deckarep/golang-set v1.7.1 // indirect
-	github.com/docker/cli v20.10.21+incompatible // indirect
+	github.com/docker/cli v20.10.22+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -159,6 +159,7 @@ require (
 	github.com/go-openapi/runtime v0.19.15 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/go-resty/resty/v2 v2.5.0 // indirect
+	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/flect v0.3.0 // indirect
 	github.com/gobuffalo/genny v0.1.1 // indirect
@@ -233,7 +234,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rubenv/sql-migrate v1.1.2 // indirect
-	github.com/russross/blackfriday v1.5.2 // indirect
+	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
@@ -266,15 +267,16 @@ require (
 	go.opentelemetry.io/proto/otlp v0.16.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/goleak v1.2.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
 	go.uber.org/zap v1.19.1 // indirect
-	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/net v0.4.0 // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
+	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	golang.org/x/tools v0.4.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
@@ -329,7 +331,7 @@ replace (
 	github.com/GeertJohan/go.rice => github.com/GeertJohan/go.rice v1.0.0
 	github.com/Knetic/govaluate => github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
 	github.com/MakeNowJust/heredoc => github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e
-	github.com/Masterminds/goutils => github.com/Masterminds/goutils v1.1.0
+	github.com/Masterminds/goutils => github.com/Masterminds/goutils v1.1.1
 	github.com/Masterminds/semver/v3 => github.com/Masterminds/semver/v3 v3.0.1
 	github.com/Masterminds/sprig/v3 => github.com/Masterminds/sprig/v3 v3.0.0
 	github.com/Masterminds/squirrel => github.com/Masterminds/squirrel v0.0.0-20161115235646-20f192218cf5
@@ -373,7 +375,7 @@ replace (
 	github.com/aryann/difflib => github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/asaskevich/govalidator => github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496
 	github.com/aws/aws-lambda-go => github.com/aws/aws-lambda-go v1.13.3
-	github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.30.12
+	github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.43.16
 	github.com/aws/aws-sdk-go-v2 => github.com/aws/aws-sdk-go-v2 v0.18.0
 	github.com/beevik/etree => github.com/beevik/etree v1.1.0
 	github.com/beevik/ntp => github.com/beevik/ntp v0.2.0
@@ -488,10 +490,11 @@ replace (
 	github.com/dgryski/go-farm => github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13
 	github.com/dgryski/go-sip13 => github.com/dgryski/go-sip13 v0.0.0-20190329191031-25c5027a8c7b
 	github.com/dhui/dktest => github.com/dhui/dktest v0.3.0
+	github.com/digitalocean/godo => github.com/digitalocean/godo v1.42.1
 	github.com/distribution/distribution/v3 => github.com/distribution/distribution/v3 v3.0.0-20220526142353-ffbd94cbe269
 	github.com/dnaeon/go-vcr => github.com/dnaeon/go-vcr v1.0.1
-	github.com/docker/cli => github.com/docker/cli v0.0.0-20190506213505-d88565df0c2d
-	github.com/docker/distribution => github.com/docker/distribution v2.7.1+incompatible
+	github.com/docker/cli => github.com/docker/cli v20.10.22+incompatible
+	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/docker => github.com/docker/engine v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/docker/docker-credential-helpers => github.com/docker/docker-credential-helpers v0.6.1
 	github.com/docker/go-connections => github.com/docker/go-connections v0.4.0
@@ -515,7 +518,7 @@ replace (
 	github.com/elazarl/goproxy => github.com/elazarl/goproxy v0.0.0-20200315184450-1f3cb6622dad
 	github.com/elazarl/goproxy/ext => github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2
 	github.com/ema/qdisc => github.com/ema/qdisc v0.0.0-20190904071900-b82c76788043
-	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.14.3+incompatible
+	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/emicklei/go-restful-openapi => github.com/emicklei/go-restful-openapi v1.4.1
 	github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.8.0
 	github.com/emirpasic/gods => github.com/emirpasic/gods v1.12.0
@@ -669,6 +672,7 @@ replace (
 	github.com/hashicorp/mdns => github.com/hashicorp/mdns v1.0.1
 	github.com/hashicorp/memberlist => github.com/hashicorp/memberlist v0.2.0
 	github.com/hashicorp/serf => github.com/hashicorp/serf v0.9.0
+	github.com/hetznercloud/hcloud-go => github.com/hetznercloud/hcloud-go v1.21.1
 	github.com/hodgesds/perf-utils => github.com/hodgesds/perf-utils v0.0.8
 	github.com/huandu/xstrings => github.com/huandu/xstrings v1.2.0
 	github.com/hudl/fargo => github.com/hudl/fargo v1.3.0
@@ -762,7 +766,7 @@ replace (
 	github.com/mdlayher/netlink => github.com/mdlayher/netlink v1.1.0
 	github.com/mdlayher/wifi => github.com/mdlayher/wifi v0.0.0-20190303161829-b1436901ddee
 	github.com/mgutz/ansi => github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
-	github.com/miekg/dns => github.com/miekg/dns v1.1.29
+	github.com/miekg/dns => github.com/miekg/dns v1.1.25-0.20191211073109-8ebf2e419df7
 	github.com/miekg/pkcs11 => github.com/miekg/pkcs11 v1.0.3
 	github.com/mikefarah/yaml/v2 => github.com/mikefarah/yaml/v2 v2.4.0
 	github.com/mikefarah/yq/v2 => github.com/mikefarah/yq/v2 v2.4.1
@@ -819,7 +823,7 @@ replace (
 	github.com/op/go-logging => github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/open-policy-agent/opa => github.com/open-policy-agent/opa v0.45.0
 	github.com/opencontainers/go-digest => github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
+	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.2
 	github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.10.0
@@ -864,12 +868,12 @@ replace (
 	github.com/prometheus-operator/prometheus-operator => github.com/prometheus-operator/prometheus-operator v0.42.2-0.20200928114327-fbd01683839a
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring => github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.42.1
 	github.com/prometheus/alertmanager => github.com/prometheus/alertmanager v0.20.0
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/client_model => github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common => github.com/prometheus/common v0.10.0
 	github.com/prometheus/node_exporter => github.com/prometheus/node_exporter v1.0.0-rc.0.0.20200428091818-01054558c289
 	github.com/prometheus/procfs => github.com/prometheus/procfs v0.1.3
-	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20200507164740-ecee9c8abfd1
+	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
 	github.com/rafaeljusto/redigomock => github.com/rafaeljusto/redigomock v0.0.0-20190202135759-257e089e14a1
 	github.com/rainycape/unidecode => github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be
 	github.com/rcrowley/go-metrics => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
@@ -1008,17 +1012,17 @@ replace (
 	go.uber.org/multierr => go.uber.org/multierr v1.3.0
 	go.uber.org/tools => go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
 	go.uber.org/zap => go.uber.org/zap v1.19.1
-	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	golang.org/x/crypto => golang.org/x/crypto v0.5.0
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20190121172915-509febef88a4
 	golang.org/x/image => golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
 	golang.org/x/mod => golang.org/x/mod v0.4.0
-	golang.org/x/net => golang.org/x/net v0.0.0-20210525063256-abc453219eb5
+	golang.org/x/net => golang.org/x/net v0.5.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d
 	golang.org/x/term => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
-	golang.org/x/text => golang.org/x/text v0.3.0
+	golang.org/x/text => golang.org/x/text v0.6.0
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
 	golang.org/x/xerrors => golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
