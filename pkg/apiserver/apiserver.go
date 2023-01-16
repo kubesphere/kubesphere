@@ -342,6 +342,9 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	handler := s.Server.Handler
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 
+	middleware := proxies.NewUnregisteredMiddleware(s.container, resourcev1beta1.New(s.RuntimeClient, s.RuntimeCache))
+	handler = filters.WithMiddleware(handler, middleware)
+
 	if s.Config.AuditingOptions.Enable {
 		handler = filters.WithAuditing(handler,
 			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions, stopCh))
@@ -382,8 +385,6 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		bearertoken.New(jwt.NewTokenAuthenticator(
 			auth.NewTokenOperator(s.CacheClient, s.Issuer, s.Config.AuthenticationOptions),
 			userLister)))
-	middleware := proxies.NewUnregisteredMiddleware(s.container, resourcev1beta1.New(s.RuntimeClient, s.RuntimeCache))
-	handler = filters.WithMiddleware(handler, middleware)
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 	s.Server.Handler = handler
