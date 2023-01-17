@@ -1,15 +1,20 @@
 package v1beta1
 
 import (
+	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
+	"github.com/oliveagle/jsonpath"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
@@ -33,7 +38,7 @@ type FilterFunc func(runtime.Object, query.Filter) bool
 
 type TransformFunc func(runtime.Object) runtime.Object
 
-func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) *api.ListResult {
+func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) []runtime.Object {
 	// selected matched ones
 	var filtered []runtime.Object
 	if len(q.Filters) != 0 {
@@ -71,10 +76,7 @@ func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFu
 
 	start, end := q.Pagination.GetValidPagination(total)
 
-	return &api.ListResult{
-		TotalItems: len(filtered),
-		Items:      objectsToInterfaces(filtered[start:end]),
-	}
+	return filtered[start:end]
 }
 
 // DefaultObjectMetaCompare return true is left great than right
@@ -176,10 +178,49 @@ func labelMatch(labels map[string]string, filter string) bool {
 	return false
 }
 
-func objectsToInterfaces(objs []runtime.Object) []interface{} {
-	res := make([]interface{}, 0)
-	for _, obj := range objs {
-		res = append(res, obj)
+// implement a generic query filter to support multiple field selectors with "jsonpath.JsonPathLookup"
+// https://github.com/oliveagle/jsonpath/blob/master/readme.md
+func contains(object runtime.Object, queryValue query.Value) bool {
+	// call the ParseSelector function of "k8s.io/apimachinery/pkg/fields/selector.go" to validate and parse the selector
+	fieldSelector, err := fields.ParseSelector(string(queryValue))
+	if err != nil {
+		klog.V(4).Infof("failed parse selector error: %s", err)
+		return false
 	}
-	return res
+	for _, requirement := range fieldSelector.Requirements() {
+		var negative bool
+		// supports '=', '==' and '!='.(e.g. ?fieldSelector=key1=value1,key2=value2)
+		// fields.ParseSelector(FieldSelector) has handled the case where the operator is '==' and converted it to '=',
+		// so case selection.DoubleEquals can be ignored here.
+		switch requirement.Operator {
+		case selection.NotEquals:
+			negative = true
+		case selection.Equals:
+			negative = false
+		}
+		key := requirement.Field
+		value := requirement.Value
+
+		var input map[string]interface{}
+		data, err := json.Marshal(object)
+		if err != nil {
+			klog.V(4).Infof("failed marshal to JSON string: %s", err)
+			return false
+		}
+		if err = json.Unmarshal(data, &input); err != nil {
+			klog.V(4).Infof("failed unmarshal to map object: %s", err)
+			return false
+		}
+		rawValue, err := jsonpath.JsonPathLookup(input, "$."+key)
+		if err != nil {
+			klog.V(4).Infof("failed to lookup jsonpath: %s", err)
+			return false
+		}
+		if (negative && fmt.Sprintf("%v", rawValue) != value) || (!negative && fmt.Sprintf("%v", rawValue) == value) {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
 }
