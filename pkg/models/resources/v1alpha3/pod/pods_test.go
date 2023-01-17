@@ -78,7 +78,7 @@ func TestListPods(t *testing.T) {
 			nil,
 		},
 		{
-			"test status filter",
+			"test phase filter",
 			"default",
 			&query.Query{
 				Pagination: &query.Pagination{
@@ -89,7 +89,7 @@ func TestListPods(t *testing.T) {
 				Ascending: false,
 				Filters: map[query.Field]query.Value{
 					query.FieldNamespace: query.Value("default"),
-					fieldStatus:          query.Value(corev1.PodRunning),
+					fieldPhase:           query.Value(corev1.PodRunning),
 				},
 			},
 			&api.ListResult{
@@ -163,6 +163,7 @@ var (
 			Phase: corev1.PodRunning,
 		},
 	}
+
 	pods = []interface{}{foo1, foo2, foo3, foo4, foo5}
 )
 
