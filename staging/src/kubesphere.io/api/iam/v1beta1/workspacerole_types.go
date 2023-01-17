@@ -49,7 +49,3 @@ type WorkspaceRoleList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []WorkspaceRole `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&WorkspaceRole{}, &WorkspaceRoleList{})
-}

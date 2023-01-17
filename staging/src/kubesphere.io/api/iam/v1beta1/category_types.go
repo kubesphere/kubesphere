@@ -52,7 +52,3 @@ type CategoryList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Category `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&Category{}, &CategoryList{})
-}

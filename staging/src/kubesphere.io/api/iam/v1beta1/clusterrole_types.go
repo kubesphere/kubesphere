@@ -47,7 +47,3 @@ type ClusterRoleList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClusterRole `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ClusterRole{}, &ClusterRoleList{})
-}

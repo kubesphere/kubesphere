@@ -54,7 +54,3 @@ type RoleTemplateList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []RoleTemplate `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&RoleTemplate{}, &RoleTemplateList{})
-}
