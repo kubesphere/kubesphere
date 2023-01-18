@@ -5,7 +5,7 @@
 # Download dependencies
 FROM alpine:3.16.2 as base_os_context
 
-ARG INGRESS_NGINX_VERSION=4.0.13
+ARG INGRESS_NGINX_VERSION=4.2.5
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/var/helm-charts
