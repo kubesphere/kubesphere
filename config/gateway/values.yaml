@@ -12,7 +12,7 @@ controller:
     namespace: ""  # defaults to .Release.Namespace
   image:
     repository: kubesphere/nginx-ingress-controller
-    tag: "v1.1.0"
+    tag: "v1.3.1"
     pullPolicy: IfNotPresent
     digest: ""
   # add configuration of forwarding tcp/udp traffic
