@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/server/healthz"
 	"net/http"
 	rt "runtime"
 	"strconv"
@@ -183,6 +184,7 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	s.installKubeSphereAPIs(stopCh)
 	s.installCRDAPIs()
 	s.installMetricsAPI()
+	s.installHealthz()
 	s.container.Filter(monitorRequest)
 
 	for _, ws := range s.container.RegisteredWebServices() {
@@ -287,6 +289,11 @@ func (s *APIServer) installCRDAPIs() {
 	urlruntime.Must(crd.AddToContainer(s.container, s.RuntimeClient, s.RuntimeCache, crds))
 }
 
+// installHealthz creates the healthz endpoint for this server
+func (s *APIServer) installHealthz() {
+	urlruntime.Must(healthz.InstallHandler(s.container, []healthz.HealthChecker{}...))
+}
+
 func (s *APIServer) Run(ctx context.Context) (err error) {
 
 	err = s.waitForResourceSync(ctx)
@@ -357,7 +364,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	default:
 		fallthrough
 	case authorization.RBAC:
-		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics"}
+		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics", "/healthz"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory, s.DevopsClient)
 		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))
