@@ -14,13 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Following code copied from https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apiserver/pkg/server/healthz/healthz.go
+
 package healthz
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog/v2"
-	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/server/errors"
 )

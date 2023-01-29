@@ -20,12 +20,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/server/healthz"
 	"net/http"
 	rt "runtime"
 	"strconv"
 	"sync"
 	"time"
+
+	"kubesphere.io/kubesphere/pkg/server/healthz"
 
 	"github.com/emicklei/go-restful"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
