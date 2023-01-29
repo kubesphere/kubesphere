@@ -16,9 +16,11 @@ package openpitrix
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -103,7 +105,7 @@ func newApplicationOperator(cached reposcache.ReposCache, informers externalvers
 }
 
 // save icon data and helm application
-func (c *applicationOperator) createApp(app *v1alpha1.HelmApplication, iconData []byte) (*v1alpha1.HelmApplication, error) {
+func (c *applicationOperator) createApp(app *v1alpha1.HelmApplication, iconData string) (*v1alpha1.HelmApplication, error) {
 	exists, err := c.getHelmAppByName(app.GetWorkspace(), app.GetTrueName())
 	if err != nil {
 		return nil, err
@@ -111,11 +113,18 @@ func (c *applicationOperator) createApp(app *v1alpha1.HelmApplication, iconData 
 	if exists != nil {
 		return nil, appItemExists
 	}
-
-	if len(iconData) != 0 {
+	if strings.HasPrefix(iconData, "http://") || strings.HasPrefix(iconData, "https://") {
+		app.Spec.Icon = iconData
+	} else if len(iconData) != 0 {
 		// save icon attachment
 		iconId := idutils.GetUuid(v1alpha1.HelmAttachmentPrefix)
-		err = c.backingStoreClient.Upload(iconId, iconId, bytes.NewBuffer(iconData), len(iconData))
+		decodeString, err := base64.StdEncoding.DecodeString(iconData)
+		if err != nil {
+			klog.Errorf("decodeString icon  failed, error: %s", err)
+			return nil, err
+		}
+
+		err = c.backingStoreClient.Upload(iconId, iconId, bytes.NewBuffer(decodeString), len(iconData))
 		if err != nil {
 			klog.Errorf("save icon attachment failed, error: %s", err)
 			return nil, err
@@ -167,6 +176,7 @@ func (c *applicationOperator) ValidatePackage(request *ValidatePackageRequest) (
 		result.VersionName = chrt.GetVersionName()
 		result.Description = chrt.GetDescription()
 		result.URL = chrt.GetUrls()
+		result.Icon = chrt.GetIcon()
 	}
 
 	return result, nil

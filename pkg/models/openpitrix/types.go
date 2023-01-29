@@ -288,7 +288,7 @@ type AppVersionReview struct {
 type CreateAppRequest struct {
 
 	// app icon
-	Icon strfmt.Base64 `json:"icon,omitempty"`
+	Icon string `json:"icon,omitempty"`
 
 	// isv
 	Isv string `json:"isv,omitempty"`
@@ -413,6 +413,8 @@ type ValidatePackageResponse struct {
 
 	// app version name.eg.[0.1.0]
 	VersionName string `json:"version_name,omitempty"`
+
+	Icon string `json:"icon,omitempty"`
 }
 
 type CreateAppVersionRequest struct {
