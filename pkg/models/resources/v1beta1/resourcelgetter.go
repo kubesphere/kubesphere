@@ -39,15 +39,6 @@ type resourceGetter struct {
 
 func (h *resourceGetter) GetResource(gvr schema.GroupVersionResource, name, namespace string) (client.Object, error) {
 	var obj client.Object
-	serviced, err := h.isServed(gvr)
-	if err != nil {
-		return nil, err
-	}
-
-	if !serviced {
-		return nil, ErrResourceNotServed
-	}
-
 	gvk, err := h.getGVK(gvr)
 	if err != nil {
 		return nil, err
@@ -60,6 +51,14 @@ func (h *resourceGetter) GetResource(gvr schema.GroupVersionResource, name, name
 		}
 		obj = gvkObject.(client.Object)
 	} else {
+		serviced, err := h.isServed(gvr)
+		if err != nil {
+			return nil, err
+		}
+		if !serviced {
+			return nil, ErrResourceNotServed
+		}
+
 		u := &unstructured.Unstructured{}
 		u.SetGroupVersionKind(gvk)
 		obj = u
@@ -73,14 +72,6 @@ func (h *resourceGetter) GetResource(gvr schema.GroupVersionResource, name, name
 
 func (h *resourceGetter) ListResources(gvr schema.GroupVersionResource, namespace string, query *query.Query) (client.ObjectList, error) {
 	var obj client.ObjectList
-	serviced, err := h.isServed(gvr)
-	if err != nil {
-		return nil, err
-	}
-
-	if !serviced {
-		return nil, ErrResourceNotServed
-	}
 
 	gvk, err := h.getGVK(gvr)
 	if err != nil {
@@ -96,6 +87,13 @@ func (h *resourceGetter) ListResources(gvr schema.GroupVersionResource, namespac
 		}
 		obj = gvkObject.(client.ObjectList)
 	} else {
+		serviced, err := h.isServed(gvr)
+		if err != nil {
+			return nil, err
+		}
+		if !serviced {
+			return nil, ErrResourceNotServed
+		}
 		u := &unstructured.UnstructuredList{}
 		u.SetGroupVersionKind(gvk)
 		obj = u
