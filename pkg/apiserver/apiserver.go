@@ -26,8 +26,6 @@ import (
 	"sync"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/server/healthz"
-
 	"github.com/emicklei/go-restful"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -103,6 +101,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
+	"kubesphere.io/kubesphere/pkg/server/healthz"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -217,7 +216,8 @@ func (s *APIServer) installMetricsAPI() {
 
 // Install all kubesphere api groups
 // Installation happens before all informers start to cache objects, so
-//   any attempt to list objects using listers will get empty results.
+//
+//	any attempt to list objects using listers will get empty results.
 func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 	imOperator := im.NewOperator(s.KubernetesClient.KubeSphere(),
 		user.New(s.InformerFactory.KubeSphereSharedInformerFactory(),
