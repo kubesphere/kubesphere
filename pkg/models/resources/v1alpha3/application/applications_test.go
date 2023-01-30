@@ -58,7 +58,7 @@ func compare(actual *appv1beta1.Application, expects ...*appv1beta1.Application)
 }
 
 func TestGetListApplications(t *testing.T) {
-	e := &envtest.Environment{CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "..", "config", "crds")}}
+	e := &envtest.Environment{CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "..", "config", "ks-core", "crds")}}
 	cfg, err := e.Start()
 	if err != nil {
 		t.Fatal(err)
