@@ -101,6 +101,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
+	"kubesphere.io/kubesphere/pkg/server/healthz"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -183,6 +184,7 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	s.installKubeSphereAPIs(stopCh)
 	s.installCRDAPIs()
 	s.installMetricsAPI()
+	s.installHealthz()
 	s.container.Filter(monitorRequest)
 
 	for _, ws := range s.container.RegisteredWebServices() {
@@ -214,7 +216,8 @@ func (s *APIServer) installMetricsAPI() {
 
 // Install all kubesphere api groups
 // Installation happens before all informers start to cache objects, so
-//   any attempt to list objects using listers will get empty results.
+//
+//	any attempt to list objects using listers will get empty results.
 func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 	imOperator := im.NewOperator(s.KubernetesClient.KubeSphere(),
 		user.New(s.InformerFactory.KubeSphereSharedInformerFactory(),
@@ -287,6 +290,11 @@ func (s *APIServer) installCRDAPIs() {
 	urlruntime.Must(crd.AddToContainer(s.container, s.RuntimeClient, s.RuntimeCache, crds))
 }
 
+// installHealthz creates the healthz endpoint for this server
+func (s *APIServer) installHealthz() {
+	urlruntime.Must(healthz.InstallHandler(s.container, []healthz.HealthChecker{}...))
+}
+
 func (s *APIServer) Run(ctx context.Context) (err error) {
 
 	err = s.waitForResourceSync(ctx)
@@ -357,7 +365,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	default:
 		fallthrough
 	case authorization.RBAC:
-		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics"}
+		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics", "/healthz"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory, s.DevopsClient)
 		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))
