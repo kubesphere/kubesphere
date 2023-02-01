@@ -20,6 +20,8 @@ import (
 	"reflect"
 	"testing"
 
+	"kubesphere.io/kubesphere/pkg/models/iam/v1alpha2/am"
+
 	"github.com/google/go-cmp/cmp"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +41,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/models/iam/am"
 )
 
 func TestTenantOperator_ListWorkspaces(t *testing.T) {

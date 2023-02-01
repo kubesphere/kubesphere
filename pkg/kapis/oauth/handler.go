@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/models/iam/v1alpha2/im"
+
 	"gopkg.in/square/go-jose.v2"
 
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -48,7 +50,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/auth"
-	"kubesphere.io/kubesphere/pkg/models/iam/im"
 )
 
 const (

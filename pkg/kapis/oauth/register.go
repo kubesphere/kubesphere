@@ -19,6 +19,8 @@ package oauth
 import (
 	"net/http"
 
+	"kubesphere.io/kubesphere/pkg/models/iam/v1alpha2/im"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 
 	"github.com/emicklei/go-restful"
@@ -28,7 +30,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/auth"
-	"kubesphere.io/kubesphere/pkg/models/iam/im"
 )
 
 const contentTypeFormData = "application/x-www-form-urlencoded"

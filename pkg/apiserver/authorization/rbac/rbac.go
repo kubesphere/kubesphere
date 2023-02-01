@@ -24,20 +24,17 @@ import (
 	"fmt"
 
 	"github.com/open-policy-agent/opa/rego"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
-	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	"kubesphere.io/kubesphere/pkg/models/iam/am"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-
-	"k8s.io/klog/v2"
-
 	rbacv1 "k8s.io/api/rbac/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/klog/v2"
+
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/models/iam/v1alpha2/am"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 const (

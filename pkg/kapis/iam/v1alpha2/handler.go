@@ -20,6 +20,10 @@ import (
 	"fmt"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/models/iam/v1alpha2/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/v1alpha2/group"
+	"kubesphere.io/kubesphere/pkg/models/iam/v1alpha2/im"
+
 	authuser "k8s.io/apiserver/pkg/authentication/user"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -36,9 +40,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	apirequest "kubesphere.io/kubesphere/pkg/apiserver/request"
-	"kubesphere.io/kubesphere/pkg/models/iam/am"
-	"kubesphere.io/kubesphere/pkg/models/iam/group"
-	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
 )
 
