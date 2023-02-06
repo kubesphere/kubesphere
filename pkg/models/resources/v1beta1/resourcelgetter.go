@@ -3,9 +3,10 @@ package v1beta1
 import (
 	"context"
 	"errors"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"strings"
 	"sync"
+
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 

@@ -21,7 +21,7 @@ func NewKapisPathParameterExtractor() PathParameterExtractor {
 	return &kapisPathParameterExtractor{
 		clusterResPathParts: getPathParts(clusterResourcePath),
 		namespacedResParts:  getPathParts(namespacedResourcePath),
-		reg:                 regexp.MustCompile("\\{([a-z]+)\\}"),
+		reg:                 regexp.MustCompile(`\{([a-z0-9]+)\}`),
 	}
 }
 
