@@ -1,32 +1,52 @@
 package v1beta1
 
 import (
+	"context"
 	"errors"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"strings"
+	"sync"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var ErrResourceNotSupported = errors.New("resource is not supported")
+var ErrResourceNotServed = errors.New("resource is not served")
 
-func New(client client.Client, cache Interface) ResourceGetter {
+const labelResourceServed = "kubesphere.io/resource-served"
+
+// TODO If delete the crd at the cluster when ks is running, the client.cache doesn`t return err but empty result
+func New(client client.Client, cache cache.Cache) ResourceGetter {
 	return &resourceGetter{
-		client: client,
-		cache:  cache,
+		client:   client,
+		cache:    NewResourceCache(cache),
+		serveCRD: make(map[string]bool, 0),
 	}
 }
 
 type resourceGetter struct {
-	client client.Client
-	cache  Interface
+	client   client.Client
+	cache    Interface
+	serveCRD map[string]bool
+	sync.RWMutex
 }
 
 func (h *resourceGetter) GetResource(gvr schema.GroupVersionResource, name, namespace string) (client.Object, error) {
 	var obj client.Object
+	serviced, err := h.isServed(gvr)
+	if err != nil {
+		return nil, err
+	}
+
+	if !serviced {
+		return nil, ErrResourceNotServed
+	}
+
 	gvk, err := h.getGVK(gvr)
 	if err != nil {
 		return nil, err
@@ -52,6 +72,15 @@ func (h *resourceGetter) GetResource(gvr schema.GroupVersionResource, name, name
 
 func (h *resourceGetter) ListResources(gvr schema.GroupVersionResource, namespace string, query *query.Query) (client.ObjectList, error) {
 	var obj client.ObjectList
+	serviced, err := h.isServed(gvr)
+	if err != nil {
+		return nil, err
+	}
+
+	if !serviced {
+		return nil, ErrResourceNotServed
+	}
+
 	gvk, err := h.getGVK(gvr)
 	if err != nil {
 		return nil, err
@@ -85,7 +114,6 @@ func convertGVKToList(gvk schema.GroupVersionKind) schema.GroupVersionKind {
 	return gvk
 }
 
-// TODO If can get the gvk of hot-plug crd?
 func (h *resourceGetter) getGVK(gvr schema.GroupVersionResource) (schema.GroupVersionKind, error) {
 	var (
 		gvk schema.GroupVersionKind
@@ -97,4 +125,27 @@ func (h *resourceGetter) getGVK(gvr schema.GroupVersionResource) (schema.GroupVe
 	}
 
 	return gvk, nil
+}
+
+func (h *resourceGetter) isServed(gvr schema.GroupVersionResource) (bool, error) {
+	resourceName := gvr.Resource + "." + gvr.Group
+	h.RWMutex.RLock()
+	isServed := h.serveCRD[resourceName]
+	h.RWMutex.RUnlock()
+	if isServed {
+		return true, nil
+	}
+
+	crd := &extv1.CustomResourceDefinition{}
+	err := h.client.Get(context.Background(), client.ObjectKey{Name: resourceName}, crd)
+	if err != nil {
+		return false, err
+	}
+	if crd.Labels[labelResourceServed] == "true" {
+		h.RWMutex.Lock()
+		h.serveCRD[resourceName] = true
+		h.RWMutex.Unlock()
+		return true, nil
+	}
+	return false, nil
 }

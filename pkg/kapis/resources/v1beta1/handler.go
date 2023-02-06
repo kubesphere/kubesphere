@@ -4,25 +4,20 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/models/components"
-	v2 "kubesphere.io/kubesphere/pkg/models/registries/v2"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
 )
 
-func New(lister v1beta1.ResourceGetter, componentsGetter components.ComponentsGetter) Handler {
+func New(lister v1beta1.ResourceGetter) Handler {
 	return Handler{
-		lister:           lister,
-		registryHelper:   v2.NewRegistryHelper(),
-		componentsGetter: componentsGetter,
+		lister: lister,
 	}
 }
 
 type Handler struct {
-	lister           v1beta1.ResourceGetter
-	registryHelper   v2.RegistryHelper
-	componentsGetter components.ComponentsGetter
+	lister v1beta1.ResourceGetter
 }
 
 func (h *Handler) getResources(request *restful.Request, response *restful.Response) {
