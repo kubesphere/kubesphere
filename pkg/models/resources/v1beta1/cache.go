@@ -6,8 +6,9 @@ import (
 	"fmt"
 
 	"github.com/oliveagle/jsonpath"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -38,29 +39,37 @@ func (u *resourceCache) List(namespace string, query *query.Query, list client.O
 		return err
 	}
 
-	DefaultList(list, query, u.compare, u.filter)
+	extractList, err := meta.ExtractList(list)
+	if err != nil {
+		return err
+	}
+	DefaultList(extractList, query, u.compare, u.filter)
 	return nil
 }
 
-func (u *resourceCache) compare(left, right metav1.Object, field query.Field) bool {
-	return DefaultObjectMetaCompare(left, right, field)
-}
-
-func (u *resourceCache) filter(object metav1.Object, filter query.Filter) bool {
-	clientObj, ok := object.(client.Object)
-	if !ok {
+func (u *resourceCache) compare(left, right runtime.Object, field query.Field) bool {
+	l, err := meta.Accessor(left)
+	if err != nil {
 		return false
 	}
-
-	if filter.Field == query.ParameterFieldSelector {
-		return contains(clientObj, filter.Value)
+	r, err := meta.Accessor(right)
+	if err != nil {
+		return false
 	}
-	return DefaultObjectMetaFilter(clientObj, filter)
+	return DefaultObjectMetaCompare(l, r, field)
+}
+
+func (u *resourceCache) filter(object runtime.Object, filter query.Filter) bool {
+	o, err := meta.Accessor(object)
+	if err != nil {
+		return false
+	}
+	return DefaultObjectMetaFilter(o, filter)
 }
 
 // implement a generic query filter to support multiple field selectors with "jsonpath.JsonPathLookup"
 // https://github.com/oliveagle/jsonpath/blob/master/readme.md
-func contains(object client.Object, queryValue query.Value) bool {
+func contains(object runtime.Object, queryValue query.Value) bool {
 	// call the ParseSelector function of "k8s.io/apimachinery/pkg/fields/selector.go" to validate and parse the selector
 	fieldSelector, err := fields.ParseSelector(string(queryValue))
 	if err != nil {

@@ -101,7 +101,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
-	resourcesv1beta1 "kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
+	resourcev1beta1 "kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
 	"kubesphere.io/kubesphere/pkg/server/healthz"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
@@ -382,11 +382,10 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		bearertoken.New(jwt.NewTokenAuthenticator(
 			auth.NewTokenOperator(s.CacheClient, s.Issuer, s.Config.AuthenticationOptions),
 			userLister)))
+	middleware := proxies.NewUnregisteredMiddleware(s.container, resourcev1beta1.New(s.RuntimeClient, s.RuntimeCache))
+	handler = filters.WithMiddleware(handler, middleware)
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
-
-	middleware := proxies.NewUnregisteredMiddleware(s.container, resourcesv1beta1.New(s.RuntimeClient, s.RuntimeCache))
-	handler = filters.WithMiddleware(handler, middleware)
 	s.Server.Handler = handler
 }
 
