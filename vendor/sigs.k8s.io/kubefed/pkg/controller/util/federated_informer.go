@@ -534,33 +534,24 @@ func (fs *federatedStoreImpl) GetKeyFor(item interface{}) string {
 	return key
 }
 
-// Checks whether stores for all clusters form the lists (and only these) are there and
+// ClustersSynced checks whether stores for all clusters form the lists (and only these) are there and
 // are synced.
 func (fs *federatedStoreImpl) ClustersSynced(clusters []*fedv1b1.KubeFedCluster) bool {
-	// Get the list of informers to check under a lock and check it outside.
-	okSoFar, informersToCheck := func() (bool, []informer) {
-		fs.federatedInformer.Lock()
-		defer fs.federatedInformer.Unlock()
+	fs.federatedInformer.Lock()
+	defer fs.federatedInformer.Unlock()
 
-		if len(fs.federatedInformer.targetInformers) != len(clusters) {
-			return false, []informer{}
-		}
-		informersToCheck := make([]informer, 0, len(clusters))
-		for _, cluster := range clusters {
-			if targetInformer, found := fs.federatedInformer.targetInformers[cluster.Name]; found {
-				informersToCheck = append(informersToCheck, targetInformer)
-			} else {
-				return false, []informer{}
-			}
-		}
-		return true, informersToCheck
-	}()
-
-	if !okSoFar {
+	if len(fs.federatedInformer.targetInformers) != len(clusters) {
+		klog.V(4).Infof("The number of target informers mismatch with given clusters")
 		return false
 	}
-	for _, informerToCheck := range informersToCheck {
-		if !informerToCheck.controller.HasSynced() {
+	for _, cluster := range clusters {
+		if targetInformer, found := fs.federatedInformer.targetInformers[cluster.Name]; found {
+			if !targetInformer.controller.HasSynced() {
+				klog.V(4).Infof("Informer of cluster %q not synced", cluster.Name)
+				return false
+			}
+		} else {
+			klog.V(4).Infof("Informer of cluster %q not found", cluster.Name)
 			return false
 		}
 	}

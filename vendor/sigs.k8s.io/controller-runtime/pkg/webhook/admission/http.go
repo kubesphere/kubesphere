@@ -124,8 +124,16 @@ func (wh *Webhook) writeResponseTyped(w io.Writer, response Response, admRevGVK 
 // writeAdmissionResponse writes ar to w.
 func (wh *Webhook) writeAdmissionResponse(w io.Writer, ar v1.AdmissionReview) {
 	if err := json.NewEncoder(w).Encode(ar); err != nil {
-		wh.log.Error(err, "unable to encode the response")
-		wh.writeResponse(w, Errored(http.StatusInternalServerError, err))
+		wh.log.Error(err, "unable to encode and write the response")
+		// Since the `ar v1.AdmissionReview` is a clear and legal object,
+		// it should not have problem to be marshalled into bytes.
+		// The error here is probably caused by the abnormal HTTP connection,
+		// e.g., broken pipe, so we can only write the error response once,
+		// to avoid endless circular calling.
+		serverError := Errored(http.StatusInternalServerError, err)
+		if err = json.NewEncoder(w).Encode(v1.AdmissionReview{Response: &serverError.AdmissionResponse}); err != nil {
+			wh.log.Error(err, "still unable to encode and write the InternalServerError response")
+		}
 	} else {
 		res := ar.Response
 		if log := wh.log; log.V(1).Enabled() {

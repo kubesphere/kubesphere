@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	cfg "sigs.k8s.io/controller-runtime/pkg/config"
+	cfg "sigs.k8s.io/controller-runtime/pkg/config" //nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -70,6 +70,10 @@ type TypeMeta = metav1.TypeMeta
 type ObjectMeta = metav1.ObjectMeta
 
 var (
+	// RegisterFlags registers flag variables to the given FlagSet if not already registered.
+	// It uses the default command line FlagSet, if none is provided. Currently, it only registers the kubeconfig flag.
+	RegisterFlags = config.RegisterFlags
+
 	// GetConfigOrDie creates a *rest.Config for talking to a Kubernetes apiserver.
 	// If --kubeconfig is set, will use the kubeconfig file at that location.  Otherwise will assume running
 	// in cluster and use the cluster provided kubeconfig.
@@ -95,7 +99,8 @@ var (
 	// ConfigFile returns the cfg.File function for deferred config file loading,
 	// this is passed into Options{}.From() to populate the Options fields for
 	// the manager.
-	ConfigFile = cfg.File
+	// Deprecated: This is deprecated in favor of using Options directly.
+	ConfigFile = cfg.File //nolint:staticcheck
 
 	// NewControllerManagedBy returns a new controller builder that will be started by the provided Manager.
 	NewControllerManagedBy = builder.ControllerManagedBy

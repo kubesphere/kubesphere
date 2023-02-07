@@ -35,7 +35,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -47,9 +46,7 @@ var testEnv *envtest.Environment
 
 func TestHelmCategoryController(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"HelmCategory Controller Test Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "HelmCategory Controller Test Suite")
 }
 
 var _ = BeforeSuite(func(done Done) {

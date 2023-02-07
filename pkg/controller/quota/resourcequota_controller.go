@@ -292,7 +292,7 @@ func (r *Reconciler) syncQuotaForNamespaces(originalQuota *quotav1alpha2.Resourc
 	}
 
 	klog.V(6).Infof("update resource quota: %+v", quota)
-	if err := r.Status().Update(ctx, quota, &client.UpdateOptions{}); err != nil {
+	if err := r.Status().Update(ctx, quota); err != nil {
 		return err
 	}
 

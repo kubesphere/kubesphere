@@ -19,11 +19,12 @@ package admission
 import (
 	"context"
 	"encoding/json"
-
 	"errors"
 	"net/http"
 
+	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -60,6 +61,18 @@ func (h *defaulterForType) Handle(ctx context.Context, req Request) Response {
 	if h.object == nil {
 		panic("object should never be nil")
 	}
+
+	// Always skip when a DELETE operation received in custom mutation handler.
+	if req.Operation == admissionv1.Delete {
+		return Response{AdmissionResponse: admissionv1.AdmissionResponse{
+			Allowed: true,
+			Result: &metav1.Status{
+				Code: http.StatusOK,
+			},
+		}}
+	}
+
+	ctx = NewContextWithRequest(ctx, req)
 
 	// Get the object in the request
 	obj := h.object.DeepCopyObject()

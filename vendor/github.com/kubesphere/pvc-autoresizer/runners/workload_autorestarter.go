@@ -3,8 +3,10 @@ package runners
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -12,8 +14,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"strconv"
-	"time"
 )
 
 type restarter struct {
@@ -65,14 +65,14 @@ func (c *restarter) reconcile(ctx context.Context) error {
 	}
 	//stop deploy/sts
 	for _, deploy := range stopDeploy {
-		log.Info("Stopping deploy: ", deploy.Name)
+		c.log.Info("Stopping deploy: ", deploy.Name)
 		err := c.stopDeploy(ctx, deploy)
 		if err != nil {
 			return err
 		}
 	}
 	for _, sts := range stopSts {
-		log.Info("Stopping StatefulSet: ", sts.Name)
+		c.log.Info("Stopping StatefulSet: ", sts.Name)
 		err := c.stopSts(ctx, sts)
 		if err != nil {
 			return err
@@ -148,6 +148,14 @@ func (c *restarter) getPVCListByConditionsType(ctx context.Context, pvcType v1.P
 		if len(pvc.Status.Conditions) > 0 && pvc.Status.Conditions[0].Type == pvcType {
 			if _, ok := scNeedRestart[*pvc.Spec.StorageClassName]; ok {
 				pvcs = append(pvcs, pvc)
+			} else if val, ok := pvc.Annotations[AutoRestartEnabledKey]; ok {
+				NeedRestart, err := strconv.ParseBool(val)
+				if err != nil {
+					continue
+				}
+				if NeedRestart {
+					pvcs = append(pvcs, pvc)
+				}
 			}
 		}
 	}
@@ -190,7 +198,7 @@ func (c *restarter) stopDeploy(ctx context.Context, deploy *appsV1.Deployment) e
 	if val, ok := deploy.Annotations[RestartSkip]; ok {
 		skip, _ := strconv.ParseBool(val)
 		if skip {
-			log.Info("Skip restart deploy ", deploy.Name)
+			c.log.Info("Skip restart deploy ", deploy.Name)
 			return nil
 		}
 	}
@@ -208,7 +216,7 @@ func (c *restarter) stopDeploy(ctx context.Context, deploy *appsV1.Deployment) e
 	updateDeploy.Annotations[RestartStage] = "resizing"
 	updateDeploy.Spec.Replicas = &zero
 	var opts []client.UpdateOption
-	log.Info("stop deployment:" + deploy.Name)
+	c.log.Info("stop deployment:" + deploy.Name)
 	updateErr := c.client.Update(ctx, updateDeploy, opts...)
 	return updateErr
 }
@@ -239,7 +247,7 @@ func (c *restarter) stopSts(ctx context.Context, sts *appsV1.StatefulSet) error 
 	updateSts.Annotations[RestartStage] = "resizing"
 	updateSts.Spec.Replicas = &zero
 	var opts []client.UpdateOption
-	log.Info("stop deployment:" + sts.Name)
+	c.log.Info("stop deployment:" + sts.Name)
 	updateErr := c.client.Update(ctx, updateSts, opts...)
 	return updateErr
 }
@@ -268,7 +276,7 @@ func (c *restarter) StartDeploy(ctx context.Context, deploy *appsV1.Deployment, 
 	delete(updateDeploy.Annotations, RestartStage)
 	updateDeploy.Spec.Replicas = &replicas
 	var opts []client.UpdateOption
-	log.Info("start deployment: " + deploy.Name)
+	c.log.Info("start deployment: " + deploy.Name)
 	err = c.client.Update(ctx, updateDeploy, opts...)
 	return err
 }
@@ -297,7 +305,7 @@ func (c *restarter) StartSts(ctx context.Context, sts *appsV1.StatefulSet, timeo
 	delete(updateSts.Annotations, RestartStage)
 	updateSts.Spec.Replicas = &replicas
 	var opts []client.UpdateOption
-	log.Info("start deployment: " + sts.Name)
+	c.log.Info("start deployment: " + sts.Name)
 	err = c.client.Update(ctx, updateSts, opts...)
 	return err
 }

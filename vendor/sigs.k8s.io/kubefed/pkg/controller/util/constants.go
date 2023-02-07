@@ -20,9 +20,11 @@ import (
 	"time"
 )
 
-// Providing 0 duration to an informer indicates that resync should be delayed as long as possible
 const (
-	NoResyncPeriod time.Duration = 0 * time.Second
+	// Providing 0 duration to an informer indicates that resync should be delayed as long as possible
+	NoResyncPeriod = 0 * time.Second
+
+	SyncedPollPeriod = 10 * time.Second
 
 	NamespaceName = "namespaces"
 	NamespaceKind = "Namespace"
@@ -38,6 +40,12 @@ const (
 	SpecField     = "spec"
 	StatusField   = "status"
 	MetadataField = "metadata"
+
+	// Service fields
+	HealthCheckNodePortField = "healthCheckNodePort"
+	ClusterIPField           = "clusterIP"
+	ClusterIPsField          = "clusterIPs"
+	PortsField               = "ports"
 
 	// ServiceAccount fields
 	SecretsField = "secrets"

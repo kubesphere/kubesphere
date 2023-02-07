@@ -17,4 +17,6 @@ limitations under the License.
 // Package v1alpha1 provides the ControllerManagerConfiguration used for
 // configuring ctrl.Manager
 // +kubebuilder:object:generate=true
+//
+// Deprecated: This package has been deprecated and will be removed in a future release.
 package v1alpha1

@@ -21,7 +21,7 @@ Controller.Watch in order to generate and enqueue reconcile.Request work items.
 
 Generally, following premade event handlers should be sufficient for most use cases:
 
-EventHandlers
+EventHandlers:
 
 EnqueueRequestForObject - Enqueues a reconcile.Request containing the Name and Namespace of the object in the Event.  This will
 cause the object that was the source of the Event (e.g. the created / deleted / updated object) to be

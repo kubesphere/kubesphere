@@ -124,26 +124,31 @@ func CustomizeTLSTransport(fedCluster *fedv1b1.KubeFedCluster, clientConfig *res
 		return errors.Errorf("Cluster %s transport error: %s", fedCluster.Name, err)
 	}
 
-	err = CustomizeCertificateValidation(fedCluster, transportConfig)
-	if err != nil {
-		return errors.Errorf("Cluster %s custom certificate validation error: %s", fedCluster.Name, err)
+	if transportConfig != nil {
+		err = CustomizeCertificateValidation(fedCluster, transportConfig)
+		if err != nil {
+			return errors.Errorf("Cluster %s custom certificate validation error: %s", fedCluster.Name, err)
+		}
+
+		// using the same defaults as http.DefaultTransport
+		clientConfig.Transport = &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			TLSClientConfig:       transportConfig,
+		}
+		clientConfig.TLSClientConfig = restclient.TLSClientConfig{}
+	} else {
+		clientConfig.Insecure = true
 	}
 
-	// using the same defaults as http.DefaultTransport
-	clientConfig.Transport = &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-			DualStack: true,
-		}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig:       transportConfig,
-	}
-	clientConfig.TLSClientConfig = restclient.TLSClientConfig{}
 	return nil
 }
 

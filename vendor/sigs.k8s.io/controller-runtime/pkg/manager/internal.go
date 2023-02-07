@@ -18,6 +18,7 @@ package manager
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -40,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
-	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1" //nolint:staticcheck
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/internal/httpserver"
 	intrec "sigs.k8s.io/controller-runtime/pkg/internal/recorder"
@@ -107,7 +108,7 @@ type controllerManager struct {
 	healthzHandler *healthz.Handler
 
 	// controllerOptions are the global controller options.
-	controllerOptions v1alpha1.ControllerConfigurationSpec
+	controllerOptions v1alpha1.ControllerConfigurationSpec //nolint:staticcheck
 
 	// Logger is the logger that should be used by this manager.
 	// If none is set, it defaults to log.Log global logger.
@@ -135,12 +136,17 @@ type controllerManager struct {
 	// if not set, webhook server would look up the server key and certificate in
 	// {TempDir}/k8s-webhook-server/serving-certs
 	certDir string
+	// tlsOpts is used to allow configuring the TLS config used for the webhook server.
+	tlsOpts []func(*tls.Config)
 
 	webhookServer *webhook.Server
 	// webhookServerOnce will be called in GetWebhookServer() to optionally initialize
 	// webhookServer if unset, and Add() it to controllerManager.
 	webhookServerOnce sync.Once
 
+	// leaderElectionID is the name of the resource that leader election
+	// will use for holding the leader lock.
+	leaderElectionID string
 	// leaseDuration is the duration that non-leader candidates will
 	// wait to force acquire leadership.
 	leaseDuration time.Duration
@@ -305,6 +311,7 @@ func (cm *controllerManager) GetWebhookServer() *webhook.Server {
 				Port:    cm.port,
 				Host:    cm.host,
 				CertDir: cm.certDir,
+				TLSOpts: cm.tlsOpts,
 			}
 		}
 		if err := cm.Add(cm.webhookServer); err != nil {
@@ -318,7 +325,7 @@ func (cm *controllerManager) GetLogger() logr.Logger {
 	return cm.logger
 }
 
-func (cm *controllerManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
+func (cm *controllerManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec { //nolint:staticcheck
 	return cm.controllerOptions
 }
 
@@ -402,6 +409,8 @@ func (cm *controllerManager) Start(ctx context.Context) (err error) {
 		cm.Unlock()
 		return errors.New("manager already started")
 	}
+	cm.started = true
+
 	var ready bool
 	defer func() {
 		// Only unlock the manager if we haven't reached
@@ -633,6 +642,7 @@ func (cm *controllerManager) startLeaderElection(ctx context.Context) (err error
 			},
 		},
 		ReleaseOnCancel: cm.leaderElectionReleaseOnCancel,
+		Name:            cm.leaderElectionID,
 	})
 	if err != nil {
 		return err

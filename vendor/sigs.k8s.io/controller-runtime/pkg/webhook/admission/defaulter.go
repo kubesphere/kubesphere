@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	admissionv1 "k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -54,6 +56,17 @@ func (h *mutatingHandler) InjectDecoder(d *Decoder) error {
 func (h *mutatingHandler) Handle(ctx context.Context, req Request) Response {
 	if h.defaulter == nil {
 		panic("defaulter should never be nil")
+	}
+
+	// always skip when a DELETE operation received in mutation handler
+	// describe in https://github.com/kubernetes-sigs/controller-runtime/issues/1762
+	if req.Operation == admissionv1.Delete {
+		return Response{AdmissionResponse: admissionv1.AdmissionResponse{
+			Allowed: true,
+			Result: &metav1.Status{
+				Code: http.StatusOK,
+			},
+		}}
 	}
 
 	// Get the object in the request

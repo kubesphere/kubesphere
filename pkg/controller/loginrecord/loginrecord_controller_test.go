@@ -28,8 +28,6 @@ import (
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	clienttesting "k8s.io/client-go/testing"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
 	"kubesphere.io/kubesphere/pkg/apis"
@@ -39,9 +37,7 @@ import (
 
 func TestLoginRecordController(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"LoginRecord Controller Test Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "LoginRecord Controller Test Suite")
 }
 
 func newLoginRecord(username string) *iamv1alpha2.LoginRecord {
