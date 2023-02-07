@@ -4,14 +4,13 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 package tenant
 
 import (
@@ -804,9 +803,9 @@ func (t *tenantOperator) updateDeploysStats(user user.Info, cluster, ns string, 
 }
 
 // updateDaemonsetsStats will update daemonsets field in resource stats struct with pod stats data and daemonsets will be classified into 3 classes:
-// 	1. openpitrix daemonsets
-// 	2. app daemonsets
-// 	3. k8s daemonsets
+//  1. openpitrix daemonsets
+//  2. app daemonsets
+//  3. k8s daemonsets
 func (t *tenantOperator) updateDaemonsetsStats(user user.Info, cluster, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
 	daemonsetList, err := t.listDaemonsets(user, ns)
 	if err != nil {
@@ -953,9 +952,9 @@ func (t *tenantOperator) isAppComponent(ns, kind, componentName string) (bool, s
 }
 
 // updateStatefulsetsStats will update statefulsets field in resource stats struct with pod stats data and statefulsets will be classified into 3 classes:
-// 	1. openpitrix statefulsets
-// 	2. app statefulsets
-// 	3. k8s statefulsets
+//  1. openpitrix statefulsets
+//  2. app statefulsets
+//  3. k8s statefulsets
 func (t *tenantOperator) updateStatefulsetsStats(user user.Info, cluster, ns string, podsStats metering.PodsStats, resourceStats *metering.ResourceStatistic) error {
 	statefulsetsList, err := t.listStatefulsets(user, ns)
 	if err != nil {

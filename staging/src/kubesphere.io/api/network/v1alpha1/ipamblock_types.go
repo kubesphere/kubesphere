@@ -274,7 +274,7 @@ func intInSlice(searchInt int, slice []int) bool {
 	return false
 }
 
-//This just initializes the data structure and does not call the api to create
+// This just initializes the data structure and does not call the api to create
 func NewBlock(pool *IPPool, cidr cnet.IPNet, rsvdAttr *ReservedAttr) *IPAMBlock {
 	b := IPAMBlock{}
 

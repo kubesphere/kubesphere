@@ -40,7 +40,7 @@ func newGroups(c *IamV1alpha2Client) *groups {
 	}
 }
 
-//TODO: to be remoted once we move kubesphere.io/apis out of kubesphere package
+// TODO: to be remoted once we move kubesphere.io/apis out of kubesphere package
 type groupMember struct {
 	UserName  string `json:"userName"`
 	GroupName string `json:"groupName"`

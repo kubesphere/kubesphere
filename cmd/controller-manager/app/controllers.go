@@ -18,10 +18,10 @@ package app
 
 import (
 	"fmt"
-	"github.com/prometheus/common/config"
 	"time"
 
 	"github.com/kubesphere/pvc-autoresizer/runners"
+	"github.com/prometheus/common/config"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"

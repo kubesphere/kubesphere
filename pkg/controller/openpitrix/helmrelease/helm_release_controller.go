@@ -80,15 +80,18 @@ type ReconcileHelmRelease struct {
 	StopChan <-chan struct{}
 }
 
-//            =========================>
-//            ^                         |
-//            |        <==upgraded<==upgrading================
-//            |        \      =========^                     /
-//            |         |   /                               |
+//	=========================>
+//	^                         |
+//	|        <==upgraded<==upgrading================
+//	|        \      =========^                     /
+//	|         |   /                               |
+//
 // creating=>created===>active=====>deleting=>deleted       |
-//                 \    ^           /                     |
-//                  \   |  /======>                      /
-//                   \=>failed<==========================
+//
+//	\    ^           /                     |
+//	 \   |  /======>                      /
+//	  \=>failed<==========================
+//
 // Reconcile reads that state of the cluster for a helmreleases object and makes changes based on the state read
 // and what is in the helmreleases.Spec
 // +kubebuilder:rbac:groups=application.kubesphere.io,resources=helmreleases,verbs=get;list;watch;create;update;patch;delete

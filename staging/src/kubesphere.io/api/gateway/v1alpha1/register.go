@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1alpha1 contains API Schema definitions for the gateway.kubesphere.io v1alpha1 API group
-//+kubebuilder:object:generate=true
-//+groupName=gateway.kubesphere.io
+// +kubebuilder:object:generate=true
+// +groupName=gateway.kubesphere.io
 package v1alpha1
 
 import (

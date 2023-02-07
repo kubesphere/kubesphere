@@ -179,6 +179,7 @@ func (p *Pipeline) ListPipelineRuns() (*devops.PipelineRunList, error) {
 // listPipelineRunsByRemotePaging get the pipeline runs with pagination by remote (Jenkins BlueOcean plugin)
 // get the pagination information from the server side is better than the local side, but the API has some issues
 // see also https://github.com/kubesphere/kubesphere/issues/3507
+//
 //nolint:unused
 func (p *Pipeline) listPipelineRunsByRemotePaging() (*devops.PipelineRunList, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)

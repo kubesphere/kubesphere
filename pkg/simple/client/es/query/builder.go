@@ -7,8 +7,9 @@ import (
 )
 
 // TODO: elastic/go-elasticsearch is working on Query DSL support.
-//  See https://github.com/elastic/go-elasticsearch/issues/42.
-//  We need refactor our query body builder when that is ready.
+//
+//	See https://github.com/elastic/go-elasticsearch/issues/42.
+//	We need refactor our query body builder when that is ready.
 type Builder struct {
 	From          int64               `json:"from,omitempty"`
 	Size          int64               `json:"size,omitempty"`

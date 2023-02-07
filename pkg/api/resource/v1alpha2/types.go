@@ -38,7 +38,6 @@ type NodeStatus struct {
 	HealthyNodes int `json:"healthyNodes" description:"the number of healthy nodes"`
 }
 
-//
 type HealthStatus struct {
 	KubeSphereComponents []ComponentStatus `json:"kubesphereStatus" description:"kubesphere components status"`
 	NodeStatus           NodeStatus        `json:"nodeStatus" description:"nodes status"`

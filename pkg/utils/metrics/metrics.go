@@ -68,7 +68,7 @@ func (m DefaultMetrics) registerMetrics() {
 	RawMustRegister(prometheus.NewGoCollector())
 }
 
-//Overwrite version.Get
+// Overwrite version.Get
 func versionGet() apimachineryversion.Info {
 	info := ksVersion.Get()
 	return apimachineryversion.Info{

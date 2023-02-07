@@ -50,7 +50,7 @@ type handler struct {
 	lo      logging.LoggingOperator
 }
 
-//newHandler create an instance of the handler
+// newHandler create an instance of the handler
 func newHandler(options *gateway.Options, cache cache.Cache, client client.Client, factory informers.InformerFactory, k8sClient kubernetes.Interface, loggingClient loggingclient.Client) *handler {
 	conversionsv1.RegisterConversions(scheme.Scheme)
 	// Do not register Gateway scheme globally. Which will cause conflict in ks-controller-manager.

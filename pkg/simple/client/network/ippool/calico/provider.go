@@ -351,7 +351,7 @@ func (p *provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 	return true, nil
 }
 
-//Synchronizing address pools at boot time
+// Synchronizing address pools at boot time
 func (p *provider) syncIPPools() error {
 	calicoPools, err := p.client.CrdCalicov3().IPPools().List(context.TODO(), v1.ListOptions{})
 	if err != nil {

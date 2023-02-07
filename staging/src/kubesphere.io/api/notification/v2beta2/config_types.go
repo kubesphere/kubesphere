@@ -182,7 +182,7 @@ type FeishuConfig struct {
 	AppSecret *Credential `json:"appSecret"`
 }
 
-//ConfigSpec defines the desired state of Config
+// ConfigSpec defines the desired state of Config
 type ConfigSpec struct {
 	DingTalk *DingTalkConfig `json:"dingtalk,omitempty"`
 	Email    *EmailConfig    `json:"email,omitempty"`

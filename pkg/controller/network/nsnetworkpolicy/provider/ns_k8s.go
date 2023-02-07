@@ -218,7 +218,7 @@ func (c *k8sPolicyController) handleErr(err error, key string) {
 	klog.Errorf("Dropping NetworkPolicy %q out of the queue: %v", key, err)
 }
 
-//NewNsNetworkPolicyProvider sync k8s NetworkPolicy
+// NewNsNetworkPolicyProvider sync k8s NetworkPolicy
 func NewNsNetworkPolicyProvider(client kubernetes.Interface, npInformer informerv1.NetworkPolicyInformer) (NsNetworkPolicyProvider, error) {
 	var once sync.Once
 

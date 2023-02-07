@@ -34,11 +34,12 @@ import (
 	"kubesphere.io/api/notification/v2beta2"
 	"kubesphere.io/api/types/v1beta1"
 	"kubesphere.io/api/types/v1beta2"
-	"kubesphere.io/kubesphere/pkg/apis"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"kubesphere.io/kubesphere/pkg/apis"
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 func TestSource(t *testing.T) {
