@@ -18,7 +18,8 @@ package v1alpha3
 
 import v1 "k8s.io/api/core/v1"
 
-/**
+/*
+*
 We use a special type of secret as a credential for DevOps.
 This file will not contain CRD, but the credential type constants and their fields.
 */

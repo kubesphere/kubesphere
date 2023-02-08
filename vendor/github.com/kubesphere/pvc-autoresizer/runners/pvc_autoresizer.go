@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/kubesphere/pvc-autoresizer/metrics"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -18,6 +17,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/kubesphere/pvc-autoresizer/metrics"
 )
 
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;patch
@@ -96,6 +97,16 @@ func (w *pvcAutoresizer) getStorageClassList(ctx context.Context) (*storagev1.St
 	return &scs, nil
 }
 
+func (w *pvcAutoresizer) getPVCList(ctx context.Context) (*corev1.PersistentVolumeClaimList, error) {
+	var pvcs corev1.PersistentVolumeClaimList
+	err := w.client.List(ctx, &pvcs, client.MatchingFields(map[string]string{resizeEnableIndexKey: "true"}))
+	if err != nil {
+		metrics.KubernetesClientFailTotal.Increment()
+		return nil, err
+	}
+	return &pvcs, nil
+}
+
 func (w *pvcAutoresizer) reconcile(ctx context.Context) error {
 	scs, err := w.getStorageClassList(ctx)
 	if err != nil {
@@ -118,30 +129,56 @@ func (w *pvcAutoresizer) reconcile(ctx context.Context) error {
 			return nil
 		}
 		for _, pvc := range pvcs.Items {
-			isTarget, err := isTargetPVC(&pvc, &sc)
+			err := w.validate(ctx, &pvc, &sc, vsMap)
 			if err != nil {
-				metrics.ResizerFailedResizeTotal.Increment()
-				w.log.WithValues("namespace", pvc.Namespace, "name", pvc.Name).Error(err, "failed to check target PVC")
-				continue
-			} else if !isTarget {
-				continue
+				return err
 			}
-			namespacedName := types.NamespacedName{
-				Namespace: pvc.Namespace,
-				Name:      pvc.Name,
-			}
-			if _, ok := vsMap[namespacedName]; !ok {
-				continue
-			}
-			err = w.resize(ctx, &pvc, vsMap[namespacedName], &sc)
-			if err != nil {
-				metrics.ResizerFailedResizeTotal.Increment()
-				w.log.WithValues("namespace", pvc.Namespace, "name", pvc.Name).Error(err, "failed to resize PVC")
-			}
+		}
+	}
+	pvcList, err := w.getPVCList(ctx)
+	if err != nil {
+		return err
+	}
+	for _, pvc := range pvcList.Items {
+		var sc storagev1.StorageClass
+		err = w.client.Get(ctx, client.ObjectKey{Name: *pvc.Spec.StorageClassName}, &sc)
+		if err != nil {
+			metrics.KubernetesClientFailTotal.Increment()
+			w.log.Error(err, "get storageClass failed")
+			return nil
+		}
+		err = w.validate(ctx, &pvc, &sc, vsMap)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+//Validate if it is the target pvc, and resize
+func (w *pvcAutoresizer) validate(ctx context.Context, pvc *corev1.PersistentVolumeClaim, sc *storagev1.StorageClass, vsMap map[types.NamespacedName]*VolumeStats) error {
+	isTarget, err := isTargetPVC(pvc, sc)
+	if err != nil {
+		metrics.ResizerFailedResizeTotal.Increment()
+		w.log.WithValues("namespace", pvc.Namespace, "name", pvc.Name).Error(err, "failed to check target PVC")
+		return err
+	} else if !isTarget {
+		return nil
+	}
+	namespacedName := types.NamespacedName{
+		Namespace: pvc.Namespace,
+		Name:      pvc.Name,
+	}
+	if _, ok := vsMap[namespacedName]; !ok {
+		return nil
+	}
+	err = w.resize(ctx, pvc, vsMap[namespacedName], sc)
+	if err != nil {
+		metrics.ResizerFailedResizeTotal.Increment()
+		w.log.WithValues("namespace", pvc.Namespace, "name", pvc.Name).Error(err, "failed to resize PVC")
+	}
+	return err
 }
 
 func (w *pvcAutoresizer) resize(ctx context.Context, pvc *corev1.PersistentVolumeClaim, vs *VolumeStats, sc *storagev1.StorageClass) error {
@@ -237,9 +274,18 @@ func (w *pvcAutoresizer) resize(ctx context.Context, pvc *corev1.PersistentVolum
 	return nil
 }
 
-func indexByResizeEnableAnnotation(obj client.Object) []string {
+func scIndexByResizeEnableAnnotation(obj client.Object) []string {
 	sc := obj.(*storagev1.StorageClass)
 	if val, ok := sc.Annotations[AutoResizeEnabledKey]; ok {
+		return []string{val}
+	}
+
+	return []string{}
+}
+
+func pvcIndexByResizeEnableAnnotation(obj client.Object) []string {
+	pvc := obj.(*corev1.PersistentVolumeClaim)
+	if val, ok := pvc.Annotations[AutoResizeEnabledKey]; ok {
 		return []string{val}
 	}
 
@@ -257,11 +303,16 @@ func indexByStorageClassName(obj client.Object) []string {
 
 // SetupIndexer setup indices for PVC auto resizer
 func SetupIndexer(mgr ctrl.Manager, skipAnnotationCheck bool) error {
-	idxFunc := indexByResizeEnableAnnotation
+	idxFunc := scIndexByResizeEnableAnnotation
 	if skipAnnotationCheck {
 		idxFunc = func(_ client.Object) []string { return []string{"true"} }
 	}
 	err := mgr.GetFieldIndexer().IndexField(context.Background(), &storagev1.StorageClass{}, resizeEnableIndexKey, idxFunc)
+	if err != nil {
+		return err
+	}
+
+	err = mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.PersistentVolumeClaim{}, resizeEnableIndexKey, pvcIndexByResizeEnableAnnotation)
 	if err != nil {
 		return err
 	}

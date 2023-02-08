@@ -36,7 +36,7 @@ const (
 	ok = "OK"
 )
 
-//AddToContainer register GET and LIST API for CRD to the web service
+// AddToContainer register GET and LIST API for CRD to the web service
 func AddToContainer(c *restful.Container, cli client.Client, cache cache.Cache, crdList *extv1.CustomResourceDefinitionList) error {
 
 	for _, crd := range crdList.Items {

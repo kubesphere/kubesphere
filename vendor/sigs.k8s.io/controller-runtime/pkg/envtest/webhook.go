@@ -173,7 +173,7 @@ func WaitForWebhooks(config *rest.Config,
 	mutatingWebhooks []*admissionv1.MutatingWebhookConfiguration,
 	validatingWebhooks []*admissionv1.ValidatingWebhookConfiguration,
 	options WebhookInstallOptions) error {
-	waitingFor := map[schema.GroupVersionKind]*sets.String{}
+	waitingFor := map[schema.GroupVersionKind]*sets.Set[string]{}
 
 	for _, hook := range mutatingWebhooks {
 		h := hook
@@ -183,7 +183,7 @@ func WaitForWebhooks(config *rest.Config,
 		}
 
 		if _, ok := waitingFor[gvk]; !ok {
-			waitingFor[gvk] = &sets.String{}
+			waitingFor[gvk] = &sets.Set[string]{}
 		}
 		waitingFor[gvk].Insert(h.GetName())
 	}
@@ -196,7 +196,7 @@ func WaitForWebhooks(config *rest.Config,
 		}
 
 		if _, ok := waitingFor[gvk]; !ok {
-			waitingFor[gvk] = &sets.String{}
+			waitingFor[gvk] = &sets.Set[string]{}
 		}
 		waitingFor[gvk].Insert(hook.GetName())
 	}
@@ -212,7 +212,7 @@ type webhookPoller struct {
 	config *rest.Config
 
 	// waitingFor is the map of resources keyed by group version that have not yet been found in discovery
-	waitingFor map[schema.GroupVersionKind]*sets.String
+	waitingFor map[schema.GroupVersionKind]*sets.Set[string]
 }
 
 // poll checks if all the resources have been found in discovery, and returns false if not.
@@ -229,7 +229,7 @@ func (p *webhookPoller) poll() (done bool, err error) {
 			delete(p.waitingFor, gvk)
 			continue
 		}
-		for _, name := range names.List() {
+		for _, name := range names.UnsortedList() {
 			var obj = &unstructured.Unstructured{}
 			obj.SetGroupVersionKind(gvk)
 			err := c.Get(context.Background(), client.ObjectKey{

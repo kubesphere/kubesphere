@@ -75,7 +75,7 @@ kind-e2e: ;$(info $(M)...Run e2e test.) @ ## Run e2e test in kind.
 
 # Run go fmt against code
 fmt: ;$(info $(M)...Begin to run go fmt against code.)  @ ## Run go fmt against code.
-	gofmt -w ./pkg ./cmd ./tools ./api
+	gofmt -w ./pkg ./cmd ./tools ./api ./staging ./kube
 
 # Format all import, `goimports` is required.
 goimports: ;$(info $(M)...Begin to Format all import.)  @ ## Format all import, `goimports` is required.

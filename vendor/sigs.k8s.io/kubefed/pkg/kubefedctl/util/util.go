@@ -107,6 +107,12 @@ func ClusterServiceAccountName(joiningClusterName, hostClusterName string) strin
 	return fmt.Sprintf("%s-%s", joiningClusterName, hostClusterName)
 }
 
+// ClusterServiceAccountTokenSecretName returns the name of a service account token secret whose
+// credentials are used by the host cluster to access the client cluster.
+func ClusterServiceAccountTokenSecretName(joiningClusterName, hostClusterName string) string {
+	return fmt.Sprintf("%s-%s", joiningClusterName, hostClusterName)
+}
+
 // RoleName returns the name of a Role or ClusterRole and its
 // associated RoleBinding or ClusterRoleBinding that are used to allow
 // the service account to access necessary resources on the cluster.

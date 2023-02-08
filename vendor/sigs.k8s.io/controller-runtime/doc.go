@@ -23,13 +23,14 @@ limitations under the License.
 // and uncommon cases should be possible.  In general, controller-runtime tries
 // to guide users towards Kubernetes controller best-practices.
 //
-// Getting Started
+// # Getting Started
 //
 // The main entrypoint for controller-runtime is this root package, which
 // contains all of the common types needed to get started building controllers:
-//  import (
-//      ctrl "sigs.k8s.io/controller-runtime"
-//  )
+//
+//	import (
+//		ctrl "sigs.k8s.io/controller-runtime"
+//	)
 //
 // The examples in this package walk through a basic controller setup.  The
 // kubebuilder book (https://book.kubebuilder.io) has some more in-depth
@@ -38,7 +39,7 @@ limitations under the License.
 // controller-runtime favors structs with sane defaults over constructors, so
 // it's fairly common to see structs being used directly in controller-runtime.
 //
-// Organization
+// # Organization
 //
 // A brief-ish walkthrough of the layout of this library can be found below. Each
 // package contains more information about how to use it.
@@ -47,7 +48,7 @@ limitations under the License.
 // controllers can be found at
 // https://github.com/kubernetes-sigs/controller-runtime/blob/master/FAQ.md.
 //
-// Managers
+// # Managers
 //
 // Every controller and webhook is ultimately run by a Manager (pkg/manager). A
 // manager is responsible for running controllers and webhooks, and setting up
@@ -56,7 +57,7 @@ limitations under the License.
 // generally configured to gracefully shut down controllers on pod termination
 // by wiring up a signal handler (pkg/manager/signals).
 //
-// Controllers
+// # Controllers
 //
 // Controllers (pkg/controller) use events (pkg/event) to eventually trigger
 // reconcile requests.  They may be constructed manually, but are often
@@ -67,7 +68,7 @@ limitations under the License.
 // trigger reconciles.  There are pre-written utilities for the common cases, and
 // interfaces and helpers for advanced cases.
 //
-// Reconcilers
+// # Reconcilers
 //
 // Controller logic is implemented in terms of Reconcilers (pkg/reconcile).  A
 // Reconciler implements a function which takes a reconcile Request containing
@@ -75,7 +76,7 @@ limitations under the License.
 // and returns a Response or an error indicating whether to requeue for a
 // second round of processing.
 //
-// Clients and Caches
+// # Clients and Caches
 //
 // Reconcilers use Clients (pkg/client) to access API objects.  The default
 // client provided by the manager reads from a local shared cache (pkg/cache)
@@ -91,19 +92,19 @@ limitations under the License.
 // may retrieve event recorders (pkg/recorder) to emit events using the
 // manager.
 //
-// Schemes
+// # Schemes
 //
 // Clients, Caches, and many other things in Kubernetes use Schemes
 // (pkg/scheme) to associate Go types to Kubernetes API Kinds
 // (Group-Version-Kinds, to be specific).
 //
-// Webhooks
+// # Webhooks
 //
 // Similarly, webhooks (pkg/webhook/admission) may be implemented directly, but
 // are often constructed using a builder (pkg/webhook/admission/builder).  They
 // are run via a server (pkg/webhook) which is managed by a Manager.
 //
-// Logging and Metrics
+// # Logging and Metrics
 //
 // Logging (pkg/log) in controller-runtime is done via structured logs, using a
 // log set of interfaces called logr
@@ -117,7 +118,7 @@ limitations under the License.
 // serve these by an HTTP endpoint, and additional metrics may be registered to
 // this Registry as normal.
 //
-// Testing
+// # Testing
 //
 // You can easily build integration and unit tests for your controllers and
 // webhooks using the test Environment (pkg/envtest).  This will automatically

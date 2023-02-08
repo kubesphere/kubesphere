@@ -120,7 +120,7 @@ type WechatConfig struct {
 	WechatApiSecret *SecretKeySelector `json:"wechatApiSecret"`
 }
 
-//ConfigSpec defines the desired state of Config
+// ConfigSpec defines the desired state of Config
 type ConfigSpec struct {
 	DingTalk *DingTalkConfig `json:"dingtalk,omitempty"`
 	Email    *EmailConfig    `json:"email,omitempty"`

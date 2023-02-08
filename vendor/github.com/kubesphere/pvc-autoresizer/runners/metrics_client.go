@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubesphere/pvc-autoresizer/metrics"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/kubesphere/pvc-autoresizer/metrics"
 )
 
 const (
@@ -20,9 +22,15 @@ const (
 )
 
 // NewPrometheusClient returns a new prometheusClient
-func NewPrometheusClient(url string) (MetricsClient, error) {
+func NewPrometheusClient(url string, HTTPClientConfig *config.HTTPClientConfig) (MetricsClient, error) {
+	roundTripper, err := config.NewRoundTripperFromConfig(*HTTPClientConfig, "kubesphere")
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := api.NewClient(api.Config{
-		Address: url,
+		Address:      url,
+		RoundTripper: roundTripper,
 	})
 	if err != nil {
 		return nil, err

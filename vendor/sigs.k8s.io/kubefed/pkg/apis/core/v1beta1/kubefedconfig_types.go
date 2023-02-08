@@ -48,6 +48,9 @@ type DurationConfig struct {
 	// Time to wait before giving up on an unhealthy cluster.
 	// +optional
 	UnavailableDelay *metav1.Duration `json:"unavailableDelay,omitempty"`
+	// Time to wait for all caches to sync before exit.
+	// +optional
+	CacheSyncTimeout *metav1.Duration `json:"cacheSyncTimeout,omitempty"`
 }
 type LeaderElectConfig struct {
 	// The duration that non-leader candidates will wait after observing a leadership

@@ -64,6 +64,8 @@ func (h *validatorForType) Handle(ctx context.Context, req Request) Response {
 		panic("object should never be nil")
 	}
 
+	ctx = NewContextWithRequest(ctx, req)
+
 	// Get the object in the request
 	obj := h.object.DeepCopyObject()
 

@@ -143,7 +143,7 @@ func DefaultObjectMetaCompare(left, right metav1.Object, sortBy query.Field) boo
 	}
 }
 
-//  Default metadata filter
+// Default metadata filter
 func DefaultObjectMetaFilter(item metav1.Object, filter query.Filter) bool {
 	switch filter.Field {
 	case query.FieldNames:

@@ -37,6 +37,12 @@ type DeleteOption interface {
 	ApplyToDelete(*DeleteOptions)
 }
 
+// GetOption is some configuration that modifies options for a get request.
+type GetOption interface {
+	// ApplyToGet applies this configuration to the given get options.
+	ApplyToGet(*GetOptions)
+}
+
 // ListOption is some configuration that modifies options for a list request.
 type ListOption interface {
 	// ApplyToList applies this configuration to the given list options.
@@ -59,6 +65,29 @@ type PatchOption interface {
 type DeleteAllOfOption interface {
 	// ApplyToDeleteAllOf applies this configuration to the given deletecollection options.
 	ApplyToDeleteAllOf(*DeleteAllOfOptions)
+}
+
+// SubResourceGetOption modifies options for a SubResource Get request.
+type SubResourceGetOption interface {
+	ApplyToSubResourceGet(*SubResourceGetOptions)
+}
+
+// SubResourceUpdateOption is some configuration that modifies options for a update request.
+type SubResourceUpdateOption interface {
+	// ApplyToSubResourceUpdate applies this configuration to the given update options.
+	ApplyToSubResourceUpdate(*SubResourceUpdateOptions)
+}
+
+// SubResourceCreateOption is some configuration that modifies options for a create request.
+type SubResourceCreateOption interface {
+	// ApplyToSubResourceCreate applies this configuration to the given create options.
+	ApplyToSubResourceCreate(*SubResourceCreateOptions)
+}
+
+// SubResourcePatchOption configures a subresource patch request.
+type SubResourcePatchOption interface {
+	// ApplyToSubResourcePatch applies the configuration on the given patch options.
+	ApplyToSubResourcePatch(*SubResourcePatchOptions)
 }
 
 // }}}
@@ -90,7 +119,20 @@ func (dryRunAll) ApplyToPatch(opts *PatchOptions) {
 func (dryRunAll) ApplyToDelete(opts *DeleteOptions) {
 	opts.DryRun = []string{metav1.DryRunAll}
 }
+
 func (dryRunAll) ApplyToDeleteAllOf(opts *DeleteAllOfOptions) {
+	opts.DryRun = []string{metav1.DryRunAll}
+}
+
+func (dryRunAll) ApplyToSubResourceCreate(opts *SubResourceCreateOptions) {
+	opts.DryRun = []string{metav1.DryRunAll}
+}
+
+func (dryRunAll) ApplyToSubResourceUpdate(opts *SubResourceUpdateOptions) {
+	opts.DryRun = []string{metav1.DryRunAll}
+}
+
+func (dryRunAll) ApplyToSubResourcePatch(opts *SubResourcePatchOptions) {
 	opts.DryRun = []string{metav1.DryRunAll}
 }
 
@@ -109,6 +151,21 @@ func (f FieldOwner) ApplyToCreate(opts *CreateOptions) {
 
 // ApplyToUpdate applies this configuration to the given update options.
 func (f FieldOwner) ApplyToUpdate(opts *UpdateOptions) {
+	opts.FieldManager = string(f)
+}
+
+// ApplyToSubResourcePatch applies this configuration to the given patch options.
+func (f FieldOwner) ApplyToSubResourcePatch(opts *SubResourcePatchOptions) {
+	opts.FieldManager = string(f)
+}
+
+// ApplyToSubResourceCreate applies this configuration to the given create options.
+func (f FieldOwner) ApplyToSubResourceCreate(opts *SubResourceCreateOptions) {
+	opts.FieldManager = string(f)
+}
+
+// ApplyToSubResourceUpdate applies this configuration to the given update options.
+func (f FieldOwner) ApplyToSubResourceUpdate(opts *SubResourceUpdateOptions) {
 	opts.FieldManager = string(f)
 }
 
@@ -311,6 +368,45 @@ func (p PropagationPolicy) ApplyToDeleteAllOf(opts *DeleteAllOfOptions) {
 
 // }}}
 
+// {{{ Get Options
+
+// GetOptions contains options for get operation.
+// Now it only has a Raw field, with support for specific resourceVersion.
+type GetOptions struct {
+	// Raw represents raw GetOptions, as passed to the API server.  Note
+	// that these may not be respected by all implementations of interface.
+	Raw *metav1.GetOptions
+}
+
+var _ GetOption = &GetOptions{}
+
+// ApplyToGet implements GetOption for GetOptions.
+func (o *GetOptions) ApplyToGet(lo *GetOptions) {
+	if o.Raw != nil {
+		lo.Raw = o.Raw
+	}
+}
+
+// AsGetOptions returns these options as a flattened metav1.GetOptions.
+// This may mutate the Raw field.
+func (o *GetOptions) AsGetOptions() *metav1.GetOptions {
+	if o == nil || o.Raw == nil {
+		return &metav1.GetOptions{}
+	}
+	return o.Raw
+}
+
+// ApplyOptions applies the given get options on these options,
+// and then returns itself (for convenient chaining).
+func (o *GetOptions) ApplyOptions(opts []GetOption) *GetOptions {
+	for _, opt := range opts {
+		opt.ApplyToGet(o)
+	}
+	return o
+}
+
+// }}}
+
 // {{{ List Options
 
 // ListOptions contains options for limiting or filtering results.
@@ -341,6 +437,12 @@ type ListOptions struct {
 	// it has expired. This field is not supported if watch is true in the Raw ListOptions.
 	Continue string
 
+	// UnsafeDisableDeepCopy indicates not to deep copy objects during list objects.
+	// Be very careful with this, when enabled you must DeepCopy any object before mutating it,
+	// otherwise you will mutate the object in the cache.
+	// +optional
+	UnsafeDisableDeepCopy *bool
+
 	// Raw represents raw ListOptions, as passed to the API server.  Note
 	// that these may not be respected by all implementations of interface,
 	// and the LabelSelector, FieldSelector, Limit and Continue fields are ignored.
@@ -368,6 +470,9 @@ func (o *ListOptions) ApplyToList(lo *ListOptions) {
 	}
 	if o.Continue != "" {
 		lo.Continue = o.Continue
+	}
+	if o.UnsafeDisableDeepCopy != nil {
+		lo.UnsafeDisableDeepCopy = o.UnsafeDisableDeepCopy
 	}
 }
 
@@ -510,6 +615,25 @@ type Limit int64
 func (l Limit) ApplyToList(opts *ListOptions) {
 	opts.Limit = int64(l)
 }
+
+// UnsafeDisableDeepCopyOption indicates not to deep copy objects during list objects.
+// Be very careful with this, when enabled you must DeepCopy any object before mutating it,
+// otherwise you will mutate the object in the cache.
+type UnsafeDisableDeepCopyOption bool
+
+// ApplyToList applies this configuration to the given an List options.
+func (d UnsafeDisableDeepCopyOption) ApplyToList(opts *ListOptions) {
+	definitelyTrue := true
+	definitelyFalse := false
+	if d {
+		opts.UnsafeDisableDeepCopy = &definitelyTrue
+	} else {
+		opts.UnsafeDisableDeepCopy = &definitelyFalse
+	}
+}
+
+// UnsafeDisableDeepCopy indicates not to deep copy objects during list objects.
+const UnsafeDisableDeepCopy = UnsafeDisableDeepCopyOption(true)
 
 // Continue sets a continuation token to retrieve chunks of results when using limit.
 // Continue does not implement DeleteAllOfOption interface because the server

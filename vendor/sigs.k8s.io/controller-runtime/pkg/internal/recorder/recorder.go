@@ -100,7 +100,7 @@ func (p *Provider) getBroadcaster() record.EventBroadcaster {
 		broadcaster.StartRecordingToSink(&corev1client.EventSinkImpl{Interface: p.evtClient})
 		broadcaster.StartEventWatcher(
 			func(e *corev1.Event) {
-				p.logger.V(1).Info(e.Type, "object", e.InvolvedObject, "reason", e.Reason, "message", e.Message)
+				p.logger.V(1).Info(e.Message, "type", e.Type, "object", e.InvolvedObject, "reason", e.Reason)
 			})
 		p.broadcaster = broadcaster
 		p.stopBroadcaster = stop

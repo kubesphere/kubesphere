@@ -103,7 +103,7 @@ func (a *accessor) UpdateQuotaStatus(newQuota *corev1.ResourceQuota) error {
 	})
 
 	klog.V(6).Infof("update resource quota: %+v", updatedQuota)
-	err = a.client.Status().Update(ctx, updatedQuota, &client.UpdateOptions{})
+	err = a.client.Status().Update(ctx, updatedQuota)
 	if err != nil {
 		klog.Errorf("failed to update resource quota: %v", err)
 		return err

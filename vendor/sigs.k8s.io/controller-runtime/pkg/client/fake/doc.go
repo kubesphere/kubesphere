@@ -28,12 +28,11 @@ When in doubt, it's almost always better not to use this package and instead use
 envtest.Environment with a real client and API server.
 
 WARNING: ⚠️ Current Limitations / Known Issues with the fake Client ⚠️
-- This client does not have a way to inject specific errors to test handled vs. unhandled errors.
-- There is some support for sub resources which can cause issues with tests if you're trying to update
-  e.g. metadata and status in the same reconcile.
-- No OpeanAPI validation is performed when creating or updating objects.
-- ObjectMeta's `Generation` and `ResourceVersion` don't behave properly, Patch or Update
-operations that rely on these fields will fail, or give false positives.
-
+  - This client does not have a way to inject specific errors to test handled vs. unhandled errors.
+  - There is some support for sub resources which can cause issues with tests if you're trying to update
+    e.g. metadata and status in the same reconcile.
+  - No OpenAPI validation is performed when creating or updating objects.
+  - ObjectMeta's `Generation` and `ResourceVersion` don't behave properly, Patch or Update
+    operations that rely on these fields will fail, or give false positives.
 */
 package fake

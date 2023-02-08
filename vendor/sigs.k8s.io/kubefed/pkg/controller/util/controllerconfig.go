@@ -72,6 +72,7 @@ type ControllerConfig struct {
 	ClusterAvailableDelay         time.Duration
 	ClusterUnavailableDelay       time.Duration
 	MinimizeLatency               bool
+	CacheSyncTimeout              time.Duration
 	MaxConcurrentSyncReconciles   int64
 	MaxConcurrentStatusReconciles int64
 	SkipAdoptingResources         bool

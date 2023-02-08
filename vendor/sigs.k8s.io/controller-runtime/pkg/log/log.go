@@ -17,7 +17,7 @@ limitations under the License.
 // Package log contains utilities for fetching a new logger
 // when one is not already available.
 //
-// The Log Handle
+// # The Log Handle
 //
 // This package contains a root logr.Logger Log.  It may be used to
 // get a handle to whatever the root logging implementation is.  By
@@ -25,7 +25,7 @@ limitations under the License.
 // to loggers.  When the implementation is set using SetLogger, these
 // "promises" will be converted over to real loggers.
 //
-// Logr
+// # Logr
 //
 // All logging in controller-runtime is structured, using a set of interfaces
 // defined by a package called logr

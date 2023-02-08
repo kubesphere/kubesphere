@@ -163,7 +163,7 @@ type Placement struct {
 	ClusterSelector ClusterSelector `json:"clusterSelector,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type ClusterSelector struct {
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }

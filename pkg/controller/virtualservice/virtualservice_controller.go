@@ -211,9 +211,11 @@ func (v *VirtualServiceController) processNextWorkItem() bool {
 // created virtualservice's name are same as the service name, same
 // as the destinationrule name
 // labels:
-//      servicemesh.kubernetes.io/enabled: ""
-//      app.kubernetes.io/name: bookinfo
-//      app: reviews
+//
+//	servicemesh.kubernetes.io/enabled: ""
+//	app.kubernetes.io/name: bookinfo
+//	app: reviews
+//
 // are used to bind them together.
 // syncService are the main part of reconcile function body, it takes
 // service, destinationrule, strategy as input to create a virtualservice

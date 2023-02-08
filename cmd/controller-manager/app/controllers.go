@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/kubesphere/pvc-autoresizer/runners"
+	"github.com/prometheus/common/config"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -344,7 +345,7 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 			if err := runners.SetupIndexer(mgr, false); err != nil {
 				return err
 			}
-			promClient, err := runners.NewPrometheusClient(cmOptions.MonitoringOptions.Endpoint)
+			promClient, err := runners.NewPrometheusClient(cmOptions.MonitoringOptions.Endpoint, &config.HTTPClientConfig{})
 			if err != nil {
 				return err
 			}

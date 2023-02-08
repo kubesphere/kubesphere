@@ -93,12 +93,12 @@ type TemplateDefaults struct {
 // TemplateAndArguments joins structured arguments and non-structured arguments, preserving existing
 // behavior.  Namely:
 //
-// 1. if templ has len > 0, it will be rendered against data
-// 2. the rendered template values that look like `--foo=bar` will be split
-//    and appended to args, the rest will be kept around
-// 3. the given args will be rendered as string form.  If a template is given,
-//    no defaults will be used, otherwise defaults will be used
-// 4. a result of [args..., rest...] will be returned
+//  1. if templ has len > 0, it will be rendered against data
+//  2. the rendered template values that look like `--foo=bar` will be split
+//     and appended to args, the rest will be kept around
+//  3. the given args will be rendered as string form.  If a template is given,
+//     no defaults will be used, otherwise defaults will be used
+//  4. a result of [args..., rest...] will be returned
 //
 // It returns the resulting rendered arguments, plus the arguments that were
 // not transferred to `args` during rendering.
@@ -215,9 +215,9 @@ var (
 // for passing to exec.Command and friends, making use of the given defaults
 // as indicated for each particular argument.
 //
-// - Any flag in defaults that's not in Arguments will be present in the output
-// - Any flag that's present in Arguments will be passed the corresponding
-//   defaults to do with as it will (ignore, append-to, suppress, etc).
+//   - Any flag in defaults that's not in Arguments will be present in the output
+//   - Any flag that's present in Arguments will be passed the corresponding
+//     defaults to do with as it will (ignore, append-to, suppress, etc).
 func (a *Arguments) AsStrings(defaults map[string][]string) []string {
 	// sort for deterministic ordering
 	keysInOrder := make([]string, 0, len(defaults)+len(a.values))
@@ -323,9 +323,9 @@ func (a *Arguments) SetRaw(key string, val Arg) *Arguments {
 // used in conjunction with SetRaw.  For example, to set `--some-flag` to the
 // API server's CertDir, you could do:
 //
-//     server.Configure().SetRaw("--some-flag", FuncArg(func(defaults []string) []string {
-//         return []string{server.CertDir}
-//     }))
+//	server.Configure().SetRaw("--some-flag", FuncArg(func(defaults []string) []string {
+//	    return []string{server.CertDir}
+//	}))
 //
 // FuncArg ignores Appends; if you need to support appending values too, consider implementing
 // Arg directly.

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
@@ -58,7 +59,7 @@ var (
 	reconcileFederatedResourcesDuration = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
 			Name:    "reconcile_federated_resources_duration_seconds",
-			Help:    "Time taken to reconcile federated resources in the target clusters.",
+			Help:    "[Deprecated] Time taken to reconcile federated resources in the target clusters. Replaced by controller_runtime_reconcile_time_seconds.",
 			Buckets: []float64{0.01, 0.05, 0.1, 0.5, 1.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 50.0, 75.0, 100.0, 1000.0},
 		},
 	)
@@ -90,7 +91,7 @@ var (
 	controllerRuntimeReconcileDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "controller_runtime_reconcile_duration_seconds",
-			Help:    "Time taken by various parts of Kubefed controllers reconciliation loops.",
+			Help:    "[Deprecated] Time taken by various parts of Kubefed controllers reconciliation loops. Replaced by controller_runtime_reconcile_time_seconds.",
 			Buckets: []float64{0.01, 0.05, 0.1, 0.5, 1.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 50.0, 75.0, 100.0, 1000.0},
 		}, []string{"controller"},
 	)
@@ -98,10 +99,37 @@ var (
 	controllerRuntimeReconcileDurationSummary = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Name:   "controller_runtime_reconcile_quantile_seconds",
-			Help:   "Quantiles of time taken by various parts of Kubefed controllers reconciliation loops.",
+			Help:   "[Deprecated] Quantiles of time taken by various parts of Kubefed controllers reconciliation loops. Replaced by controller_runtime_reconcile_time_seconds.",
 			MaxAge: time.Hour,
 		}, []string{"controller"},
 	)
+
+	ControllerRuntimeReconcileTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "controller_runtime_reconcile_total",
+		Help: "Total number of reconciliations per controller",
+	}, []string{"controller", "result"})
+
+	ControllerRuntimeReconcileErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "controller_runtime_reconcile_errors_total",
+		Help: "Total number of reconciliation errors per controller",
+	}, []string{"controller"})
+
+	ControllerRuntimeReconcileTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "controller_runtime_reconcile_time_seconds",
+		Help: "Length of time per reconciliation per controller",
+		Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,
+			1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 60},
+	}, []string{"controller"})
+
+	ControllerRuntimeWorkerCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "controller_runtime_max_concurrent_reconciles",
+		Help: "Maximum number of concurrent reconciles per controller",
+	}, []string{"controller"})
+
+	ControllerRuntimeActiveWorkers = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "controller_runtime_active_workers",
+		Help: "Number of currently used workers per controller",
+	}, []string{"controller"})
 )
 
 const (
@@ -117,6 +145,10 @@ const (
 // RegisterAll registers all metrics.
 func RegisterAll() {
 	metrics.Registry.MustRegister(
+		// expose process metrics like CPU, Memory, file descriptor usage etc.
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+		// expose Go runtime metrics like GC stats, memory stats etc.
+		collectors.NewGoCollector(),
 		kubefedClusterTotal,
 		joinedClusterTotal,
 		reconcileFederatedResourcesDuration,
@@ -127,6 +159,11 @@ func RegisterAll() {
 		dispatchOperationDuration,
 		controllerRuntimeReconcileDuration,
 		controllerRuntimeReconcileDurationSummary,
+		ControllerRuntimeReconcileTotal,
+		ControllerRuntimeReconcileErrors,
+		ControllerRuntimeReconcileTime,
+		ControllerRuntimeWorkerCount,
+		ControllerRuntimeActiveWorkers,
 	)
 }
 
@@ -203,10 +240,20 @@ func UpdateControllerReconcileDurationFromStart(controller string, start time.Ti
 
 // UpdateControllerReconcileDuration records the duration of the reconcile function of a controller
 func UpdateControllerReconcileDuration(controller string, duration time.Duration) {
+	controllerRuntimeReconcileDurationSummary.WithLabelValues(controller).Observe(duration.Seconds())
+	controllerRuntimeReconcileDuration.WithLabelValues(controller).Observe(duration.Seconds())
+}
+
+// UpdateControllerRuntimeReconcileTimeFromStart records the duration of the reconcile loop of a controller
+func UpdateControllerRuntimeReconcileTimeFromStart(controller string, start time.Time) {
+	duration := time.Since(start)
+	UpdateControllerRuntimeReconcileTime(controller, duration)
+}
+
+// UpdateControllerRuntimeReconcileTime records the duration of the reconcile function of a controller
+func UpdateControllerRuntimeReconcileTime(controller string, duration time.Duration) {
 	if duration > LogReconcileLongDurationThreshold {
 		klog.V(4).Infof("Reconcile loop %s took %v to complete", controller, duration)
 	}
-
-	controllerRuntimeReconcileDurationSummary.WithLabelValues(controller).Observe(duration.Seconds())
-	controllerRuntimeReconcileDuration.WithLabelValues(controller).Observe(duration.Seconds())
+	ControllerRuntimeReconcileTime.WithLabelValues(controller).Observe(duration.Seconds())
 }

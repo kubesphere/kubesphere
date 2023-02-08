@@ -30,8 +30,8 @@ limitations under the License.
 */
 
 // Package v2beta1 contains API Schema definitions for the alerting v2beta1 API group
-//+kubebuilder:object:generate=true
-//+groupName=alerting.kubesphere.io
+// +kubebuilder:object:generate=true
+// +groupName=alerting.kubesphere.io
 package v2beta1
 
 import (

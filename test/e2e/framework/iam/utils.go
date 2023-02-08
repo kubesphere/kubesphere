@@ -26,7 +26,7 @@ import (
 	"kubesphere.io/kubesphere/test/e2e/framework"
 )
 
-//NewClient creates a new client with user authencation
+// NewClient creates a new client with user authencation
 func NewClient(s *runtime.Scheme, user, passsword string) (client.Client, error) {
 
 	ctx := framework.TestContext

@@ -71,10 +71,20 @@ func (c *portCache) add(port int) (bool, error) {
 		}
 		info, err := d.Info()
 		if err != nil {
+			// No-op if file no longer exists; may have been deleted by another
+			// process/thread trying to allocate ports.
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
 			return err
 		}
 		if time.Since(info.ModTime()) > portReserveTime {
 			if err := os.Remove(filepath.Join(cacheDir, path)); err != nil {
+				// No-op if file no longer exists; may have been deleted by another
+				// process/thread trying to allocate ports.
+				if os.IsNotExist(err) {
+					return nil
+				}
 				return err
 			}
 		}

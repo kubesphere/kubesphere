@@ -24,6 +24,8 @@ const (
 	ClusterReady ClusterConditionType = "Ready"
 	// ClusterOffline means the cluster is temporarily down or not reachable
 	ClusterOffline ClusterConditionType = "Offline"
+	// ClusterConfigMalformed means the cluster's configuration may be malformed.
+	ClusterConfigMalformed ClusterConditionType = "ConfigMalformed"
 )
 
 const (

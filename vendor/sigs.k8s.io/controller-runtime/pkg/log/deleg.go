@@ -73,6 +73,9 @@ func (p *loggerPromise) Fulfill(parentLogSink logr.LogSink) {
 
 	p.logger.lock.Lock()
 	p.logger.logger = sink
+	if withCallDepth, ok := sink.(logr.CallDepthLogSink); ok {
+		p.logger.logger = withCallDepth.WithCallDepth(1)
+	}
 	p.logger.promise = nil
 	p.logger.lock.Unlock()
 
@@ -141,7 +144,11 @@ func (l *DelegatingLogSink) WithName(name string) logr.LogSink {
 	defer l.lock.RUnlock()
 
 	if l.promise == nil {
-		return l.logger.WithName(name)
+		sink := l.logger.WithName(name)
+		if withCallDepth, ok := sink.(logr.CallDepthLogSink); ok {
+			sink = withCallDepth.WithCallDepth(-1)
+		}
+		return sink
 	}
 
 	res := &DelegatingLogSink{logger: l.logger}
@@ -157,7 +164,11 @@ func (l *DelegatingLogSink) WithValues(tags ...interface{}) logr.LogSink {
 	defer l.lock.RUnlock()
 
 	if l.promise == nil {
-		return l.logger.WithValues(tags...)
+		sink := l.logger.WithValues(tags...)
+		if withCallDepth, ok := sink.(logr.CallDepthLogSink); ok {
+			sink = withCallDepth.WithCallDepth(-1)
+		}
+		return sink
 	}
 
 	res := &DelegatingLogSink{logger: l.logger}

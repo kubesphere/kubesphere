@@ -287,7 +287,7 @@ func TestHandleGetComponents(t *testing.T) {
 	}
 }
 
-//build req and res in *restful
+// build req and res in *restful
 func buildReqAndRes(method, target string, param map[string]string, body io.Reader) (*restful.Request, *restful.Response, error) {
 	//build req
 	request := httptest.NewRequest(method, target, body)
@@ -312,7 +312,7 @@ func buildReqAndRes(method, target string, param map[string]string, body io.Read
 	return newRequest, newResponse, nil
 }
 
-//Setting unexported fields by using reflect
+// Setting unexported fields by using reflect
 func setUnExportedFields(ptr interface{}, filedName string, newFiledValue interface{}) (err error) {
 	v := reflect.ValueOf(ptr).Elem().FieldByName(filedName)
 	v = reflect.NewAt(v.Type(), unsafe.Pointer(v.UnsafeAddr())).Elem()

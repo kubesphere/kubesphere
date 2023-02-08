@@ -159,7 +159,7 @@ func (c IPAMClient) AutoAssign(args AutoAssignArgs) (*cnitypes040.Result, error)
 	return &result, nil
 }
 
-//findOrClaimBlock find an address block with free space, and if it doesn't exist, create it.
+// findOrClaimBlock find an address block with free space, and if it doesn't exist, create it.
 func (c IPAMClient) findOrClaimBlock(pool *v1alpha1.IPPool, minFreeIps int) (*v1alpha1.IPAMBlock, error) {
 	remainingBlocks, err := c.ListBlocks(pool.Name)
 	if err != nil {

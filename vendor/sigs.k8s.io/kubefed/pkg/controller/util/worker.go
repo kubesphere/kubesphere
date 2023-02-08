@@ -23,6 +23,8 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 type ReconcileFunc func(qualifiedName QualifiedName) ReconciliationStatus
@@ -128,6 +130,8 @@ func (w *asyncWorker) EnqueueWithDelay(qualifiedName QualifiedName, delay time.D
 }
 
 func (w *asyncWorker) Run(stopChan <-chan struct{}) {
+	w.initMetrics()
+
 	StartBackoffGC(w.backoff, stopChan)
 	w.deliverer.StartWithHandler(func(item *DelayingDelivererItem) {
 		qualifiedName, ok := item.Value.(*QualifiedName)
@@ -183,16 +187,41 @@ func (w *asyncWorker) reconcileOnce() bool {
 		return true
 	}
 
+	metrics.ControllerRuntimeActiveWorkers.WithLabelValues(w.name).Add(1)
+	defer metrics.ControllerRuntimeActiveWorkers.WithLabelValues(w.name).Add(-1)
+	defer metrics.UpdateControllerRuntimeReconcileTimeFromStart(w.name, time.Now())
+
 	status := w.reconcile(qualifiedName)
 	switch status {
 	case StatusAllOK:
-		break
+		metrics.ControllerRuntimeReconcileTotal.WithLabelValues(w.name, labelSuccess).Inc()
 	case StatusError:
 		w.EnqueueForError(qualifiedName)
+		metrics.ControllerRuntimeReconcileErrors.WithLabelValues(w.name).Inc()
+		metrics.ControllerRuntimeReconcileTotal.WithLabelValues(w.name, labelError).Inc()
 	case StatusNeedsRecheck:
 		w.EnqueueForRetry(qualifiedName)
+		metrics.ControllerRuntimeReconcileTotal.WithLabelValues(w.name, labelNeedsRecheck).Inc()
 	case StatusNotSynced:
 		w.EnqueueForClusterSync(qualifiedName)
+		metrics.ControllerRuntimeReconcileTotal.WithLabelValues(w.name, labelNotSynced).Inc()
 	}
 	return true
+}
+
+const (
+	labelSuccess      = "success"
+	labelError        = "error"
+	labelNeedsRecheck = "needs_recheck"
+	labelNotSynced    = "not_synced"
+)
+
+func (w *asyncWorker) initMetrics() {
+	metrics.ControllerRuntimeActiveWorkers.WithLabelValues(w.name).Set(0)
+	metrics.ControllerRuntimeReconcileErrors.WithLabelValues(w.name).Add(0)
+	metrics.ControllerRuntimeReconcileTotal.WithLabelValues(w.name, labelSuccess).Add(0)
+	metrics.ControllerRuntimeReconcileTotal.WithLabelValues(w.name, labelError).Add(0)
+	metrics.ControllerRuntimeReconcileTotal.WithLabelValues(w.name, labelNeedsRecheck).Add(0)
+	metrics.ControllerRuntimeReconcileTotal.WithLabelValues(w.name, labelNotSynced).Add(0)
+	metrics.ControllerRuntimeWorkerCount.WithLabelValues(w.name).Set(float64(w.maxConcurrentReconciles))
 }

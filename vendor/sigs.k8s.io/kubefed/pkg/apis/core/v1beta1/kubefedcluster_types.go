@@ -70,6 +70,9 @@ type LocalSecretReference struct {
 type KubeFedClusterStatus struct {
 	// Conditions is an array of current cluster conditions.
 	Conditions []ClusterCondition `json:"conditions"`
+	// KubernetesVersion is the Kubernetes git version of the cluster.
+	// +optional
+	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 	// Zones are the names of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.
 	// +optional
 	Zones []string `json:"zones,omitempty"`
@@ -81,7 +84,8 @@ type KubeFedClusterStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name=age,type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name=ready,type=string,JSONPath=.status.conditions[?(@.type=='Ready')].status
-// +kubebuilder:resource:path=kubefedclusters
+// +kubebuilder:printcolumn:name=kubernetes-version,type=string,JSONPath=.status.kubernetesVersion
+// +kubebuilder:resource:path=kubefedclusters,shortName=kfc
 // +kubebuilder:subresource:status
 
 // KubeFedCluster configures KubeFed to be aware of a Kubernetes
