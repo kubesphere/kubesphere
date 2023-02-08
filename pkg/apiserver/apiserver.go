@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful"
-	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,18 +38,15 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
+	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 	notificationv2beta1 "kubesphere.io/api/notification/v2beta1"
 	notificationv2beta2 "kubesphere.io/api/notification/v2beta2"
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	typesv1beta1 "kubesphere.io/api/types/v1beta1"
-	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
-	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	notificationv1 "kubesphere.io/kubesphere/pkg/kapis/notification/v1"
-	notificationkapisv2beta1 "kubesphere.io/kubesphere/pkg/kapis/notification/v2beta1"
-	notificationkapisv2beta2 "kubesphere.io/kubesphere/pkg/kapis/notification/v2beta2"
 
 	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
@@ -67,6 +64,7 @@ import (
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
+	"kubesphere.io/kubesphere/pkg/apiserver/proxies"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
 	alertingv1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v1"
@@ -74,7 +72,6 @@ import (
 	alertingv2beta1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v2beta1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/kapis/crd"
 	kapisdevops "kubesphere.io/kubesphere/pkg/kapis/devops"
 	edgeruntimev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/edgeruntime/v1alpha1"
 	gatewayv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/gateway/v1alpha1"
@@ -83,6 +80,9 @@ import (
 	meteringv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/metering/v1alpha1"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
+	notificationv1 "kubesphere.io/kubesphere/pkg/kapis/notification/v1"
+	notificationkapisv2beta1 "kubesphere.io/kubesphere/pkg/kapis/notification/v2beta1"
+	notificationkapisv2beta2 "kubesphere.io/kubesphere/pkg/kapis/notification/v2beta2"
 	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	openpitrixv2alpha1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v2alpha1"
@@ -101,6 +101,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
+	resourcev1beta1 "kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
 	"kubesphere.io/kubesphere/pkg/server/healthz"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
@@ -182,7 +183,6 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	})
 
 	s.installKubeSphereAPIs(stopCh)
-	s.installCRDAPIs()
 	s.installMetricsAPI()
 	s.installHealthz()
 	s.container.Filter(monitorRequest)
@@ -282,14 +282,6 @@ func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 	urlruntime.Must(gatewayv1alpha1.AddToContainer(s.container, s.Config.GatewayOptions, s.RuntimeCache, s.RuntimeClient, s.InformerFactory, s.KubernetesClient.Kubernetes(), s.LoggingClient))
 }
 
-// installCRDAPIs Install CRDs to the KAPIs with List and Get options
-func (s *APIServer) installCRDAPIs() {
-	crds := &extv1.CustomResourceDefinitionList{}
-	// TODO Maybe we need a better label name
-	urlruntime.Must(s.RuntimeClient.List(context.TODO(), crds, runtimeclient.MatchingLabels{"kubesphere.io/resource-served": "true"}))
-	urlruntime.Must(crd.AddToContainer(s.container, s.RuntimeClient, s.RuntimeCache, crds))
-}
-
 // installHealthz creates the healthz endpoint for this server
 func (s *APIServer) installHealthz() {
 	urlruntime.Must(healthz.InstallHandler(s.container, []healthz.HealthChecker{}...))
@@ -350,6 +342,9 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	handler := s.Server.Handler
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 
+	middleware := proxies.NewUnregisteredMiddleware(s.container, resourcev1beta1.New(s.RuntimeClient, s.RuntimeCache))
+	handler = filters.WithMiddleware(handler, middleware)
+
 	if s.Config.AuditingOptions.Enable {
 		handler = filters.WithAuditing(handler,
 			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions, stopCh))
@@ -392,7 +387,6 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			userLister)))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
-
 	s.Server.Handler = handler
 }
 

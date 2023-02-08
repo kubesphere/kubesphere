@@ -1,110 +1,71 @@
-/*
-Copyright 2022 KubeSphere Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-package crds
+package v1beta1
 
 import (
+	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/emicklei/go-restful"
-
-	"k8s.io/apimachinery/pkg/api/meta"
+	"github.com/oliveagle/jsonpath"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
-var (
-	Filters      = map[schema.GroupVersionKind]FilterFunc{}
-	Comparers    = map[schema.GroupVersionKind]CompareFunc{}
-	Transformers = map[schema.GroupVersionKind][]TransformFunc{}
-)
-
-type Reader interface {
+type Interface interface {
 	// Get retrieves a single object by its namespace and name
-	Get(key types.NamespacedName) (client.Object, error)
+	Get(namespace, name string, object client.Object) error
 
 	// List retrieves a collection of objects matches given query
-	List(namespace string, query *query.Query) (*api.ListResult, error)
+	List(namespace string, query *query.Query, object client.ObjectList) error
 }
 
-type Handler interface {
-	GetResources(request *restful.Request, response *restful.Response)
-	ListResources(request *restful.Request, response *restful.Response)
-}
-
-type Client interface {
-	Handler
-	Reader
+type ResourceGetter interface {
+	GetResource(schema.GroupVersionResource, string, string) (client.Object, error)
+	ListResources(schema.GroupVersionResource, string, *query.Query) (client.ObjectList, error)
 }
 
 // CompareFunc return true is left great than right
-type CompareFunc func(metav1.Object, metav1.Object, query.Field) bool
+type CompareFunc func(runtime.Object, runtime.Object, query.Field) bool
 
-type FilterFunc func(metav1.Object, query.Filter) bool
+type FilterFunc func(runtime.Object, query.Filter) bool
 
-type TransformFunc func(metav1.Object) runtime.Object
+type TransformFunc func(runtime.Object) runtime.Object
 
-func DefaultList(objList runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) *api.ListResult {
+func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) []runtime.Object {
 	// selected matched ones
 	var filtered []runtime.Object
+	if len(q.Filters) != 0 {
+		for _, object := range objects {
+			selected := true
+			for field, value := range q.Filters {
+				if !filterFunc(object, query.Filter{Field: field, Value: value}) {
+					selected = false
+					break
+				}
+			}
 
-	meta.EachListItem(objList, func(obj runtime.Object) error {
-		selected := true
-		o, err := meta.Accessor(obj)
-		if err != nil {
-			return err
-		}
-		for field, value := range q.Filters {
-
-			if !filterFunc(o, query.Filter{Field: field, Value: value}) {
-				selected = false
-				break
+			if selected {
+				for _, transform := range transformFuncs {
+					object = transform(object)
+				}
+				filtered = append(filtered, object)
 			}
 		}
-
-		if selected {
-			for _, transform := range transformFuncs {
-				obj = transform(o)
-			}
-			filtered = append(filtered, obj)
-		}
-		return nil
-	})
+	}
 
 	// sort by sortBy field
 	sort.Slice(filtered, func(i, j int) bool {
-		l, err := meta.Accessor(filtered[i])
-		if err != nil {
-			return false
-		}
-		r, err := meta.Accessor(filtered[j])
-		if err != nil {
-			return false
-		}
 		if !q.Ascending {
-			return compareFunc(l, r, q.SortBy)
+			return compareFunc(filtered[i], filtered[j], q.SortBy)
 		}
-		return !compareFunc(l, r, q.SortBy)
+		return !compareFunc(filtered[i], filtered[j], q.SortBy)
 	})
 
 	total := len(filtered)
@@ -115,10 +76,7 @@ func DefaultList(objList runtime.Object, q *query.Query, compareFunc CompareFunc
 
 	start, end := q.Pagination.GetValidPagination(total)
 
-	return &api.ListResult{
-		TotalItems: len(filtered),
-		Items:      objectsToInterfaces(filtered[start:end]),
-	}
+	return filtered[start:end]
 }
 
 // DefaultObjectMetaCompare return true is left great than right
@@ -184,6 +142,8 @@ func DefaultObjectMetaFilter(item metav1.Object, filter query.Filter) bool {
 		// /namespaces?page=1&limit=10&label=kubesphere.io/workspace:system-workspace
 	case query.FieldLabel:
 		return labelMatch(item.GetLabels(), string(filter.Value))
+	case query.ParameterFieldSelector:
+		return contains(item.(runtime.Object), filter.Value)
 	default:
 		return false
 	}
@@ -218,10 +178,49 @@ func labelMatch(labels map[string]string, filter string) bool {
 	return false
 }
 
-func objectsToInterfaces(objs []runtime.Object) []interface{} {
-	res := make([]interface{}, 0)
-	for _, obj := range objs {
-		res = append(res, obj)
+// implement a generic query filter to support multiple field selectors with "jsonpath.JsonPathLookup"
+// https://github.com/oliveagle/jsonpath/blob/master/readme.md
+func contains(object runtime.Object, queryValue query.Value) bool {
+	// call the ParseSelector function of "k8s.io/apimachinery/pkg/fields/selector.go" to validate and parse the selector
+	fieldSelector, err := fields.ParseSelector(string(queryValue))
+	if err != nil {
+		klog.V(4).Infof("failed parse selector error: %s", err)
+		return false
 	}
-	return res
+	for _, requirement := range fieldSelector.Requirements() {
+		var negative bool
+		// supports '=', '==' and '!='.(e.g. ?fieldSelector=key1=value1,key2=value2)
+		// fields.ParseSelector(FieldSelector) has handled the case where the operator is '==' and converted it to '=',
+		// so case selection.DoubleEquals can be ignored here.
+		switch requirement.Operator {
+		case selection.NotEquals:
+			negative = true
+		case selection.Equals:
+			negative = false
+		}
+		key := requirement.Field
+		value := requirement.Value
+
+		var input map[string]interface{}
+		data, err := json.Marshal(object)
+		if err != nil {
+			klog.V(4).Infof("failed marshal to JSON string: %s", err)
+			return false
+		}
+		if err = json.Unmarshal(data, &input); err != nil {
+			klog.V(4).Infof("failed unmarshal to map object: %s", err)
+			return false
+		}
+		rawValue, err := jsonpath.JsonPathLookup(input, "$."+key)
+		if err != nil {
+			klog.V(4).Infof("failed to lookup jsonpath: %s", err)
+			return false
+		}
+		if (negative && fmt.Sprintf("%v", rawValue) != value) || (!negative && fmt.Sprintf("%v", rawValue) == value) {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
 }

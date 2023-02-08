@@ -24,6 +24,8 @@ import (
 	"strings"
 	"sync"
 
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 
@@ -248,7 +250,12 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		}
 	})
 
-	apiServer.RuntimeCache, err = runtimecache.New(apiServer.KubernetesClient.Config(), runtimecache.Options{Scheme: sch})
+	mapper, err := apiutil.NewDynamicRESTMapper(apiServer.KubernetesClient.Config())
+	if err != nil {
+		klog.Fatalf("unable create dynamic RESTMapper: %v", err)
+	}
+
+	apiServer.RuntimeCache, err = runtimecache.New(apiServer.KubernetesClient.Config(), runtimecache.Options{Scheme: sch, Mapper: mapper})
 	if err != nil {
 		klog.Fatalf("unable to create controller runtime cache: %v", err)
 	}
