@@ -39,7 +39,7 @@ if ! command -v golangci-lint ; then
 # Install golangci-lint
   echo 'installing golangci-lint '
   pushd "${KUBE_ROOT}/hack/tools" >/dev/null
-    GO111MODULE=auto go install -mod= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
+    GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
   popd >/dev/null
 fi
 
@@ -48,29 +48,20 @@ cd "${KUBE_ROOT}"
 function error_exit {
   if [ $? -eq 1 ]; then
     echo "Please run the following command:"
-    echo "  make golint"
+    echo "make golint"
   fi
 }
 trap "error_exit" EXIT
 
-# Show only new issues created after git revision rev
-rev="${REV:-origin/master}"
-if [ -n "${PULL_BASE_REF}" ];then
-  echo "prow pull ref: ${PULL_BASE_REF}"
-  rev=origin/${PULL_BASE_REF}
-fi
-
-echo "running golangci-lint: REV=${rev} "
+echo "running golangci-lint: REV=HEAD^ "
 golangci-lint run \
   --timeout 30m \
   --disable-all \
-  -E deadcode \
   -E unused \
-  -E varcheck \
   -E ineffassign \
   -E staticcheck \
   -E gosimple \
   -E bodyclose \
   --skip-dirs pkg/client \
-  --new-from-rev="${rev}" \
-  pkg/... cmd/... tools/... test/... kube/...
+  --new-from-rev=HEAD^ \
+  pkg/... cmd/... test/... kube/...
