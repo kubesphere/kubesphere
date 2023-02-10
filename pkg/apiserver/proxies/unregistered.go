@@ -66,7 +66,7 @@ func (u *unregisteredMiddleware) Handle(w http.ResponseWriter, req *http.Request
 
 	rootPath := fmt.Sprintf("/kapis/%s/%s", gvr.Group, gvr.Version)
 	if u.registeredGv.Has(rootPath) {
-		return true
+		return false
 	}
 
 	var (
