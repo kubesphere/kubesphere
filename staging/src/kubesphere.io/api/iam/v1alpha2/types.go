@@ -127,7 +127,7 @@ type UserSpec struct {
 	Groups []string `json:"groups,omitempty"`
 
 	// password will be encrypted by mutating admission webhook
-	// +kubebuilder:validation:MinLength=6
+	// +kubebuilder:validation:MinLength=8
 	// +kubebuilder:validation:MaxLength=64
 	// +kubebuilder:validation:Pattern=`^(.*[a-z].*[A-Z].*[0-9].*)$|^(.*[a-z].*[0-9].*[A-Z].*)$|^(.*[A-Z].*[a-z].*[0-9].*)$|^(.*[A-Z].*[0-9].*[a-z].*)$|^(.*[0-9].*[a-z].*[A-Z].*)$|^(.*[0-9].*[A-Z].*[a-z].*)$|^(\$2[ayb]\$.{56})$`
 	// Password pattern is tricky here.
