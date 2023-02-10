@@ -20,16 +20,16 @@ import (
 )
 
 type (
-	// FunctionalBuiltin1 is deprecated. Use BuiltinFunc instead.
+	// Deprecated: Functional-style builtins are deprecated. Use BuiltinFunc instead.
 	FunctionalBuiltin1 func(op1 ast.Value) (output ast.Value, err error)
 
-	// FunctionalBuiltin2 is deprecated. Use BuiltinFunc instead.
+	// Deprecated: Functional-style builtins are deprecated. Use BuiltinFunc instead.
 	FunctionalBuiltin2 func(op1, op2 ast.Value) (output ast.Value, err error)
 
-	// FunctionalBuiltin3 is deprecated. Use BuiltinFunc instead.
+	// Deprecated: Functional-style builtins are deprecated. Use BuiltinFunc instead.
 	FunctionalBuiltin3 func(op1, op2, op3 ast.Value) (output ast.Value, err error)
 
-	// FunctionalBuiltin4 is deprecated. Use BuiltinFunc instead.
+	// Deprecated: Functional-style builtins are deprecated. Use BuiltinFunc instead.
 	FunctionalBuiltin4 func(op1, op2, op3, op4 ast.Value) (output ast.Value, err error)
 
 	// BuiltinContext contains context from the evaluator that may be used by
@@ -88,22 +88,22 @@ func RegisterBuiltinFunc(name string, f BuiltinFunc) {
 	builtinFunctions[name] = builtinErrorWrapper(name, f)
 }
 
-// RegisterFunctionalBuiltin1 is deprecated use RegisterBuiltinFunc instead.
+// Deprecated: Functional-style builtins are deprecated. Use RegisterBuiltinFunc instead.
 func RegisterFunctionalBuiltin1(name string, fun FunctionalBuiltin1) {
 	builtinFunctions[name] = functionalWrapper1(name, fun)
 }
 
-// RegisterFunctionalBuiltin2 is deprecated use RegisterBuiltinFunc instead.
+// Deprecated: Functional-style builtins are deprecated. Use RegisterBuiltinFunc instead.
 func RegisterFunctionalBuiltin2(name string, fun FunctionalBuiltin2) {
 	builtinFunctions[name] = functionalWrapper2(name, fun)
 }
 
-// RegisterFunctionalBuiltin3 is deprecated use RegisterBuiltinFunc instead.
+// Deprecated: Functional-style builtins are deprecated. Use RegisterBuiltinFunc instead.
 func RegisterFunctionalBuiltin3(name string, fun FunctionalBuiltin3) {
 	builtinFunctions[name] = functionalWrapper3(name, fun)
 }
 
-// RegisterFunctionalBuiltin4 is deprecated use RegisterBuiltinFunc instead.
+// Deprecated: Functional-style builtins are deprecated. Use RegisterBuiltinFunc instead.
 func RegisterFunctionalBuiltin4(name string, fun FunctionalBuiltin4) {
 	builtinFunctions[name] = functionalWrapper4(name, fun)
 }
@@ -113,7 +113,7 @@ func GetBuiltin(name string) BuiltinFunc {
 	return builtinFunctions[name]
 }
 
-// BuiltinEmpty is deprecated.
+// Deprecated: The BuiltinEmpty type is no longer needed. Use nil return values instead.
 type BuiltinEmpty struct{}
 
 func (BuiltinEmpty) Error() string {
@@ -184,13 +184,13 @@ func handleBuiltinErr(name string, loc *ast.Location, err error) error {
 	case builtins.ErrOperand:
 		return &Error{
 			Code:     TypeErr,
-			Message:  fmt.Sprintf("%v: %v", string(name), err.Error()),
+			Message:  fmt.Sprintf("%v: %v", name, err.Error()),
 			Location: loc,
 		}
 	default:
 		return &Error{
 			Code:     BuiltinErr,
-			Message:  fmt.Sprintf("%v: %v", string(name), err.Error()),
+			Message:  fmt.Sprintf("%v: %v", name, err.Error()),
 			Location: loc,
 		}
 	}
@@ -203,4 +203,18 @@ func readInt64(r io.Reader) (int64, error) {
 		return 0, err
 	}
 	return int64(binary.BigEndian.Uint64(bs)), nil
+}
+
+// Used to get older-style (ast.Term, error) tuples out of newer functions.
+func getResult(fn BuiltinFunc, operands ...*ast.Term) (*ast.Term, error) {
+	var result *ast.Term
+	extractionFn := func(r *ast.Term) error {
+		result = r
+		return nil
+	}
+	err := fn(BuiltinContext{}, operands, extractionFn)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

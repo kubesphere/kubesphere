@@ -4,10 +4,10 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"errors"
+	"fmt"
 
 	"github.com/open-policy-agent/opa/internal/jwx/jwa"
-
-	"github.com/pkg/errors"
 )
 
 var rsaSignFuncs = map[jwa.SignatureAlgorithm]rsaSignFunc{}
@@ -69,7 +69,7 @@ func makeSignPSS(hash crypto.Hash) rsaSignFunc {
 func newRSA(alg jwa.SignatureAlgorithm) (*RSASigner, error) {
 	signfn, ok := rsaSignFuncs[alg]
 	if !ok {
-		return nil, errors.Errorf(`unsupported algorithm while trying to create RSA signer: %s`, alg)
+		return nil, fmt.Errorf(`unsupported algorithm while trying to create RSA signer: %s`, alg)
 	}
 	return &RSASigner{
 		alg:  alg,
@@ -90,7 +90,7 @@ func (s RSASigner) Sign(payload []byte, key interface{}) ([]byte, error) {
 	}
 	rsakey, ok := key.(*rsa.PrivateKey)
 	if !ok {
-		return nil, errors.Errorf(`invalid key type %T. *rsa.PrivateKey is required`, key)
+		return nil, fmt.Errorf(`invalid key type %T. *rsa.PrivateKey is required`, key)
 	}
 
 	return s.sign(payload, rsakey)

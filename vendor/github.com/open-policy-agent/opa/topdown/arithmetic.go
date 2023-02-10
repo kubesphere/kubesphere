@@ -81,72 +81,72 @@ func arithRem(a, b *big.Int) (*big.Int, error) {
 	return new(big.Int).Rem(a, b), nil
 }
 
-func builtinArithArity1(fn arithArity1) FunctionalBuiltin1 {
-	return func(a ast.Value) (ast.Value, error) {
-		n, err := builtins.NumberOperand(a, 1)
+func builtinArithArity1(fn arithArity1) BuiltinFunc {
+	return func(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+		n, err := builtins.NumberOperand(operands[0].Value, 1)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		f, err := fn(builtins.NumberToFloat(n))
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return builtins.FloatToNumber(f), nil
+		return iter(ast.NewTerm(builtins.FloatToNumber(f)))
 	}
 }
 
-func builtinArithArity2(fn arithArity2) FunctionalBuiltin2 {
-	return func(a, b ast.Value) (ast.Value, error) {
-		n1, err := builtins.NumberOperand(a, 1)
+func builtinArithArity2(fn arithArity2) BuiltinFunc {
+	return func(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+		n1, err := builtins.NumberOperand(operands[0].Value, 1)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		n2, err := builtins.NumberOperand(b, 2)
+		n2, err := builtins.NumberOperand(operands[1].Value, 2)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		f, err := fn(builtins.NumberToFloat(n1), builtins.NumberToFloat(n2))
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return builtins.FloatToNumber(f), nil
+		return iter(ast.NewTerm(builtins.FloatToNumber(f)))
 	}
 }
 
-func builtinMinus(a, b ast.Value) (ast.Value, error) {
+func builtinMinus(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
-	n1, ok1 := a.(ast.Number)
-	n2, ok2 := b.(ast.Number)
+	n1, ok1 := operands[0].Value.(ast.Number)
+	n2, ok2 := operands[1].Value.(ast.Number)
 
 	if ok1 && ok2 {
 		f, err := arithMinus(builtins.NumberToFloat(n1), builtins.NumberToFloat(n2))
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return builtins.FloatToNumber(f), nil
+		return iter(ast.NewTerm(builtins.FloatToNumber(f)))
 	}
 
-	s1, ok3 := a.(ast.Set)
-	s2, ok4 := b.(ast.Set)
+	s1, ok3 := operands[0].Value.(ast.Set)
+	s2, ok4 := operands[1].Value.(ast.Set)
 
 	if ok3 && ok4 {
-		return s1.Diff(s2), nil
+		return iter(ast.NewTerm(s1.Diff(s2)))
 	}
 
 	if !ok1 && !ok3 {
-		return nil, builtins.NewOperandTypeErr(1, a, "number", "set")
+		return builtins.NewOperandTypeErr(1, operands[0].Value, "number", "set")
 	}
 
 	if ok2 {
-		return nil, builtins.NewOperandTypeErr(2, b, "set")
+		return builtins.NewOperandTypeErr(2, operands[1].Value, "set")
 	}
 
-	return nil, builtins.NewOperandTypeErr(2, b, "number")
+	return builtins.NewOperandTypeErr(2, operands[1].Value, "number")
 }
 
-func builtinRem(a, b ast.Value) (ast.Value, error) {
-	n1, ok1 := a.(ast.Number)
-	n2, ok2 := b.(ast.Number)
+func builtinRem(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	n1, ok1 := operands[0].Value.(ast.Number)
+	n2, ok2 := operands[1].Value.(ast.Number)
 
 	if ok1 && ok2 {
 
@@ -154,31 +154,31 @@ func builtinRem(a, b ast.Value) (ast.Value, error) {
 		op2, err2 := builtins.NumberToInt(n2)
 
 		if err1 != nil || err2 != nil {
-			return nil, fmt.Errorf("modulo on floating-point number")
+			return fmt.Errorf("modulo on floating-point number")
 		}
 
 		i, err := arithRem(op1, op2)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return builtins.IntToNumber(i), nil
+		return iter(ast.NewTerm(builtins.IntToNumber(i)))
 	}
 
 	if !ok1 {
-		return nil, builtins.NewOperandTypeErr(1, a, "number")
+		return builtins.NewOperandTypeErr(1, operands[0].Value, "number")
 	}
 
-	return nil, builtins.NewOperandTypeErr(2, b, "number")
+	return builtins.NewOperandTypeErr(2, operands[1].Value, "number")
 }
 
 func init() {
-	RegisterFunctionalBuiltin1(ast.Abs.Name, builtinArithArity1(arithAbs))
-	RegisterFunctionalBuiltin1(ast.Round.Name, builtinArithArity1(arithRound))
-	RegisterFunctionalBuiltin1(ast.Ceil.Name, builtinArithArity1(arithCeil))
-	RegisterFunctionalBuiltin1(ast.Floor.Name, builtinArithArity1(arithFloor))
-	RegisterFunctionalBuiltin2(ast.Plus.Name, builtinArithArity2(arithPlus))
-	RegisterFunctionalBuiltin2(ast.Minus.Name, builtinMinus)
-	RegisterFunctionalBuiltin2(ast.Multiply.Name, builtinArithArity2(arithMultiply))
-	RegisterFunctionalBuiltin2(ast.Divide.Name, builtinArithArity2(arithDivide))
-	RegisterFunctionalBuiltin2(ast.Rem.Name, builtinRem)
+	RegisterBuiltinFunc(ast.Abs.Name, builtinArithArity1(arithAbs))
+	RegisterBuiltinFunc(ast.Round.Name, builtinArithArity1(arithRound))
+	RegisterBuiltinFunc(ast.Ceil.Name, builtinArithArity1(arithCeil))
+	RegisterBuiltinFunc(ast.Floor.Name, builtinArithArity1(arithFloor))
+	RegisterBuiltinFunc(ast.Plus.Name, builtinArithArity2(arithPlus))
+	RegisterBuiltinFunc(ast.Minus.Name, builtinMinus)
+	RegisterBuiltinFunc(ast.Multiply.Name, builtinArithArity2(arithMultiply))
+	RegisterBuiltinFunc(ast.Divide.Name, builtinArithArity2(arithDivide))
+	RegisterBuiltinFunc(ast.Rem.Name, builtinRem)
 }

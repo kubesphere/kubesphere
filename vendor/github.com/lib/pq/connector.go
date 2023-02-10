@@ -27,7 +27,12 @@ func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
 	return c.open(ctx)
 }
 
-// Driver returnst the underlying driver of this Connector.
+// Dialer allows change the dialer used to open connections.
+func (c *Connector) Dialer(dialer Dialer) {
+	c.dialer = dialer
+}
+
+// Driver returns the underlying driver of this Connector.
 func (c *Connector) Driver() driver.Driver {
 	return &Driver{}
 }
@@ -104,6 +109,11 @@ func NewConnector(dsn string) (*Connector, error) {
 			return nil, err
 		}
 		o["user"] = u
+	}
+
+	// SSL is not necessary or supported over UNIX domain sockets
+	if network, _ := network(o); network == "unix" {
+		o["sslmode"] = "disable"
 	}
 
 	return &Connector{opts: o, dialer: defaultDialer{}}, nil

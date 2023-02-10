@@ -14,8 +14,6 @@ import (
 	"time"
 
 	"github.com/docker/distribution/registry/client/transport"
-	"github.com/docker/docker/pkg/homedir"
-	"github.com/docker/docker/rootless"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/sirupsen/logrus"
 )
@@ -26,25 +24,26 @@ var (
 	ErrAlreadyExists = errors.New("Image already exists")
 )
 
+// HostCertsDir returns the config directory for a specific host
+func HostCertsDir(hostname string) (string, error) {
+	certsDir := CertsDir()
+
+	hostDir := filepath.Join(certsDir, cleanPath(hostname))
+
+	return hostDir, nil
+}
+
 func newTLSConfig(hostname string, isSecure bool) (*tls.Config, error) {
 	// PreferredServerCipherSuites should have no effect
 	tlsConfig := tlsconfig.ServerDefault()
 
 	tlsConfig.InsecureSkipVerify = !isSecure
 
-	if isSecure && CertsDir != "" {
-		certsDir := CertsDir
-
-		if rootless.RunningWithRootlessKit() {
-			configHome, err := homedir.GetConfigHome()
-			if err != nil {
-				return nil, err
-			}
-
-			certsDir = filepath.Join(configHome, "docker/certs.d")
+	if isSecure && CertsDir() != "" {
+		hostDir, err := HostCertsDir(hostname)
+		if err != nil {
+			return nil, err
 		}
-
-		hostDir := filepath.Join(certsDir, cleanPath(hostname))
 
 		logrus.Debugf("hostDir: %s", hostDir)
 		if err := ReadCertsDirectory(tlsConfig, hostDir); err != nil {
@@ -69,7 +68,7 @@ func hasFile(files []os.FileInfo, name string) bool {
 // provided TLS configuration.
 func ReadCertsDirectory(tlsConfig *tls.Config, directory string) error {
 	fs, err := ioutil.ReadDir(directory)
-	if err != nil && !os.IsNotExist(err) && !os.IsPermission(err) {
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 

@@ -7,7 +7,6 @@ package scanner
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"unicode"
 	"unicode/utf8"
 
@@ -47,7 +46,7 @@ type Position struct {
 // through the source code provided by the io.Reader.
 func New(r io.Reader) (*Scanner, error) {
 
-	bs, err := ioutil.ReadAll(r)
+	bs, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

@@ -73,7 +73,6 @@ func (d *Schema) SetRootSchemaName(name string) {
 // Pretty long function ( sorry :) )... but pretty straight forward, repetitive and boring
 // Not much magic involved here, most of the job is to validate the key names and their values,
 // then the values are copied into SubSchema struct
-//
 func (d *Schema) parseSchema(documentNode interface{}, currentSchema *SubSchema) error {
 
 	if currentSchema.Draft == nil {

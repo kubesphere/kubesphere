@@ -6,18 +6,18 @@ var pluralRules = []rule{}
 func AddPlural(suffix string, repl string) {
 	pluralMoot.Lock()
 	defer pluralMoot.Unlock()
-	pluralRules = append(pluralRules, rule{
+	pluralRules = append([]rule{{
 		suffix: suffix,
 		fn: func(s string) string {
 			s = s[:len(s)-len(suffix)]
 			return s + repl
 		},
-	})
+	}}, pluralRules...)
 
-	pluralRules = append(pluralRules, rule{
+	pluralRules = append([]rule{{
 		suffix: repl,
 		fn:     noop,
-	})
+	}}, pluralRules...)
 }
 
 var singleToPlural = map[string]string{
@@ -40,15 +40,16 @@ var singleToPlural = map[string]string{
 	"bus":         "buses",
 	"campus":      "campuses",
 	"caucus":      "caucuses",
+	"child":       "children",
 	"château":     "châteaux",
 	"circus":      "circuses",
 	"codex":       "codices",
 	"concerto":    "concertos",
 	"corpus":      "corpora",
 	"crisis":      "crises",
+	"criterion":   "criteria",
 	"curriculum":  "curriculums",
 	"datum":       "data",
-	"dear":        "dear",
 	"deer":        "deer",
 	"diagnosis":   "diagnoses",
 	"die":         "dice",
@@ -56,7 +57,6 @@ var singleToPlural = map[string]string{
 	"ellipsis":    "ellipses",
 	"equipment":   "equipment",
 	"erratum":     "errata",
-	"faux pas":    "faux pas",
 	"fez":         "fezzes",
 	"fish":        "fish",
 	"focus":       "foci",
@@ -82,6 +82,7 @@ var singleToPlural = map[string]string{
 	"locus":       "loci",
 	"louse":       "lice",
 	"matrix":      "matrices",
+	"medium":      "media",
 	"minutia":     "minutiae",
 	"money":       "money",
 	"moose":       "moose",
@@ -96,6 +97,7 @@ var singleToPlural = map[string]string{
 	"ovum":        "ova",
 	"ox":          "oxen",
 	"parenthesis": "parentheses",
+	"person":      "people",
 	"phenomenon":  "phenomena",
 	"photo":       "photos",
 	"phylum":      "phyla",
@@ -105,11 +107,13 @@ var singleToPlural = map[string]string{
 	"prognosis":   "prognoses",
 	"prometheus":  "prometheuses",
 	"quiz":        "quizzes",
+	"quota":       "quotas",
 	"radius":      "radiuses",
 	"referendum":  "referendums",
 	"ress":        "resses",
 	"rice":        "rice",
 	"salmon":      "salmon",
+	"sex":         "sexes",
 	"series":      "series",
 	"sheep":       "sheep",
 	"shoe":        "shoes",
@@ -120,6 +124,7 @@ var singleToPlural = map[string]string{
 	"swine":       "swine",
 	"syllabus":    "syllabi",
 	"symposium":   "symposiums",
+	"synapse":     "synapses",
 	"synopsis":    "synopses",
 	"tableau":     "tableaus",
 	"testis":      "testes",
@@ -128,12 +133,14 @@ var singleToPlural = map[string]string{
 	"tooth":       "teeth",
 	"trout":       "trout",
 	"tuna":        "tuna",
+	"vedalia":     "vedalias",
 	"vertebra":    "vertebrae",
 	"vertix":      "vertices",
 	"vita":        "vitae",
 	"vortex":      "vortices",
 	"wharf":       "wharves",
 	"wife":        "wives",
+	"woman":       "women",
 	"wolf":        "wolves",
 	"you":         "you",
 }
@@ -152,22 +159,21 @@ type singularToPluralSuffix struct {
 }
 
 var singularToPluralSuffixList = []singularToPluralSuffix{
-	{"iterion", "iteria"},
 	{"campus", "campuses"},
-	{"genera", "genus"},
 	{"person", "people"},
 	{"phylum", "phyla"},
 	{"randum", "randa"},
 	{"actus", "acti"},
 	{"adium", "adia"},
-	{"alias", "aliases"},
 	{"basis", "basis"},
 	{"child", "children"},
 	{"chive", "chives"},
 	{"focus", "foci"},
+	{"genus", "genera"},
 	{"hello", "hellos"},
 	{"jeans", "jeans"},
 	{"louse", "lice"},
+	{"media", "media"},
 	{"mouse", "mice"},
 	{"movie", "movies"},
 	{"oasis", "oasis"},
@@ -190,10 +196,10 @@ var singularToPluralSuffixList = []singularToPluralSuffix{
 	{"oose", "eese"},
 	{"ouse", "ouses"},
 	{"ovum", "ova"},
-	{"rion", "ria"},
 	{"shoe", "shoes"},
 	{"stis", "stes"},
 	{"tive", "tives"},
+	{"vice", "vices"},
 	{"wife", "wives"},
 	{"afe", "aves"},
 	{"bfe", "bves"},
@@ -218,9 +224,7 @@ var singularToPluralSuffixList = []singularToPluralSuffix{
 	{"oci", "ocus"},
 	{"ode", "odes"},
 	{"ofe", "oves"},
-	{"oot", "eet"},
 	{"pfe", "pves"},
-	{"pse", "psis"},
 	{"qfe", "qves"},
 	{"quy", "quies"},
 	{"rfe", "rves"},
@@ -251,12 +255,10 @@ var singularToPluralSuffixList = []singularToPluralSuffix{
 	{"io", "ios"},
 	{"jy", "jies"},
 	{"ky", "kies"},
-	{"ld", "ldren"},
 	{"lf", "lves"},
 	{"ly", "lies"},
 	{"my", "mies"},
 	{"ny", "nies"},
-	{"ox", "oxen"},
 	{"py", "pies"},
 	{"qy", "qies"},
 	{"rf", "rves"},
@@ -277,8 +279,8 @@ var singularToPluralSuffixList = []singularToPluralSuffix{
 }
 
 func init() {
-	for _, suffix := range singularToPluralSuffixList {
-		AddPlural(suffix.singular, suffix.plural)
-		AddSingular(suffix.plural, suffix.singular)
+	for i := len(singularToPluralSuffixList) - 1; i >= 0; i-- {
+		AddPlural(singularToPluralSuffixList[i].singular, singularToPluralSuffixList[i].plural)
+		AddSingular(singularToPluralSuffixList[i].plural, singularToPluralSuffixList[i].singular)
 	}
 }

@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-gorp/gorp/v3"
 	"github.com/rubenv/sql-migrate/sqlparse"
-	"gopkg.in/gorp.v1"
 )
 
 type MigrationDirection int
@@ -37,6 +37,8 @@ type MigrationSet struct {
 	//
 	// This should be used sparingly as it is removing a safety check.
 	IgnoreUnknown bool
+	// DisableCreateTable disable the creation of the migration table
+	DisableCreateTable bool
 }
 
 var migSet = MigrationSet{}
@@ -104,6 +106,11 @@ func SetSchema(name string) {
 	if name != "" {
 		migSet.SchemaName = name
 	}
+}
+
+// SetDisableCreateTable sets the boolean to disable the creation of the migration table
+func SetDisableCreateTable(disable bool) {
+	migSet.DisableCreateTable = disable
 }
 
 // SetIgnoreUnknown sets the flag that skips database check to see if there is a
@@ -229,7 +236,7 @@ type HttpFileSystemMigrationSource struct {
 var _ MigrationSource = (*HttpFileSystemMigrationSource)(nil)
 
 func (f HttpFileSystemMigrationSource) FindMigrations() ([]*Migration, error) {
-	return findMigrations(f.FileSystem)
+	return findMigrations(f.FileSystem, "/")
 }
 
 // A set of migrations loaded from a directory.
@@ -241,13 +248,13 @@ var _ MigrationSource = (*FileMigrationSource)(nil)
 
 func (f FileMigrationSource) FindMigrations() ([]*Migration, error) {
 	filesystem := http.Dir(f.Dir)
-	return findMigrations(filesystem)
+	return findMigrations(filesystem, "/")
 }
 
-func findMigrations(dir http.FileSystem) ([]*Migration, error) {
+func findMigrations(dir http.FileSystem, root string) ([]*Migration, error) {
 	migrations := make([]*Migration, 0)
 
-	file, err := dir.Open("/")
+	file, err := dir.Open(root)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +266,7 @@ func findMigrations(dir http.FileSystem) ([]*Migration, error) {
 
 	for _, info := range files {
 		if strings.HasSuffix(info.Name(), ".sql") {
-			migration, err := migrationFromFile(dir, info)
+			migration, err := migrationFromFile(dir, root, info)
 			if err != nil {
 				return nil, err
 			}
@@ -274,8 +281,8 @@ func findMigrations(dir http.FileSystem) ([]*Migration, error) {
 	return migrations, nil
 }
 
-func migrationFromFile(dir http.FileSystem, info os.FileInfo) (*Migration, error) {
-	path := fmt.Sprintf("/%s", strings.TrimPrefix(info.Name(), "/"))
+func migrationFromFile(dir http.FileSystem, root string, info os.FileInfo) (*Migration, error) {
+	path := path.Join(root, info.Name())
 	file, err := dir.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("Error while opening %s: %s", info.Name(), err)
@@ -750,6 +757,10 @@ Check https://github.com/go-sql-driver/mysql#parsetime for more info.`)
 
 	if dialect == "oci8" || dialect == "godror" {
 		table.ColMap("Id").SetMaxSize(4000)
+	}
+
+	if migSet.DisableCreateTable {
+		return dbMap, nil
 	}
 
 	err := dbMap.CreateTablesIfNotExists()

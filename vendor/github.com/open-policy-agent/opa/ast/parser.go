@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"gopkg.in/yaml.v2"
 
@@ -567,14 +568,41 @@ func (p *Parser) parseRules() []*Rule {
 		return []*Rule{&rule}
 	}
 
-	hasIf := false
-	if p.s.tok == tokens.If {
-		hasIf = true
+	if usesContains && !rule.Head.Reference.IsGround() {
+		p.error(p.s.Loc(), "multi-value rules need ground refs")
+		return nil
 	}
 
-	if hasIf && !usesContains && rule.Head.Key != nil && rule.Head.Value == nil {
-		p.illegal("invalid for partial set rule %s (use `contains`)", rule.Head.Name)
-		return nil
+	// back-compat with `p[x] { ... }``
+	hasIf := p.s.tok == tokens.If
+
+	// p[x] if ...  becomes a single-value rule p[x]
+	if hasIf && !usesContains && len(rule.Head.Ref()) == 2 {
+		if rule.Head.Value == nil {
+			rule.Head.Value = BooleanTerm(true).SetLocation(rule.Head.Location)
+		} else {
+			// p[x] = y if  becomes a single-value rule p[x] with value y, but needs name for compat
+			v, ok := rule.Head.Ref()[0].Value.(Var)
+			if !ok {
+				return nil
+			}
+			rule.Head.Name = v
+		}
+	}
+
+	// p[x]         becomes a multi-value rule p
+	if !hasIf && !usesContains &&
+		len(rule.Head.Args) == 0 && // not a function
+		len(rule.Head.Ref()) == 2 { // ref like 'p[x]'
+		v, ok := rule.Head.Ref()[0].Value.(Var)
+		if !ok {
+			return nil
+		}
+		rule.Head.Name = v
+		rule.Head.Key = rule.Head.Ref()[1]
+		if rule.Head.Value == nil {
+			rule.Head.SetRef(rule.Head.Ref()[:len(rule.Head.Ref())-1])
+		}
 	}
 
 	switch {
@@ -617,9 +645,12 @@ func (p *Parser) parseRules() []*Rule {
 	}
 
 	if p.s.tok == tokens.Else {
-
+		if r := rule.Head.Ref(); len(r) > 1 && !r[len(r)-1].Value.IsGround() {
+			p.error(p.s.Loc(), "else keyword cannot be used on rules with variables in head")
+			return nil
+		}
 		if rule.Head.Key != nil {
-			p.error(p.s.Loc(), "else keyword cannot be used on partial rules")
+			p.error(p.s.Loc(), "else keyword cannot be used on multi-value rules")
 			return nil
 		}
 
@@ -630,9 +661,7 @@ func (p *Parser) parseRules() []*Rule {
 
 	rule.Location.Text = p.s.Text(rule.Location.Offset, p.s.lastEnd)
 
-	var rules []*Rule
-
-	rules = append(rules, &rule)
+	rules := []*Rule{&rule}
 
 	for p.s.tok == tokens.LBrace {
 
@@ -658,6 +687,11 @@ func (p *Parser) parseRules() []*Rule {
 		// rule's head AST but have their location
 		// set to the rule body.
 		next.Head = rule.Head.Copy()
+		for i := range next.Head.Args {
+			if v, ok := next.Head.Args[i].Value.(Var); ok && v.IsWildcard() {
+				next.Head.Args[i].Value = Var(p.genwildcard())
+			}
+		}
 		setLocRecursive(next.Head, loc)
 
 		rules = append(rules, &next)
@@ -672,6 +706,11 @@ func (p *Parser) parseElse(head *Head) *Rule {
 	rule.SetLoc(p.s.Loc())
 
 	rule.Head = head.Copy()
+	for i := range rule.Head.Args {
+		if v, ok := rule.Head.Args[i].Value.(Var); ok && v.IsWildcard() {
+			rule.Head.Args[i].Value = Var(p.genwildcard())
+		}
+	}
 	rule.Head.SetLoc(p.s.Loc())
 
 	defer func() {
@@ -684,6 +723,7 @@ func (p *Parser) parseElse(head *Head) *Rule {
 	case tokens.LBrace, tokens.If: // no value, but a body follows directly
 		rule.Head.Value = BooleanTerm(true)
 	case tokens.Assign, tokens.Unify:
+		rule.Head.Assign = tokens.Assign == p.s.tok
 		p.scan()
 		rule.Head.Value = p.parseTermInfixCall()
 		if rule.Head.Value == nil {
@@ -743,67 +783,73 @@ func (p *Parser) parseElse(head *Head) *Rule {
 
 func (p *Parser) parseHead(defaultRule bool) (*Head, bool) {
 
-	var head Head
-	head.SetLoc(p.s.Loc())
-
+	head := &Head{}
+	loc := p.s.Loc()
 	defer func() {
-		head.Location.Text = p.s.Text(head.Location.Offset, p.s.lastEnd)
+		if head != nil {
+			head.SetLoc(loc)
+			head.Location.Text = p.s.Text(head.Location.Offset, p.s.lastEnd)
+		}
 	}()
 
-	if term := p.parseVar(); term != nil {
-		head.Name = term.Value.(Var)
-	} else {
-		p.illegal("expected rule head name")
+	term := p.parseVar()
+	if term == nil {
+		return nil, false
 	}
 
-	p.scan()
+	ref := p.parseTermFinish(term, true)
+	if ref == nil {
+		p.illegal("expected rule head name")
+		return nil, false
+	}
 
-	if p.s.tok == tokens.LParen {
-		p.scan()
-		if p.s.tok != tokens.RParen {
-			head.Args = p.parseTermList(tokens.RParen, nil)
-			if head.Args == nil {
+	switch x := ref.Value.(type) {
+	case Var:
+		head = NewHead(x)
+	case Ref:
+		head = RefHead(x)
+	case Call:
+		op, args := x[0], x[1:]
+		var ref Ref
+		switch y := op.Value.(type) {
+		case Var:
+			ref = Ref{op}
+		case Ref:
+			if _, ok := y[0].Value.(Var); !ok {
+				p.illegal("rule head ref %v invalid", y)
 				return nil, false
 			}
+			ref = y
 		}
-		p.scan()
+		head = RefHead(ref)
+		head.Args = append([]*Term{}, args...)
 
-		if p.s.tok == tokens.LBrack {
-			return nil, false
-		}
+	default:
+		return nil, false
 	}
 
-	if p.s.tok == tokens.LBrack {
-		p.scan()
-		head.Key = p.parseTermInfixCall()
-		if head.Key == nil {
-			p.illegal("expected rule key term (e.g., %s[<VALUE>] { ... })", head.Name)
-		}
-		if p.s.tok != tokens.RBrack {
-			if _, ok := futureKeywords[head.Name.String()]; ok {
-				p.hint("`import future.keywords.%[1]s` for '%[1]s' keyword", head.Name.String())
-			}
-			p.illegal("non-terminated rule key")
-		}
-		p.scan()
-	}
+	name := head.Ref().String()
 
 	switch p.s.tok {
-	case tokens.Contains:
+	case tokens.Contains: // NOTE: no Value for `contains` heads, we return here
+		// Catch error case of using 'contains' with a function definition rule head.
+		if head.Args != nil {
+			p.illegal("the contains keyword can only be used with multi-value rule definitions (e.g., %s contains <VALUE> { ... })", name)
+		}
 		p.scan()
 		head.Key = p.parseTermInfixCall()
 		if head.Key == nil {
-			p.illegal("expected rule key term (e.g., %s contains <VALUE> { ... })", head.Name)
+			p.illegal("expected rule key term (e.g., %s contains <VALUE> { ... })", name)
 		}
+		return head, true
 
-		return &head, true
 	case tokens.Unify:
 		p.scan()
 		head.Value = p.parseTermInfixCall()
 		if head.Value == nil {
-			p.illegal("expected rule value term (e.g., %s[%s] = <VALUE> { ... })", head.Name, head.Key)
+			// FIX HEAD.String()
+			p.illegal("expected rule value term (e.g., %s[%s] = <VALUE> { ... })", name, head.Key)
 		}
-
 	case tokens.Assign:
 		s := p.save()
 		p.scan()
@@ -813,22 +859,23 @@ func (p *Parser) parseHead(defaultRule bool) (*Head, bool) {
 			p.restore(s)
 			switch {
 			case len(head.Args) > 0:
-				p.illegal("expected function value term (e.g., %s(...) := <VALUE> { ... })", head.Name)
+				p.illegal("expected function value term (e.g., %s(...) := <VALUE> { ... })", name)
 			case head.Key != nil:
-				p.illegal("expected partial rule value term (e.g., %s[...] := <VALUE> { ... })", head.Name)
+				p.illegal("expected partial rule value term (e.g., %s[...] := <VALUE> { ... })", name)
 			case defaultRule:
-				p.illegal("expected default rule value term (e.g., default %s := <VALUE>)", head.Name)
+				p.illegal("expected default rule value term (e.g., default %s := <VALUE>)", name)
 			default:
-				p.illegal("expected rule value term (e.g., %s := <VALUE> { ... })", head.Name)
+				p.illegal("expected rule value term (e.g., %s := <VALUE> { ... })", name)
 			}
 		}
 	}
 
 	if head.Value == nil && head.Key == nil {
-		head.Value = BooleanTerm(true).SetLocation(head.Location)
+		if len(head.Ref()) != 2 || len(head.Args) > 0 {
+			head.Value = BooleanTerm(true).SetLocation(head.Location)
+		}
 	}
-
-	return &head, false
+	return head, false
 }
 
 func (p *Parser) parseBody(end tokens.Token) Body {
@@ -1348,17 +1395,18 @@ func (p *Parser) parseTerm() *Term {
 		p.illegalToken()
 	}
 
-	term = p.parseTermFinish(term)
+	term = p.parseTermFinish(term, false)
 	p.parsedTermCachePush(term, s0)
 	return term
 }
 
-func (p *Parser) parseTermFinish(head *Term) *Term {
+func (p *Parser) parseTermFinish(head *Term, skipws bool) *Term {
 	if head == nil {
 		return nil
 	}
 	offset := p.s.loc.Offset
-	p.scanWS()
+	p.doScan(skipws)
+
 	switch p.s.tok {
 	case tokens.LParen, tokens.Dot, tokens.LBrack:
 		return p.parseRef(head, offset)
@@ -2084,6 +2132,7 @@ func (p *Parser) validateDefaultRuleValue(rule *Rule) bool {
 type rawAnnotation struct {
 	Scope            string                 `yaml:"scope"`
 	Title            string                 `yaml:"title"`
+	Entrypoint       bool                   `yaml:"entrypoint"`
 	Description      string                 `yaml:"description"`
 	Organizations    []string               `yaml:"organizations"`
 	RelatedResources []interface{}          `yaml:"related_resources"`
@@ -2110,7 +2159,7 @@ func (b *metadataParser) Append(c *Comment) {
 	b.comments = append(b.comments, c)
 }
 
-var yamlLineErrRegex = regexp.MustCompile(`^yaml: line ([[:digit:]]+):`)
+var yamlLineErrRegex = regexp.MustCompile(`^yaml:(?: unmarshal errors:[\n\s]*)? line ([[:digit:]]+):`)
 
 func (b *metadataParser) Parse() (*Annotations, error) {
 
@@ -2121,23 +2170,27 @@ func (b *metadataParser) Parse() (*Annotations, error) {
 	}
 
 	if err := yaml.Unmarshal(b.buf.Bytes(), &raw); err != nil {
+		var comment *Comment
 		match := yamlLineErrRegex.FindStringSubmatch(err.Error())
 		if len(match) == 2 {
 			n, err2 := strconv.Atoi(match[1])
 			if err2 == nil {
 				index := n - 1 // line numbering is 1-based so subtract one from row
 				if index >= len(b.comments) {
-					b.loc = b.comments[len(b.comments)-1].Location
+					comment = b.comments[len(b.comments)-1]
 				} else {
-					b.loc = b.comments[index].Location
+					comment = b.comments[index]
 				}
+				b.loc = comment.Location
 			}
 		}
-		return nil, err
+		return nil, augmentYamlError(err, b.comments)
 	}
 
 	var result Annotations
+	result.comments = b.comments
 	result.Scope = raw.Scope
+	result.Entrypoint = raw.Entrypoint
 	result.Title = raw.Title
 	result.Description = raw.Description
 	result.Organizations = raw.Organizations
@@ -2199,6 +2252,40 @@ func (b *metadataParser) Parse() (*Annotations, error) {
 
 	result.Location = b.loc
 	return &result, nil
+}
+
+// augmentYamlError augments a YAML error with hints intended to help the user figure out the cause of an otherwise cryptic error.
+// These are hints, instead of proper errors, because they are educated guesses, and aren't guaranteed to be correct.
+func augmentYamlError(err error, comments []*Comment) error {
+	// Adding hints for when key/value ':' separator isn't suffixed with a legal YAML space symbol
+	for _, comment := range comments {
+		txt := string(comment.Text)
+		parts := strings.Split(txt, ":")
+		if len(parts) > 1 {
+			parts = parts[1:]
+			var invalidSpaces []string
+			for partIndex, part := range parts {
+				if len(part) == 0 && partIndex == len(parts)-1 {
+					invalidSpaces = []string{}
+					break
+				}
+
+				r, _ := utf8.DecodeRuneInString(part)
+				if r == ' ' || r == '\t' {
+					invalidSpaces = []string{}
+					break
+				}
+
+				invalidSpaces = append(invalidSpaces, fmt.Sprintf("%+q", r))
+			}
+			if len(invalidSpaces) > 0 {
+				err = fmt.Errorf(
+					"%s\n  Hint: on line %d, symbol(s) %v immediately following a key/value separator ':' is not a legal yaml space character",
+					err.Error(), comment.Location.Row, invalidSpaces)
+			}
+		}
+	}
+	return err
 }
 
 func unwrapPair(pair map[string]interface{}) (k string, v interface{}) {

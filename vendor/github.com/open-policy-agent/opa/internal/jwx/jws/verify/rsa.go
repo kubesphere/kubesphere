@@ -3,10 +3,10 @@ package verify
 import (
 	"crypto"
 	"crypto/rsa"
+	"errors"
+	"fmt"
 
 	"github.com/open-policy-agent/opa/internal/jwx/jwa"
-
-	"github.com/pkg/errors"
 )
 
 var rsaVerifyFuncs = map[jwa.SignatureAlgorithm]rsaVerifyFunc{}
@@ -66,7 +66,7 @@ func makeVerifyPSS(hash crypto.Hash) rsaVerifyFunc {
 func newRSA(alg jwa.SignatureAlgorithm) (*RSAVerifier, error) {
 	verifyfn, ok := rsaVerifyFuncs[alg]
 	if !ok {
-		return nil, errors.Errorf(`unsupported algorithm while trying to create RSA verifier: %s`, alg)
+		return nil, fmt.Errorf(`unsupported algorithm while trying to create RSA verifier: %s`, alg)
 	}
 
 	return &RSAVerifier{
@@ -81,7 +81,7 @@ func (v RSAVerifier) Verify(payload, signature []byte, key interface{}) error {
 	}
 	rsaKey, ok := key.(*rsa.PublicKey)
 	if !ok {
-		return errors.Errorf(`invalid key type %T. *rsa.PublicKey is required`, key)
+		return fmt.Errorf(`invalid key type %T. *rsa.PublicKey is required`, key)
 	}
 
 	return v.verify(payload, signature, rsaKey)

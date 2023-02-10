@@ -3,9 +3,9 @@ package verify
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"errors"
+	"fmt"
 	"math/big"
-
-	"github.com/pkg/errors"
 
 	"github.com/open-policy-agent/opa/internal/jwx/jwa"
 )
@@ -45,7 +45,7 @@ func makeECDSAVerifyFunc(hash crypto.Hash) ecdsaVerifyFunc {
 func newECDSA(alg jwa.SignatureAlgorithm) (*ECDSAVerifier, error) {
 	verifyfn, ok := ecdsaVerifyFuncs[alg]
 	if !ok {
-		return nil, errors.Errorf(`unsupported algorithm while trying to create ECDSA verifier: %s`, alg)
+		return nil, fmt.Errorf(`unsupported algorithm while trying to create ECDSA verifier: %s`, alg)
 	}
 
 	return &ECDSAVerifier{
@@ -60,7 +60,7 @@ func (v ECDSAVerifier) Verify(payload []byte, signature []byte, key interface{})
 	}
 	ecdsakey, ok := key.(*ecdsa.PublicKey)
 	if !ok {
-		return errors.Errorf(`invalid key type %T. *ecdsa.PublicKey is required`, key)
+		return fmt.Errorf(`invalid key type %T. *ecdsa.PublicKey is required`, key)
 	}
 
 	return v.verify(payload, signature, ecdsakey)

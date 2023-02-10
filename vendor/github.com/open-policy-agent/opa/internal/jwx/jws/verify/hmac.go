@@ -2,11 +2,11 @@ package verify
 
 import (
 	"crypto/hmac"
+	"errors"
 	"fmt"
 
 	"github.com/open-policy-agent/opa/internal/jwx/jwa"
 	"github.com/open-policy-agent/opa/internal/jwx/jws/sign"
-	"github.com/pkg/errors"
 )
 
 func newHMAC(alg jwa.SignatureAlgorithm) (*HMACVerifier, error) {

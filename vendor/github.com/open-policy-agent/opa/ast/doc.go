@@ -8,29 +8,29 @@
 //
 // Rego policies are typically defined in text files and then parsed and compiled by the policy engine at runtime. The parsing stage takes the text or string representation of the policy and converts it into an abstract syntax tree (AST) that consists of the types mentioned above. The AST is organized as follows:
 //
-//  Module
-//   |
-//   +--- Package (Reference)
-//   |
-//   +--- Imports
-//   |     |
-//   |     +--- Import (Term)
-//   |
-//   +--- Rules
-//         |
-//         +--- Rule
-//               |
-//               +--- Head
-//               |     |
-//               |     +--- Name (Variable)
-//               |     |
-//               |     +--- Key (Term)
-//               |     |
-//               |     +--- Value (Term)
-//               |
-//               +--- Body
-//                     |
-//                     +--- Expression (Term | Terms | Variable Declaration)
+//	Module
+//	 |
+//	 +--- Package (Reference)
+//	 |
+//	 +--- Imports
+//	 |     |
+//	 |     +--- Import (Term)
+//	 |
+//	 +--- Rules
+//	       |
+//	       +--- Rule
+//	             |
+//	             +--- Head
+//	             |     |
+//	             |     +--- Name (Variable)
+//	             |     |
+//	             |     +--- Key (Term)
+//	             |     |
+//	             |     +--- Value (Term)
+//	             |
+//	             +--- Body
+//	                   |
+//	                   +--- Expression (Term | Terms | Variable Declaration)
 //
 // At query time, the policy engine expects policies to have been compiled. The compilation stage takes one or more modules and compiles them into a format that the policy engine supports.
 package ast

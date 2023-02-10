@@ -1,6 +1,6 @@
 // Package squirrel provides a fluent SQL generator.
 //
-// See https://github.com/lann/squirrel for examples.
+// See https://github.com/Masterminds/squirrel for examples.
 package squirrel
 
 import (
@@ -18,6 +18,12 @@ import (
 // as passed to e.g. database/sql.Exec. It can also return an error.
 type Sqlizer interface {
 	ToSql() (string, []interface{}, error)
+}
+
+// rawSqlizer is expected to do what Sqlizer does, but without finalizing placeholders.
+// This is useful for nested queries.
+type rawSqlizer interface {
+	toSqlRaw() (string, []interface{}, error)
 }
 
 // Execer is the interface that wraps the Exec method.
@@ -54,32 +60,34 @@ type Runner interface {
 	QueryRower
 }
 
-// DBRunner wraps sql.DB to implement Runner.
-type dbRunner struct {
-	*sql.DB
+// WrapStdSql wraps a type implementing the standard SQL interface with methods that
+// squirrel expects.
+func WrapStdSql(stdSql StdSql) Runner {
+	return &stdsqlRunner{stdSql}
 }
 
-func (r *dbRunner) QueryRow(query string, args ...interface{}) RowScanner {
-	return r.DB.QueryRow(query, args...)
+// StdSql encompasses the standard methods of the *sql.DB type, and other types that
+// wrap these methods.
+type StdSql interface {
+	Query(string, ...interface{}) (*sql.Rows, error)
+	QueryRow(string, ...interface{}) *sql.Row
+	Exec(string, ...interface{}) (sql.Result, error)
 }
 
-type txRunner struct {
-	*sql.Tx
+type stdsqlRunner struct {
+	StdSql
 }
 
-func (r *txRunner) QueryRow(query string, args ...interface{}) RowScanner {
-	return r.Tx.QueryRow(query, args...)
+func (r *stdsqlRunner) QueryRow(query string, args ...interface{}) RowScanner {
+	return r.StdSql.QueryRow(query, args...)
 }
 
-func setRunWith(b interface{}, baseRunner BaseRunner) interface{} {
-	var runner Runner
-	switch r := baseRunner.(type) {
-	case Runner:
-		runner = r
-	case *sql.DB:
-		runner = &dbRunner{r}
-	case *sql.Tx:
-		runner = &txRunner{r}
+func setRunWith(b interface{}, runner BaseRunner) interface{} {
+	switch r := runner.(type) {
+	case StdSqlCtx:
+		runner = WrapStdSqlCtx(r)
+	case StdSql:
+		runner = WrapStdSql(r)
 	}
 	return builder.Set(b, "RunWith", runner)
 }
@@ -129,11 +137,18 @@ func DebugSqlizer(s Sqlizer) string {
 		return fmt.Sprintf("[ToSql error: %s]", err)
 	}
 
+	var placeholder string
+	downCast, ok := s.(placeholderDebugger)
+	if !ok {
+		placeholder = "?"
+	} else {
+		placeholder = downCast.debugPlaceholder()
+	}
 	// TODO: dedupe this with placeholder.go
 	buf := &bytes.Buffer{}
 	i := 0
 	for {
-		p := strings.Index(sql, "?")
+		p := strings.Index(sql, placeholder)
 		if p == -1 {
 			break
 		}
@@ -152,6 +167,7 @@ func DebugSqlizer(s Sqlizer) string {
 			}
 			buf.WriteString(sql[:p])
 			fmt.Fprintf(buf, "'%v'", args[i])
+			// advance our sql string "cursor" beyond the arg we placed
 			sql = sql[p+1:]
 			i++
 		}
@@ -161,6 +177,7 @@ func DebugSqlizer(s Sqlizer) string {
 			"[DebugSqlizer error: not enough placeholders in %#v for %d args]",
 			sql, len(args))
 	}
+	// "append" any remaning sql that won't need interpolating
 	buf.WriteString(sql)
 	return buf.String()
 }

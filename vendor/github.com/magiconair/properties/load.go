@@ -115,6 +115,7 @@ func (l *Loader) LoadURL(url string) (*Properties, error) {
 	if err != nil {
 		return nil, fmt.Errorf("properties: error fetching %q. %s", url, err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 && l.IgnoreMissing {
 		LogPrintf("properties: %s returned %d. skipping", url, resp.StatusCode)
@@ -129,14 +130,14 @@ func (l *Loader) LoadURL(url string) (*Properties, error) {
 	if err != nil {
 		return nil, fmt.Errorf("properties: %s error reading response. %s", url, err)
 	}
-	defer resp.Body.Close()
 
 	ct := resp.Header.Get("Content-Type")
+	ct = strings.Join(strings.Fields(ct), "")
 	var enc Encoding
 	switch strings.ToLower(ct) {
-	case "text/plain", "text/plain; charset=iso-8859-1", "text/plain; charset=latin1":
+	case "text/plain", "text/plain;charset=iso-8859-1", "text/plain;charset=latin1":
 		enc = ISO_8859_1
-	case "", "text/plain; charset=utf-8":
+	case "", "text/plain;charset=utf-8":
 		enc = UTF8
 	default:
 		return nil, fmt.Errorf("properties: invalid content type %s", ct)

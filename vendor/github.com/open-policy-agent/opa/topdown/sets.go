@@ -10,32 +10,32 @@ import (
 )
 
 // Deprecated in v0.4.2 in favour of minus/infix "-" operation.
-func builtinSetDiff(a, b ast.Value) (ast.Value, error) {
+func builtinSetDiff(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
-	s1, err := builtins.SetOperand(a, 1)
+	s1, err := builtins.SetOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	s2, err := builtins.SetOperand(b, 2)
+	s2, err := builtins.SetOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return s1.Diff(s2), nil
+	return iter(ast.NewTerm(s1.Diff(s2)))
 }
 
 // builtinSetIntersection returns the intersection of the given input sets
-func builtinSetIntersection(a ast.Value) (ast.Value, error) {
+func builtinSetIntersection(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
-	inputSet, err := builtins.SetOperand(a, 1)
+	inputSet, err := builtins.SetOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// empty input set
 	if inputSet.Len() == 0 {
-		return ast.NewSet(), nil
+		return iter(ast.NewTerm(ast.NewSet()))
 	}
 
 	var result ast.Set
@@ -53,20 +53,23 @@ func builtinSetIntersection(a ast.Value) (ast.Value, error) {
 		}
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return err
+	}
+	return iter(ast.NewTerm(result))
 }
 
 // builtinSetUnion returns the union of the given input sets
-func builtinSetUnion(a ast.Value) (ast.Value, error) {
+func builtinSetUnion(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	// The set union logic here is duplicated and manually inlined on
 	// purpose. By lifting this logic up a level, and not doing pairwise
 	// set unions, we avoid a number of heap allocations. This improves
 	// performance dramatically over the naive approach.
 	result := ast.NewSet()
 
-	inputSet, err := builtins.SetOperand(a, 1)
+	inputSet, err := builtins.SetOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = inputSet.Iter(func(x *ast.Term) error {
@@ -77,12 +80,15 @@ func builtinSetUnion(a ast.Value) (ast.Value, error) {
 		item.Foreach(result.Add)
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
-	return result, err
+	return iter(ast.NewTerm(result))
 }
 
 func init() {
-	RegisterFunctionalBuiltin2(ast.SetDiff.Name, builtinSetDiff)
-	RegisterFunctionalBuiltin1(ast.Intersection.Name, builtinSetIntersection)
-	RegisterFunctionalBuiltin1(ast.Union.Name, builtinSetUnion)
+	RegisterBuiltinFunc(ast.SetDiff.Name, builtinSetDiff)
+	RegisterBuiltinFunc(ast.Intersection.Name, builtinSetIntersection)
+	RegisterBuiltinFunc(ast.Union.Name, builtinSetUnion)
 }

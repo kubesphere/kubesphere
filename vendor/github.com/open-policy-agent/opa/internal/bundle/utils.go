@@ -7,6 +7,9 @@ package bundle
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/bundle"
@@ -82,4 +85,56 @@ func LoadWasmResolversFromStore(ctx context.Context, store storage.Store, txn st
 		}
 	}
 	return resolvers, nil
+}
+
+// LoadBundleFromDisk loads a previously persisted activated bundle from disk
+func LoadBundleFromDisk(path, name string, bvc *bundle.VerificationConfig) (*bundle.Bundle, error) {
+	bundlePath := filepath.Join(path, name, "bundle.tar.gz")
+
+	if _, err := os.Stat(bundlePath); err == nil {
+		f, err := os.Open(filepath.Join(bundlePath))
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		r := bundle.NewCustomReader(bundle.NewTarballLoaderWithBaseURL(f, ""))
+
+		if bvc != nil {
+			r = r.WithBundleVerificationConfig(bvc)
+		}
+
+		b, err := r.Read()
+		if err != nil {
+			return nil, err
+		}
+		return &b, nil
+	} else if os.IsNotExist(err) {
+		return nil, nil
+	} else {
+		return nil, err
+	}
+}
+
+// SaveBundleToDisk saves the given raw bytes representing the bundle's content to disk
+func SaveBundleToDisk(path string, raw io.Reader) (string, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err = os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if raw == nil {
+		return "", fmt.Errorf("no raw bundle bytes to persist to disk")
+	}
+
+	dest, err := os.CreateTemp(path, ".bundle.tar.gz.*.tmp")
+	if err != nil {
+		return "", err
+	}
+	defer dest.Close()
+
+	_, err = io.Copy(dest, raw)
+	return dest.Name(), err
 }

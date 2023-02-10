@@ -64,11 +64,7 @@ func isScannable(t reflect.Type) bool {
 
 	// it's not important that we use the right mapper for this particular object,
 	// we're only concerned on how many exported fields this struct has
-	m := mapper()
-	if len(m.TypeMap(t).Index) == 0 {
-		return true
-	}
-	return false
+	return len(mapper().TypeMap(t).Index) == 0
 }
 
 // ColScanner is an interface used by MapScan and SliceScan
@@ -149,15 +145,15 @@ func isUnsafe(i interface{}) bool {
 }
 
 func mapperFor(i interface{}) *reflectx.Mapper {
-	switch i.(type) {
+	switch i := i.(type) {
 	case DB:
-		return i.(DB).Mapper
+		return i.Mapper
 	case *DB:
-		return i.(*DB).Mapper
+		return i.Mapper
 	case Tx:
-		return i.(Tx).Mapper
+		return i.Mapper
 	case *Tx:
-		return i.(*Tx).Mapper
+		return i.Mapper
 	default:
 		return mapper()
 	}
@@ -378,6 +374,14 @@ func (db *DB) Preparex(query string) (*Stmt, error) {
 // PrepareNamed returns an sqlx.NamedStmt
 func (db *DB) PrepareNamed(query string) (*NamedStmt, error) {
 	return prepareNamed(db, query)
+}
+
+// Conn is a wrapper around sql.Conn with extra functionality
+type Conn struct {
+	*sql.Conn
+	driverName string
+	unsafe     bool
+	Mapper     *reflectx.Mapper
 }
 
 // Tx is an sqlx wrapper around sql.Tx with extra functionality
@@ -874,9 +878,10 @@ func structOnlyError(t reflect.Type) error {
 }
 
 // scanAll scans all rows into a destination, which must be a slice of any
-// type.  If the destination slice type is a Struct, then StructScan will be
-// used on each row.  If the destination is some other kind of base type, then
-// each row must only have one column which can scan into that type.  This
+// type.  It resets the slice length to zero before appending each element to
+// the slice.  If the destination slice type is a Struct, then StructScan will
+// be used on each row.  If the destination is some other kind of base type,
+// then each row must only have one column which can scan into that type.  This
 // allows you to do something like:
 //
 //    rows, _ := db.Query("select id from people;")
@@ -906,6 +911,7 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 	if err != nil {
 		return err
 	}
+	direct.SetLen(0)
 
 	isPtr := slice.Elem().Kind() == reflect.Ptr
 	base := reflectx.Deref(slice.Elem())

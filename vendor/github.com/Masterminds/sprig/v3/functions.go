@@ -3,8 +3,10 @@ package sprig
 import (
 	"errors"
 	"html/template"
+	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -13,6 +15,7 @@ import (
 
 	util "github.com/Masterminds/goutils"
 	"github.com/huandu/xstrings"
+	"github.com/shopspring/decimal"
 )
 
 // FuncMap produces the function map.
@@ -80,6 +83,7 @@ var nonhermeticFunctions = []string{
 	"randAlpha",
 	"randAscii",
 	"randNumeric",
+	"randBytes",
 	"uuidv4",
 
 	// OS
@@ -100,13 +104,14 @@ var genericMap = map[string]interface{}{
 	"date_modify":      dateModify,
 	"dateInZone":       dateInZone,
 	"dateModify":       dateModify,
+	"duration":         duration,
 	"durationRound":    durationRound,
 	"htmlDate":         htmlDate,
 	"htmlDateInZone":   htmlDateInZone,
 	"must_date_modify": mustDateModify,
 	"mustDateModify":   mustDateModify,
 	"mustToDate":       mustToDate,
-	"now":              func() time.Time { return time.Now() },
+	"now":              time.Now,
 	"toDate":           toDate,
 	"unixEpoch":        unixEpoch,
 
@@ -162,6 +167,7 @@ var genericMap = map[string]interface{}{
 	"int64":     toInt64,
 	"int":       toInt,
 	"float64":   toFloat64,
+	"seq":       seq,
 	"toDecimal": toDecimal,
 
 	//"gt": func(a, b int) bool {return a > b},
@@ -198,9 +204,28 @@ var genericMap = map[string]interface{}{
 		}
 		return val
 	},
+	"randInt": func(min, max int) int { return rand.Intn(max-min) + min },
+	"add1f": func(i interface{}) float64 {
+		return execDecimalOp(i, []interface{}{1}, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Add(d2) })
+	},
+	"addf": func(i ...interface{}) float64 {
+		a := interface{}(float64(0))
+		return execDecimalOp(a, i, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Add(d2) })
+	},
+	"subf": func(a interface{}, v ...interface{}) float64 {
+		return execDecimalOp(a, v, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Sub(d2) })
+	},
+	"divf": func(a interface{}, v ...interface{}) float64 {
+		return execDecimalOp(a, v, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Div(d2) })
+	},
+	"mulf": func(a interface{}, v ...interface{}) float64 {
+		return execDecimalOp(a, v, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Mul(d2) })
+	},
 	"biggest": max,
 	"max":     max,
 	"min":     min,
+	"maxf":    maxf,
+	"minf":    minf,
 	"ceil":    ceil,
 	"floor":   floor,
 	"round":   round,
@@ -214,11 +239,15 @@ var genericMap = map[string]interface{}{
 	"default":          dfault,
 	"empty":            empty,
 	"coalesce":         coalesce,
+	"all":              all,
+	"any":              any,
 	"compact":          compact,
 	"mustCompact":      mustCompact,
+	"fromJson":         fromJson,
 	"toJson":           toJson,
 	"toPrettyJson":     toPrettyJson,
 	"toRawJson":        toRawJson,
+	"mustFromJson":     mustFromJson,
 	"mustToJson":       mustToJson,
 	"mustToPrettyJson": mustToPrettyJson,
 	"mustToRawJson":    mustToRawJson,
@@ -235,18 +264,25 @@ var genericMap = map[string]interface{}{
 	"deepEqual":  reflect.DeepEqual,
 
 	// OS:
-	"env":       func(s string) string { return os.Getenv(s) },
-	"expandenv": func(s string) string { return os.ExpandEnv(s) },
+	"env":       os.Getenv,
+	"expandenv": os.ExpandEnv,
 
 	// Network:
 	"getHostByName": getHostByName,
 
-	// File Paths:
+	// Paths:
 	"base":  path.Base,
 	"dir":   path.Dir,
 	"clean": path.Clean,
 	"ext":   path.Ext,
 	"isAbs": path.IsAbs,
+
+	// Filepaths:
+	"osBase":  filepath.Base,
+	"osClean": filepath.Clean,
+	"osDir":   filepath.Dir,
+	"osExt":   filepath.Ext,
+	"osIsAbs": filepath.IsAbs,
 
 	// Encoding:
 	"b64enc": base64encode,
@@ -295,16 +331,25 @@ var genericMap = map[string]interface{}{
 	"slice":       slice,
 	"mustSlice":   mustSlice,
 	"concat":      concat,
+	"dig":         dig,
+	"chunk":       chunk,
+	"mustChunk":   mustChunk,
 
 	// Crypto:
+	"bcrypt":            bcrypt,
+	"htpasswd":          htpasswd,
 	"genPrivateKey":     generatePrivateKey,
 	"derivePassword":    derivePassword,
 	"buildCustomCert":   buildCustomCertificate,
 	"genCA":             generateCertificateAuthority,
+	"genCAWithKey":      generateCertificateAuthorityWithPEMKey,
 	"genSelfSignedCert": generateSelfSignedCertificate,
+	"genSelfSignedCertWithKey": generateSelfSignedCertificateWithPEMKey,
 	"genSignedCert":     generateSignedCertificate,
+	"genSignedCertWithKey": generateSignedCertificateWithPEMKey,
 	"encryptAES":        encryptAES,
 	"decryptAES":        decryptAES,
+	"randBytes":         randBytes,
 
 	// UUIDs:
 	"uuidv4": uuidv4,
@@ -329,6 +374,7 @@ var genericMap = map[string]interface{}{
 	"mustRegexReplaceAllLiteral": mustRegexReplaceAllLiteral,
 	"regexSplit":                 regexSplit,
 	"mustRegexSplit":             mustRegexSplit,
+	"regexQuoteMeta":             regexQuoteMeta,
 
 	// URLs:
 	"urlParse": urlParse,

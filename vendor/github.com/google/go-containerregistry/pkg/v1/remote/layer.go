@@ -18,7 +18,6 @@ import (
 	"io"
 
 	"github.com/google/go-containerregistry/internal/redact"
-	"github.com/google/go-containerregistry/internal/verify"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/partial"
@@ -35,7 +34,7 @@ type remoteLayer struct {
 func (rl *remoteLayer) Compressed() (io.ReadCloser, error) {
 	// We don't want to log binary layers -- this can break terminals.
 	ctx := redact.NewContext(rl.context, "omitting binary blobs from logs")
-	return rl.fetchBlob(ctx, verify.SizeUnknown, rl.digest)
+	return rl.fetchBlob(ctx, rl.digest)
 }
 
 // Compressed implements partial.CompressedLayer

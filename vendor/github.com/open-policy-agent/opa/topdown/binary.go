@@ -9,37 +9,37 @@ import (
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
 
-func builtinBinaryAnd(a ast.Value, b ast.Value) (ast.Value, error) {
+func builtinBinaryAnd(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
-	s1, err := builtins.SetOperand(a, 1)
+	s1, err := builtins.SetOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	s2, err := builtins.SetOperand(b, 2)
+	s2, err := builtins.SetOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return s1.Intersect(s2), nil
+	return iter(ast.NewTerm(s1.Intersect(s2)))
 }
 
-func builtinBinaryOr(a ast.Value, b ast.Value) (ast.Value, error) {
+func builtinBinaryOr(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
-	s1, err := builtins.SetOperand(a, 1)
+	s1, err := builtins.SetOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	s2, err := builtins.SetOperand(b, 2)
+	s2, err := builtins.SetOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return s1.Union(s2), nil
+	return iter(ast.NewTerm(s1.Union(s2)))
 }
 
 func init() {
-	RegisterFunctionalBuiltin2(ast.And.Name, builtinBinaryAnd)
-	RegisterFunctionalBuiltin2(ast.Or.Name, builtinBinaryOr)
+	RegisterBuiltinFunc(ast.And.Name, builtinBinaryAnd)
+	RegisterBuiltinFunc(ast.Or.Name, builtinBinaryOr)
 }

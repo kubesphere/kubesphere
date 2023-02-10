@@ -119,7 +119,7 @@ func (sl *SchemaLoader) AddSchemas(loaders ...JSONLoader) error {
 	return nil
 }
 
-//AddSchema adds a schema under the provided URL to the schema cache
+// AddSchema adds a schema under the provided URL to the schema cache
 func (sl *SchemaLoader) AddSchema(url string, loader JSONLoader) error {
 
 	ref, err := gojsonreference.NewJsonReference(url)

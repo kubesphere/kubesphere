@@ -9,15 +9,15 @@ import (
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
 
-func builtinArrayConcat(a, b ast.Value) (ast.Value, error) {
-	arrA, err := builtins.ArrayOperand(a, 1)
+func builtinArrayConcat(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	arrA, err := builtins.ArrayOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	arrB, err := builtins.ArrayOperand(b, 2)
+	arrB, err := builtins.ArrayOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	arrC := make([]*ast.Term, arrA.Len()+arrB.Len())
@@ -33,23 +33,23 @@ func builtinArrayConcat(a, b ast.Value) (ast.Value, error) {
 		i++
 	})
 
-	return ast.NewArray(arrC...), nil
+	return iter(ast.NewTerm(ast.NewArray(arrC...)))
 }
 
-func builtinArraySlice(a, i, j ast.Value) (ast.Value, error) {
-	arr, err := builtins.ArrayOperand(a, 1)
+func builtinArraySlice(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	arr, err := builtins.ArrayOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	startIndex, err := builtins.IntOperand(i, 2)
+	startIndex, err := builtins.IntOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	stopIndex, err := builtins.IntOperand(j, 3)
+	stopIndex, err := builtins.IntOperand(operands[2].Value, 3)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Clamp stopIndex to avoid out-of-range errors. If negative, clamp to zero.
@@ -68,10 +68,10 @@ func builtinArraySlice(a, i, j ast.Value) (ast.Value, error) {
 		startIndex = stopIndex
 	}
 
-	return arr.Slice(startIndex, stopIndex), nil
+	return iter(ast.NewTerm(arr.Slice(startIndex, stopIndex)))
 }
 
-func builtinArrayReverse(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinArrayReverse(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	arr, err := builtins.ArrayOperand(operands[0].Value, 1)
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func builtinArrayReverse(bctx BuiltinContext, operands []*ast.Term, iter func(*a
 }
 
 func init() {
-	RegisterFunctionalBuiltin2(ast.ArrayConcat.Name, builtinArrayConcat)
-	RegisterFunctionalBuiltin3(ast.ArraySlice.Name, builtinArraySlice)
+	RegisterBuiltinFunc(ast.ArrayConcat.Name, builtinArrayConcat)
+	RegisterBuiltinFunc(ast.ArraySlice.Name, builtinArraySlice)
 	RegisterBuiltinFunc(ast.ArrayReverse.Name, builtinArrayReverse)
 }

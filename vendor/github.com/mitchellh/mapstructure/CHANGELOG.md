@@ -1,3 +1,46 @@
+## 1.4.3
+
+* Fix cases where `json.Number` didn't decode properly [GH-261]
+
+## 1.4.2
+
+* Custom name matchers to support any sort of casing, formatting, etc. for
+  field names. [GH-250]
+* Fix possible panic in ComposeDecodeHookFunc [GH-251]
+
+## 1.4.1
+
+* Fix regression where `*time.Time` value would be set to empty and not be sent
+  to decode hooks properly [GH-232]
+
+## 1.4.0
+
+* A new decode hook type `DecodeHookFuncValue` has been added that has
+  access to the full values. [GH-183]
+* Squash is now supported with embedded fields that are struct pointers [GH-205]
+* Empty strings will convert to 0 for all numeric types when weakly decoding [GH-206]
+
+## 1.3.3
+
+* Decoding maps from maps creates a settable value for decode hooks [GH-203]
+
+## 1.3.2
+
+* Decode into interface type with a struct value is supported [GH-187]
+
+## 1.3.1
+
+* Squash should only squash embedded structs. [GH-194]
+
+## 1.3.0
+
+* Added `",omitempty"` support. This will ignore zero values in the source
+  structure when encoding. [GH-145]
+
+## 1.2.3
+
+* Fix duplicate entries in Keys list with pointer values. [GH-185]
+
 ## 1.2.2
 
 * Do not add unsettable (unexported) values to the unused metadata key

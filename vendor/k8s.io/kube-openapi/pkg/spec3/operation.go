@@ -19,8 +19,8 @@ package spec3
 import (
 	"encoding/json"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // Operation describes a single API operation on a path, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#operationObject
@@ -73,7 +73,7 @@ type OperationProps struct {
 	// Deprecated declares this operation to be deprecated
 	Deprecated bool `json:"deprecated,omitempty"`
 	// SecurityRequirement holds a declaration of which security mechanisms can be used for this operation
-	SecurityRequirement []*SecurityRequirement `json:"security,omitempty"`
+	SecurityRequirement []map[string][]string `json:"security,omitempty"`
 	// Servers contains an alternative server array to service this operation
 	Servers []*Server `json:"servers,omitempty"`
 }

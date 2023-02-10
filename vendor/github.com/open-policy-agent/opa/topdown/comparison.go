@@ -32,17 +32,17 @@ func compareEq(a, b ast.Value) bool {
 	return ast.Compare(a, b) == 0
 }
 
-func builtinCompare(cmp compareFunc) FunctionalBuiltin2 {
-	return func(a, b ast.Value) (ast.Value, error) {
-		return ast.Boolean(cmp(a, b)), nil
+func builtinCompare(cmp compareFunc) BuiltinFunc {
+	return func(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+		return iter(ast.BooleanTerm(cmp(operands[0].Value, operands[1].Value)))
 	}
 }
 
 func init() {
-	RegisterFunctionalBuiltin2(ast.GreaterThan.Name, builtinCompare(compareGreaterThan))
-	RegisterFunctionalBuiltin2(ast.GreaterThanEq.Name, builtinCompare(compareGreaterThanEq))
-	RegisterFunctionalBuiltin2(ast.LessThan.Name, builtinCompare(compareLessThan))
-	RegisterFunctionalBuiltin2(ast.LessThanEq.Name, builtinCompare(compareLessThanEq))
-	RegisterFunctionalBuiltin2(ast.NotEqual.Name, builtinCompare(compareNotEq))
-	RegisterFunctionalBuiltin2(ast.Equal.Name, builtinCompare(compareEq))
+	RegisterBuiltinFunc(ast.GreaterThan.Name, builtinCompare(compareGreaterThan))
+	RegisterBuiltinFunc(ast.GreaterThanEq.Name, builtinCompare(compareGreaterThanEq))
+	RegisterBuiltinFunc(ast.LessThan.Name, builtinCompare(compareLessThan))
+	RegisterBuiltinFunc(ast.LessThanEq.Name, builtinCompare(compareLessThanEq))
+	RegisterBuiltinFunc(ast.NotEqual.Name, builtinCompare(compareNotEq))
+	RegisterBuiltinFunc(ast.Equal.Name, builtinCompare(compareEq))
 }

@@ -3,8 +3,9 @@ package wordwrap
 
 import (
 	"bytes"
-	"github.com/mattn/go-runewidth"
 	"unicode"
+
+	"github.com/gosuri/uitable/util/strutil"
 )
 
 // WrapString wraps the given string within lim width in characters.
@@ -30,7 +31,7 @@ func WrapString(s string, lim uint) string {
 				} else {
 					current += uint(spaceWidth)
 					spaceBuf.WriteTo(buf)
-					spaceWidth += runewidth.StringWidth(buf.String())
+					spaceWidth += strutil.StringWidth(buf.String())
 				}
 				spaceBuf.Reset()
 				spaceWidth = 0
@@ -57,10 +58,10 @@ func WrapString(s string, lim uint) string {
 			}
 
 			spaceBuf.WriteRune(char)
-			spaceWidth += runewidth.RuneWidth(char)
+			spaceWidth += strutil.RuneWidth(char)
 		} else {
 			wordBuf.WriteRune(char)
-			wordWidth += runewidth.RuneWidth(char)
+			wordWidth += strutil.RuneWidth(char)
 
 			if current+uint(spaceWidth+wordWidth) > lim && uint(wordWidth) < lim {
 				buf.WriteRune('\n')

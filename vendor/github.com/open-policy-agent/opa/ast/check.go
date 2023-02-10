@@ -200,7 +200,7 @@ func (tc *typeChecker) checkRule(env *TypeEnv, as *AnnotationSet, rule *Rule) {
 
 	cpy, err := tc.CheckBody(env, rule.Body)
 	env = env.next
-	path := rule.Path()
+	path := rule.Ref()
 
 	if len(err) > 0 {
 		// if the rule/function contains an error, add it to the type env so
@@ -213,7 +213,6 @@ func (tc *typeChecker) checkRule(env *TypeEnv, as *AnnotationSet, rule *Rule) {
 	var tpe types.Type
 
 	if len(rule.Head.Args) > 0 {
-
 		// If args are not referred to in body, infer as any.
 		WalkVars(rule.Head.Args, func(v Var) bool {
 			if cpy.Get(v) == nil {
@@ -235,23 +234,28 @@ func (tc *typeChecker) checkRule(env *TypeEnv, as *AnnotationSet, rule *Rule) {
 		tpe = types.Or(exist, f)
 
 	} else {
-		switch rule.Head.DocKind() {
-		case CompleteDoc:
+		switch rule.Head.RuleKind() {
+		case SingleValue:
 			typeV := cpy.Get(rule.Head.Value)
-			if typeV != nil {
-				exist := env.tree.Get(path)
-				tpe = types.Or(typeV, exist)
+			if last := path[len(path)-1]; !last.IsGround() {
+
+				// e.g. store object[string: whatever] at data.p.q.r, not data.p.q.r[x]
+				path = path.GroundPrefix()
+
+				typeK := cpy.Get(last)
+				if typeK != nil && typeV != nil {
+					exist := env.tree.Get(path)
+					typeV = types.Or(types.Values(exist), typeV)
+					typeK = types.Or(types.Keys(exist), typeK)
+					tpe = types.NewObject(nil, types.NewDynamicProperty(typeK, typeV))
+				}
+			} else {
+				if typeV != nil {
+					exist := env.tree.Get(path)
+					tpe = types.Or(typeV, exist)
+				}
 			}
-		case PartialObjectDoc:
-			typeK := cpy.Get(rule.Head.Key)
-			typeV := cpy.Get(rule.Head.Value)
-			if typeK != nil && typeV != nil {
-				exist := env.tree.Get(path)
-				typeV = types.Or(types.Values(exist), typeV)
-				typeK = types.Or(types.Keys(exist), typeK)
-				tpe = types.NewObject(nil, types.NewDynamicProperty(typeK, typeV))
-			}
-		case PartialSetDoc:
+		case MultiValue:
 			typeK := cpy.Get(rule.Head.Key)
 			if typeK != nil {
 				exist := env.tree.Get(path)
@@ -652,72 +656,57 @@ func (rc *refChecker) checkRef(curr *TypeEnv, node *typeTreeNode, ref Ref, idx i
 
 	head := ref[idx]
 
-	// Handle constant ref operands, i.e., strings or the ref head.
-	if _, ok := head.Value.(String); ok || idx == 0 {
-
-		child := node.Child(head.Value)
-		if child == nil {
-
-			if curr.next != nil {
-				next := curr.next
-				return rc.checkRef(next, next.tree, ref, 0)
-			}
-
-			if RootDocumentNames.Contains(ref[0]) {
-				return rc.checkRefLeaf(types.A, ref, 1)
-			}
-
-			return rc.checkRefLeaf(types.A, ref, 0)
+	// NOTE(sr): as long as package statements are required, this isn't possible:
+	// the shortest possible rule ref is data.a.b (b is idx 2), idx 1 and 2 need to
+	// be strings or vars.
+	if idx == 1 || idx == 2 {
+		switch head.Value.(type) {
+		case Var, String: // OK
+		default:
+			have := rc.env.Get(head.Value)
+			return newRefErrInvalid(ref[0].Location, rc.varRewriter(ref), idx, have, types.S, getOneOfForNode(node))
 		}
-
-		if child.Leaf() {
-			return rc.checkRefLeaf(child.Value(), ref, idx+1)
-		}
-
-		return rc.checkRef(curr, child, ref, idx+1)
 	}
 
-	// Handle dynamic ref operands.
-	switch value := head.Value.(type) {
-
-	case Var:
-
-		if exist := rc.env.Get(value); exist != nil {
-			if !unifies(types.S, exist) {
-				return newRefErrInvalid(ref[0].Location, rc.varRewriter(ref), idx, exist, types.S, getOneOfForNode(node))
+	if v, ok := head.Value.(Var); ok && idx != 0 {
+		tpe := types.Keys(rc.env.getRefRecExtent(node))
+		if exist := rc.env.Get(v); exist != nil {
+			if !unifies(tpe, exist) {
+				return newRefErrInvalid(ref[0].Location, rc.varRewriter(ref), idx, exist, tpe, getOneOfForNode(node))
 			}
 		} else {
-			rc.env.tree.PutOne(value, types.S)
+			rc.env.tree.PutOne(v, tpe)
 		}
-
-	case Ref:
-
-		exist := rc.env.Get(value)
-		if exist == nil {
-			// If ref type is unknown, an error will already be reported so
-			// stop here.
-			return nil
-		}
-
-		if !unifies(types.S, exist) {
-			return newRefErrInvalid(ref[0].Location, rc.varRewriter(ref), idx, exist, types.S, getOneOfForNode(node))
-		}
-
-	// Catch other ref operand types here. Non-leaf nodes must be referred to
-	// with string values.
-	default:
-		return newRefErrInvalid(ref[0].Location, rc.varRewriter(ref), idx, nil, types.S, getOneOfForNode(node))
 	}
 
-	// Run checking on remaining portion of the ref. Note, since the ref
-	// potentially refers to data for which no type information exists,
-	// checking should never fail.
-	node.Children().Iter(func(_, child util.T) bool {
-		_ = rc.checkRef(curr, child.(*typeTreeNode), ref, idx+1) // ignore error
-		return false
-	})
+	child := node.Child(head.Value)
+	if child == nil {
+		// NOTE(sr): idx is reset on purpose: we start over
+		switch {
+		case curr.next != nil:
+			next := curr.next
+			return rc.checkRef(next, next.tree, ref, 0)
 
-	return nil
+		case RootDocumentNames.Contains(ref[0]):
+			if idx != 0 {
+				node.Children().Iter(func(_, child util.T) bool {
+					_ = rc.checkRef(curr, child.(*typeTreeNode), ref, idx+1) // ignore error
+					return false
+				})
+				return nil
+			}
+			return rc.checkRefLeaf(types.A, ref, 1)
+
+		default:
+			return rc.checkRefLeaf(types.A, ref, 0)
+		}
+	}
+
+	if child.Leaf() {
+		return rc.checkRefLeaf(child.Value(), ref, idx+1)
+	}
+
+	return rc.checkRef(curr, child, ref, idx+1)
 }
 
 func (rc *refChecker) checkRefLeaf(tpe types.Type, ref Ref, idx int) *Error {

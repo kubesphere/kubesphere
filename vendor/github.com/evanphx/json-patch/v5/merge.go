@@ -27,21 +27,33 @@ func merge(cur, patch *lazyNode, mergeMerge bool) *lazyNode {
 }
 
 func mergeDocs(doc, patch *partialDoc, mergeMerge bool) {
-	for k, v := range *patch {
+	for k, v := range patch.obj {
 		if v == nil {
 			if mergeMerge {
-				(*doc)[k] = nil
+				idx := -1
+				for i, key := range doc.keys {
+					if key == k {
+						idx = i
+						break
+					}
+				}
+				if idx == -1 {
+					doc.keys = append(doc.keys, k)
+				}
+				doc.obj[k] = nil
 			} else {
-				delete(*doc, k)
+				_ = doc.remove(k, &ApplyOptions{})
 			}
 		} else {
-			cur, ok := (*doc)[k]
+			cur, ok := doc.obj[k]
 
 			if !ok || cur == nil {
-				pruneNulls(v)
-				(*doc)[k] = v
+				if !mergeMerge {
+					pruneNulls(v)
+				}
+				_ = doc.set(k, v, &ApplyOptions{})
 			} else {
-				(*doc)[k] = merge(cur, v, mergeMerge)
+				_ = doc.set(k, merge(cur, v, mergeMerge), &ApplyOptions{})
 			}
 		}
 	}
@@ -62,9 +74,9 @@ func pruneNulls(n *lazyNode) {
 }
 
 func pruneDocNulls(doc *partialDoc) *partialDoc {
-	for k, v := range *doc {
+	for k, v := range doc.obj {
 		if v == nil {
-			delete(*doc, k)
+			_ = doc.remove(k, &ApplyOptions{})
 		} else {
 			pruneNulls(v)
 		}
@@ -79,8 +91,8 @@ func pruneAryNulls(ary *partialArray) *partialArray {
 	for _, v := range *ary {
 		if v != nil {
 			pruneNulls(v)
-			newAry = append(newAry, v)
 		}
+		newAry = append(newAry, v)
 	}
 
 	*ary = newAry
@@ -113,19 +125,19 @@ func doMergePatch(docData, patchData []byte, mergeMerge bool) ([]byte, error) {
 
 	patchErr := json.Unmarshal(patchData, patch)
 
-	if _, ok := docErr.(*json.SyntaxError); ok {
+	if isSyntaxError(docErr) {
 		return nil, errBadJSONDoc
 	}
 
-	if _, ok := patchErr.(*json.SyntaxError); ok {
+	if isSyntaxError(patchErr) {
 		return nil, errBadJSONPatch
 	}
 
-	if docErr == nil && *doc == nil {
+	if docErr == nil && doc.obj == nil {
 		return nil, errBadJSONDoc
 	}
 
-	if patchErr == nil && *patch == nil {
+	if patchErr == nil && patch.obj == nil {
 		return nil, errBadJSONPatch
 	}
 
@@ -160,6 +172,16 @@ func doMergePatch(docData, patchData []byte, mergeMerge bool) ([]byte, error) {
 	}
 
 	return json.Marshal(doc)
+}
+
+func isSyntaxError(err error) bool {
+	if _, ok := err.(*json.SyntaxError); ok {
+		return true
+	}
+	if _, ok := err.(*syntaxError); ok {
+		return true
+	}
+	return false
 }
 
 // resemblesJSONArray indicates whether the byte-slice "appears" to be
@@ -311,7 +333,12 @@ func matchesValue(av, bv interface{}) bool {
 			return false
 		}
 		for key := range bt {
-			if !matchesValue(at[key], bt[key]) {
+			av, aOK := at[key]
+			bv, bOK := bt[key]
+			if aOK != bOK {
+				return false
+			}
+			if !matchesValue(av, bv) {
 				return false
 			}
 		}

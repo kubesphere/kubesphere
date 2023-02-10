@@ -14,6 +14,8 @@ func (p wherePart) ToSql() (sql string, args []interface{}, err error) {
 	switch pred := p.pred.(type) {
 	case nil:
 		// no-op
+	case rawSqlizer:
+		return pred.toSqlRaw()
 	case Sqlizer:
 		return pred.ToSql()
 	case map[string]interface{}:

@@ -6,7 +6,6 @@ package util
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -15,7 +14,7 @@ import (
 // leak can occur.
 func Close(resp *http.Response) {
 	if resp != nil && resp.Body != nil {
-		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
 			return
 		}
 		resp.Body.Close()

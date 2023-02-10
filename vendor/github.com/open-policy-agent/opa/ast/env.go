@@ -5,6 +5,8 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/open-policy-agent/opa/types"
 	"github.com/open-policy-agent/opa/util"
 )
@@ -59,6 +61,8 @@ func (env *TypeEnv) Get(x interface{}) types.Type {
 
 		return types.NewArray(static, dynamic)
 
+	case *lazyObj:
+		return env.Get(x.force())
 	case *object:
 		static := []*types.StaticProperty{}
 		var dynamic *types.DynamicProperty
@@ -195,9 +199,17 @@ func (env *TypeEnv) getRefRecExtent(node *typeTreeNode) types.Type {
 		child := v.(*typeTreeNode)
 
 		tpe := env.getRefRecExtent(child)
-		// TODO(tsandall): handle non-string keys?
-		if s, ok := key.(String); ok {
-			children = append(children, types.NewStaticProperty(string(s), tpe))
+
+		// NOTE(sr): Converting to Golang-native types here is an extension of what we did
+		// before -- only supporting strings. But since we cannot differentiate sets and arrays
+		// that way, we could reconsider.
+		switch key.(type) {
+		case String, Number, Boolean: // skip anything else
+			propKey, err := JSON(key)
+			if err != nil {
+				panic(fmt.Errorf("unreachable, ValueToInterface: %w", err))
+			}
+			children = append(children, types.NewStaticProperty(propKey, tpe))
 		}
 		return false
 	})

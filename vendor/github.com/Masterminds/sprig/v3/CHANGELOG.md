@@ -1,5 +1,77 @@
 # Changelog
 
+## Release 3.2.1 (2021-02-04)
+
+### Changed 
+
+- Upgraded `Masterminds/goutils` to `v1.1.1`. see the [Security Advisory](https://github.com/Masterminds/goutils/security/advisories/GHSA-xg2h-wx96-xgxr)
+
+## Release 3.2.0 (2020-12-14)
+
+### Added
+
+- #211: Added randInt function (thanks @kochurovro)
+- #223: Added fromJson and mustFromJson functions (thanks @mholt)
+- #242: Added a bcrypt function (thanks @robbiet480)
+- #253: Added randBytes function (thanks @MikaelSmith)
+- #254: Added dig function for dicts (thanks @nyarly)
+- #257: Added regexQuoteMeta for quoting regex metadata (thanks @rheaton)
+- #261: Added filepath functions osBase, osDir, osExt, osClean, osIsAbs (thanks @zugl)
+- #268: Added and and all functions for testing conditions (thanks @phuslu)
+- #181: Added float64 arithmetic addf, add1f, subf, divf, mulf, maxf, and minf
+  (thanks @andrewmostello)
+- #265: Added chunk function to split array into smaller arrays (thanks @karelbilek)
+- #270: Extend certificate functions to handle non-RSA keys + add support for
+  ed25519 keys (thanks @misberner)
+
+### Changed
+
+- Removed testing and support for Go 1.12. ed25519 support requires Go 1.13 or newer
+- Using semver 3.1.1 and mergo 0.3.11
+
+### Fixed
+
+- #249: Fix htmlDateInZone example (thanks @spawnia)
+
+NOTE: The dependency github.com/imdario/mergo reverted the breaking change in
+0.3.9 via 0.3.10 release.
+
+## Release 3.1.0 (2020-04-16)
+
+NOTE: The dependency github.com/imdario/mergo made a behavior change in 0.3.9
+that impacts sprig functionality. Do not use sprig with a version newer than 0.3.8.
+
+### Added
+
+- #225: Added support for generating htpasswd hash (thanks @rustycl0ck)
+- #224: Added duration filter (thanks @frebib)
+- #205: Added `seq` function (thanks @thadc23)
+
+### Changed
+
+- #203: Unlambda functions with correct signature (thanks @muesli)
+- #236: Updated the license formatting for GitHub display purposes
+- #238: Updated package dependency versions. Note, mergo not updated to 0.3.9
+        as it causes a breaking change for sprig. That issue is tracked at
+        https://github.com/imdario/mergo/issues/139
+
+### Fixed
+
+- #229: Fix `seq` example in docs (thanks @kalmant)
+
+## Release 3.0.2 (2019-12-13)
+
+### Fixed
+
+- #220: Updating to semver v3.0.3 to fix issue with <= ranges
+- #218: fix typo elyptical->elliptic in ecdsa key description (thanks @laverya)
+
+## Release 3.0.1 (2019-12-08)
+
+### Fixed
+
+- #212: Updated semver fixing broken constraint checking with ^0.0
+
 ## Release 3.0.0 (2019-10-02)
 
 ### Added

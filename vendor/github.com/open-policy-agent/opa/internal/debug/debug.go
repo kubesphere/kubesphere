@@ -2,7 +2,6 @@ package debug
 
 import (
 	"io"
-	"io/ioutil"
 	"log"
 )
 
@@ -11,7 +10,7 @@ type Debug interface {
 	// Printf prints, with a short file:line-number prefix
 	Printf(format string, args ...interface{})
 	// Writer returns the writer being written to, which may be
-	// `ioutil.Discard` if no debug output is requested.
+	// `io.Discard` if no debug output is requested.
 	Writer() io.Writer
 
 	// Output allows tweaking the calldepth used for figuring
@@ -32,5 +31,5 @@ func New(sink io.Writer) Debug {
 // since doing this way, we can propagate the "discarding" via
 // `(Debug).Writer()`.
 func Discard() Debug {
-	return New(ioutil.Discard)
+	return New(io.Discard)
 }

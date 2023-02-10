@@ -108,8 +108,8 @@ func ping(ctx context.Context, reg name.Registry, t http.RoundTripper) (*pingRes
 			}, nil
 		case http.StatusUnauthorized:
 			if challenges := authchallenge.ResponseChallenges(resp); len(challenges) != 0 {
-				// If we hit more than one, let's try to find one that we know how to handle.
-				wac := pickFromMultipleChallenges(challenges)
+				// If we hit more than one, I'm not even sure what to do.
+				wac := challenges[0]
 				return &pingResp{
 					challenge:  challenge(wac.Scheme).Canonical(),
 					parameters: wac.Parameters,
@@ -126,23 +126,4 @@ func ping(ctx context.Context, reg name.Registry, t http.RoundTripper) (*pingRes
 		}
 	}
 	return nil, errors.New(strings.Join(errs, "; "))
-}
-
-func pickFromMultipleChallenges(challenges []authchallenge.Challenge) authchallenge.Challenge {
-
-	// It might happen there are multiple www-authenticate headers, e.g. `Negotiate` and `Basic`.
-	// Picking simply the first one could result eventually in `unrecognized challenge` error,
-	// that's why we're looping through the challenges in search for one that can be handled.
-	allowedSchemes := []string{"basic", "bearer"}
-
-	for _, wac := range challenges {
-		currentScheme := strings.ToLower(wac.Scheme)
-		for _, allowed := range allowedSchemes {
-			if allowed == currentScheme {
-				return wac
-			}
-		}
-	}
-
-	return challenges[0]
 }

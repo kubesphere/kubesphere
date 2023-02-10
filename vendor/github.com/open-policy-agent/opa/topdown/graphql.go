@@ -453,10 +453,33 @@ func builtinGraphQLIsValid(_ BuiltinContext, operands []*ast.Term, iter func(*as
 	return iter(ast.BooleanTerm(true))
 }
 
+func builtinGraphQLSchemaIsValid(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	var schemaDoc *gqlast.SchemaDocument
+	var err error
+
+	switch x := operands[0].Value.(type) {
+	case ast.String:
+		schemaDoc, err = parseSchema(string(x))
+	case ast.Object:
+		schemaDoc, err = objectToSchemaDocument(x)
+	default:
+		// Error if wrong type.
+		return iter(ast.BooleanTerm(false))
+	}
+	if err != nil {
+		return iter(ast.BooleanTerm(false))
+	}
+
+	// Validate the schema, this determines the result
+	_, err = convertSchema(schemaDoc)
+	return iter(ast.BooleanTerm(err == nil))
+}
+
 func init() {
 	RegisterBuiltinFunc(ast.GraphQLParse.Name, builtinGraphQLParse)
 	RegisterBuiltinFunc(ast.GraphQLParseAndVerify.Name, builtinGraphQLParseAndVerify)
 	RegisterBuiltinFunc(ast.GraphQLParseQuery.Name, builtinGraphQLParseQuery)
 	RegisterBuiltinFunc(ast.GraphQLParseSchema.Name, builtinGraphQLParseSchema)
 	RegisterBuiltinFunc(ast.GraphQLIsValid.Name, builtinGraphQLIsValid)
+	RegisterBuiltinFunc(ast.GraphQLSchemaIsValid.Name, builtinGraphQLSchemaIsValid)
 }

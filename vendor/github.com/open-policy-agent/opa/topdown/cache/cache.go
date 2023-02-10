@@ -75,15 +75,20 @@ type InterQueryCache interface {
 // NewInterQueryCache returns a new inter-query cache.
 func NewInterQueryCache(config *Config) InterQueryCache {
 	return &cache{
-		items:  map[string]InterQueryCacheValue{},
+		items:  map[string]cacheItem{},
 		usage:  0,
 		config: config,
 		l:      list.New(),
 	}
 }
 
+type cacheItem struct {
+	value      InterQueryCacheValue
+	keyElement *list.Element
+}
+
 type cache struct {
-	items  map[string]InterQueryCacheValue
+	items  map[string]cacheItem
 	usage  int64
 	config *Config
 	l      *list.List
@@ -101,7 +106,12 @@ func (c *cache) Insert(k ast.Value, v InterQueryCacheValue) (dropped int) {
 func (c *cache) Get(k ast.Value) (InterQueryCacheValue, bool) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	return c.unsafeGet(k)
+	cacheItem, ok := c.unsafeGet(k)
+
+	if ok {
+		return cacheItem.value, true
+	}
+	return nil, false
 }
 
 // Delete deletes the value in the cache for k.
@@ -133,30 +143,35 @@ func (c *cache) unsafeInsert(k ast.Value, v InterQueryCacheValue) (dropped int) 
 		for key := c.l.Front(); key != nil && (c.usage+size > limit); key = c.l.Front() {
 			dropKey := key.Value.(ast.Value)
 			c.unsafeDelete(dropKey)
-			c.l.Remove(key)
 			dropped++
 		}
 	}
 
-	c.items[k.String()] = v
-	c.l.PushBack(k)
+	// By deleting the old value, if it exists, we ensure the usage variable stays correct
+	c.unsafeDelete(k)
+
+	c.items[k.String()] = cacheItem{
+		value:      v,
+		keyElement: c.l.PushBack(k),
+	}
 	c.usage += size
 	return dropped
 }
 
-func (c *cache) unsafeGet(k ast.Value) (InterQueryCacheValue, bool) {
+func (c *cache) unsafeGet(k ast.Value) (cacheItem, bool) {
 	value, ok := c.items[k.String()]
 	return value, ok
 }
 
 func (c *cache) unsafeDelete(k ast.Value) {
-	value, ok := c.unsafeGet(k)
+	cacheItem, ok := c.unsafeGet(k)
 	if !ok {
 		return
 	}
 
-	c.usage -= int64(value.SizeInBytes())
+	c.usage -= cacheItem.value.SizeInBytes()
 	delete(c.items, k.String())
+	c.l.Remove(cacheItem.keyElement)
 }
 
 func (c *cache) maxSizeBytes() int64 {
