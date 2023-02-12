@@ -4,11 +4,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/sha512"
+	"errors"
+	"fmt"
 	"hash"
 
 	"github.com/open-policy-agent/opa/internal/jwx/jwa"
-
-	"github.com/pkg/errors"
 )
 
 var hmacSignFuncs = map[jwa.SignatureAlgorithm]hmacSignFunc{}
@@ -29,7 +29,7 @@ func init() {
 func newHMAC(alg jwa.SignatureAlgorithm) (*HMACSigner, error) {
 	signer, ok := hmacSignFuncs[alg]
 	if !ok {
-		return nil, errors.Errorf(`unsupported algorithm while trying to create HMAC signer: %s`, alg)
+		return nil, fmt.Errorf(`unsupported algorithm while trying to create HMAC signer: %s`, alg)
 	}
 
 	return &HMACSigner{
@@ -55,7 +55,7 @@ func (s HMACSigner) Algorithm() jwa.SignatureAlgorithm {
 func (s HMACSigner) Sign(payload []byte, key interface{}) ([]byte, error) {
 	hmackey, ok := key.([]byte)
 	if !ok {
-		return nil, errors.Errorf(`invalid key type %T. []byte is required`, key)
+		return nil, fmt.Errorf(`invalid key type %T. []byte is required`, key)
 	}
 
 	if len(hmackey) == 0 {

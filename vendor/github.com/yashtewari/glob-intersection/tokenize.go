@@ -3,7 +3,7 @@ package gintersect
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
+	"errors"
 )
 
 // Modifier is a special character that affects lexical analysis.
@@ -65,7 +65,7 @@ func nextToken(index int, input []rune) (newIndex int, token Token, err error) {
 
 			case TTSet:
 				if r == ']' {
-					err = errors.Wrap(ErrInvalidInput, invalidInputMessage(input, newIndex, "set-close ']' with no preceding '['"))
+					err = invalidInputMessageErrorf(input, newIndex, "set-close ']' with no preceding '[': %w", ErrInvalidInput)
 					return
 				}
 
@@ -75,15 +75,15 @@ func nextToken(index int, input []rune) (newIndex int, token Token, err error) {
 				}
 
 			default:
-				panic(errors.Wrapf(errBadImplementation, "encountered unhandled token type: %v", ttype))
+				panic(fmt.Errorf("encountered unhandled token type %v: %w", ttype, errBadImplementation))
 			}
 
 		} else if _, ok := flagRunes[r]; ok {
-			err = errors.Wrap(ErrInvalidInput, invalidInputMessage(input, newIndex, "flag '%s' must be preceded by a non-flag", string(r)))
+			err = invalidInputMessageErrorf(input, newIndex, "flag '%s' must be preceded by a non-flag: %w", string(r), ErrInvalidInput)
 			return
 
 		} else if m, ok := modifierRunes[r]; ok {
-			panic(errors.Wrapf(errBadImplementation, "encountered unhandled modifier: %v", m))
+			panic(fmt.Errorf("encountered unhandled modifier %v: %w", m, errBadImplementation))
 		} else {
 			// Nothing special to do.
 			token = NewCharacter(r)
@@ -133,11 +133,11 @@ func nextTokenSet(index int, input []rune) (newIndex int, t Token, err error) {
 			switch r {
 			case '-':
 				if !prevExists {
-					err = errors.Wrap(ErrInvalidInput, invalidInputMessage(input, newIndex, "range character '-' must be preceded by a Unicode character"))
+					err = invalidInputMessageErrorf(input, newIndex, "range character '-' must be preceded by a Unicode character: %w", ErrInvalidInput)
 					return
 				}
 				if newIndex >= len(input)-1 {
-					err = errors.Wrap(ErrInvalidInput, invalidInputMessage(input, newIndex, "range character '-' must be followed by a Unicode character"))
+					err = invalidInputMessageErrorf(input, newIndex, "range character '-' must be followed by a Unicode character: %w", ErrInvalidInput)
 					return
 				}
 
@@ -146,12 +146,12 @@ func nextTokenSet(index int, input []rune) (newIndex int, t Token, err error) {
 
 				if !escaped {
 					if r == ']' || r == '-' {
-						err = errors.Wrap(ErrInvalidInput, invalidInputMessage(input, newIndex, "range character '-' cannot be followed by a special symbol"))
+						err = invalidInputMessageErrorf(input, newIndex, "range character '-' cannot be followed by a special symbol: %w", ErrInvalidInput)
 						return
 					}
 				}
 				if r < prev {
-					err = errors.Wrap(ErrInvalidInput, invalidInputMessage(input, newIndex, "range is out of order: '%s' comes before '%s' in Unicode", string(r), string(prev)))
+					err = invalidInputMessageErrorf(input, newIndex, "range is out of order: '%s' comes before '%s' in Unicode: %w", string(r), string(prev), ErrInvalidInput)
 					return
 				}
 
@@ -183,7 +183,7 @@ func nextTokenSet(index int, input []rune) (newIndex int, t Token, err error) {
 
 	// End of input is reached before the set completes.
 	if !complete {
-		err = errors.Wrap(ErrInvalidInput, invalidInputMessage(input, newIndex, "found [ without matching ]"))
+		err = invalidInputMessageErrorf(input, newIndex, "found [ without matching ]: %w", ErrInvalidInput)
 	} else {
 		t = NewSet(runes)
 	}
@@ -233,10 +233,10 @@ func nextRune(index int, input []rune) (newIndex int, r rune, escaped bool, err 
 			if index < len(input)-1 {
 				newIndex, r, escaped = index+2, input[index+1], true
 			} else if index == len(input)-1 {
-				err = errors.Wrap(ErrInvalidInput, invalidInputMessage(input, index, "input ends with a \\ (escape) character"))
+				err = invalidInputMessageErrorf(input, index, "input ends with a \\ (escape) character: %w", ErrInvalidInput)
 			}
 		default:
-			panic(errors.Wrapf(errBadImplementation, "encountered unhandled modifier: %v", m))
+			panic(fmt.Errorf("encountered unhandled modifier %v: %w", m, errBadImplementation))
 		}
 	} else {
 		newIndex, r, escaped = index+1, input[index], false
@@ -245,7 +245,8 @@ func nextRune(index int, input []rune) (newIndex int, r rune, escaped bool, err 
 	return
 }
 
-// invalidInputMessage wraps the message describing invalid input with the input itself and index at which it is invalid.
-func invalidInputMessage(input []rune, index int, message string, args ...interface{}) string {
-	return fmt.Sprintf("input:%s, pos:%d, %s", string(input), index, fmt.Sprintf(message, args...))
+// invalidInputMessageErrorf wraps the message describing invalid input with the input itself and index at which it is invalid.
+func invalidInputMessageErrorf(input []rune, index int, message string, args ...interface{}) error {
+	message = fmt.Sprintf("input:%s, pos:%d, %s", string(input), index, message)
+	return fmt.Errorf(message, args...)
 }

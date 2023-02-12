@@ -164,7 +164,7 @@ func (d *dirLoader) NextFile() (*Descriptor, error) {
 				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, false)) {
 					return nil
 				}
-				d.files = append(d.files, filepath.ToSlash(path))
+				d.files = append(d.files, path)
 			} else if info != nil && info.Mode().IsDir() {
 				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, true)) {
 					return filepath.SkipDir
@@ -188,13 +188,13 @@ func (d *dirLoader) NextFile() (*Descriptor, error) {
 	fh := newLazyFile(fileName)
 
 	// Trim off the root directory and return path as if chrooted
-	cleanedPath := strings.TrimPrefix(fileName, d.root)
+	cleanedPath := strings.TrimPrefix(fileName, filepath.FromSlash(d.root))
 	if d.root == "." && filepath.Base(fileName) == ManifestExt {
 		cleanedPath = fileName
 	}
 
-	if !strings.HasPrefix(cleanedPath, "/") {
-		cleanedPath = "/" + cleanedPath
+	if !strings.HasPrefix(cleanedPath, string(os.PathSeparator)) {
+		cleanedPath = string(os.PathSeparator) + cleanedPath
 	}
 
 	f := newDescriptor(path.Join(d.root, cleanedPath), cleanedPath, fh).withCloser(fh)

@@ -11,9 +11,9 @@ import (
 
 type uuidCachingKey string
 
-func builtinUUIDRFC4122(bctx BuiltinContext, args []*ast.Term, iter func(*ast.Term) error) error {
+func builtinUUIDRFC4122(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
-	var key = uuidCachingKey(args[0].Value.String())
+	var key = uuidCachingKey(operands[0].Value.String())
 
 	val, ok := bctx.Cache.Get(key)
 	if ok {

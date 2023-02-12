@@ -58,6 +58,11 @@ const (
 	// WasmOp is emitted when resolving a ref using an external
 	// Resolver.
 	WasmOp Op = "Wasm"
+
+	// UnifyOp is emitted when two terms are unified.  Node will be set to an
+	// equality expression with the two terms.  This Node will not have location
+	// info.
+	UnifyOp Op = "Unify"
 )
 
 // VarMetadata provides some user facing information about
@@ -231,15 +236,15 @@ func (b *BufferTracer) Config() TraceConfig {
 
 // PrettyTrace pretty prints the trace to the writer.
 func PrettyTrace(w io.Writer, trace []*Event) {
-	depths := depths{}
-	for _, event := range trace {
-		depth := depths.GetOrSet(event.QueryID, event.ParentID)
-		fmt.Fprintln(w, formatEvent(event, depth))
-	}
+	prettyTraceWith(w, trace, false)
 }
 
 // PrettyTraceWithLocation prints the trace to the writer and includes location information
 func PrettyTraceWithLocation(w io.Writer, trace []*Event) {
+	prettyTraceWith(w, trace, true)
+}
+
+func prettyTraceWith(w io.Writer, trace []*Event, locations bool) {
 	depths := depths{}
 
 	filePathAliases, longest := getShortenedFileNames(trace)
@@ -249,8 +254,12 @@ func PrettyTraceWithLocation(w io.Writer, trace []*Event) {
 
 	for _, event := range trace {
 		depth := depths.GetOrSet(event.QueryID, event.ParentID)
-		location := formatLocation(event, filePathAliases)
-		fmt.Fprintf(w, "%-*s %s\n", locationWidth, location, formatEvent(event, depth))
+		if locations {
+			location := formatLocation(event, filePathAliases)
+			fmt.Fprintf(w, "%-*s %s\n", locationWidth, location, formatEvent(event, depth))
+		} else {
+			fmt.Fprintln(w, formatEvent(event, depth))
+		}
 	}
 }
 
@@ -378,9 +387,9 @@ func (ds depths) GetOrSet(qid uint64, pqid uint64) int {
 	return depth
 }
 
-func builtinTrace(bctx BuiltinContext, args []*ast.Term, iter func(*ast.Term) error) error {
+func builtinTrace(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
-	str, err := builtins.StringOperand(args[0].Value, 1)
+	str, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return handleBuiltinErr(ast.Trace.Name, bctx.Location, err)
 	}

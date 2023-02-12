@@ -127,8 +127,9 @@ type Manifest struct {
 
 // WasmResolver maps a wasm module to an entrypoint ref.
 type WasmResolver struct {
-	Entrypoint string `json:"entrypoint,omitempty"`
-	Module     string `json:"module,omitempty"`
+	Entrypoint  string             `json:"entrypoint,omitempty"`
+	Module      string             `json:"module,omitempty"`
+	Annotations []*ast.Annotations `json:"annotations,omitempty"`
 }
 
 // Init initializes the manifest. If you instantiate a manifest
@@ -164,6 +165,10 @@ func (m Manifest) Equal(other Manifest) bool {
 	}
 
 	return m.equalWasmResolversAndRoots(other)
+}
+
+func (m Manifest) Empty() bool {
+	return m.Equal(Manifest{})
 }
 
 // Copy returns a deep copy of the manifest.
@@ -210,12 +215,43 @@ func (m Manifest) equalWasmResolversAndRoots(other Manifest) bool {
 	}
 
 	for i := 0; i < len(m.WasmResolvers); i++ {
-		if m.WasmResolvers[i] != other.WasmResolvers[i] {
+		if !m.WasmResolvers[i].Equal(&other.WasmResolvers[i]) {
 			return false
 		}
 	}
 
 	return m.rootSet().Equal(other.rootSet())
+}
+
+func (wr *WasmResolver) Equal(other *WasmResolver) bool {
+	if wr == nil && other == nil {
+		return true
+	}
+
+	if wr == nil || other == nil {
+		return false
+	}
+
+	if wr.Module != other.Module {
+		return false
+	}
+
+	if wr.Entrypoint != other.Entrypoint {
+		return false
+	}
+
+	annotLen := len(wr.Annotations)
+	if annotLen != len(other.Annotations) {
+		return false
+	}
+
+	for i := 0; i < annotLen; i++ {
+		if wr.Annotations[i].Compare(other.Annotations[i]) != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 type stringSet map[string]struct{}
@@ -355,6 +391,7 @@ type Reader struct {
 	verificationConfig    *VerificationConfig
 	skipVerify            bool
 	processAnnotations    bool
+	capabilities          *ast.Capabilities
 	files                 map[string]FileInfo // files in the bundle signature payload
 	sizeLimitBytes        int64
 	etag                  string
@@ -417,6 +454,12 @@ func (r *Reader) WithProcessAnnotations(yes bool) *Reader {
 	return r
 }
 
+// WithCapabilities sets the supported capabilities when loading the files
+func (r *Reader) WithCapabilities(caps *ast.Capabilities) *Reader {
+	r.capabilities = caps
+	return r
+}
+
 // WithSizeLimitBytes sets the size limit to apply to files in the bundle. If files are larger
 // than this, an error will be returned by the reader.
 func (r *Reader) WithSizeLimitBytes(n int64) *Reader {
@@ -443,6 +486,13 @@ func (r *Reader) WithBundleName(name string) *Reader {
 func (r *Reader) WithLazyLoadingMode(yes bool) *Reader {
 	r.lazyLoadingMode = yes
 	return r
+}
+
+func (r *Reader) ParserOptions() ast.ParserOptions {
+	return ast.ParserOptions{
+		ProcessAnnotation: r.processAnnotations,
+		Capabilities:      r.capabilities,
+	}
 }
 
 // Read returns a new Bundle loaded from the reader.
@@ -511,7 +561,7 @@ func (r *Reader) Read() (Bundle, error) {
 			}
 
 			r.metrics.Timer(metrics.RegoModuleParse).Start()
-			module, err := ast.ParseModuleWithOpts(fullPath, buf.String(), ast.ParserOptions{ProcessAnnotation: r.processAnnotations})
+			module, err := ast.ParseModuleWithOpts(fullPath, buf.String(), r.ParserOptions())
 			r.metrics.Timer(metrics.RegoModuleParse).Stop()
 			if err != nil {
 				return bundle, err
@@ -835,7 +885,7 @@ func (w *Writer) writePlan(tw *tar.Writer, bundle Bundle) error {
 
 func writeManifest(tw *tar.Writer, bundle Bundle) error {
 
-	if bundle.Manifest.Equal(Manifest{}) {
+	if bundle.Manifest.Empty() {
 		return nil
 	}
 
@@ -912,7 +962,7 @@ func hashBundleFiles(hash SignatureHasher, b *Bundle) ([]FileInfo, error) {
 	// parse the manifest into a JSON structure;
 	// then recursively order the fields of all objects alphabetically and then apply
 	// the hash function to result to compute the hash.
-	if !b.Manifest.Equal(Manifest{}) {
+	if !b.Manifest.Empty() {
 		mbs, err := json.Marshal(b.Manifest)
 		if err != nil {
 			return files, err
@@ -1003,7 +1053,7 @@ func (b *Bundle) GenerateSignature(signingConfig *SigningConfig, keyID string, u
 		b.Signatures.Plugin = signingConfig.Plugin
 	}
 
-	b.Signatures.Signatures = []string{string(token)}
+	b.Signatures.Signatures = []string{token}
 
 	return nil
 }

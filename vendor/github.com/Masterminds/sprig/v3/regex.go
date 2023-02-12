@@ -77,3 +77,7 @@ func mustRegexSplit(regex string, s string, n int) ([]string, error) {
 	}
 	return r.Split(s, n), nil
 }
+
+func regexQuoteMeta(s string) string {
+	return regexp.QuoteMeta(s)
+}

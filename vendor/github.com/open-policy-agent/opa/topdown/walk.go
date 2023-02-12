@@ -8,9 +8,9 @@ import (
 	"github.com/open-policy-agent/opa/ast"
 )
 
-func evalWalk(_ BuiltinContext, args []*ast.Term, iter func(*ast.Term) error) error {
-	input := args[0]
-	filter := getOutputPath(args)
+func evalWalk(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	input := operands[0]
+	filter := getOutputPath(operands)
 	return walk(filter, nil, input, iter)
 }
 
@@ -78,9 +78,9 @@ func pathAppend(path *ast.Array, key *ast.Term) *ast.Array {
 	return path.Append(key)
 }
 
-func getOutputPath(args []*ast.Term) *ast.Array {
-	if len(args) == 2 {
-		if arr, ok := args[1].Value.(*ast.Array); ok {
+func getOutputPath(operands []*ast.Term) *ast.Array {
+	if len(operands) == 2 {
+		if arr, ok := operands[1].Value.(*ast.Array); ok {
 			if arr.Len() == 2 {
 				if path, ok := arr.Elem(0).Value.(*ast.Array); ok {
 					return path

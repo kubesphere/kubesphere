@@ -355,7 +355,6 @@ func (w *writer) streamBlob(ctx context.Context, blob io.ReadCloser, streamLocat
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := w.client.Do(req.WithContext(ctx))
 	if err != nil {
@@ -387,7 +386,6 @@ func (w *writer) commitBlob(location, digest string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := w.client.Do(req.WithContext(w.context))
 	if err != nil {
@@ -407,24 +405,6 @@ func (w *writer) incrProgress(written int64) {
 		Total:    w.lastUpdate.Total,
 		Complete: atomic.AddInt64(&w.lastUpdate.Complete, int64(written)),
 	}
-}
-
-var shouldRetry retry.Predicate = func(err error) bool {
-	// Various failure modes here, as we're often reading from and writing to
-	// the network.
-	if retry.IsTemporary(err) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, syscall.EPIPE) {
-		logs.Warn.Printf("retrying %v", err)
-		return true
-	}
-	return false
-}
-
-// Try this three times, waiting 1s after first failure, 3s after second.
-var backoff = retry.Backoff{
-	Duration: 1.0 * time.Second,
-	Factor:   3.0,
-	Jitter:   0.1,
-	Steps:    3,
 }
 
 // uploadOne performs a complete upload of a single layer.
@@ -456,6 +436,16 @@ func (w *writer) uploadOne(l v1.Layer) error {
 	}
 
 	ctx := w.context
+
+	shouldRetry := func(err error) bool {
+		// Various failure modes here, as we're often reading from and writing to
+		// the network.
+		if retry.IsTemporary(err) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, syscall.EPIPE) {
+			logs.Warn.Printf("retrying %v", err)
+			return true
+		}
+		return false
+	}
 
 	tryUpload := func() error {
 		location, mounted, err := w.initiateUpload(from, mount)
@@ -506,6 +496,14 @@ func (w *writer) uploadOne(l v1.Layer) error {
 		}
 		logs.Progress.Printf("pushed blob: %s", digest)
 		return nil
+	}
+
+	// Try this three times, waiting 1s after first failure, 3s after second.
+	backoff := retry.Backoff{
+		Duration: 1.0 * time.Second,
+		Factor:   3.0,
+		Jitter:   0.1,
+		Steps:    3,
 	}
 
 	return retry.Retry(tryUpload, shouldRetry, backoff)
@@ -618,38 +616,34 @@ func unpackTaggable(t Taggable) ([]byte, *v1.Descriptor, error) {
 
 // commitManifest does a PUT of the image's manifest.
 func (w *writer) commitManifest(t Taggable, ref name.Reference) error {
-	tryUpload := func() error {
-		raw, desc, err := unpackTaggable(t)
-		if err != nil {
-			return err
-		}
-
-		u := w.url(fmt.Sprintf("/v2/%s/manifests/%s", w.repo.RepositoryStr(), ref.Identifier()))
-
-		// Make the request to PUT the serialized manifest
-		req, err := http.NewRequest(http.MethodPut, u.String(), bytes.NewBuffer(raw))
-		if err != nil {
-			return err
-		}
-		req.Header.Set("Content-Type", string(desc.MediaType))
-
-		resp, err := w.client.Do(req.WithContext(w.context))
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		if err := transport.CheckError(resp, http.StatusOK, http.StatusCreated, http.StatusAccepted); err != nil {
-			return err
-		}
-
-		// The image was successfully pushed!
-		logs.Progress.Printf("%v: digest: %v size: %d", ref, desc.Digest, desc.Size)
-		w.incrProgress(int64(len(raw)))
-		return nil
+	raw, desc, err := unpackTaggable(t)
+	if err != nil {
+		return err
 	}
 
-	return retry.Retry(tryUpload, shouldRetry, backoff)
+	u := w.url(fmt.Sprintf("/v2/%s/manifests/%s", w.repo.RepositoryStr(), ref.Identifier()))
+
+	// Make the request to PUT the serialized manifest
+	req, err := http.NewRequest(http.MethodPut, u.String(), bytes.NewBuffer(raw))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", string(desc.MediaType))
+
+	resp, err := w.client.Do(req.WithContext(w.context))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := transport.CheckError(resp, http.StatusOK, http.StatusCreated, http.StatusAccepted); err != nil {
+		return err
+	}
+
+	// The image was successfully pushed!
+	logs.Progress.Printf("%v: digest: %v size: %d", ref, desc.Digest, desc.Size)
+	w.incrProgress(int64(len(raw)))
+	return nil
 }
 
 func scopesForUploadingImage(repo name.Repository, layers []v1.Layer) []string {

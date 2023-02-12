@@ -1,6 +1,10 @@
 package xxhash
 
-import "hash"
+import (
+	"encoding/binary"
+	"errors"
+	"hash"
+)
 
 const (
 	prime32x1 uint32 = 2654435761
@@ -22,6 +26,13 @@ const (
 	zero64x2 = 0xc2b2ae3d27d4eb4f
 	zero64x3 = 0x0
 	zero64x4 = 0x61c8864e7a143579
+)
+
+const (
+	magic32         = "xxh\x07"
+	magic64         = "xxh\x08"
+	marshaled32Size = len(magic32) + 4*7 + 16
+	marshaled64Size = len(magic64) + 8*6 + 32 + 1
 )
 
 func NewHash32() hash.Hash { return New32() }
@@ -86,6 +97,41 @@ func (xx *XXHash32) Sum(in []byte) []byte {
 	return append(in, byte(s>>24), byte(s>>16), byte(s>>8), byte(s))
 }
 
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (xx *XXHash32) MarshalBinary() ([]byte, error) {
+	b := make([]byte, 0, marshaled32Size)
+	b = append(b, magic32...)
+	b = appendUint32(b, xx.v1)
+	b = appendUint32(b, xx.v2)
+	b = appendUint32(b, xx.v3)
+	b = appendUint32(b, xx.v4)
+	b = appendUint32(b, xx.seed)
+	b = appendInt32(b, xx.ln)
+	b = appendInt32(b, xx.memIdx)
+	b = append(b, xx.mem[:]...)
+	return b, nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (xx *XXHash32) UnmarshalBinary(b []byte) error {
+	if len(b) < len(magic32) || string(b[:len(magic32)]) != magic32 {
+		return errors.New("xxhash: invalid hash state identifier")
+	}
+	if len(b) != marshaled32Size {
+		return errors.New("xxhash: invalid hash state size")
+	}
+	b = b[len(magic32):]
+	b, xx.v1 = consumeUint32(b)
+	b, xx.v2 = consumeUint32(b)
+	b, xx.v3 = consumeUint32(b)
+	b, xx.v4 = consumeUint32(b)
+	b, xx.seed = consumeUint32(b)
+	b, xx.ln = consumeInt32(b)
+	b, xx.memIdx = consumeInt32(b)
+	copy(xx.mem[:], b)
+	return nil
+}
+
 // Checksum64 an alias for Checksum64S(in, 0)
 func Checksum64(in []byte) uint64 {
 	return Checksum64S(in, 0)
@@ -142,6 +188,60 @@ func (xx *XXHash64) Sum(in []byte) []byte {
 	s := xx.Sum64()
 	return append(in, byte(s>>56), byte(s>>48), byte(s>>40), byte(s>>32), byte(s>>24), byte(s>>16), byte(s>>8), byte(s))
 }
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (xx *XXHash64) MarshalBinary() ([]byte, error) {
+	b := make([]byte, 0, marshaled64Size)
+	b = append(b, magic64...)
+	b = appendUint64(b, xx.v1)
+	b = appendUint64(b, xx.v2)
+	b = appendUint64(b, xx.v3)
+	b = appendUint64(b, xx.v4)
+	b = appendUint64(b, xx.seed)
+	b = appendUint64(b, xx.ln)
+	b = append(b, byte(xx.memIdx))
+	b = append(b, xx.mem[:]...)
+	return b, nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (xx *XXHash64) UnmarshalBinary(b []byte) error {
+	if len(b) < len(magic64) || string(b[:len(magic64)]) != magic64 {
+		return errors.New("xxhash: invalid hash state identifier")
+	}
+	if len(b) != marshaled64Size {
+		return errors.New("xxhash: invalid hash state size")
+	}
+	b = b[len(magic64):]
+	b, xx.v1 = consumeUint64(b)
+	b, xx.v2 = consumeUint64(b)
+	b, xx.v3 = consumeUint64(b)
+	b, xx.v4 = consumeUint64(b)
+	b, xx.seed = consumeUint64(b)
+	b, xx.ln = consumeUint64(b)
+	xx.memIdx = int8(b[0])
+	b = b[1:]
+	copy(xx.mem[:], b)
+	return nil
+}
+
+func appendInt32(b []byte, x int32) []byte { return appendUint32(b, uint32(x)) }
+
+func appendUint32(b []byte, x uint32) []byte {
+	var a [4]byte
+	binary.LittleEndian.PutUint32(a[:], x)
+	return append(b, a[:]...)
+}
+
+func appendUint64(b []byte, x uint64) []byte {
+	var a [8]byte
+	binary.LittleEndian.PutUint64(a[:], x)
+	return append(b, a[:]...)
+}
+
+func consumeInt32(b []byte) ([]byte, int32)   { bn, x := consumeUint32(b); return bn, int32(x) }
+func consumeUint32(b []byte) ([]byte, uint32) { x := u32(b); return b[4:], x }
+func consumeUint64(b []byte) ([]byte, uint64) { x := u64(b); return b[8:], x }
 
 // force the compiler to use ROTL instructions
 

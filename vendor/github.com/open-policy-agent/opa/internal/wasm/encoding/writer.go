@@ -229,7 +229,7 @@ func writeFunctionSection(w io.Writer, s module.FunctionSection) error {
 	}
 
 	for _, idx := range s.TypeIndices {
-		if err := leb128.WriteVarUint32(&buf, uint32(idx)); err != nil {
+		if err := leb128.WriteVarUint32(&buf, idx); err != nil {
 			return err
 		}
 	}

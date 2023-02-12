@@ -165,7 +165,12 @@ func Compare(a, b interface{}) int {
 	case *Array:
 		b := b.(*Array)
 		return termSliceCompare(a.elems, b.elems)
+	case *lazyObj:
+		return Compare(a.force(), b)
 	case *object:
+		if x, ok := b.(*lazyObj); ok {
+			b = x.force()
+		}
 		b := b.(*object)
 		return a.Compare(b)
 	case Set:

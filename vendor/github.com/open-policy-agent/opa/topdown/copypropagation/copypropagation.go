@@ -179,7 +179,16 @@ func (p *CopyPropagator) Apply(query ast.Body) ast.Body {
 			providesSafety = true
 		}
 
-		if providesSafety || !containedIn(b.v, result) {
+		safevarRef := false // don't add something like `_ = input`
+		if r, ok := b.v.(ast.Ref); ok {
+			if len(r) == 1 {
+				if v, ok := r[0].Value.(ast.Var); ok {
+					safevarRef = safe.Contains(v)
+				}
+			}
+		}
+
+		if providesSafety || (!safevarRef && !containedIn(b.v, result)) {
 			result.Append(removedEq)
 			safe.Update(outputVars)
 		}
@@ -378,24 +387,37 @@ type binding struct {
 
 func containedIn(value ast.Value, x interface{}) bool {
 	var stop bool
-	switch v := value.(type) {
-	case ast.Ref:
-		ast.WalkRefs(x, func(other ast.Ref) bool {
-			if stop || other.HasPrefix(v) {
+
+	var vis *ast.GenericVisitor
+	vis = ast.NewGenericVisitor(func(x interface{}) bool {
+		switch x := x.(type) {
+		case *ast.Every: // skip body
+			vis.Walk(x.Key)
+			vis.Walk(x.Value)
+			vis.Walk(x.Domain)
+			return true
+		case *ast.ArrayComprehension, *ast.ObjectComprehension, *ast.SetComprehension: // skip
+			return true
+		case ast.Ref:
+			var match bool
+			if v, ok := value.(ast.Ref); ok {
+				match = x.HasPrefix(v)
+			} else {
+				match = x.Compare(value) == 0
+			}
+			if stop || match {
 				stop = true
 				return stop
 			}
-			return false
-		})
-	default:
-		ast.WalkTerms(x, func(other *ast.Term) bool {
-			if stop || other.Value.Compare(v) == 0 {
+		case ast.Value:
+			if stop || x.Compare(value) == 0 {
 				stop = true
 				return stop
 			}
-			return false
-		})
-	}
+		}
+		return stop
+	})
+	vis.Walk(x)
 	return stop
 }
 

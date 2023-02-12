@@ -56,15 +56,15 @@ func builtinNumbersRange(bctx BuiltinContext, operands []*ast.Term, iter func(*a
 	return iter(ast.NewTerm(result))
 }
 
-func builtinRandIntn(bctx BuiltinContext, args []*ast.Term, iter func(*ast.Term) error) error {
+func builtinRandIntn(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
-	strOp, err := builtins.StringOperand(args[0].Value, 1)
+	strOp, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return err
 
 	}
 
-	n, err := builtins.IntOperand(args[1].Value, 2)
+	n, err := builtins.IntOperand(operands[1].Value, 2)
 	if err != nil {
 		return err
 	}

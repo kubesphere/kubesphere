@@ -17,7 +17,6 @@ import (
 // nil < bool < int, float64 < string < []interface{} < map[string]interface{}. Slices and maps
 // are compared recursively. If one slice or map is a subset of the other slice or map
 // it is considered "less than". Nil is always equal to nil.
-//
 func Compare(a, b interface{}) int {
 	aSortOrder := sortOrder(a)
 	bSortOrder := sortOrder(b)

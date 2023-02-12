@@ -115,11 +115,6 @@ func (in *ConfigFile) DeepCopy() *ConfigFile {
 func (in *Descriptor) DeepCopyInto(out *Descriptor) {
 	*out = *in
 	out.Digest = in.Digest
-	if in.Data != nil {
-		in, out := &in.Data, &out.Data
-		*out = make([]byte, len(*in))
-		copy(*out, *in)
-	}
 	if in.URLs != nil {
 		in, out := &in.URLs, &out.URLs
 		*out = make([]string, len(*in))

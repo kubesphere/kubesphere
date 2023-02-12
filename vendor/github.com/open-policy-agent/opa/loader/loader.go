@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -92,12 +91,13 @@ type FileLoader interface {
 	All(paths []string) (*Result, error)
 	Filtered(paths []string, filter Filter) (*Result, error)
 	AsBundle(path string) (*bundle.Bundle, error)
-	WithFS(fsys fs.FS) FileLoader
-	WithMetrics(m metrics.Metrics) FileLoader
-	WithFilter(filter Filter) FileLoader
+	WithFS(fs.FS) FileLoader
+	WithMetrics(metrics.Metrics) FileLoader
+	WithFilter(Filter) FileLoader
 	WithBundleVerificationConfig(*bundle.VerificationConfig) FileLoader
-	WithSkipBundleVerification(skipVerify bool) FileLoader
-	WithProcessAnnotation(processAnnotation bool) FileLoader
+	WithSkipBundleVerification(bool) FileLoader
+	WithProcessAnnotation(bool) FileLoader
+	WithCapabilities(*ast.Capabilities) FileLoader
 }
 
 // NewFileLoader returns a new FileLoader instance.
@@ -156,6 +156,12 @@ func (fl *fileLoader) WithProcessAnnotation(processAnnotation bool) FileLoader {
 	return fl
 }
 
+// WithCapabilities sets the supported capabilities when loading the files
+func (fl *fileLoader) WithCapabilities(caps *ast.Capabilities) FileLoader {
+	fl.opts.Capabilities = caps
+	return fl
+}
+
 // All returns a Result object loaded (recursively) from the specified paths.
 func (fl fileLoader) All(paths []string) (*Result, error) {
 	return fl.Filtered(paths, nil)
@@ -174,7 +180,7 @@ func (fl fileLoader) Filtered(paths []string, filter Filter) (*Result, error) {
 		if fl.fsys != nil {
 			bs, err = fs.ReadFile(fl.fsys, path)
 		} else {
-			bs, err = ioutil.ReadFile(path)
+			bs, err = os.ReadFile(path)
 		}
 		if err != nil {
 			return err
@@ -215,7 +221,8 @@ func (fl fileLoader) AsBundle(path string) (*bundle.Bundle, error) {
 		WithMetrics(fl.metrics).
 		WithBundleVerificationConfig(fl.bvc).
 		WithSkipBundleVerification(fl.skipVerify).
-		WithProcessAnnotations(fl.opts.ProcessAnnotation)
+		WithProcessAnnotations(fl.opts.ProcessAnnotation).
+		WithCapabilities(fl.opts.Capabilities)
 
 	// For bundle directories add the full path in front of module file names
 	// to simplify debugging.
@@ -404,7 +411,7 @@ func getSchemaSetByPathKey(path string) ast.Ref {
 }
 
 func loadOneSchema(path string) (interface{}, error) {
-	bs, err := ioutil.ReadFile(path)
+	bs, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -458,7 +465,7 @@ func RegoWithOpts(path string, opts ast.ParserOptions) (*RegoFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	bs, err := ioutil.ReadFile(path)
+	bs, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

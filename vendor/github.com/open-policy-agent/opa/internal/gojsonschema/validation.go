@@ -503,7 +503,7 @@ func (v *SubSchema) validateArray(currentSubSchema *SubSchema, value []interface
 
 	// minItems & maxItems
 	if currentSubSchema.minItems != nil {
-		if nbValues < int(*currentSubSchema.minItems) {
+		if nbValues < *currentSubSchema.minItems {
 			result.addInternalError(
 				new(ArrayMinItemsError),
 				context,
@@ -513,7 +513,7 @@ func (v *SubSchema) validateArray(currentSubSchema *SubSchema, value []interface
 		}
 	}
 	if currentSubSchema.maxItems != nil {
-		if nbValues > int(*currentSubSchema.maxItems) {
+		if nbValues > *currentSubSchema.maxItems {
 			result.addInternalError(
 				new(ArrayMaxItemsError),
 				context,
@@ -587,7 +587,7 @@ func (v *SubSchema) validateObject(currentSubSchema *SubSchema, value map[string
 
 	// minProperties & maxProperties:
 	if currentSubSchema.minProperties != nil {
-		if len(value) < int(*currentSubSchema.minProperties) {
+		if len(value) < *currentSubSchema.minProperties {
 			result.addInternalError(
 				new(ArrayMinPropertiesError),
 				context,
@@ -597,7 +597,7 @@ func (v *SubSchema) validateObject(currentSubSchema *SubSchema, value map[string
 		}
 	}
 	if currentSubSchema.maxProperties != nil {
-		if len(value) > int(*currentSubSchema.maxProperties) {
+		if len(value) > *currentSubSchema.maxProperties {
 			result.addInternalError(
 				new(ArrayMaxPropertiesError),
 				context,
@@ -716,7 +716,7 @@ func (v *SubSchema) validateString(currentSubSchema *SubSchema, value interface{
 
 	// minLength & maxLength:
 	if currentSubSchema.minLength != nil {
-		if utf8.RuneCount([]byte(stringValue)) < int(*currentSubSchema.minLength) {
+		if utf8.RuneCount([]byte(stringValue)) < *currentSubSchema.minLength {
 			result.addInternalError(
 				new(StringLengthGTEError),
 				context,
@@ -726,7 +726,7 @@ func (v *SubSchema) validateString(currentSubSchema *SubSchema, value interface{
 		}
 	}
 	if currentSubSchema.maxLength != nil {
-		if utf8.RuneCount([]byte(stringValue)) > int(*currentSubSchema.maxLength) {
+		if utf8.RuneCount([]byte(stringValue)) > *currentSubSchema.maxLength {
 			result.addInternalError(
 				new(StringLengthLTEError),
 				context,

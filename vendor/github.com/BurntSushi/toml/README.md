@@ -1,46 +1,36 @@
-## TOML parser and encoder for Go with reflection
-
 TOML stands for Tom's Obvious, Minimal Language. This Go package provides a
 reflection interface similar to Go's standard library `json` and `xml`
-packages. This package also supports the `encoding.TextUnmarshaler` and
-`encoding.TextMarshaler` interfaces so that you can define custom data
-representations. (There is an example of this below.)
+packages.
 
-Spec: https://github.com/toml-lang/toml
+Compatible with TOML version [v1.0.0](https://toml.io/en/v1.0.0).
 
-Compatible with TOML version
-[v0.4.0](https://github.com/toml-lang/toml/blob/master/versions/en/toml-v0.4.0.md)
+Documentation: https://godocs.io/github.com/BurntSushi/toml
 
-Documentation: https://godoc.org/github.com/BurntSushi/toml
+See the [releases page](https://github.com/BurntSushi/toml/releases) for a
+changelog; this information is also in the git tag annotations (e.g. `git show
+v0.4.0`).
 
-Installation:
+This library requires Go 1.13 or newer; install it with:
 
-```bash
-go get github.com/BurntSushi/toml
-```
+    % go get github.com/BurntSushi/toml@latest
 
-Try the toml validator:
+It also comes with a TOML validator CLI tool:
 
-```bash
-go get github.com/BurntSushi/toml/cmd/tomlv
-tomlv some-toml-file.toml
-```
-
-[![Build Status](https://travis-ci.org/BurntSushi/toml.svg?branch=master)](https://travis-ci.org/BurntSushi/toml) [![GoDoc](https://godoc.org/github.com/BurntSushi/toml?status.svg)](https://godoc.org/github.com/BurntSushi/toml)
+    % go install github.com/BurntSushi/toml/cmd/tomlv@latest
+    % tomlv some-toml-file.toml
 
 ### Testing
+This package passes all tests in [toml-test] for both the decoder and the
+encoder.
 
-This package passes all tests in
-[toml-test](https://github.com/BurntSushi/toml-test) for both the decoder
-and the encoder.
+[toml-test]: https://github.com/BurntSushi/toml-test
 
 ### Examples
+This package works similar to how the Go standard library handles XML and JSON.
+Namely, data is loaded into Go values via reflection.
 
-This package works similarly to how the Go standard library handles `XML`
-and `JSON`. Namely, data is loaded into Go values via reflection.
-
-For the simplest example, consider some TOML file as just a list of keys
-and values:
+For the simplest example, consider some TOML file as just a list of keys and
+values:
 
 ```toml
 Age = 25
@@ -54,11 +44,11 @@ Which could be defined in Go as:
 
 ```go
 type Config struct {
-  Age int
-  Cats []string
-  Pi float64
-  Perfection []int
-  DOB time.Time // requires `import time`
+	Age        int
+	Cats       []string
+	Pi         float64
+	Perfection []int
+	DOB        time.Time // requires `import time`
 }
 ```
 
@@ -66,9 +56,8 @@ And then decoded with:
 
 ```go
 var conf Config
-if _, err := toml.Decode(tomlData, &conf); err != nil {
-  // handle error
-}
+_, err := toml.Decode(tomlData, &conf)
+// handle error
 ```
 
 You can also use struct tags if your struct field name doesn't map to a TOML
@@ -80,12 +69,14 @@ some_key_NAME = "wat"
 
 ```go
 type TOML struct {
-  ObscureKey string `toml:"some_key_NAME"`
+    ObscureKey string `toml:"some_key_NAME"`
 }
 ```
 
-### Using the `encoding.TextUnmarshaler` interface
+Beware that like other most other decoders **only exported fields** are
+considered when encoding and decoding; private fields are silently ignored.
 
+### Using the `Marshaler` and `encoding.TextUnmarshaler` interfaces
 Here's an example that automatically parses duration strings into
 `time.Duration` values:
 
@@ -103,19 +94,19 @@ Which can be decoded with:
 
 ```go
 type song struct {
-  Name     string
-  Duration duration
+	Name     string
+	Duration duration
 }
 type songs struct {
-  Song []song
+	Song []song
 }
 var favorites songs
 if _, err := toml.Decode(blob, &favorites); err != nil {
-  log.Fatal(err)
+	log.Fatal(err)
 }
 
 for _, s := range favorites.Song {
-  fmt.Printf("%s (%s)\n", s.Name, s.Duration)
+	fmt.Printf("%s (%s)\n", s.Name, s.Duration)
 }
 ```
 
@@ -134,8 +125,10 @@ func (d *duration) UnmarshalText(text []byte) error {
 }
 ```
 
-### More complex usage
+To target TOML specifically you can implement `UnmarshalTOML` TOML interface in
+a similar way.
 
+### More complex usage
 Here's an example of how to load the example from the official spec page:
 
 ```toml
@@ -180,23 +173,23 @@ And the corresponding Go types are:
 
 ```go
 type tomlConfig struct {
-	Title string
-	Owner ownerInfo
-	DB database `toml:"database"`
+	Title   string
+	Owner   ownerInfo
+	DB      database `toml:"database"`
 	Servers map[string]server
 	Clients clients
 }
 
 type ownerInfo struct {
 	Name string
-	Org string `toml:"organization"`
-	Bio string
-	DOB time.Time
+	Org  string `toml:"organization"`
+	Bio  string
+	DOB  time.Time
 }
 
 type database struct {
-	Server string
-	Ports []int
+	Server  string
+	Ports   []int
 	ConnMax int `toml:"connection_max"`
 	Enabled bool
 }
@@ -207,7 +200,7 @@ type server struct {
 }
 
 type clients struct {
-	Data [][]interface{}
+	Data  [][]interface{}
 	Hosts []string
 }
 ```
@@ -215,4 +208,4 @@ type clients struct {
 Note that a case insensitive match will be tried if an exact match can't be
 found.
 
-A working example of the above can be found in `_examples/example.{go,toml}`.
+A working example of the above can be found in `_example/example.{go,toml}`.

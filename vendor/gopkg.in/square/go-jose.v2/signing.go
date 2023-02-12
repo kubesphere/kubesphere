@@ -370,7 +370,11 @@ func (obj JSONWebSignature) DetachedVerify(payload []byte, verificationKey inter
 		}
 	}
 
-	input := obj.computeAuthData(payload, &signature)
+	input, err := obj.computeAuthData(payload, &signature)
+	if err != nil {
+		return ErrCryptoFailure
+	}
+
 	alg := headers.getSignatureAlgorithm()
 	err = verifier.verifyPayload(input, signature.Signature, alg)
 	if err == nil {
@@ -421,7 +425,11 @@ outer:
 			}
 		}
 
-		input := obj.computeAuthData(payload, &signature)
+		input, err := obj.computeAuthData(payload, &signature)
+		if err != nil {
+			continue
+		}
+
 		alg := headers.getSignatureAlgorithm()
 		err = verifier.verifyPayload(input, signature.Signature, alg)
 		if err == nil {

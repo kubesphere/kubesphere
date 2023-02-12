@@ -19,6 +19,8 @@ import (
 	"strings"
 
 	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/internal"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 )
 
 // Extensions vendor specific extensions
@@ -85,6 +87,19 @@ func (e Extensions) GetObject(key string, out interface{}) error {
 		}
 	}
 	return nil
+}
+
+func (e Extensions) sanitizeWithExtra() (extra map[string]any) {
+	for k, v := range e {
+		if !internal.IsExtensionKey(k) {
+			if extra == nil {
+				extra = make(map[string]any)
+			}
+			extra[k] = v
+			delete(e, k)
+		}
+	}
+	return extra
 }
 
 // VendorExtensible composition block.
@@ -167,8 +182,25 @@ func (i Info) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON marshal this from JSON
 func (i *Info) UnmarshalJSON(data []byte) error {
+	if internal.UseOptimizedJSONUnmarshaling {
+		return jsonv2.Unmarshal(data, i)
+	}
+
 	if err := json.Unmarshal(data, &i.InfoProps); err != nil {
 		return err
 	}
 	return json.Unmarshal(data, &i.VendorExtensible)
+}
+
+func (i *Info) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.Decoder) error {
+	var x struct {
+		Extensions
+		InfoProps
+	}
+	if err := opts.UnmarshalNext(dec, &x); err != nil {
+		return err
+	}
+	i.Extensions = internal.SanitizeExtensions(x.Extensions)
+	i.InfoProps = x.InfoProps
+	return nil
 }

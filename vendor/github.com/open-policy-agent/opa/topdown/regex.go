@@ -33,64 +33,64 @@ func builtinRegexIsValid(_ BuiltinContext, operands []*ast.Term, iter func(*ast.
 	return iter(ast.BooleanTerm(true))
 }
 
-func builtinRegexMatch(a, b ast.Value) (ast.Value, error) {
-	s1, err := builtins.StringOperand(a, 1)
+func builtinRegexMatch(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	s2, err := builtins.StringOperand(b, 2)
+	s2, err := builtins.StringOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	re, err := getRegexp(string(s1))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return ast.Boolean(re.Match([]byte(s2))), nil
+	return iter(ast.BooleanTerm(re.Match([]byte(s2))))
 }
 
-func builtinRegexMatchTemplate(a, b, c, d ast.Value) (ast.Value, error) {
-	pattern, err := builtins.StringOperand(a, 1)
+func builtinRegexMatchTemplate(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	pattern, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	match, err := builtins.StringOperand(b, 2)
+	match, err := builtins.StringOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	start, err := builtins.StringOperand(c, 3)
+	start, err := builtins.StringOperand(operands[2].Value, 3)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	end, err := builtins.StringOperand(d, 4)
+	end, err := builtins.StringOperand(operands[3].Value, 4)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if len(start) != 1 {
-		return nil, fmt.Errorf("start delimiter has to be exactly one character long but is %d long", len(start))
+		return fmt.Errorf("start delimiter has to be exactly one character long but is %d long", len(start))
 	}
 	if len(end) != 1 {
-		return nil, fmt.Errorf("end delimiter has to be exactly one character long but is %d long", len(start))
+		return fmt.Errorf("end delimiter has to be exactly one character long but is %d long", len(start))
 	}
 	re, err := getRegexpTemplate(string(pattern), string(start)[0], string(end)[0])
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return ast.Boolean(re.MatchString(string(match))), nil
+	return iter(ast.BooleanTerm(re.MatchString(string(match))))
 }
 
-func builtinRegexSplit(a, b ast.Value) (ast.Value, error) {
-	s1, err := builtins.StringOperand(a, 1)
+func builtinRegexSplit(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	s2, err := builtins.StringOperand(b, 2)
+	s2, err := builtins.StringOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	re, err := getRegexp(string(s1))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	elems := re.Split(string(s2), -1)
@@ -98,7 +98,7 @@ func builtinRegexSplit(a, b ast.Value) (ast.Value, error) {
 	for i := range elems {
 		arr[i] = ast.StringTerm(elems[i])
 	}
-	return ast.NewArray(arr...), nil
+	return iter(ast.NewTerm(ast.NewArray(arr...)))
 }
 
 func getRegexp(pat string) (*regexp.Regexp, error) {
@@ -107,7 +107,7 @@ func getRegexp(pat string) (*regexp.Regexp, error) {
 	re, ok := regexpCache[pat]
 	if !ok {
 		var err error
-		re, err = regexp.Compile(string(pat))
+		re, err = regexp.Compile(pat)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func getRegexpTemplate(pat string, delimStart, delimEnd byte) (*regexp.Regexp, e
 	re, ok := regexpCache[pat]
 	if !ok {
 		var err error
-		re, err = compileRegexTemplate(string(pat), delimStart, delimEnd)
+		re, err = compileRegexTemplate(pat, delimStart, delimEnd)
 		if err != nil {
 			return nil, err
 		}
@@ -131,38 +131,38 @@ func getRegexpTemplate(pat string, delimStart, delimEnd byte) (*regexp.Regexp, e
 	return re, nil
 }
 
-func builtinGlobsMatch(a, b ast.Value) (ast.Value, error) {
-	s1, err := builtins.StringOperand(a, 1)
+func builtinGlobsMatch(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	s2, err := builtins.StringOperand(b, 2)
+	s2, err := builtins.StringOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	ne, err := gintersect.NonEmpty(string(s1), string(s2))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return ast.Boolean(ne), nil
+	return iter(ast.BooleanTerm(ne))
 }
 
-func builtinRegexFind(a, b, c ast.Value) (ast.Value, error) {
-	s1, err := builtins.StringOperand(a, 1)
+func builtinRegexFind(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	s2, err := builtins.StringOperand(b, 2)
+	s2, err := builtins.StringOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	n, err := builtins.IntOperand(c, 3)
+	n, err := builtins.IntOperand(operands[2].Value, 3)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	re, err := getRegexp(string(s1))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	elems := re.FindAllString(string(s2), n)
@@ -170,26 +170,26 @@ func builtinRegexFind(a, b, c ast.Value) (ast.Value, error) {
 	for i := range elems {
 		arr[i] = ast.StringTerm(elems[i])
 	}
-	return ast.NewArray(arr...), nil
+	return iter(ast.NewTerm(ast.NewArray(arr...)))
 }
 
-func builtinRegexFindAllStringSubmatch(a, b, c ast.Value) (ast.Value, error) {
-	s1, err := builtins.StringOperand(a, 1)
+func builtinRegexFindAllStringSubmatch(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	s2, err := builtins.StringOperand(b, 2)
+	s2, err := builtins.StringOperand(operands[1].Value, 2)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	n, err := builtins.IntOperand(c, 3)
+	n, err := builtins.IntOperand(operands[2].Value, 3)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	re, err := getRegexp(string(s1))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	matches := re.FindAllStringSubmatch(string(s2), n)
 
@@ -202,7 +202,7 @@ func builtinRegexFindAllStringSubmatch(a, b, c ast.Value) (ast.Value, error) {
 		outer[i] = ast.NewTerm(ast.NewArray(inner...))
 	}
 
-	return ast.NewArray(outer...), nil
+	return iter(ast.NewTerm(ast.NewArray(outer...)))
 }
 
 func builtinRegexReplace(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
@@ -234,12 +234,12 @@ func builtinRegexReplace(_ BuiltinContext, operands []*ast.Term, iter func(*ast.
 func init() {
 	regexpCache = map[string]*regexp.Regexp{}
 	RegisterBuiltinFunc(ast.RegexIsValid.Name, builtinRegexIsValid)
-	RegisterFunctionalBuiltin2(ast.RegexMatch.Name, builtinRegexMatch)
-	RegisterFunctionalBuiltin2(ast.RegexMatchDeprecated.Name, builtinRegexMatch)
-	RegisterFunctionalBuiltin2(ast.RegexSplit.Name, builtinRegexSplit)
-	RegisterFunctionalBuiltin2(ast.GlobsMatch.Name, builtinGlobsMatch)
-	RegisterFunctionalBuiltin4(ast.RegexTemplateMatch.Name, builtinRegexMatchTemplate)
-	RegisterFunctionalBuiltin3(ast.RegexFind.Name, builtinRegexFind)
-	RegisterFunctionalBuiltin3(ast.RegexFindAllStringSubmatch.Name, builtinRegexFindAllStringSubmatch)
+	RegisterBuiltinFunc(ast.RegexMatch.Name, builtinRegexMatch)
+	RegisterBuiltinFunc(ast.RegexMatchDeprecated.Name, builtinRegexMatch)
+	RegisterBuiltinFunc(ast.RegexSplit.Name, builtinRegexSplit)
+	RegisterBuiltinFunc(ast.GlobsMatch.Name, builtinGlobsMatch)
+	RegisterBuiltinFunc(ast.RegexTemplateMatch.Name, builtinRegexMatchTemplate)
+	RegisterBuiltinFunc(ast.RegexFind.Name, builtinRegexFind)
+	RegisterBuiltinFunc(ast.RegexFindAllStringSubmatch.Name, builtinRegexFindAllStringSubmatch)
 	RegisterBuiltinFunc(ast.RegexReplace.Name, builtinRegexReplace)
 }

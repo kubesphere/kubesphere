@@ -58,10 +58,9 @@ func checksum64(in []byte, seed uint64) uint64 {
 		wordsLen = len(in) >> 3
 		words    = ((*[maxInt32 / 8]uint64)(unsafe.Pointer(&in[0])))[:wordsLen:wordsLen]
 
-		h uint64 = prime64x5
-
 		v1, v2, v3, v4 = resetVs64(seed)
 
+		h uint64
 		i int
 	)
 

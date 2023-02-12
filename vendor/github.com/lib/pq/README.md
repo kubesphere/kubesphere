@@ -1,20 +1,10 @@
 # pq - A pure Go postgres driver for Go's database/sql package
 
-[![GoDoc](https://godoc.org/github.com/lib/pq?status.svg)](https://godoc.org/github.com/lib/pq)
-[![Build Status](https://travis-ci.org/lib/pq.svg?branch=master)](https://travis-ci.org/lib/pq)
+[![GoDoc](https://godoc.org/github.com/lib/pq?status.svg)](https://pkg.go.dev/github.com/lib/pq?tab=doc)
 
 ## Install
 
 	go get github.com/lib/pq
-
-## Docs
-
-For detailed documentation and basic usage examples, please see the package
-documentation at <https://godoc.org/github.com/lib/pq>.
-
-## Tests
-
-`go test` is used for testing.  See [TESTS.md](TESTS.md) for more details.
 
 ## Features
 
@@ -29,67 +19,18 @@ documentation at <https://godoc.org/github.com/lib/pq>.
 * Unix socket support
 * Notifications: `LISTEN`/`NOTIFY`
 * pgpass support
+* GSS (Kerberos) auth
 
-## Future / Things you can help with
+## Tests
 
-* Better COPY FROM / COPY TO (see discussion in #181)
+`go test` is used for testing.  See [TESTS.md](TESTS.md) for more details.
 
-## Thank you (alphabetical)
+## Status
 
-Some of these contributors are from the original library `bmizerany/pq.go` whose
-code still exists in here.
+This package is currently in maintenance mode, which means:
+1.   It generally does not accept new features.
+2.   It does accept bug fixes and version compatability changes provided by the community.
+3.   Maintainers usually do not resolve reported issues.
+4.   Community members are encouraged to help each other with reported issues.
 
-* Andy Balholm (andybalholm)
-* Ben Berkert (benburkert)
-* Benjamin Heatwole (bheatwole)
-* Bill Mill (llimllib)
-* Bjørn Madsen (aeons)
-* Blake Gentry (bgentry)
-* Brad Fitzpatrick (bradfitz)
-* Charlie Melbye (cmelbye)
-* Chris Bandy (cbandy)
-* Chris Gilling (cgilling)
-* Chris Walsh (cwds)
-* Dan Sosedoff (sosedoff)
-* Daniel Farina (fdr)
-* Eric Chlebek (echlebek)
-* Eric Garrido (minusnine)
-* Eric Urban (hydrogen18)
-* Everyone at The Go Team
-* Evan Shaw (edsrzf)
-* Ewan Chou (coocood)
-* Fazal Majid (fazalmajid)
-* Federico Romero (federomero)
-* Fumin (fumin)
-* Gary Burd (garyburd)
-* Heroku (heroku)
-* James Pozdena (jpoz)
-* Jason McVetta (jmcvetta)
-* Jeremy Jay (pbnjay)
-* Joakim Sernbrant (serbaut)
-* John Gallagher (jgallagher)
-* Jonathan Rudenberg (titanous)
-* Joël Stemmer (jstemmer)
-* Kamil Kisiel (kisielk)
-* Kelly Dunn (kellydunn)
-* Keith Rarick (kr)
-* Kir Shatrov (kirs)
-* Lann Martin (lann)
-* Maciek Sakrejda (uhoh-itsmaciek)
-* Marc Brinkmann (mbr)
-* Marko Tiikkaja (johto)
-* Matt Newberry (MattNewberry)
-* Matt Robenolt (mattrobenolt)
-* Martin Olsen (martinolsen)
-* Mike Lewis (mikelikespie)
-* Nicolas Patry (Narsil)
-* Oliver Tonnhofer (olt)
-* Patrick Hayes (phayes)
-* Paul Hammond (paulhammond)
-* Ryan Smith (ryandotsmith)
-* Samuel Stauffer (samuel)
-* Timothée Peignier (cyberdelia)
-* Travis Cline (tmc)
-* TruongSinh Tran-Nguyen (truongsinh)
-* Yaismel Miranda (ympons)
-* notedit (notedit)
+For users that require new features or reliable resolution of reported bugs, we recommend using [pgx](https://github.com/jackc/pgx) which is under active development.

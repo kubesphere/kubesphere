@@ -11,32 +11,32 @@ import (
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
 
-func builtinToNumber(a ast.Value) (ast.Value, error) {
-	switch a := a.(type) {
+func builtinToNumber(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	switch a := operands[0].Value.(type) {
 	case ast.Null:
-		return ast.Number("0"), nil
+		return iter(ast.NumberTerm("0"))
 	case ast.Boolean:
 		if a {
-			return ast.Number("1"), nil
+			return iter(ast.NumberTerm("1"))
 		}
-		return ast.Number("0"), nil
+		return iter(ast.NumberTerm("0"))
 	case ast.Number:
-		return a, nil
+		return iter(ast.NewTerm(a))
 	case ast.String:
 		_, err := strconv.ParseFloat(string(a), 64)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return ast.Number(a), nil
+		return iter(ast.NewTerm(ast.Number(a)))
 	}
-	return nil, builtins.NewOperandTypeErr(1, a, "null", "boolean", "number", "string")
+	return builtins.NewOperandTypeErr(1, operands[0].Value, "null", "boolean", "number", "string")
 }
 
 // Deprecated in v0.13.0.
-func builtinToArray(a ast.Value) (ast.Value, error) {
-	switch val := a.(type) {
+func builtinToArray(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	switch val := operands[0].Value.(type) {
 	case *ast.Array:
-		return val, nil
+		return iter(ast.NewTerm(val))
 	case ast.Set:
 		arr := make([]*ast.Term, val.Len())
 		i := 0
@@ -44,74 +44,74 @@ func builtinToArray(a ast.Value) (ast.Value, error) {
 			arr[i] = term
 			i++
 		})
-		return ast.NewArray(arr...), nil
+		return iter(ast.NewTerm(ast.NewArray(arr...)))
 	default:
-		return nil, builtins.NewOperandTypeErr(1, a, "array", "set")
+		return builtins.NewOperandTypeErr(1, operands[0].Value, "array", "set")
 	}
 }
 
 // Deprecated in v0.13.0.
-func builtinToSet(a ast.Value) (ast.Value, error) {
-	switch val := a.(type) {
+func builtinToSet(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	switch val := operands[0].Value.(type) {
 	case *ast.Array:
 		s := ast.NewSet()
 		val.Foreach(func(v *ast.Term) {
 			s.Add(v)
 		})
-		return s, nil
+		return iter(ast.NewTerm(s))
 	case ast.Set:
-		return val, nil
+		return iter(ast.NewTerm(val))
 	default:
-		return nil, builtins.NewOperandTypeErr(1, a, "array", "set")
+		return builtins.NewOperandTypeErr(1, operands[0].Value, "array", "set")
 	}
 }
 
 // Deprecated in v0.13.0.
-func builtinToString(a ast.Value) (ast.Value, error) {
-	switch val := a.(type) {
+func builtinToString(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	switch val := operands[0].Value.(type) {
 	case ast.String:
-		return val, nil
+		return iter(ast.NewTerm(val))
 	default:
-		return nil, builtins.NewOperandTypeErr(1, a, "string")
+		return builtins.NewOperandTypeErr(1, operands[0].Value, "string")
 	}
 }
 
 // Deprecated in v0.13.0.
-func builtinToBoolean(a ast.Value) (ast.Value, error) {
-	switch val := a.(type) {
+func builtinToBoolean(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	switch val := operands[0].Value.(type) {
 	case ast.Boolean:
-		return val, nil
+		return iter(ast.NewTerm(val))
 	default:
-		return nil, builtins.NewOperandTypeErr(1, a, "boolean")
+		return builtins.NewOperandTypeErr(1, operands[0].Value, "boolean")
 	}
 }
 
 // Deprecated in v0.13.0.
-func builtinToNull(a ast.Value) (ast.Value, error) {
-	switch val := a.(type) {
+func builtinToNull(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	switch val := operands[0].Value.(type) {
 	case ast.Null:
-		return val, nil
+		return iter(ast.NewTerm(val))
 	default:
-		return nil, builtins.NewOperandTypeErr(1, a, "null")
+		return builtins.NewOperandTypeErr(1, operands[0].Value, "null")
 	}
 }
 
 // Deprecated in v0.13.0.
-func builtinToObject(a ast.Value) (ast.Value, error) {
-	switch val := a.(type) {
+func builtinToObject(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	switch val := operands[0].Value.(type) {
 	case ast.Object:
-		return val, nil
+		return iter(ast.NewTerm(val))
 	default:
-		return nil, builtins.NewOperandTypeErr(1, a, "object")
+		return builtins.NewOperandTypeErr(1, operands[0].Value, "object")
 	}
 }
 
 func init() {
-	RegisterFunctionalBuiltin1(ast.ToNumber.Name, builtinToNumber)
-	RegisterFunctionalBuiltin1(ast.CastArray.Name, builtinToArray)
-	RegisterFunctionalBuiltin1(ast.CastSet.Name, builtinToSet)
-	RegisterFunctionalBuiltin1(ast.CastString.Name, builtinToString)
-	RegisterFunctionalBuiltin1(ast.CastBoolean.Name, builtinToBoolean)
-	RegisterFunctionalBuiltin1(ast.CastNull.Name, builtinToNull)
-	RegisterFunctionalBuiltin1(ast.CastObject.Name, builtinToObject)
+	RegisterBuiltinFunc(ast.ToNumber.Name, builtinToNumber)
+	RegisterBuiltinFunc(ast.CastArray.Name, builtinToArray)
+	RegisterBuiltinFunc(ast.CastSet.Name, builtinToSet)
+	RegisterBuiltinFunc(ast.CastString.Name, builtinToString)
+	RegisterBuiltinFunc(ast.CastBoolean.Name, builtinToBoolean)
+	RegisterBuiltinFunc(ast.CastNull.Name, builtinToNull)
+	RegisterBuiltinFunc(ast.CastObject.Name, builtinToObject)
 }

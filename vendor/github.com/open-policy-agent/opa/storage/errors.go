@@ -51,7 +51,7 @@ func (err *Error) Error() string {
 	if err.Message != "" {
 		return fmt.Sprintf("%v: %v", err.Code, err.Message)
 	}
-	return string(err.Code)
+	return err.Code
 }
 
 // IsNotFound returns true if this error is a NotFoundErr.

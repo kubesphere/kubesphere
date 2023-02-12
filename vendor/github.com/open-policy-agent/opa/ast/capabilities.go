@@ -17,12 +17,23 @@ import (
 	"github.com/open-policy-agent/opa/util"
 )
 
+// In the compiler, we used this to check that we're OK working with ref heads.
+// If this isn't present, we'll fail. This is to ensure that older versions of
+// OPA can work with policies that we're compiling -- if they don't know ref
+// heads, they wouldn't be able to parse them.
+const FeatureRefHeadStringPrefixes = "rule_head_ref_string_prefixes"
+
 // Capabilities defines a structure containing data that describes the capabilities
 // or features supported by a particular version of OPA.
 type Capabilities struct {
 	Builtins        []*Builtin       `json:"builtins"`
 	FutureKeywords  []string         `json:"future_keywords"`
 	WasmABIVersions []WasmABIVersion `json:"wasm_abi_versions"`
+
+	// Features is a bit of a mixed bag for checking that an older version of OPA
+	// is able to do what needs to be done.
+	// TODO(sr): find better words ^^
+	Features []string `json:"features"`
 
 	// allow_net is an array of hostnames or IP addresses, that an OPA instance is
 	// allowed to connect to.
@@ -59,6 +70,10 @@ func CapabilitiesForThisVersion() *Capabilities {
 		f.FutureKeywords = append(f.FutureKeywords, kw)
 	}
 	sort.Strings(f.FutureKeywords)
+
+	f.Features = []string{
+		FeatureRefHeadStringPrefixes,
+	}
 
 	return f
 }
