@@ -33,7 +33,7 @@ func init() {
 func BasicAuth(username, password string) runtime.ClientAuthInfoWriter {
 	return runtime.ClientAuthInfoWriterFunc(func(r runtime.ClientRequest, _ strfmt.Registry) error {
 		encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-		return r.SetHeaderParam("Authorization", "Basic "+encoded)
+		return r.SetHeaderParam(runtime.HeaderAuthorization, "Basic "+encoded)
 	})
 }
 
@@ -56,6 +56,22 @@ func APIKeyAuth(name, in, value string) runtime.ClientAuthInfoWriter {
 // BearerToken provides a header based oauth2 bearer access token auth info writer
 func BearerToken(token string) runtime.ClientAuthInfoWriter {
 	return runtime.ClientAuthInfoWriterFunc(func(r runtime.ClientRequest, _ strfmt.Registry) error {
-		return r.SetHeaderParam("Authorization", "Bearer "+token)
+		return r.SetHeaderParam(runtime.HeaderAuthorization, "Bearer "+token)
+	})
+}
+
+// Compose combines multiple ClientAuthInfoWriters into a single one.
+// Useful when multiple auth headers are needed.
+func Compose(auths ...runtime.ClientAuthInfoWriter) runtime.ClientAuthInfoWriter {
+	return runtime.ClientAuthInfoWriterFunc(func(r runtime.ClientRequest, _ strfmt.Registry) error {
+		for _, auth := range auths {
+			if auth == nil {
+				continue
+			}
+			if err := auth.AuthenticateRequest(r, nil); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }

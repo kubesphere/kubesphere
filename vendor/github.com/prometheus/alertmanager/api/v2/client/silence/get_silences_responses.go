@@ -24,10 +24,9 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	models "github.com/prometheus/alertmanager/api/v2/models"
+	"github.com/prometheus/alertmanager/api/v2/models"
 )
 
 // GetSilencesReader is a Reader for the GetSilences structure.
@@ -50,9 +49,8 @@ func (o *GetSilencesReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -61,7 +59,8 @@ func NewGetSilencesOK() *GetSilencesOK {
 	return &GetSilencesOK{}
 }
 
-/*GetSilencesOK handles this case with default header values.
+/*
+GetSilencesOK describes a response with status code 200, with default header values.
 
 Get silences response
 */
@@ -69,7 +68,36 @@ type GetSilencesOK struct {
 	Payload models.GettableSilences
 }
 
+// IsSuccess returns true when this get silences o k response has a 2xx status code
+func (o *GetSilencesOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this get silences o k response has a 3xx status code
+func (o *GetSilencesOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get silences o k response has a 4xx status code
+func (o *GetSilencesOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this get silences o k response has a 5xx status code
+func (o *GetSilencesOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get silences o k response a status code equal to that given
+func (o *GetSilencesOK) IsCode(code int) bool {
+	return code == 200
+}
+
 func (o *GetSilencesOK) Error() string {
+	return fmt.Sprintf("[GET /silences][%d] getSilencesOK  %+v", 200, o.Payload)
+}
+
+func (o *GetSilencesOK) String() string {
 	return fmt.Sprintf("[GET /silences][%d] getSilencesOK  %+v", 200, o.Payload)
 }
 
@@ -92,7 +120,8 @@ func NewGetSilencesInternalServerError() *GetSilencesInternalServerError {
 	return &GetSilencesInternalServerError{}
 }
 
-/*GetSilencesInternalServerError handles this case with default header values.
+/*
+GetSilencesInternalServerError describes a response with status code 500, with default header values.
 
 Internal server error
 */
@@ -100,7 +129,36 @@ type GetSilencesInternalServerError struct {
 	Payload string
 }
 
+// IsSuccess returns true when this get silences internal server error response has a 2xx status code
+func (o *GetSilencesInternalServerError) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get silences internal server error response has a 3xx status code
+func (o *GetSilencesInternalServerError) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get silences internal server error response has a 4xx status code
+func (o *GetSilencesInternalServerError) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this get silences internal server error response has a 5xx status code
+func (o *GetSilencesInternalServerError) IsServerError() bool {
+	return true
+}
+
+// IsCode returns true when this get silences internal server error response a status code equal to that given
+func (o *GetSilencesInternalServerError) IsCode(code int) bool {
+	return code == 500
+}
+
 func (o *GetSilencesInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /silences][%d] getSilencesInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *GetSilencesInternalServerError) String() string {
 	return fmt.Sprintf("[GET /silences][%d] getSilencesInternalServerError  %+v", 500, o.Payload)
 }
 

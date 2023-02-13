@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,11 @@ package fake
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	applyconfigurationmonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -103,7 +106,7 @@ func (c *FakeServiceMonitors) Update(ctx context.Context, serviceMonitor *monito
 // Delete takes name of the serviceMonitor and deletes it. Returns an error if one occurs.
 func (c *FakeServiceMonitors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(servicemonitorsResource, c.ns, name), &monitoringv1.ServiceMonitor{})
+		Invokes(testing.NewDeleteActionWithOptions(servicemonitorsResource, c.ns, name, opts), &monitoringv1.ServiceMonitor{})
 
 	return err
 }
@@ -120,6 +123,28 @@ func (c *FakeServiceMonitors) DeleteCollection(ctx context.Context, opts v1.Dele
 func (c *FakeServiceMonitors) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *monitoringv1.ServiceMonitor, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(servicemonitorsResource, c.ns, name, pt, data, subresources...), &monitoringv1.ServiceMonitor{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*monitoringv1.ServiceMonitor), err
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied serviceMonitor.
+func (c *FakeServiceMonitors) Apply(ctx context.Context, serviceMonitor *applyconfigurationmonitoringv1.ServiceMonitorApplyConfiguration, opts v1.ApplyOptions) (result *monitoringv1.ServiceMonitor, err error) {
+	if serviceMonitor == nil {
+		return nil, fmt.Errorf("serviceMonitor provided to Apply must not be nil")
+	}
+	data, err := json.Marshal(serviceMonitor)
+	if err != nil {
+		return nil, err
+	}
+	name := serviceMonitor.Name
+	if name == nil {
+		return nil, fmt.Errorf("serviceMonitor.Name must be provided to Apply")
+	}
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(servicemonitorsResource, c.ns, *name, types.ApplyPatchType, data), &monitoringv1.ServiceMonitor{})
 
 	if obj == nil {
 		return nil, err

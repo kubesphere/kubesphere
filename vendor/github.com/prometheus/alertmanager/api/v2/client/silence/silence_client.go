@@ -23,12 +23,11 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new silence API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -40,16 +39,31 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption is the option for Client methods
+type ClientOption func(*runtime.ClientOperation)
+
+// ClientService is the interface for Client methods
+type ClientService interface {
+	DeleteSilence(params *DeleteSilenceParams, opts ...ClientOption) (*DeleteSilenceOK, error)
+
+	GetSilence(params *GetSilenceParams, opts ...ClientOption) (*GetSilenceOK, error)
+
+	GetSilences(params *GetSilencesParams, opts ...ClientOption) (*GetSilencesOK, error)
+
+	PostSilences(params *PostSilencesParams, opts ...ClientOption) (*PostSilencesOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
 DeleteSilence Delete a silence by its ID
 */
-func (a *Client) DeleteSilence(params *DeleteSilenceParams) (*DeleteSilenceOK, error) {
+func (a *Client) DeleteSilence(params *DeleteSilenceParams, opts ...ClientOption) (*DeleteSilenceOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewDeleteSilenceParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "deleteSilence",
 		Method:             "DELETE",
 		PathPattern:        "/silence/{silenceID}",
@@ -60,7 +74,12 @@ func (a *Client) DeleteSilence(params *DeleteSilenceParams) (*DeleteSilenceOK, e
 		Reader:             &DeleteSilenceReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -77,13 +96,12 @@ func (a *Client) DeleteSilence(params *DeleteSilenceParams) (*DeleteSilenceOK, e
 /*
 GetSilence Get a silence by its ID
 */
-func (a *Client) GetSilence(params *GetSilenceParams) (*GetSilenceOK, error) {
+func (a *Client) GetSilence(params *GetSilenceParams, opts ...ClientOption) (*GetSilenceOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetSilenceParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "getSilence",
 		Method:             "GET",
 		PathPattern:        "/silence/{silenceID}",
@@ -94,7 +112,12 @@ func (a *Client) GetSilence(params *GetSilenceParams) (*GetSilenceOK, error) {
 		Reader:             &GetSilenceReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -111,13 +134,12 @@ func (a *Client) GetSilence(params *GetSilenceParams) (*GetSilenceOK, error) {
 /*
 GetSilences Get a list of silences
 */
-func (a *Client) GetSilences(params *GetSilencesParams) (*GetSilencesOK, error) {
+func (a *Client) GetSilences(params *GetSilencesParams, opts ...ClientOption) (*GetSilencesOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetSilencesParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "getSilences",
 		Method:             "GET",
 		PathPattern:        "/silences",
@@ -128,7 +150,12 @@ func (a *Client) GetSilences(params *GetSilencesParams) (*GetSilencesOK, error) 
 		Reader:             &GetSilencesReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +172,12 @@ func (a *Client) GetSilences(params *GetSilencesParams) (*GetSilencesOK, error) 
 /*
 PostSilences Post a new silence or update an existing one
 */
-func (a *Client) PostSilences(params *PostSilencesParams) (*PostSilencesOK, error) {
+func (a *Client) PostSilences(params *PostSilencesParams, opts ...ClientOption) (*PostSilencesOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPostSilencesParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "postSilences",
 		Method:             "POST",
 		PathPattern:        "/silences",
@@ -162,7 +188,12 @@ func (a *Client) PostSilences(params *PostSilencesParams) (*PostSilencesOK, erro
 		Reader:             &PostSilencesReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}

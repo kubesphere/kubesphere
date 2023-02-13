@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import (
 )
 
 // ServiceMonitorLister helps list ServiceMonitors.
+// All objects returned here must be treated as read-only.
 type ServiceMonitorLister interface {
 	// List lists all ServiceMonitors in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.ServiceMonitor, err error)
 	// ServiceMonitors returns an object that can list and get ServiceMonitors.
 	ServiceMonitors(namespace string) ServiceMonitorNamespaceLister
@@ -56,10 +58,13 @@ func (s *serviceMonitorLister) ServiceMonitors(namespace string) ServiceMonitorN
 }
 
 // ServiceMonitorNamespaceLister helps list and get ServiceMonitors.
+// All objects returned here must be treated as read-only.
 type ServiceMonitorNamespaceLister interface {
 	// List lists all ServiceMonitors in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.ServiceMonitor, err error)
 	// Get retrieves the ServiceMonitor from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.ServiceMonitor, error)
 	ServiceMonitorNamespaceListerExpansion
 }

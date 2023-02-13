@@ -16,15 +16,16 @@ package injectproxy
 import (
 	"fmt"
 
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
 type Enforcer struct {
-	labelMatchers map[string]*labels.Matcher
+	labelMatchers  map[string]*labels.Matcher
+	errorOnReplace bool
 }
 
-func NewEnforcer(ms ...*labels.Matcher) *Enforcer {
+func NewEnforcer(errorOnReplace bool, ms ...*labels.Matcher) *Enforcer {
 	entries := make(map[string]*labels.Matcher)
 
 	for _, matcher := range ms {
@@ -32,7 +33,20 @@ func NewEnforcer(ms ...*labels.Matcher) *Enforcer {
 	}
 
 	return &Enforcer{
-		labelMatchers: entries,
+		labelMatchers:  entries,
+		errorOnReplace: errorOnReplace,
+	}
+}
+
+type IllegalLabelMatcherError struct {
+	msg string
+}
+
+func (e IllegalLabelMatcherError) Error() string { return e.msg }
+
+func newIllegalLabelMatcherError(existing string, replacement string) IllegalLabelMatcherError {
+	return IllegalLabelMatcherError{
+		msg: fmt.Sprintf("label matcher value (%s) conflicts with injected value (%s)", existing, replacement),
 	}
 }
 
@@ -97,12 +111,20 @@ func (ms Enforcer) EnforceNode(node parser.Node) error {
 	case *parser.MatrixSelector:
 		// inject labelselector
 		if vs, ok := n.VectorSelector.(*parser.VectorSelector); ok {
-			vs.LabelMatchers = ms.enforceMatchers(vs.LabelMatchers)
+			var err error
+			vs.LabelMatchers, err = ms.EnforceMatchers(vs.LabelMatchers)
+			if err != nil {
+				return err
+			}
 		}
 
 	case *parser.VectorSelector:
 		// inject labelselector
-		n.LabelMatchers = ms.enforceMatchers(n.LabelMatchers)
+		var err error
+		n.LabelMatchers, err = ms.EnforceMatchers(n.LabelMatchers)
+		if err != nil {
+			return err
+		}
 
 	default:
 		panic(fmt.Errorf("parser.Walk: unhandled node type %T", n))
@@ -111,11 +133,20 @@ func (ms Enforcer) EnforceNode(node parser.Node) error {
 	return nil
 }
 
-func (ms Enforcer) enforceMatchers(targets []*labels.Matcher) []*labels.Matcher {
+// EnforceMatchers appends the configured label matcher if not present.
+// If the label matcher that is to be injected is present (by labelname) but
+// different (either by match type or value) the behavior depends on the
+// errorOnReplace variable. If errorOnReplace is true an error is returned,
+// otherwise the label matcher is silently replaced.
+func (ms Enforcer) EnforceMatchers(targets []*labels.Matcher) ([]*labels.Matcher, error) {
 	var res []*labels.Matcher
 
 	for _, target := range targets {
-		if _, ok := ms.labelMatchers[target.Name]; ok {
+		if matcher, ok := ms.labelMatchers[target.Name]; ok {
+			// matcher.String() returns something like "labelfoo=value"
+			if ms.errorOnReplace && matcher.String() != target.String() {
+				return res, newIllegalLabelMatcherError(matcher.String(), target.String())
+			}
 			continue
 		}
 
@@ -126,5 +157,5 @@ func (ms Enforcer) enforceMatchers(targets []*labels.Matcher) []*labels.Matcher 
 		res = append(res, enforcedMatcher)
 	}
 
-	return res
+	return res, nil
 }

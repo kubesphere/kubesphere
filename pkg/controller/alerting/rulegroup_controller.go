@@ -19,7 +19,7 @@ import (
 
 	"github.com/go-logr/logr"
 	promresourcesv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	promlabels "github.com/prometheus/prometheus/pkg/labels"
+	promlabels "github.com/prometheus/prometheus/model/labels"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

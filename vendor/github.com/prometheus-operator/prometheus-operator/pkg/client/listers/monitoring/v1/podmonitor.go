@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import (
 )
 
 // PodMonitorLister helps list PodMonitors.
+// All objects returned here must be treated as read-only.
 type PodMonitorLister interface {
 	// List lists all PodMonitors in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.PodMonitor, err error)
 	// PodMonitors returns an object that can list and get PodMonitors.
 	PodMonitors(namespace string) PodMonitorNamespaceLister
@@ -56,10 +58,13 @@ func (s *podMonitorLister) PodMonitors(namespace string) PodMonitorNamespaceList
 }
 
 // PodMonitorNamespaceLister helps list and get PodMonitors.
+// All objects returned here must be treated as read-only.
 type PodMonitorNamespaceLister interface {
 	// List lists all PodMonitors in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.PodMonitor, err error)
 	// Get retrieves the PodMonitor from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.PodMonitor, error)
 	PodMonitorNamespaceListerExpansion
 }

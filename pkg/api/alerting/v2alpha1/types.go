@@ -27,7 +27,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	prommodel "github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/pkg/timestamp"
+	"github.com/prometheus/prometheus/model/timestamp"
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/template"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -46,7 +46,7 @@ var (
 	ErrAlertingRuleAlreadyExists = errors.New("The alerting rule already exists")
 	ErrAlertingAPIV2NotEnabled   = errors.New("The alerting v2 API is not enabled")
 
-	templateTestData       = template.AlertTemplateData(map[string]string{}, map[string]string{}, 0)
+	templateTestData       = template.AlertTemplateData(map[string]string{}, map[string]string{}, "", 0)
 	templateTestTextPrefix = "{{$labels := .Labels}}{{$externalLabels := .ExternalLabels}}{{$value := .Value}}"
 
 	ruleNameMatcher = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -97,6 +97,7 @@ func (r *PostableAlertingRule) Validate() error {
 			"__alert_"+r.Name,
 			templateTestData,
 			prommodel.Time(timestamp.FromTime(time.Now())),
+			nil,
 			nil,
 			nil,
 		)

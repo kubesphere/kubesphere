@@ -23,6 +23,8 @@ import (
 
 var _ runtime.ClientResponse = response{}
 
+func newResponse(resp *http.Response) runtime.ClientResponse { return response{resp: resp} }
+
 type response struct {
 	resp *http.Response
 }
@@ -37,6 +39,10 @@ func (r response) Message() string {
 
 func (r response) GetHeader(name string) string {
 	return r.resp.Header.Get(name)
+}
+
+func (r response) GetHeaders(name string) []string {
+	return r.resp.Header.Values(name)
 }
 
 func (r response) Body() io.ReadCloser {

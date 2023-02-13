@@ -18,12 +18,12 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 )
 
 type apiResponse struct {
@@ -175,7 +175,7 @@ func modifyAPIResponse(f func(string, *apiResponse) (interface{}, error)) func(*
 			return errors.Wrap(err, "can't decode API response")
 		}
 
-		v, err := f(mustLabelValue(resp.Request.Context()), apir)
+		v, err := f(MustLabelValue(resp.Request.Context()), apir)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func modifyAPIResponse(f func(string, *apiResponse) (interface{}, error)) func(*
 		if err = json.NewEncoder(&buf).Encode(apir); err != nil {
 			return errors.Wrap(err, "can't encode API response")
 		}
-		resp.Body = ioutil.NopCloser(&buf)
+		resp.Body = io.NopCloser(&buf)
 		resp.Header["Content-Length"] = []string{fmt.Sprint(buf.Len())}
 
 		return nil

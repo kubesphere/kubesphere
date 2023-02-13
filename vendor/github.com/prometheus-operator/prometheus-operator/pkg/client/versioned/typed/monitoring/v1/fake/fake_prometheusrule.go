@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,11 @@ package fake
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	applyconfigurationmonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -103,7 +106,7 @@ func (c *FakePrometheusRules) Update(ctx context.Context, prometheusRule *monito
 // Delete takes name of the prometheusRule and deletes it. Returns an error if one occurs.
 func (c *FakePrometheusRules) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(prometheusrulesResource, c.ns, name), &monitoringv1.PrometheusRule{})
+		Invokes(testing.NewDeleteActionWithOptions(prometheusrulesResource, c.ns, name, opts), &monitoringv1.PrometheusRule{})
 
 	return err
 }
@@ -120,6 +123,28 @@ func (c *FakePrometheusRules) DeleteCollection(ctx context.Context, opts v1.Dele
 func (c *FakePrometheusRules) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *monitoringv1.PrometheusRule, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(prometheusrulesResource, c.ns, name, pt, data, subresources...), &monitoringv1.PrometheusRule{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*monitoringv1.PrometheusRule), err
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied prometheusRule.
+func (c *FakePrometheusRules) Apply(ctx context.Context, prometheusRule *applyconfigurationmonitoringv1.PrometheusRuleApplyConfiguration, opts v1.ApplyOptions) (result *monitoringv1.PrometheusRule, err error) {
+	if prometheusRule == nil {
+		return nil, fmt.Errorf("prometheusRule provided to Apply must not be nil")
+	}
+	data, err := json.Marshal(prometheusRule)
+	if err != nil {
+		return nil, err
+	}
+	name := prometheusRule.Name
+	if name == nil {
+		return nil, fmt.Errorf("prometheusRule.Name must be provided to Apply")
+	}
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(prometheusrulesResource, c.ns, *name, types.ApplyPatchType, data), &monitoringv1.PrometheusRule{})
 
 	if obj == nil {
 		return nil, err

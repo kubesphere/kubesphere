@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import (
 )
 
 // PrometheusLister helps list Prometheuses.
+// All objects returned here must be treated as read-only.
 type PrometheusLister interface {
 	// List lists all Prometheuses in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Prometheus, err error)
 	// Prometheuses returns an object that can list and get Prometheuses.
 	Prometheuses(namespace string) PrometheusNamespaceLister
@@ -56,10 +58,13 @@ func (s *prometheusLister) Prometheuses(namespace string) PrometheusNamespaceLis
 }
 
 // PrometheusNamespaceLister helps list and get Prometheuses.
+// All objects returned here must be treated as read-only.
 type PrometheusNamespaceLister interface {
 	// List lists all Prometheuses in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Prometheus, err error)
 	// Get retrieves the Prometheus from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Prometheus, error)
 	PrometheusNamespaceListerExpansion
 }

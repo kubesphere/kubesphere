@@ -18,7 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"path"
 	"strconv"
@@ -35,7 +35,7 @@ import (
 func (r *routes) silences(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		r.listSilences(w, req)
+		r.enforceFilterParameter(w, req)
 	case "POST":
 		r.postSilence(w, req)
 	default:
@@ -43,20 +43,20 @@ func (r *routes) silences(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (r *routes) listSilences(w http.ResponseWriter, req *http.Request) {
+func (r *routes) enforceFilterParameter(w http.ResponseWriter, req *http.Request) {
 	var (
 		q               = req.URL.Query()
 		proxyLabelMatch = labels.Matcher{
 			Type:  labels.MatchEqual,
 			Name:  r.label,
-			Value: mustLabelValue(req.Context()),
+			Value: MustLabelValue(req.Context()),
 		}
 		modified = []string{proxyLabelMatch.String()}
 	)
 	for _, filter := range q["filter"] {
 		m, err := labels.ParseMatcher(filter)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("bad request: can't parse filter %q: %v", filter, err), http.StatusBadRequest)
+			prometheusAPIError(w, fmt.Sprintf("bad request: can't parse filter %q: %v", filter, err), http.StatusBadRequest)
 			return
 		}
 		if m.Name == r.label {
@@ -75,10 +75,10 @@ func (r *routes) listSilences(w http.ResponseWriter, req *http.Request) {
 func (r *routes) postSilence(w http.ResponseWriter, req *http.Request) {
 	var (
 		sil    models.PostableSilence
-		lvalue = mustLabelValue(req.Context())
+		lvalue = MustLabelValue(req.Context())
 	)
 	if err := json.NewDecoder(req.Body).Decode(&sil); err != nil {
-		http.Error(w, fmt.Sprintf("bad request: can't decode: %v", err), http.StatusBadRequest)
+		prometheusAPIError(w, fmt.Sprintf("bad request: can't decode: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -86,12 +86,12 @@ func (r *routes) postSilence(w http.ResponseWriter, req *http.Request) {
 		// This is an update for an existing silence.
 		existing, err := r.getSilenceByID(req.Context(), sil.ID)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("proxy error: can't get silence: %v", err), http.StatusBadGateway)
+			prometheusAPIError(w, fmt.Sprintf("proxy error: can't get silence: %v", err), http.StatusBadGateway)
 			return
 		}
 
 		if !hasMatcherForLabel(existing.Matchers, r.label, lvalue) {
-			http.Error(w, "forbidden", http.StatusForbidden)
+			prometheusAPIError(w, "forbidden", http.StatusForbidden)
 			return
 		}
 	}
@@ -109,19 +109,19 @@ func (r *routes) postSilence(w http.ResponseWriter, req *http.Request) {
 	// At least one matcher in addition to the enforced label is required,
 	// otherwise all alerts would be silenced
 	if len(modified) < 2 {
-		http.Error(w, "need at least one matcher, got none", http.StatusBadRequest)
+		prometheusAPIError(w, "need at least one matcher, got none", http.StatusBadRequest)
 		return
 	}
 	sil.Matchers = modified
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(&sil); err != nil {
-		http.Error(w, fmt.Sprintf("can't encode: %v", err), http.StatusInternalServerError)
+		prometheusAPIError(w, fmt.Sprintf("can't encode: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	req = req.Clone(req.Context())
-	req.Body = ioutil.NopCloser(&buf)
+	req.Body = io.NopCloser(&buf)
 	req.URL.RawQuery = ""
 	req.Header["Content-Length"] = []string{strconv.Itoa(buf.Len())}
 	req.ContentLength = int64(buf.Len())
@@ -132,19 +132,19 @@ func (r *routes) postSilence(w http.ResponseWriter, req *http.Request) {
 func (r *routes) deleteSilence(w http.ResponseWriter, req *http.Request) {
 	silID := strings.TrimPrefix(req.URL.Path, "/api/v2/silence/")
 	if silID == "" || silID == req.URL.Path {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		prometheusAPIError(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
 	// Get the silence by ID and verify that it has the expected label.
 	sil, err := r.getSilenceByID(req.Context(), silID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("proxy error: %v", err), http.StatusBadGateway)
+		prometheusAPIError(w, fmt.Sprintf("proxy error: %v", err), http.StatusBadGateway)
 		return
 	}
 
-	if !hasMatcherForLabel(sil.Matchers, r.label, mustLabelValue(req.Context())) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	if !hasMatcherForLabel(sil.Matchers, r.label, MustLabelValue(req.Context())) {
+		prometheusAPIError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 

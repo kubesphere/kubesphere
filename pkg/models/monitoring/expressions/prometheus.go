@@ -18,7 +18,7 @@ package expressions
 
 import (
 	"github.com/prometheus-community/prom-label-proxy/injectproxy"
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
@@ -32,7 +32,7 @@ func labelReplace(input, ns string) (string, error) {
 		return "", err
 	}
 
-	err = injectproxy.NewEnforcer(&labels.Matcher{
+	err = injectproxy.NewEnforcer(false, &labels.Matcher{
 		Type:  labels.MatchEqual,
 		Name:  "namespace",
 		Value: ns,

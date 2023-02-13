@@ -206,7 +206,11 @@ func (p *untypedParamBinder) Bind(request *http.Request, routeParams RouteParams
 		if p.parameter.Type == "file" {
 			file, header, ffErr := request.FormFile(p.parameter.Name)
 			if ffErr != nil {
-				return errors.NewParseError(p.Name, p.parameter.In, "", ffErr)
+				if p.parameter.Required {
+					return errors.NewParseError(p.Name, p.parameter.In, "", ffErr)
+				} else {
+					return nil
+				}
 			}
 			target.Set(reflect.ValueOf(runtime.File{Data: file, Header: header}))
 			return nil
@@ -276,7 +280,7 @@ func (p *untypedParamBinder) setFieldValue(target reflect.Value, defaultValue in
 	}
 
 	if (!hasKey || (!p.parameter.AllowEmptyValue && data == "")) && p.parameter.Required && p.parameter.Default == nil {
-		return errors.Required(p.Name, p.parameter.In)
+		return errors.Required(p.Name, p.parameter.In, data)
 	}
 
 	ok, err := p.tryUnmarshaler(target, defaultValue, data)
@@ -451,7 +455,7 @@ func (p *untypedParamBinder) readFormattedSliceFieldValue(data string, target re
 func (p *untypedParamBinder) setSliceFieldValue(target reflect.Value, defaultValue interface{}, data []string, hasKey bool) error {
 	sz := len(data)
 	if (!hasKey || (!p.parameter.AllowEmptyValue && (sz == 0 || (sz == 1 && data[0] == "")))) && p.parameter.Required && defaultValue == nil {
-		return errors.Required(p.Name, p.parameter.In)
+		return errors.Required(p.Name, p.parameter.In, data)
 	}
 
 	defVal := reflect.Zero(target.Type())

@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import (
 )
 
 // ThanosRulerLister helps list ThanosRulers.
+// All objects returned here must be treated as read-only.
 type ThanosRulerLister interface {
 	// List lists all ThanosRulers in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.ThanosRuler, err error)
 	// ThanosRulers returns an object that can list and get ThanosRulers.
 	ThanosRulers(namespace string) ThanosRulerNamespaceLister
@@ -56,10 +58,13 @@ func (s *thanosRulerLister) ThanosRulers(namespace string) ThanosRulerNamespaceL
 }
 
 // ThanosRulerNamespaceLister helps list and get ThanosRulers.
+// All objects returned here must be treated as read-only.
 type ThanosRulerNamespaceLister interface {
 	// List lists all ThanosRulers in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.ThanosRuler, err error)
 	// Get retrieves the ThanosRuler from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.ThanosRuler, error)
 	ThanosRulerNamespaceListerExpansion
 }

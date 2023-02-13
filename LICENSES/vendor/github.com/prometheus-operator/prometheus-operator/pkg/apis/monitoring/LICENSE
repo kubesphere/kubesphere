@@ -203,4 +203,4 @@ Apache License
    limitations under the License.
 
 
-= vendor/github.com/prometheus-operator/prometheus-operator/LICENSE d2794c0df5b907fdace235a619d80314
+= vendor/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/LICENSE d2794c0df5b907fdace235a619d80314

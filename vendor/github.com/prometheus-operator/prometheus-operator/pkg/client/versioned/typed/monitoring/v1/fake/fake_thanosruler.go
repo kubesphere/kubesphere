@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,11 @@ package fake
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	applyconfigurationmonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -115,7 +118,7 @@ func (c *FakeThanosRulers) UpdateStatus(ctx context.Context, thanosRuler *monito
 // Delete takes name of the thanosRuler and deletes it. Returns an error if one occurs.
 func (c *FakeThanosRulers) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(thanosrulersResource, c.ns, name), &monitoringv1.ThanosRuler{})
+		Invokes(testing.NewDeleteActionWithOptions(thanosrulersResource, c.ns, name, opts), &monitoringv1.ThanosRuler{})
 
 	return err
 }
@@ -132,6 +135,51 @@ func (c *FakeThanosRulers) DeleteCollection(ctx context.Context, opts v1.DeleteO
 func (c *FakeThanosRulers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *monitoringv1.ThanosRuler, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(thanosrulersResource, c.ns, name, pt, data, subresources...), &monitoringv1.ThanosRuler{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*monitoringv1.ThanosRuler), err
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied thanosRuler.
+func (c *FakeThanosRulers) Apply(ctx context.Context, thanosRuler *applyconfigurationmonitoringv1.ThanosRulerApplyConfiguration, opts v1.ApplyOptions) (result *monitoringv1.ThanosRuler, err error) {
+	if thanosRuler == nil {
+		return nil, fmt.Errorf("thanosRuler provided to Apply must not be nil")
+	}
+	data, err := json.Marshal(thanosRuler)
+	if err != nil {
+		return nil, err
+	}
+	name := thanosRuler.Name
+	if name == nil {
+		return nil, fmt.Errorf("thanosRuler.Name must be provided to Apply")
+	}
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(thanosrulersResource, c.ns, *name, types.ApplyPatchType, data), &monitoringv1.ThanosRuler{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*monitoringv1.ThanosRuler), err
+}
+
+// ApplyStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+func (c *FakeThanosRulers) ApplyStatus(ctx context.Context, thanosRuler *applyconfigurationmonitoringv1.ThanosRulerApplyConfiguration, opts v1.ApplyOptions) (result *monitoringv1.ThanosRuler, err error) {
+	if thanosRuler == nil {
+		return nil, fmt.Errorf("thanosRuler provided to Apply must not be nil")
+	}
+	data, err := json.Marshal(thanosRuler)
+	if err != nil {
+		return nil, err
+	}
+	name := thanosRuler.Name
+	if name == nil {
+		return nil, fmt.Errorf("thanosRuler.Name must be provided to Apply")
+	}
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(thanosrulersResource, c.ns, *name, types.ApplyPatchType, data, "status"), &monitoringv1.ThanosRuler{})
 
 	if obj == nil {
 		return nil, err

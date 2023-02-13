@@ -23,7 +23,7 @@ import (
 	"github.com/prometheus-community/prom-label-proxy/injectproxy"
 	promresourcesv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	prommodel "github.com/prometheus/common/model"
-	promlabels "github.com/prometheus/prometheus/pkg/labels"
+	promlabels "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/rules"
 	"k8s.io/klog/v2"
@@ -64,7 +64,7 @@ func InjectExprNamespaceLabel(expr, namespace string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err = injectproxy.NewEnforcer(&promlabels.Matcher{
+	if err = injectproxy.NewEnforcer(false, &promlabels.Matcher{
 		Type:  promlabels.MatchEqual,
 		Name:  "namespace",
 		Value: namespace,
@@ -96,10 +96,10 @@ func GenResourceRuleIdIgnoreFormat(group string, rule *promresourcesv1.Rule) str
 		klog.Warning(errors.Wrapf(err, "invalid alerting rule(%s)", rule.Alert))
 		query = rule.Expr.String()
 	}
-	duration, err := FormatDuration(rule.For)
+	duration, err := FormatDuration(string(rule.For))
 	if err != nil {
 		klog.Warning(errors.Wrapf(err, "invalid alerting rule(%s)", rule.Alert))
-		duration = rule.For
+		duration = string(rule.For)
 	}
 
 	lbls := make(map[string]string)
@@ -282,7 +282,7 @@ func getAlertingRuleStatus(resRule *ResourceRuleItem, epRule *alerting.AlertingR
 			Id:          resRule.Id,
 			Name:        resRule.Rule.Alert,
 			Query:       resRule.Rule.Expr.String(),
-			Duration:    resRule.Rule.For,
+			Duration:    string(resRule.Rule.For),
 			Labels:      resRule.Rule.Labels,
 			Annotations: resRule.Rule.Annotations,
 		},

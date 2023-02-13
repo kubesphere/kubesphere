@@ -27,56 +27,71 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewGetReceiversParams creates a new GetReceiversParams object
-// with the default values initialized.
+// NewGetReceiversParams creates a new GetReceiversParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetReceiversParams() *GetReceiversParams {
-
 	return &GetReceiversParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetReceiversParamsWithTimeout creates a new GetReceiversParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetReceiversParamsWithTimeout(timeout time.Duration) *GetReceiversParams {
-
 	return &GetReceiversParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetReceiversParamsWithContext creates a new GetReceiversParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetReceiversParamsWithContext(ctx context.Context) *GetReceiversParams {
-
 	return &GetReceiversParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetReceiversParamsWithHTTPClient creates a new GetReceiversParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetReceiversParamsWithHTTPClient(client *http.Client) *GetReceiversParams {
-
 	return &GetReceiversParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetReceiversParams contains all the parameters to send to the API endpoint
-for the get receivers operation typically these are written to a http.Request
+/*
+GetReceiversParams contains all the parameters to send to the API endpoint
+
+	for the get receivers operation.
+
+	Typically these are written to a http.Request.
 */
 type GetReceiversParams struct {
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get receivers params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetReceiversParams) WithDefaults() *GetReceiversParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get receivers params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetReceiversParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get receivers params

@@ -20,16 +20,21 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // Matcher matcher
+//
 // swagger:model matcher
 type Matcher struct {
+
+	// is equal
+	IsEqual *bool `json:"isEqual,omitempty"`
 
 	// is regex
 	// Required: true
@@ -90,6 +95,11 @@ func (m *Matcher) validateValue(formats strfmt.Registry) error {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this matcher based on context it is used
+func (m *Matcher) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

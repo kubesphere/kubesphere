@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus-community/prom-label-proxy/injectproxy"
 	promresourcesv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	promlabels "github.com/prometheus/prometheus/pkg/labels"
+	promlabels "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -87,7 +87,7 @@ var emptyEnforceExprFunc = func(expr string) (string, error) {
 
 func CreateEnforceExprFunc(enforceRuleMatchers []*promlabels.Matcher) EnforceExprFunc {
 	if len(enforceRuleMatchers) > 0 {
-		enforcer := injectproxy.NewEnforcer(enforceRuleMatchers...)
+		enforcer := injectproxy.NewEnforcer(false, enforceRuleMatchers...)
 		return func(expr string) (string, error) {
 			parsedExpr, err := parser.ParseExpr(expr)
 			if err != nil {
@@ -152,7 +152,7 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 
 		prule := promresourcesv1.Rule{
 			Alert:       rule.Alert,
-			For:         string(rule.For),
+			For:         promresourcesv1.Duration(rule.For),
 			Expr:        rule.Expr,
 			Labels:      rule.Labels,
 			Annotations: rule.Annotations,
@@ -201,7 +201,7 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 			}
 			rulegroups = append(rulegroups, &promresourcesv1.RuleGroup{
 				Name:                    group.Name,
-				Interval:                group.Spec.Interval,
+				Interval:                promresourcesv1.Duration(group.Spec.Interval),
 				PartialResponseStrategy: group.Spec.PartialResponseStrategy,
 				Rules:                   prules,
 			})
@@ -224,7 +224,7 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 			}
 			rulegroups = append(rulegroups, &promresourcesv1.RuleGroup{
 				Name:                    group.Name,
-				Interval:                group.Spec.Interval,
+				Interval:                promresourcesv1.Duration(group.Spec.Interval),
 				PartialResponseStrategy: group.Spec.PartialResponseStrategy,
 				Rules:                   prules,
 			})
@@ -249,7 +249,7 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 			}
 			rulegroups = append(rulegroups, &promresourcesv1.RuleGroup{
 				Name:                    group.Name,
-				Interval:                group.Spec.Interval,
+				Interval:                promresourcesv1.Duration(group.Spec.Interval),
 				PartialResponseStrategy: group.Spec.PartialResponseStrategy,
 				Rules:                   prules,
 			})
