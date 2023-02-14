@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,11 @@ package fake
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	applyconfigurationmonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -115,7 +118,7 @@ func (c *FakePrometheuses) UpdateStatus(ctx context.Context, prometheus *monitor
 // Delete takes name of the prometheus and deletes it. Returns an error if one occurs.
 func (c *FakePrometheuses) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(prometheusesResource, c.ns, name), &monitoringv1.Prometheus{})
+		Invokes(testing.NewDeleteActionWithOptions(prometheusesResource, c.ns, name, opts), &monitoringv1.Prometheus{})
 
 	return err
 }
@@ -132,6 +135,51 @@ func (c *FakePrometheuses) DeleteCollection(ctx context.Context, opts v1.DeleteO
 func (c *FakePrometheuses) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *monitoringv1.Prometheus, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(prometheusesResource, c.ns, name, pt, data, subresources...), &monitoringv1.Prometheus{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*monitoringv1.Prometheus), err
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied prometheus.
+func (c *FakePrometheuses) Apply(ctx context.Context, prometheus *applyconfigurationmonitoringv1.PrometheusApplyConfiguration, opts v1.ApplyOptions) (result *monitoringv1.Prometheus, err error) {
+	if prometheus == nil {
+		return nil, fmt.Errorf("prometheus provided to Apply must not be nil")
+	}
+	data, err := json.Marshal(prometheus)
+	if err != nil {
+		return nil, err
+	}
+	name := prometheus.Name
+	if name == nil {
+		return nil, fmt.Errorf("prometheus.Name must be provided to Apply")
+	}
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(prometheusesResource, c.ns, *name, types.ApplyPatchType, data), &monitoringv1.Prometheus{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*monitoringv1.Prometheus), err
+}
+
+// ApplyStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+func (c *FakePrometheuses) ApplyStatus(ctx context.Context, prometheus *applyconfigurationmonitoringv1.PrometheusApplyConfiguration, opts v1.ApplyOptions) (result *monitoringv1.Prometheus, err error) {
+	if prometheus == nil {
+		return nil, fmt.Errorf("prometheus provided to Apply must not be nil")
+	}
+	data, err := json.Marshal(prometheus)
+	if err != nil {
+		return nil, err
+	}
+	name := prometheus.Name
+	if name == nil {
+		return nil, fmt.Errorf("prometheus.Name must be provided to Apply")
+	}
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(prometheusesResource, c.ns, *name, types.ApplyPatchType, data, "status"), &monitoringv1.Prometheus{})
 
 	if obj == nil {
 		return nil, err

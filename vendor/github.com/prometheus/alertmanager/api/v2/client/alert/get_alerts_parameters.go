@@ -27,125 +27,137 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-
-	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewGetAlertsParams creates a new GetAlertsParams object
-// with the default values initialized.
+// NewGetAlertsParams creates a new GetAlertsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetAlertsParams() *GetAlertsParams {
-	var (
-		activeDefault      = bool(true)
-		inhibitedDefault   = bool(true)
-		silencedDefault    = bool(true)
-		unprocessedDefault = bool(true)
-	)
 	return &GetAlertsParams{
-		Active:      &activeDefault,
-		Inhibited:   &inhibitedDefault,
-		Silenced:    &silencedDefault,
-		Unprocessed: &unprocessedDefault,
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetAlertsParamsWithTimeout creates a new GetAlertsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetAlertsParamsWithTimeout(timeout time.Duration) *GetAlertsParams {
-	var (
-		activeDefault      = bool(true)
-		inhibitedDefault   = bool(true)
-		silencedDefault    = bool(true)
-		unprocessedDefault = bool(true)
-	)
 	return &GetAlertsParams{
-		Active:      &activeDefault,
-		Inhibited:   &inhibitedDefault,
-		Silenced:    &silencedDefault,
-		Unprocessed: &unprocessedDefault,
-
 		timeout: timeout,
 	}
 }
 
 // NewGetAlertsParamsWithContext creates a new GetAlertsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetAlertsParamsWithContext(ctx context.Context) *GetAlertsParams {
-	var (
-		activeDefault      = bool(true)
-		inhibitedDefault   = bool(true)
-		silencedDefault    = bool(true)
-		unprocessedDefault = bool(true)
-	)
 	return &GetAlertsParams{
-		Active:      &activeDefault,
-		Inhibited:   &inhibitedDefault,
-		Silenced:    &silencedDefault,
-		Unprocessed: &unprocessedDefault,
-
 		Context: ctx,
 	}
 }
 
 // NewGetAlertsParamsWithHTTPClient creates a new GetAlertsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetAlertsParamsWithHTTPClient(client *http.Client) *GetAlertsParams {
-	var (
-		activeDefault      = bool(true)
-		inhibitedDefault   = bool(true)
-		silencedDefault    = bool(true)
-		unprocessedDefault = bool(true)
-	)
 	return &GetAlertsParams{
-		Active:      &activeDefault,
-		Inhibited:   &inhibitedDefault,
-		Silenced:    &silencedDefault,
-		Unprocessed: &unprocessedDefault,
-		HTTPClient:  client,
+		HTTPClient: client,
 	}
 }
 
-/*GetAlertsParams contains all the parameters to send to the API endpoint
-for the get alerts operation typically these are written to a http.Request
+/*
+GetAlertsParams contains all the parameters to send to the API endpoint
+
+	for the get alerts operation.
+
+	Typically these are written to a http.Request.
 */
 type GetAlertsParams struct {
 
-	/*Active
-	  Show active alerts
+	/* Active.
 
+	   Show active alerts
+
+	   Default: true
 	*/
 	Active *bool
-	/*Filter
-	  A list of matchers to filter alerts by
 
+	/* Filter.
+
+	   A list of matchers to filter alerts by
 	*/
 	Filter []string
-	/*Inhibited
-	  Show inhibited alerts
 
+	/* Inhibited.
+
+	   Show inhibited alerts
+
+	   Default: true
 	*/
 	Inhibited *bool
-	/*Receiver
-	  A regex matching receivers to filter alerts by
 
+	/* Receiver.
+
+	   A regex matching receivers to filter alerts by
 	*/
 	Receiver *string
-	/*Silenced
-	  Show silenced alerts
 
+	/* Silenced.
+
+	   Show silenced alerts
+
+	   Default: true
 	*/
 	Silenced *bool
-	/*Unprocessed
-	  Show unprocessed alerts
 
+	/* Unprocessed.
+
+	   Show unprocessed alerts
+
+	   Default: true
 	*/
 	Unprocessed *bool
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get alerts params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetAlertsParams) WithDefaults() *GetAlertsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get alerts params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetAlertsParams) SetDefaults() {
+	var (
+		activeDefault = bool(true)
+
+		inhibitedDefault = bool(true)
+
+		silencedDefault = bool(true)
+
+		unprocessedDefault = bool(true)
+	)
+
+	val := GetAlertsParams{
+		Active:      &activeDefault,
+		Inhibited:   &inhibitedDefault,
+		Silenced:    &silencedDefault,
+		Unprocessed: &unprocessedDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the get alerts params
@@ -259,92 +271,117 @@ func (o *GetAlertsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Reg
 
 		// query param active
 		var qrActive bool
+
 		if o.Active != nil {
 			qrActive = *o.Active
 		}
 		qActive := swag.FormatBool(qrActive)
 		if qActive != "" {
+
 			if err := r.SetQueryParam("active", qActive); err != nil {
 				return err
 			}
 		}
-
 	}
 
-	valuesFilter := o.Filter
+	if o.Filter != nil {
 
-	joinedFilter := swag.JoinByFormat(valuesFilter, "multi")
-	// query array param filter
-	if err := r.SetQueryParam("filter", joinedFilter...); err != nil {
-		return err
+		// binding items for filter
+		joinedFilter := o.bindParamFilter(reg)
+
+		// query array param filter
+		if err := r.SetQueryParam("filter", joinedFilter...); err != nil {
+			return err
+		}
 	}
 
 	if o.Inhibited != nil {
 
 		// query param inhibited
 		var qrInhibited bool
+
 		if o.Inhibited != nil {
 			qrInhibited = *o.Inhibited
 		}
 		qInhibited := swag.FormatBool(qrInhibited)
 		if qInhibited != "" {
+
 			if err := r.SetQueryParam("inhibited", qInhibited); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.Receiver != nil {
 
 		// query param receiver
 		var qrReceiver string
+
 		if o.Receiver != nil {
 			qrReceiver = *o.Receiver
 		}
 		qReceiver := qrReceiver
 		if qReceiver != "" {
+
 			if err := r.SetQueryParam("receiver", qReceiver); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.Silenced != nil {
 
 		// query param silenced
 		var qrSilenced bool
+
 		if o.Silenced != nil {
 			qrSilenced = *o.Silenced
 		}
 		qSilenced := swag.FormatBool(qrSilenced)
 		if qSilenced != "" {
+
 			if err := r.SetQueryParam("silenced", qSilenced); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.Unprocessed != nil {
 
 		// query param unprocessed
 		var qrUnprocessed bool
+
 		if o.Unprocessed != nil {
 			qrUnprocessed = *o.Unprocessed
 		}
 		qUnprocessed := swag.FormatBool(qrUnprocessed)
 		if qUnprocessed != "" {
+
 			if err := r.SetQueryParam("unprocessed", qUnprocessed); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
 	return nil
+}
+
+// bindParamGetAlerts binds the parameter filter
+func (o *GetAlertsParams) bindParamFilter(formats strfmt.Registry) []string {
+	filterIR := o.Filter
+
+	var filterIC []string
+	for _, filterIIR := range filterIR { // explode []string
+
+		filterIIV := filterIIR // string as string
+		filterIC = append(filterIC, filterIIV)
+	}
+
+	// items.CollectionFormat: "multi"
+	filterIS := swag.JoinByFormat(filterIC, "multi")
+
+	return filterIS
 }

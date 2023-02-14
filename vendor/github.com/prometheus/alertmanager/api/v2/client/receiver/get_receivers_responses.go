@@ -24,10 +24,9 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	models "github.com/prometheus/alertmanager/api/v2/models"
+	"github.com/prometheus/alertmanager/api/v2/models"
 )
 
 // GetReceiversReader is a Reader for the GetReceivers structure.
@@ -44,9 +43,8 @@ func (o *GetReceiversReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -55,7 +53,8 @@ func NewGetReceiversOK() *GetReceiversOK {
 	return &GetReceiversOK{}
 }
 
-/*GetReceiversOK handles this case with default header values.
+/*
+GetReceiversOK describes a response with status code 200, with default header values.
 
 Get receivers response
 */
@@ -63,7 +62,36 @@ type GetReceiversOK struct {
 	Payload []*models.Receiver
 }
 
+// IsSuccess returns true when this get receivers o k response has a 2xx status code
+func (o *GetReceiversOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this get receivers o k response has a 3xx status code
+func (o *GetReceiversOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get receivers o k response has a 4xx status code
+func (o *GetReceiversOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this get receivers o k response has a 5xx status code
+func (o *GetReceiversOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get receivers o k response a status code equal to that given
+func (o *GetReceiversOK) IsCode(code int) bool {
+	return code == 200
+}
+
 func (o *GetReceiversOK) Error() string {
+	return fmt.Sprintf("[GET /receivers][%d] getReceiversOK  %+v", 200, o.Payload)
+}
+
+func (o *GetReceiversOK) String() string {
 	return fmt.Sprintf("[GET /receivers][%d] getReceiversOK  %+v", 200, o.Payload)
 }
 

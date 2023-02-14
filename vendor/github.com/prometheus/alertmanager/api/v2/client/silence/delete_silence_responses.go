@@ -24,8 +24,7 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // DeleteSilenceReader is a Reader for the DeleteSilence structure.
@@ -48,9 +47,8 @@ func (o *DeleteSilenceReader) ReadResponse(response runtime.ClientResponse, cons
 			return nil, err
 		}
 		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -59,14 +57,44 @@ func NewDeleteSilenceOK() *DeleteSilenceOK {
 	return &DeleteSilenceOK{}
 }
 
-/*DeleteSilenceOK handles this case with default header values.
+/*
+DeleteSilenceOK describes a response with status code 200, with default header values.
 
 Delete silence response
 */
 type DeleteSilenceOK struct {
 }
 
+// IsSuccess returns true when this delete silence o k response has a 2xx status code
+func (o *DeleteSilenceOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this delete silence o k response has a 3xx status code
+func (o *DeleteSilenceOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete silence o k response has a 4xx status code
+func (o *DeleteSilenceOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this delete silence o k response has a 5xx status code
+func (o *DeleteSilenceOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete silence o k response a status code equal to that given
+func (o *DeleteSilenceOK) IsCode(code int) bool {
+	return code == 200
+}
+
 func (o *DeleteSilenceOK) Error() string {
+	return fmt.Sprintf("[DELETE /silence/{silenceID}][%d] deleteSilenceOK ", 200)
+}
+
+func (o *DeleteSilenceOK) String() string {
 	return fmt.Sprintf("[DELETE /silence/{silenceID}][%d] deleteSilenceOK ", 200)
 }
 
@@ -80,7 +108,8 @@ func NewDeleteSilenceInternalServerError() *DeleteSilenceInternalServerError {
 	return &DeleteSilenceInternalServerError{}
 }
 
-/*DeleteSilenceInternalServerError handles this case with default header values.
+/*
+DeleteSilenceInternalServerError describes a response with status code 500, with default header values.
 
 Internal server error
 */
@@ -88,7 +117,36 @@ type DeleteSilenceInternalServerError struct {
 	Payload string
 }
 
+// IsSuccess returns true when this delete silence internal server error response has a 2xx status code
+func (o *DeleteSilenceInternalServerError) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete silence internal server error response has a 3xx status code
+func (o *DeleteSilenceInternalServerError) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete silence internal server error response has a 4xx status code
+func (o *DeleteSilenceInternalServerError) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this delete silence internal server error response has a 5xx status code
+func (o *DeleteSilenceInternalServerError) IsServerError() bool {
+	return true
+}
+
+// IsCode returns true when this delete silence internal server error response a status code equal to that given
+func (o *DeleteSilenceInternalServerError) IsCode(code int) bool {
+	return code == 500
+}
+
 func (o *DeleteSilenceInternalServerError) Error() string {
+	return fmt.Sprintf("[DELETE /silence/{silenceID}][%d] deleteSilenceInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *DeleteSilenceInternalServerError) String() string {
 	return fmt.Sprintf("[DELETE /silence/{silenceID}][%d] deleteSilenceInternalServerError  %+v", 500, o.Payload)
 }
 

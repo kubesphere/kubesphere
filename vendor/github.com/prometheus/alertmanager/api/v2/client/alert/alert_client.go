@@ -23,12 +23,11 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new alert API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -40,16 +39,27 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption is the option for Client methods
+type ClientOption func(*runtime.ClientOperation)
+
+// ClientService is the interface for Client methods
+type ClientService interface {
+	GetAlerts(params *GetAlertsParams, opts ...ClientOption) (*GetAlertsOK, error)
+
+	PostAlerts(params *PostAlertsParams, opts ...ClientOption) (*PostAlertsOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
 GetAlerts Get a list of alerts
 */
-func (a *Client) GetAlerts(params *GetAlertsParams) (*GetAlertsOK, error) {
+func (a *Client) GetAlerts(params *GetAlertsParams, opts ...ClientOption) (*GetAlertsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetAlertsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "getAlerts",
 		Method:             "GET",
 		PathPattern:        "/alerts",
@@ -60,7 +70,12 @@ func (a *Client) GetAlerts(params *GetAlertsParams) (*GetAlertsOK, error) {
 		Reader:             &GetAlertsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -77,13 +92,12 @@ func (a *Client) GetAlerts(params *GetAlertsParams) (*GetAlertsOK, error) {
 /*
 PostAlerts Create new Alerts
 */
-func (a *Client) PostAlerts(params *PostAlertsParams) (*PostAlertsOK, error) {
+func (a *Client) PostAlerts(params *PostAlertsParams, opts ...ClientOption) (*PostAlertsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPostAlertsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "postAlerts",
 		Method:             "POST",
 		PathPattern:        "/alerts",
@@ -94,7 +108,12 @@ func (a *Client) PostAlerts(params *PostAlertsParams) (*PostAlertsOK, error) {
 		Reader:             &PostAlertsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}

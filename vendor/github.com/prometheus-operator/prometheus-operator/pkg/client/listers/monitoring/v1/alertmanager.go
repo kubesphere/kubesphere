@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import (
 )
 
 // AlertmanagerLister helps list Alertmanagers.
+// All objects returned here must be treated as read-only.
 type AlertmanagerLister interface {
 	// List lists all Alertmanagers in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Alertmanager, err error)
 	// Alertmanagers returns an object that can list and get Alertmanagers.
 	Alertmanagers(namespace string) AlertmanagerNamespaceLister
@@ -56,10 +58,13 @@ func (s *alertmanagerLister) Alertmanagers(namespace string) AlertmanagerNamespa
 }
 
 // AlertmanagerNamespaceLister helps list and get Alertmanagers.
+// All objects returned here must be treated as read-only.
 type AlertmanagerNamespaceLister interface {
 	// List lists all Alertmanagers in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Alertmanager, err error)
 	// Get retrieves the Alertmanager from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Alertmanager, error)
 	AlertmanagerNamespaceListerExpansion
 }

@@ -855,7 +855,7 @@ func parseToPrometheusRule(rule *v2alpha1.PostableAlertingRule) *promresourcesv1
 	return &promresourcesv1.Rule{
 		Alert:       rule.Name,
 		Expr:        intstr.FromString(rule.Query),
-		For:         rule.Duration,
+		For:         promresourcesv1.Duration(rule.Duration),
 		Labels:      rule.Labels,
 		Annotations: rule.Annotations,
 	}

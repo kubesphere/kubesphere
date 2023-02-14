@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	promlabels "github.com/prometheus/prometheus/pkg/labels"
+	promlabels "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	promrules "github.com/prometheus/prometheus/rules"
 	"k8s.io/apimachinery/pkg/labels"

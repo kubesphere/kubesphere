@@ -23,19 +23,21 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/go-openapi/strfmt"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/logger"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/yamlpc"
+	"github.com/go-openapi/strfmt"
 )
 
 // TLSClientOptions to configure client authentication with mutual TLS
@@ -80,7 +82,7 @@ type TLSClientOptions struct {
 	ServerName string
 
 	// InsecureSkipVerify controls whether the certificate chain and hostname presented
-	// by the server are validated. If false, any certificate is accepted.
+	// by the server are validated. If true, any certificate is accepted.
 	InsecureSkipVerify bool
 
 	// VerifyPeerCertificate, if not nil, is called after normal
@@ -162,7 +164,7 @@ func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 		cfg.RootCAs = caCertPool
 	} else if opts.CA != "" {
 		// load ca cert
-		caCert, err := ioutil.ReadFile(opts.CA)
+		caCert, err := os.ReadFile(opts.CA)
 		if err != nil {
 			return nil, fmt.Errorf("tls client ca: %v", err)
 		}
@@ -178,8 +180,6 @@ func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 		cfg.InsecureSkipVerify = false
 		cfg.ServerName = opts.ServerName
 	}
-
-	cfg.BuildNameToCertificate()
 
 	return cfg, nil
 }
@@ -223,7 +223,7 @@ type Runtime struct {
 
 	Transport http.RoundTripper
 	Jar       http.CookieJar
-	//Spec      *spec.Document
+	// Spec      *spec.Document
 	Host     string
 	BasePath string
 	Formats  strfmt.Registry
@@ -235,6 +235,7 @@ type Runtime struct {
 	clientOnce *sync.Once
 	client     *http.Client
 	schemes    []string
+	response   ClientResponseFunc
 }
 
 // New creates a new default runtime for a swagger api runtime.Client
@@ -244,6 +245,7 @@ func New(host, basePath string, schemes []string) *Runtime {
 
 	// TODO: actually infer this stuff from the spec
 	rt.Consumers = map[string]runtime.Consumer{
+		runtime.YAMLMime:    yamlpc.YAMLConsumer(),
 		runtime.JSONMime:    runtime.JSONConsumer(),
 		runtime.XMLMime:     runtime.XMLConsumer(),
 		runtime.TextMime:    runtime.TextConsumer(),
@@ -252,6 +254,7 @@ func New(host, basePath string, schemes []string) *Runtime {
 		runtime.DefaultMime: runtime.ByteStreamConsumer(),
 	}
 	rt.Producers = map[string]runtime.Producer{
+		runtime.YAMLMime:    yamlpc.YAMLProducer(),
 		runtime.JSONMime:    runtime.JSONProducer(),
 		runtime.XMLMime:     runtime.XMLProducer(),
 		runtime.TextMime:    runtime.TextProducer(),
@@ -271,6 +274,7 @@ func New(host, basePath string, schemes []string) *Runtime {
 
 	rt.Debug = logger.DebugEnabled()
 	rt.logger = logger.StandardLogger{}
+	rt.response = newResponse
 
 	if len(schemes) > 0 {
 		rt.schemes = schemes
@@ -287,6 +291,22 @@ func NewWithClient(host, basePath string, schemes []string, client *http.Client)
 		})
 	}
 	return rt
+}
+
+// WithOpenTracing adds opentracing support to the provided runtime.
+// A new client span is created for each request.
+// If the context of the client operation does not contain an active span, no span is created.
+// The provided opts are applied to each spans - for example to add global tags.
+func (r *Runtime) WithOpenTracing(opts ...opentracing.StartSpanOption) runtime.ClientTransport {
+	return newOpenTracingTransport(r, r.Host, opts)
+}
+
+// WithOpenTelemetry adds opentelemetry support to the provided runtime.
+// A new client span is created for each request.
+// If the context of the client operation does not contain an active span, no span is created.
+// The provided opts are applied to each spans - for example to add global tags.
+func (r *Runtime) WithOpenTelemetry(opts ...OpenTelemetryOpt) runtime.ClientTransport {
+	return newOpenTelemetryTransport(r, r.Host, opts)
 }
 
 func (r *Runtime) pickScheme(schemes []string) string {
@@ -317,6 +337,7 @@ func (r *Runtime) selectScheme(schemes []string) string {
 	}
 	return scheme
 }
+
 func transportOrDefault(left, right http.RoundTripper) http.RoundTripper {
 	if left == nil {
 		return right
@@ -346,26 +367,30 @@ func (r *Runtime) EnableConnectionReuse() {
 	)
 }
 
-// Submit a request and when there is a body on success it will turn that into the result
-// all other things are turned into an api error for swagger which retains the status code
-func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error) {
-	params, readResponse, auth := operation.Params, operation.Reader, operation.AuthInfo
+// takes a client operation and creates equivalent http.Request
+func (r *Runtime) createHttpRequest(operation *runtime.ClientOperation) (*request, *http.Request, error) {
+	params, _, auth := operation.Params, operation.Reader, operation.AuthInfo
 
 	request, err := newRequest(operation.Method, operation.PathPattern, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var accept []string
 	accept = append(accept, operation.ProducesMediaTypes...)
 	if err = request.SetHeaderParam(runtime.HeaderAccept, accept...); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if auth == nil && r.DefaultAuthentication != nil {
-		auth = r.DefaultAuthentication
+		auth = runtime.ClientAuthInfoWriterFunc(func(req runtime.ClientRequest, reg strfmt.Registry) error {
+			if req.GetHeaderParams().Get(runtime.HeaderAuthorization) != "" {
+				return nil
+			}
+			return r.DefaultAuthentication.AuthenticateRequest(req, reg)
+		})
 	}
-	//if auth != nil {
+	// if auth != nil {
 	//	if err := auth.AuthenticateRequest(request, r.Formats); err != nil {
 	//		return nil, err
 	//	}
@@ -382,16 +407,33 @@ func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error
 	}
 
 	if _, ok := r.Producers[cmt]; !ok && cmt != runtime.MultipartFormMime && cmt != runtime.URLencodedFormMime {
-		return nil, fmt.Errorf("none of producers: %v registered. try %s", r.Producers, cmt)
+		return nil, nil, fmt.Errorf("none of producers: %v registered. try %s", r.Producers, cmt)
 	}
 
 	req, err := request.buildHTTP(cmt, r.BasePath, r.Producers, r.Formats, auth)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req.URL.Scheme = r.pickScheme(operation.Schemes)
 	req.URL.Host = r.Host
 	req.Host = r.Host
+	return request, req, nil
+}
+
+func (r *Runtime) CreateHttpRequest(operation *runtime.ClientOperation) (req *http.Request, err error) {
+	_, req, err = r.createHttpRequest(operation)
+	return
+}
+
+// Submit a request and when there is a body on success it will turn that into the result
+// all other things are turned into an api error for swagger which retains the status code
+func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error) {
+	_, readResponse, _ := operation.Params, operation.Reader, operation.AuthInfo
+
+	request, req, err := r.createHttpRequest(operation)
+	if err != nil {
+		return nil, err
+	}
 
 	r.clientOnce.Do(func() {
 		r.client = &http.Client{
@@ -438,17 +480,21 @@ func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error
 	}
 	defer res.Body.Close()
 
+	ct := res.Header.Get(runtime.HeaderContentType)
+	if ct == "" { // this should really really never occur
+		ct = r.DefaultMediaType
+	}
+
 	if r.Debug {
-		b, err2 := httputil.DumpResponse(res, true)
+		printBody := true
+		if ct == runtime.DefaultMime {
+			printBody = false // Spare the terminal from a binary blob.
+		}
+		b, err2 := httputil.DumpResponse(res, printBody)
 		if err2 != nil {
 			return nil, err2
 		}
 		r.logger.Debugf("%s\n", string(b))
-	}
-
-	ct := res.Header.Get(runtime.HeaderContentType)
-	if ct == "" { // this should really really never occur
-		ct = r.DefaultMediaType
 	}
 
 	mt, _, err := mime.ParseMediaType(ct)
@@ -463,7 +509,7 @@ func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error
 			return nil, fmt.Errorf("no consumer: %q", ct)
 		}
 	}
-	return readResponse.ReadResponse(response{res}, cons)
+	return readResponse.ReadResponse(r.response(res), cons)
 }
 
 // SetDebug changes the debug flag.
@@ -478,4 +524,14 @@ func (r *Runtime) SetDebug(debug bool) {
 func (r *Runtime) SetLogger(logger logger.Logger) {
 	r.logger = logger
 	middleware.Logger = logger
+}
+
+type ClientResponseFunc = func(*http.Response) runtime.ClientResponse
+
+// SetResponseReader changes the response reader implementation.
+func (r *Runtime) SetResponseReader(f ClientResponseFunc) {
+	if f == nil {
+		return
+	}
+	r.response = f
 }

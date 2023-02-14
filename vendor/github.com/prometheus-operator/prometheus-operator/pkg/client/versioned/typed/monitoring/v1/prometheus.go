@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,9 +18,12 @@ package v1
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 	"time"
 
 	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1"
 	scheme "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -45,6 +48,8 @@ type PrometheusInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.PrometheusList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Prometheus, err error)
+	Apply(ctx context.Context, prometheus *monitoringv1.PrometheusApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Prometheus, err error)
+	ApplyStatus(ctx context.Context, prometheus *monitoringv1.PrometheusApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Prometheus, err error)
 	PrometheusExpansion
 }
 
@@ -186,6 +191,62 @@ func (c *prometheuses) Patch(ctx context.Context, name string, pt types.PatchTyp
 		Name(name).
 		SubResource(subresources...).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied prometheus.
+func (c *prometheuses) Apply(ctx context.Context, prometheus *monitoringv1.PrometheusApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Prometheus, err error) {
+	if prometheus == nil {
+		return nil, fmt.Errorf("prometheus provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(prometheus)
+	if err != nil {
+		return nil, err
+	}
+	name := prometheus.Name
+	if name == nil {
+		return nil, fmt.Errorf("prometheus.Name must be provided to Apply")
+	}
+	result = &v1.Prometheus{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Namespace(c.ns).
+		Resource("prometheuses").
+		Name(*name).
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// ApplyStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+func (c *prometheuses) ApplyStatus(ctx context.Context, prometheus *monitoringv1.PrometheusApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Prometheus, err error) {
+	if prometheus == nil {
+		return nil, fmt.Errorf("prometheus provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(prometheus)
+	if err != nil {
+		return nil, err
+	}
+
+	name := prometheus.Name
+	if name == nil {
+		return nil, fmt.Errorf("prometheus.Name must be provided to Apply")
+	}
+
+	result = &v1.Prometheus{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Namespace(c.ns).
+		Resource("prometheuses").
+		Name(*name).
+		SubResource("status").
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
 		Body(data).
 		Do(ctx).
 		Into(result)

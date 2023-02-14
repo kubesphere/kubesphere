@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,12 +19,18 @@ package monitoring
 import (
 	internalinterfaces "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/internalinterfaces"
 	v1 "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring/v1"
+	v1alpha1 "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring/v1alpha1"
+	v1beta1 "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring/v1beta1"
 )
 
 // Interface provides access to each of this group's versions.
 type Interface interface {
 	// V1 provides access to shared informers for resources in V1.
 	V1() v1.Interface
+	// V1alpha1 provides access to shared informers for resources in V1alpha1.
+	V1alpha1() v1alpha1.Interface
+	// V1beta1 provides access to shared informers for resources in V1beta1.
+	V1beta1() v1beta1.Interface
 }
 
 type group struct {
@@ -41,4 +47,14 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // V1 returns a new v1.Interface.
 func (g *group) V1() v1.Interface {
 	return v1.New(g.factory, g.namespace, g.tweakListOptions)
+}
+
+// V1alpha1 returns a new v1alpha1.Interface.
+func (g *group) V1alpha1() v1alpha1.Interface {
+	return v1alpha1.New(g.factory, g.namespace, g.tweakListOptions)
+}
+
+// V1beta1 returns a new v1beta1.Interface.
+func (g *group) V1beta1() v1beta1.Interface {
+	return v1beta1.New(g.factory, g.namespace, g.tweakListOptions)
 }

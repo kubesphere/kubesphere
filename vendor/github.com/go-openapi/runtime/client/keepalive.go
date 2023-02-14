@@ -2,7 +2,6 @@ package client
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sync/atomic"
 )
@@ -46,8 +45,11 @@ func (d *drainingReadCloser) Read(p []byte) (n int, err error) {
 func (d *drainingReadCloser) Close() error {
 	// drain buffer
 	if atomic.LoadUint32(&d.seenEOF) != 1 {
-		//#nosec
-		io.Copy(ioutil.Discard, d.rdr)
+		// If the reader side (a HTTP server) is misbehaving, it still may send
+		// some bytes, but the closer ignores them to keep the underling
+		// connection open.
+		//nolint:errcheck
+		io.Copy(io.Discard, d.rdr)
 	}
 	return d.rdr.Close()
 }

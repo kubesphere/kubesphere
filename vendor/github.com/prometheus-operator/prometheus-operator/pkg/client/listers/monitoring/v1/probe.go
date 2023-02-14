@@ -1,4 +1,4 @@
-// Copyright 2018 The prometheus-operator Authors
+// Copyright The prometheus-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import (
 )
 
 // ProbeLister helps list Probes.
+// All objects returned here must be treated as read-only.
 type ProbeLister interface {
 	// List lists all Probes in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Probe, err error)
 	// Probes returns an object that can list and get Probes.
 	Probes(namespace string) ProbeNamespaceLister
@@ -56,10 +58,13 @@ func (s *probeLister) Probes(namespace string) ProbeNamespaceLister {
 }
 
 // ProbeNamespaceLister helps list and get Probes.
+// All objects returned here must be treated as read-only.
 type ProbeNamespaceLister interface {
 	// List lists all Probes in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Probe, err error)
 	// Get retrieves the Probe from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Probe, error)
 	ProbeNamespaceListerExpansion
 }

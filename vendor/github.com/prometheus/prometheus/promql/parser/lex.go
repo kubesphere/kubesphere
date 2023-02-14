@@ -48,6 +48,10 @@ func (i Item) String() string {
 	return fmt.Sprintf("%q", i.Val)
 }
 
+// Pretty returns the prettified form of an item.
+// This is same as the item's stringified format.
+func (i Item) Pretty(int) string { return i.String() }
+
 // IsOperator returns true if the Item corresponds to a arithmetic or set operator.
 // Returns false otherwise.
 func (i ItemType) IsOperator() bool { return i > operatorsStart && i < operatorsEnd }
@@ -70,7 +74,7 @@ func (i ItemType) IsKeyword() bool { return i > keywordsStart && i < keywordsEnd
 // Returns false otherwise.
 func (i ItemType) IsComparisonOperator() bool {
 	switch i {
-	case EQL, NEQ, LTE, LSS, GTE, GTR:
+	case EQLC, NEQ, LTE, LSS, GTE, GTR:
 		return true
 	default:
 		return false
@@ -97,6 +101,7 @@ var key = map[string]ItemType{
 	"and":    LAND,
 	"or":     LOR,
 	"unless": LUNLESS,
+	"atan2":  ATAN2,
 
 	// Aggregators.
 	"sum":          SUM,
@@ -121,6 +126,10 @@ var key = map[string]ItemType{
 	"group_left":  GROUP_LEFT,
 	"group_right": GROUP_RIGHT,
 	"bool":        BOOL,
+
+	// Preprocessors.
+	"start": START,
+	"end":   END,
 }
 
 // ItemTypeStr is the default string representations for common Items. It does not
@@ -133,7 +142,7 @@ var ItemTypeStr = map[ItemType]string{
 	LEFT_BRACKET:  "[",
 	RIGHT_BRACKET: "]",
 	COMMA:         ",",
-	ASSIGN:        "=",
+	EQL:           "=",
 	COLON:         ":",
 	SEMICOLON:     ";",
 	BLANK:         "_",
@@ -145,7 +154,7 @@ var ItemTypeStr = map[ItemType]string{
 	MUL:       "*",
 	MOD:       "%",
 	DIV:       "/",
-	EQL:       "==",
+	EQLC:      "==",
 	NEQ:       "!=",
 	LTE:       "<=",
 	LSS:       "<",
@@ -363,11 +372,11 @@ func lexStatements(l *Lexer) stateFn {
 	case r == '=':
 		if t := l.peek(); t == '=' {
 			l.next()
-			l.emit(EQL)
+			l.emit(EQLC)
 		} else if t == '~' {
 			return l.errorf("unexpected character after '=': %q", t)
 		} else {
-			l.emit(ASSIGN)
+			l.emit(EQL)
 		}
 	case r == '!':
 		if t := l.next(); t == '=' {
@@ -440,7 +449,8 @@ func lexStatements(l *Lexer) stateFn {
 		}
 		l.emit(RIGHT_BRACKET)
 		l.bracketOpen = false
-
+	case r == '@':
+		l.emit(AT)
 	default:
 		return l.errorf("unexpected character: %q", r)
 	}
@@ -578,8 +588,12 @@ func lexEscape(l *Lexer) stateFn {
 			return lexString
 		}
 		x = x*base + d
-		ch = l.next()
 		n--
+
+		// Don't seek after last rune.
+		if n > 0 {
+			ch = l.next()
+		}
 	}
 
 	if x > max || 0xD800 <= x && x < 0xE000 {
