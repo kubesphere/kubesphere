@@ -64,7 +64,7 @@ func (h *resourceGetter) GetResource(gvr schema.GroupVersionResource, name, name
 		obj = u
 	}
 
-	if err := h.cache.Get(name, namespace, obj); err != nil {
+	if err := h.cache.Get(namespace, name, obj); err != nil {
 		return nil, err
 	}
 	return obj, nil
