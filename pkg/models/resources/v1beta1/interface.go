@@ -58,6 +58,8 @@ func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFu
 				filtered = append(filtered, object)
 			}
 		}
+	} else {
+		filtered = objects
 	}
 
 	// sort by sortBy field
