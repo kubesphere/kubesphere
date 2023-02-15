@@ -20,7 +20,7 @@ import (
 
 type Interface interface {
 	// Get retrieves a single object by its namespace and name
-	Get(name, namespace string, object client.Object) error
+	Get(namespace, name string, object client.Object) error
 
 	// List retrieves a collection of objects matches given query
 	List(namespace string, query *query.Query, object client.ObjectList) error

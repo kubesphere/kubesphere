@@ -19,7 +19,7 @@ func NewResourceCache(cache cache.Cache) Interface {
 	return &resourceCache{cache: cache}
 }
 
-func (u *resourceCache) Get(name, namespace string, object client.Object) error {
+func (u *resourceCache) Get(namespace, name string, object client.Object) error {
 	return u.cache.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, object)
 }
 
