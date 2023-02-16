@@ -33,8 +33,8 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/ginkgo/v2 v2.8.0 // indirect
 	github.com/onsi/gomega v1.26.0 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
@@ -56,25 +56,14 @@ require (
 )
 
 replace (
-	github.com/asaskevich/govalidator => github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
-	github.com/elazarl/goproxy => github.com/elazarl/goproxy v0.0.0-20200315184450-1f3cb6622dad
-	github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.9.0
-	github.com/google/gnostic => github.com/google/gnostic v0.5.7-v3refs
-	github.com/kr/pretty => github.com/kr/pretty v0.2.1
-	github.com/mitchellh/mapstructure => github.com/mitchellh/mapstructure v1.4.3
-	github.com/pmezard/go-difflib => github.com/pmezard/go-difflib v1.0.0
+	golang.org/x/lint => golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
 	golang.org/x/mod => golang.org/x/mod v0.4.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
-	golang.org/x/sync => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d
 	golang.org/x/term => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
 	golang.org/x/xerrors => golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
-	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6
 	k8s.io/client-go => k8s.io/client-go v0.26.1
-	k8s.io/klog/v2 => k8s.io/klog/v2 v2.80.1
-	k8s.io/utils => k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	kubesphere.io/client-go => ../client-go
-	sigs.k8s.io/json => sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2
 )

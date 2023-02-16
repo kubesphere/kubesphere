@@ -6,7 +6,7 @@ go 1.19
 
 require (
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.10.3
+	helm.sh/helm/v3 v3.11.1
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
 	k8s.io/cli-runtime v0.26.1
@@ -18,11 +18,11 @@ require (
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
-	github.com/BurntSushi/toml v1.1.0 // indirect
+	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.1.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
+	github.com/Masterminds/semver/v3 v3.2.0 // indirect
+	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Masterminds/squirrel v1.5.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -65,7 +65,7 @@ require (
 	github.com/gosuri/uitable v0.0.4 // indirect
 	github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f // indirect
 	github.com/hashicorp/golang-lru v0.6.0 // indirect
-	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jmoiron/sqlx v1.3.5 // indirect
@@ -76,7 +76,7 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
-	github.com/lib/pq v1.10.6 // indirect
+	github.com/lib/pq v1.10.7 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
@@ -100,16 +100,15 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc2 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/rubenv/sql-migrate v1.1.2 // indirect
+	github.com/rubenv/sql-migrate v1.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	github.com/spf13/cast v1.4.1 // indirect
+	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.6.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
@@ -119,7 +118,6 @@ require (
 	github.com/yvasiyarov/go-metrics v0.0.0-20150112132944-c25f46c4b940 // indirect
 	github.com/yvasiyarov/gorelic v0.0.7 // indirect
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
-	go.etcd.io/etcd/api/v3 v3.5.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
@@ -149,35 +147,6 @@ require (
 )
 
 replace (
-	github.com/armon/go-metrics => github.com/armon/go-metrics v0.3.3
-	github.com/asaskevich/govalidator => github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
-	github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.43.16
-	github.com/bugsnag/panicwrap => github.com/bugsnag/panicwrap v1.3.4
-	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.2
-	github.com/coreos/go-systemd => github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/docker/docker => github.com/docker/docker v20.10.21+incompatible
-	github.com/docker/go-units => github.com/docker/go-units v0.4.0
-	github.com/elazarl/goproxy => github.com/elazarl/goproxy v0.0.0-20200315184450-1f3cb6622dad
-	github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.9.0
-	github.com/go-kit/kit => github.com/go-kit/kit v0.10.0
-	github.com/go-kit/log => github.com/go-kit/log v0.2.0
-	github.com/gofrs/uuid => github.com/gofrs/uuid v4.0.0+incompatible
-	github.com/gomodule/redigo => github.com/gomodule/redigo v2.0.0+incompatible
-	github.com/google/gnostic => github.com/google/gnostic v0.5.7-v3refs
-	github.com/gopherjs/gopherjs => github.com/gopherjs/gopherjs v0.0.0-20191106031601-ce3c9ade29de
-	github.com/hashicorp/consul/api => github.com/hashicorp/consul/api v1.6.0
-	github.com/hashicorp/go-hclog => github.com/hashicorp/go-hclog v0.12.2
-	github.com/hashicorp/go-immutable-radix => github.com/hashicorp/go-immutable-radix v1.2.0
-	github.com/hashicorp/golang-lru => github.com/hashicorp/golang-lru v0.5.4
-	github.com/kr/pretty => github.com/kr/pretty v0.2.1
-	github.com/miekg/dns => github.com/miekg/dns v1.1.43
-	github.com/mitchellh/mapstructure => github.com/mitchellh/mapstructure v1.4.3
-	github.com/pierrec/lz4 => github.com/pierrec/lz4 v2.0.5+incompatible
-	github.com/pmezard/go-difflib => github.com/pmezard/go-difflib v1.0.0
-	github.com/samuel/go-zookeeper => github.com/samuel/go-zookeeper v0.0.0-20200724154423-2164a8ac840e
-	github.com/smartystreets/assertions => github.com/smartystreets/assertions v1.0.1
-	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
-	go.opencensus.io => go.opencensus.io v0.23.0
 	golang.org/x/image => golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
 	golang.org/x/mod => golang.org/x/mod v0.4.0
@@ -188,10 +157,6 @@ replace (
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
 	golang.org/x/xerrors => golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
-	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6
 	k8s.io/client-go => k8s.io/client-go v0.26.1
-	k8s.io/klog/v2 => k8s.io/klog/v2 v2.80.1
-	k8s.io/utils => k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	kubesphere.io/utils => ../utils
-	sigs.k8s.io/json => sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2
 )

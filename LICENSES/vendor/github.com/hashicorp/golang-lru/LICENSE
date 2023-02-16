@@ -1,5 +1,7 @@
 = vendor/github.com/hashicorp/golang-lru licensed under: =
 
+Copyright (c) 2014 HashiCorp, Inc.
+
 Mozilla Public License, version 2.0
 
 1. Definitions
@@ -363,4 +365,4 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
       With Secondary Licenses", as defined by
       the Mozilla Public License, v. 2.0.
 
-= vendor/github.com/hashicorp/golang-lru/LICENSE f27a50d2e878867827842f2c60e30bfc
+= vendor/github.com/hashicorp/golang-lru/LICENSE dc2f3ee49116a594755b22b853cc8b6b
