@@ -118,7 +118,7 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 ## Latest release
 
-🎉 KubeSphere 3.3.1 was released! It brings enhancements and better user experience, see the [Release Notes For 3.3.1](https://kubesphere.io/docs/release/release-v330/) for the updates.
+🎉 KubeSphere 3.3.2 was released! It brings enhancements and better user experience, see the [Release Notes For 3.3.2](https://kubesphere.io/docs/release/release-v332/) for the updates.
 ## Installation
 
 KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster. The installer will start a minimal installation by default, you can [enable other pluggable components before or after installation](https://kubesphere.io/docs/quick-start/enable-pluggable-components/).
