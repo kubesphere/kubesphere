@@ -24,6 +24,10 @@ import (
 	"github.com/go-logr/logr"
 )
 
+type textWriter interface {
+	WriteText(*bytes.Buffer)
+}
+
 // WithValues implements LogSink.WithValues. The old key/value pairs are
 // assumed to be well-formed, the new ones are checked and padded if
 // necessary. It returns a new slice.
@@ -91,6 +95,51 @@ func MergeKVs(first, second []interface{}) []interface{} {
 	return merged
 }
 
+// MergeKVsInto is a variant of MergeKVs which directly formats the key/value
+// pairs into a buffer.
+func MergeAndFormatKVs(b *bytes.Buffer, first, second []interface{}) {
+	if len(first) == 0 && len(second) == 0 {
+		// Nothing to do at all.
+		return
+	}
+
+	if len(first) == 0 && len(second)%2 == 0 {
+		// Nothing to be overridden, second slice is well-formed
+		// and can be used directly.
+		for i := 0; i < len(second); i += 2 {
+			KVFormat(b, second[i], second[i+1])
+		}
+		return
+	}
+
+	// Determine which keys are in the second slice so that we can skip
+	// them when iterating over the first one. The code intentionally
+	// favors performance over completeness: we assume that keys are string
+	// constants and thus compare equal when the string values are equal. A
+	// string constant being overridden by, for example, a fmt.Stringer is
+	// not handled.
+	overrides := map[interface{}]bool{}
+	for i := 0; i < len(second); i += 2 {
+		overrides[second[i]] = true
+	}
+	for i := 0; i < len(first); i += 2 {
+		key := first[i]
+		if overrides[key] {
+			continue
+		}
+		KVFormat(b, key, first[i+1])
+	}
+	// Round down.
+	l := len(second)
+	l = l / 2 * 2
+	for i := 1; i < l; i += 2 {
+		KVFormat(b, second[i-1], second[i])
+	}
+	if len(second)%2 == 1 {
+		KVFormat(b, second[len(second)-1], missingValue)
+	}
+}
+
 const missingValue = "(MISSING)"
 
 // KVListFormat serializes all key/value pairs into the provided buffer.
@@ -104,66 +153,74 @@ func KVListFormat(b *bytes.Buffer, keysAndValues ...interface{}) {
 		} else {
 			v = missingValue
 		}
-		b.WriteByte(' ')
-		// Keys are assumed to be well-formed according to
-		// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/migration-to-structured-logging.md#name-arguments
-		// for the sake of performance. Keys with spaces,
-		// special characters, etc. will break parsing.
-		if sK, ok := k.(string); ok {
-			// Avoid one allocation when the key is a string, which
-			// normally it should be.
-			b.WriteString(sK)
-		} else {
-			b.WriteString(fmt.Sprintf("%s", k))
-		}
+		KVFormat(b, k, v)
+	}
+}
 
-		// The type checks are sorted so that more frequently used ones
-		// come first because that is then faster in the common
-		// cases. In Kubernetes, ObjectRef (a Stringer) is more common
-		// than plain strings
-		// (https://github.com/kubernetes/kubernetes/pull/106594#issuecomment-975526235).
-		switch v := v.(type) {
-		case fmt.Stringer:
-			writeStringValue(b, true, StringerToString(v))
+// KVFormat serializes one key/value pair into the provided buffer.
+// A space gets inserted before the pair.
+func KVFormat(b *bytes.Buffer, k, v interface{}) {
+	b.WriteByte(' ')
+	// Keys are assumed to be well-formed according to
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/migration-to-structured-logging.md#name-arguments
+	// for the sake of performance. Keys with spaces,
+	// special characters, etc. will break parsing.
+	if sK, ok := k.(string); ok {
+		// Avoid one allocation when the key is a string, which
+		// normally it should be.
+		b.WriteString(sK)
+	} else {
+		b.WriteString(fmt.Sprintf("%s", k))
+	}
+
+	// The type checks are sorted so that more frequently used ones
+	// come first because that is then faster in the common
+	// cases. In Kubernetes, ObjectRef (a Stringer) is more common
+	// than plain strings
+	// (https://github.com/kubernetes/kubernetes/pull/106594#issuecomment-975526235).
+	switch v := v.(type) {
+	case textWriter:
+		writeTextWriterValue(b, v)
+	case fmt.Stringer:
+		writeStringValue(b, true, StringerToString(v))
+	case string:
+		writeStringValue(b, true, v)
+	case error:
+		writeStringValue(b, true, ErrorToString(v))
+	case logr.Marshaler:
+		value := MarshalerToValue(v)
+		// A marshaler that returns a string is useful for
+		// delayed formatting of complex values. We treat this
+		// case like a normal string. This is useful for
+		// multi-line support.
+		//
+		// We could do this by recursively formatting a value,
+		// but that comes with the risk of infinite recursion
+		// if a marshaler returns itself. Instead we call it
+		// only once and rely on it returning the intended
+		// value directly.
+		switch value := value.(type) {
 		case string:
-			writeStringValue(b, true, v)
-		case error:
-			writeStringValue(b, true, ErrorToString(v))
-		case logr.Marshaler:
-			value := MarshalerToValue(v)
-			// A marshaler that returns a string is useful for
-			// delayed formatting of complex values. We treat this
-			// case like a normal string. This is useful for
-			// multi-line support.
-			//
-			// We could do this by recursively formatting a value,
-			// but that comes with the risk of infinite recursion
-			// if a marshaler returns itself. Instead we call it
-			// only once and rely on it returning the intended
-			// value directly.
-			switch value := value.(type) {
-			case string:
-				writeStringValue(b, true, value)
-			default:
-				writeStringValue(b, false, fmt.Sprintf("%+v", value))
-			}
-		case []byte:
-			// In https://github.com/kubernetes/klog/pull/237 it was decided
-			// to format byte slices with "%+q". The advantages of that are:
-			// - readable output if the bytes happen to be printable
-			// - non-printable bytes get represented as unicode escape
-			//   sequences (\uxxxx)
-			//
-			// The downsides are that we cannot use the faster
-			// strconv.Quote here and that multi-line output is not
-			// supported. If developers know that a byte array is
-			// printable and they want multi-line output, they can
-			// convert the value to string before logging it.
-			b.WriteByte('=')
-			b.WriteString(fmt.Sprintf("%+q", v))
+			writeStringValue(b, true, value)
 		default:
-			writeStringValue(b, false, fmt.Sprintf("%+v", v))
+			writeStringValue(b, false, fmt.Sprintf("%+v", value))
 		}
+	case []byte:
+		// In https://github.com/kubernetes/klog/pull/237 it was decided
+		// to format byte slices with "%+q". The advantages of that are:
+		// - readable output if the bytes happen to be printable
+		// - non-printable bytes get represented as unicode escape
+		//   sequences (\uxxxx)
+		//
+		// The downsides are that we cannot use the faster
+		// strconv.Quote here and that multi-line output is not
+		// supported. If developers know that a byte array is
+		// printable and they want multi-line output, they can
+		// convert the value to string before logging it.
+		b.WriteByte('=')
+		b.WriteString(fmt.Sprintf("%+q", v))
+	default:
+		writeStringValue(b, false, fmt.Sprintf("%+v", v))
 	}
 }
 
@@ -201,6 +258,16 @@ func ErrorToString(err error) (ret string) {
 	}()
 	ret = err.Error()
 	return
+}
+
+func writeTextWriterValue(b *bytes.Buffer, v textWriter) {
+	b.WriteRune('=')
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Fprintf(b, `"<panic: %s>"`, err)
+		}
+	}()
+	v.WriteText(b)
 }
 
 func writeStringValue(b *bytes.Buffer, quote bool, v string) {
