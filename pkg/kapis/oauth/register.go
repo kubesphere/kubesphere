@@ -158,6 +158,14 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		Returns(http.StatusOK, http.StatusText(http.StatusOK), "").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
+	ws.Route(ws.POST("/login-ldap").
+		Doc("Login with ldap user").
+		Param(ws.FormParameter("username", "The username of the relevant user in ldap")).
+		Param(ws.FormParameter("password", "The password of the relevant user in ldap")).
+		To(handler.ldapLogin).
+		Returns(http.StatusOK, http.StatusText(http.StatusOK), oauth.Token{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
+
 	c.Add(ws)
 
 	// legacy auth API

@@ -356,6 +356,7 @@ const (
 	BasicAuth LoginType = "Basic"
 	OAuth     LoginType = "OAuth"
 	Token     LoginType = "Token"
+	Ldap      LoginType = "Ldap"
 )
 
 // +kubebuilder:object:root=true

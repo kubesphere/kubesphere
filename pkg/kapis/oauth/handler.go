@@ -52,6 +52,7 @@ import (
 )
 
 const (
+	ldapProvider          = "LDAPIdentityProvider"
 	KindTokenReview       = "TokenReview"
 	grantTypePassword     = "password"
 	grantTypeRefreshToken = "refresh_token"
@@ -687,4 +688,34 @@ func (h *handler) userinfo(req *restful.Request, response *restful.Response) {
 		PreferredUsername: detail.Name,
 	}
 	response.WriteEntity(result)
+}
+
+func (h *handler) ldapLogin(req *restful.Request, response *restful.Response) {
+	username, _ := req.BodyParameter("username")
+	password, _ := req.BodyParameter("password")
+
+	authenticated, providerName, err := h.passwordAuthenticator.Authenticate(req.Request.Context(), username, password)
+	if err != nil {
+		api.HandleBadRequest(response, req, err)
+		return
+	}
+
+	if providerName != ldapProvider {
+		err = errors.New("username or password is not correct")
+		api.HandleBadRequest(response, req, err)
+		return
+	}
+
+	t, err := h.issueTokenTo(authenticated)
+	if err != nil {
+		api.HandleInternalError(response, req, err)
+		return
+	}
+
+	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
+	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Ldap, providerName, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
+		klog.Errorf("Failed to record successful login for user %s, error: %v", authenticated.GetName(), err)
+	}
+
+	_ = response.WriteEntity(t)
 }
