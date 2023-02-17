@@ -8,14 +8,36 @@ import (
 )
 
 type Parser struct {
-	ValidMethods         []string // If populated, only these methods will be considered valid
-	UseJSONNumber        bool     // Use JSON Number format in JSON decoder
-	SkipClaimsValidation bool     // Skip claims validation during token parsing
+	// If populated, only these methods will be considered valid.
+	//
+	// Deprecated: In future releases, this field will not be exported anymore and should be set with an option to NewParser instead.
+	ValidMethods []string
+
+	// Use JSON Number format in JSON decoder.
+	//
+	// Deprecated: In future releases, this field will not be exported anymore and should be set with an option to NewParser instead.
+	UseJSONNumber bool
+
+	// Skip claims validation during token parsing.
+	//
+	// Deprecated: In future releases, this field will not be exported anymore and should be set with an option to NewParser instead.
+	SkipClaimsValidation bool
 }
 
-// Parse, validate, and return a token.
+// NewParser creates a new Parser with the specified options
+func NewParser(options ...ParserOption) *Parser {
+	p := &Parser{}
+
+	// loop through our parsing options and apply them
+	for _, option := range options {
+		option(p)
+	}
+
+	return p
+}
+
+// Parse parses, validates, verifies the signature and returns the parsed token.
 // keyFunc will receive the parsed token and should return the key for validating.
-// If everything is kosher, err will be nil
 func (p *Parser) Parse(tokenString string, keyFunc Keyfunc) (*Token, error) {
 	return p.ParseWithClaims(tokenString, MapClaims{}, keyFunc)
 }
@@ -87,12 +109,12 @@ func (p *Parser) ParseWithClaims(tokenString string, claims Claims, keyFunc Keyf
 	return token, vErr
 }
 
-// WARNING: Don't use this method unless you know what you're doing
+// ParseUnverified parses the token but doesn't validate the signature.
 //
-// This method parses the token but doesn't validate the signature. It's only
-// ever useful in cases where you know the signature is valid (because it has
-// been checked previously in the stack) and you want to extract values from
-// it.
+// WARNING: Don't use this method unless you know what you're doing.
+//
+// It's only ever useful in cases where you know the signature is valid (because it has
+// been checked previously in the stack) and you want to extract values from it.
 func (p *Parser) ParseUnverified(tokenString string, claims Claims) (token *Token, parts []string, err error) {
 	parts = strings.Split(tokenString, ".")
 	if len(parts) != 3 {

@@ -147,16 +147,12 @@ require (
 )
 
 replace (
-	golang.org/x/image => golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
-	golang.org/x/lint => golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
-	golang.org/x/mod => golang.org/x/mod v0.4.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d
 	golang.org/x/term => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
-	golang.org/x/xerrors => golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
 	k8s.io/client-go => k8s.io/client-go v0.26.1
 	kubesphere.io/utils => ../utils
 )

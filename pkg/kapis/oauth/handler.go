@@ -23,20 +23,9 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/square/go-jose.v2"
-
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-
-	"github.com/form3tech-oss/jwt-go"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
-
-	"kubesphere.io/kubesphere/pkg/server/errors"
-
 	"github.com/emicklei/go-restful"
+	"github.com/golang-jwt/jwt/v4"
+	"gopkg.in/square/go-jose.v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -45,10 +34,15 @@ import (
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
+	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 const (
@@ -298,7 +292,7 @@ func (h *handler) authorize(req *restful.Request, response *restful.Response) {
 		code, err := h.tokenOperator.IssueTo(&token.IssueRequest{
 			User: authenticated,
 			Claims: token.Claims{
-				StandardClaims: jwt.StandardClaims{
+				RegisteredClaims: jwt.RegisteredClaims{
 					Audience: []string{clientID},
 				},
 				TokenType: token.AuthorizationCode,
@@ -602,7 +596,7 @@ func (h *handler) codeGrant(req *restful.Request, response *restful.Response) {
 	idTokenRequest := &token.IssueRequest{
 		User: authorizeContext.User,
 		Claims: token.Claims{
-			StandardClaims: jwt.StandardClaims{
+			RegisteredClaims: jwt.RegisteredClaims{
 				Audience: authorizeContext.Audience,
 			},
 			Nonce:     authorizeContext.Nonce,
@@ -678,7 +672,7 @@ func (h *handler) userinfo(req *restful.Request, response *restful.Response) {
 	}
 
 	result := token.Claims{
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Subject: detail.Name,
 		},
 		Name:              detail.Name,

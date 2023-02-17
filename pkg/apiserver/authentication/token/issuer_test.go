@@ -21,10 +21,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/square/go-jose.v2"
-
-	"github.com/form3tech-oss/jwt-go"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
