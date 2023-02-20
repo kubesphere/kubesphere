@@ -19,12 +19,13 @@ package oidc
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 
@@ -116,7 +117,7 @@ type oidcIdentity struct {
 }
 
 func (o oidcIdentity) GetUserID() string {
-	return base64.RawURLEncoding.EncodeToString([]byte(o.Sub))
+	return stringutils.Base64Encode(o.Sub)
 }
 
 func (o oidcIdentity) GetUsername() string {

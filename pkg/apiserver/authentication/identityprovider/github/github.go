@@ -29,6 +29,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
 const (
@@ -156,7 +157,7 @@ func (g *ldapProviderFactory) Create(options oauth.DynamicOptions) (identityprov
 }
 
 func (g githubIdentity) GetUserID() string {
-	return g.Login
+	return stringutils.Base64Encode(g.Login)
 }
 
 func (g githubIdentity) GetUsername() string {

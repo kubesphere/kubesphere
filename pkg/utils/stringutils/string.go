@@ -17,6 +17,7 @@ limitations under the License.
 package stringutils
 
 import (
+	"encoding/base64"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -101,4 +102,8 @@ func ShortenString(str string, n int) string {
 		return str
 	}
 	return str[:n]
+}
+
+func Base64Encode(str string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(str))
 }

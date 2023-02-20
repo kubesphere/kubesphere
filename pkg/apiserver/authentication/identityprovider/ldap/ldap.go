@@ -31,6 +31,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
 const (
@@ -102,7 +103,7 @@ type ldapIdentity struct {
 }
 
 func (l *ldapIdentity) GetUserID() string {
-	return l.Username
+	return stringutils.Base64Encode(l.Username)
 }
 
 func (l *ldapIdentity) GetUsername() string {

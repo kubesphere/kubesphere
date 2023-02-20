@@ -35,8 +35,10 @@ var (
 
 // Identity represents the account mapped to kubesphere
 type Identity interface {
-	// GetUserID required
-	// Identifier for the End-User at the Issuer.
+	// GetUserID required. Identifier for the End-User at the Issuer. UserId will be stored in
+	// CRD User as a label, the K8s labels value cannot contain the special characters
+	// (https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set).
+	// So that it will encode the User ID by base64 encoding for replacing the special characters.
 	GetUserID() string
 	// GetUsername optional
 	// The username which the End-User wishes to be referred to kubesphere.

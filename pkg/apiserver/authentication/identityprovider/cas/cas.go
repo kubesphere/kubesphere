@@ -27,6 +27,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
 func init() {
@@ -48,7 +49,7 @@ type casIdentity struct {
 }
 
 func (c casIdentity) GetUserID() string {
-	return c.User
+	return stringutils.Base64Encode(c.User)
 }
 
 func (c casIdentity) GetUsername() string {

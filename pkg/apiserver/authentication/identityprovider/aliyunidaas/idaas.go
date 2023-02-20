@@ -28,6 +28,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
 func init() {
@@ -109,7 +110,7 @@ func (f *idaasProviderFactory) Create(options oauth.DynamicOptions) (identitypro
 }
 
 func (a idaasIdentity) GetUserID() string {
-	return a.Sub
+	return stringutils.Base64Encode(a.Sub)
 }
 
 func (a idaasIdentity) GetUsername() string {
