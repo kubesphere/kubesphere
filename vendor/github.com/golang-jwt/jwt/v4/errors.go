@@ -27,7 +27,7 @@ const (
 	ValidationErrorClaimsInvalid // Generic claims validation error
 )
 
-// Helper for constructing a ValidationError with a string error message
+// NewValidationError is a helper for constructing a ValidationError with a string error message
 func NewValidationError(errorText string, errorFlags uint32) *ValidationError {
 	return &ValidationError{
 		text:   errorText,
@@ -35,14 +35,14 @@ func NewValidationError(errorText string, errorFlags uint32) *ValidationError {
 	}
 }
 
-// The error from Parse if token is not valid
+// ValidationError represents an error from Parse if token is not valid
 type ValidationError struct {
 	Inner  error  // stores the error returned by external dependencies, i.e.: KeyFunc
 	Errors uint32 // bitfield.  see ValidationError... constants
 	text   string // errors that do not have a valid error just have text
 }
 
-// Validation error is an error type
+// Error is the implementation of the err interface.
 func (e ValidationError) Error() string {
 	if e.Inner != nil {
 		return e.Inner.Error()
@@ -51,6 +51,11 @@ func (e ValidationError) Error() string {
 	} else {
 		return "token is invalid"
 	}
+}
+
+// Unwrap gives errors.Is and errors.As access to the inner error.
+func (e *ValidationError) Unwrap() error {
+	return e.Inner
 }
 
 // No errors
