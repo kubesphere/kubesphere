@@ -29,8 +29,8 @@ import (
 // AddToContainer the api /kapis/version will be deprecated and instead with /version
 func AddToContainer(container *restful.Container, k8sDiscovery discovery.DiscoveryInterface) error {
 	webservice := runtime.NewWebService(schema.GroupVersion{})
-	rootPathWebservice := &restful.WebService{}
-	rootPathWebservice.Path("/").Produces(restful.MIME_JSON)
+	versionWebservice := &restful.WebService{}
+	versionWebservice.Path("/version").Produces(restful.MIME_JSON)
 
 	versionFunc := func(request *restful.Request, response *restful.Response) {
 		ksVersion := version.Get()
@@ -52,11 +52,11 @@ func AddToContainer(container *restful.Container, k8sDiscovery discovery.Discove
 		To(versionFunc)).
 		Doc("KubeSphere version. Deprecated: please use API `/version`")
 
-	rootPathWebservice.Route(rootPathWebservice.GET("/version").
+	versionWebservice.Route(versionWebservice.GET("").
 		To(versionFunc)).Doc("KubeSphere version")
 
 	container.Add(webservice)
-	container.Add(rootPathWebservice)
+	container.Add(versionWebservice)
 
 	return nil
 }
