@@ -690,9 +690,10 @@ func (h *handler) userinfo(req *restful.Request, response *restful.Response) {
 	response.WriteEntity(result)
 }
 
-func (h *handler) ldapLogin(req *restful.Request, response *restful.Response) {
+func (h *handler) loginByIdentityProvider(req *restful.Request, response *restful.Response) {
 	username, _ := req.BodyParameter("username")
 	password, _ := req.BodyParameter("password")
+	idp := req.PathParameter("identiyprovider")
 
 	authenticated, providerName, err := h.passwordAuthenticator.Authenticate(req.Request.Context(), username, password)
 	if err != nil {
@@ -700,7 +701,7 @@ func (h *handler) ldapLogin(req *restful.Request, response *restful.Response) {
 		return
 	}
 
-	if providerName != ldapProvider {
+	if providerName != idp {
 		err = errors.New("username or password is not correct")
 		api.HandleBadRequest(response, req, err)
 		return
@@ -713,7 +714,7 @@ func (h *handler) ldapLogin(req *restful.Request, response *restful.Response) {
 	}
 
 	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
-	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Ldap, providerName, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
+	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Password, providerName, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
 		klog.Errorf("Failed to record successful login for user %s, error: %v", authenticated.GetName(), err)
 	}
 
