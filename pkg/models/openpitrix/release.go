@@ -102,7 +102,7 @@ func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest) erro
 	}
 
 	switch oldRls.Status.State {
-	case v1alpha1.StateActive, v1alpha1.HelmStatusUpgraded, v1alpha1.HelmStatusCreated:
+	case v1alpha1.StateActive, v1alpha1.HelmStatusUpgraded, v1alpha1.HelmStatusCreated, v1alpha1.HelmStatusFailed:
 		// no operation
 	default:
 		return errors.New("can not upgrade application now")
