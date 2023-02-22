@@ -7,7 +7,8 @@ go 1.19
 require (
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/gomega v1.26.0
-	github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056
+	github.com/projectcalico/api v0.0.0-20230125230755-7aed9df0e47b
+	github.com/projectcalico/calico v0.0.0-20230111220342-3f7fe4d29054
 	github.com/prometheus/common v0.39.0
 	github.com/prometheus/prometheus v0.42.0
 	github.com/robfig/cron/v3 v3.0.1
@@ -83,10 +84,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.11.2 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
-	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20230124195608-d38c7dcee874 // indirect
-	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
@@ -98,7 +97,6 @@ require (
 	google.golang.org/grpc v1.52.3 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	istio.io/gogo-genproto v0.0.0-20201113182723-5b8563d8a012 // indirect
 	k8s.io/component-base v0.26.1 // indirect
@@ -110,12 +108,22 @@ require (
 )
 
 replace (
+	github.com/projectcalico/api => github.com/projectcalico/api v0.0.0-20230125230755-7aed9df0e47b
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d
 	golang.org/x/term => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/client-go => k8s.io/client-go v0.26.1
+	k8s.io/cri-api => k8s.io/cri-api v0.26.1
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.26.1
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.26.1
+	k8s.io/kubectl => k8s.io/kubectl v0.26.1
+	k8s.io/kubelet => k8s.io/kubelet v0.26.1
+	k8s.io/kubernetes => k8s.io/kubernetes v0.26.1
+	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.26.1
+	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.26.1
 	kubesphere.io/api => ../api
 )

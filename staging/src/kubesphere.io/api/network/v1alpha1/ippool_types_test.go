@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"testing"
 
-	cnet "github.com/projectcalico/libcalico-go/lib/net"
+	cnet "github.com/projectcalico/calico/libcalico-go/lib/net"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

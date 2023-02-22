@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	rcache "github.com/projectcalico/kube-controllers/pkg/cache"
+	rcache "github.com/projectcalico/calico/kube-controllers/pkg/cache"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
