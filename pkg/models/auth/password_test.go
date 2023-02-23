@@ -79,6 +79,22 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 						},
 					},
 				},
+				{
+					Name:                     "fakepwd2",
+					MappingMethod:            "auto",
+					Type:                     "fakePasswordProvider",
+					DisableLoginConfirmation: true,
+					Provider: oauth.DynamicOptions{
+						"identities": map[string]interface{}{
+							"user5": map[string]string{
+								"uid":      "100005",
+								"email":    "user5@kubesphere.io",
+								"username": "user5",
+								"password": "password",
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -108,6 +124,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 		ctx      context.Context
 		username string
 		password string
+		provider string
 	}
 	tests := []struct {
 		name                  string
@@ -124,6 +141,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 				ctx:      context.Background(),
 				username: "user1",
 				password: "password",
+				provider: "fakepwd",
 			},
 			want: &user.DefaultInfo{
 				Name: "user1",
@@ -137,6 +155,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 				ctx:      context.Background(),
 				username: "user2",
 				password: "password",
+				provider: "fakepwd",
 			},
 			want: &user.DefaultInfo{
 				Name: "system:pre-registration",
@@ -147,6 +166,18 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 					"username": {"user2"},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name:                  "Should create user and return",
+			passwordAuthenticator: authenticator,
+			args: args{
+				ctx:      context.Background(),
+				username: "user5",
+				password: "password",
+				provider: "fakepwd2",
+			},
+			want:    &user.DefaultInfo{Name: "user5"},
 			wantErr: false,
 		},
 		{
@@ -176,7 +207,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := tt.passwordAuthenticator
-			got, _, err := p.Authenticate(tt.args.ctx, tt.args.username, tt.args.password)
+			got, _, err := p.Authenticate(tt.args.ctx, tt.args.provider, tt.args.username, tt.args.password)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("passwordAuthenticator.Authenticate() error = %v, wantErr %v", err, tt.wantErr)
 				return

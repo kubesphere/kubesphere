@@ -362,16 +362,6 @@ func (h *handler) oauthCallback(req *restful.Request, response *restful.Response
 	response.WriteEntity(result)
 }
 
-func (h *handler) login(request *restful.Request, response *restful.Response) {
-	var loginRequest LoginRequest
-	err := request.ReadEntity(&loginRequest)
-	if err != nil {
-		api.HandleBadRequest(response, request, err)
-		return
-	}
-	h.passwordGrant(loginRequest.Username, loginRequest.Password, request, response)
-}
-
 // To obtain an Access Token, an ID Token, and optionally a Refresh Token,
 // the RP (Client) sends a Token Request to the Token Endpoint to obtain a Token Response,
 // as described in Section 3.2 of OAuth 2.0 [RFC6749], when using the Authorization Code Flow.
@@ -413,7 +403,7 @@ func (h *handler) token(req *restful.Request, response *restful.Response) {
 	case grantTypePassword:
 		username, _ := req.BodyParameter("username")
 		password, _ := req.BodyParameter("password")
-		h.passwordGrant(username, password, req, response)
+		h.passwordGrant("", username, password, req, response)
 		return
 	case grantTypeRefreshToken:
 		h.refreshTokenGrant(req, response)
@@ -434,8 +424,8 @@ func (h *handler) token(req *restful.Request, response *restful.Response) {
 // such as the device operating system or a highly privileged application.
 // The authorization server should take special care when enabling this
 // grant type and only allow it when other flows are not viable.
-func (h *handler) passwordGrant(username string, password string, req *restful.Request, response *restful.Response) {
-	authenticated, provider, err := h.passwordAuthenticator.Authenticate(req.Request.Context(), username, password)
+func (h *handler) passwordGrant(provider, username string, password string, req *restful.Request, response *restful.Response) {
+	authenticated, provider, err := h.passwordAuthenticator.Authenticate(req.Request.Context(), provider, username, password)
 	if err != nil {
 		switch err {
 		case auth.AccountIsNotActiveError:
@@ -695,28 +685,5 @@ func (h *handler) loginByIdentityProvider(req *restful.Request, response *restfu
 	password, _ := req.BodyParameter("password")
 	idp := req.PathParameter("identiyprovider")
 
-	authenticated, providerName, err := h.passwordAuthenticator.Authenticate(req.Request.Context(), username, password)
-	if err != nil {
-		api.HandleBadRequest(response, req, err)
-		return
-	}
-
-	if providerName != idp {
-		err = errors.New("username or password is not correct")
-		api.HandleBadRequest(response, req, err)
-		return
-	}
-
-	t, err := h.issueTokenTo(authenticated)
-	if err != nil {
-		api.HandleInternalError(response, req, err)
-		return
-	}
-
-	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
-	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Password, providerName, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
-		klog.Errorf("Failed to record successful login for user %s, error: %v", authenticated.GetName(), err)
-	}
-
-	_ = response.WriteEntity(t)
+	h.passwordGrant(idp, username, password, req, response)
 }
