@@ -95,6 +95,22 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 						},
 					},
 				},
+				{
+					Name:                     "fakepwd3",
+					MappingMethod:            "lookup",
+					Type:                     "fakePasswordProvider",
+					DisableLoginConfirmation: true,
+					Provider: oauth.DynamicOptions{
+						"identities": map[string]interface{}{
+							"user6": map[string]string{
+								"uid":      "100006",
+								"email":    "user6@kubesphere.io",
+								"username": "user6",
+								"password": "password",
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -179,6 +195,17 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 			},
 			want:    &user.DefaultInfo{Name: "user5"},
 			wantErr: false,
+		},
+		{
+			name:                  "Should return user not found",
+			passwordAuthenticator: authenticator,
+			args: args{
+				ctx:      context.Background(),
+				username: "user6",
+				password: "password",
+				provider: "fakepwd3",
+			},
+			wantErr: true,
 		},
 		{
 			name:                  "Should failed login",
