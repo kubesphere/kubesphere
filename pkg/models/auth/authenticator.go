@@ -46,7 +46,8 @@ var (
 )
 
 // PasswordAuthenticator is an interface implemented by authenticator which take a
-// username and password.
+// username and password. provider refers to the identity provider`s name,
+// if the provider is empty, authenticate from kubesphere account
 type PasswordAuthenticator interface {
 	Authenticate(ctx context.Context, provider, username, password string) (authuser.Info, string, error)
 }

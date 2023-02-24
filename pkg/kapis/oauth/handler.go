@@ -52,7 +52,6 @@ import (
 )
 
 const (
-	ldapProvider          = "LDAPIdentityProvider"
 	KindTokenReview       = "TokenReview"
 	grantTypePassword     = "password"
 	grantTypeRefreshToken = "refresh_token"

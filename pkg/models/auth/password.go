@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog/v2"
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
@@ -63,6 +64,7 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, provider, userna
 	return p.accountAuthenticate(username, password)
 }
 
+// accountAuthenticate authenticate the kubesphere account
 func (p *passwordAuthenticator) accountAuthenticate(username, password string) (authuser.Info, string, error) {
 	user, err := p.userGetter.findUser(username)
 	if err != nil {
