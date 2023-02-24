@@ -158,7 +158,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		Returns(http.StatusOK, http.StatusText(http.StatusOK), "").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
-	ws.Route(ws.POST("/login/identityproviders/{identityprovider}").
+	ws.Route(ws.POST("/login/{identityprovider}").
 		Consumes(contentTypeFormData).
 		Doc("Login by identity provider user").
 		Param(ws.PathParameter("identityprovider", "The identity provider name")).
