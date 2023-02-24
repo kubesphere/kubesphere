@@ -59,13 +59,13 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, provider, userna
 		return nil, "", IncorrectPasswordError
 	}
 	if provider != "" {
-		return p.providerAuthenticate(provider, username, password)
+		return p.authByProvider(provider, username, password)
 	}
-	return p.accountAuthenticate(username, password)
+	return p.authByKubeSphere(username, password)
 }
 
-// accountAuthenticate authenticate the kubesphere account
-func (p *passwordAuthenticator) accountAuthenticate(username, password string) (authuser.Info, string, error) {
+// authByKubeSphere authenticate by the kubesphere user
+func (p *passwordAuthenticator) authByKubeSphere(username, password string) (authuser.Info, string, error) {
 	user, err := p.userGetter.findUser(username)
 	if err != nil {
 		// ignore not found error
@@ -109,7 +109,8 @@ func (p *passwordAuthenticator) accountAuthenticate(username, password string) (
 	return nil, "", IncorrectPasswordError
 }
 
-func (p *passwordAuthenticator) providerAuthenticate(provider, username, password string) (authuser.Info, string, error) {
+// authByProvider authenticate by the third-party identity provider user
+func (p *passwordAuthenticator) authByProvider(provider, username, password string) (authuser.Info, string, error) {
 	providerOptions, err := p.authOptions.OAuthOptions.IdentityProviderOptions(provider)
 	if err != nil {
 		klog.Error(err)
@@ -123,6 +124,9 @@ func (p *passwordAuthenticator) providerAuthenticate(provider, username, passwor
 	authenticated, err := genericProvider.Authenticate(username, password)
 	if err != nil {
 		klog.Error(err)
+		if errors.IsUnauthorized(err) {
+			return nil, "", IncorrectPasswordError
+		}
 		return nil, "", err
 	}
 	linkedAccount, err := p.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
