@@ -49,7 +49,7 @@ func NewBasicAuthenticator(authenticator auth.PasswordAuthenticator, loginRecord
 }
 
 func (t *basicAuthenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
-	authenticated, provider, err := t.authenticator.Authenticate(ctx, username, password)
+	authenticated, provider, err := t.authenticator.Authenticate(ctx, "", username, password)
 	if err != nil {
 		if t.loginRecorder != nil && err == auth.IncorrectPasswordError {
 			var sourceIP, userAgent string
@@ -57,7 +57,7 @@ func (t *basicAuthenticator) AuthenticatePassword(ctx context.Context, username,
 				sourceIP = requestInfo.SourceIP
 				userAgent = requestInfo.UserAgent
 			}
-			if err := t.loginRecorder.RecordLogin(username, iamv1alpha2.BasicAuth, provider, sourceIP, userAgent, err); err != nil {
+			if err := t.loginRecorder.RecordLogin(username, iamv1alpha2.Password, provider, sourceIP, userAgent, err); err != nil {
 				klog.Errorf("Failed to record unsuccessful login attempt for user %s, error: %v", username, err)
 			}
 		}

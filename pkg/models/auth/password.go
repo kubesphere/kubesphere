@@ -21,22 +21,19 @@ package auth
 import (
 	"context"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
-
 	"golang.org/x/crypto/bcrypt"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	authuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog/v2"
+
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 type passwordAuthenticator struct {
@@ -56,52 +53,19 @@ func NewPasswordAuthenticator(ksClient kubesphere.Interface,
 	return passwordAuthenticator
 }
 
-func (p *passwordAuthenticator) Authenticate(_ context.Context, username, password string) (authuser.Info, string, error) {
+func (p *passwordAuthenticator) Authenticate(_ context.Context, provider, username, password string) (authuser.Info, string, error) {
 	// empty username or password are not allowed
 	if username == "" || password == "" {
 		return nil, "", IncorrectPasswordError
 	}
-	// generic identity provider has higher priority
-	for _, providerOptions := range p.authOptions.OAuthOptions.IdentityProviders {
-		// the admin account in kubesphere has the highest priority
-		if username == constants.AdminUserName {
-			break
-		}
-		if genericProvider, _ := identityprovider.GetGenericProvider(providerOptions.Name); genericProvider != nil {
-			authenticated, err := genericProvider.Authenticate(username, password)
-			if err != nil {
-				if errors.IsUnauthorized(err) {
-					continue
-				}
-				return nil, providerOptions.Name, err
-			}
-			linkedAccount, err := p.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
-			if err != nil && !errors.IsNotFound(err) {
-				klog.Error(err)
-				return nil, providerOptions.Name, err
-			}
-			// using this method requires you to manually provision users.
-			if providerOptions.MappingMethod == oauth.MappingMethodLookup && linkedAccount == nil {
-				continue
-			}
-			// the user will automatically create and mapping when login successful.
-			if linkedAccount == nil && providerOptions.MappingMethod == oauth.MappingMethodAuto {
-				if !providerOptions.DisableLoginConfirmation {
-					return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
-				}
-
-				linkedAccount, err = p.ksClient.IamV1alpha2().Users().Create(context.Background(), mappedUser(providerOptions.Name, authenticated), metav1.CreateOptions{})
-				if err != nil {
-					return nil, providerOptions.Name, err
-				}
-			}
-			if linkedAccount != nil {
-				return &authuser.DefaultInfo{Name: linkedAccount.GetName()}, providerOptions.Name, nil
-			}
-		}
+	if provider != "" {
+		return p.authByProvider(provider, username, password)
 	}
+	return p.authByKubeSphere(username, password)
+}
 
-	// kubesphere account
+// authByKubeSphere authenticate by the kubesphere user
+func (p *passwordAuthenticator) authByKubeSphere(username, password string) (authuser.Info, string, error) {
 	user, err := p.userGetter.findUser(username)
 	if err != nil {
 		// ignore not found error
@@ -143,6 +107,53 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, username, passwo
 	}
 
 	return nil, "", IncorrectPasswordError
+}
+
+// authByProvider authenticate by the third-party identity provider user
+func (p *passwordAuthenticator) authByProvider(provider, username, password string) (authuser.Info, string, error) {
+	providerOptions, err := p.authOptions.OAuthOptions.IdentityProviderOptions(provider)
+	if err != nil {
+		klog.Error(err)
+		return nil, "", err
+	}
+	genericProvider, err := identityprovider.GetGenericProvider(providerOptions.Name)
+	if err != nil {
+		klog.Error(err)
+		return nil, "", err
+	}
+	authenticated, err := genericProvider.Authenticate(username, password)
+	if err != nil {
+		klog.Error(err)
+		if errors.IsUnauthorized(err) {
+			return nil, "", IncorrectPasswordError
+		}
+		return nil, "", err
+	}
+	linkedAccount, err := p.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
+
+	if err != nil && !errors.IsNotFound(err) {
+		klog.Error(err)
+		return nil, "", err
+	}
+
+	if linkedAccount != nil {
+		return &authuser.DefaultInfo{Name: linkedAccount.Name}, provider, nil
+	}
+
+	// the user will automatically create and mapping when login successful.
+	if providerOptions.MappingMethod == oauth.MappingMethodAuto {
+		if !providerOptions.DisableLoginConfirmation {
+			return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
+		}
+		linkedAccount, err = p.ksClient.IamV1alpha2().Users().Create(context.Background(), mappedUser(providerOptions.Name, authenticated), metav1.CreateOptions{})
+		if err != nil {
+			klog.Error(err)
+			return nil, "", err
+		}
+		return &authuser.DefaultInfo{Name: linkedAccount.Name}, provider, nil
+	}
+
+	return nil, "", err
 }
 
 func PasswordVerify(encryptedPassword, password string) error {

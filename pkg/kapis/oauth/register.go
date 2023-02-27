@@ -158,22 +158,17 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface,
 		Returns(http.StatusOK, http.StatusText(http.StatusOK), "").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
-	c.Add(ws)
-
-	// legacy auth API
-	legacy := &restful.WebService{}
-	legacy.Path("/kapis/iam.kubesphere.io/v1alpha2/login").
-		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON)
-	legacy.Route(legacy.POST("").
-		To(handler.login).
-		Deprecate().
-		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
-		Reads(LoginRequest{}).
-		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
+	ws.Route(ws.POST("/login/{identityprovider}").
+		Consumes(contentTypeFormData).
+		Doc("Login by identity provider user").
+		Param(ws.PathParameter("identityprovider", "The identity provider name")).
+		Param(ws.FormParameter("username", "The username of the relevant user in ldap")).
+		Param(ws.FormParameter("password", "The password of the relevant user in ldap")).
+		To(handler.loginByIdentityProvider).
+		Returns(http.StatusOK, http.StatusText(http.StatusOK), oauth.Token{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
-	c.Add(legacy)
+	c.Add(ws)
 
 	return nil
 }

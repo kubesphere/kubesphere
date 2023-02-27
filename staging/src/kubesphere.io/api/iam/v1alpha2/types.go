@@ -336,7 +336,7 @@ type LoginRecord struct {
 }
 
 type LoginRecordSpec struct {
-	// Which authentication method used, BasicAuth/OAuth
+	// Which authentication method used, Password/OAuth/Token
 	Type LoginType `json:"type"`
 	// Provider of authentication, Ldap/Github etc.
 	Provider string `json:"provider"`
@@ -353,9 +353,9 @@ type LoginRecordSpec struct {
 type LoginType string
 
 const (
-	BasicAuth LoginType = "Basic"
-	OAuth     LoginType = "OAuth"
-	Token     LoginType = "Token"
+	Password LoginType = "Password"
+	OAuth    LoginType = "OAuth"
+	Token    LoginType = "Token"
 )
 
 // +kubebuilder:object:root=true

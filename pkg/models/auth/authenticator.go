@@ -46,11 +46,19 @@ var (
 )
 
 // PasswordAuthenticator is an interface implemented by authenticator which take a
-// username and password.
+// username ,password and provider. provider refers to the identity provider`s name,
+// if the provider is empty, authenticate from kubesphere account. Note that implement this
+// interface you should also obey the error specification errors.Error defined at package
+// "k8s.io/apimachinery/pkg/api", and restful.ServerError defined at package
+// "github.com/emicklei/go-restful/v3", or the server cannot handle error correctly.
 type PasswordAuthenticator interface {
-	Authenticate(ctx context.Context, username, password string) (authuser.Info, string, error)
+	Authenticate(ctx context.Context, provider, username, password string) (authuser.Info, string, error)
 }
 
+// OAuthAuthenticator authenticate users by OAuth 2.0 Authorization Framework. Note that implement this
+// interface you should also obey the error specification errors.Error defined at package
+// "k8s.io/apimachinery/pkg/api", and restful.ServerError defined at package
+// "github.com/emicklei/go-restful/v3", or the server cannot handle error correctly.
 type OAuthAuthenticator interface {
 	Authenticate(ctx context.Context, provider string, req *http.Request) (authuser.Info, string, error)
 }
