@@ -1,4 +1,4 @@
-= vendor/github.com/projectcalico/libcalico-go licensed under: =
+= vendor/github.com/projectcalico/api licensed under: =
 
 
                                  Apache License
@@ -177,4 +177,4 @@
       of your accepting any such warranty or additional liability.
 
 
-= vendor/github.com/projectcalico/libcalico-go/LICENSE 1dece7821bf3fd70fe1309eaa37d52a2
+= vendor/github.com/projectcalico/api/LICENSE 1dece7821bf3fd70fe1309eaa37d52a2

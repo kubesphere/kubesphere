@@ -110,6 +110,10 @@ type BGPPeerSpec struct {
 	// ReachableBy contains the address of the gateway which peer can be reached by.
 	// +optional
 	ReachableBy string `json:"reachableBy,omitempty" validate:"omitempty,reachableBy"`
+
+	// The ordered set of BGPFilters applied on this BGP peer.
+	// +optional
+	Filters []string `json:"filters,omitempty" validate:"omitempty,dive,name"`
 }
 
 type SourceAddress string

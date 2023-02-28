@@ -34,6 +34,8 @@ var (
 		&IPReservationList{},
 		&BGPConfiguration{},
 		&BGPConfigurationList{},
+		&BGPFilter{},
+		&BGPFilterList{},
 		&BGPPeer{},
 		&BGPPeerList{},
 		&Profile{},
@@ -52,6 +54,8 @@ var (
 		&IPAMConfigurationList{},
 		&BlockAffinity{},
 		&BlockAffinityList{},
+		&BGPFilter{},
+		&BGPFilterList{},
 	}
 )
 

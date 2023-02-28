@@ -24,10 +24,10 @@ import (
 
 // Port represents either a range of numeric ports or a named port.
 //
-//     - For a named port, set the PortName, leaving MinPort and MaxPort as 0.
-//     - For a port range, set MinPort and MaxPort to the (inclusive) port numbers.  Set
-//       PortName to "".
-//     - For a single port, set MinPort = MaxPort and PortName = "".
+//   - For a named port, set the PortName, leaving MinPort and MaxPort as 0.
+//   - For a port range, set MinPort and MaxPort to the (inclusive) port numbers.  Set
+//     PortName to "".
+//   - For a single port, set MinPort = MaxPort and PortName = "".
 type Port struct {
 	MinPort  uint16 `json:"minPort,omitempty"`
 	MaxPort  uint16 `json:"maxPort,omitempty"`

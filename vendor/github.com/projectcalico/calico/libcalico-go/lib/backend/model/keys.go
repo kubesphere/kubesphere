@@ -86,10 +86,10 @@ type ListInterface interface {
 //
 // The Value is dependent on the Key, but in general will be on of the following
 // types:
-// -  A pointer to a struct
-// -  A slice or map
-// -  A bare string, boolean value or IP address (i.e. without quotes, so not
-//    JSON format).
+//   - A pointer to a struct
+//   - A slice or map
+//   - A bare string, boolean value or IP address (i.e. without quotes, so not
+//     JSON format).
 type KVPair struct {
 	Key      Key
 	Value    interface{}
@@ -144,16 +144,19 @@ func KeyToDefaultDeletePath(key Key) (string, error) {
 // in the order supplied in the slice and only if the directory is empty.
 //
 // For example,
-// 	KeyToDefaultDeletePaths(WorkloadEndpointKey{
-// 		Nodename: "h",
-// 		OrchestratorID: "o",
-// 		WorkloadID: "w",
-// 		EndpointID: "e",
-// 	})
+//
+//	KeyToDefaultDeletePaths(WorkloadEndpointKey{
+//		Nodename: "h",
+//		OrchestratorID: "o",
+//		WorkloadID: "w",
+//		EndpointID: "e",
+//	})
+//
 // returns
 //
 // ["/calico/v1/host/h/workload/o/w/endpoint",
-//  "/calico/v1/host/h/workload/o/w"]
+//
+//	"/calico/v1/host/h/workload/o/w"]
 //
 // indicating that these paths should also be deleted when they are empty.
 // In this example it is equivalent to deleting the workload when there are

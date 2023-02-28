@@ -40,10 +40,10 @@ import (
 // NameMatches() method.  This is necessary because a prefix match may return endpoints
 // that do not exactly match the required identifiers.  For example, suppose you are
 // querying endpoints with node=node1, orch=k8s, pod=pod and endpoints is wild carded:
-// -  The name prefix would be `node1-k8s-pod-`
-// -  A list query using that prefix would also return endpoints with, for example,
-//    a pod call "pod-1", because the name of the endpoint might be `node1-k8s-pod--1-eth0`
-//    which matches the required name prefix.
+//   - The name prefix would be `node1-k8s-pod-`
+//   - A list query using that prefix would also return endpoints with, for example,
+//     a pod call "pod-1", because the name of the endpoint might be `node1-k8s-pod--1-eth0`
+//     which matches the required name prefix.
 //
 // The Node and Orchestrator are always required for both prefix and non-prefix name
 // construction.
