@@ -17,8 +17,8 @@ package calicov3
 import (
 	"strings"
 
-	v3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
-	cnet "github.com/projectcalico/libcalico-go/lib/net"
+	v3 "github.com/projectcalico/calico/libcalico-go/lib/apis/v3"
+	cnet "github.com/projectcalico/calico/libcalico-go/lib/net"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

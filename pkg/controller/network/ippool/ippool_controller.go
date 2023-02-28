@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"time"
 
-	cnet "github.com/projectcalico/libcalico-go/lib/net"
+	cnet "github.com/projectcalico/calico/libcalico-go/lib/net"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

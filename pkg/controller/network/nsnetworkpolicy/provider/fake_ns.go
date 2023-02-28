@@ -19,9 +19,9 @@ package provider
 import (
 	"fmt"
 
-	"github.com/projectcalico/kube-controllers/pkg/converter"
-	api "github.com/projectcalico/libcalico-go/lib/apis/v3"
-	constants "github.com/projectcalico/libcalico-go/lib/backend/k8s/conversion"
+	api "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
+	"github.com/projectcalico/calico/kube-controllers/pkg/converter"
+	constants "github.com/projectcalico/calico/libcalico-go/lib/backend/k8s/conversion"
 	v1 "k8s.io/api/networking/v1"
 )
 

@@ -26,9 +26,9 @@ import (
 
 	k8sinformers "k8s.io/client-go/informers"
 
-	v3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
-	"github.com/projectcalico/libcalico-go/lib/backend/model"
-	cnet "github.com/projectcalico/libcalico-go/lib/net"
+	v3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
+	"github.com/projectcalico/calico/libcalico-go/lib/backend/model"
+	cnet "github.com/projectcalico/calico/libcalico-go/lib/net"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -53,15 +53,15 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.26.0
+	github.com/onsi/gomega v1.27.1
 	github.com/open-policy-agent/opa v0.49.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/opensearch-project/opensearch-go/v2 v2.0.0
 	github.com/operator-framework/helm-operator-plugins v0.0.11
 	github.com/pkg/errors v0.9.1
-	github.com/projectcalico/kube-controllers v3.8.8+incompatible
-	github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056
+	github.com/projectcalico/api v0.0.0
+	github.com/projectcalico/calico v3.25.0+incompatible
 	github.com/prometheus-community/prom-label-proxy v0.6.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.63.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.63.0
@@ -72,7 +72,7 @@ require (
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.13.0
+	github.com/spf13/viper v1.14.0
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.5.0
 	golang.org/x/oauth2 v0.4.0
@@ -95,7 +95,7 @@ require (
 	k8s.io/code-generator v0.26.1
 	k8s.io/component-base v0.26.1
 	k8s.io/klog/v2 v2.90.0
-	k8s.io/kube-openapi v0.0.0-20230202010329-39b3636cbaa3
+	k8s.io/kube-openapi v0.0.0-20230224204730-66828de6f33b
 	k8s.io/kubectl v0.26.1
 	k8s.io/metrics v0.26.1
 	k8s.io/utils v0.0.0-20230202215443-34013725500c
@@ -131,7 +131,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/containerd/containerd v1.6.16 // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
+	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
@@ -169,7 +169,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/btree v1.0.1 // indirect
+	github.com/google/btree v1.1.2 // indirect
 	github.com/google/cel-go v0.12.6 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -255,9 +255,9 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
 	github.com/yashtewari/glob-intersection v0.1.0 // indirect
-	go.etcd.io/etcd/api/v3 v3.5.5 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.5 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.5 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.7 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.7 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.7 // indirect
 	go.mongodb.org/mongo-driver v1.11.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.35.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.37.0 // indirect
@@ -272,14 +272,14 @@ require (
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
-	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230124195608-d38c7dcee874 // indirect
-	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/term v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.5.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
@@ -465,8 +465,8 @@ replace (
 	github.com/pkg/errors => github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib => github.com/pmezard/go-difflib v1.0.0
 	github.com/pquerna/cachecontrol => github.com/pquerna/cachecontrol v0.1.0
-	github.com/projectcalico/kube-controllers => github.com/projectcalico/kube-controllers v3.8.8+incompatible
-	github.com/projectcalico/libcalico-go => github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056
+	github.com/projectcalico/api => github.com/kubesphere/calico/api v0.0.0-20230227071013-a73515ddc939 // v3.25.0
+	github.com/projectcalico/calico => github.com/kubesphere/calico v0.0.0-20230227071013-a73515ddc939 // v3.25.0
 	github.com/prometheus-community/prom-label-proxy => github.com/prometheus-community/prom-label-proxy v0.6.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring => github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.63.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client => github.com/prometheus-operator/prometheus-operator/pkg/client v0.63.0
@@ -559,6 +559,8 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.26.1
 	k8s.io/code-generator => k8s.io/code-generator v0.26.1
 	k8s.io/component-base => k8s.io/component-base v0.26.1
+	k8s.io/component-helpers => k8s.io/component-helpers v0.21.2
+	k8s.io/cri-api => k8s.io/cri-api v0.26.1
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20220902162205-c0856e24416d
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.90.0
 	k8s.io/kms => k8s.io/kms v0.26.1

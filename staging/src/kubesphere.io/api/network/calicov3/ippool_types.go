@@ -15,10 +15,10 @@
 package calicov3
 
 import (
-	cnet "github.com/projectcalico/libcalico-go/lib/net"
+	cnet "github.com/projectcalico/calico/libcalico-go/lib/net"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
+	v3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 )
 
 // +genclient

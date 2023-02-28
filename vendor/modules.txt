@@ -153,7 +153,7 @@ github.com/containernetworking/cni/pkg/types/internal
 # github.com/coreos/go-oidc v2.1.0+incompatible => github.com/coreos/go-oidc v2.1.0+incompatible
 ## explicit
 github.com/coreos/go-oidc
-# github.com/coreos/go-semver v0.3.0 => github.com/coreos/go-semver v0.3.0
+# github.com/coreos/go-semver v0.3.1 => github.com/coreos/go-semver v0.3.0
 ## explicit
 github.com/coreos/go-semver/semver
 # github.com/coreos/go-systemd/v22 v22.4.0 => github.com/coreos/go-systemd/v22 v22.4.0
@@ -431,7 +431,7 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4 => github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
-# github.com/google/btree v1.0.1 => github.com/google/btree v1.0.1
+# github.com/google/btree v1.1.2 => github.com/google/btree v1.0.1
 ## explicit; go 1.12
 github.com/google/btree
 # github.com/google/cel-go v0.12.6 => github.com/google/cel-go v0.12.6
@@ -742,7 +742,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.26.0 => github.com/onsi/gomega v1.26.0
+# github.com/onsi/gomega v1.27.1 => github.com/onsi/gomega v1.26.0
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -903,29 +903,24 @@ github.com/pmezard/go-difflib/difflib
 ## explicit; go 1.16
 github.com/pquerna/cachecontrol
 github.com/pquerna/cachecontrol/cacheobject
-# github.com/projectcalico/kube-controllers v3.8.8+incompatible => github.com/projectcalico/kube-controllers v3.8.8+incompatible
-## explicit
-github.com/projectcalico/kube-controllers/pkg/cache
-github.com/projectcalico/kube-controllers/pkg/converter
-# github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056 => github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056
-## explicit; go 1.12
-github.com/projectcalico/libcalico-go/lib/apis/v1
-github.com/projectcalico/libcalico-go/lib/apis/v1/unversioned
-github.com/projectcalico/libcalico-go/lib/apis/v3
-github.com/projectcalico/libcalico-go/lib/backend/encap
-github.com/projectcalico/libcalico-go/lib/backend/k8s/conversion
-github.com/projectcalico/libcalico-go/lib/backend/model
-github.com/projectcalico/libcalico-go/lib/errors
-github.com/projectcalico/libcalico-go/lib/hash
-github.com/projectcalico/libcalico-go/lib/names
-github.com/projectcalico/libcalico-go/lib/namespace
-github.com/projectcalico/libcalico-go/lib/net
-github.com/projectcalico/libcalico-go/lib/numorstring
-github.com/projectcalico/libcalico-go/lib/scope
-github.com/projectcalico/libcalico-go/lib/selector
-github.com/projectcalico/libcalico-go/lib/selector/parser
-github.com/projectcalico/libcalico-go/lib/selector/tokenizer
-github.com/projectcalico/libcalico-go/lib/set
+# github.com/projectcalico/api v0.0.0 => github.com/kubesphere/calico/api v0.0.0-20230227071013-a73515ddc939
+## explicit; go 1.16
+github.com/projectcalico/api/pkg/apis/projectcalico/v3
+github.com/projectcalico/api/pkg/lib/numorstring
+# github.com/projectcalico/calico v3.25.0+incompatible => github.com/kubesphere/calico v0.0.0-20230227071013-a73515ddc939
+## explicit; go 1.18
+github.com/projectcalico/calico/kube-controllers/pkg/cache
+github.com/projectcalico/calico/kube-controllers/pkg/converter
+github.com/projectcalico/calico/libcalico-go/lib/apis/v3
+github.com/projectcalico/calico/libcalico-go/lib/backend/encap
+github.com/projectcalico/calico/libcalico-go/lib/backend/k8s/conversion
+github.com/projectcalico/calico/libcalico-go/lib/backend/model
+github.com/projectcalico/calico/libcalico-go/lib/errors
+github.com/projectcalico/calico/libcalico-go/lib/json
+github.com/projectcalico/calico/libcalico-go/lib/names
+github.com/projectcalico/calico/libcalico-go/lib/namespace
+github.com/projectcalico/calico/libcalico-go/lib/net
+github.com/projectcalico/calico/libcalico-go/lib/set
 # github.com/prometheus-community/prom-label-proxy v0.6.0 => github.com/prometheus-community/prom-label-proxy v0.6.0
 ## explicit; go 1.17
 github.com/prometheus-community/prom-label-proxy/injectproxy
@@ -1081,7 +1076,7 @@ github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5 => github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/spf13/viper v1.13.0 => github.com/spf13/viper v1.13.0
+# github.com/spf13/viper v1.14.0 => github.com/spf13/viper v1.13.0
 ## explicit; go 1.17
 github.com/spf13/viper
 github.com/spf13/viper/internal/encoding
@@ -1129,7 +1124,7 @@ github.com/xlab/treeprint
 # github.com/yashtewari/glob-intersection v0.1.0 => github.com/yashtewari/glob-intersection v0.1.0
 ## explicit; go 1.17
 github.com/yashtewari/glob-intersection
-# go.etcd.io/etcd/api/v3 v3.5.5 => go.etcd.io/etcd/api/v3 v3.5.5
+# go.etcd.io/etcd/api/v3 v3.5.7 => go.etcd.io/etcd/api/v3 v3.5.5
 ## explicit; go 1.16
 go.etcd.io/etcd/api/v3/authpb
 go.etcd.io/etcd/api/v3/etcdserverpb
@@ -1137,7 +1132,7 @@ go.etcd.io/etcd/api/v3/membershippb
 go.etcd.io/etcd/api/v3/mvccpb
 go.etcd.io/etcd/api/v3/v3rpc/rpctypes
 go.etcd.io/etcd/api/v3/version
-# go.etcd.io/etcd/client/pkg/v3 v3.5.5 => go.etcd.io/etcd/client/pkg/v3 v3.5.5
+# go.etcd.io/etcd/client/pkg/v3 v3.5.7 => go.etcd.io/etcd/client/pkg/v3 v3.5.5
 ## explicit; go 1.16
 go.etcd.io/etcd/client/pkg/v3/fileutil
 go.etcd.io/etcd/client/pkg/v3/logutil
@@ -1145,7 +1140,7 @@ go.etcd.io/etcd/client/pkg/v3/systemd
 go.etcd.io/etcd/client/pkg/v3/tlsutil
 go.etcd.io/etcd/client/pkg/v3/transport
 go.etcd.io/etcd/client/pkg/v3/types
-# go.etcd.io/etcd/client/v3 v3.5.5 => go.etcd.io/etcd/client/v3 v3.5.5
+# go.etcd.io/etcd/client/v3 v3.5.7 => go.etcd.io/etcd/client/v3 v3.5.5
 ## explicit; go 1.16
 go.etcd.io/etcd/client/v3
 go.etcd.io/etcd/client/v3/credentials
@@ -1235,7 +1230,7 @@ go.uber.org/atomic
 ## explicit; go 1.18
 go.uber.org/goleak
 go.uber.org/goleak/internal/stack
-# go.uber.org/multierr v1.7.0 => go.uber.org/multierr v1.7.0
+# go.uber.org/multierr v1.8.0 => go.uber.org/multierr v1.7.0
 ## explicit; go 1.14
 go.uber.org/multierr
 # go.uber.org/zap v1.24.0 => go.uber.org/zap v1.24.0
@@ -1280,7 +1275,7 @@ golang.org/x/crypto/ssh/knownhosts
 ## explicit; go 1.18
 golang.org/x/exp/constraints
 golang.org/x/exp/slices
-# golang.org/x/net v0.5.0 => golang.org/x/net v0.5.0
+# golang.org/x/net v0.7.0 => golang.org/x/net v0.5.0
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -1307,7 +1302,7 @@ golang.org/x/oauth2/internal
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.4.0 => golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d
+# golang.org/x/sys v0.5.0 => golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1316,10 +1311,10 @@ golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.4.0 => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
+# golang.org/x/term v0.5.0 => golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 ## explicit; go 1.11
 golang.org/x/term
-# golang.org/x/text v0.6.0 => golang.org/x/text v0.6.0
+# golang.org/x/text v0.7.0 => golang.org/x/text v0.6.0
 ## explicit; go 1.17
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -2311,7 +2306,7 @@ k8s.io/klog/v2/internal/severity
 ## explicit; go 1.19
 k8s.io/kms/apis/v1beta1
 k8s.io/kms/apis/v2alpha1
-# k8s.io/kube-openapi v0.0.0-20230202010329-39b3636cbaa3 => k8s.io/kube-openapi v0.0.0-20230202010329-39b3636cbaa3
+# k8s.io/kube-openapi v0.0.0-20230224204730-66828de6f33b => k8s.io/kube-openapi v0.0.0-20230202010329-39b3636cbaa3
 ## explicit; go 1.18
 k8s.io/kube-openapi/cmd/openapi-gen
 k8s.io/kube-openapi/cmd/openapi-gen/args
@@ -2781,8 +2776,8 @@ sigs.k8s.io/yaml
 # github.com/pkg/errors => github.com/pkg/errors v0.9.1
 # github.com/pmezard/go-difflib => github.com/pmezard/go-difflib v1.0.0
 # github.com/pquerna/cachecontrol => github.com/pquerna/cachecontrol v0.1.0
-# github.com/projectcalico/kube-controllers => github.com/projectcalico/kube-controllers v3.8.8+incompatible
-# github.com/projectcalico/libcalico-go => github.com/projectcalico/libcalico-go v1.7.2-0.20191014160346-2382c6cdd056
+# github.com/projectcalico/api => github.com/kubesphere/calico/api v0.0.0-20230227071013-a73515ddc939
+# github.com/projectcalico/calico => github.com/kubesphere/calico v0.0.0-20230227071013-a73515ddc939
 # github.com/prometheus-community/prom-label-proxy => github.com/prometheus-community/prom-label-proxy v0.6.0
 # github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring => github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.63.0
 # github.com/prometheus-operator/prometheus-operator/pkg/client => github.com/prometheus-operator/prometheus-operator/pkg/client v0.63.0
@@ -2875,6 +2870,8 @@ sigs.k8s.io/yaml
 # k8s.io/client-go => k8s.io/client-go v0.26.1
 # k8s.io/code-generator => k8s.io/code-generator v0.26.1
 # k8s.io/component-base => k8s.io/component-base v0.26.1
+# k8s.io/component-helpers => k8s.io/component-helpers v0.21.2
+# k8s.io/cri-api => k8s.io/cri-api v0.26.1
 # k8s.io/gengo => k8s.io/gengo v0.0.0-20220902162205-c0856e24416d
 # k8s.io/klog/v2 => k8s.io/klog/v2 v2.90.0
 # k8s.io/kms => k8s.io/kms v0.26.1
