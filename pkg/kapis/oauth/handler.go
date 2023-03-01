@@ -676,7 +676,7 @@ func (h *handler) userinfo(req *restful.Request, response *restful.Response) {
 func (h *handler) loginByIdentityProvider(req *restful.Request, response *restful.Response) {
 	username, _ := req.BodyParameter("username")
 	password, _ := req.BodyParameter("password")
-	idp := req.PathParameter("identiyprovider")
+	idp := req.PathParameter("identityprovider")
 
 	h.passwordGrant(idp, username, password, req, response)
 }
