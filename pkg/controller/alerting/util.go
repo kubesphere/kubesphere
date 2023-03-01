@@ -326,7 +326,7 @@ func makePrometheusRuleSpecs(rulegroups []*promresourcesv1.RuleGroup) ([]*promre
 
 	var (
 		pSpecs []*promresourcesv1.PrometheusRuleSpec
-		pSpec  promresourcesv1.PrometheusRuleSpec
+		pSpec  = &promresourcesv1.PrometheusRuleSpec{}
 		size   int
 	)
 
@@ -340,16 +340,16 @@ func makePrometheusRuleSpecs(rulegroups []*promresourcesv1.RuleGroup) ([]*promre
 		contentLen := len(string(content))
 		size += contentLen
 		if size > maxConfigMapDataSize*80/100 { // leave space for enforcing possiable label matchers into expr
-			pSpecs = append(pSpecs, &pSpec)
+			pSpecs = append(pSpecs, pSpec)
 			// reinit
 			size = contentLen
-			pSpec = promresourcesv1.PrometheusRuleSpec{}
+			pSpec = &promresourcesv1.PrometheusRuleSpec{}
 		}
 
 		pSpec.Groups = append(pSpec.Groups, *rulegroup)
 	}
 	if len(pSpec.Groups) > 0 {
-		pSpecs = append(pSpecs, &pSpec)
+		pSpecs = append(pSpecs, pSpec)
 	}
 
 	return pSpecs, nil
