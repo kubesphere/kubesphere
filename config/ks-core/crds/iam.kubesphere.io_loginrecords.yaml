@@ -67,7 +67,7 @@ spec:
                 description: Successful login attempt or not
                 type: boolean
               type:
-                description: Which authentication method used, BasicAuth/OAuth
+                description: Which authentication method used, Password/OAuth/Token
                 type: string
               userAgent:
                 description: User agent of login attempt

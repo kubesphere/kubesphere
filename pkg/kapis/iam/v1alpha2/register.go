@@ -238,24 +238,28 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.POST("/globalroles").
 		To(handler.CreateGlobalRole).
 		Doc("Create global role.").
+		Deprecate().
 		Reads(iamv1alpha2.GlobalRole{}).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.GlobalRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GlobalRoleTag}))
 	ws.Route(ws.DELETE("/globalroles/{globalrole}").
 		To(handler.DeleteGlobalRole).
 		Doc("Delete global role.").
+		Deprecate().
 		Param(ws.PathParameter("globalrole", "global role name")).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GlobalRoleTag}))
 	ws.Route(ws.PUT("/globalroles/{globalrole}").
 		To(handler.UpdateGlobalRole).
 		Doc("Update global role.").
+		Deprecate().
 		Param(ws.PathParameter("globalrole", "global role name")).
 		Reads(iamv1alpha2.GlobalRole{}).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.GlobalRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GlobalRoleTag}))
 	ws.Route(ws.PATCH("/globalroles/{globalrole}").
 		To(handler.PatchGlobalRole).
+		Deprecate().
 		Doc("Patch global role.").
 		Param(ws.PathParameter("globalrole", "global role name")).
 		Reads(iamv1alpha2.GlobalRole{}).
@@ -264,12 +268,14 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.GET("/globalroles").
 		To(handler.ListGlobalRoles).
 		Doc("List all global roles.").
+		Deprecate().
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.GlobalRole{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GlobalRoleTag}))
 	ws.Route(ws.GET("/globalroles/{globalrole}").
 		To(handler.DescribeGlobalRole).
 		Param(ws.PathParameter("globalrole", "global role name")).
 		Doc("Retrieve global role details.").
+		Deprecate().
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.GlobalRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GlobalRoleTag}))
 
@@ -277,18 +283,21 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.POST("/clusterroles").
 		To(handler.CreateClusterRole).
 		Doc("Create cluster role.").
+		Deprecate().
 		Reads(rbacv1.ClusterRole{}).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterRoleTag}))
 	ws.Route(ws.DELETE("/clusterroles/{clusterrole}").
 		To(handler.DeleteClusterRole).
 		Doc("Delete cluster role.").
+		Deprecate().
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterRoleTag}))
 	ws.Route(ws.PUT("/clusterroles/{clusterrole}").
 		To(handler.UpdateClusterRole).
 		Doc("Update cluster role.").
+		Deprecate().
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Reads(rbacv1.ClusterRole{}).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
@@ -296,6 +305,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.PATCH("/clusterroles/{clusterrole}").
 		To(handler.PatchClusterRole).
 		Doc("Patch cluster role.").
+		Deprecate().
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Reads(rbacv1.ClusterRole{}).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
@@ -303,12 +313,14 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.GET("/clusterroles").
 		To(handler.ListClusterRoles).
 		Doc("List all cluster roles.").
+		Deprecate().
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{rbacv1.ClusterRole{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterRoleTag}))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}").
 		To(handler.DescribeClusterRole).
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Doc("Retrieve cluster role details.").
+		Deprecate().
 		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterRoleTag}))
 
@@ -316,6 +328,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.POST("/workspaces/{workspace}/workspaceroles").
 		To(handler.CreateWorkspaceRole).
 		Doc("Create workspace role.").
+		Deprecate().
 		Reads(iamv1alpha2.WorkspaceRole{}).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.WorkspaceRole{}).
 		Param(ws.PathParameter("workspace", "workspace name")).
@@ -323,6 +336,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.DELETE("/workspaces/{workspace}/workspaceroles/{workspacerole}").
 		To(handler.DeleteWorkspaceRole).
 		Doc("Delete workspace role.").
+		Deprecate().
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("workspacerole", "workspace role name")).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
@@ -330,6 +344,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.PATCH("/workspaces/{workspace}/workspaceroles/{workspacerole}").
 		To(handler.PatchWorkspaceRole).
 		Doc("Patch workspace role.").
+		Deprecate().
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("workspacerole", "workspace role name")).
 		Reads(iamv1alpha2.WorkspaceRole{}).
@@ -338,6 +353,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.PUT("/workspaces/{workspace}/workspaceroles/{workspacerole}").
 		To(handler.UpdateWorkspaceRole).
 		Doc("Update workspace role.").
+		Deprecate().
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("workspacerole", "workspace role name")).
 		Reads(iamv1alpha2.WorkspaceRole{}).
@@ -346,12 +362,14 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.GET("/workspaces/{workspace}/workspaceroles").
 		To(handler.ListWorkspaceRoles).
 		Doc("List all workspace roles.").
+		Deprecate().
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.WorkspaceRole{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceRoleTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/workspaceroles/{workspacerole}").
 		To(handler.DescribeWorkspaceRole).
 		Doc("Retrieve workspace role details.").
+		Deprecate().
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("workspacerole", "workspace role name")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.WorkspaceRole{}).
@@ -361,6 +379,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.POST("/namespaces/{namespace}/roles").
 		To(handler.CreateNamespaceRole).
 		Doc("Create role in the specified namespace.").
+		Deprecate().
 		Reads(rbacv1.Role{}).
 		Param(ws.PathParameter("namespace", "namespace")).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.Role{}).
@@ -368,6 +387,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.DELETE("/namespaces/{namespace}/roles/{role}").
 		To(handler.DeleteNamespaceRole).
 		Doc("Delete role in the specified namespace.").
+		Deprecate().
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("role", "role name")).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
@@ -375,6 +395,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.PUT("/namespaces/{namespace}/roles/{role}").
 		To(handler.UpdateNamespaceRole).
 		Doc("Update namespace role.").
+		Deprecate().
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("role", "role name")).
 		Reads(rbacv1.Role{}).
@@ -383,6 +404,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.PATCH("/namespaces/{namespace}/roles/{role}").
 		To(handler.PatchNamespaceRole).
 		Doc("Patch namespace role.").
+		Deprecate().
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("role", "role name")).
 		Reads(rbacv1.Role{}).
@@ -391,12 +413,14 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.GET("/namespaces/{namespace}/roles").
 		To(handler.ListRoles).
 		Doc("List all roles in the specified namespace.").
+		Deprecate().
 		Param(ws.PathParameter("namespace", "namespace")).
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{rbacv1.Role{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceRoleTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}").
 		To(handler.DescribeNamespaceRole).
 		Doc("Retrieve role details.").
+		Deprecate().
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("role", "role name")).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.Role{}).
@@ -406,6 +430,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.POST("/devops/{devops}/roles").
 		To(handler.CreateNamespaceRole).
 		Doc("Create role in the specified devops project.").
+		Deprecate().
 		Reads(rbacv1.Role{}).
 		Param(ws.PathParameter("devops", "devops project name")).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.Role{}).
@@ -413,6 +438,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.DELETE("/devops/{devops}/roles/{role}").
 		To(handler.DeleteNamespaceRole).
 		Doc("Delete role in the specified devops project.").
+		Deprecate().
 		Param(ws.PathParameter("devops", "devops project name")).
 		Param(ws.PathParameter("role", "role name")).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
@@ -420,6 +446,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.PUT("/devops/{devops}/roles/{role}").
 		To(handler.UpdateNamespaceRole).
 		Doc("Update devops project role.").
+		Deprecate().
 		Param(ws.PathParameter("devops", "devops project name")).
 		Param(ws.PathParameter("role", "role name")).
 		Reads(rbacv1.Role{}).
@@ -428,6 +455,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.PATCH("/devops/{devops}/roles/{role}").
 		To(handler.PatchNamespaceRole).
 		Doc("Patch devops project role.").
+		Deprecate().
 		Param(ws.PathParameter("devops", "devops project name")).
 		Param(ws.PathParameter("role", "role name")).
 		Reads(rbacv1.Role{}).
@@ -436,12 +464,14 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.GET("/devops/{devops}/roles").
 		To(handler.ListRoles).
 		Doc("List all roles in the specified devops project.").
+		Deprecate().
 		Param(ws.PathParameter("devops", "devops project name")).
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{rbacv1.Role{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectRoleTag}))
 	ws.Route(ws.GET("/devops/{devops}/roles/{role}").
 		To(handler.DescribeNamespaceRole).
 		Doc("Retrieve devops project role details.").
+		Deprecate().
 		Param(ws.PathParameter("devops", "devops project name")).
 		Param(ws.PathParameter("role", "role name")).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.Role{}).
@@ -573,6 +603,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.POST("/namespaces/{namespace}/rolebindings").
 		To(handler.CreateRoleBinding).
 		Doc("Create rolebinding in the specified namespace.").
+		Deprecate().
 		Reads([]v1.RoleBinding{}).
 		Param(ws.PathParameter("namespace", "namespace")).
 		Returns(http.StatusOK, api.StatusOK, []v1.RoleBinding{}).
@@ -584,6 +615,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Param(ws.PathParameter("namespace", "groupbinding name")).
 		Param(ws.PathParameter("rolebinding", "groupbinding name")).
 		Doc("Delete rolebinding under namespace.").
+		Deprecate().
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
 
@@ -593,6 +625,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Reads([]iamv1alpha2.WorkspaceRoleBinding{}).
 		Doc("Create group's workspacerolebindings of the workspace.").
+		Deprecate().
 		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.WorkspaceRoleBinding{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
 
@@ -601,6 +634,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("rolebinding", "groupbinding name")).
 		Doc("Delete workspacerolebinding.").
+		Deprecate().
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GroupTag}))
 

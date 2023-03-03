@@ -18,7 +18,6 @@ limitations under the License.
 // +k8s:openapi-gen=true
 // +kubebuilder:object:generate=true
 // +groupName=iam.kubesphere.io
-
 package v1beta1
 
 import (
@@ -58,6 +57,14 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&GlobalRoleList{},
 		&RoleTemplate{},
 		&RoleTemplateList{},
+		&RoleBinding{},
+		&RoleBindingList{},
+		&ClusterRoleBinding{},
+		&ClusterRoleBindingList{},
+		&WorkspaceRoleBinding{},
+		&WorkspaceRoleBindingList{},
+		&GlobalRoleBinding{},
+		&GlobalRoleBindingList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

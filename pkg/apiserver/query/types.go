@@ -36,7 +36,6 @@ const (
 )
 
 // Query represents api search terms
-// TODO add fieldSelector
 type Query struct {
 	Pagination *Pagination
 
