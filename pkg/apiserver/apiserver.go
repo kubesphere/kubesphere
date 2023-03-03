@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -472,7 +471,7 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 		{Group: "batch", Version: "v1"}: {
 			"jobs",
 		},
-		{Group: "batch", Version: "v1beta1"}: {
+		{Group: "batch", Version: "v1"}: {
 			"cronjobs",
 		},
 		{Group: "networking.k8s.io", Version: "v1"}: {
