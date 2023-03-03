@@ -118,6 +118,11 @@ func Run(s *options.ServerRunOptions, configCh <-chan apiserverconfig.Config, ct
 			s.Config = &cfg
 			ictx, cancelFunc = context.WithCancel(context.TODO())
 			go func() {
+				if errs := s.Validate(); len(errs) != 0 {
+					for _, err := range errs {
+						errCh <- err
+					}
+				}
 				if err := run(s, ictx); err != nil {
 					errCh <- err
 				}
