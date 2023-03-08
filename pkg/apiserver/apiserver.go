@@ -33,7 +33,6 @@ import (
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
-	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
@@ -61,9 +60,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/rbac"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
-	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
-	"kubesphere.io/kubesphere/pkg/apiserver/proxies"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
 	alertingv1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v1"
@@ -176,22 +173,21 @@ type APIServer struct {
 func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	s.container = restful.NewContainer()
 	s.container.Filter(logRequestAndResponse)
+	s.container.Filter(monitorRequest)
 	s.container.Router(restful.CurlyRouter{})
 	s.container.RecoverHandler(func(panicReason interface{}, httpWriter http.ResponseWriter) {
 		logStackOnRecover(panicReason, httpWriter)
 	})
-
+	s.installDynamicResourceAPI()
 	s.installKubeSphereAPIs(stopCh)
 	s.installMetricsAPI()
 	s.installHealthz()
-	s.container.Filter(monitorRequest)
 
 	for _, ws := range s.container.RegisteredWebServices() {
 		klog.V(2).Infof("%s", ws.RootPath())
 	}
 
 	s.Server.Handler = s.container
-
 	s.buildHandlerChain(stopCh)
 
 	return nil
@@ -338,11 +334,9 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 			notificationv2beta2.Resource(notificationv2beta2.ResourcesPluralSilence),
 		)
 	}
-	handler := s.Server.Handler
-	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 
-	middleware := proxies.NewUnregisteredMiddleware(s.container, resourcev1beta1.New(s.RuntimeClient, s.RuntimeCache))
-	handler = filters.WithMiddleware(handler, middleware)
+	handler := s.Server.Handler
+	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config())
 
 	if s.Config.AuditingOptions.Enable {
 		handler = filters.WithAuditing(handler,
@@ -367,8 +361,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 
 	handler = filters.WithAuthorization(handler, authorizers)
 	if s.Config.MultiClusterOptions.Enable {
-		clusterDispatcher := dispatch.NewClusterDispatch(s.ClusterClient)
-		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
+		handler = filters.WithMulticluster(handler, s.ClusterClient)
 	}
 
 	userLister := s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister()
@@ -633,6 +626,18 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 
 }
 
+func (s *APIServer) installDynamicResourceAPI() {
+	dynamicResourceHandler := filters.NewDynamicResourceHandle(func(err restful.ServiceError, req *restful.Request, resp *restful.Response) {
+		for header, values := range err.Header {
+			for _, value := range values {
+				resp.Header().Add(header, value)
+			}
+		}
+		resp.WriteErrorString(err.Code, err.Message)
+	}, resourcev1beta1.New(s.RuntimeClient, s.RuntimeCache))
+	s.container.ServiceErrorHandler(dynamicResourceHandler.HandleServiceError)
+}
+
 func logStackOnRecover(panicReason interface{}, w http.ResponseWriter) {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("recover from panic situation: - %v\r\n", panicReason))
@@ -673,11 +678,4 @@ func logRequestAndResponse(req *restful.Request, resp *restful.Response, chain *
 		resp.ContentLength(),
 		time.Since(start)/time.Millisecond,
 	)
-}
-
-type errorResponder struct{}
-
-func (e *errorResponder) Error(w http.ResponseWriter, req *http.Request, err error) {
-	klog.Error(err)
-	responsewriters.InternalError(w, req, err)
 }

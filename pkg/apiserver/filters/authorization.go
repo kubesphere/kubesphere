@@ -30,37 +30,46 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 )
 
+type authzFilter struct {
+	next http.Handler
+	authorizer.Authorizer
+	serializer runtime.NegotiatedSerializer
+}
+
 // WithAuthorization passes all authorized requests on to handler, and returns forbidden error otherwise.
-func WithAuthorization(handler http.Handler, authorizers authorizer.Authorizer) http.Handler {
+func WithAuthorization(next http.Handler, authorizers authorizer.Authorizer) http.Handler {
 	if authorizers == nil {
 		klog.Warningf("Authorization is disabled")
-		return handler
+		return next
 	}
 
-	defaultSerializer := serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
+	return &authzFilter{
+		next:       next,
+		Authorizer: authorizers,
+		serializer: serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion(),
+	}
+}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		ctx := req.Context()
+func (a *authzFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	attributes, err := getAuthorizerAttributes(ctx)
+	if err != nil {
+		responsewriters.InternalError(w, req, err)
+	}
 
-		attributes, err := getAuthorizerAttributes(ctx)
-		if err != nil {
-			responsewriters.InternalError(w, req, err)
-		}
+	authorized, reason, err := a.Authorize(attributes)
+	if authorized == authorizer.DecisionAllow {
+		a.next.ServeHTTP(w, req)
+		return
+	}
 
-		authorized, reason, err := authorizers.Authorize(attributes)
-		if authorized == authorizer.DecisionAllow {
-			handler.ServeHTTP(w, req)
-			return
-		}
+	if err != nil {
+		responsewriters.InternalError(w, req, err)
+		return
+	}
 
-		if err != nil {
-			responsewriters.InternalError(w, req, err)
-			return
-		}
-
-		klog.V(4).Infof("Forbidden: %#v, Reason: %q", req.RequestURI, reason)
-		responsewriters.Forbidden(ctx, attributes, w, req, reason, defaultSerializer)
-	})
+	klog.V(4).Infof("Forbidden: %#v, Reason: %q", req.RequestURI, reason)
+	responsewriters.Forbidden(ctx, attributes, w, req, reason, a.serializer)
 }
 
 func getAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error) {
