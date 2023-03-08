@@ -32,41 +32,51 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 )
 
+type authnFilter struct {
+	next http.Handler
+	authenticator.Request
+	serializer runtime.NegotiatedSerializer
+}
+
 // WithAuthentication installs authentication handler to handler chain.
 // The following part is a little bit ugly, WithAuthentication also logs user failed login attempt
 // if using basic auth. But only treats request with requestURI `/oauth/authorize` as login attempt
-func WithAuthentication(handler http.Handler, authRequest authenticator.Request) http.Handler {
-	if authRequest == nil {
+func WithAuthentication(next http.Handler, authenticator authenticator.Request) http.Handler {
+	if authenticator == nil {
 		klog.Warningf("Authentication is disabled")
-		return handler
+		return next
 	}
-	s := serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
+	return &authnFilter{
+		next:       next,
+		Request:    authenticator,
+		serializer: serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion(),
+	}
+}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		resp, ok, err := authRequest.AuthenticateRequest(req)
-		_, _, usingBasicAuth := req.BasicAuth()
+func (a *authnFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	resp, ok, err := a.AuthenticateRequest(req)
+	_, _, usingBasicAuth := req.BasicAuth()
 
-		defer func() {
-			// if we authenticated successfully, go ahead and remove the bearer token so that no one
-			// is ever tempted to use it inside of the API server
-			if usingBasicAuth && ok {
-				req.Header.Del("Authorization")
-			}
-		}()
+	defer func() {
+		// if we authenticated successfully, go ahead and remove the bearer token so that no one
+		// is ever tempted to use it inside the API server
+		if usingBasicAuth && ok {
+			req.Header.Del("Authorization")
+		}
+	}()
 
-		if err != nil || !ok {
-			ctx := req.Context()
-			requestInfo, found := request.RequestInfoFrom(ctx)
-			if !found {
-				responsewriters.InternalError(w, req, errors.New("no RequestInfo found in the context"))
-				return
-			}
-			gv := schema.GroupVersion{Group: requestInfo.APIGroup, Version: requestInfo.APIVersion}
-			responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)), s, gv, w, req)
+	if err != nil || !ok {
+		ctx := req.Context()
+		requestInfo, found := request.RequestInfoFrom(ctx)
+		if !found {
+			responsewriters.InternalError(w, req, errors.New("no RequestInfo found in the context"))
 			return
 		}
+		gv := schema.GroupVersion{Group: requestInfo.APIGroup, Version: requestInfo.APIVersion}
+		responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)), a.serializer, gv, w, req)
+		return
+	}
 
-		req = req.WithContext(request.WithUser(req.Context(), resp.User))
-		handler.ServeHTTP(w, req)
-	})
+	req = req.WithContext(request.WithUser(req.Context(), resp.User))
+	a.next.ServeHTTP(w, req)
 }

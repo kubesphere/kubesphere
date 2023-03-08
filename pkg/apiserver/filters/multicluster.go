@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package dispatch
+package filters
 
 import (
 	"fmt"
@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog/v2"
-
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -35,56 +34,60 @@ import (
 
 const proxyURLFormat = "/api/v1/namespaces/kubesphere-system/services/:ks-apiserver:/proxy%s"
 
-// Dispatcher defines how to forward request to designated cluster based on cluster name
-// This should only be used in host cluster when multicluster mode enabled, use in any other cases may cause
-// unexpected behavior
-type Dispatcher interface {
-	Dispatch(w http.ResponseWriter, req *http.Request, handler http.Handler)
-}
-
-type clusterDispatch struct {
+type multiclusterDispatcher struct {
+	next http.Handler
 	clusterclient.ClusterClients
 }
 
-func NewClusterDispatch(cc clusterclient.ClusterClients) Dispatcher {
-	return &clusterDispatch{cc}
+// WithMulticluster forward request to desired cluster based on request cluster name
+// which included in request path clusters/{cluster}
+func WithMulticluster(next http.Handler, clusterClient clusterclient.ClusterClients) http.Handler {
+	if clusterClient == nil {
+		klog.V(4).Infof("Multicluster dispatcher is disabled")
+		return next
+	}
+	return &multiclusterDispatcher{
+		next:           next,
+		ClusterClients: clusterClient,
+	}
 }
 
-// Dispatch dispatch requests to designated cluster
-func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, handler http.Handler) {
-	info, _ := request.RequestInfoFrom(req.Context())
-
-	if len(info.Cluster) == 0 {
-		klog.Warningf("Request with empty cluster, %v", req.URL)
-		http.Error(w, "Bad request, empty cluster", http.StatusBadRequest)
+func (m *multiclusterDispatcher) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	info, ok := request.RequestInfoFrom(req.Context())
+	if !ok {
+		responsewriters.InternalError(w, req, fmt.Errorf("no RequestInfo found in the context"))
+		return
+	}
+	if info.Cluster == "" {
+		m.next.ServeHTTP(w, req)
 		return
 	}
 
-	cluster, err := c.Get(info.Cluster)
+	cluster, err := m.Get(info.Cluster)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			http.Error(w, fmt.Sprintf("cluster %s not found", info.Cluster), http.StatusNotFound)
+			responsewriters.WriteRawJSON(http.StatusBadRequest, errors.NewBadRequest(fmt.Sprintf("cluster %s not exists", info.Cluster)), w)
 		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			responsewriters.InternalError(w, req, err)
 		}
 		return
 	}
 
 	// request cluster is host cluster, no need go through agent
-	if c.IsHostCluster(cluster) {
+	if m.IsHostCluster(cluster) {
 		req.URL.Path = strings.Replace(req.URL.Path, fmt.Sprintf("/clusters/%s", info.Cluster), "", 1)
-		handler.ServeHTTP(w, req)
+		m.next.ServeHTTP(w, req)
 		return
 	}
 
-	if !c.IsClusterReady(cluster) {
-		http.Error(w, fmt.Sprintf("cluster %s is not ready", cluster.Name), http.StatusBadRequest)
+	if !m.IsClusterReady(cluster) {
+		responsewriters.InternalError(w, req, fmt.Errorf("cluster %s is not ready", cluster.Name))
 		return
 	}
 
-	innCluster := c.GetInnerCluster(cluster.Name)
+	innCluster := m.GetInnerCluster(cluster.Name)
 	if innCluster == nil {
-		http.Error(w, fmt.Sprintf("cluster %s is not ready", cluster.Name), http.StatusBadRequest)
+		responsewriters.InternalError(w, req, fmt.Errorf("cluster %s is not ready", cluster.Name))
 		return
 	}
 
@@ -135,16 +138,11 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 		}
 	} else {
 		// everything else goes to ks-apiserver, since our ks-apiserver has the ability to proxy kube-apiserver requests
-
 		u.Host = innCluster.KubesphereURL.Host
 		u.Scheme = innCluster.KubesphereURL.Scheme
 	}
 
-	httpProxy := proxy.NewUpgradeAwareHandler(&u, transport, false, false, c)
+	httpProxy := proxy.NewUpgradeAwareHandler(&u, transport, false, false, &responder{})
 	httpProxy.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(transport, transport)
 	httpProxy.ServeHTTP(w, req)
-}
-
-func (c *clusterDispatch) Error(w http.ResponseWriter, req *http.Request, err error) {
-	responsewriters.InternalError(w, req, err)
 }

@@ -26,7 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 )
 
-func WithRequestInfo(handler http.Handler, resolver request.RequestInfoResolver) http.Handler {
+func WithRequestInfo(next http.Handler, resolver request.RequestInfoResolver) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		// KubeSphere supports kube-apiserver proxy requests in multicluster mode. But kube-apiserver
 		// stripped all authorization headers. Use custom header to carry token to avoid losing authentication token.
@@ -66,6 +66,6 @@ func WithRequestInfo(handler http.Handler, resolver request.RequestInfoResolver)
 		}
 
 		req = req.WithContext(request.WithRequestInfo(ctx, info))
-		handler.ServeHTTP(w, req)
+		next.ServeHTTP(w, req)
 	})
 }

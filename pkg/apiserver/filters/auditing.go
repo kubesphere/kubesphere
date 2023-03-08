@@ -25,39 +25,45 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 )
 
-func WithAuditing(handler http.Handler, a auditing.Auditing) http.Handler {
+type auditingFilter struct {
+	next http.Handler
+	auditing.Auditing
+}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+func WithAuditing(next http.Handler, auditing auditing.Auditing) http.Handler {
+	return &auditingFilter{
+		next:     next,
+		Auditing: auditing,
+	}
+}
 
-		// When auditing level is LevelNone, request should not be auditing.
-		// Auditing level can be modified with cr kube-auditing-webhook,
-		// so it need to judge every time.
-		if !a.Enabled() {
-			handler.ServeHTTP(w, req)
-			return
-		}
+func (a *auditingFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// When auditing level is LevelNone, request should not be auditing.
+	// Auditing level can be modified with cr kube-auditing-webhook,
+	// so it need to judge every time.
+	if !a.Enabled() {
+		a.next.ServeHTTP(w, req)
+		return
+	}
 
-		info, ok := request.RequestInfoFrom(req.Context())
-		if !ok {
-			klog.Error("Unable to retrieve request info from request")
-			handler.ServeHTTP(w, req)
-			return
-		}
+	info, ok := request.RequestInfoFrom(req.Context())
+	if !ok {
+		klog.Error("Unable to retrieve request info from request")
+		a.next.ServeHTTP(w, req)
+		return
+	}
 
-		// Auditing should igonre k8s request when k8s auditing is enabled.
-		if info.IsKubernetesRequest && a.K8sAuditingEnabled() {
-			handler.ServeHTTP(w, req)
-			return
-		}
+	// Auditing should ignore k8s request when k8s auditing is enabled.
+	if info.IsKubernetesRequest && a.K8sAuditingEnabled() {
+		a.next.ServeHTTP(w, req)
+		return
+	}
 
-		e := a.LogRequestObject(req, info)
-		if e != nil {
-			resp := auditing.NewResponseCapture(w)
-			handler.ServeHTTP(resp, req)
-
-			go a.LogResponseObject(e, resp)
-		} else {
-			handler.ServeHTTP(w, req)
-		}
-	})
+	if event := a.LogRequestObject(req, info); event != nil {
+		resp := auditing.NewResponseCapture(w)
+		a.next.ServeHTTP(resp, req)
+		go a.LogResponseObject(event, resp)
+	} else {
+		a.next.ServeHTTP(w, req)
+	}
 }

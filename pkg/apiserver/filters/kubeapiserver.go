@@ -17,6 +17,7 @@ limitations under the License.
 package filters
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -26,39 +27,48 @@ import (
 	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
+type kubeAPIProxy struct {
+	next          http.Handler
+	kubeAPIServer *url.URL
+	transport     http.RoundTripper
+}
+
 // WithKubeAPIServer proxy request to kubernetes service if requests path starts with /api
-func WithKubeAPIServer(handler http.Handler, config *rest.Config, failed proxy.ErrorResponder) http.Handler {
-	kubernetes, _ := url.Parse(config.Host)
-	defaultTransport, err := rest.TransportFor(config)
+func WithKubeAPIServer(next http.Handler, config *rest.Config) http.Handler {
+	kubeAPIServer, _ := url.Parse(config.Host)
+	transport, err := rest.TransportFor(config)
 	if err != nil {
 		klog.Errorf("Unable to create transport from rest.Config: %v", err)
-		return handler
+		return next
+	}
+	return &kubeAPIProxy{
+		next:          next,
+		kubeAPIServer: kubeAPIServer,
+		transport:     transport,
+	}
+}
+
+func (k kubeAPIProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	info, ok := request.RequestInfoFrom(req.Context())
+	if !ok {
+		responsewriters.InternalError(w, req, fmt.Errorf("no RequestInfo found in the context"))
+		return
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		info, ok := request.RequestInfoFrom(req.Context())
-		if !ok {
-			err := errors.New("Unable to retrieve request info from request")
-			klog.Error(err)
-			responsewriters.InternalError(w, req, err)
-		}
+	if info.IsKubernetesRequest {
+		s := *req.URL
+		s.Host = k.kubeAPIServer.Host
+		s.Scheme = k.kubeAPIServer.Scheme
 
-		if info.IsKubernetesRequest {
-			s := *req.URL
-			s.Host = kubernetes.Host
-			s.Scheme = kubernetes.Scheme
+		// make sure we don't override kubernetes's authorization
+		req.Header.Del("Authorization")
+		httpProxy := proxy.NewUpgradeAwareHandler(&s, k.transport, true, false, &responder{})
+		httpProxy.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(k.transport, k.transport)
+		httpProxy.ServeHTTP(w, req)
+		return
+	}
 
-			// make sure we don't override kubernetes's authorization
-			req.Header.Del("Authorization")
-			httpProxy := proxy.NewUpgradeAwareHandler(&s, defaultTransport, true, false, failed)
-			httpProxy.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(defaultTransport, defaultTransport)
-			httpProxy.ServeHTTP(w, req)
-			return
-		}
-
-		handler.ServeHTTP(w, req)
-	})
+	k.next.ServeHTTP(w, req)
 }

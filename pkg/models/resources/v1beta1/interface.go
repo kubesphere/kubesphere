@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -18,27 +19,22 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
-type Interface interface {
-	// Get retrieves a single object by its namespace and name
-	Get(namespace, name string, object client.Object) error
-
-	// List retrieves a collection of objects matches given query
-	List(namespace string, query *query.Query, object client.ObjectList) error
+type ResourceManager interface {
+	IsServed(schema.GroupVersionResource) (bool, error)
+	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, name string) (client.Object, error)
+	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string, query *query.Query) (client.ObjectList, error)
+	Get(ctx context.Context, namespace, name string, object client.Object) error
+	List(ctx context.Context, namespace string, query *query.Query, object client.ObjectList) error
 }
 
-type ResourceGetter interface {
-	GetResource(schema.GroupVersionResource, string, string) (client.Object, error)
-	ListResources(schema.GroupVersionResource, string, *query.Query) (client.ObjectList, error)
-}
-
-// CompareFunc return true is left great than right
+// CompareFunc return true is left greater than right
 type CompareFunc func(runtime.Object, runtime.Object, query.Field) bool
 
 type FilterFunc func(runtime.Object, query.Filter) bool
 
 type TransformFunc func(runtime.Object) runtime.Object
 
-func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) []runtime.Object {
+func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) ([]runtime.Object, *int64) {
 	// selected matched ones
 	var filtered []runtime.Object
 	if len(q.Filters) != 0 {
@@ -77,11 +73,12 @@ func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFu
 	}
 
 	start, end := q.Pagination.GetValidPagination(total)
+	remainingItemCount := int64(total - end)
 
-	return filtered[start:end]
+	return filtered[start:end], &remainingItemCount
 }
 
-// DefaultObjectMetaCompare return true is left great than right
+// DefaultObjectMetaCompare return true is left greater than right
 func DefaultObjectMetaCompare(left, right metav1.Object, sortBy query.Field) bool {
 	switch sortBy {
 	// ?sortBy=name
