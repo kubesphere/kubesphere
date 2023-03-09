@@ -37,6 +37,18 @@ type SimpleSchema struct {
 	Example          interface{} `json:"example,omitempty"`
 }
 
+// Marshaling structure only, always edit along with corresponding
+// struct (or compilation will fail).
+type simpleSchemaOmitZero struct {
+	Type             string      `json:"type,omitempty"`
+	Nullable         bool        `json:"nullable,omitzero"`
+	Format           string      `json:"format,omitempty"`
+	Items            *Items      `json:"items,omitzero"`
+	CollectionFormat string      `json:"collectionFormat,omitempty"`
+	Default          interface{} `json:"default,omitempty"`
+	Example          interface{} `json:"example,omitempty"`
+}
+
 // CommonValidations describe common JSON-schema validations
 type CommonValidations struct {
 	Maximum          *float64      `json:"maximum,omitempty"`
@@ -49,6 +61,23 @@ type CommonValidations struct {
 	MaxItems         *int64        `json:"maxItems,omitempty"`
 	MinItems         *int64        `json:"minItems,omitempty"`
 	UniqueItems      bool          `json:"uniqueItems,omitempty"`
+	MultipleOf       *float64      `json:"multipleOf,omitempty"`
+	Enum             []interface{} `json:"enum,omitempty"`
+}
+
+// Marshaling structure only, always edit along with corresponding
+// struct (or compilation will fail).
+type commonValidationsOmitZero struct {
+	Maximum          *float64      `json:"maximum,omitempty"`
+	ExclusiveMaximum bool          `json:"exclusiveMaximum,omitzero"`
+	Minimum          *float64      `json:"minimum,omitempty"`
+	ExclusiveMinimum bool          `json:"exclusiveMinimum,omitzero"`
+	MaxLength        *int64        `json:"maxLength,omitempty"`
+	MinLength        *int64        `json:"minLength,omitempty"`
+	Pattern          string        `json:"pattern,omitempty"`
+	MaxItems         *int64        `json:"maxItems,omitempty"`
+	MinItems         *int64        `json:"minItems,omitempty"`
+	UniqueItems      bool          `json:"uniqueItems,omitzero"`
 	MultipleOf       *float64      `json:"multipleOf,omitempty"`
 	Enum             []interface{} `json:"enum,omitempty"`
 }
@@ -114,6 +143,9 @@ func (i *Items) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.Deco
 
 // MarshalJSON converts this items object to JSON
 func (i Items) MarshalJSON() ([]byte, error) {
+	if internal.UseOptimizedJSONMarshaling {
+		return internal.DeterministicMarshal(i)
+	}
 	b1, err := json.Marshal(i.CommonValidations)
 	if err != nil {
 		return nil, err
@@ -131,4 +163,18 @@ func (i Items) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return swag.ConcatJSON(b4, b3, b1, b2), nil
+}
+
+func (i Items) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder) error {
+	var x struct {
+		CommonValidations commonValidationsOmitZero `json:",inline"`
+		SimpleSchema      simpleSchemaOmitZero      `json:",inline"`
+		Ref               string                    `json:"$ref,omitempty"`
+		Extensions
+	}
+	x.CommonValidations = commonValidationsOmitZero(i.CommonValidations)
+	x.SimpleSchema = simpleSchemaOmitZero(i.SimpleSchema)
+	x.Ref = i.Refable.Ref.String()
+	x.Extensions = internal.SanitizeExtensions(i.Extensions)
+	return opts.MarshalNext(enc, x)
 }

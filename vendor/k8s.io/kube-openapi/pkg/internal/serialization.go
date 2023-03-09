@@ -18,7 +18,14 @@ package internal
 
 import (
 	"github.com/go-openapi/jsonreference"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 )
+
+// DeterministicMarshal calls the jsonv2 library with the deterministic
+// flag in order to have stable marshaling.
+func DeterministicMarshal(in any) ([]byte, error) {
+	return jsonv2.MarshalOptions{Deterministic: true}.Marshal(jsonv2.EncodeOptions{}, in)
+}
 
 // JSONRefFromMap populates a json reference object if the map v contains a $ref key.
 func JSONRefFromMap(jsonRef *jsonreference.Ref, v map[string]interface{}) error {

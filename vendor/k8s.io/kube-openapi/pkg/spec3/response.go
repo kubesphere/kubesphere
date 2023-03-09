@@ -78,20 +78,29 @@ func (r ResponsesProps) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals responses from JSON
 func (r *ResponsesProps) UnmarshalJSON(data []byte) error {
-	var res map[string]*Response
+	var res map[string]json.RawMessage
 	if err := json.Unmarshal(data, &res); err != nil {
-		return nil
+		return err
 	}
 	if v, ok := res["default"]; ok {
-		r.Default = v
+		value := Response{}
+		if err := json.Unmarshal(v, &value); err != nil {
+			return err
+		}
+		r.Default = &value
 		delete(res, "default")
 	}
 	for k, v := range res {
+		// Take all integral keys
 		if nk, err := strconv.Atoi(k); err == nil {
 			if r.StatusCodeResponses == nil {
 				r.StatusCodeResponses = map[int]*Response{}
 			}
-			r.StatusCodeResponses[nk] = v
+			value := Response{}
+			if err := json.Unmarshal(v, &value); err != nil {
+				return err
+			}
+			r.StatusCodeResponses[nk] = &value
 		}
 	}
 	return nil
