@@ -261,17 +261,20 @@ func (c *gatewayOperator) GetGateways(namespace string) ([]*v1alpha1.Gateway, er
 		gateways = append(gateways, g)
 	}
 
-	key := types.NamespacedName{
-		Namespace: c.getWorkingNamespace(namespace),
-		Name:      fmt.Sprint(gatewayPrefix, namespace),
-	}
-	obj := &v1alpha1.Gateway{}
-	err := c.client.Get(context.TODO(), key, obj)
+	// Query non-cluster gateway
+	if namespace != globalGatewayNameSuffix {
+		key := types.NamespacedName{
+			Namespace: c.getWorkingNamespace(namespace),
+			Name:      fmt.Sprint(gatewayPrefix, namespace),
+		}
+		obj := &v1alpha1.Gateway{}
+		err := c.client.Get(context.TODO(), key, obj)
 
-	if err == nil {
-		gateways = append(gateways, obj)
-	} else if err != nil && !errors.IsNotFound(err) {
-		return nil, err
+		if err == nil {
+			gateways = append(gateways, obj)
+		} else if !errors.IsNotFound(err) {
+			return nil, err
+		}
 	}
 
 	for _, g := range gateways {
