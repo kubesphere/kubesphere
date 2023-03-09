@@ -14,14 +14,14 @@ import (
 	"sync"
 )
 
-// TraverseLink is used as a return value from WalkFuncs to indicate that the
+// ErrTraverseLink is used as a return value from WalkFuncs to indicate that the
 // symlink named in the call may be traversed.
-var TraverseLink = errors.New("fastwalk: traverse symlink, assuming target is a directory")
+var ErrTraverseLink = errors.New("fastwalk: traverse symlink, assuming target is a directory")
 
-// SkipFiles is a used as a return value from WalkFuncs to indicate that the
+// ErrSkipFiles is a used as a return value from WalkFuncs to indicate that the
 // callback should not be called for any other files in the current directory.
 // Child directories will still be traversed.
-var SkipFiles = errors.New("fastwalk: skip remaining files in directory")
+var ErrSkipFiles = errors.New("fastwalk: skip remaining files in directory")
 
 // Walk is a faster implementation of filepath.Walk.
 //
@@ -40,12 +40,12 @@ var SkipFiles = errors.New("fastwalk: skip remaining files in directory")
 // If fastWalk returns filepath.SkipDir, the directory is skipped.
 //
 // Unlike filepath.Walk:
-//   * file stat calls must be done by the user.
+//   - file stat calls must be done by the user.
 //     The only provided metadata is the file type, which does not include
 //     any permission bits.
-//   * multiple goroutines stat the filesystem concurrently. The provided
+//   - multiple goroutines stat the filesystem concurrently. The provided
 //     walkFn must be safe for concurrent use.
-//   * fastWalk can follow symlinks if walkFn returns the TraverseLink
+//   - fastWalk can follow symlinks if walkFn returns the TraverseLink
 //     sentinel error. It is the walkFn's responsibility to prevent
 //     fastWalk from going into symlink cycles.
 func Walk(root string, walkFn func(path string, typ os.FileMode) error) error {
@@ -167,7 +167,7 @@ func (w *walker) onDirEnt(dirName, baseName string, typ os.FileMode) error {
 
 	err := w.fn(joined, typ)
 	if typ == os.ModeSymlink {
-		if err == TraverseLink {
+		if err == ErrTraverseLink {
 			// Set callbackDone so we don't call it twice for both the
 			// symlink-as-symlink and the symlink-as-directory later:
 			w.enqueue(walkItem{dir: joined, callbackDone: true})

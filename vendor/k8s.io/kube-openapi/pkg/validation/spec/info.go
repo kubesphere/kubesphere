@@ -169,6 +169,9 @@ type Info struct {
 
 // MarshalJSON marshal this to JSON
 func (i Info) MarshalJSON() ([]byte, error) {
+	if internal.UseOptimizedJSONMarshaling {
+		return internal.DeterministicMarshal(i)
+	}
 	b1, err := json.Marshal(i.InfoProps)
 	if err != nil {
 		return nil, err
@@ -178,6 +181,16 @@ func (i Info) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return swag.ConcatJSON(b1, b2), nil
+}
+
+func (i Info) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder) error {
+	var x struct {
+		Extensions
+		InfoProps
+	}
+	x.Extensions = i.Extensions
+	x.InfoProps = i.InfoProps
+	return opts.MarshalNext(enc, x)
 }
 
 // UnmarshalJSON marshal this from JSON

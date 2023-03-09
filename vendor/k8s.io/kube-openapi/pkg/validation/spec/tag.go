@@ -41,6 +41,9 @@ type Tag struct {
 
 // MarshalJSON marshal this to JSON
 func (t Tag) MarshalJSON() ([]byte, error) {
+	if internal.UseOptimizedJSONMarshaling {
+		return internal.DeterministicMarshal(t)
+	}
 	b1, err := json.Marshal(t.TagProps)
 	if err != nil {
 		return nil, err
@@ -50,6 +53,16 @@ func (t Tag) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return swag.ConcatJSON(b1, b2), nil
+}
+
+func (t Tag) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder) error {
+	var x struct {
+		Extensions
+		TagProps
+	}
+	x.Extensions = internal.SanitizeExtensions(t.Extensions)
+	x.TagProps = t.TagProps
+	return opts.MarshalNext(enc, x)
 }
 
 // UnmarshalJSON marshal this from JSON

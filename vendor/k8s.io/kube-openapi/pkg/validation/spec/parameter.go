@@ -36,6 +36,17 @@ type ParamProps struct {
 	AllowEmptyValue bool    `json:"allowEmptyValue,omitempty"`
 }
 
+// Marshaling structure only, always edit along with corresponding
+// struct (or compilation will fail).
+type paramPropsOmitZero struct {
+	Description     string  `json:"description,omitempty"`
+	Name            string  `json:"name,omitempty"`
+	In              string  `json:"in,omitempty"`
+	Required        bool    `json:"required,omitzero"`
+	Schema          *Schema `json:"schema,omitzero"`
+	AllowEmptyValue bool    `json:"allowEmptyValue,omitzero"`
+}
+
 // Parameter a unique parameter is defined by a combination of a [name](#parameterName) and [location](#parameterIn).
 //
 // There are five possible parameter types.
@@ -118,6 +129,9 @@ func (p *Parameter) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.
 
 // MarshalJSON converts this items object to JSON
 func (p Parameter) MarshalJSON() ([]byte, error) {
+	if internal.UseOptimizedJSONMarshaling {
+		return internal.DeterministicMarshal(p)
+	}
 	b1, err := json.Marshal(p.CommonValidations)
 	if err != nil {
 		return nil, err
@@ -139,4 +153,20 @@ func (p Parameter) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return swag.ConcatJSON(b3, b1, b2, b4, b5), nil
+}
+
+func (p Parameter) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder) error {
+	var x struct {
+		CommonValidations commonValidationsOmitZero `json:",inline"`
+		SimpleSchema      simpleSchemaOmitZero      `json:",inline"`
+		ParamProps        paramPropsOmitZero        `json:",inline"`
+		Ref               string                    `json:"$ref,omitempty"`
+		Extensions
+	}
+	x.CommonValidations = commonValidationsOmitZero(p.CommonValidations)
+	x.SimpleSchema = simpleSchemaOmitZero(p.SimpleSchema)
+	x.Extensions = internal.SanitizeExtensions(p.Extensions)
+	x.ParamProps = paramPropsOmitZero(p.ParamProps)
+	x.Ref = p.Refable.Ref.String()
+	return opts.MarshalNext(enc, x)
 }

@@ -18,8 +18,6 @@ import (
 	"go/printer"
 	"go/token"
 	"io"
-	"io/ioutil"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,6 +29,11 @@ import (
 type Options struct {
 	Env *ProcessEnv // The environment to use. Note: this contains the cached module and filesystem state.
 
+	// LocalPrefix is a comma-separated string of import path prefixes, which, if
+	// set, instructs Process to sort the import paths with the given prefixes
+	// into another group after 3rd-party packages.
+	LocalPrefix string
+
 	Fragment  bool // Accept fragment of a source file (no package statement)
 	AllErrors bool // Report all errors (not just the first 10 on different lines)
 
@@ -41,21 +44,8 @@ type Options struct {
 	FormatOnly bool // Disable the insertion and deletion of imports
 }
 
-// Process implements golang.org/x/tools/imports.Process with explicit context in env.
-func Process(filename string, src []byte, opt *Options) ([]byte, error) {
-	if src == nil {
-		b, err := ioutil.ReadFile(filename)
-		if err != nil {
-			return nil, err
-		}
-		src = b
-	}
-
-	// Set the logger if the user has not provided it.
-	if opt.Env.Logf == nil {
-		opt.Env.Logf = log.Printf
-	}
-
+// Process implements golang.org/x/tools/imports.Process with explicit context in opt.Env.
+func Process(filename string, src []byte, opt *Options) (formatted []byte, err error) {
 	fileSet := token.NewFileSet()
 	file, adjust, err := parse(fileSet, filename, src, opt)
 	if err != nil {
@@ -67,11 +57,63 @@ func Process(filename string, src []byte, opt *Options) ([]byte, error) {
 			return nil, err
 		}
 	}
+	return formatFile(fileSet, file, src, adjust, opt)
+}
 
-	sortImports(opt.Env, fileSet, file)
-	imps := astutil.Imports(fileSet, file)
+// FixImports returns a list of fixes to the imports that, when applied,
+// will leave the imports in the same state as Process. src and opt must
+// be specified.
+//
+// Note that filename's directory influences which imports can be chosen,
+// so it is important that filename be accurate.
+func FixImports(filename string, src []byte, opt *Options) (fixes []*ImportFix, err error) {
+	fileSet := token.NewFileSet()
+	file, _, err := parse(fileSet, filename, src, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	return getFixes(fileSet, file, filename, opt.Env)
+}
+
+// ApplyFixes applies all of the fixes to the file and formats it. extraMode
+// is added in when parsing the file. src and opts must be specified, but no
+// env is needed.
+func ApplyFixes(fixes []*ImportFix, filename string, src []byte, opt *Options, extraMode parser.Mode) (formatted []byte, err error) {
+	// Don't use parse() -- we don't care about fragments or statement lists
+	// here, and we need to work with unparseable files.
+	fileSet := token.NewFileSet()
+	parserMode := parser.Mode(0)
+	if opt.Comments {
+		parserMode |= parser.ParseComments
+	}
+	if opt.AllErrors {
+		parserMode |= parser.AllErrors
+	}
+	parserMode |= extraMode
+
+	file, err := parser.ParseFile(fileSet, filename, src, parserMode)
+	if file == nil {
+		return nil, err
+	}
+
+	// Apply the fixes to the file.
+	apply(fileSet, file, fixes)
+
+	return formatFile(fileSet, file, src, nil, opt)
+}
+
+// formatFile formats the file syntax tree.
+// It may mutate the token.FileSet.
+//
+// If an adjust function is provided, it is called after formatting
+// with the original source (formatFile's src parameter) and the
+// formatted file, and returns the postpocessed result.
+func formatFile(fset *token.FileSet, file *ast.File, src []byte, adjust func(orig []byte, src []byte) []byte, opt *Options) ([]byte, error) {
+	mergeImports(file)
+	sortImports(opt.LocalPrefix, fset.File(file.Pos()), file)
 	var spacesBefore []string // import paths we need spaces before
-	for _, impSection := range imps {
+	for _, impSection := range astutil.Imports(fset, file) {
 		// Within each block of contiguous imports, see if any
 		// import lines are in different group numbers. If so,
 		// we'll need to put a space between them so it's
@@ -79,7 +121,7 @@ func Process(filename string, src []byte, opt *Options) ([]byte, error) {
 		lastGroup := -1
 		for _, importSpec := range impSection {
 			importPath, _ := strconv.Unquote(importSpec.Path.Value)
-			groupNum := importGroup(opt.Env, importPath)
+			groupNum := importGroup(opt.LocalPrefix, importPath)
 			if groupNum != lastGroup && lastGroup != -1 {
 				spacesBefore = append(spacesBefore, importPath)
 			}
@@ -95,7 +137,7 @@ func Process(filename string, src []byte, opt *Options) ([]byte, error) {
 	printConfig := &printer.Config{Mode: printerMode, Tabwidth: opt.TabWidth}
 
 	var buf bytes.Buffer
-	err = printConfig.Fprint(&buf, fileSet, file)
+	err := printConfig.Fprint(&buf, fset, file)
 	if err != nil {
 		return nil, err
 	}
@@ -239,11 +281,11 @@ func cutSpace(b []byte) (before, middle, after []byte) {
 }
 
 // matchSpace reformats src to use the same space context as orig.
-// 1) If orig begins with blank lines, matchSpace inserts them at the beginning of src.
-// 2) matchSpace copies the indentation of the first non-blank line in orig
-//    to every non-blank line in src.
-// 3) matchSpace copies the trailing space from orig and uses it in place
-//   of src's trailing space.
+//  1. If orig begins with blank lines, matchSpace inserts them at the beginning of src.
+//  2. matchSpace copies the indentation of the first non-blank line in orig
+//     to every non-blank line in src.
+//  3. matchSpace copies the trailing space from orig and uses it in place
+//     of src's trailing space.
 func matchSpace(orig []byte, src []byte) []byte {
 	before, _, after := cutSpace(orig)
 	i := bytes.LastIndex(before, []byte{'\n'})
@@ -269,7 +311,7 @@ func matchSpace(orig []byte, src []byte) []byte {
 	return b.Bytes()
 }
 
-var impLine = regexp.MustCompile(`^\s+(?:[\w\.]+\s+)?"(.+)"`)
+var impLine = regexp.MustCompile(`^\s+(?:[\w\.]+\s+)?"(.+?)"`)
 
 func addImportSpaces(r io.Reader, breaks []string) ([]byte, error) {
 	var out bytes.Buffer
