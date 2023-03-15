@@ -119,6 +119,9 @@ func (c *Client) authenticate() (*TokenResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	// token strategy in kiali:v1.46 writes the token in the cookie
+	// Related issue: https://github.com/kiali/kiali/issues/4682
+	token.Token = resp.Header.Get("Set-Cookie")
 
 	return &token, nil
 }
@@ -156,7 +159,7 @@ func (c *Client) SetToken(req *http.Request) error {
 	if c.cache != nil {
 		token, err := c.cache.Get(KialiTokenCacheKey)
 		if err == nil {
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+			req.Header.Set("Cookie", token)
 			return nil
 		}
 	}
@@ -165,7 +168,9 @@ func (c *Client) SetToken(req *http.Request) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.Token))
+	// token strategy in kiali:v1.46 writes the token in the cookie.
+	// https://github.com/kiali/kiali-operator/blob/v1.50.1/molecule/asserts/token-test/assert-token-access.yml#L47-L56
+	req.Header.Set("Cookie", token.Token)
 
 	if c.cache != nil {
 		c.cache.Set(KialiTokenCacheKey, token.Token, time.Hour)
