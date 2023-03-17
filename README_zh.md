@@ -121,7 +121,7 @@ KubeSphere 使用前后端分离的架构，将 [前端](https://github.com/kube
 🎉 KubeSphere 3.3.2 全新发布！！多项功能与体验优化，带来更好的产品体验，详见 [v3.3.2 版本说明](https://kubesphere.io/zh/docs/release/release-v332/) 。
 ## 安装
 
-KubeSphere 支持在任意平台运行，从本地数据中心到混合多云再走向边缘。此外，KubeSphere 可以部署在任何版本兼容的 Kubernetes 集群上。Installer 默认将执行最小化安装，您可以在安装前或安装后自定义[安装可插拔功能组件](https://kubesphere.com.cn/docs/quick-start/enable-pluggable-components/)。
+KubeSphere 支持在任意平台运行，从本地数据中心到混合多云再走向边缘。此外，KubeSphere 可以部署在任何版本兼容的 Kubernetes 集群上。Installer 默认将执行最小化安装，您可以在安装前或安装后自定义[安装可插拔功能组件](https://kubesphere.io/zh/docs/quick-start/enable-pluggable-components/)。
 ### 快速入门
 #### 在 K8s/K3s 上安装
 
@@ -180,7 +180,7 @@ KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kuber
 
 ## 谁在使用 KubeSphere
 
-[用户案例学习](https://kubesphere.com.cn/case/) 列出了哪些企业在使用 KubeSphere。欢迎 [发表评论](https://github.com/kubesphere/kubesphere/issues/4123) 来分享您的使用案例。
+[用户案例学习](https://kubesphere.io/zh/case/) 列出了哪些企业在使用 KubeSphere。欢迎 [发表评论](https://github.com/kubesphere/kubesphere/issues/4123) 来分享您的使用案例。
 
 ## Landscapes
 
