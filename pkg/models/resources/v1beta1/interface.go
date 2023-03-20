@@ -21,10 +21,21 @@ import (
 
 type ResourceManager interface {
 	IsServed(schema.GroupVersionResource) (bool, error)
+	CreateObjectFromRawData(gvr schema.GroupVersionResource, rawData []byte) (client.Object, error)
+
+	CreateResource(ctx context.Context, object client.Object) error
+	UpdateResource(ctx context.Context, object client.Object) error
+	PatchResource(ctx context.Context, object client.Object) error
+	DeleteResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, name string) error
 	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, name string) (client.Object, error)
 	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string, query *query.Query) (client.ObjectList, error)
+
 	Get(ctx context.Context, namespace, name string, object client.Object) error
 	List(ctx context.Context, namespace string, query *query.Query, object client.ObjectList) error
+	Create(ctx context.Context, object client.Object) error
+	Delete(ctx context.Context, object client.Object) error
+	Update(ctx context.Context, old, new client.Object) error
+	Patch(ctx context.Context, old, new client.Object) error
 }
 
 // CompareFunc return true is left greater than right

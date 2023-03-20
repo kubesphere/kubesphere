@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +20,8 @@ import (
 
 const labelResourceServed = "kubesphere.io/resource-served"
 
-// TODO If delete the crd at the cluster when ks is running, the client.cache doesn`t return err but empty result
+// Note that: If delete the crd at the cluster when is running, the client.cache does not return err but empty result
+
 func New(client client.Client, cache cache.Cache) ResourceManager {
 	return &resourceManager{
 		client: client,
@@ -57,6 +59,39 @@ func (h *resourceManager) GetResource(ctx context.Context, gvr schema.GroupVersi
 	return obj, nil
 }
 
+func (h *resourceManager) CreateObjectFromRawData(gvr schema.GroupVersionResource, rawData []byte) (client.Object, error) {
+	var obj client.Object
+	gvk, err := h.getGVK(gvr)
+	if err != nil {
+		return nil, err
+	}
+
+	if h.client.Scheme().Recognizes(gvk) {
+		gvkObject, err := h.client.Scheme().New(gvk)
+		if err != nil {
+			return nil, err
+		}
+		obj = gvkObject.(client.Object)
+	} else {
+		u := &unstructured.Unstructured{}
+		u.SetGroupVersionKind(gvk)
+		obj = u
+	}
+
+	err = json.Unmarshal(rawData, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	// The object`s GroupVersionKind could be overridden if apiVersion and kind of rawData are different
+	// with GroupVersionKind from url, so that we should check GroupVersionKind after Unmarshal rawDate.
+	if obj.GetObjectKind().GroupVersionKind().String() != gvk.String() {
+		return nil, errors.NewBadRequest("wrong resource GroupVersionKind")
+	}
+
+	return obj, nil
+}
+
 func (h *resourceManager) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string, query *query.Query) (client.ObjectList, error) {
 	var obj client.ObjectList
 
@@ -83,6 +118,38 @@ func (h *resourceManager) ListResources(ctx context.Context, gvr schema.GroupVer
 		return nil, err
 	}
 	return obj, nil
+}
+
+func (h *resourceManager) DeleteResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) error {
+	resource, err := h.GetResource(ctx, gvr, namespace, name)
+	if err != nil {
+		return err
+	}
+	return h.Delete(ctx, resource)
+}
+
+func (h *resourceManager) UpdateResource(ctx context.Context, object client.Object) error {
+	old := object.DeepCopyObject().(client.Object)
+	err := h.Get(ctx, object.GetNamespace(), object.GetName(), old)
+	if err != nil {
+		return err
+	}
+
+	return h.Update(ctx, old, object)
+}
+
+func (h *resourceManager) PatchResource(ctx context.Context, object client.Object) error {
+	old := object.DeepCopyObject().(client.Object)
+	err := h.Get(ctx, object.GetNamespace(), object.GetName(), old)
+	if err != nil {
+		return err
+	}
+
+	return h.Patch(ctx, old, object)
+}
+
+func (h *resourceManager) CreateResource(ctx context.Context, object client.Object) error {
+	return h.Create(ctx, object)
 }
 
 func convertGVKToList(gvk schema.GroupVersionKind) schema.GroupVersionKind {
@@ -152,6 +219,23 @@ func (h *resourceManager) List(ctx context.Context, namespace string, query *que
 		return err
 	}
 	return nil
+}
+
+func (h *resourceManager) Create(ctx context.Context, object client.Object) error {
+	return h.client.Create(ctx, object)
+}
+
+func (h *resourceManager) Delete(ctx context.Context, object client.Object) error {
+	return h.client.Delete(ctx, object)
+}
+
+func (h *resourceManager) Update(ctx context.Context, old, new client.Object) error {
+	new.SetResourceVersion(old.GetResourceVersion())
+	return h.client.Update(ctx, new)
+}
+
+func (h *resourceManager) Patch(ctx context.Context, old, new client.Object) error {
+	return h.client.Patch(ctx, new, client.MergeFrom(old))
 }
 
 func compare(left, right runtime.Object, field query.Field) bool {
