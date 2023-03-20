@@ -126,7 +126,7 @@ github.com/chai2010/gettext-go
 github.com/chai2010/gettext-go/mo
 github.com/chai2010/gettext-go/plural
 github.com/chai2010/gettext-go/po
-# github.com/containerd/containerd v1.6.16 => github.com/containerd/containerd v1.6.16
+# github.com/containerd/containerd v1.6.18 => github.com/containerd/containerd v1.6.18
 ## explicit; go 1.17
 github.com/containerd/containerd/archive/compression
 github.com/containerd/containerd/content
@@ -2648,7 +2648,7 @@ sigs.k8s.io/yaml
 # github.com/blang/semver/v4 => github.com/blang/semver/v4 v4.0.0
 # github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.2.0
 # github.com/chai2010/gettext-go => github.com/chai2010/gettext-go v1.0.2
-# github.com/containerd/containerd => github.com/containerd/containerd v1.6.16
+# github.com/containerd/containerd => github.com/containerd/containerd v1.6.18
 # github.com/containernetworking/cni => github.com/containernetworking/cni v1.1.2
 # github.com/coreos/go-oidc => github.com/coreos/go-oidc v2.1.0+incompatible
 # github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.2.3
