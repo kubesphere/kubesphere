@@ -460,8 +460,15 @@ func (m *Terms) IsValid() bool {
 
 func NewTerms(key string, val interface{}) *Terms {
 
-	if reflect.ValueOf(val).IsNil() {
+	if val == nil {
 		return nil
+	}
+
+	switch reflect.TypeOf(val).Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
+		if reflect.ValueOf(val).IsNil() {
+			return nil
+		}
 	}
 
 	return &Terms{
