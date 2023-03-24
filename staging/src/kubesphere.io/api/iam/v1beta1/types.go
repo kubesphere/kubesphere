@@ -39,17 +39,18 @@ type CategoryList struct {
 }
 
 // AggregationRoleTemplates indicates which roleTemplate the role is composed of.
-// If the aggregation selector is not empty, the templateNames will be overwritten by the templates list by selector.
+// If the TemplateNames is not empty, Selector will be ignored.
 type AggregationRoleTemplates struct {
 	// TemplateNames select rules from RoleTemplate`s rules by RoleTemplate name
 	TemplateNames []string `json:"templateNames,omitempty"`
 
-	// Selector select rules from RoleTemplate`s rules by labels
-	Selector metav1.LabelSelector `json:"selector,omitempty"`
+	// RoleSelectors select rules from RoleTemplate`s rules by labels
+	RoleSelectors []metav1.LabelSelector `json:"roleSelectors,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:resource:categories=iam,scope=Cluster
+//+kubebuilder:storageversion
 
 // GlobalRole is the Schema for the globalroles API
 type GlobalRole struct {
@@ -57,7 +58,7 @@ type GlobalRole struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// AggregationRoleTemplates means which RoleTemplates are composed this Role
-	AggregationRoleTemplates AggregationRoleTemplates `json:"aggregationRoleTemplates,omitempty"`
+	AggregationRoleTemplates *AggregationRoleTemplates `json:"aggregationRoleTemplates,omitempty"`
 
 	// Rules holds all the PolicyRules for this WorkspaceRole
 	Rules []rbacv1.PolicyRule `json:"rules"`
@@ -75,6 +76,7 @@ type GlobalRoleList struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:categories="iam",scope="Cluster"
+//+kubebuilder:storageversion
 
 // GlobalRoleBinding is the Schema for the globalrolebindings API
 type GlobalRoleBinding struct {
@@ -107,6 +109,7 @@ type GlobalRoleBindingList struct {
 //+kubebuilder:resource:categories=iam,scope=Cluster
 //+kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
 //+kubebuilder:printcolumn:name="Alias",type="string",JSONPath=".metadata.annotations.kubesphere\\.io/alias-name"
+//+kubebuilder:storageversion
 
 // WorkspaceRole is the Schema for the workspaceroles API
 type WorkspaceRole struct {
@@ -114,7 +117,7 @@ type WorkspaceRole struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// AggregationRoleTemplates means which RoleTemplates are composed this Role
-	AggregationRoleTemplates AggregationRoleTemplates `json:"aggregationRoleTemplates,omitempty"`
+	AggregationRoleTemplates *AggregationRoleTemplates `json:"aggregationRoleTemplates,omitempty"`
 
 	// Rules holds all the PolicyRules for this WorkspaceRole
 	Rules []rbacv1.PolicyRule `json:"rules,omitempty"`
@@ -132,6 +135,7 @@ type WorkspaceRoleList struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
+//+kubebuilder:storageversion
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 
 // WorkspaceRoleBinding is the Schema for the workspacerolebindings API
@@ -167,7 +171,7 @@ type Role struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// AggregationRoleTemplates means which RoleTemplates are composed this Role
-	AggregationRoleTemplates AggregationRoleTemplates `json:"aggregationRoleTemplates,omitempty"`
+	AggregationRoleTemplates *AggregationRoleTemplates `json:"aggregationRoleTemplates,omitempty"`
 
 	// Rules holds all the PolicyRules for this WorkspaceRole
 	Rules []rbacv1.PolicyRule `json:"rules,omitempty"`
@@ -217,7 +221,7 @@ type ClusterRole struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// AggregationRoleTemplates means which RoleTemplates are composed this Role
-	AggregationRoleTemplates AggregationRoleTemplates `json:"aggregationRoleTemplates,omitempty"`
+	AggregationRoleTemplates *AggregationRoleTemplates `json:"aggregationRoleTemplates,omitempty"`
 
 	// Rules holds all the PolicyRules for this WorkspaceRole
 	Rules []rbacv1.PolicyRule `json:"rules,omitempty"`

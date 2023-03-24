@@ -402,29 +402,26 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 		addController(mgr, "clusterrolebinding", clusterRoleBindingController)
 	}
 
-	// "fedglobalrolecache" controller
-	var fedGlobalRoleCache cache.Store
-	var fedGlobalRoleCacheController cache.Controller
-	if cmOptions.IsControllerEnabled("fedglobalrolecache") {
-		if cmOptions.MultiClusterOptions.Enable {
-			fedGlobalRoleClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedGlobalRoleResource)
-			if err != nil {
-				klog.Fatalf("Unable to create FedGlobalRole controller: %v", err)
-			}
-			fedGlobalRoleCache, fedGlobalRoleCacheController = util.NewResourceInformer(fedGlobalRoleClient, "",
-				&iamv1alpha2.FedGlobalRoleResource, func(object runtimeclient.Object) {})
-			go fedGlobalRoleCacheController.Run(stopCh)
-			addSuccessfullyControllers.Insert("fedglobalrolecache")
-		}
-	}
+	//// "fedglobalrolecache" controller
+	//var fedGlobalRoleCache cache.Store
+	//var fedGlobalRoleCacheController cache.Controller
+	//if cmOptions.IsControllerEnabled("fedglobalrolecache") {
+	//	if cmOptions.MultiClusterOptions.Enable {
+	//		fedGlobalRoleClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedGlobalRoleResource)
+	//		if err != nil {
+	//			klog.Fatalf("Unable to create FedGlobalRole controller: %v", err)
+	//		}
+	//		fedGlobalRoleCache, fedGlobalRoleCacheController = util.NewResourceInformer(fedGlobalRoleClient, "",
+	//			&iamv1alpha2.FedGlobalRoleResource, func(object runtimeclient.Object) {})
+	//		go fedGlobalRoleCacheController.Run(stopCh)
+	//		addSuccessfullyControllers.Insert("fedglobalrolecache")
+	//	}
+	//}
 
 	// "globalrole" controller
 	if cmOptions.IsControllerEnabled("globalrole") {
-		if cmOptions.MultiClusterOptions.Enable {
-			globalRoleController := globalrole.NewController(client.Kubernetes(), client.KubeSphere(),
-				kubesphereInformer.Iam().V1alpha2().GlobalRoles(), fedGlobalRoleCache, fedGlobalRoleCacheController)
-			addController(mgr, "globalrole", globalRoleController)
-		}
+		globalRoleController := &globalrole.GlobalRoleReconciler{}
+		addControllerWithSetup(mgr, "globalrole", globalRoleController)
 	}
 
 	// "fedglobalrolebindingcache" controller
