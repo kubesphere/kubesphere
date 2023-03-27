@@ -37,7 +37,7 @@ export GO111MODULE=on
 
 if ! command -v golangci-lint ; then
 # Install golangci-lint
-  echo 'installing golangci-lint '
+  echo 'installing golangci-lint'
   pushd "${KUBE_ROOT}/hack/tools" >/dev/null
     GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
   popd >/dev/null
@@ -53,7 +53,7 @@ function error_exit {
 }
 trap "error_exit" EXIT
 
-echo "running golangci-lint: REV=HEAD^ "
+echo "running golangci-lint: REV=HEAD^"
 golangci-lint run \
   --timeout 30m \
   --disable-all \
