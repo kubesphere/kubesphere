@@ -42,6 +42,7 @@ type CategoryList struct {
 // If the TemplateNames is not empty, Selector will be ignored.
 type AggregationRoleTemplates struct {
 	// TemplateNames select rules from RoleTemplate`s rules by RoleTemplate name
+	//+listType=set
 	TemplateNames []string `json:"templateNames,omitempty"`
 
 	// RoleSelectors select rules from RoleTemplate`s rules by labels

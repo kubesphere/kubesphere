@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/controller/roletemplate"
+
 	"github.com/kubesphere/pvc-autoresizer/runners"
 	"github.com/prometheus/common/config"
 	"k8s.io/apimachinery/pkg/labels"
@@ -115,6 +117,7 @@ var allControllers = []string{
 	"rulegroup",
 	"clusterrulegroup",
 	"globalrulegroup",
+	"roletemplate",
 }
 
 // setup all available controllers one by one
@@ -422,6 +425,11 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 	if cmOptions.IsControllerEnabled("globalrole") {
 		globalRoleController := &globalrole.GlobalRoleReconciler{}
 		addControllerWithSetup(mgr, "globalrole", globalRoleController)
+	}
+
+	if cmOptions.IsControllerEnabled("roletemplate") {
+		roletemplateController := &roletemplate.RoleTemplateReconciler{}
+		addControllerWithSetup(mgr, "roletemplate", roletemplateController)
 	}
 
 	// "fedglobalrolebindingcache" controller
