@@ -3,21 +3,20 @@ package roletemplate
 import (
 	"context"
 
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/client-go/tools/record"
-	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
-
 	"k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+
+	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 const (
