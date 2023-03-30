@@ -5,15 +5,9 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -21,14 +15,11 @@ import (
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 
 	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
+	"kubesphere.io/kubesphere/pkg/controller/utils/iam"
 )
 
 const (
-	iamLabelGlobalScope = "scope.iam.kubesphere.io/global"
-
 	controllerName = "globalrole-controller"
-
-	messageResourceSynced = "Aggregating roleTemplates successfully"
 )
 
 // GlobalRoleReconciler reconciles a GlobalRole object
@@ -37,6 +28,7 @@ type GlobalRoleReconciler struct {
 	logger   logr.Logger
 	scheme   *runtime.Scheme
 	recorder record.EventRecorder
+	helper   *iam.Helper
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -53,34 +45,39 @@ func (r *GlobalRoleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	globalrole := &iamv1beta1.GlobalRole{}
 	err := r.Get(ctx, req.NamespacedName, globalrole)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	if globalrole.AggregationRoleTemplates != nil {
-		newPolicyRules, newTemplateNames, err := r.getAggregationRoleTemplateRule(ctx, iamLabelGlobalScope, globalrole.AggregationRoleTemplates)
+		err = r.aggregateRoleTemplate(ctx, globalrole)
 		if err != nil {
-			r.recorder.Event(globalrole, corev1.EventTypeWarning, controllerutils.FailedSynced, err.Error())
 			return ctrl.Result{}, err
 		}
-
-		if equality.Semantic.DeepEqual(newTemplateNames, globalrole.AggregationRoleTemplates.TemplateNames) {
-			return ctrl.Result{}, nil
-		}
-		globalrole.Rules = newPolicyRules
-		globalrole.AggregationRoleTemplates.TemplateNames = newTemplateNames
-
-		err = r.Update(ctx, globalrole)
-		if err != nil {
-			r.recorder.Event(globalrole, corev1.EventTypeWarning, controllerutils.FailedSynced, err.Error())
-			return ctrl.Result{}, err
-		}
-		r.recorder.Event(globalrole, corev1.EventTypeNormal, controllerutils.SuccessSynced, messageResourceSynced)
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *GlobalRoleReconciler) aggregateRoleTemplate(ctx context.Context, globalrole *iamv1beta1.GlobalRole) error {
+	newPolicyRules, newTemplateNames, err := r.helper.GetAggregationRoleTemplateRule(ctx, iam.LabelGlobalScope, globalrole.AggregationRoleTemplates)
+	if err != nil {
+		r.recorder.Event(globalrole, corev1.EventTypeWarning, iam.AggregateRoleTemplateFailed, err.Error())
+		return err
+	}
+	if equality.Semantic.DeepEqual(globalrole.Rules, newPolicyRules) &&
+		equality.Semantic.DeepEqual(globalrole.AggregationRoleTemplates.TemplateNames, newTemplateNames) {
+		return nil
+	}
+	globalrole.Rules = newPolicyRules
+	globalrole.AggregationRoleTemplates.TemplateNames = newTemplateNames
+
+	err = r.Update(ctx, globalrole)
+	if err != nil {
+		r.recorder.Event(globalrole, corev1.EventTypeWarning, iam.AggregateRoleTemplateFailed, err.Error())
+		return err
+	}
+	r.recorder.Event(globalrole, corev1.EventTypeNormal, controllerutils.SuccessSynced, iam.MessageResourceSynced)
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -97,68 +94,12 @@ func (r *GlobalRoleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.recorder == nil {
 		r.recorder = mgr.GetEventRecorderFor(controllerName)
 	}
+
+	if r.helper == nil {
+		r.helper = iam.NewHelper(r.Client)
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(controllerName).
 		For(&iamv1beta1.GlobalRole{}).
 		Complete(r)
-}
-
-// TODO This function could be a generic function for all role types including the field AggregationTemplates
-func (r *GlobalRoleReconciler) getAggregationRoleTemplateRule(ctx context.Context, scopeKey string, templates *iamv1beta1.AggregationRoleTemplates) ([]rbacv1.PolicyRule, []string, error) {
-	rules := make([]rbacv1.PolicyRule, 0)
-	newTemplateNames := make([]string, 0)
-	if len(templates.RoleSelectors) == 0 {
-		for _, name := range templates.TemplateNames {
-			roleTemplate := &iamv1beta1.RoleTemplate{}
-			err := r.Get(ctx, types.NamespacedName{Name: name}, roleTemplate)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					klog.Errorf("Get RoleTemplate %s failed: %s", name, err)
-					continue
-				} else {
-					return nil, nil, err
-				}
-			}
-
-			// Ensure the roleTemplate can be aggregated at the specific role scope
-			if _, exist := roleTemplate.Labels[scopeKey]; !exist {
-				klog.Errorf("RoleTemplate %s not match scope", roleTemplate.Name)
-				continue
-			}
-			rules = append(rules, roleTemplate.Spec.Rules...)
-		}
-		newTemplateNames = templates.TemplateNames
-	} else {
-		for _, selector := range templates.RoleSelectors {
-			roleTemplateList := &iamv1beta1.RoleTemplateList{}
-			// Ensure the roleTemplate can be aggregated at the specific role scope
-			selector.MatchLabels = labels.Merge(selector.MatchLabels, map[string]string{scopeKey: ""})
-			asSelector, err := metav1.LabelSelectorAsSelector(&selector)
-			if err != nil {
-				return nil, nil, err
-			}
-			if err = r.List(ctx, roleTemplateList, &client.ListOptions{LabelSelector: asSelector}); err != nil {
-				return nil, nil, err
-			}
-
-			for _, roleTemplate := range roleTemplateList.Items {
-				newTemplateNames = append(newTemplateNames, roleTemplate.Name)
-				for _, rule := range roleTemplate.Spec.Rules {
-					if !ruleExists(rules, rule) {
-						rules = append(rules, rule)
-					}
-				}
-			}
-		}
-	}
-	return rules, newTemplateNames, nil
-}
-
-func ruleExists(haystack []rbacv1.PolicyRule, needle rbacv1.PolicyRule) bool {
-	for _, curr := range haystack {
-		if equality.Semantic.DeepEqual(curr, needle) {
-			return true
-		}
-	}
-	return false
 }

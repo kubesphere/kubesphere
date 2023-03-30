@@ -20,6 +20,8 @@ import (
 	"context"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/equality"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,11 +36,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 	typesv1beta1 "kubesphere.io/api/types/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
+	"kubesphere.io/kubesphere/pkg/controller/utils/iam"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 )
 
@@ -54,6 +58,7 @@ type Reconciler struct {
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	MaxConcurrentReconciles int
+	helper                  *iam.Helper
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -72,12 +77,16 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.MaxConcurrentReconciles <= 0 {
 		r.MaxConcurrentReconciles = 1
 	}
+
+	if r.helper == nil {
+		r.helper = iam.NewHelper(r.Client)
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(controllerName).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
 		}).
-		For(&iamv1alpha2.WorkspaceRole{}).
+		For(&iamv1beta1.WorkspaceRole{}).
 		Complete(r)
 }
 
@@ -86,33 +95,51 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=tenant.kubesphere.io,resources=workspaces,verbs=get;list;watch;
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Logger.WithValues("workspacerole", req.NamespacedName)
-	rootCtx := context.Background()
-	workspaceRole := &iamv1alpha2.WorkspaceRole{}
-	err := r.Get(rootCtx, req.NamespacedName, workspaceRole)
+	workspaceRole := &iamv1beta1.WorkspaceRole{}
+	err := r.Get(ctx, req.NamespacedName, workspaceRole)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// controlled kubefed-controller-manager
-	if workspaceRole.Labels[constants.KubefedManagedLabel] == "true" {
-		return ctrl.Result{}, nil
-	}
-
-	if err := r.bindWorkspace(rootCtx, logger, workspaceRole); err != nil {
+	if err := r.bindWorkspace(ctx, logger, workspaceRole); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if r.MultiClusterEnabled {
-		if err = r.multiClusterSync(rootCtx, logger, workspaceRole); err != nil {
+	if workspaceRole.AggregationRoleTemplates != nil {
+		err = r.aggregateRoleTemplate(ctx, workspaceRole)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	r.Recorder.Event(workspaceRole, corev1.EventTypeNormal, controllerutils.SuccessSynced, controllerutils.MessageResourceSynced)
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, workspaceRole *iamv1alpha2.WorkspaceRole) error {
+func (r *Reconciler) aggregateRoleTemplate(ctx context.Context, workspaceRole *iamv1beta1.WorkspaceRole) error {
+	newPolicyRules, templateNames, err := r.helper.GetAggregationRoleTemplateRule(ctx, iam.LabelWorkspaceScope, workspaceRole.AggregationRoleTemplates)
+	if err != nil {
+		r.Recorder.Event(workspaceRole, corev1.EventTypeWarning, iam.AggregateRoleTemplateFailed, err.Error())
+		return err
+	}
+
+	if equality.Semantic.DeepEqual(workspaceRole.Rules, newPolicyRules) &&
+		equality.Semantic.DeepEqual(workspaceRole.AggregationRoleTemplates.TemplateNames, templateNames) {
+		return nil
+	}
+
+	workspaceRole.Rules = newPolicyRules
+	workspaceRole.AggregationRoleTemplates.TemplateNames = templateNames
+	err = r.Update(ctx, workspaceRole)
+	if err != nil {
+		r.Recorder.Event(workspaceRole, corev1.EventTypeWarning, iam.AggregateRoleTemplateFailed, err.Error())
+		return err
+	}
+	r.Recorder.Event(workspaceRole, corev1.EventTypeNormal, controllerutils.SuccessSynced, iam.MessageResourceSynced)
+
+	return nil
+}
+
+func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, workspaceRole *iamv1beta1.WorkspaceRole) error {
 	workspaceName := workspaceRole.Labels[constants.WorkspaceLabelKey]
 	if workspaceName == "" {
 		return nil
