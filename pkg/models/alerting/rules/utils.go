@@ -244,7 +244,7 @@ out:
 		if !strings.HasPrefix(fileShort, ruleNamespace+"-") {
 			continue
 		}
-		if strings.TrimPrefix(fileShort, ruleNamespace+"-") != rule.ResourceName {
+		if !strings.Contains(strings.TrimPrefix(fileShort, ruleNamespace+"-"), rule.ResourceName) {
 			continue
 		}
 
