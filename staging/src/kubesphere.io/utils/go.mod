@@ -146,4 +146,7 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace kubesphere.io/utils => ../utils
+replace (
+	github.com/spf13/viper => github.com/spf13/viper v1.4.0
+	kubesphere.io/utils => ../utils
+)
