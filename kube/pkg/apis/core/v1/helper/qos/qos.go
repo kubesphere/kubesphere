@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-var supportedQoSComputeResources = sets.NewString(string(corev1.ResourceCPU), string(corev1.ResourceMemory))
+var supportedQoSComputeResources = sets.New(string(corev1.ResourceCPU), string(corev1.ResourceMemory))
 
 // QOSList is a set of (resource name, QoS class) pairs.
 type QOSList map[corev1.ResourceName]corev1.PodQOSClass
@@ -62,7 +62,7 @@ func GetPodQOS(pod *corev1.Pod) corev1.PodQOSClass {
 			}
 		}
 		// process limits
-		qosLimitsFound := sets.NewString()
+		qosLimitsFound := sets.New[string]()
 		for name, quantity := range container.Resources.Limits {
 			if !isSupportedQoSComputeResource(name) {
 				continue

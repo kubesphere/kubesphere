@@ -25,8 +25,6 @@ import (
 	"net/http"
 	"strings"
 
-	"kubesphere.io/kubesphere/pkg/utils/iputil"
-
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metainternalversionscheme "k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
@@ -38,6 +36,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/utils/iputil"
 )
 
 type RequestInfoResolver interface {
@@ -47,16 +46,16 @@ type RequestInfoResolver interface {
 // specialVerbs contains just strings which are used in REST paths for special actions that don't fall under the normal
 // CRUDdy GET/POST/PUT/DELETE actions on REST objects.
 // master's Mux.
-var specialVerbs = sets.NewString("proxy", "watch")
+var specialVerbs = sets.New("proxy", "watch")
 
 // specialVerbsNoSubresources contains root verbs which do not allow subresources
-var specialVerbsNoSubresources = sets.NewString("proxy")
+var specialVerbsNoSubresources = sets.New("proxy")
 
 // namespaceSubresources contains subresources of namespace
 // this list allows the parser to distinguish between a namespace subresource, and a namespaced resource
-var namespaceSubresources = sets.NewString("status", "finalize")
+var namespaceSubresources = sets.New("status", "finalize")
 
-var kubernetesAPIPrefixes = sets.NewString("api", "apis")
+var kubernetesAPIPrefixes = sets.New("api", "apis")
 
 // RequestInfo holds information parsed from the http.Request,
 // extended from k8s.io/apiserver/pkg/endpoints/request/requestinfo.go
@@ -86,8 +85,8 @@ type RequestInfo struct {
 }
 
 type RequestInfoFactory struct {
-	APIPrefixes          sets.String
-	GrouplessAPIPrefixes sets.String
+	APIPrefixes          sets.Set[string]
+	GrouplessAPIPrefixes sets.Set[string]
 	GlobalResources      []schema.GroupResource
 }
 

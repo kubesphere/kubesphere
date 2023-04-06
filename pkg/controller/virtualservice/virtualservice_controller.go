@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -50,8 +51,6 @@ import (
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
-
-	"time"
 )
 
 const (
@@ -328,7 +327,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 		case servicemeshv1alpha2.PolicyWaitForWorkloadReady:
 			set := v.getSubsets(strategies[0])
 
-			setNames := sets.String{}
+			setNames := sets.New[string]()
 			for i := range subsets {
 				setNames.Insert(subsets[i].Name)
 			}
@@ -441,7 +440,7 @@ func (v *VirtualServiceController) addStrategy(obj interface{}) {
 	}
 
 	// avoid insert a key multiple times
-	set := sets.String{}
+	set := sets.New[string]()
 
 	for i := range allServices {
 		service := allServices[i]
@@ -480,8 +479,8 @@ func (v *VirtualServiceController) handleErr(err error, key interface{}) {
 	utilruntime.HandleError(err)
 }
 
-func (v *VirtualServiceController) getSubsets(strategy *servicemeshv1alpha2.Strategy) sets.String {
-	set := sets.String{}
+func (v *VirtualServiceController) getSubsets(strategy *servicemeshv1alpha2.Strategy) sets.Set[string] {
+	set := sets.New[string]()
 
 	for _, httpRoute := range strategy.Spec.Template.Spec.Http {
 		for _, dw := range httpRoute.Route {

@@ -25,8 +25,8 @@ import (
 
 func newTestRequestInfoResolver() RequestInfoResolver {
 	requestInfoResolver := &RequestInfoFactory{
-		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
-		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
+		APIPrefixes:          sets.New("api", "apis", "kapis", "kapi"),
+		GrouplessAPIPrefixes: sets.New("api", "kapi"),
 	}
 
 	return requestInfoResolver

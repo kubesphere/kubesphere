@@ -36,7 +36,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/util/workqueue"
 
-	quota "kubesphere.io/kubesphere/kube/pkg/quota/v1"
+	"kubesphere.io/kubesphere/kube/pkg/quota/v1"
 	"kubesphere.io/kubesphere/kube/pkg/quota/v1/generic"
 	resourcequotaapi "kubesphere.io/kubesphere/kube/plugin/pkg/admission/resourcequota/apis/resourcequota"
 )
@@ -66,7 +66,7 @@ type quotaEvaluator struct {
 	workLock   sync.Mutex
 	work       map[string][]*admissionWaiter
 	dirtyWork  map[string][]*admissionWaiter
-	inProgress sets.String
+	inProgress sets.Set[string]
 
 	// controls the run method so that we can cleanly conform to the Evaluator interface
 	workers int
@@ -126,7 +126,7 @@ func NewQuotaEvaluator(quotaAccessor QuotaAccessor, ignoredResources map[schema.
 		queue:      workqueue.NewNamed("admission_quota_controller"),
 		work:       map[string][]*admissionWaiter{},
 		dirtyWork:  map[string][]*admissionWaiter{},
-		inProgress: sets.String{},
+		inProgress: sets.New[string](),
 
 		workers: workers,
 		stopCh:  stopCh,
@@ -432,7 +432,7 @@ func CheckRequest(quotas []corev1.ResourceQuota, a admission.Attributes, evaluat
 	// track the cumulative set of resources that were required across all quotas
 	// this is needed to know if we have satisfied any constraints where consumption
 	// was limited by default.
-	restrictedResourcesSet := sets.String{}
+	restrictedResourcesSet := sets.New[string]()
 	restrictedScopes := []corev1.ScopedResourceSelectorRequirement{}
 	for i := range quotas {
 		resourceQuota := quotas[i]
@@ -462,7 +462,7 @@ func CheckRequest(quotas []corev1.ResourceQuota, a admission.Attributes, evaluat
 		}
 		interestingQuotaIndexes = append(interestingQuotaIndexes, i)
 		localRestrictedResourcesSet := quota.ToSet(restrictedResources)
-		restrictedResourcesSet.Insert(localRestrictedResourcesSet.List()...)
+		restrictedResourcesSet.Insert(localRestrictedResourcesSet.UnsortedList()...)
 	}
 
 	// Usage of some resources cannot be counted in isolation. For example, when
@@ -516,7 +516,7 @@ func CheckRequest(quotas []corev1.ResourceQuota, a admission.Attributes, evaluat
 	// if not, we reject the request.
 	hasNoCoveringQuota := limitedResourceNamesSet.Difference(restrictedResourcesSet)
 	if len(hasNoCoveringQuota) > 0 {
-		return quotas, admission.NewForbidden(a, fmt.Errorf("insufficient quota to consume: %v", strings.Join(hasNoCoveringQuota.List(), ",")))
+		return quotas, admission.NewForbidden(a, fmt.Errorf("insufficient quota to consume: %v", strings.Join(hasNoCoveringQuota.UnsortedList(), ",")))
 	}
 
 	// verify that for every scope that had limited access enabled

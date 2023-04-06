@@ -31,30 +31,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 
+	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/controller/alerting"
 	"kubesphere.io/kubesphere/pkg/controller/application"
-	"kubesphere.io/kubesphere/pkg/controller/helm"
-	"kubesphere.io/kubesphere/pkg/controller/namespace"
-	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmapplication"
-	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmcategory"
-	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmrelease"
-	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmrepo"
-	"kubesphere.io/kubesphere/pkg/controller/quota"
-	"kubesphere.io/kubesphere/pkg/controller/serviceaccount"
-	"kubesphere.io/kubesphere/pkg/controller/user"
-	"kubesphere.io/kubesphere/pkg/controller/workspace"
-	"kubesphere.io/kubesphere/pkg/controller/workspacerole"
-	"kubesphere.io/kubesphere/pkg/controller/workspacerolebinding"
-	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate"
-	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"kubesphere.io/kubesphere/pkg/simple/client/s3"
-
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
-
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
@@ -63,17 +44,35 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/group"
 	"kubesphere.io/kubesphere/pkg/controller/groupbinding"
+	"kubesphere.io/kubesphere/pkg/controller/helm"
 	"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/loginrecord"
+	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/ippool"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	"kubesphere.io/kubesphere/pkg/controller/notification"
+	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmapplication"
+	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmcategory"
+	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmrelease"
+	"kubesphere.io/kubesphere/pkg/controller/openpitrix/helmrepo"
+	"kubesphere.io/kubesphere/pkg/controller/quota"
+	"kubesphere.io/kubesphere/pkg/controller/serviceaccount"
 	"kubesphere.io/kubesphere/pkg/controller/storage/capability"
+	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
+	"kubesphere.io/kubesphere/pkg/controller/workspace"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerole"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	ippoolclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 )
 
 var allControllers = []string{
@@ -563,7 +562,7 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 	return nil
 }
 
-var addSuccessfullyControllers = sets.NewString()
+var addSuccessfullyControllers = sets.New[string]()
 
 type setupableController interface {
 	SetupWithManager(mgr ctrl.Manager) error
