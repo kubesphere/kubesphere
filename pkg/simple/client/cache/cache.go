@@ -17,7 +17,6 @@ limitations under the License.
 package cache
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -53,12 +52,6 @@ type Interface interface {
 // DynamicOptions the options of the cache. For redis, options key can be  "host", "port", "db", "password".
 // For InMemoryCache, options key can be "cleanupperiod"
 type DynamicOptions map[string]interface{}
-
-func (o DynamicOptions) MarshalJSON() ([]byte, error) {
-
-	data, err := json.Marshal(o)
-	return data, err
-}
 
 func RegisterCacheFactory(factory CacheFactory) {
 	cacheFactories[factory.Type()] = factory
