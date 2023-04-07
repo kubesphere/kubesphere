@@ -19,7 +19,7 @@ require (
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.23+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/elastic/go-elasticsearch/v5 v5.6.1
 	github.com/elastic/go-elasticsearch/v6 v6.8.2
 	github.com/elastic/go-elasticsearch/v7 v7.3.0
@@ -332,7 +332,7 @@ replace (
 	github.com/davecgh/go-spew => github.com/davecgh/go-spew v1.1.1
 	github.com/docker/cli => github.com/docker/cli v20.10.22+incompatible
 	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker => github.com/docker/docker v20.10.23+incompatible
+	github.com/docker/docker => github.com/docker/docker v20.10.24+incompatible
 	github.com/docker/docker-credential-helpers => github.com/docker/docker-credential-helpers v0.7.0
 	github.com/docker/go-connections => github.com/docker/go-connections v0.4.0
 	github.com/docker/go-metrics => github.com/docker/go-metrics v0.0.1
