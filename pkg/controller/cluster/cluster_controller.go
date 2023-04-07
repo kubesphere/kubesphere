@@ -330,7 +330,7 @@ func (c *clusterController) syncCluster(key string) error {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
-		if !sets.NewString(cluster.ObjectMeta.Finalizers...).Has(clusterv1alpha1.Finalizer) {
+		if !sets.New(cluster.ObjectMeta.Finalizers...).Has(clusterv1alpha1.Finalizer) {
 			cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1alpha1.Finalizer)
 			if cluster, err = c.ksClient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 				return err
@@ -338,7 +338,7 @@ func (c *clusterController) syncCluster(key string) error {
 		}
 	} else {
 		// The object is being deleted
-		if sets.NewString(cluster.ObjectMeta.Finalizers...).Has(clusterv1alpha1.Finalizer) {
+		if sets.New(cluster.ObjectMeta.Finalizers...).Has(clusterv1alpha1.Finalizer) {
 			// need to unJoin federation first, before there are
 			// some cleanup work to do in member cluster which depends
 			// agent to proxy traffic
@@ -361,9 +361,9 @@ func (c *clusterController) syncCluster(key string) error {
 			}
 
 			// remove our cluster finalizer
-			finalizers := sets.NewString(cluster.ObjectMeta.Finalizers...)
+			finalizers := sets.New(cluster.ObjectMeta.Finalizers...)
 			finalizers.Delete(clusterv1alpha1.Finalizer)
-			cluster.ObjectMeta.Finalizers = finalizers.List()
+			cluster.ObjectMeta.Finalizers = finalizers.UnsortedList()
 			if _, err = c.ksClient.ClusterV1alpha1().Clusters().Update(context.TODO(), cluster, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
@@ -817,7 +817,7 @@ func (c *clusterController) syncClusterMembers(clusterClient *kubernetes.Clients
 		return fmt.Errorf("failed to list users: %s", err)
 	}
 
-	grantedUsers := sets.NewString()
+	grantedUsers := sets.New[string]()
 	clusterName := cluster.Name
 	if cluster.DeletionTimestamp.IsZero() {
 		list, err := clusterClient.RbacV1().ClusterRoleBindings().List(context.Background(),
@@ -837,18 +837,18 @@ func (c *clusterController) syncClusterMembers(clusterClient *kubernetes.Clients
 	for _, user := range users {
 		user = user.DeepCopy()
 		grantedClustersAnnotation := user.Annotations[iamv1alpha2.GrantedClustersAnnotation]
-		var grantedClusters sets.String
+		var grantedClusters sets.Set[string]
 		if len(grantedClustersAnnotation) > 0 {
-			grantedClusters = sets.NewString(strings.Split(grantedClustersAnnotation, ",")...)
+			grantedClusters = sets.New(strings.Split(grantedClustersAnnotation, ",")...)
 		} else {
-			grantedClusters = sets.NewString()
+			grantedClusters = sets.New[string]()
 		}
 		if grantedUsers.Has(user.Name) && !grantedClusters.Has(clusterName) {
 			grantedClusters.Insert(clusterName)
 		} else if !grantedUsers.Has(user.Name) && grantedClusters.Has(clusterName) {
 			grantedClusters.Delete(clusterName)
 		}
-		grantedClustersAnnotation = strings.Join(grantedClusters.List(), ",")
+		grantedClustersAnnotation = strings.Join(grantedClusters.UnsortedList(), ",")
 		if user.Annotations[iamv1alpha2.GrantedClustersAnnotation] != grantedClustersAnnotation {
 			if user.Annotations == nil {
 				user.Annotations = make(map[string]string, 0)

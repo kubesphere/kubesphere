@@ -86,9 +86,9 @@ func handleRootHealth(name string, firstTimeHealthy func(), checks ...HealthChec
 			}
 		}
 		if excluded.Len() > 0 {
-			fmt.Fprintf(&individualCheckOutput, "warn: some health checks cannot be excluded: no matches for %s\n", formatQuoted(excluded.List()...))
+			fmt.Fprintf(&individualCheckOutput, "warn: some health checks cannot be excluded: no matches for %s\n", formatQuoted(excluded.UnsortedList()...))
 			klog.Warningf("cannot exclude some health checks, no health checks are installed matching %s",
-				formatQuoted(excluded.List()...))
+				formatQuoted(excluded.UnsortedList()...))
 		}
 		// always be verbose on failure
 		if len(failedChecks) > 0 {
@@ -137,12 +137,12 @@ type HealthChecker interface {
 }
 
 // getExcludedChecks extracts the health check names to be excluded from the query param
-func getExcludedChecks(r *http.Request) sets.String {
+func getExcludedChecks(r *http.Request) sets.Set[string] {
 	checks, found := r.URL.Query()["exclude"]
 	if found {
-		return sets.NewString(checks...)
+		return sets.New(checks...)
 	}
-	return sets.NewString()
+	return sets.New[string]()
 }
 
 // PingHealthz returns true automatically when checked

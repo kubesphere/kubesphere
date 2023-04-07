@@ -309,8 +309,8 @@ func (s *APIServer) Run(ctx context.Context) (err error) {
 
 func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	requestInfoResolver := &request.RequestInfoFactory{
-		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
-		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
+		APIPrefixes:          sets.New("api", "apis", "kapis", "kapi"),
+		GrouplessAPIPrefixes: sets.New("api", "kapi"),
 		GlobalResources: []schema.GroupResource{
 			iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralUser),
 			iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralGlobalRole),

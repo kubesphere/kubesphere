@@ -20,13 +20,13 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-
-	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
-
 	"time"
 
 	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientset "istio.io/client-go/pkg/clientset/versioned"
+	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"
+	istiolisters "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -36,27 +36,24 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes/scheme"
-	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog/v2"
-
-	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
-
-	istioclientset "istio.io/client-go/pkg/clientset/versioned"
-	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"
-	istiolisters "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	informersv1 "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	listersv1 "k8s.io/client-go/listers/apps/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog/v2"
+
+	servicemeshv1alpha2 "kubesphere.io/api/servicemesh/v1alpha2"
 
 	servicemeshclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/controller/utils/servicemesh"
 )
 
 const (
@@ -426,8 +423,8 @@ func (v *DestinationRuleController) deleteDeployment(obj interface{}) {
 	v.addDeployment(deploy)
 }
 
-func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *appsv1.Deployment) (sets.String, error) {
-	set := sets.String{}
+func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *appsv1.Deployment) (sets.Set[string], error) {
+	set := sets.New[string]()
 
 	allServices, err := v.serviceLister.Services(deployment.Namespace).List(labels.Everything())
 	if err != nil {
@@ -467,7 +464,7 @@ func (v *DestinationRuleController) addServicePolicy(obj interface{}) {
 		return
 	}
 
-	set := sets.String{}
+	set := sets.New[string]()
 	for _, service := range services {
 		key, err := cache.MetaNamespaceKeyFunc(service)
 		if err != nil {
