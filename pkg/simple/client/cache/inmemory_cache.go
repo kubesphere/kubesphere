@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/server/options"
+
 	"github.com/mitchellh/mapstructure"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -177,7 +179,7 @@ func (sf *inMemoryCacheFactory) Type() string {
 	return typeInMemoryCache
 }
 
-func (sf *inMemoryCacheFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
+func (sf *inMemoryCacheFactory) Create(options options.DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
 	var sOptions InMemoryCacheOptions
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{

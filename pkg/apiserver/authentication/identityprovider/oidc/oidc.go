@@ -25,15 +25,14 @@ import (
 	"io"
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-
 	"github.com/coreos/go-oidc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/oauth2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/server/options"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 func init() {
@@ -133,9 +132,9 @@ func (f *oidcProviderFactory) Type() string {
 	return "OIDCIdentityProvider"
 }
 
-func (f *oidcProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+func (f *oidcProviderFactory) Create(opts options.DynamicOptions) (identityprovider.OAuthProvider, error) {
 	var oidcProvider oidcProvider
-	if err := mapstructure.Decode(options, &oidcProvider); err != nil {
+	if err := mapstructure.Decode(opts, &oidcProvider); err != nil {
 		return nil, err
 	}
 	// dynamically discover
@@ -169,7 +168,7 @@ func (f *oidcProviderFactory) Create(options oauth.DynamicOptions) (identityprov
 			// TODO: support HS256
 			ClientID: oidcProvider.ClientID,
 		})
-		options["endpoint"] = oauth.DynamicOptions{
+		opts["endpoint"] = options.DynamicOptions{
 			"authURL":       oidcProvider.Endpoint.AuthURL,
 			"tokenURL":      oidcProvider.Endpoint.TokenURL,
 			"userInfoURL":   oidcProvider.Endpoint.UserInfoURL,

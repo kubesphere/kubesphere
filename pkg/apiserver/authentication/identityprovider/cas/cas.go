@@ -26,7 +26,7 @@ import (
 	gocas "gopkg.in/cas.v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 func init() {
@@ -63,9 +63,9 @@ func (f casProviderFactory) Type() string {
 	return "CASIdentityProvider"
 }
 
-func (f casProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+func (f casProviderFactory) Create(opts options.DynamicOptions) (identityprovider.OAuthProvider, error) {
 	var cas cas
-	if err := mapstructure.Decode(options, &cas); err != nil {
+	if err := mapstructure.Decode(opts, &cas); err != nil {
 		return nil, err
 	}
 	casURL, err := url.Parse(cas.CASServerURL)
