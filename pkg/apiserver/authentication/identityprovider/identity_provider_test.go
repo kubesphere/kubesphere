@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"testing"
 
+	"kubesphere.io/kubesphere/pkg/server/options"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
@@ -55,7 +57,7 @@ func (e emptyOAuthProvider) IdentityExchangeCallback(req *http.Request) (Identit
 	return emptyIdentity{}, nil
 }
 
-func (e emptyOAuthProviderFactory) Create(options oauth.DynamicOptions) (OAuthProvider, error) {
+func (e emptyOAuthProviderFactory) Create(options options.DynamicOptions) (OAuthProvider, error) {
 	return emptyOAuthProvider{}, nil
 }
 
@@ -74,7 +76,7 @@ func (e emptyGenericProvider) Authenticate(username string, password string) (Id
 	return emptyIdentity{}, nil
 }
 
-func (e emptyGenericProviderFactory) Create(options oauth.DynamicOptions) (GenericProvider, error) {
+func (e emptyGenericProviderFactory) Create(options options.DynamicOptions) (GenericProvider, error) {
 	return emptyGenericProvider{}, nil
 }
 
@@ -97,7 +99,7 @@ func TestSetupWith(t *testing.T) {
 					Name:          "ldap",
 					MappingMethod: "auto",
 					Type:          "LDAPIdentityProvider",
-					Provider:      oauth.DynamicOptions{},
+					Provider:      options.DynamicOptions{},
 				},
 			}},
 			wantErr: false,
@@ -109,7 +111,7 @@ func TestSetupWith(t *testing.T) {
 					Name:          "ldap",
 					MappingMethod: "auto",
 					Type:          "LDAPIdentityProvider",
-					Provider:      oauth.DynamicOptions{},
+					Provider:      options.DynamicOptions{},
 				},
 			}},
 			wantErr: true,
@@ -121,7 +123,7 @@ func TestSetupWith(t *testing.T) {
 					Name:          "test",
 					MappingMethod: "auto",
 					Type:          "NotSupported",
-					Provider:      oauth.DynamicOptions{},
+					Provider:      options.DynamicOptions{},
 				},
 			}},
 			wantErr: true,

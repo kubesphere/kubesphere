@@ -24,6 +24,8 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/mitchellh/mapstructure"
 	"k8s.io/klog/v2"
+
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 const typeRedis = "redis"
@@ -108,7 +110,7 @@ func (rf *redisFactory) Type() string {
 	return typeRedis
 }
 
-func (rf *redisFactory) Create(options DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
+func (rf *redisFactory) Create(options options.DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
 	var rOptions redisOptions
 	if err := mapstructure.Decode(options, &rOptions); err != nil {
 		return nil, err

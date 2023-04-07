@@ -24,16 +24,16 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 func Test_idaasProviderFactory_Create(t *testing.T) {
 	type args struct {
-		options oauth.DynamicOptions
+		options options.DynamicOptions
 	}
 
-	mustUnmarshalYAML := func(data string) oauth.DynamicOptions {
-		var dynamicOptions oauth.DynamicOptions
+	mustUnmarshalYAML := func(data string) options.DynamicOptions {
+		var dynamicOptions options.DynamicOptions
 		_ = yaml.Unmarshal([]byte(data), &dynamicOptions)
 		return dynamicOptions
 	}

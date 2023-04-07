@@ -30,7 +30,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 const (
@@ -85,9 +85,9 @@ func (l *ldapProviderFactory) Type() string {
 	return ldapIdentityProvider
 }
 
-func (l *ldapProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.GenericProvider, error) {
+func (l *ldapProviderFactory) Create(opts options.DynamicOptions) (identityprovider.GenericProvider, error) {
 	var ldapProvider ldapProvider
-	if err := mapstructure.Decode(options, &ldapProvider); err != nil {
+	if err := mapstructure.Decode(opts, &ldapProvider); err != nil {
 		return nil, err
 	}
 	if ldapProvider.ReadTimeout <= 0 {

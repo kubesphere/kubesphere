@@ -19,7 +19,7 @@ package identityprovider
 import (
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 type OAuthProvider interface {
@@ -31,5 +31,5 @@ type OAuthProviderFactory interface {
 	// Type unique type of the provider
 	Type() string
 	// Create Apply the dynamic options
-	Create(options oauth.DynamicOptions) (OAuthProvider, error)
+	Create(options options.DynamicOptions) (OAuthProvider, error)
 }

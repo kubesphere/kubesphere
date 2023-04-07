@@ -18,11 +18,13 @@ package cache
 
 import (
 	"fmt"
+
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 type Options struct {
-	Type    string         `json:"type"`
-	Options DynamicOptions `json:"options"`
+	Type    string                 `json:"type"`
+	Options options.DynamicOptions `json:"options"`
 }
 
 // NewCacheOptions returns options points to nowhere,
