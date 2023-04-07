@@ -23,6 +23,8 @@ import (
 	"reflect"
 	"testing"
 
+	"kubesphere.io/kubesphere/pkg/server/options"
+
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -62,7 +64,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 					Name:          "fakepwd",
 					MappingMethod: "auto",
 					Type:          "fakePasswordProvider",
-					Provider: oauth.DynamicOptions{
+					Provider: options.DynamicOptions{
 						"identities": map[string]interface{}{
 							"user1": map[string]string{
 								"uid":      "100001",
@@ -84,7 +86,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 					MappingMethod:            "auto",
 					Type:                     "fakePasswordProvider",
 					DisableLoginConfirmation: true,
-					Provider: oauth.DynamicOptions{
+					Provider: options.DynamicOptions{
 						"identities": map[string]interface{}{
 							"user5": map[string]string{
 								"uid":      "100005",
@@ -100,7 +102,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 					MappingMethod:            "lookup",
 					Type:                     "fakePasswordProvider",
 					DisableLoginConfirmation: true,
-					Provider: oauth.DynamicOptions{
+					Provider: options.DynamicOptions{
 						"identities": map[string]interface{}{
 							"user6": map[string]string{
 								"uid":      "100006",
@@ -276,9 +278,9 @@ func (fakePasswordProviderFactory) Type() string {
 	return "fakePasswordProvider"
 }
 
-func (fakePasswordProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.GenericProvider, error) {
+func (fakePasswordProviderFactory) Create(dynamicOptions options.DynamicOptions) (identityprovider.GenericProvider, error) {
 	var fakeProvider fakePasswordProvider
-	if err := mapstructure.Decode(options, &fakeProvider); err != nil {
+	if err := mapstructure.Decode(dynamicOptions, &fakeProvider); err != nil {
 		return nil, err
 	}
 	return &fakeProvider, nil

@@ -27,6 +27,8 @@ import (
 	"testing"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/server/options"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -34,7 +36,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 var githubServer *httptest.Server
@@ -119,12 +120,12 @@ scopes:
 			Expect(provider).Should(Equal(expected))
 		})
 		It("should configure successfully", func() {
-			config := oauth.DynamicOptions{
+			config := options.DynamicOptions{
 				"clientID":           "de6ff8bed0304e487b6e",
 				"clientSecret":       "2b70536f79ec8d2939863509d05e2a71c268b9af",
 				"redirectURL":        "https://ks-console.kubesphere-system.svc/oauth/redirect/github",
 				"insecureSkipVerify": true,
-				"endpoint": oauth.DynamicOptions{
+				"endpoint": options.DynamicOptions{
 					"authURL":     fmt.Sprintf("%s/login/oauth/authorize", githubServer.URL),
 					"tokenURL":    fmt.Sprintf("%s/login/oauth/access_token", githubServer.URL),
 					"userInfoURL": fmt.Sprintf("%s/user", githubServer.URL),
@@ -133,12 +134,12 @@ scopes:
 			factory := ldapProviderFactory{}
 			provider, err = factory.Create(config)
 			Expect(err).Should(BeNil())
-			expected := oauth.DynamicOptions{
+			expected := options.DynamicOptions{
 				"clientID":           "de6ff8bed0304e487b6e",
 				"clientSecret":       "2b70536f79ec8d2939863509d05e2a71c268b9af",
 				"redirectURL":        "https://ks-console.kubesphere-system.svc/oauth/redirect/github",
 				"insecureSkipVerify": true,
-				"endpoint": oauth.DynamicOptions{
+				"endpoint": options.DynamicOptions{
 					"authURL":     fmt.Sprintf("%s/login/oauth/authorize", githubServer.URL),
 					"tokenURL":    fmt.Sprintf("%s/login/oauth/access_token", githubServer.URL),
 					"userInfoURL": fmt.Sprintf("%s/user", githubServer.URL),
@@ -158,8 +159,8 @@ scopes:
 	})
 })
 
-func mustUnmarshalYAML(data string) oauth.DynamicOptions {
-	var dynamicOptions oauth.DynamicOptions
+func mustUnmarshalYAML(data string) options.DynamicOptions {
+	var dynamicOptions options.DynamicOptions
 	_ = yaml.Unmarshal([]byte(data), &dynamicOptions)
 	return dynamicOptions
 }

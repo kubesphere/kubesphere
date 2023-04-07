@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 
+	"kubesphere.io/kubesphere/pkg/server/options"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 
 	"github.com/mitchellh/mapstructure"
@@ -44,7 +46,7 @@ func Test_oauthAuthenticator_Authenticate(t *testing.T) {
 					Name:          "fake",
 					MappingMethod: "auto",
 					Type:          "FakeIdentityProvider",
-					Provider: oauth.DynamicOptions{
+					Provider: options.DynamicOptions{
 						"identities": map[string]interface{}{
 							"code1": map[string]string{
 								"uid":      "100001",
@@ -213,9 +215,9 @@ func (fakeProviderFactory) Type() string {
 	return "FakeIdentityProvider"
 }
 
-func (fakeProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+func (fakeProviderFactory) Create(dynamicOptions options.DynamicOptions) (identityprovider.OAuthProvider, error) {
 	var fakeProvider fakeProvider
-	if err := mapstructure.Decode(options, &fakeProvider); err != nil {
+	if err := mapstructure.Decode(dynamicOptions, &fakeProvider); err != nil {
 		return nil, err
 	}
 	return &fakeProvider, nil
