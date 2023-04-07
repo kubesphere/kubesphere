@@ -110,6 +110,5 @@ require (
 replace (
 	github.com/projectcalico/api => github.com/kubesphere/calico/api v0.0.0-20230227071013-a73515ddc939 // v3.25.0
 	github.com/projectcalico/calico => github.com/kubesphere/calico v0.0.0-20230227071013-a73515ddc939 // v3.25.0
-	gopkg.in/ini.v1 => gopkg.in/ini.v1 v1.67.0
 	kubesphere.io/api => ../api
 )
