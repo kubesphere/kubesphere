@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -14,8 +12,7 @@ import (
 
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 
-	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
-	"kubesphere.io/kubesphere/pkg/controller/utils/iam"
+	rbachelper "kubesphere.io/kubesphere/pkg/conponenthelper/auth/rbac"
 )
 
 const (
@@ -28,7 +25,7 @@ type GlobalRoleReconciler struct {
 	logger   logr.Logger
 	scheme   *runtime.Scheme
 	recorder record.EventRecorder
-	helper   *iam.Helper
+	helper   *rbachelper.Helper
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -49,35 +46,13 @@ func (r *GlobalRoleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if globalrole.AggregationRoleTemplates != nil {
-		err = r.aggregateRoleTemplate(ctx, globalrole)
+		err = r.helper.AggregationRole(ctx, rbachelper.GlobalRoleRuleOwner{GlobalRole: globalrole}, r.recorder)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *GlobalRoleReconciler) aggregateRoleTemplate(ctx context.Context, globalrole *iamv1beta1.GlobalRole) error {
-	newPolicyRules, newTemplateNames, err := r.helper.GetAggregationRoleTemplateRule(ctx, iam.LabelGlobalScope, globalrole.AggregationRoleTemplates)
-	if err != nil {
-		r.recorder.Event(globalrole, corev1.EventTypeWarning, iam.AggregateRoleTemplateFailed, err.Error())
-		return err
-	}
-	if equality.Semantic.DeepEqual(globalrole.Rules, newPolicyRules) &&
-		equality.Semantic.DeepEqual(globalrole.AggregationRoleTemplates.TemplateNames, newTemplateNames) {
-		return nil
-	}
-	globalrole.Rules = newPolicyRules
-	globalrole.AggregationRoleTemplates.TemplateNames = newTemplateNames
-
-	err = r.Update(ctx, globalrole)
-	if err != nil {
-		r.recorder.Event(globalrole, corev1.EventTypeWarning, iam.AggregateRoleTemplateFailed, err.Error())
-		return err
-	}
-	r.recorder.Event(globalrole, corev1.EventTypeNormal, controllerutils.SuccessSynced, iam.MessageResourceSynced)
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -96,7 +71,7 @@ func (r *GlobalRoleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	if r.helper == nil {
-		r.helper = iam.NewHelper(r.Client)
+		r.helper = rbachelper.NewHelper(r.Client)
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(controllerName).

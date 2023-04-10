@@ -1,8 +1,11 @@
-package iam
+package rbac
 
 import (
 	"context"
 
+	"k8s.io/client-go/tools/record"
+
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -10,6 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
@@ -54,7 +59,11 @@ func (h *Helper) GetAggregationRoleTemplateRule(ctx context.Context, scopeKey st
 				klog.Errorf("RoleTemplate %s not match scope", roleTemplate.Name)
 				continue
 			}
-			rules = append(rules, roleTemplate.Spec.Rules...)
+			for _, rule := range roleTemplate.Spec.Rules {
+				if !RuleExists(rules, rule) {
+					rules = append(rules, rule)
+				}
+			}
 		}
 		newTemplateNames = templates.TemplateNames
 	} else {
@@ -81,6 +90,40 @@ func (h *Helper) GetAggregationRoleTemplateRule(ctx context.Context, scopeKey st
 		}
 	}
 	return rules, newTemplateNames, nil
+}
+
+func (h *Helper) AggregationRole(ctx context.Context, ruleOwner RuleOwner, recorder record.EventRecorder) error {
+	newPolicyRules, newTemplateNames, err := h.GetAggregationRoleTemplateRule(ctx, ruleOwner.RuleOwnerScopeKey(), ruleOwner.GetAggregationRule())
+	if err != nil {
+		recorder.Event(ruleOwner.GetObject(), corev1.EventTypeWarning, AggregateRoleTemplateFailed, err.Error())
+		return err
+	}
+
+	cover, _ := Covers(ruleOwner.GetRules(), newPolicyRules)
+
+	aggregationRule := ruleOwner.GetAggregationRule()
+	templateNamesEqual := sliceutil.Equal(aggregationRule.TemplateNames, newTemplateNames)
+
+	if cover && templateNamesEqual {
+		return nil
+	}
+
+	if !cover {
+		ruleOwner.SetRules(newPolicyRules)
+	}
+
+	if !templateNamesEqual {
+		aggregationRule.TemplateNames = newTemplateNames
+		ruleOwner.SetAggregationRule(aggregationRule)
+	}
+
+	err = h.Update(ctx, ruleOwner.GetObject().(client.Object))
+	if err != nil {
+		recorder.Event(ruleOwner.GetObject(), corev1.EventTypeWarning, AggregateRoleTemplateFailed, err.Error())
+		return err
+	}
+	recorder.Event(ruleOwner.GetObject(), corev1.EventTypeNormal, controllerutils.SuccessSynced, MessageResourceSynced)
+	return nil
 }
 
 func RuleExists(haystack []rbacv1.PolicyRule, needle rbacv1.PolicyRule) bool {

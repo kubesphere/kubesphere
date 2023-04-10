@@ -12,8 +12,8 @@ import (
 
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 
+	rbachelper "kubesphere.io/kubesphere/pkg/conponenthelper/auth/rbac"
 	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
-	"kubesphere.io/kubesphere/pkg/controller/utils/iam"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
@@ -52,14 +52,14 @@ func (r *RoleTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if _, exist := roletemplate.Labels[iam.LabelGlobalScope]; exist {
-		if err := r.autoAggregateGlobalRoles(ctx, roletemplate); err != nil {
+	if _, exist := roletemplate.Labels[rbachelper.LabelGlobalScope]; exist {
+		if err := r.aggregateGlobalRoles(ctx, roletemplate); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	if _, exist := roletemplate.Labels[iam.LabelWorkspaceScope]; exist {
-		if err := r.autoAggregateWorkspaceRoles(ctx, roletemplate); err != nil {
+	if _, exist := roletemplate.Labels[rbachelper.LabelWorkspaceScope]; exist {
+		if err := r.aggregateWorkspaceRoles(ctx, roletemplate); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -67,11 +67,11 @@ func (r *RoleTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-// autoAggregateRoles watch the RoleTemplate and automatic inject the RoleTemplate`s rules to the role
+// aggregateGlobalRoles automatic inject the RoleTemplate`s rules to the role
 // (all role types have the field AggregationRoleTemplates) matching the AggregationRoleTemplates filed.
-// Note that autoAggregateRoles just aggregate the templates by .aggregationRoleTemplates.roleSelectors,
-// and if the roleTemplate content is changed, the role including the roleTemplate will not be updated.
-func (r *RoleTemplateReconciler) autoAggregateGlobalRoles(ctx context.Context, roletemplate *iamv1beta1.RoleTemplate) error {
+// Note that autoAggregateRoles just aggregate the templates by field ".aggregationRoleTemplates.roleSelectors",
+// and if the roleTemplate content is changed, the role including the roleTemplate should not be updated.
+func (r *RoleTemplateReconciler) aggregateGlobalRoles(ctx context.Context, roletemplate *iamv1beta1.RoleTemplate) error {
 	list := &iamv1beta1.GlobalRoleList{}
 	l := map[string]string{autoAggregateIndexKey: "true"}
 	err := r.Cache.List(ctx, list, client.MatchingFields(l))
@@ -80,34 +80,15 @@ func (r *RoleTemplateReconciler) autoAggregateGlobalRoles(ctx context.Context, r
 	}
 
 	for _, role := range list.Items {
-		aggregation := role.AggregationRoleTemplates
-		if aggregation != nil && !sliceutil.HasString(aggregation.TemplateNames, roletemplate.Name) {
-			for _, selector := range aggregation.RoleSelectors {
-				if isContainsLabels(roletemplate.Labels, selector.MatchLabels) {
-					for _, rule := range roletemplate.Spec.Rules {
-						if !iam.RuleExists(role.Rules, rule) {
-							role.Rules = append(role.Rules, rule)
-						}
-					}
-					// Update templateNames for adding the new template`s name
-					aggregation.TemplateNames = append(aggregation.TemplateNames, roletemplate.Name)
-
-					err = r.Client.Update(ctx, &role)
-					if err != nil {
-						r.recorder.Event(&role, corev1.EventTypeWarning, reasonFailedSync, err.Error())
-						return err
-					}
-					r.recorder.Event(&role, corev1.EventTypeNormal, controllerutils.SuccessSynced, messageResourceSynced)
-					break
-				}
-			}
+		err := r.aggregate(ctx, rbachelper.GlobalRoleRuleOwner{GlobalRole: &role}, roletemplate)
+		if err != nil {
+			return err
 		}
 	}
-
 	return nil
 }
 
-func (r *RoleTemplateReconciler) autoAggregateWorkspaceRoles(ctx context.Context, roletemplate *iamv1beta1.RoleTemplate) error {
+func (r *RoleTemplateReconciler) aggregateWorkspaceRoles(ctx context.Context, roletemplate *iamv1beta1.RoleTemplate) error {
 	list := &iamv1beta1.WorkspaceRoleList{}
 	l := map[string]string{autoAggregateIndexKey: "true"}
 	err := r.Cache.List(ctx, list, client.MatchingFields(l))
@@ -116,29 +97,47 @@ func (r *RoleTemplateReconciler) autoAggregateWorkspaceRoles(ctx context.Context
 	}
 
 	for _, role := range list.Items {
-		aggregation := role.AggregationRoleTemplates
-		if aggregation != nil && !sliceutil.HasString(aggregation.TemplateNames, roletemplate.Name) {
-			for _, selector := range aggregation.RoleSelectors {
-				if isContainsLabels(roletemplate.Labels, selector.MatchLabels) {
-					for _, rule := range roletemplate.Spec.Rules {
-						if !iam.RuleExists(role.Rules, rule) {
-							role.Rules = append(role.Rules, rule)
-						}
-					}
-					// Update templateNames for adding the new template`s name
-					aggregation.TemplateNames = append(aggregation.TemplateNames, roletemplate.Name)
+		err := r.aggregate(ctx, rbachelper.WorkspaceRoleRuleOwner{WorkspaceRole: &role}, roletemplate)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-					err = r.Client.Update(ctx, &role)
-					if err != nil {
-						r.recorder.Event(&role, corev1.EventTypeWarning, reasonFailedSync, err.Error())
-						return err
-					}
-					r.recorder.Event(&role, corev1.EventTypeNormal, controllerutils.SuccessSynced, messageResourceSynced)
-					break
+// aggregate the roletemplate rules to the ruleOwner. If the roletemplate is updated but has already been aggregated by the ruleOwner,
+// the ruleOwner cannot update the new roletemplate rule to the ruleOwner.
+func (r *RoleTemplateReconciler) aggregate(ctx context.Context, ruleOwner rbachelper.RuleOwner, roletemplate *iamv1beta1.RoleTemplate) error {
+	aggregation := ruleOwner.GetAggregationRule()
+	hasTemplateName := sliceutil.HasString(aggregation.TemplateNames, roletemplate.Name)
+	if aggregation != nil && !hasTemplateName {
+		for _, selector := range aggregation.RoleSelectors {
+			if isContainsLabels(roletemplate.Labels, selector.MatchLabels) {
+				cover, _ := rbachelper.Covers(ruleOwner.GetRules(), roletemplate.Spec.Rules)
+				if cover && hasTemplateName {
+					return nil
 				}
+
+				if !cover {
+					ruleOwner.SetRules(append(ruleOwner.GetRules(), roletemplate.Spec.Rules...))
+				}
+
+				if !hasTemplateName {
+					aggregation.TemplateNames = append(aggregation.TemplateNames, roletemplate.Name)
+					ruleOwner.SetAggregationRule(aggregation)
+				}
+
+				err := r.Client.Update(ctx, ruleOwner.GetObject().(client.Object))
+				if err != nil {
+					r.recorder.Event(ruleOwner.GetObject(), corev1.EventTypeWarning, reasonFailedSync, err.Error())
+					return err
+				}
+				r.recorder.Event(ruleOwner.GetObject(), corev1.EventTypeNormal, controllerutils.SuccessSynced, messageResourceSynced)
+				break
 			}
 		}
 	}
+
 	return nil
 }
 
