@@ -41,7 +41,7 @@ func NewHelper(c client.Client) *Helper {
 func (h *Helper) GetAggregationRoleTemplateRule(ctx context.Context, scopeKey string, templates *iamv1beta1.AggregationRoleTemplates) ([]rbacv1.PolicyRule, []string, error) {
 	rules := make([]rbacv1.PolicyRule, 0)
 	newTemplateNames := make([]string, 0)
-	if len(templates.RoleSelectors) == 0 {
+	if templates.RoleSelector.Size() == 0 {
 		for _, name := range templates.TemplateNames {
 			roleTemplate := &iamv1beta1.RoleTemplate{}
 			err := h.Get(ctx, types.NamespacedName{Name: name}, roleTemplate)
@@ -67,27 +67,27 @@ func (h *Helper) GetAggregationRoleTemplateRule(ctx context.Context, scopeKey st
 		}
 		newTemplateNames = templates.TemplateNames
 	} else {
-		for _, selector := range templates.RoleSelectors {
-			roleTemplateList := &iamv1beta1.RoleTemplateList{}
-			// Ensure the roleTemplate can be aggregated at the specific role scope
-			selector.MatchLabels = labels.Merge(selector.MatchLabels, map[string]string{scopeKey: ""})
-			asSelector, err := metav1.LabelSelectorAsSelector(&selector)
-			if err != nil {
-				return nil, nil, err
-			}
-			if err = h.List(ctx, roleTemplateList, &client.ListOptions{LabelSelector: asSelector}); err != nil {
-				return nil, nil, err
-			}
+		selector := templates.RoleSelector
+		roleTemplateList := &iamv1beta1.RoleTemplateList{}
+		// Ensure the roleTemplate can be aggregated at the specific role scope
+		selector.MatchLabels = labels.Merge(selector.MatchLabels, map[string]string{scopeKey: ""})
+		asSelector, err := metav1.LabelSelectorAsSelector(&selector)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err = h.List(ctx, roleTemplateList, &client.ListOptions{LabelSelector: asSelector}); err != nil {
+			return nil, nil, err
+		}
 
-			for _, roleTemplate := range roleTemplateList.Items {
-				newTemplateNames = append(newTemplateNames, roleTemplate.Name)
-				for _, rule := range roleTemplate.Spec.Rules {
-					if !RuleExists(rules, rule) {
-						rules = append(rules, rule)
-					}
+		for _, roleTemplate := range roleTemplateList.Items {
+			newTemplateNames = append(newTemplateNames, roleTemplate.Name)
+			for _, rule := range roleTemplate.Spec.Rules {
+				if !RuleExists(rules, rule) {
+					rules = append(rules, rule)
 				}
 			}
 		}
+
 	}
 	return rules, newTemplateNames, nil
 }

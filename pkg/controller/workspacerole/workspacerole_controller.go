@@ -44,7 +44,6 @@ const (
 // Reconciler reconciles a WorkspaceRole object
 type Reconciler struct {
 	client.Client
-	MultiClusterEnabled     bool
 	Logger                  logr.Logger
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder

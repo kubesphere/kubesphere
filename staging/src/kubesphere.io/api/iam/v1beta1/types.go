@@ -5,11 +5,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	UserReferenceLabel  = "iam.kubesphere.io/user-ref"
-	ResourcesPluralUser = "users"
-)
-
 // CategorySpec defines the desired state of Category
 type CategorySpec struct {
 	DisplayName map[string]string `json:"displayName,omitempty"`
@@ -46,7 +41,7 @@ type AggregationRoleTemplates struct {
 	TemplateNames []string `json:"templateNames,omitempty"`
 
 	// RoleSelectors select rules from RoleTemplate`s rules by labels
-	RoleSelectors []metav1.LabelSelector `json:"roleSelectors,omitempty"`
+	RoleSelector metav1.LabelSelector `json:"roleSelector,omitempty"`
 }
 
 //+kubebuilder:object:root=true
