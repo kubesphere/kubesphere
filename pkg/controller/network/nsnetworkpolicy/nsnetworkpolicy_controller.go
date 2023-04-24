@@ -678,15 +678,11 @@ func NewNSNetworkPolicyController(
 	})
 
 	nsnpInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			controller.nsnpEnqueue(obj)
-		},
+		AddFunc: controller.nsnpEnqueue,
 		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
 			controller.nsnpEnqueue(newObj)
 		},
-		DeleteFunc: func(obj interface{}) {
-			controller.nsnpEnqueue(obj)
-		},
+		DeleteFunc: controller.nsnpEnqueue,
 	}, defaultSleepDuration)
 
 	return controller
