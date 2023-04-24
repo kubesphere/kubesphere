@@ -18,27 +18,22 @@ package workspacerole
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
-	typesv1beta1 "kubesphere.io/api/types/v1beta1"
 
+	rbachelper "kubesphere.io/kubesphere/pkg/conponenthelper/auth/rbac"
 	"kubesphere.io/kubesphere/pkg/constants"
-	controllerutils "kubesphere.io/kubesphere/pkg/controller/utils/controller"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 )
 
@@ -49,11 +44,11 @@ const (
 // Reconciler reconciles a WorkspaceRole object
 type Reconciler struct {
 	client.Client
-	MultiClusterEnabled     bool
 	Logger                  logr.Logger
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	MaxConcurrentReconciles int
+	helper                  *rbachelper.Helper
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -72,12 +67,16 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.MaxConcurrentReconciles <= 0 {
 		r.MaxConcurrentReconciles = 1
 	}
+
+	if r.helper == nil {
+		r.helper = rbachelper.NewHelper(r.Client)
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(controllerName).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
 		}).
-		For(&iamv1alpha2.WorkspaceRole{}).
+		For(&iamv1beta1.WorkspaceRole{}).
 		Complete(r)
 }
 
@@ -86,33 +85,27 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=tenant.kubesphere.io,resources=workspaces,verbs=get;list;watch;
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Logger.WithValues("workspacerole", req.NamespacedName)
-	rootCtx := context.Background()
-	workspaceRole := &iamv1alpha2.WorkspaceRole{}
-	err := r.Get(rootCtx, req.NamespacedName, workspaceRole)
+	workspaceRole := &iamv1beta1.WorkspaceRole{}
+	err := r.Get(ctx, req.NamespacedName, workspaceRole)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// controlled kubefed-controller-manager
-	if workspaceRole.Labels[constants.KubefedManagedLabel] == "true" {
-		return ctrl.Result{}, nil
-	}
-
-	if err := r.bindWorkspace(rootCtx, logger, workspaceRole); err != nil {
+	if err := r.bindWorkspace(ctx, logger, workspaceRole); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if r.MultiClusterEnabled {
-		if err = r.multiClusterSync(rootCtx, logger, workspaceRole); err != nil {
+	if workspaceRole.AggregationRoleTemplates != nil {
+		err = r.helper.AggregationRole(ctx, rbachelper.WorkspaceRoleRuleOwner{WorkspaceRole: workspaceRole}, r.Recorder)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	r.Recorder.Event(workspaceRole, corev1.EventTypeNormal, controllerutils.SuccessSynced, controllerutils.MessageResourceSynced)
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, workspaceRole *iamv1alpha2.WorkspaceRole) error {
+func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, workspaceRole *iamv1beta1.WorkspaceRole) error {
 	workspaceName := workspaceRole.Labels[constants.WorkspaceLabelKey]
 	if workspaceName == "" {
 		return nil
@@ -129,82 +122,6 @@ func (r *Reconciler) bindWorkspace(ctx context.Context, logger logr.Logger, work
 		}
 		if err := r.Update(ctx, workspaceRole); err != nil {
 			logger.Error(err, "update workspace role failed")
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *Reconciler) multiClusterSync(ctx context.Context, logger logr.Logger, workspaceRole *iamv1alpha2.WorkspaceRole) error {
-	if err := r.ensureNotControlledByKubefed(ctx, logger, workspaceRole); err != nil {
-		return err
-	}
-	federatedWorkspaceRole := &typesv1beta1.FederatedWorkspaceRole{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: workspaceRole.Name}, federatedWorkspaceRole); err != nil {
-		if errors.IsNotFound(err) {
-			if federatedWorkspaceRole, err := newFederatedWorkspaceRole(workspaceRole); err != nil {
-				logger.Error(err, "create federated workspace role failed")
-				return err
-			} else {
-				if err := r.Create(ctx, federatedWorkspaceRole); err != nil {
-					logger.Error(err, "create federated workspace role failed")
-					return err
-				}
-				return nil
-			}
-		}
-		logger.Error(err, "get federated workspace role failed")
-		return err
-	}
-
-	if !reflect.DeepEqual(federatedWorkspaceRole.Spec.Template.Rules, workspaceRole.Rules) ||
-		!reflect.DeepEqual(federatedWorkspaceRole.Spec.Template.Labels, workspaceRole.Labels) {
-
-		federatedWorkspaceRole.Spec.Template.Rules = workspaceRole.Rules
-		federatedWorkspaceRole.Spec.Template.Labels = workspaceRole.Labels
-
-		if err := r.Update(ctx, federatedWorkspaceRole); err != nil {
-			logger.Error(err, "update federated workspace role failed")
-			return err
-		}
-	}
-
-	return nil
-}
-
-func newFederatedWorkspaceRole(workspaceRole *iamv1alpha2.WorkspaceRole) (*typesv1beta1.FederatedWorkspaceRole, error) {
-	federatedWorkspaceRole := &typesv1beta1.FederatedWorkspaceRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: workspaceRole.Name,
-		},
-		Spec: typesv1beta1.FederatedWorkspaceRoleSpec{
-			Template: typesv1beta1.WorkspaceRoleTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: workspaceRole.Labels,
-				},
-				Rules: workspaceRole.Rules,
-			},
-			Placement: typesv1beta1.GenericPlacementFields{
-				ClusterSelector: &metav1.LabelSelector{},
-			},
-		},
-	}
-
-	if err := controllerutil.SetControllerReference(workspaceRole, federatedWorkspaceRole, scheme.Scheme); err != nil {
-		return nil, err
-	}
-
-	return federatedWorkspaceRole, nil
-}
-
-func (r *Reconciler) ensureNotControlledByKubefed(ctx context.Context, logger logr.Logger, workspaceRole *iamv1alpha2.WorkspaceRole) error {
-	if workspaceRole.Labels[constants.KubefedManagedLabel] != "false" {
-		if workspaceRole.Labels == nil {
-			workspaceRole.Labels = make(map[string]string)
-		}
-		workspaceRole.Labels[constants.KubefedManagedLabel] = "false"
-		if err := r.Update(ctx, workspaceRole); err != nil {
-			logger.Error(err, "update kubefed managed label failed")
 			return err
 		}
 	}

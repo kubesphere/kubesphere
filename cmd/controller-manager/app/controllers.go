@@ -57,6 +57,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
+	"kubesphere.io/kubesphere/pkg/controller/clusterrole"
 	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
 	"kubesphere.io/kubesphere/pkg/controller/globalrole"
@@ -69,6 +70,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	"kubesphere.io/kubesphere/pkg/controller/notification"
+	"kubesphere.io/kubesphere/pkg/controller/role"
+	"kubesphere.io/kubesphere/pkg/controller/roletemplate"
 	"kubesphere.io/kubesphere/pkg/controller/storage/capability"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -115,6 +118,9 @@ var allControllers = []string{
 	"rulegroup",
 	"clusterrulegroup",
 	"globalrulegroup",
+	"roletemplate",
+	"clusterrole",
+	"role",
 }
 
 // setup all available controllers one by one
@@ -197,7 +203,7 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 
 	// "workspacerole" controller
 	if cmOptions.IsControllerEnabled("workspacerole") {
-		workspaceRoleReconciler := &workspacerole.Reconciler{MultiClusterEnabled: cmOptions.MultiClusterOptions.Enable}
+		workspaceRoleReconciler := &workspacerole.Reconciler{}
 		addControllerWithSetup(mgr, "workspacerole", workspaceRoleReconciler)
 	}
 
@@ -402,29 +408,25 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 		addController(mgr, "clusterrolebinding", clusterRoleBindingController)
 	}
 
-	// "fedglobalrolecache" controller
-	var fedGlobalRoleCache cache.Store
-	var fedGlobalRoleCacheController cache.Controller
-	if cmOptions.IsControllerEnabled("fedglobalrolecache") {
-		if cmOptions.MultiClusterOptions.Enable {
-			fedGlobalRoleClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedGlobalRoleResource)
-			if err != nil {
-				klog.Fatalf("Unable to create FedGlobalRole controller: %v", err)
-			}
-			fedGlobalRoleCache, fedGlobalRoleCacheController = util.NewResourceInformer(fedGlobalRoleClient, "",
-				&iamv1alpha2.FedGlobalRoleResource, func(object runtimeclient.Object) {})
-			go fedGlobalRoleCacheController.Run(stopCh)
-			addSuccessfullyControllers.Insert("fedglobalrolecache")
-		}
-	}
-
 	// "globalrole" controller
 	if cmOptions.IsControllerEnabled("globalrole") {
-		if cmOptions.MultiClusterOptions.Enable {
-			globalRoleController := globalrole.NewController(client.Kubernetes(), client.KubeSphere(),
-				kubesphereInformer.Iam().V1alpha2().GlobalRoles(), fedGlobalRoleCache, fedGlobalRoleCacheController)
-			addController(mgr, "globalrole", globalRoleController)
-		}
+		globalRoleController := &globalrole.GlobalRoleReconciler{}
+		addControllerWithSetup(mgr, "globalrole", globalRoleController)
+	}
+
+	if cmOptions.IsControllerEnabled("clusterrole") {
+		clusterRoleController := &clusterrole.Reconciler{}
+		addControllerWithSetup(mgr, "clusterrole", clusterRoleController)
+	}
+
+	if cmOptions.IsControllerEnabled("role") {
+		roleController := &role.Reconciler{}
+		addControllerWithSetup(mgr, "role", roleController)
+	}
+
+	if cmOptions.IsControllerEnabled("roletemplate") {
+		roletemplateController := &roletemplate.RoleTemplateReconciler{}
+		addControllerWithSetup(mgr, "roletemplate", roletemplateController)
 	}
 
 	// "fedglobalrolebindingcache" controller
