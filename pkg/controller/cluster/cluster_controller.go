@@ -411,6 +411,11 @@ func (c *clusterController) syncCluster(key string) error {
 	} else { // join federation
 		_, err = c.joinFederation(clusterConfig, cluster.Name, cluster.Labels)
 		if err != nil {
+			if errors.IsConflict(err) {
+				klog.Warningf("update KubeFedCluster %s conflicted, retrying", cluster.Name)
+				return err
+			}
+
 			klog.Errorf("Failed to join federation for cluster %s, error %v", cluster.Name, err)
 
 			federationNotReadyCondition := clusterv1alpha1.ClusterCondition{
