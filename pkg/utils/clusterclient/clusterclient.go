@@ -77,9 +77,7 @@ func NewClusterClient(clusterInformer clusterinformer.ClusterInformer) ClusterCl
 				c.addCluster(newObj)
 			}
 		},
-		DeleteFunc: func(obj interface{}) {
-			c.removeCluster(obj)
-		},
+		DeleteFunc: c.removeCluster,
 	})
 	return c
 }

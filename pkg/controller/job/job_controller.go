@@ -72,9 +72,7 @@ func NewJobController(jobInformer batchv1informers.JobInformer, client clientset
 	v.jobSynced = jobInformer.Informer().HasSynced
 
 	jobInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			v.enqueueJob(obj)
-		},
+		AddFunc: v.enqueueJob,
 		UpdateFunc: func(old, cur interface{}) {
 			v.enqueueJob(cur)
 		},
