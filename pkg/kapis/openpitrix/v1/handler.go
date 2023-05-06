@@ -767,13 +767,12 @@ func (h *openpitrixHandler) UpgradeApplication(req *restful.Request, resp *restf
 	}
 
 	upgradeClusterRequest.Namespace = namespace
-	upgradeClusterRequest.ClusterId = applicationId
 	user, _ := request.UserFrom(req.Request.Context())
 	if user != nil {
 		upgradeClusterRequest.Username = user.GetName()
 	}
 
-	err = h.openpitrix.UpgradeApplication(upgradeClusterRequest)
+	err = h.openpitrix.UpgradeApplication(upgradeClusterRequest, applicationId)
 	if err != nil {
 		klog.Errorln(err)
 		api.HandleInternalError(resp, nil, err)
