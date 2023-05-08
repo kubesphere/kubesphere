@@ -522,8 +522,8 @@ func (c *clusterController) syncCluster(key string) error {
 	c.updateClusterCondition(cluster, readyCondition)
 
 	if err = c.updateKubeConfigExpirationDateCondition(cluster); err != nil {
-		klog.Errorf("sync KubeConfig expiration date for cluster %s failed: %v", cluster.Name, err)
-		return err
+		// should not block the whole process
+		klog.Warningf("sync KubeConfig expiration date for cluster %s failed: %v", cluster.Name, err)
 	}
 
 	if !reflect.DeepEqual(oldCluster.Status, cluster.Status) {
@@ -772,7 +772,9 @@ func parseKubeConfigExpirationDate(kubeconfig []byte) (time.Time, error) {
 		return time.Time{}, err
 	}
 	if config.CertData == nil {
-		return time.Time{}, fmt.Errorf("empty CertData")
+		// an empty CertData will be treated as never expiring,
+		// such as some kubeconfig files that use token authentication do not have this field
+		return time.Time{}, nil
 	}
 	block, _ := pem.Decode(config.CertData)
 	if block == nil {
@@ -799,9 +801,15 @@ func (c *clusterController) updateKubeConfigExpirationDateCondition(cluster *clu
 	if err != nil {
 		return fmt.Errorf("parseKubeConfigExpirationDate for cluster %s failed: %v", cluster.Name, err)
 	}
+
 	expiresInSevenDays := v1.ConditionFalse
-	if time.Now().AddDate(0, 0, 7).Sub(notAfter) > 0 {
-		expiresInSevenDays = v1.ConditionTrue
+	expirationDate := ""
+	// empty expiration date will be treated as never expiring
+	if !notAfter.IsZero() {
+		expirationDate = notAfter.String()
+		if time.Now().AddDate(0, 0, 7).Sub(notAfter) > 0 {
+			expiresInSevenDays = v1.ConditionTrue
+		}
 	}
 
 	c.updateClusterCondition(cluster, clusterv1alpha1.ClusterCondition{
@@ -810,7 +818,7 @@ func (c *clusterController) updateKubeConfigExpirationDateCondition(cluster *clu
 		LastUpdateTime:     metav1.Now(),
 		LastTransitionTime: metav1.Now(),
 		Reason:             string(clusterv1alpha1.ClusterKubeConfigCertExpiresInSevenDays),
-		Message:            notAfter.String(),
+		Message:            expirationDate,
 	})
 	return nil
 }
