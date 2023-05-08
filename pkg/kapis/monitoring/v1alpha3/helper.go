@@ -29,7 +29,7 @@ import (
 
 	"github.com/jszwec/csvutil"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

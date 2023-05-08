@@ -19,8 +19,8 @@ package v1alpha3
 import (
 	"net/http"
 
-	"github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"

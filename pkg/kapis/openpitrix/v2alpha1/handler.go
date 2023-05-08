@@ -14,7 +14,7 @@ limitations under the License.
 package v2alpha1
 
 import (
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 

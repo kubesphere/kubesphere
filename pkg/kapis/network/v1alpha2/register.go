@@ -19,8 +19,8 @@ package v1alpha2
 import (
 	"net/http"
 
-	restful "github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"

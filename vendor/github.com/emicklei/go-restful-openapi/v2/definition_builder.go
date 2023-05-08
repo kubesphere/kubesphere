@@ -18,6 +18,10 @@ type Documented interface {
 	SwaggerDoc() map[string]string
 }
 
+type PostBuildSwaggerSchema interface {
+	PostBuildSwaggerSchemaHandler(sm *spec.Schema)
+}
+
 // Check if this structure has a method with signature func (<theModel>) SwaggerDoc() map[string]string
 // If it exists, retrieve the documentation and overwrite all struct tag descriptions
 func getDocFromMethodSwaggerDoc2(model reflect.Type) map[string]string {
@@ -36,10 +40,12 @@ func (b definitionBuilder) addModelFrom(sample interface{}) {
 func (b definitionBuilder) addModel(st reflect.Type, nameOverride string) *spec.Schema {
 	// Turn pointers into simpler types so further checks are
 	// correct.
+	isArray := false
 	if st.Kind() == reflect.Ptr {
 		st = st.Elem()
 	}
 	if b.isSliceOrArrayType(st.Kind()) {
+		isArray = true
 		st = st.Elem()
 	}
 
@@ -47,9 +53,11 @@ func (b definitionBuilder) addModel(st reflect.Type, nameOverride string) *spec.
 	if nameOverride != "" {
 		modelName = nameOverride
 	}
-	// no models needed for primitive types
+	// no models needed for primitive types unless it has alias
 	if b.isPrimitiveType(modelName, st.Kind()) {
-		return nil
+		if nameOverride == "" {
+			return nil
+		}
 	}
 	// golang encoding/json packages says array and slice values encode as
 	// JSON arrays, except that []byte encodes as a base64-encoded string.
@@ -67,6 +75,15 @@ func (b definitionBuilder) addModel(st reflect.Type, nameOverride string) *spec.
 			Required:   []string{},
 			Properties: map[string]spec.Schema{},
 		},
+	}
+
+	// fixes issue 77 but feels like a workaround.
+	if b.isPrimitiveType(modelName, st.Kind()) {
+		if isArray {
+			sm.Type = []string{"array"}
+			sm.Items = &spec.SchemaOrArray{Schema: &spec.Schema{
+				SchemaProps: spec.SchemaProps{Type: []string{jsonSchemaType(st.Kind().String())}}}}
+		}
 	}
 
 	// reference the model before further initializing (enables recursive structs)
@@ -117,6 +134,11 @@ func (b definitionBuilder) addModel(st reflect.Type, nameOverride string) *spec.
 	// but it conflicts with the openapi specification.
 	// See https://github.com/go-openapi/spec/issues/23 for more context
 	sm.ID = ""
+
+	// Call handler to update sch
+	if handler, ok := reflect.New(st).Elem().Interface().(PostBuildSwaggerSchema); ok {
+		handler.PostBuildSwaggerSchemaHandler(&sm)
+	}
 
 	// update model builder with completed model
 	b.Definitions[modelName] = sm
@@ -246,7 +268,7 @@ func (b definitionBuilder) buildStructTypeProperty(field reflect.StructField, js
 
 	if field.Name == fieldType.Name() && field.Anonymous && !hasNamedJSONTag(field) {
 		// embedded struct
-		sub := definitionBuilder{make(spec.Definitions), b.Config}
+		sub := definitionBuilder{b.Definitions, b.Config}
 		sub.addModel(fieldType, "")
 		subKey := keyFrom(fieldType, b.Config)
 		// merge properties from sub
@@ -301,6 +323,7 @@ func (b definitionBuilder) buildArrayTypeProperty(field reflect.StructField, jso
 	if isPrimitive {
 		mapped := b.jsonSchemaType(elemTypeName, fieldType.Elem().Kind())
 		prop.Items.Schema.Type = []string{mapped}
+		prop.Items.Schema.Format = b.jsonSchemaFormat(elemTypeName, fieldType.Elem().Kind())
 	} else {
 		prop.Items.Schema.Ref = spec.MustCreateRef("#/definitions/" + elemTypeName)
 	}
@@ -485,7 +508,11 @@ func (b definitionBuilder) jsonNameOfField(field reflect.StructField) string {
 			return s[0]
 		}
 	}
-	return field.Name
+
+	if b.Config.DefinitionNameHandler == nil {
+		b.Config.DefinitionNameHandler = DefaultNameHandler
+	}
+	return b.Config.DefinitionNameHandler(field.Name)
 }
 
 // see also http://json-schema.org/latest/json-schema-core.html#anchor8
@@ -526,8 +553,8 @@ func (b definitionBuilder) jsonSchemaFormat(modelName string, modelKind reflect.
 	schemaMap := map[string]string{
 		"time.Time":      "date-time",
 		"*time.Time":     "date-time",
-		"time.Duration":  "integer",
-		"*time.Duration": "integer",
+		"time.Duration":  "int64",
+		"*time.Duration": "int64",
 		"json.Number":    "double",
 		"*json.Number":   "double",
 	}

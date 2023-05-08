@@ -3,7 +3,7 @@ package restfulspec
 import (
 	"reflect"
 
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 )
 
@@ -20,13 +20,29 @@ type MapModelTypeNameFunc func(t reflect.Type) (string, bool)
 // before serving it. To use it set the PostBuildSwaggerObjectHandler in the config.
 type PostBuildSwaggerObjectFunc func(s *spec.Swagger)
 
+// DefinitionNameHandlerFunc generate name by this handler for definition without json tag.
+// example: (for more, see file definition_name_test.go)
+//   field	      			 definition_name
+//   Name `json:"name"`  ->  name
+// 	 Name                ->  Name
+//
+// there are some example provided for use
+//   DefaultNameHandler         GoRestfulDefinition -> GoRestfulDefinition (not changed)
+//   LowerSnakeCasedNameHandler  GoRestfulDefinition -> go_restful_definition
+//   LowerCamelCasedNameHandler  GoRestfulDefinition -> goRestfulDefinition
+//   GoLowerCamelCasedNameHandler HTTPRestfulDefinition -> httpRestfulDefinition
+//
+type DefinitionNameHandlerFunc func(string) string
+
 // Config holds service api metadata.
 type Config struct {
 	// [optional] If set then set this field with the generated Swagger Object
 	Host string
+	// [optional] If set then set this field with the generated Swagger Object
+	Schemes []string
 	// WebServicesURL is a DEPRECATED field; it never had any effect in this package.
 	WebServicesURL string
-	// APIPath is the path where the JSON api is avaiable , e.g. /apidocs.json
+	// APIPath is the path where the JSON api is available, e.g. /apidocs.json
 	APIPath string
 	// api listing is constructed from this list of restful WebServices.
 	WebServices []*restful.WebService
@@ -40,4 +56,7 @@ type Config struct {
 	ModelTypeNameHandler MapModelTypeNameFunc
 	// [optional] If set then call this function with the generated Swagger Object
 	PostBuildSwaggerObjectHandler PostBuildSwaggerObjectFunc
+	// [optional] If set then call handler's function for to generate name by this handler for definition without json tag,
+	//   you can use you DefinitionNameHandler, also, there are four DefinitionNameHandler provided, see definition_name.go
+	DefinitionNameHandler DefinitionNameHandlerFunc
 }

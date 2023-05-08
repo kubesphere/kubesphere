@@ -23,9 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
-
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,6 +42,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/params"
 	openpitrixoptions "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )

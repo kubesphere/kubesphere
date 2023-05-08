@@ -26,7 +26,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsS3 "github.com/aws/aws-sdk-go/service/s3"
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
