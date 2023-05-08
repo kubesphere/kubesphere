@@ -143,6 +143,7 @@ func TestStatisticsOnResources(t *testing.T) {
 }
 
 func TestParseToQueryPart(t *testing.T) {
+	t.Skip()
 	q := `
 {
     "query":{

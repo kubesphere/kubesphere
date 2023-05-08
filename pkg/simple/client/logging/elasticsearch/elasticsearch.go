@@ -113,7 +113,6 @@ func (c *client) SearchLogs(sf logging.SearchFilter, f, s int64, o string) (logg
 
 	b := query.NewBuilder().
 		WithQuery(parseToQueryPart(sf)).
-		WithSort("time", o).
 		WithFrom(f).
 		WithSize(s)
 

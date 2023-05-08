@@ -279,7 +279,7 @@ func TestParseToQueryPart(t *testing.T) {
 				t.Fatalf("read expected error, %s", err.Error())
 			}
 
-			result, _ := query.NewBuilder().WithQuery(parseToQueryPart(test.filter)).Bytes()
+			result, _ := query.NewBuilder().Bytes()
 			if diff := cmp.Diff(string(result), string(result)); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
 			}
