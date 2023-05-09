@@ -58,7 +58,7 @@ type ReleaseInterface interface {
 	CreateApplication(workspace, clusterName, namespace string, request CreateClusterRequest) error
 	ModifyApplication(request ModifyClusterAttributesRequest) error
 	DeleteApplication(workspace, clusterName, namespace, id string) error
-	UpgradeApplication(request UpgradeClusterRequest) error
+	UpgradeApplication(request UpgradeClusterRequest, applicationId string) error
 }
 
 type releaseOperator struct {
@@ -92,12 +92,11 @@ type Application struct {
 	ReleaseInfo []runtime.Object `json:"releaseInfo,omitempty" description:"release info"`
 }
 
-func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest) error {
-	oldRls, err := c.rlsLister.Get(request.ClusterId)
-
+func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest, applicationId string) error {
+	oldRls, err := c.rlsLister.Get(applicationId)
 	// todo check namespace
 	if err != nil {
-		klog.Errorf("get release %s/%s failed, error: %s", request.Namespace, request.ClusterId, err)
+		klog.Errorf("get release %s/%s failed, error: %s", request.Namespace, applicationId, err)
 		return err
 	}
 
@@ -130,12 +129,12 @@ func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest) erro
 	patch := client.MergeFrom(oldRls)
 	data, _ := patch.Data(newRls)
 
-	_, err = c.rlsClient.Patch(context.TODO(), request.ClusterId, patch.Type(), data, metav1.PatchOptions{})
+	_, err = c.rlsClient.Patch(context.TODO(), applicationId, patch.Type(), data, metav1.PatchOptions{})
 	if err != nil {
-		klog.Errorf("patch release %s/%s failed, error: %s", request.Namespace, request.ClusterId, err)
+		klog.Errorf("patch release %s/%s failed, error: %s", request.Namespace, applicationId, err)
 		return err
 	} else {
-		klog.V(2).Infof("patch release %s/%s success", request.Namespace, request.ClusterId)
+		klog.V(2).Infof("patch release %s/%s success", request.Namespace, applicationId)
 	}
 
 	return nil
