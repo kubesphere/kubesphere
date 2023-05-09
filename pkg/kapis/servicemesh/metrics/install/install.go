@@ -17,7 +17,7 @@ limitations under the License.
 package install
 
 import (
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"

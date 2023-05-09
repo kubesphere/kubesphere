@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )

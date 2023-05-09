@@ -22,7 +22,7 @@ import (
 	"net/http"
 
 	"github.com/docker/distribution/manifest/schema2"
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/klog/v2"
 )
 

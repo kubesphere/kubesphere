@@ -25,7 +25,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/server/httplog"
 	"k8s.io/klog/v2"

@@ -25,7 +25,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/klog/v2"
 
 	"github.com/google/go-cmp/cmp"

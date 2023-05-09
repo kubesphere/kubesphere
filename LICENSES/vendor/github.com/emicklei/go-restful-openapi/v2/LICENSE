@@ -1,6 +1,6 @@
-= vendor/github.com/emicklei/go-restful licensed under: =
+= vendor/github.com/emicklei/go-restful-openapi/v2 licensed under: =
 
-Copyright (c) 2012,2013 Ernest Micklei
+Copyright (c) 2017 Ernest Micklei
 
 MIT License
 
@@ -22,4 +22,4 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
 LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-= vendor/github.com/emicklei/go-restful/LICENSE 2ebc1c12a0f4eae5394522e31961e1de
+= vendor/github.com/emicklei/go-restful-openapi/v2/LICENSE b1ce415d97e837c8677d332b274d4f0b
