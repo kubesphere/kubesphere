@@ -107,7 +107,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
@@ -145,8 +144,6 @@ type APIServer struct {
 	LoggingClient logging.Client
 
 	DevopsClient devops.Interface
-
-	S3Client s3.Interface
 
 	SonarClient sonarqube.SonarInterface
 
