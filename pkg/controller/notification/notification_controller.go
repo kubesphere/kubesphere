@@ -157,7 +157,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	}
 
 	klog.Info("Starting workers")
-	// Launch two workers to process Foo resources
+
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
@@ -214,7 +214,7 @@ func (c *Controller) processNextWorkItem() bool {
 	return true
 }
 
-// syncHandler compares the actual state with the desired, and attempts to
+// reconcile compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the Foo resource
 // with the current status of the resource.
 func (c *Controller) reconcile(obj interface{}) error {
@@ -252,7 +252,7 @@ func (c *Controller) reconcile(obj interface{}) error {
 
 	err := c.Get(context.Background(), client.ObjectKey{Name: runtimeObj.GetName(), Namespace: runtimeObj.GetNamespace()}, runtimeObj)
 	if err != nil {
-		// The user may no longer exist, in which case we stop
+		// The resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
 			utilruntime.HandleError(fmt.Errorf("obj '%s' in work queue no longer exists", name))

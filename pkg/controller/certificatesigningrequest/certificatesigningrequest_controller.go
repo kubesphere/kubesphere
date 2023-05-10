@@ -115,7 +115,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	}
 
 	klog.Info("Starting workers")
-	// Launch two workers to process Foo resources
+
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
@@ -194,7 +194,7 @@ func (c *Controller) processNextWorkItem() bool {
 	return true
 }
 
-// syncHandler compares the actual state with the desired, and attempts to
+// reconcile compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the Foo resource
 // with the current status of the resource.
 func (c *Controller) reconcile(key string) error {
@@ -202,7 +202,7 @@ func (c *Controller) reconcile(key string) error {
 	// Get the CertificateSigningRequest with this name
 	csr, err := c.csrLister.Get(key)
 	if err != nil {
-		// The user may no longer exist, in which case we stop
+		// The resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
 			utilruntime.HandleError(fmt.Errorf("csr '%s' in work queue no longer exists", key))
