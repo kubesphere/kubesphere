@@ -136,7 +136,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		}
 	}
 
-	if s.DevopsOptions.Host != "" {
+	if s.DevopsOptions.Host != "" && s.DevopsOptions.Enable {
 		if apiServer.DevopsClient, err = jenkins.NewDevopsClient(s.DevopsOptions); err != nil {
 			return nil, fmt.Errorf("failed to connect to jenkins, please check jenkins status, error: %v", err)
 		}
@@ -160,13 +160,13 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		}
 	}
 
-	if s.AuditingOptions.Host != "" {
+	if s.AuditingOptions.Host != "" && s.Config.AuditingOptions.Enable {
 		if apiServer.AuditingClient, err = auditingclient.NewClient(s.AuditingOptions); err != nil {
 			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
 		}
 	}
 
-	if s.AlertingOptions != nil && (s.AlertingOptions.PrometheusEndpoint != "" || s.AlertingOptions.ThanosRulerEndpoint != "") {
+	if s.AlertingOptions != nil && (s.AlertingOptions.PrometheusEndpoint != "" || s.AlertingOptions.ThanosRulerEndpoint != "") && s.AlertingOptions.Enable {
 		if apiServer.AlertingClient, err = alerting.NewRuleClient(s.AlertingOptions); err != nil {
 			return nil, fmt.Errorf("failed to init alerting client: %v", err)
 		}

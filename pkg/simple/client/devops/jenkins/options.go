@@ -25,6 +25,7 @@ import (
 )
 
 type Options struct {
+	Enable         bool   `json:"enable" yaml:"enable"`
 	Host           string `json:",omitempty" yaml:"host,omitempty" description:"Jenkins service host address"`
 	Username       string `json:",omitempty" yaml:"username,omitempty" description:"Jenkins admin username"`
 	Password       string `json:",omitempty" yaml:"password,omitempty" description:"Jenkins admin password"`

@@ -26,6 +26,7 @@ import (
 )
 
 type Options struct {
+	Enable   bool   `json:"enable" yaml:"enable"`
 	Endpoint string `json:"endpoint" yaml:"endpoint"`
 
 	// The following options are for the alerting with v2alpha1 version or higher versions

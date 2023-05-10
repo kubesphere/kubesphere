@@ -527,7 +527,7 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 	}
 
 	// controllers for alerting
-	alertingOptionsEnable := cmOptions.AlertingOptions != nil && (cmOptions.AlertingOptions.PrometheusEndpoint != "" || cmOptions.AlertingOptions.ThanosRulerEndpoint != "")
+	alertingOptionsEnable := cmOptions.AlertingOptions.Enable && cmOptions.AlertingOptions != nil && (cmOptions.AlertingOptions.PrometheusEndpoint != "" || cmOptions.AlertingOptions.ThanosRulerEndpoint != "")
 	if alertingOptionsEnable {
 		// "rulegroup" controller
 		if cmOptions.IsControllerEnabled("rulegroup") {

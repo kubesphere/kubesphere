@@ -68,7 +68,6 @@ type auditing struct {
 }
 
 func NewAuditing(informers informers.InformerFactory, opts *options.Options, stopCh <-chan struct{}) Auditing {
-
 	a := &auditing{
 		webhookLister: informers.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 		devopsGetter:  devops.New(informers.KubeSphereSharedInformerFactory()),
