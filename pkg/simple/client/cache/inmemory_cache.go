@@ -32,9 +32,7 @@ import (
 var ErrNoSuchKey = errors.New("no such key")
 
 const (
-	typeInMemoryCache = "InMemoryCache"
-	DefaultCacheType  = typeInMemoryCache
-
+	TypeInMemoryCache    = "InMemoryCache"
 	defaultCleanupPeriod = 2 * time.Hour
 )
 
@@ -176,12 +174,11 @@ type inMemoryCacheFactory struct {
 }
 
 func (sf *inMemoryCacheFactory) Type() string {
-	return typeInMemoryCache
+	return TypeInMemoryCache
 }
 
 func (sf *inMemoryCacheFactory) Create(options options.DynamicOptions, stopCh <-chan struct{}) (Interface, error) {
 	var sOptions InMemoryCacheOptions
-
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
 		WeaklyTypedInput: true,

@@ -2256,6 +2256,7 @@ k8s.io/code-generator/pkg/namer
 k8s.io/code-generator/pkg/util
 # k8s.io/component-base v0.26.1 => k8s.io/component-base v0.26.1
 ## explicit; go 1.19
+k8s.io/component-base/cli
 k8s.io/component-base/cli/flag
 k8s.io/component-base/config
 k8s.io/component-base/config/v1alpha1

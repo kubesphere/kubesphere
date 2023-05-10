@@ -17,16 +17,15 @@ limitations under the License.
 package main
 
 import (
-	"log"
+	"os"
+
+	"k8s.io/component-base/cli"
 
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app"
 )
 
 func main() {
-
 	cmd := app.NewAPIServerCommand()
-
-	if err := cmd.Execute(); err != nil {
-		log.Fatalln(err)
-	}
+	code := cli.Run(cmd)
+	os.Exit(code)
 }

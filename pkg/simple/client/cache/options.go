@@ -31,7 +31,7 @@ type Options struct {
 // because redis is not required for some components
 func NewCacheOptions() *Options {
 	return &Options{
-		Type:    "",
+		Type:    TypeInMemoryCache,
 		Options: map[string]interface{}{},
 	}
 }
