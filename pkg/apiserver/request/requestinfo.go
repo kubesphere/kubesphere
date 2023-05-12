@@ -39,6 +39,16 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 )
 
+const (
+	VerbCreate = "create"
+	VerbGet    = "get"
+	VerbList   = "list"
+	VerbUpdate = "update"
+	VerbDelete = "delete"
+	VerbWatch  = "watch"
+	VerbPatch  = "patch"
+)
+
 type RequestInfoResolver interface {
 	NewRequestInfo(req *http.Request) (*RequestInfo, error)
 }
@@ -191,15 +201,15 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	} else {
 		switch req.Method {
 		case "POST":
-			requestInfo.Verb = "create"
+			requestInfo.Verb = VerbCreate
 		case "GET", "HEAD":
-			requestInfo.Verb = "get"
+			requestInfo.Verb = VerbGet
 		case "PUT":
-			requestInfo.Verb = "update"
+			requestInfo.Verb = VerbUpdate
 		case "PATCH":
-			requestInfo.Verb = "patch"
+			requestInfo.Verb = VerbPatch
 		case "DELETE":
-			requestInfo.Verb = "delete"
+			requestInfo.Verb = VerbDelete
 		default:
 			requestInfo.Verb = ""
 		}
@@ -259,7 +269,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	requestInfo.ResourceScope = r.resolveResourceScope(requestInfo)
 
 	// if there's no name on the request and we thought it was a get before, then the actual verb is a list or a watch
-	if len(requestInfo.Name) == 0 && requestInfo.Verb == "get" {
+	if len(requestInfo.Name) == 0 && requestInfo.Verb == VerbGet {
 		opts := metainternalversion.ListOptions{}
 		if err := metainternalversionscheme.ParameterCodec.DecodeParameters(req.URL.Query(), metav1.SchemeGroupVersion, &opts); err != nil {
 			// An error in parsing request will result in default to "list" and not setting "name" field.
@@ -277,9 +287,9 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		}
 
 		if opts.Watch {
-			requestInfo.Verb = "watch"
+			requestInfo.Verb = VerbWatch
 		} else {
-			requestInfo.Verb = "list"
+			requestInfo.Verb = VerbList
 		}
 
 		if opts.FieldSelector != nil {
@@ -292,7 +302,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	}
 
 	// URL forms: /api/v1/watch/namespaces?labelSelector=kubesphere.io/workspace=system-workspace
-	if requestInfo.Verb == "watch" {
+	if requestInfo.Verb == VerbWatch {
 		selector := req.URL.Query().Get("labelSelector")
 		if strings.HasPrefix(selector, workspaceSelectorPrefix) {
 			workspace := strings.TrimPrefix(selector, workspaceSelectorPrefix)
@@ -302,7 +312,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	}
 
 	// if there's no name on the request and we thought it was a delete before, then the actual verb is deletecollection
-	if len(requestInfo.Name) == 0 && requestInfo.Verb == "delete" {
+	if len(requestInfo.Name) == 0 && requestInfo.Verb == VerbDelete {
 		requestInfo.Verb = "deletecollection"
 	}
 
