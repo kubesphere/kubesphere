@@ -177,7 +177,7 @@ github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
 github.com/docker/cli/cli/config/credentials
 github.com/docker/cli/cli/config/types
-# github.com/docker/distribution v2.8.1+incompatible => github.com/docker/distribution v2.8.1+incompatible
+# github.com/docker/distribution v2.8.2+incompatible => github.com/docker/distribution v2.8.2+incompatible
 ## explicit
 github.com/docker/distribution
 github.com/docker/distribution/digestset
@@ -2631,7 +2631,7 @@ sigs.k8s.io/yaml
 # github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.2.3
 # github.com/davecgh/go-spew => github.com/davecgh/go-spew v1.1.1
 # github.com/docker/cli => github.com/docker/cli v20.10.22+incompatible
-# github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
+# github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
 # github.com/docker/docker => github.com/docker/docker v20.10.24+incompatible
 # github.com/docker/docker-credential-helpers => github.com/docker/docker-credential-helpers v0.7.0
 # github.com/docker/go-connections => github.com/docker/go-connections v0.4.0
