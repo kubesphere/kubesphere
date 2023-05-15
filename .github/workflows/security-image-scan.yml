@@ -1,0 +1,118 @@
+name: security-image-scan
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  push:
+    branches:
+      - '*'
+    tags:
+      - 'v*'
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: docker.io/kubespheredev/
+  TAG: latest
+
+jobs:
+  Grype-Image-Scan:
+
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      security-events: write
+
+
+    steps:
+      - name: Run the Anchore Grype scan action
+        uses: anchore/scan-action@d5aa5b6cb9414b0c7771438046ff5bcfa2854ed7
+        id: scan-ks-apiserver
+        with:
+          image: ${{ env.REGISTRY }}ks-apiserver:${{ env.TAG }}
+          fail-build: false
+          severity-cutoff: critical
+
+      - name: Upload Grype scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.scan-ks-apiserver.outputs.sarif }}
+          category: 'grype-ks-apiserver'
+
+      - name: Run the Anchore Grype scan action
+        uses: anchore/scan-action@d5aa5b6cb9414b0c7771438046ff5bcfa2854ed7
+        id: scan-ks-controller-manager
+        with:
+          image: ${{ env.REGISTRY }}ks-controller-manager:${{ env.TAG }}
+          fail-build: false
+          severity-cutoff: critical
+
+      - name: Upload Grype scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.scan-ks-controller-manager.outputs.sarif }}
+          category: 'grype-ks-controller-manager'
+
+
+  Trivy-Image-Scan:
+
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      security-events: write
+
+
+    steps:
+      - name: Run the Trivy scan action
+        uses: aquasecurity/trivy-action@7b7aa264d83dc58691451798b4d117d53d21edfe
+        with:
+          image-ref: ${{ env.REGISTRY }}ks-apiserver:${{ env.TAG }}
+          format: 'template'
+          template: '@/contrib/sarif.tpl'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-ks-apiserver'
+
+      - name: Run the Trivy scan action
+        uses: aquasecurity/trivy-action@7b7aa264d83dc58691451798b4d117d53d21edfe
+        with:
+          image-ref: ${{ env.REGISTRY }}ks-controller-manager:${{ env.TAG }}
+          format: 'template'
+          template: '@/contrib/sarif.tpl'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-ks-controller-manager'
+
+
+  Anchore-Build-Scan:
+    permissions:
+      contents: write # required to upload to the Dependency submission API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan ks-apiserver image dependency
+        uses: anchore/sbom-action@bb716408e75840bbb01e839347cd213767269d4a
+        with:
+          image: ${{ env.REGISTRY }}ks-apiserver:${{ env.TAG }}
+          artifact-name: ks-apiserver-image.spdx.json
+          dependency-snapshot: true
+
+      - name: Scan ks-controller-manager image dependency
+        uses: anchore/sbom-action@bb716408e75840bbb01e839347cd213767269d4a
+        with:
+          image: ${{ env.REGISTRY }}ks-controller-manager:${{ env.TAG }}
+          artifact-name: ks-controller-manager-image.spdx.json
+          dependency-snapshot: true
