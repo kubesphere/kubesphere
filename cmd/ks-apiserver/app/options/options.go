@@ -24,6 +24,8 @@ import (
 	"strings"
 	"sync"
 
+	resourcev1beta1 "kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
+
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
@@ -264,6 +266,8 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if err != nil {
 		klog.Fatalf("unable to create controller runtime client: %v", err)
 	}
+
+	apiServer.ResourceManager = resourcev1beta1.New(apiServer.RuntimeClient, apiServer.RuntimeCache)
 
 	apiServer.Issuer, err = token.NewIssuer(s.AuthenticationOptions)
 	if err != nil {

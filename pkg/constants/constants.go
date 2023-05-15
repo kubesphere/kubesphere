@@ -55,6 +55,8 @@ const (
 	UserTag           = "User"
 	GroupTag          = "Group"
 
+	RoleTemplateTag = "Role Template"
+
 	WorkspaceMemberTag     = "Workspace Member"
 	DevOpsProjectMemberTag = "DevOps Project Member"
 	NamespaceMemberTag     = "Namespace Member"

@@ -72,6 +72,7 @@ import (
 	edgeruntimev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/edgeruntime/v1alpha1"
 	gatewayv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/gateway/v1alpha1"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
+	iamapiv1beta1 "kubesphere.io/kubesphere/pkg/kapis/iam/v1beta1"
 	kubeedgev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/kubeedge/v1alpha1"
 	meteringv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/metering/v1alpha1"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
@@ -168,6 +169,8 @@ type APIServer struct {
 	ClusterClient clusterclient.ClusterClients
 
 	OpenpitrixClient openpitrix.Interface
+
+	ResourceManager resourcev1beta1.ResourceManager
 }
 
 func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
@@ -219,10 +222,7 @@ func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 			s.InformerFactory.KubernetesSharedInformerFactory()),
 		loginrecord.New(s.InformerFactory.KubeSphereSharedInformerFactory()),
 		s.Config.AuthenticationOptions)
-	amOperator := am.NewOperator(s.KubernetesClient.KubeSphere(),
-		s.KubernetesClient.Kubernetes(),
-		s.InformerFactory,
-		s.DevopsClient)
+	amOperator := am.NewOperator(s.ResourceManager)
 	rbacAuthorizer := rbac.NewRBACAuthorizer(amOperator)
 
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
@@ -275,6 +275,7 @@ func (s *APIServer) installKubeSphereAPIs(stopCh <-chan struct{}) {
 			s.KubernetesClient.KubeSphere(), s.Config.NotificationOptions))
 	}
 	urlruntime.Must(gatewayv1alpha1.AddToContainer(s.container, s.Config.GatewayOptions, s.RuntimeCache, s.RuntimeClient, s.InformerFactory, s.KubernetesClient.Kubernetes(), s.LoggingClient))
+	urlruntime.Must(iamapiv1beta1.AddToContainer(s.container, imOperator, amOperator))
 }
 
 // installHealthz creates the healthz endpoint for this server
@@ -355,7 +356,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	case authorization.RBAC:
 		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version", "/kapis/metrics", "/healthz"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
-		amOperator := am.NewReadOnlyOperator(s.InformerFactory, s.DevopsClient)
+		amOperator := am.NewReadOnlyOperator(s.ResourceManager)
 		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))
 	}
 
