@@ -1,4 +1,4 @@
-name: Security Image Scan
+name: security-image-scan
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -14,8 +14,8 @@ on:
 
 env:
   # Use docker.io for Docker Hub if empty
-  REGISTRY: docker.io/kubespheredev/
-  TAG: latest
+  REGISTRY: registry.cn-beijing.aliyuncs.com/kse/
+  TAG: v3.4.0
 
 jobs:
   Grype-Image-Scan:
@@ -25,7 +25,6 @@ jobs:
     permissions:
       contents: read
       security-events: write
-      actions: read #
 
 
     steps:
