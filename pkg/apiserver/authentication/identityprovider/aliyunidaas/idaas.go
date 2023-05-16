@@ -27,7 +27,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 func init() {
@@ -89,9 +89,9 @@ func (f *idaasProviderFactory) Type() string {
 	return "AliyunIDaaSProvider"
 }
 
-func (f *idaasProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+func (f *idaasProviderFactory) Create(opts options.DynamicOptions) (identityprovider.OAuthProvider, error) {
 	var idaas aliyunIDaaS
-	if err := mapstructure.Decode(options, &idaas); err != nil {
+	if err := mapstructure.Decode(opts, &idaas); err != nil {
 		return nil, err
 	}
 	idaas.Config = &oauth2.Config{

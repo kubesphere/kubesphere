@@ -22,37 +22,30 @@ import (
 	"strings"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
-	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
-
-	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
-
-	"k8s.io/apimachinery/pkg/util/sets"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
-
-	"k8s.io/apimachinery/pkg/labels"
-
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 )
 
 type KubeSphereControllerManagerOptions struct {
 	KubernetesOptions     *k8s.KubernetesOptions
 	DevopsOptions         *jenkins.Options
-	S3Options             *s3.Options
 	AuthenticationOptions *authentication.Options
 	LdapOptions           *ldapclient.Options
 	OpenPitrixOptions     *openpitrix.Options
@@ -93,7 +86,6 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 	s := &KubeSphereControllerManagerOptions{
 		KubernetesOptions:     k8s.NewKubernetesOptions(),
 		DevopsOptions:         jenkins.NewDevopsOptions(),
-		S3Options:             s3.NewS3Options(),
 		LdapOptions:           ldapclient.NewOptions(),
 		OpenPitrixOptions:     openpitrix.NewOptions(),
 		NetworkOptions:        network.NewNetworkOptions(),
@@ -121,7 +113,6 @@ func (s *KubeSphereControllerManagerOptions) Flags(allControllerNameSelectors []
 
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
-	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
 	s.AuthenticationOptions.AddFlags(fss.FlagSet("authentication"), s.AuthenticationOptions)
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
@@ -166,28 +157,27 @@ func (s *KubeSphereControllerManagerOptions) Flags(allControllerNameSelectors []
 }
 
 // Validate Options and Genetic Options
-func (o *KubeSphereControllerManagerOptions) Validate(allControllerNameSelectors []string) []error {
+func (s *KubeSphereControllerManagerOptions) Validate(allControllerNameSelectors []string) []error {
 	var errs []error
-	errs = append(errs, o.DevopsOptions.Validate()...)
-	errs = append(errs, o.KubernetesOptions.Validate()...)
-	errs = append(errs, o.S3Options.Validate()...)
-	errs = append(errs, o.OpenPitrixOptions.Validate()...)
-	errs = append(errs, o.NetworkOptions.Validate()...)
-	errs = append(errs, o.LdapOptions.Validate()...)
-	errs = append(errs, o.MultiClusterOptions.Validate()...)
-	errs = append(errs, o.AlertingOptions.Validate()...)
+	errs = append(errs, s.DevopsOptions.Validate()...)
+	errs = append(errs, s.KubernetesOptions.Validate()...)
+	errs = append(errs, s.OpenPitrixOptions.Validate()...)
+	errs = append(errs, s.NetworkOptions.Validate()...)
+	errs = append(errs, s.LdapOptions.Validate()...)
+	errs = append(errs, s.MultiClusterOptions.Validate()...)
+	errs = append(errs, s.AlertingOptions.Validate()...)
 
 	// genetic option: application-selector
-	if len(o.ApplicationSelector) != 0 {
-		_, err := labels.Parse(o.ApplicationSelector)
+	if len(s.ApplicationSelector) != 0 {
+		_, err := labels.Parse(s.ApplicationSelector)
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
 
 	// genetic option: controllers, check all selectors are valid
-	allControllersNameSet := sets.NewString(allControllerNameSelectors...)
-	for _, selector := range o.ControllerGates {
+	allControllersNameSet := sets.New(allControllerNameSelectors...)
+	for _, selector := range s.ControllerGates {
 		if selector == "*" {
 			continue
 		}
@@ -201,9 +191,9 @@ func (o *KubeSphereControllerManagerOptions) Validate(allControllerNameSelectors
 }
 
 // IsControllerEnabled check if a specified controller enabled or not.
-func (o *KubeSphereControllerManagerOptions) IsControllerEnabled(name string) bool {
+func (s *KubeSphereControllerManagerOptions) IsControllerEnabled(name string) bool {
 	hasStar := false
-	for _, ctrl := range o.ControllerGates {
+	for _, ctrl := range s.ControllerGates {
 		if ctrl == name {
 			return true
 		}
@@ -239,7 +229,6 @@ func (s *KubeSphereControllerManagerOptions) bindLeaderElectionFlags(l *leaderel
 func (s *KubeSphereControllerManagerOptions) MergeConfig(cfg *controllerconfig.Config) {
 	s.KubernetesOptions = cfg.KubernetesOptions
 	s.DevopsOptions = cfg.DevopsOptions
-	s.S3Options = cfg.S3Options
 	s.AuthenticationOptions = cfg.AuthenticationOptions
 	s.LdapOptions = cfg.LdapOptions
 	s.OpenPitrixOptions = cfg.OpenPitrixOptions

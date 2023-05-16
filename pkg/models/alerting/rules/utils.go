@@ -173,8 +173,13 @@ func GetAlertingRulesStatus(ruleNamespace string, ruleChunk *ResourceRuleChunk, 
 		if !strings.HasPrefix(fileShort, ruleNamespace+"-") {
 			continue
 		}
-		resourceRules, ok := ruleChunk.ResourceRulesMap[strings.TrimPrefix(fileShort, ruleNamespace+"-")]
-		if !ok {
+		var resourceRules *ResourceRuleCollection
+		for resourceName, rules := range ruleChunk.ResourceRulesMap {
+			if strings.Contains(strings.TrimPrefix(fileShort, ruleNamespace+"-"), resourceName) {
+				resourceRules = rules
+			}
+		}
+		if resourceRules == nil {
 			continue
 		}
 		if _, ok := resourceRules.GroupSet[group.Name]; !ok {
@@ -244,7 +249,7 @@ out:
 		if !strings.HasPrefix(fileShort, ruleNamespace+"-") {
 			continue
 		}
-		if strings.TrimPrefix(fileShort, ruleNamespace+"-") != rule.ResourceName {
+		if !strings.Contains(strings.TrimPrefix(fileShort, ruleNamespace+"-"), rule.ResourceName) {
 			continue
 		}
 

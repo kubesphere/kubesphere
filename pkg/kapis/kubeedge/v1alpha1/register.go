@@ -17,7 +17,7 @@ limitations under the License.
 package v1
 
 import (
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"kubesphere.io/kubesphere/pkg/kapis/generic"

@@ -478,7 +478,7 @@ func (t *tenantOperator) PatchNamespace(workspace string, namespace *corev1.Name
 
 func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error) {
 	var manageWorkspaceTemplateRequest bool
-	clusterNames := sets.NewString()
+	clusterNames := sets.New[string]()
 
 	patchs, err := jsonpatchutil.Parse(data)
 	if err != nil {
@@ -542,7 +542,7 @@ func (t *tenantOperator) PatchWorkspaceTemplate(user user.Info, workspace string
 	}
 
 	if clusterNames.Len() > 0 {
-		err := t.checkClusterPermission(user, clusterNames.List())
+		err := t.checkClusterPermission(user, clusterNames.UnsortedList())
 		if err != nil {
 			klog.Error(err)
 			return nil, err
@@ -661,14 +661,14 @@ func (t *tenantOperator) ListClusters(user user.Info, queryParam *query.Query) (
 	}
 
 	grantedClustersAnnotation := userDetail.Annotations[iamv1alpha2.GrantedClustersAnnotation]
-	var grantedClusters sets.String
+	var grantedClusters sets.Set[string]
 	if len(grantedClustersAnnotation) > 0 {
-		grantedClusters = sets.NewString(strings.Split(grantedClustersAnnotation, ",")...)
+		grantedClusters = sets.New(strings.Split(grantedClustersAnnotation, ",")...)
 	} else {
-		grantedClusters = sets.NewString()
+		grantedClusters = sets.New[string]()
 	}
 	var clusters []*clusterv1alpha1.Cluster
-	for _, grantedCluster := range grantedClusters.List() {
+	for _, grantedCluster := range grantedClusters.UnsortedList() {
 		obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", grantedCluster)
 		if err != nil {
 			if errors.IsNotFound(err) {

@@ -33,6 +33,8 @@ import (
 	"testing"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/server/options"
+
 	"github.com/golang-jwt/jwt/v4"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -40,7 +42,6 @@ import (
 	"gopkg.in/square/go-jose.v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 var (
@@ -167,7 +168,7 @@ var _ = Describe("OIDC", func() {
 			err      error
 		)
 		It("should configure successfully", func() {
-			config := oauth.DynamicOptions{
+			config := options.DynamicOptions{
 				"issuer":             oidcServer.URL,
 				"clientID":           "kubesphere",
 				"clientSecret":       "c53e80ab92d48ab12f4e7f1f6976d1bdc996e0d7",
@@ -177,13 +178,13 @@ var _ = Describe("OIDC", func() {
 			factory := oidcProviderFactory{}
 			provider, err = factory.Create(config)
 			Expect(err).Should(BeNil())
-			expected := oauth.DynamicOptions{
+			expected := options.DynamicOptions{
 				"issuer":             oidcServer.URL,
 				"clientID":           "kubesphere",
 				"clientSecret":       "c53e80ab92d48ab12f4e7f1f6976d1bdc996e0d7",
 				"redirectURL":        "https://ks-console.kubesphere-system.svc/oauth/redirect/oidc",
 				"insecureSkipVerify": true,
-				"endpoint": oauth.DynamicOptions{
+				"endpoint": options.DynamicOptions{
 					"authURL":       fmt.Sprintf("%s/authorize", oidcServer.URL),
 					"tokenURL":      fmt.Sprintf("%s/token", oidcServer.URL),
 					"userInfoURL":   fmt.Sprintf("%s/userinfo", oidcServer.URL),

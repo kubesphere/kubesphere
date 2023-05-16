@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 )
 
 const (

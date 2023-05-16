@@ -21,8 +21,8 @@ package v2beta1
 import (
 	"net/http"
 
-	"github.com/emicklei/go-restful"
-	openapi "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 
@@ -37,7 +37,7 @@ import (
 
 const (
 	GroupName      = "notification.kubesphere.io"
-	KeyOpenAPITags = openapi.KeyOpenAPITags
+	KeyOpenAPITags = restfulspec.KeyOpenAPITags
 )
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v2beta1"}

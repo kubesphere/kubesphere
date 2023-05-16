@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -107,7 +107,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
@@ -145,8 +144,6 @@ type APIServer struct {
 	LoggingClient logging.Client
 
 	DevopsClient devops.Interface
-
-	S3Client s3.Interface
 
 	SonarClient sonarqube.SonarInterface
 
@@ -309,8 +306,8 @@ func (s *APIServer) Run(ctx context.Context) (err error) {
 
 func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	requestInfoResolver := &request.RequestInfoFactory{
-		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
-		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
+		APIPrefixes:          sets.New("api", "apis", "kapis", "kapi"),
+		GrouplessAPIPrefixes: sets.New("api", "kapi"),
 		GlobalResources: []schema.GroupResource{
 			iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralUser),
 			iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralGlobalRole),
@@ -463,8 +460,6 @@ func (s *APIServer) waitForResourceSync(ctx context.Context) error {
 		},
 		{Group: "batch", Version: "v1"}: {
 			"jobs",
-		},
-		{Group: "batch", Version: "v1"}: {
 			"cronjobs",
 		},
 		{Group: "networking.k8s.io", Version: "v1"}: {

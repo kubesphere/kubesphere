@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	apimachineryversion "k8s.io/apimachinery/pkg/version"

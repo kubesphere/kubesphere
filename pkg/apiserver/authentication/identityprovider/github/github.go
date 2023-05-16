@@ -28,7 +28,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 const (
@@ -121,9 +121,9 @@ func (g *ldapProviderFactory) Type() string {
 	return "GitHubIdentityProvider"
 }
 
-func (g *ldapProviderFactory) Create(options oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+func (g *ldapProviderFactory) Create(opts options.DynamicOptions) (identityprovider.OAuthProvider, error) {
 	var github github
-	if err := mapstructure.Decode(options, &github); err != nil {
+	if err := mapstructure.Decode(opts, &github); err != nil {
 		return nil, err
 	}
 
@@ -137,7 +137,7 @@ func (g *ldapProviderFactory) Create(options oauth.DynamicOptions) (identityprov
 		github.Endpoint.UserInfoURL = userInfoURL
 	}
 	// fixed options
-	options["endpoint"] = oauth.DynamicOptions{
+	opts["endpoint"] = options.DynamicOptions{
 		"authURL":     github.Endpoint.AuthURL,
 		"tokenURL":    github.Endpoint.TokenURL,
 		"userInfoURL": github.Endpoint.UserInfoURL,

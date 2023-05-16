@@ -16,7 +16,7 @@ package v1alpha2
 import (
 	"fmt"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/klog/v2"
 
 	"strconv"

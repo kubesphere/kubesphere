@@ -33,7 +33,7 @@ import (
 
 	"kubesphere.io/kubesphere/kube/pkg/apis/core/v1/helper"
 	"kubesphere.io/kubesphere/kube/pkg/apis/core/v1/helper/qos"
-	quota "kubesphere.io/kubesphere/kube/pkg/quota/v1"
+	"kubesphere.io/kubesphere/kube/pkg/quota/v1"
 	"kubesphere.io/kubesphere/kube/pkg/quota/v1/generic"
 )
 
@@ -86,7 +86,7 @@ func isExtendedResourceNameForQuota(name corev1.ResourceName) bool {
 // the incoming pod is required to have those values set.  we should not repeat
 // this mistake for other future resources (gpus, ephemeral-storage,etc).
 // do not add more resources to this list!
-var validationSet = sets.NewString(
+var validationSet = sets.New(
 	string(corev1.ResourceCPU),
 	string(corev1.ResourceMemory),
 	string(corev1.ResourceRequestsCPU),
@@ -123,7 +123,7 @@ func (p *podEvaluator) Constraints(required []corev1.ResourceName, item runtime.
 	// validation with resource counting, but we did this before QoS was even defined.
 	// let's not make that mistake again with other resources now that QoS is defined.
 	requiredSet := quota.ToSet(required).Intersection(validationSet)
-	missingSet := sets.NewString()
+	missingSet := sets.New[string]()
 	for i := range pod.Spec.Containers {
 		enforcePodContainerConstraints(&pod.Spec.Containers[i], requiredSet, missingSet)
 	}
@@ -133,7 +133,7 @@ func (p *podEvaluator) Constraints(required []corev1.ResourceName, item runtime.
 	if len(missingSet) == 0 {
 		return nil
 	}
-	return fmt.Errorf("must specify %s", strings.Join(missingSet.List(), ","))
+	return fmt.Errorf("must specify %s", strings.Join(missingSet.UnsortedList(), ","))
 }
 
 // GroupResource that this evaluator tracks
@@ -220,14 +220,14 @@ var _ quota.Evaluator = &podEvaluator{}
 
 // enforcePodContainerConstraints checks for required resources that are not set on this container and
 // adds them to missingSet.
-func enforcePodContainerConstraints(container *corev1.Container, requiredSet, missingSet sets.String) {
+func enforcePodContainerConstraints(container *corev1.Container, requiredSet, missingSet sets.Set[string]) {
 	requests := container.Resources.Requests
 	limits := container.Resources.Limits
 	containerUsage := podComputeUsageHelper(requests, limits)
 	containerSet := quota.ToSet(quota.ResourceNames(containerUsage))
 	if !containerSet.Equal(requiredSet) {
 		difference := requiredSet.Difference(containerSet)
-		missingSet.Insert(difference.List()...)
+		missingSet.Insert(difference.UnsortedList()...)
 	}
 }
 

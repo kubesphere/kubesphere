@@ -44,7 +44,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"kubesphere.io/kubesphere/pkg/version"
@@ -58,7 +57,6 @@ func NewControllerManagerCommand() *cobra.Command {
 		s = &options.KubeSphereControllerManagerOptions{
 			KubernetesOptions:     conf.KubernetesOptions,
 			DevopsOptions:         conf.DevopsOptions,
-			S3Options:             conf.S3Options,
 			AuthenticationOptions: conf.AuthenticationOptions,
 			LdapOptions:           conf.LdapOptions,
 			OpenPitrixOptions:     conf.OpenPitrixOptions,
@@ -168,13 +166,6 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 	if err != nil {
 		klog.Errorf("Failed to create kubernetes clientset %v", err)
 		return err
-	}
-
-	if s.S3Options != nil && len(s.S3Options.Endpoint) != 0 {
-		_, err = s3.NewS3Client(s.S3Options)
-		if err != nil {
-			return fmt.Errorf("failed to connect to s3, please check s3 service status, error: %v", err)
-		}
 	}
 
 	informerFactory := informers.NewInformerFactories(

@@ -177,7 +177,7 @@ github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
 github.com/docker/cli/cli/config/credentials
 github.com/docker/cli/cli/config/types
-# github.com/docker/distribution v2.8.1+incompatible => github.com/docker/distribution v2.8.1+incompatible
+# github.com/docker/distribution v2.8.2+incompatible => github.com/docker/distribution v2.8.2+incompatible
 ## explicit
 github.com/docker/distribution
 github.com/docker/distribution/digestset
@@ -193,7 +193,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v20.10.23+incompatible => github.com/docker/docker v20.10.23+incompatible
+# github.com/docker/docker v20.10.24+incompatible => github.com/docker/docker v20.10.24+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -261,14 +261,10 @@ github.com/elastic/go-elasticsearch/v7
 github.com/elastic/go-elasticsearch/v7/esapi
 github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
-# github.com/emicklei/go-restful v2.16.0+incompatible => github.com/emicklei/go-restful v2.16.0+incompatible
-## explicit
-github.com/emicklei/go-restful
-github.com/emicklei/go-restful/log
-# github.com/emicklei/go-restful-openapi v1.4.1 => github.com/emicklei/go-restful-openapi v1.4.1
+# github.com/emicklei/go-restful-openapi/v2 v2.9.1 => github.com/emicklei/go-restful-openapi/v2 v2.9.2-0.20230507070325-d6acc08e570c
 ## explicit; go 1.13
-github.com/emicklei/go-restful-openapi
-# github.com/emicklei/go-restful/v3 v3.10.1 => github.com/emicklei/go-restful/v3 v3.10.1
+github.com/emicklei/go-restful-openapi/v2
+# github.com/emicklei/go-restful/v3 v3.10.2 => github.com/emicklei/go-restful/v3 v3.10.2
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
@@ -884,12 +880,6 @@ github.com/patrickmn/go-cache
 # github.com/pelletier/go-toml v1.9.5 => github.com/pelletier/go-toml v1.9.5
 ## explicit; go 1.12
 github.com/pelletier/go-toml
-# github.com/pelletier/go-toml/v2 v2.0.5
-## explicit; go 1.16
-github.com/pelletier/go-toml/v2
-github.com/pelletier/go-toml/v2/internal/ast
-github.com/pelletier/go-toml/v2/internal/danger
-github.com/pelletier/go-toml/v2/internal/tracker
 # github.com/peterbourgon/diskv v2.0.1+incompatible => github.com/peterbourgon/diskv v2.0.1+incompatible
 ## explicit
 github.com/peterbourgon/diskv
@@ -1076,17 +1066,9 @@ github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5 => github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/spf13/viper v1.14.0 => github.com/spf13/viper v1.14.0
-## explicit; go 1.17
+# github.com/spf13/viper v1.13.0 => github.com/spf13/viper v1.4.0
+## explicit
 github.com/spf13/viper
-github.com/spf13/viper/internal/encoding
-github.com/spf13/viper/internal/encoding/dotenv
-github.com/spf13/viper/internal/encoding/hcl
-github.com/spf13/viper/internal/encoding/ini
-github.com/spf13/viper/internal/encoding/javaproperties
-github.com/spf13/viper/internal/encoding/json
-github.com/spf13/viper/internal/encoding/toml
-github.com/spf13/viper/internal/encoding/yaml
 # github.com/src-d/gcfg v1.4.0 => github.com/src-d/gcfg v1.4.0
 ## explicit
 github.com/src-d/gcfg
@@ -1100,9 +1082,6 @@ github.com/stoewer/go-strcase
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/subosito/gotenv v1.4.1 => github.com/subosito/gotenv v1.4.1
-## explicit; go 1.18
-github.com/subosito/gotenv
 # github.com/tchap/go-patricia/v2 v2.3.1 => github.com/tchap/go-patricia/v2 v2.3.1
 ## explicit; go 1.16
 github.com/tchap/go-patricia/v2/patricia
@@ -1488,9 +1467,6 @@ gopkg.in/cas.v2
 # gopkg.in/inf.v0 v0.9.1 => gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0
-# gopkg.in/ini.v1 v1.67.0 => gopkg.in/ini.v1 v1.67.0
-## explicit
-gopkg.in/ini.v1
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 ## explicit
 gopkg.in/natefinch/lumberjack.v2
@@ -2280,6 +2256,7 @@ k8s.io/code-generator/pkg/namer
 k8s.io/code-generator/pkg/util
 # k8s.io/component-base v0.26.1 => k8s.io/component-base v0.26.1
 ## explicit; go 1.19
+k8s.io/component-base/cli
 k8s.io/component-base/cli/flag
 k8s.io/component-base/config
 k8s.io/component-base/config/v1alpha1
@@ -2654,8 +2631,8 @@ sigs.k8s.io/yaml
 # github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.2.3
 # github.com/davecgh/go-spew => github.com/davecgh/go-spew v1.1.1
 # github.com/docker/cli => github.com/docker/cli v20.10.22+incompatible
-# github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
-# github.com/docker/docker => github.com/docker/docker v20.10.23+incompatible
+# github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
+# github.com/docker/docker => github.com/docker/docker v20.10.24+incompatible
 # github.com/docker/docker-credential-helpers => github.com/docker/docker-credential-helpers v0.7.0
 # github.com/docker/go-connections => github.com/docker/go-connections v0.4.0
 # github.com/docker/go-metrics => github.com/docker/go-metrics v0.0.1
@@ -2664,9 +2641,8 @@ sigs.k8s.io/yaml
 # github.com/elastic/go-elasticsearch/v5 => github.com/elastic/go-elasticsearch/v5 v5.6.1
 # github.com/elastic/go-elasticsearch/v6 => github.com/elastic/go-elasticsearch/v6 v6.8.2
 # github.com/elastic/go-elasticsearch/v7 => github.com/elastic/go-elasticsearch/v7 v7.3.0
-# github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.16.0+incompatible
-# github.com/emicklei/go-restful-openapi => github.com/emicklei/go-restful-openapi v1.4.1
-# github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.10.1
+# github.com/emicklei/go-restful-openapi/v2 => github.com/emicklei/go-restful-openapi/v2 v2.9.2-0.20230507070325-d6acc08e570c
+# github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.10.2
 # github.com/emirpasic/gods => github.com/emirpasic/gods v1.12.0
 # github.com/evanphx/json-patch => github.com/evanphx/json-patch v5.6.0+incompatible
 # github.com/evanphx/json-patch/v5 => github.com/evanphx/json-patch/v5 v5.6.0
@@ -2802,10 +2778,9 @@ sigs.k8s.io/yaml
 # github.com/spf13/cobra => github.com/spf13/cobra v1.6.1
 # github.com/spf13/jwalterweatherman => github.com/spf13/jwalterweatherman v1.1.0
 # github.com/spf13/pflag => github.com/spf13/pflag v1.0.5
-# github.com/spf13/viper => github.com/spf13/viper v1.14.0
+# github.com/spf13/viper => github.com/spf13/viper v1.4.0
 # github.com/src-d/gcfg => github.com/src-d/gcfg v1.4.0
 # github.com/stretchr/testify => github.com/stretchr/testify v1.8.1
-# github.com/subosito/gotenv => github.com/subosito/gotenv v1.4.1
 # github.com/tchap/go-patricia/v2 => github.com/tchap/go-patricia/v2 v2.3.1
 # github.com/xanzy/ssh-agent => github.com/xanzy/ssh-agent v0.2.1
 # github.com/xeipuuv/gojsonpointer => github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
@@ -2836,7 +2811,6 @@ sigs.k8s.io/yaml
 # gopkg.in/asn1-ber.v1 => gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 # gopkg.in/cas.v2 => gopkg.in/cas.v2 v2.2.0
 # gopkg.in/inf.v0 => gopkg.in/inf.v0 v0.9.1
-# gopkg.in/ini.v1 => gopkg.in/ini.v1 v1.67.0
 # gopkg.in/square/go-jose.v2 => gopkg.in/square/go-jose.v2 v2.5.1
 # gopkg.in/src-d/go-billy.v4 => gopkg.in/src-d/go-billy.v4 v4.3.2
 # gopkg.in/src-d/go-git.v4 => gopkg.in/src-d/go-git.v4 v4.13.1

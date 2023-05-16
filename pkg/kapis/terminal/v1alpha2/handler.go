@@ -24,7 +24,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	requestctx "kubesphere.io/kubesphere/pkg/apiserver/request"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/gorilla/websocket"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

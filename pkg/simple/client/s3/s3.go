@@ -22,6 +22,8 @@ import (
 	"math"
 	"time"
 
+	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -44,6 +46,8 @@ const (
 	MinConcurrency = 5
 	// MaxConcurrency is the maximum concurrency to limit the goroutines.
 	MaxConcurrency = 128
+
+	fakeS3Host = "FAKE"
 )
 
 // calculateConcurrency calculates the concurrency for better performance,
@@ -120,6 +124,10 @@ func (s *Client) Delete(key string) error {
 }
 
 func NewS3Client(options *Options) (Interface, error) {
+	if options.Endpoint == fakeS3Host {
+		return fakes3.NewFakeS3(), nil
+	}
+
 	cred := credentials.NewStaticCredentials(options.AccessKeyID, options.SecretAccessKey, options.SessionToken)
 
 	config := aws.Config{

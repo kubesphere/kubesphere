@@ -23,7 +23,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	v1 "k8s.io/api/core/v1"
 
 	devopsv1alpha3 "kubesphere.io/api/devops/v1alpha3"

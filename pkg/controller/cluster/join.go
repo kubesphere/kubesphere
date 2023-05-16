@@ -34,6 +34,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fedapis "sigs.k8s.io/kubefed/pkg/apis"
@@ -199,25 +200,25 @@ func createKubeFedCluster(clusterConfig *rest.Config, client client.Client, join
 	case err == nil && errorOnExisting:
 		return nil, errors.Errorf("federated cluster %s already exists in host cluster", joiningClusterName)
 	case err == nil:
-		existingFedCluster.Spec = fedCluster.Spec
-		existingFedCluster.Labels = labels
-		err = client.Update(context.TODO(), existingFedCluster)
-		if err != nil {
+		if retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			if err = client.Get(context.TODO(), key, existingFedCluster); err != nil {
+				return err
+			}
+			existingFedCluster.Spec = fedCluster.Spec
+			existingFedCluster.Labels = labels
+			return client.Update(context.TODO(), existingFedCluster)
+		}); retryErr != nil {
 			klog.V(2).Infof("Could not update federated cluster %s due to %v", fedCluster.Name, err)
 			return nil, err
 		}
 		return existingFedCluster, nil
 	default:
-
-		err = checkWorkspaces(clusterConfig, client, fedCluster)
-
-		if err != nil {
+		if err = checkWorkspaces(clusterConfig, client, fedCluster); err != nil {
 			klog.V(2).Infof("Validate federated cluster %s failed due to %v", fedCluster.Name, err)
 			return nil, err
 		}
 
-		err = client.Create(context.TODO(), fedCluster)
-		if err != nil {
+		if err = client.Create(context.TODO(), fedCluster); err != nil {
 			klog.V(2).Infof("Could not create federated cluster %s due to %v", fedCluster.Name, err)
 			return nil, err
 		}

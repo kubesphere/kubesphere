@@ -24,6 +24,8 @@ import (
 	"strings"
 	"sync"
 
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
+
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
@@ -44,16 +46,12 @@ import (
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
-	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/metricsserver"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/s3"
-	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 )
 
@@ -63,9 +61,6 @@ type ServerRunOptions struct {
 	*apiserverconfig.Config
 	schemeOnce sync.Once
 	DebugMode  bool
-
-	// Enable gops or not.
-	GOPSEnabled bool
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -81,8 +76,6 @@ func NewServerRunOptions() *ServerRunOptions {
 func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	fs := fss.FlagSet("generic")
 	fs.BoolVar(&s.DebugMode, "debug", false, "Don't enable this if you don't know what it means.")
-	fs.BoolVar(&s.GOPSEnabled, "gops", false, "Whether to enable gops or not. When enabled this option, "+
-		"ks-apiserver will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the ks-apiserver currently running.")
 	s.GenericServerRunOptions.AddFlags(fs, s.GenericServerRunOptions)
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
 	s.AuthenticationOptions.AddFlags(fss.FlagSet("authentication"), s.AuthenticationOptions)
@@ -111,8 +104,6 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	return fss
 }
 
-const fakeInterface string = "FAKE"
-
 // NewAPIServer creates an APIServer instance using given options
 func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIServer, error) {
 	apiServer := &apiserver.APIServer{
@@ -132,41 +123,23 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.MonitoringOptions == nil || len(s.MonitoringOptions.Endpoint) == 0 {
 		return nil, fmt.Errorf("moinitoring service address in configuration MUST not be empty, please check configmap/kubesphere-config in kubesphere-system namespace")
 	} else {
-		monitoringClient, err := prometheus.NewPrometheus(s.MonitoringOptions)
-		if err != nil {
+		if apiServer.MonitoringClient, err = prometheus.NewPrometheus(s.MonitoringOptions); err != nil {
 			return nil, fmt.Errorf("failed to connect to prometheus, please check prometheus status, error: %v", err)
 		}
-		apiServer.MonitoringClient = monitoringClient
 	}
 
 	apiServer.MetricsClient = metricsserver.NewMetricsClient(kubernetesClient.Kubernetes(), s.KubernetesOptions)
 
 	if s.LoggingOptions.Host != "" {
-		loggingClient, err := esclient.NewClient(s.LoggingOptions)
-		if err != nil {
+		if apiServer.LoggingClient, err = esclient.NewClient(s.LoggingOptions); err != nil {
 			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
-		}
-		apiServer.LoggingClient = loggingClient
-	}
-
-	if s.S3Options.Endpoint != "" {
-		if s.S3Options.Endpoint == fakeInterface && s.DebugMode {
-			apiServer.S3Client = fakes3.NewFakeS3()
-		} else {
-			s3Client, err := s3.NewS3Client(s.S3Options)
-			if err != nil {
-				return nil, fmt.Errorf("failed to connect to s3, please check s3 service status, error: %v", err)
-			}
-			apiServer.S3Client = s3Client
 		}
 	}
 
 	if s.DevopsOptions.Host != "" {
-		devopsClient, err := jenkins.NewDevopsClient(s.DevopsOptions)
-		if err != nil {
+		if apiServer.DevopsClient, err = jenkins.NewDevopsClient(s.DevopsOptions); err != nil {
 			return nil, fmt.Errorf("failed to connect to jenkins, please check jenkins status, error: %v", err)
 		}
-		apiServer.DevopsClient = devopsClient
 	}
 
 	if s.SonarQubeOptions.Host != "" {
@@ -177,52 +150,30 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		apiServer.SonarClient = sonarqube.NewSonar(sonarClient.SonarQube())
 	}
 
-	// If debug mode is on or CacheOptions is nil, will create a fake cache.
-	if s.CacheOptions.Type != "" {
-		if s.DebugMode {
-			s.CacheOptions.Type = cache.DefaultCacheType
-		}
-		cacheClient, err := cache.New(s.CacheOptions, stopCh)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create cache, error: %v", err)
-		}
-		apiServer.CacheClient = cacheClient
-	} else {
-		s.CacheOptions = &cache.Options{Type: cache.DefaultCacheType}
-		// fake cache has no error to return
-		cacheClient, _ := cache.New(s.CacheOptions, stopCh)
-		apiServer.CacheClient = cacheClient
-		klog.Warning("ks-apiserver starts without cache provided, it will use in memory cache. " +
-			"This may cause inconsistencies when running ks-apiserver with multiple replicas, and memory leak risk")
+	if apiServer.CacheClient, err = cache.New(s.CacheOptions, stopCh); err != nil {
+		return nil, fmt.Errorf("failed to create cache, error: %v", err)
 	}
 
 	if s.EventsOptions.Host != "" {
-		eventsClient, err := eventsclient.NewClient(s.EventsOptions)
-		if err != nil {
+		if apiServer.EventsClient, err = eventsclient.NewClient(s.EventsOptions); err != nil {
 			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
 		}
-		apiServer.EventsClient = eventsClient
 	}
 
 	if s.AuditingOptions.Host != "" {
-		auditingClient, err := auditingclient.NewClient(s.AuditingOptions)
-		if err != nil {
+		if apiServer.AuditingClient, err = auditingclient.NewClient(s.AuditingOptions); err != nil {
 			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
 		}
-		apiServer.AuditingClient = auditingClient
 	}
 
 	if s.AlertingOptions != nil && (s.AlertingOptions.PrometheusEndpoint != "" || s.AlertingOptions.ThanosRulerEndpoint != "") {
-		alertingClient, err := alerting.NewRuleClient(s.AlertingOptions)
-		if err != nil {
+		if apiServer.AlertingClient, err = alerting.NewRuleClient(s.AlertingOptions); err != nil {
 			return nil, fmt.Errorf("failed to init alerting client: %v", err)
 		}
-		apiServer.AlertingClient = alertingClient
 	}
 
 	if s.Config.MultiClusterOptions.Enable {
-		cc := clusterclient.NewClusterClient(informerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters())
-		apiServer.ClusterClient = cc
+		apiServer.ClusterClient = clusterclient.NewClusterClient(informerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters())
 	}
 
 	apiServer.OpenpitrixClient = openpitrixv1.NewOpenpitrixClient(informerFactory, apiServer.KubernetesClient.KubeSphere(), s.OpenPitrixOptions, apiServer.ClusterClient)

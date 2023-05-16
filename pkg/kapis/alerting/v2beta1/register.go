@@ -19,8 +19,8 @@ package v2beta1
 import (
 	"net/http"
 
-	"github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"github.com/emicklei/go-restful/v3"
 
 	alertingv2beta1 "kubesphere.io/api/alerting/v2beta1"
 

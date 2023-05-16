@@ -17,7 +17,7 @@ limitations under the License.
 package v2alpha1
 
 import (
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	promresourcesclient "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	"k8s.io/klog/v2"
 
