@@ -1,4 +1,4 @@
-name: security-image-scan
+name: SecurityImageScan
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -18,7 +18,7 @@ env:
   TAG: latest
 
 jobs:
-  Grype-Image-Scan:
+  GrypeImageScan:
 
     runs-on: ubuntu-latest
     permissions:
@@ -55,7 +55,7 @@ jobs:
           category: 'grype-ks-controller-manager'
 
 
-  Trivy-Image-Scan:
+  TrivyImageScan:
 
     runs-on: ubuntu-latest
     permissions:
@@ -94,7 +94,7 @@ jobs:
           category: 'trivy-ks-controller-manager'
 
 
-  Anchore-Build-Scan:
+  AnchoreBuildScan:
 
     permissions:
       contents: write # required to upload to the Dependency submission API
