@@ -15,17 +15,15 @@ on:
 env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: registry.cn-beijing.aliyuncs.com/kse/
-  TAG: v3.4.0
+  TAG: latest
 
 jobs:
   Grype-Image-Scan:
 
     runs-on: ubuntu-latest
-    environment: dev
     permissions:
       contents: read
       security-events: write
-
 
     steps:
       - name: Run the Anchore Grype scan action
@@ -60,11 +58,9 @@ jobs:
   Trivy-Image-Scan:
 
     runs-on: ubuntu-latest
-    environment: dev
     permissions:
       contents: read
       security-events: write
-
 
     steps:
       - name: Run the Trivy scan action
@@ -99,6 +95,7 @@ jobs:
 
 
   Anchore-Build-Scan:
+
     permissions:
       contents: write # required to upload to the Dependency submission API
     runs-on: ubuntu-latest
