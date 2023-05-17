@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
 )
@@ -53,10 +53,17 @@ var _ = Describe("WorkspaceRole", func() {
 	// test Kubernetes API server, which isn't the goal here.
 	Context("WorkspaceRole Controller", func() {
 		It("Should create successfully", func() {
-			workspaceAdmin := &iamv1alpha2.WorkspaceRole{
+			workspaceAdmin := &iamv1beta1.WorkspaceRole{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   fmt.Sprintf("%s-admin", workspace.Name),
 					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: workspace.Name},
+				},
+				AggregationRoleTemplates: &iamv1beta1.AggregationRoleTemplates{
+					RoleSelector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							fmt.Sprintf(iamv1beta1.ScopeLabelFormat, "workspace"): "",
+						},
+					},
 				},
 				Rules: []rbacv1.PolicyRule{},
 			}
