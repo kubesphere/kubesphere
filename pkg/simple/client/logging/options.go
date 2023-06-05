@@ -22,20 +22,26 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
+const (
+	exportLogsLimitDefault = 100000
+)
+
 type Options struct {
-	Host        string `json:"host" yaml:"host"`
-	BasicAuth   bool   `json:"basicAuth" yaml:"basicAuth"`
-	Username    string `json:"username" yaml:"username"`
-	Password    string `json:"password" yaml:"password"`
-	IndexPrefix string `json:"indexPrefix,omitempty" yaml:"indexPrefix,omitempty"`
-	Version     string `json:"version" yaml:"version"`
+	Host            string `json:"host" yaml:"host"`
+	BasicAuth       bool   `json:"basicAuth" yaml:"basicAuth"`
+	Username        string `json:"username" yaml:"username"`
+	Password        string `json:"password" yaml:"password"`
+	IndexPrefix     string `json:"indexPrefix,omitempty" yaml:"indexPrefix,omitempty"`
+	Version         string `json:"version" yaml:"version"`
+	ExportLogsLimit int    `json:"exportLogsLimit" yaml:"exportLogsLimit"`
 }
 
 func NewLoggingOptions() *Options {
 	return &Options{
-		Host:        "",
-		IndexPrefix: "fluentbit",
-		Version:     "",
+		Host:            "",
+		IndexPrefix:     "fluentbit",
+		Version:         "",
+		ExportLogsLimit: exportLogsLimitDefault,
 	}
 }
 
@@ -76,4 +82,7 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.StringVar(&s.Version, "logging-elasticsearch-version", c.Version, ""+
 		"Elasticsearch major version, e.g. 5/6/7, if left blank, will detect automatically."+
 		"Currently, minimum supported version is 5.x")
+
+	fs.IntVar(&s.ExportLogsLimit, "logging-export-logs-limit", c.ExportLogsLimit, ""+
+		"Maximum lines of logs to export")
 }
