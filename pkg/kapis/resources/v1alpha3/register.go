@@ -141,7 +141,9 @@ func AddToContainer(c *restful.Container, informerFactory informers.InformerFact
 		Param(webservice.PathParameter("namespace", "Namespace of the image repository secret.").Required(true)).
 		Param(webservice.QueryParameter("repository", "Repository to query, e.g. calico/cni.").Required(true)).
 		Param(webservice.QueryParameter("secret", "Secret name of the image repository credential, left empty means anonymous fetch.").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{tagNamespacedResource}).
+		Param(webservice.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d").DefaultValue("page=1")).
+		Param(webservice.QueryParameter(query.ParameterLimit, "limit").Required(false)).
+		Param(webservice.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Doc("List repository tags, this is an experimental API, use it by your own caution.").
 		Returns(http.StatusOK, ok, v2.RepositoryTags{}))
 
