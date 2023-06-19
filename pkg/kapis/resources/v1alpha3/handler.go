@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/emicklei/go-restful/v3"
@@ -251,6 +252,9 @@ func (h *Handler) handleGetRepositoryTags(request *restful.Request, response *re
 	secretName := request.QueryParameter("secret")
 	namespace := request.PathParameter("namespace")
 	repository := request.QueryParameter("repository")
+
+	q := query.ParseQueryParameter(request)
+
 	var secret *v1.Secret
 
 	if len(repository) == 0 {
@@ -271,6 +275,12 @@ func (h *Handler) handleGetRepositoryTags(request *restful.Request, response *re
 		canonicalizeRegistryError(request, response, err)
 		return
 	}
+
+	if !q.Ascending {
+		sort.Sort(sort.Reverse(sort.StringSlice(tags.Tags)))
+	}
+	startIndex, endIndex := q.Pagination.GetValidPagination(len(tags.Tags))
+	tags.Tags = tags.Tags[startIndex:endIndex]
 
 	response.WriteHeaderAndJson(http.StatusOK, tags, restful.MIME_JSON)
 }
