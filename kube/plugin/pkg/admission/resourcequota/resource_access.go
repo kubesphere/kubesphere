@@ -138,9 +138,7 @@ func (e *quotaAccessor) GetQuotas(namespace string) ([]corev1.ResourceQuota, err
 			lruItemObj = newEntry
 		}
 		lruEntry := lruItemObj.(liveLookupEntry)
-		for i := range lruEntry.items {
-			items = append(items, lruEntry.items[i])
-		}
+		items = append(items, lruEntry.items...)
 	}
 
 	resourceQuotas := []corev1.ResourceQuota{}
