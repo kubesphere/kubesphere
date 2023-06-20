@@ -20,7 +20,6 @@ import (
 
 	"sigs.k8s.io/kustomize/api/krusty"
 	"sigs.k8s.io/kustomize/api/resmap"
-	"sigs.k8s.io/kustomize/api/types"
 	kustypes "sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
@@ -64,10 +63,10 @@ func writeFile(fs filesys.FileSystem, path string, content *bytes.Buffer) error 
 func (k *postRendererKustomize) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
 	fs := filesys.MakeFsInMemory()
 	input := "./.local-helm-output.yaml"
-	cfg := types.Kustomization{
+	cfg := kustypes.Kustomization{
 		Resources:         []string{input},
 		CommonAnnotations: k.annotations,                    // add extra annotations to output
-		Labels:            []types.Label{{Pairs: k.labels}}, // Labels to add to all objects but not selectors.
+		Labels:            []kustypes.Label{{Pairs: k.labels}}, // Labels to add to all objects but not selectors.
 	}
 	cfg.APIVersion = kustypes.KustomizationVersion
 	cfg.Kind = kustypes.KustomizationKind
