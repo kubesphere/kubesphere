@@ -42,6 +42,7 @@ type RepositoryTags struct {
 	Registry   string   `json:"registry"`
 	Repository string   `json:"repository"`
 	Tags       []string `json:"tags"`
+	Total      int      `json:"total"`
 }
 
 // ImageConfig wraps v1.ConfigFile to avoid direct dependency
