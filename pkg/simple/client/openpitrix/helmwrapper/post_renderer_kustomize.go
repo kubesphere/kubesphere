@@ -65,7 +65,7 @@ func (k *postRendererKustomize) Run(renderedManifests *bytes.Buffer) (modifiedMa
 	input := "./.local-helm-output.yaml"
 	cfg := kustypes.Kustomization{
 		Resources:         []string{input},
-		CommonAnnotations: k.annotations,                    // add extra annotations to output
+		CommonAnnotations: k.annotations,                       // add extra annotations to output
 		Labels:            []kustypes.Label{{Pairs: k.labels}}, // Labels to add to all objects but not selectors.
 	}
 	cfg.APIVersion = kustypes.KustomizationVersion
