@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 
@@ -86,9 +87,16 @@ func (o *OpenSearch) Search(indices string, body []byte, scroll bool) ([]byte, e
 }
 
 func (o *OpenSearch) Scroll(id string) ([]byte, error) {
+	body, err := jsoniter.Marshal(map[string]string{
+		"scroll_id": id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	response, err := o.client.Scroll(
 		o.client.Scroll.WithContext(context.Background()),
-		o.client.Scroll.WithScrollID(id),
+		o.client.Scroll.WithBody(bytes.NewBuffer(body)),
 		o.client.Scroll.WithScroll(time.Minute))
 	if err != nil {
 		return nil, err

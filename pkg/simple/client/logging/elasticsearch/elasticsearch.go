@@ -51,12 +51,15 @@ type Kubernetes struct {
 
 // Elasticsearch implement logging interface
 type client struct {
-	c *es.Client
+	c               *es.Client
+	ExportLogsLimit int
 }
 
 func NewClient(options *logging.Options) (logging.Client, error) {
 
-	c := &client{}
+	c := &client{
+		ExportLogsLimit: options.ExportLogsLimit,
+	}
 
 	var err error
 	c.c, err = es.NewClient(options.Host, options.BasicAuth, options.Username, options.Password, options.IndexPrefix, options.Version)
@@ -162,14 +165,8 @@ func (c *client) ExportLogs(sf logging.SearchFilter, w io.Writer) error {
 		data = append(data, c.getSource(hit.Source).Log)
 	}
 
-	// limit to retrieve max 100k records
-	for i := 0; i < 100; i++ {
-		if i != 0 {
-			data, id, err = c.scroll(id)
-			if err != nil {
-				return err
-			}
-		}
+	size := 0
+	for {
 		if len(data) == 0 {
 			return nil
 		}
@@ -182,8 +179,17 @@ func (c *client) ExportLogs(sf logging.SearchFilter, w io.Writer) error {
 		if err != nil {
 			return err
 		}
+
+		size = size + 1000
+		if size >= c.ExportLogsLimit {
+			return nil
+		}
+
+		data, id, err = c.scroll(id)
+		if err != nil {
+			return err
+		}
 	}
-	return nil
 }
 
 func (c *client) scroll(id string) ([]string, string, error) {

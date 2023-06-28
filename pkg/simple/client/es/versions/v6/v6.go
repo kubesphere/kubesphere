@@ -28,6 +28,7 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/v6/esapi"
+	jsoniter "github.com/json-iterator/go"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/es/versions"
 )
@@ -85,9 +86,16 @@ func (e *Elastic) Search(indices string, body []byte, scroll bool) ([]byte, erro
 }
 
 func (e *Elastic) Scroll(id string) ([]byte, error) {
+	body, err := jsoniter.Marshal(map[string]string{
+		"scroll_id": id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	response, err := e.Client.Scroll(
 		e.Client.Scroll.WithContext(context.Background()),
-		e.Client.Scroll.WithScrollID(id),
+		e.Client.Scroll.WithBody(bytes.NewBuffer(body)),
 		e.Client.Scroll.WithScroll(time.Minute))
 	if err != nil {
 		return nil, err
