@@ -29,6 +29,8 @@ type GenericClusterReference struct {
 }
 
 type GenericPlacementFields struct {
+	// +listType=map
+	// +listMapKey=name
 	Clusters        []GenericClusterReference `json:"clusters,omitempty"`
 	ClusterSelector *metav1.LabelSelector     `json:"clusterSelector,omitempty"`
 }
