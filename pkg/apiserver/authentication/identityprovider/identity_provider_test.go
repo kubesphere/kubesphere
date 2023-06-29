@@ -113,6 +113,12 @@ func TestSetupWith(t *testing.T) {
 					Type:          "LDAPIdentityProvider",
 					Provider:      options.DynamicOptions{},
 				},
+				{
+					Name:          "ldap",
+					MappingMethod: "auto",
+					Type:          "LDAPIdentityProvider",
+					Provider:      options.DynamicOptions{},
+				},
 			}},
 			wantErr: true,
 		},
