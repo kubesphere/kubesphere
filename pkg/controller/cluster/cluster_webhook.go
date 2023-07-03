@@ -46,28 +46,29 @@ func (h *ValidatingHandler) InjectDecoder(d *admission.Decoder) error {
 
 // Handle handles admission requests.
 func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
-
 	if req.Operation != v1.Update {
 		return admission.Allowed("")
 	}
 
 	newCluster := &clusterv1alpha1.Cluster{}
-	err := h.decoder.DecodeRaw(req.Object, newCluster)
-	if err != nil {
+	if err := h.decoder.DecodeRaw(req.Object, newCluster); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
 	oldCluster := &clusterv1alpha1.Cluster{}
-	err = h.decoder.DecodeRaw(req.OldObject, oldCluster)
-	if err != nil {
+	if err := h.decoder.DecodeRaw(req.OldObject, oldCluster); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	// The cluster created for the first time has no status information
+	if oldCluster.Status.UID == "" {
+		return admission.Allowed("")
 	}
 
 	clusterConfig, err := clientcmd.RESTConfigFromKubeConfig(newCluster.Spec.Connection.KubeConfig)
 	if err != nil {
 		return admission.Denied(fmt.Sprintf("failed to load cluster config for %s: %s", newCluster.Name, err))
 	}
-
 	clusterClient, err := kubernetes.NewForConfig(clusterConfig)
 	if err != nil {
 		return admission.Denied(err.Error())
@@ -80,6 +81,5 @@ func (h *ValidatingHandler) Handle(ctx context.Context, req admission.Request) a
 	if oldCluster.Status.UID != kubeSystem.UID {
 		return admission.Denied("this kubeconfig corresponds to a different cluster than the previous one, you need to make sure that kubeconfig is not from another cluster")
 	}
-
 	return admission.Allowed("")
 }
