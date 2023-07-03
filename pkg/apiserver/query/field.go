@@ -21,6 +21,7 @@ type Value string
 
 const (
 	FieldName                = "name"
+	FieldAlias               = "alias"
 	FieldNames               = "names"
 	FieldUID                 = "uid"
 	FieldCreationTimeStamp   = "creationTimestamp"
