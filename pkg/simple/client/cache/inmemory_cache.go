@@ -92,7 +92,7 @@ func (s *inMemoryCache) cleanInvalidToken() {
 func (s *inMemoryCache) Keys(pattern string) ([]string, error) {
 	// There is a little difference between go regexp and redis key pattern
 	// In redis, * means any character, while in go . means match everything.
-	pattern = strings.Replace(pattern, "*", ".", -1)
+	pattern = strings.Replace(pattern, "*", ".*", -1)
 
 	re, err := regexp.Compile(pattern)
 	if err != nil {
