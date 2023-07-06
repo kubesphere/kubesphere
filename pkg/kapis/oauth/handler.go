@@ -455,6 +455,11 @@ func (h *handler) passwordGrant(provider, username string, password string, req 
 }
 
 func (h *handler) issueTokenTo(user user.Info) (*oauth.Token, error) {
+	if !h.options.MultipleLogin {
+		if err := h.tokenOperator.RevokeAllUserTokens(user.GetName()); err != nil {
+			return nil, err
+		}
+	}
 	accessToken, err := h.tokenOperator.IssueTo(&token.IssueRequest{
 		User:      user,
 		Claims:    token.Claims{TokenType: token.AccessToken},
@@ -471,7 +476,6 @@ func (h *handler) issueTokenTo(user user.Info) (*oauth.Token, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	result := oauth.Token{
 		AccessToken: accessToken,
 		// The OAuth 2.0 token_type response parameter value MUST be Bearer,

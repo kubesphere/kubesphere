@@ -129,9 +129,7 @@ func (t *tokenOperator) tokenCacheValidate(username, token string) error {
 	if exist, err := t.cache.Exists(key); err != nil {
 		return err
 	} else if !exist {
-		err = errors.New("token not found in cache")
-		klog.V(4).Info(fmt.Errorf("%s: %s", err, token))
-		return err
+		return errors.New("token not found in cache")
 	}
 	return nil
 }
