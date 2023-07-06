@@ -527,7 +527,7 @@ github.com/gregjones/httpcache
 # github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 ## explicit
 github.com/grpc-ecosystem/go-grpc-prometheus
-# github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.1
+# github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3
 ## explicit; go 1.17
 github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
 github.com/grpc-ecosystem/grpc-gateway/v2/runtime
@@ -1366,7 +1366,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.52.3 => google.golang.org/grpc v1.52.3
+# google.golang.org/grpc v1.53.0 => google.golang.org/grpc v1.53.0
 ## explicit; go 1.17
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -2806,7 +2806,7 @@ sigs.k8s.io/yaml
 # gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.2.0
 # google.golang.org/appengine => google.golang.org/appengine v1.6.7
 # google.golang.org/genproto => google.golang.org/genproto v0.0.0-20230124163310-31e0e69b6fc2
-# google.golang.org/grpc => google.golang.org/grpc v1.52.3
+# google.golang.org/grpc => google.golang.org/grpc v1.53.0
 # google.golang.org/protobuf => google.golang.org/protobuf v1.28.1
 # gopkg.in/asn1-ber.v1 => gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 # gopkg.in/cas.v2 => gopkg.in/cas.v2 v2.2.0
