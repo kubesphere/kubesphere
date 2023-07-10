@@ -108,7 +108,7 @@ var SupportedGroupVersionResources = map[ClientType][]schema.GroupVersionResourc
 
 		{Group: "networking.k8s.io", Version: "v1", Resource: "ingresses"},
 
-		{Group: "autoscaling", Version: "v2beta2", Resource: "horizontalpodautoscalers"},
+		{Group: "autoscaling", Version: "v2", Resource: "horizontalpodautoscalers"},
 	},
 
 	// all supported kubesphere api objects

@@ -18,7 +18,7 @@ package hpa
 import (
 	"sort"
 
-	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 
@@ -35,15 +35,15 @@ func NewHpaSearcher(informers informers.SharedInformerFactory) v1alpha2.Interfac
 }
 
 func (s *hpaSearcher) Get(namespace, name string) (interface{}, error) {
-	return s.informers.Autoscaling().V2beta2().HorizontalPodAutoscalers().Lister().HorizontalPodAutoscalers(namespace).Get(name)
+	return s.informers.Autoscaling().V2().HorizontalPodAutoscalers().Lister().HorizontalPodAutoscalers(namespace).Get(name)
 }
 
-func hpaTargetMatch(item *autoscalingv2beta2.HorizontalPodAutoscaler, kind, name string) bool {
+func hpaTargetMatch(item *autoscalingv2.HorizontalPodAutoscaler, kind, name string) bool {
 	return item.Spec.ScaleTargetRef.Kind == kind && item.Spec.ScaleTargetRef.Name == name
 }
 
 // exactly Match
-func (*hpaSearcher) match(match map[string]string, item *autoscalingv2beta2.HorizontalPodAutoscaler) bool {
+func (*hpaSearcher) match(match map[string]string, item *autoscalingv2.HorizontalPodAutoscaler) bool {
 	for k, v := range match {
 		switch k {
 		case v1alpha2.TargetKind:
@@ -63,7 +63,7 @@ func (*hpaSearcher) match(match map[string]string, item *autoscalingv2beta2.Hori
 	return true
 }
 
-func (*hpaSearcher) fuzzy(fuzzy map[string]string, item *autoscalingv2beta2.HorizontalPodAutoscaler) bool {
+func (*hpaSearcher) fuzzy(fuzzy map[string]string, item *autoscalingv2.HorizontalPodAutoscaler) bool {
 	for k, v := range fuzzy {
 		if !v1alpha2.ObjectMetaFuzzyMath(k, v, item.ObjectMeta) {
 			return false
@@ -74,13 +74,13 @@ func (*hpaSearcher) fuzzy(fuzzy map[string]string, item *autoscalingv2beta2.Hori
 
 func (s *hpaSearcher) Search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
 
-	horizontalPodAutoscalers, err := s.informers.Autoscaling().V2beta2().HorizontalPodAutoscalers().Lister().HorizontalPodAutoscalers(namespace).List(labels.Everything())
+	horizontalPodAutoscalers, err := s.informers.Autoscaling().V2().HorizontalPodAutoscalers().Lister().HorizontalPodAutoscalers(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]*autoscalingv2beta2.HorizontalPodAutoscaler, 0)
+	result := make([]*autoscalingv2.HorizontalPodAutoscaler, 0)
 
 	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = horizontalPodAutoscalers
