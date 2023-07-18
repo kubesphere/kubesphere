@@ -53,12 +53,12 @@ func AddToContainer(
 	ws := runtime.NewWebService(GroupVersion)
 	h := newNotificationHandler(informers, k8sClient, ksClient, options)
 
-	ws.Route(ws.POST("/configs/notification/verification").
+	ws.Route(ws.POST("/verification").
 		Reads("").
 		To(h.Verify).
 		Returns(http.StatusOK, api.StatusOK, http.Response{}.Body)).
 		Doc("Provide validation for notification-manager information")
-	ws.Route(ws.POST("/configs/notification/users/{user}/verification").
+	ws.Route(ws.POST("/users/{user}/verification").
 		To(h.Verify).
 		Param(ws.PathParameter("user", "user name")).
 		Returns(http.StatusOK, api.StatusOK, http.Response{}.Body)).
