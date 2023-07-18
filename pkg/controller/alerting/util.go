@@ -42,9 +42,13 @@ const (
 	RuleLevelCluster   RuleLevel = "cluster"
 	RuleLevelGlobal    RuleLevel = "global"
 
+	RuleTypeTemplate RuleType = "template" // for template rule configured by exprBuilder to build expression
+	RuleTypeCustom   RuleType = "custom"   // for custom rule configured by direct expression
+
 	// for rule.labels
 	RuleLabelKeyRuleLevel         = "rule_level"
 	RuleLabelKeyRuleGroup         = "rule_group"
+	RuleLabelKeyRuleType          = "rule_type"
 	RuleLabelKeyCluster           = "cluster"
 	RuleLabelKeyNamespace         = "namespace"
 	RuleLabelKeySeverity          = "severity"
@@ -74,6 +78,8 @@ const (
 )
 
 type RuleLevel string
+
+type RuleType string
 
 var maxConfigMapDataSize = int(float64(corev1.MaxSecretSize) * 0.5)
 
@@ -193,6 +199,11 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 					continue
 				}
 				if prule != nil {
+					if rule.ExprBuilder != nil && rule.ExprBuilder.Workload != nil {
+						prule.Labels[RuleLabelKeyRuleType] = string(RuleTypeTemplate)
+					} else {
+						prule.Labels[RuleLabelKeyRuleType] = string(RuleTypeCustom)
+					}
 					prules = append(prules, *prule)
 				}
 			}
@@ -216,6 +227,11 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 					continue
 				}
 				if prule != nil {
+					if rule.ExprBuilder != nil && rule.ExprBuilder.Node != nil {
+						prule.Labels[RuleLabelKeyRuleType] = string(RuleTypeTemplate)
+					} else {
+						prule.Labels[RuleLabelKeyRuleType] = string(RuleTypeCustom)
+					}
 					prules = append(prules, *prule)
 				}
 			}
@@ -241,6 +257,11 @@ func makePrometheusRuleGroups(log logr.Logger, groupList client.ObjectList,
 					continue
 				}
 				if prule != nil {
+					if rule.ExprBuilder != nil && (rule.ExprBuilder.Node != nil || rule.ExprBuilder.Workload != nil) {
+						prule.Labels[RuleLabelKeyRuleType] = string(RuleTypeTemplate)
+					} else {
+						prule.Labels[RuleLabelKeyRuleType] = string(RuleTypeCustom)
+					}
 					prules = append(prules, *prule)
 				}
 			}
