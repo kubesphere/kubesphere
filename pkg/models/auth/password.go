@@ -34,6 +34,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 type passwordAuthenticator struct {
@@ -60,6 +61,14 @@ func (p *passwordAuthenticator) Authenticate(_ context.Context, provider, userna
 	}
 	if provider != "" {
 		return p.authByProvider(provider, username, password)
+	}
+	// auth through every provider to fix provider login failed in 3.4.0
+	for _, providerOptions := range p.authOptions.OAuthOptions.IdentityProviders {
+		// the admin account in kubesphere has the highest priority
+		if username == constants.AdminUserName {
+			break
+		}
+		return p.authByProvider(providerOptions.Name, username, password)
 	}
 	return p.authByKubeSphere(username, password)
 }
