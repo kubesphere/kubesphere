@@ -49,6 +49,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
@@ -447,16 +448,17 @@ func (h *handler) validateMemberClusterConfiguration(clientSet kubernetes.Interf
 	if err != nil {
 		return err
 	}
-
 	mConfig, err := h.getMemberClusterConfig(clientSet)
 	if err != nil {
 		return err
 	}
 
+	if mConfig.MultiClusterOptions.ClusterRole != multicluster.ClusterRoleMember {
+		return fmt.Errorf("the clusterRole of the member cluster must be 'member'")
+	}
 	if hConfig.AuthenticationOptions.JwtSecret != mConfig.AuthenticationOptions.JwtSecret {
 		return fmt.Errorf("hostcluster Jwt is not equal to member cluster jwt, please edit the member cluster cluster config")
 	}
-
 	return nil
 }
 
