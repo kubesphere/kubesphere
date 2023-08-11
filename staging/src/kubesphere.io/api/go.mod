@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/gomega v1.27.1
 	github.com/projectcalico/api v0.0.0
-	github.com/projectcalico/calico v0.0.0-20230227071013-a73515ddc939
+	github.com/projectcalico/calico v3.22.2+incompatible
 	github.com/prometheus/common v0.39.0
 	github.com/prometheus/prometheus v0.42.0
 	github.com/robfig/cron/v3 v3.0.1

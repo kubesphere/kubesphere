@@ -61,7 +61,7 @@ require (
 	github.com/operator-framework/helm-operator-plugins v0.0.11
 	github.com/pkg/errors v0.9.1
 	github.com/projectcalico/api v0.0.0
-	github.com/projectcalico/calico v0.0.0-20230227071013-a73515ddc939
+	github.com/projectcalico/calico v3.22.2+incompatible
 	github.com/prometheus-community/prom-label-proxy v0.6.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.63.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.63.0
