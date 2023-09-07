@@ -3,7 +3,7 @@
 # that can be found in the LICENSE file.
 
 # Download dependencies
-FROM alpine:3.16.2 as base_os_context
+FROM alpine:3.18.3 as base_os_context
 
 ARG INGRESS_NGINX_VERSION=4.2.5
 
@@ -40,7 +40,7 @@ RUN mv /workspace/config/watches.yaml ${OUTDIR}/var/helm-charts/
 
 # Final Image
 
-FROM alpine:3.16.2
+FROM alpine:3.18.3
 
 COPY --from=base_os_context /out/ /
 COPY --from=build_context /out/ /
