@@ -18,7 +18,7 @@ RUN mv /workspace/bin/cmd/ks-apiserver ${OUTDIR}/usr/local/bin/
 # Final image
 #############
 
-FROM alpine:3.16.2
+FROM alpine:3.18.3
 
 COPY --from=build_context /out/ /
 
