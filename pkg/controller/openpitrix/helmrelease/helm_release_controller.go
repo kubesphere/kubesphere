@@ -183,12 +183,8 @@ func (r *ReconcileHelmRelease) reconcile(instance *v1alpha1.HelmRelease) (reconc
 		// no operation
 		return reconcile.Result{}, nil
 	case v1alpha1.HelmStatusFailed:
-		// Release used to be failed, but instance.Status.Version not equal to instance.Spec.Version
-		if instance.Status.Version > 0 && instance.Status.Version != instance.Spec.Version {
-			return r.createOrUpgradeHelmRelease(instance, true)
-		} else {
-			return reconcile.Result{}, nil
-		}
+		// no operation
+		return reconcile.Result{}, nil
 	case v1alpha1.HelmStatusActive:
 		// Release used to be active, but instance.Status.Version not equal to instance.Spec.Version
 		if instance.Status.Version != instance.Spec.Version {

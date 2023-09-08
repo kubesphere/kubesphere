@@ -126,6 +126,15 @@ func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest, appl
 		newRls.Spec.Values = strfmt.Base64(request.Conf)
 	}
 
+	// if release is in failure, change its status
+	if newRls.Status.State == v1alpha1.HelmStatusFailed {
+		if newRls.Status.Version > 0 {
+			newRls.Status.State = v1alpha1.HelmStatusUpgrading
+		} else {
+			newRls.Status.State = v1alpha1.HelmStatusCreating
+		}
+	}
+
 	patch := client.MergeFrom(oldRls)
 	data, _ := patch.Data(newRls)
 
