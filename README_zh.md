@@ -127,7 +127,7 @@ KubeSphere 使用前后端分离的架构，将 [前端](https://github.com/kube
 | Alerting       | N/A                                                                           | 1.21,1.22,1.23,1.24,1.25,1.26 |
 | Auditing	      | v0.2.0                                                                        | 1.21,1.22,1.23,1.24,1.25,1.26 |
 | Monitoring     | N/A		                                                                         | 1.21,1.22,1.23,1.24,1.25,1.26 |
-| DevOps         | v3.4.0                                                                        | 1.21,1.22,1.23                |
+| DevOps         | v3.4.0                                                                        | 1.21,1.22,1.23,1.24,1.25,1.26 |
 | EdgeRuntime    | v1.13.0                                                                       | 1.21,1.22,1.23                |
 | Events         | N/A                                                                           | 1.21,1.22,1.23,1.24,1.25,1.26 |
 | Logging        | opensearch：v2.6.0<br/>fluentbit-operator: v0.14.0<br/> fluent-bit-tag: v1.9.4 | 1.21,1.22,1.23,1.24,1.25,1.26 |
