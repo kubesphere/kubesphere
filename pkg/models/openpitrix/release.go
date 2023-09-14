@@ -133,6 +133,10 @@ func (c *releaseOperator) UpgradeApplication(request UpgradeClusterRequest, appl
 		} else {
 			newRls.Status.State = v1alpha1.HelmStatusCreating
 		}
+		if _, err := c.rlsClient.UpdateStatus(context.TODO(), newRls, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("update release status %s/%s failed, error: %s", request.Namespace, applicationId, err)
+			return err
+		}
 	}
 
 	patch := client.MergeFrom(oldRls)
