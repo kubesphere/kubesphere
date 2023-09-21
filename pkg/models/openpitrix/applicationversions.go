@@ -428,8 +428,9 @@ func (c *applicationOperator) DoAppVersionAction(versionId string, request *Acti
 			return err
 		}
 
-		if !reflect.DeepEqual(&app.Spec, &appInStore.Spec) {
+		if !reflect.DeepEqual(&app.Spec, &appInStore.Spec) || !reflect.DeepEqual(app.Labels[constants.CategoryIdLabelKey], appInStore.Labels[constants.CategoryIdLabelKey]) {
 			appCopy := appInStore.DeepCopy()
+			appCopy.Labels[constants.CategoryIdLabelKey] = app.Labels[constants.CategoryIdLabelKey]
 			appCopy.Spec = app.Spec
 			patch := client.MergeFrom(appInStore)
 			data, _ := patch.Data(appCopy)
