@@ -36,6 +36,7 @@ const (
 	fieldServiceName = "serviceName"
 	fieldPhase       = "phase"
 	fieldStatus      = "status"
+	fieldPodIP       = "podIP"
 
 	statusTypeWaitting  = "Waiting"
 	statusTypeRunning   = "Running"
@@ -103,9 +104,20 @@ func (p *podsGetter) filter(object runtime.Object, filter query.Filter) bool {
 		return statusType == string(filter.Value)
 	case fieldPhase:
 		return string(pod.Status.Phase) == string(filter.Value)
+	case fieldPodIP:
+		return p.podWithIP(pod, string(filter.Value))
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(pod.ObjectMeta, filter)
 	}
+}
+
+func (p *podsGetter) podWithIP(item *corev1.Pod, ipAddress string) bool {
+	for _, ip := range item.Status.PodIPs {
+		if strings.Contains(ip.String(), ipAddress) {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *podsGetter) podBindPVC(item *corev1.Pod, pvcName string) bool {
