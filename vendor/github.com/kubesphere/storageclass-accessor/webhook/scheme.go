@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"github.com/kubesphere/storageclass-accessor/client/apis/accessor/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -9,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	workspacev1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 )
 
 var scheme = runtime.NewScheme()
@@ -24,4 +26,6 @@ func addToScheme(scheme *runtime.Scheme) {
 	utilruntime.Must(admissionregistrationv1beta1.AddToScheme(scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme))
 	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(workspacev1alpha1.AddToScheme(scheme))
 }

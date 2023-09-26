@@ -41,6 +41,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/quota"
+	storagewebhooks "kubesphere.io/kubesphere/pkg/controller/storage/webhooks"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -234,7 +235,12 @@ func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) err
 	hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
 	hookServer.Register("/validate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.ValidatingHandler{C: mgr.GetClient()}})
 	hookServer.Register("/mutate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.MutatingHandler{C: mgr.GetClient()}})
-	hookServer.Register("/persistentvolumeclaims", &webhook.Admission{Handler: &webhooks.AccessorHandler{C: mgr.GetClient()}})
+
+	pvcAdmission, err := storagewebhooks.NewAccessorHandler()
+	if err != nil {
+		klog.Fatalf("unable to create pvc admission: %v", err)
+	}
+	hookServer.Register("/persistentvolumeclaims", &webhook.Admission{Handler: pvcAdmission})
 
 	resourceQuotaAdmission, err := quota.NewResourceQuotaAdmission(mgr.GetClient(), mgr.GetScheme())
 	if err != nil {

@@ -92,7 +92,7 @@ func (cw *CertWatcher) Watch() {
 				return
 			}
 
-			klog.Error(err, "certificate watch error")
+			klog.ErrorS(err, "certificate watch failed")
 		}
 	}
 }
@@ -126,12 +126,12 @@ func (cw *CertWatcher) handleEvent(event fsnotify.Event) {
 	// If the file was removed, re-add the watch.
 	if isRemove(event) {
 		if err := cw.watcher.Add(event.Name); err != nil {
-			klog.Error(err, "error re-watching file")
+			klog.ErrorS(err, "failed to re-watching file")
 		}
 	}
 
 	if err := cw.ReadCertificate(); err != nil {
-		klog.Error(err, "error re-reading certificate")
+		klog.ErrorS(err, "failed to re-reading certificate")
 	}
 }
 

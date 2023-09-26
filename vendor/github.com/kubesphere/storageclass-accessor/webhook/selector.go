@@ -1,9 +1,11 @@
 package webhook
 
 import (
-	"github.com/kubesphere/storageclass-accessor/client/apis/accessor/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/strings/slices"
 	workspacev1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+
+	"github.com/kubesphere/storageclass-accessor/client/apis/accessor/v1alpha1"
 )
 
 func matchLabel(info map[string]string, expressions []v1alpha1.MatchExpressions) bool {
@@ -14,11 +16,26 @@ func matchLabel(info map[string]string, expressions []v1alpha1.MatchExpressions)
 	for _, rule := range expressions {
 		rulePass := true
 		for _, item := range rule.MatchExpressions {
+			if len(item.Values) == 0 {
+				continue
+			}
+			var labelKeyExist bool
+			_, ok := info[item.Key]
+			if ok {
+				labelKeyExist = true
+			}
 			switch item.Operator {
 			case v1alpha1.In:
-				rulePass = rulePass && inList(info[item.Key], item.Values)
+				rulePass = rulePass && labelKeyExist && (slices.Contains(item.Values, "*") || slices.Contains(item.Values, info[item.Key]))
 			case v1alpha1.NotIn:
-				rulePass = rulePass && !inList(info[item.Key], item.Values)
+				if labelKeyExist {
+					rulePass = rulePass && !slices.Contains(item.Values, "*") && !slices.Contains(item.Values, info[item.Key])
+				}
+			default:
+				continue
+			}
+			if !rulePass {
+				break
 			}
 		}
 		if rulePass {
@@ -28,7 +45,7 @@ func matchLabel(info map[string]string, expressions []v1alpha1.MatchExpressions)
 	return false
 }
 
-func matchField(ns *corev1.Namespace, expressions []v1alpha1.FieldExpressions) bool {
+func nsMatchField(ns *corev1.Namespace, expressions []v1alpha1.FieldExpressions) bool {
 	//If not set limit, default pass
 	if len(expressions) == 0 {
 		return true
@@ -37,18 +54,28 @@ func matchField(ns *corev1.Namespace, expressions []v1alpha1.FieldExpressions) b
 	for _, rule := range expressions {
 		rulePass := true
 		for _, item := range rule.FieldExpressions {
+			if len(item.Values) == 0 {
+				continue
+			}
 			var val string
 			switch item.Field {
 			case v1alpha1.Name:
 				val = ns.Name
 			case v1alpha1.Status:
 				val = string(ns.Status.Phase)
+			default:
+				continue
 			}
 			switch item.Operator {
 			case v1alpha1.In:
-				rulePass = rulePass && inList(val, item.Values)
+				rulePass = rulePass && (slices.Contains(item.Values, "*") || slices.Contains(item.Values, val))
 			case v1alpha1.NotIn:
-				rulePass = rulePass && !inList(val, item.Values)
+				rulePass = rulePass && !slices.Contains(item.Values, "*") && !slices.Contains(item.Values, val)
+			default:
+				continue
+			}
+			if !rulePass {
+				break
 			}
 		}
 		if rulePass {
@@ -66,28 +93,33 @@ func wsMatchField(ws *workspacev1alpha1.Workspace, expressions []v1alpha1.FieldE
 	for _, rule := range expressions {
 		pass := true
 		for _, item := range rule.FieldExpressions {
+			if len(item.Values) == 0 {
+				continue
+			}
+			var val string
 			switch item.Field {
+			case v1alpha1.Name:
+				val = ws.Name
 			case v1alpha1.Status:
+				// TODO(stone): check status
+				continue
+			default:
 				continue
 			}
 			switch item.Operator {
 			case v1alpha1.In:
-				pass = pass && inList(ws.Name, item.Values)
+				pass = pass && (slices.Contains(item.Values, "*") || slices.Contains(item.Values, val))
 			case v1alpha1.NotIn:
-				pass = pass && !inList(ws.Name, item.Values)
+				pass = pass && !slices.Contains(item.Values, "*") && !slices.Contains(item.Values, val)
+			default:
+				continue
+			}
+			if !pass {
+				break
 			}
 		}
 		if pass {
 			return pass
-		}
-	}
-	return false
-}
-
-func inList(val string, list []string) bool {
-	for _, elements := range list {
-		if val == elements {
-			return true
 		}
 	}
 	return false

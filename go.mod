@@ -49,7 +49,7 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 	github.com/kubesphere/pvc-autoresizer v0.3.1
 	github.com/kubesphere/sonargo v0.0.2
-	github.com/kubesphere/storageclass-accessor v0.2.2
+	github.com/kubesphere/storageclass-accessor v0.2.4-0.20230919084454-2f39c69db301
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
 	github.com/onsi/ginkgo v1.16.5
@@ -407,6 +407,7 @@ replace (
 	github.com/kubernetes-csi/external-snapshotter/client/v4 => github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 	github.com/kubesphere/pvc-autoresizer => github.com/kubesphere/pvc-autoresizer v0.3.0
 	github.com/kubesphere/sonargo => github.com/kubesphere/sonargo v0.0.2
+	github.com/kubesphere/storageclass-accessor => github.com/kubesphere/storageclass-accessor v0.2.4-0.20230919084454-2f39c69db301
 	github.com/lann/builder => github.com/lann/builder v0.0.0-20180802200727-47ae307949d0
 	github.com/lann/ps => github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0
 	github.com/lib/pq => github.com/lib/pq v1.10.7
