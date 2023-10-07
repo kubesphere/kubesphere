@@ -5,12 +5,14 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	v1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
-	"net/http"
 )
 
 var (
@@ -50,38 +52,39 @@ func newDelegateToV1AdmitHandler(f admitV1Func) admitHandler {
 }
 
 func server(w http.ResponseWriter, r *http.Request, admit admitHandler) {
-	var body []byte
+	var err error
 	if r.Body == nil {
-		msg := "Expected request body to be non-empty"
-		klog.Error(msg)
-		http.Error(w, msg, http.StatusBadRequest)
+		err = fmt.Errorf("request body is nil")
+		klog.ErrorS(err, "request body is nil")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	data, err := ioutil.ReadAll(r.Body)
+	var body []byte
+	body, err = io.ReadAll(r.Body)
 	if err != nil {
-		msg := fmt.Sprintf("Request could not be decoded: %v", err)
-		klog.Error(msg)
-		http.Error(w, msg, http.StatusBadRequest)
+		klog.ErrorS(err, "read request body failed")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	body = data
 
 	// verify the content type is accurate
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		msg := fmt.Sprintf("contentType=%s, expect application/json", contentType)
-		klog.Errorf(msg)
-		http.Error(w, msg, http.StatusBadRequest)
+		err = fmt.Errorf("contentType=%s, expect application/json", contentType)
+		klog.ErrorS(err, "contentType is not application/json")
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	klog.V(2).Info(fmt.Sprintf("handling request: %s", body))
+	klog.Infof("handling request: %s", body)
 
-	deserializer := codecs.UniversalDeserializer()
-	obj, gvk, err := deserializer.Decode(body, nil, nil)
+	var obj runtime.Object
+	var gvk *schema.GroupVersionKind
+	obj, gvk, err = codecs.UniversalDeserializer().Decode(body, nil, nil)
 	if err != nil {
-		msg := fmt.Sprintf("Request could not be decoded: %v", err)
-		klog.Error(msg)
-		http.Error(w, msg, http.StatusBadRequest)
+		klog.ErrorS(err, "request body could not be decoded")
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -91,9 +94,9 @@ func server(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 	case v1.SchemeGroupVersion.WithKind("AdmissionReview"):
 		requestedAdmissionReview, ok := obj.(*v1.AdmissionReview)
 		if !ok {
-			msg := fmt.Sprintf("Expected v1.AdmissionReview but got: %T", obj)
-			klog.Errorf(msg)
-			http.Error(w, msg, http.StatusBadRequest)
+			err = fmt.Errorf("expected v1.AdmissionReview but got: %T", obj)
+			klog.ErrorS(err, "wrong object type")
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		responseAdmissionReview := &v1.AdmissionReview{}
@@ -101,41 +104,40 @@ func server(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 		responseAdmissionReview.Response = admit.v1(*requestedAdmissionReview)
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 		responseObj = responseAdmissionReview
+
+		klog.Infof("start writing response: %v", responseObj)
+
+		var respBytes []byte
+		respBytes, err = json.Marshal(responseObj)
+		if err != nil {
+			klog.ErrorS(err, "failed to marshal response object")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(respBytes)
+		if err != nil {
+			klog.ErrorS(err, "failed to write response")
+		}
 	default:
-		msg := fmt.Sprintf("Unsupported group version kind: %v", gvk)
-		klog.Error(msg)
-		http.Error(w, msg, http.StatusBadRequest)
+		err = fmt.Errorf("unsupported group version kind: %v", gvk)
+		klog.ErrorS(err, "unsupported group version kind")
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	klog.V(2).Info(fmt.Sprintf("sending response: %v", responseObj))
-
-	respBytes, err := json.Marshal(responseObj)
-	if err != nil {
-		klog.Error(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write(respBytes); err != nil {
-		klog.Error(err)
-	}
+	return
 }
 
-func serverPVCRequest(w http.ResponseWriter, r *http.Request) {
-	server(w, r, newDelegateToV1AdmitHandler(AdmitPVC))
-}
-
-func startServer(ctx context.Context, tlsConfig *tls.Config, cw *CertWatcher) error {
+func startServer(ctx context.Context, tlsConfig *tls.Config, cw *CertWatcher, admitter *Admitter) error {
 	go func() {
 		klog.Info("Starting certificate watcher")
 		if err := cw.Start(ctx); err != nil {
-			klog.Errorf("certificate watcher error: %v", err)
+			klog.ErrorS(err, "failed to start certificate watcher")
 		}
 	}()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/persistentvolumeclaims", serverPVCRequest)
+	mux.HandleFunc("/persistentvolumeclaims", admitter.serverPVCRequest)
 	srv := &http.Server{
 		Handler:   mux,
 		TLSConfig: tlsConfig,
@@ -148,6 +150,7 @@ func startServer(ctx context.Context, tlsConfig *tls.Config, cw *CertWatcher) er
 	}
 	return srv.Serve(listener)
 }
+
 func main(cmd *cobra.Command, args []string) {
 	// Create new cert watcher
 	ctx, cancel := context.WithCancel(cmd.Context())
@@ -160,7 +163,13 @@ func main(cmd *cobra.Command, args []string) {
 		GetCertificate: cw.GetCertificate,
 	}
 
-	if err := startServer(ctx, tslConfig, cw); err != nil {
-		klog.Fatalf("server stopped: %v", err)
+	admitter, err := NewAdmitter()
+	if err != nil {
+		klog.Fatalf("failed to initialize new admitter: %v", err)
+	}
+
+	err = startServer(ctx, tslConfig, cw, admitter)
+	if err != nil {
+		klog.Fatalf("failed to start server: %v", err)
 	}
 }

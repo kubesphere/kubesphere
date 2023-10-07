@@ -3,127 +3,87 @@ package webhook
 import (
 	"context"
 	"fmt"
+
 	"github.com/kubesphere/storageclass-accessor/client/apis/accessor/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	workspacev1alpha1 "kubesphere.io/api/tenant/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
-func validateNameSpace(reqResource ReqInfo, accessor *v1alpha1.Accessor) error {
-	klog.Info("start validate namespace")
-	//accessor, err := getAccessor()
-	ns, err := getNameSpace(reqResource.namespace)
+func (a *Admitter) validateNameSpace(ctx context.Context, reqResource ReqInfo, accessor *v1alpha1.Accessor) error {
+	klog.Infof("start validating namespace: %s", reqResource.namespace)
+	ns, err := a.getNameSpace(ctx, reqResource.namespace)
 	if err != nil {
-		klog.Error(err)
+		klog.ErrorS(err, "get namespace failed", "namespace", reqResource.namespace)
 		return err
 	}
-	var fieldPass, labelPass bool
-	fieldPass = matchField(ns, accessor.Spec.NameSpaceSelector.FieldSelector)
-	labelPass = matchLabel(ns.Labels, accessor.Spec.NameSpaceSelector.LabelSelector)
+	fieldPass := nsMatchField(ns, accessor.Spec.NameSpaceSelector.FieldSelector)
+	labelPass := matchLabel(ns.Labels, accessor.Spec.NameSpaceSelector.LabelSelector)
 	if fieldPass && labelPass {
 		return nil
 	}
 
-	klog.Error(fmt.Sprintf("%s %s does not allowed %s in the namespace: %s", reqResource.resource, reqResource.name, reqResource.operator, reqResource.namespace))
-	return fmt.Errorf("The storageClass: %s does not allowed %s %s %s in the namespace: %s ", reqResource.storageClassName, reqResource.operator, reqResource.resource, reqResource.name, reqResource.namespace)
+	err = fmt.Errorf("%s %s is not allowed %s in the namespace: %s", reqResource.resource, reqResource.name, reqResource.operator, reqResource.namespace)
+	klog.ErrorS(err, "validate namespace failed")
+	return err
 }
 
-func validateWorkSpace(reqResource ReqInfo, accessor *v1alpha1.Accessor) error {
-	klog.Info("start validate workspace")
+func (a *Admitter) validateWorkSpace(ctx context.Context, reqResource ReqInfo, accessor *v1alpha1.Accessor) error {
+	klog.Infof("start validating workspace for namespace: %s", reqResource.namespace)
 
-	ns, err := getNameSpace(reqResource.namespace)
+	ns, err := a.getNameSpace(ctx, reqResource.namespace)
 	if err != nil {
-		klog.Error(err)
+		klog.ErrorS(err, "get namespace failed", "namespace", reqResource.namespace)
 		return err
 	}
 	if wsName, ok := ns.Labels["kubesphere.io/workspace"]; ok {
+		klog.Infof("namespace %s is in workspace %s", reqResource.namespace, wsName)
 		var ws *workspacev1alpha1.Workspace
-		ws, err = getWorkSpace(wsName)
+		ws, err = a.getWorkSpace(ctx, wsName)
 		if err != nil {
-			klog.Error("Cannot get the workspace")
+			klog.ErrorS(err, "failed to get the workspace", "workspace", wsName)
+			return err
 		}
-		var fieldPass, labelPass bool
-		fieldPass = wsMatchField(ws, accessor.Spec.WorkSpaceSelector.FieldSelector)
-		labelPass = matchLabel(ns.Labels, accessor.Spec.WorkSpaceSelector.LabelSelector)
+		fieldPass := wsMatchField(ws, accessor.Spec.WorkSpaceSelector.FieldSelector)
+		labelPass := matchLabel(ws.Labels, accessor.Spec.WorkSpaceSelector.LabelSelector)
 		if fieldPass && labelPass {
 			return nil
 		}
 
-		klog.Error(fmt.Sprintf("%s %s does not allowed %s in the workspace: %s", reqResource.resource, reqResource.name, reqResource.operator, wsName))
-		return fmt.Errorf("The storageClass: %s does not allowed %s %s %s in the workspace: %s ", reqResource.storageClassName, reqResource.operator, reqResource.resource, reqResource.name, wsName)
+		err = fmt.Errorf("%s %s is not allowed %s in the workspace: %s", reqResource.resource, reqResource.name, reqResource.operator, wsName)
+		klog.ErrorS(err, "validate workspace failed", "workspace", wsName)
+		return err
 	}
-	klog.Info("Unable to get workspace information, skipped.")
+	klog.Infof("namespace %s has no workspace information, skipped", reqResource.namespace)
 	return nil
 }
 
-func getNameSpace(nameSpaceName string) (*corev1.Namespace, error) {
-	nsClient, err := client.New(config.GetConfigOrDie(), client.Options{})
-	if err != nil {
-		return nil, err
-	}
+func (a *Admitter) getNameSpace(ctx context.Context, nameSpaceName string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{}
-	err = nsClient.Get(context.Background(), types.NamespacedName{Namespace: "", Name: nameSpaceName}, ns)
-	if err != nil {
-		klog.Error("client get namespace failed, err:", err)
-		return nil, err
-	}
-	return ns, nil
+	err := a.client.Get(ctx, types.NamespacedName{Name: nameSpaceName}, ns)
+	return ns, err
 }
 
-func getAccessors(storageClassName string) ([]*v1alpha1.Accessor, error) {
-	// get config
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	var cli client.Client
-	opts := client.Options{}
-	scheme := runtime.NewScheme()
-	_ = v1alpha1.AddToScheme(scheme)
-	opts.Scheme = scheme
-	cli, err = client.New(cfg, opts)
-	if err != nil {
-		return nil, err
-	}
+func (a *Admitter) getAccessors(ctx context.Context, storageClassName string) ([]v1alpha1.Accessor, error) {
 	accessorList := &v1alpha1.AccessorList{}
-
-	var listOpt []client.ListOption
-	err = cli.List(context.Background(), accessorList, listOpt...)
+	err := a.client.List(ctx, accessorList)
 	if err != nil {
+		klog.ErrorS(err, "failed to list accessors for storage class", "storageClassName", storageClassName)
 		// TODO If not found , pass or not?
 		return nil, err
 	}
-	list := make([]*v1alpha1.Accessor, 0)
+	list := make([]v1alpha1.Accessor, 0)
 	for _, accessor := range accessorList.Items {
 		if accessor.Spec.StorageClassName == storageClassName {
-			list = append(list, &accessor)
+			list = append(list, accessor)
 		}
 	}
 	return list, nil
 }
 
-func getWorkSpace(workspaceName string) (*workspacev1alpha1.Workspace, error) {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	var cli client.Client
-	opts := client.Options{}
-	scheme := runtime.NewScheme()
-	_ = workspacev1alpha1.AddToScheme(scheme)
-	opts.Scheme = scheme
-	cli, err = client.New(cfg, opts)
-	if err != nil {
-		return nil, err
-	}
+func (a *Admitter) getWorkSpace(ctx context.Context, workspaceName string) (*workspacev1alpha1.Workspace, error) {
 	workspace := &workspacev1alpha1.Workspace{}
-	err = cli.Get(context.Background(), types.NamespacedName{Namespace: "", Name: workspaceName}, workspace)
-	if err != nil {
-		klog.Error("can't get the workspace by name, err:", err)
-	}
+	err := a.client.Get(ctx, types.NamespacedName{Name: workspaceName}, workspace)
 	return workspace, err
 }

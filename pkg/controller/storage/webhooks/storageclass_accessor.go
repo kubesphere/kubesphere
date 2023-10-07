@@ -1,3 +1,4 @@
+// Package webhooks
 // Copyright 2022 The KubeSphere Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,13 +19,23 @@ import (
 
 	accessor "github.com/kubesphere/storageclass-accessor/webhook"
 	v1 "k8s.io/api/admission/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type AccessorHandler struct {
-	C       client.Client
-	decoder *admission.Decoder
+	admitter *accessor.Admitter
+	decoder  *admission.Decoder
+}
+
+func NewAccessorHandler() (*AccessorHandler, error) {
+	admitter, err := accessor.NewAdmitter()
+	if err != nil {
+		return nil, err
+	}
+	handler := &AccessorHandler{
+		admitter: admitter,
+	}
+	return handler, nil
 }
 
 func (h *AccessorHandler) InjectDecoder(d *admission.Decoder) error {
@@ -36,7 +47,7 @@ func (h *AccessorHandler) Handle(ctx context.Context, req admission.Request) adm
 	review := v1.AdmissionReview{
 		Request: &req.AdmissionRequest,
 	}
-	resp := accessor.AdmitPVC(review)
+	resp := h.admitter.AdmitPVC(review)
 	return admission.Response{
 		AdmissionResponse: *resp,
 	}
