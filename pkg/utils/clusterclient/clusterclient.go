@@ -43,11 +43,10 @@ type innerCluster struct {
 }
 
 type clusterClients struct {
-	sync.RWMutex
 	clusterLister clusterlister.ClusterLister
 
-	// build a in memory cluster cache to speed things up
-	innerClusters map[string]*innerCluster
+	// build an in memory cluster cache to speed things up
+	innerClusters sync.Map
 }
 
 type ClusterClients interface {
@@ -62,7 +61,6 @@ type ClusterClients interface {
 
 func NewClusterClient(clusterInformer clusterinformer.ClusterInformer) ClusterClients {
 	c := &clusterClients{
-		innerClusters: make(map[string]*innerCluster),
 		clusterLister: clusterInformer.Lister(),
 	}
 
@@ -85,9 +83,7 @@ func NewClusterClient(clusterInformer clusterinformer.ClusterInformer) ClusterCl
 func (c *clusterClients) removeCluster(obj interface{}) {
 	cluster := obj.(*clusterv1alpha1.Cluster)
 	klog.V(4).Infof("remove cluster %s", cluster.Name)
-	c.Lock()
-	delete(c.innerClusters, cluster.Name)
-	c.Unlock()
+	c.innerClusters.Delete(cluster.Name)
 }
 
 func newInnerCluster(cluster *clusterv1alpha1.Cluster) *innerCluster {
@@ -139,9 +135,7 @@ func (c *clusterClients) addCluster(obj interface{}) *innerCluster {
 	}
 
 	inner := newInnerCluster(cluster)
-	c.Lock()
-	c.innerClusters[cluster.Name] = inner
-	c.Unlock()
+	c.innerClusters.Store(cluster.Name, inner)
 	return inner
 }
 
@@ -158,10 +152,8 @@ func (c *clusterClients) GetClusterKubeconfig(clusterName string) (string, error
 }
 
 func (c *clusterClients) GetInnerCluster(name string) *innerCluster {
-	c.RLock()
-	defer c.RUnlock()
-	if inner, ok := c.innerClusters[name]; ok {
-		return inner
+	if inner, ok := c.innerClusters.Load(name); ok {
+		return inner.(*innerCluster)
 	} else if cluster, err := c.clusterLister.Get(name); err == nil {
 		// double check if the cluster exists but is not cached
 		return c.addCluster(cluster)
