@@ -469,6 +469,12 @@ func (c *applicationOperator) ModifyApp(appId string, request *ModifyAppRequest)
 		return err
 	}
 
+	_, err = c.appClient.UpdateStatus(context.TODO(), appCopy, metav1.UpdateOptions{})
+	if err != nil {
+		klog.Errorf("update helm application status: %s failed, error: %s", appId, err)
+		return err
+	}
+
 	_, err = c.appClient.Patch(context.TODO(), appId, patch.Type(), data, metav1.PatchOptions{})
 	if err != nil {
 		klog.Errorf("patch helm application: %s failed, error: %s", appId, err)
@@ -478,6 +484,7 @@ func (c *applicationOperator) ModifyApp(appId string, request *ModifyAppRequest)
 		}
 		return err
 	}
+
 	return nil
 }
 
