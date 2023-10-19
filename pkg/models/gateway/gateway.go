@@ -47,7 +47,7 @@ import (
 )
 
 const (
-	MasterLabel             = "node-role.kubernetes.io/master"
+	MasterLabel             = "node-role.kubernetes.io/control-plane"
 	SidecarInject           = "sidecar.istio.io/inject"
 	gatewayPrefix           = "kubesphere-router-"
 	workingNamespace        = "kubesphere-controls-system"
