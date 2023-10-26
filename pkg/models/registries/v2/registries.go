@@ -52,6 +52,7 @@ func (r *registryer) ListRepositoryTags(src string) (RepositoryTags, error) {
 		Registry:   repo.RegistryStr(),
 		Repository: repo.RepositoryStr(),
 		Tags:       tags,
+		Total:      len(tags),
 	}, nil
 }
 
