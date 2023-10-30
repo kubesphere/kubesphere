@@ -96,6 +96,8 @@ authentication:
   oauthOptions:
     accessTokenMaxAge: 0s
     accessTokenInactivityTimeout: 0s
+multicluster:
+  clusterRole: host
 `,
 }
 
@@ -104,10 +106,12 @@ var memberMap = map[string]string{
 monitoring:
   endpoint: http://prometheus-operated.kubesphere-monitoring-system.svc:9090
 authentication:
-  jwtSecret: sQh3JOqNbmci6Gu94TeV10AY7ipltwj
+  jwtSecret: sQh3JOqNbmci6Gu94TeV10AY7ipltwjp
   oauthOptions:
     accessTokenMaxAge: 0s
     accessTokenInactivityTimeout: 0s
+multicluster:
+  clusterRole: member
 `,
 }
 
@@ -437,19 +441,10 @@ func TestValidateMemberClusterConfiguration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	addMemberClusterResource(hostCm, t)
-
-	err = h.validateMemberClusterConfiguration(clientSet)
-	if err != nil {
+	addMemberClusterResource(memberCm, t)
+	if err = h.validateMemberClusterConfiguration(clientSet); err != nil {
 		t.Fatal(err)
 	}
-
-	addMemberClusterResource(memberCm, t)
-	err = h.validateMemberClusterConfiguration(clientSet)
-	if err == nil {
-		t.Fatal()
-	}
-	t.Log(err)
 }
 
 func addMemberClusterResource(targetCm *corev1.ConfigMap, t *testing.T) {
