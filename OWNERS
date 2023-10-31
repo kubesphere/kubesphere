@@ -1,26 +1,16 @@
 approvers:
-    - zryfish #oncall
+    - zheng1 #oncall
     - rayzhou2017
     - wansir
-    - zheng1
     - benjaminhuo
 
 reviewers:
     - rayzhou2017
-    - zryfish
     - benjaminhuo
     - calvinyv
-    - FeynmanZhou
     - pixiake
     - wansir
     - zheng1
     - stoneshi-yunify
-    - linuxsuren
-    - RolandMa1986
     - wanjunlei
-    - xyz-li
     - junotx
-    - yuswift
-    - zhu733756
-    - JohnNiang
-    - dkeven
