@@ -410,13 +410,13 @@ github.com/golang-jwt/jwt/v4
 # github.com/golang/example v0.0.0-20170904185048-46695d81d1fa => github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 ## explicit
 github.com/golang/example/stringutil
-# github.com/golang/glog v1.0.0 => github.com/golang/glog v1.0.0
+# github.com/golang/glog v1.1.0 => github.com/golang/glog v1.0.0
 ## explicit; go 1.11
 github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da => github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 ## explicit
 github.com/golang/groupcache/lru
-# github.com/golang/protobuf v1.5.2 => github.com/golang/protobuf v1.5.2
+# github.com/golang/protobuf v1.5.3 => github.com/golang/protobuf v1.5.2
 ## explicit; go 1.9
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
@@ -1078,7 +1078,7 @@ github.com/src-d/gcfg/types
 # github.com/stoewer/go-strcase v1.2.0
 ## explicit; go 1.11
 github.com/stoewer/go-strcase
-# github.com/stretchr/testify v1.8.1 => github.com/stretchr/testify v1.8.1
+# github.com/stretchr/testify v1.8.3 => github.com/stretchr/testify v1.8.1
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
@@ -1254,7 +1254,7 @@ golang.org/x/crypto/ssh/knownhosts
 ## explicit; go 1.18
 golang.org/x/exp/constraints
 golang.org/x/exp/slices
-# golang.org/x/mod v0.8.0
+# golang.org/x/mod v0.9.0
 ## explicit; go 1.17
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
@@ -1276,7 +1276,7 @@ golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.4.0 => golang.org/x/oauth2 v0.4.0
+# golang.org/x/oauth2 v0.7.0 => golang.org/x/oauth2 v0.4.0
 ## explicit; go 1.17
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
@@ -1324,7 +1324,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.3.0 => golang.org/x/time v0.3.0
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.6.0 => golang.org/x/tools v0.6.0
+# golang.org/x/tools v0.7.0 => golang.org/x/tools v0.6.0
 ## explicit; go 1.18
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
@@ -1357,7 +1357,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20230124163310-31e0e69b6fc2 => google.golang.org/genproto v0.0.0-20230124163310-31e0e69b6fc2
+# google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 => google.golang.org/genproto v0.0.0-20230124163310-31e0e69b6fc2
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
@@ -1366,7 +1366,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.53.0 => google.golang.org/grpc v1.53.0
+# google.golang.org/grpc v1.56.3 => google.golang.org/grpc v1.56.3
 ## explicit; go 1.17
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1419,7 +1419,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.28.1 => google.golang.org/protobuf v1.28.1
+# google.golang.org/protobuf v1.30.0 => google.golang.org/protobuf v1.28.1
 ## explicit; go 1.11
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
@@ -2807,7 +2807,7 @@ sigs.k8s.io/yaml
 # gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.2.0
 # google.golang.org/appengine => google.golang.org/appengine v1.6.7
 # google.golang.org/genproto => google.golang.org/genproto v0.0.0-20230124163310-31e0e69b6fc2
-# google.golang.org/grpc => google.golang.org/grpc v1.53.0
+# google.golang.org/grpc => google.golang.org/grpc v1.56.3
 # google.golang.org/protobuf => google.golang.org/protobuf v1.28.1
 # gopkg.in/asn1-ber.v1 => gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 # gopkg.in/cas.v2 => gopkg.in/cas.v2 v2.2.0
