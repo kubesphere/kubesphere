@@ -39,7 +39,7 @@ if ! command -v golangci-lint ; then
 # Install golangci-lint
   echo 'installing golangci-lint'
   pushd "${KUBE_ROOT}/hack/tools" >/dev/null
-    GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
+    GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
   popd >/dev/null
 fi
 
