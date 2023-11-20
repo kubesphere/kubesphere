@@ -1,10 +1,24 @@
----
-title: "Release Notes for 3.4.1"
-keywords: "Kubernetes, KubeSphere, Release Notes"
-description: "KubeSphere 3.4.1 Release Notes"
-linkTitle: "Release Notes - 3.4.1"
-weight: 18093
----
+- [v3.4.1](#v341)
+  - [App Store](#app-store)
+    - [Bug Fixes](#bug-fixes)
+  - [Console](#console)
+    - [Bug Fixes](#bug-fixes-1)
+  - [Multi Cluster](#multi-cluster)
+    - [Bug Fixes](#bug-fixes-2)
+  - [Observability](#observability)
+    - [Bug Fixes](#bug-fixes-3)
+  - [Authentication \& Authorization](#authentication--authorization)
+    - [Bug Fixes](#bug-fixes-4)
+  - [DevOps](#devops)
+    - [Bug Fixes](#bug-fixes-5)
+    - [Optimization](#optimization)
+  - [User Experience](#user-experience)
+    - [Bug Fixes](#bug-fixes-6)
+  - [Monitoring](#monitoring)
+    - [Bug Fixes](#bug-fixes-7)
+
+
+# v3.4.1
 
 ## App Store
 
