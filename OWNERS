@@ -1,8 +1,7 @@
 approvers:
-    - zryfish #oncall
+    - zheng1 #oncall
     - rayzhou2017
     - wansir
-    - zheng1
     - benjaminhuo
 
 reviewers:
