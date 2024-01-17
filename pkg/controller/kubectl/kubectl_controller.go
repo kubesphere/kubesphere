@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
+	"kubesphere.io/kubesphere/pkg/models/terminal"
 )
 
 const (
@@ -56,7 +57,7 @@ func NewController(k8sClient kubernetes.Interface, podInformer coreinfomers.PodI
 			// 1. Pod in specific namespace.
 			// 2. No controller owner.
 			// 3. Name will kubectl prefix
-			if pod, ok := obj.(*v1.Pod); ok && pod.Namespace == "term.ns" && len(pod.OwnerReferences) == 0 && strings.HasPrefix(pod.Name, "term.has") {
+			if pod, ok := obj.(*v1.Pod); ok && pod.Namespace == terminal.KubectlPodNamespace && len(pod.OwnerReferences) == 0 && strings.HasPrefix(pod.Name, terminal.KubectlPodNamePrefix) {
 				return true
 			}
 			return false
