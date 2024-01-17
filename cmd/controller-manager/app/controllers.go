@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"kubesphere.io/kubesphere/pkg/controller/kubectl"
 	ctrl "sigs.k8s.io/controller-runtime"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -558,6 +559,10 @@ func addAllControllers(mgr manager.Manager, client k8s.Client, informerFactory i
 			klog.Infof("%s controller is disabled by controller selectors.", name)
 		}
 	}
+
+	// Add kubectl controller
+	kubectlController := kubectl.NewController(client.Kubernetes(), kubernetesInformer.Core().V1().Pods())
+	addController(mgr, "kubectl", kubectlController)
 
 	return nil
 }
