@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	Finalizer   = "liks.lixiang.com/kubectl-controller"
+	Finalizer   = "github.com/kubesphere/kubectl-controller"
 	parallelism = 4
 )
 
