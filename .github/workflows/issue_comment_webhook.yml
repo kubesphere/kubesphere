@@ -21,6 +21,7 @@ jobs:
         with:
           script: |
             console.log(context);
+            if (context.payload.sender.login === "ks-ci-bot") return;
             const axios = require('axios');
             const issue = context.payload.issue;
             const comment = context.payload.comment;
