@@ -20,9 +20,10 @@ jobs:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         with:
           script: |
-            console.log(context);
+            console.log(JSON.stringify(context, null, 2));
             if (context.payload.sender.login === "ks-ci-bot") return;
-            const axios = require('axios');
+            if (context.payload.sender.type === 'Bot') return;
+            if (context.payload.issue.html_url.indexOf('/pull/') > 0) return;
             const issue = context.payload.issue;
             const comment = context.payload.comment;
             var subject = {};
@@ -34,12 +35,12 @@ jobs:
               action = "issue";
               subject = issue;
             };
-            const payload = {
+            const webhook_body = {
               msgtype: 'markdown',
               markdown: {
                 content: `[${context.payload.sender.login}](${context.payload.sender.html_url}) ${context.payload.action} ${action} [${issue.title}](${subject.html_url})\n${subject.body}`,
               },
             };
-            const formattedPayload = JSON.stringify(payload, null, 2);
-            console.log(formattedPayload);
-            await axios.post(process.env.WEBHOOK_URL, payload);
+            console.log(JSON.stringify(webhook_body, null, 2));
+            const axios = require('axios');
+            await axios.post(process.env.WEBHOOK_URL, webhook_body);
