@@ -164,6 +164,37 @@ func (d *usersGetter) listAllUsersInWorkspace(workspace, role string) ([]*iamv1a
 		}
 	}
 
+	groupBindings, err := d.ksInformer.Iam().V1alpha2().
+		GroupBindings().Lister().List(labels.SelectorFromValidatedSet(labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	for _, roleBinding := range groupBindings {
+		for _, name := range roleBinding.Users {
+
+			if contains(users, name) {
+				klog.Warningf("conflict role binding found: %s, username:%s", roleBinding.ObjectMeta.String(), name)
+				continue
+			}
+
+			obj, err := d.Get("", name)
+
+			if err != nil {
+				if errors.IsNotFound(err) {
+					klog.Warningf("orphan subject: %s", name)
+					continue
+				}
+				klog.Error(err)
+				return nil, err
+			}
+
+			user := obj.(*iamv1alpha2.User)
+			user = user.DeepCopy()
+			users = append(users, user)
+		}
+	}
+
 	return users, nil
 }
 
