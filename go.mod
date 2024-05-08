@@ -283,7 +283,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
@@ -504,7 +504,7 @@ replace (
 	google.golang.org/appengine => google.golang.org/appengine v1.6.7
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20230124163310-31e0e69b6fc2
 	google.golang.org/grpc => google.golang.org/grpc v1.56.3
-	google.golang.org/protobuf => google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
 	gopkg.in/asn1-ber.v1 => gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 	gopkg.in/cas.v2 => gopkg.in/cas.v2 v2.2.0
 	gopkg.in/inf.v0 => gopkg.in/inf.v0 v0.9.1
