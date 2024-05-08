@@ -1419,14 +1419,15 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.30.0 => google.golang.org/protobuf v1.28.1
-## explicit; go 1.11
+# google.golang.org/protobuf v1.33.0 => google.golang.org/protobuf v1.33.0
+## explicit; go 1.17
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
 google.golang.org/protobuf/internal/descopts
 google.golang.org/protobuf/internal/detrand
+google.golang.org/protobuf/internal/editiondefaults
 google.golang.org/protobuf/internal/encoding/defval
 google.golang.org/protobuf/internal/encoding/json
 google.golang.org/protobuf/internal/encoding/messageset
@@ -1451,6 +1452,7 @@ google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/dynamicpb
+google.golang.org/protobuf/types/gofeaturespb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/emptypb
@@ -2808,7 +2810,7 @@ sigs.k8s.io/yaml
 # google.golang.org/appengine => google.golang.org/appengine v1.6.7
 # google.golang.org/genproto => google.golang.org/genproto v0.0.0-20230124163310-31e0e69b6fc2
 # google.golang.org/grpc => google.golang.org/grpc v1.56.3
-# google.golang.org/protobuf => google.golang.org/protobuf v1.28.1
+# google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
 # gopkg.in/asn1-ber.v1 => gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 # gopkg.in/cas.v2 => gopkg.in/cas.v2 v2.2.0
 # gopkg.in/inf.v0 => gopkg.in/inf.v0 v0.9.1
