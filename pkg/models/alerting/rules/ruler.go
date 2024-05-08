@@ -21,8 +21,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/docker/pkg/locker"
 	"github.com/ghodss/yaml"
+	"github.com/moby/locker"
 	"github.com/pkg/errors"
 	promresourcesv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	prominformersv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/informers/externalversions/monitoring/v1"
