@@ -21,7 +21,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -32,7 +32,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/ginkgo/v2 v2.8.1 // indirect
-	github.com/onsi/gomega v1.27.1 // indirect
+	github.com/onsi/gomega v1.27.10 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
@@ -59,6 +59,8 @@ require (
 replace (
 	github.com/golang/glog => github.com/golang/glog v1.0.0
 	github.com/golang/protobuf => github.com/golang/protobuf v1.5.2
+	github.com/google/go-cmp => github.com/google/go-cmp v0.5.9
+	github.com/onsi/gomega => github.com/onsi/gomega v1.27.1
 	github.com/stretchr/testify => github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto => golang.org/x/crypto v0.5.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.4.0

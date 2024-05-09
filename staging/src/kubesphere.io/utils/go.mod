@@ -32,7 +32,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/containerd/containerd v1.7.6 // indirect
-	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v24.0.6+incompatible // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
@@ -58,7 +58,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -96,7 +96,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/ginkgo/v2 v2.8.1 // indirect
-	github.com/onsi/gomega v1.27.1 // indirect
+	github.com/onsi/gomega v1.27.10 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
@@ -121,7 +121,7 @@ require (
 	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/mod v0.9.0 // indirect
+	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
@@ -129,7 +129,7 @@ require (
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.7.0 // indirect
+	golang.org/x/tools v0.13.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	google.golang.org/grpc v1.56.3 // indirect
@@ -150,11 +150,14 @@ require (
 
 replace (
 	github.com/containerd/containerd => github.com/containerd/containerd v1.6.18
+	github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/docker/cli => github.com/docker/cli v20.10.22+incompatible
 	github.com/golang/glog => github.com/golang/glog v1.0.0
 	github.com/golang/protobuf => github.com/golang/protobuf v1.5.2
+	github.com/google/go-cmp => github.com/google/go-cmp v0.5.9
 	github.com/inconshreveable/mousetrap => github.com/inconshreveable/mousetrap v1.0.1
 	github.com/klauspost/compress => github.com/klauspost/compress v1.13.6
+	github.com/onsi/gomega => github.com/onsi/gomega v1.27.1
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra => github.com/spf13/cobra v1.6.1
