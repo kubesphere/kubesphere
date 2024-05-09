@@ -49,6 +49,14 @@ func (cli *Client) postRaw(ctx context.Context, path string, query url.Values, b
 	return cli.sendRequest(ctx, http.MethodPost, path, query, body, headers)
 }
 
+func (cli *Client) put(ctx context.Context, path string, query url.Values, obj interface{}, headers map[string][]string) (serverResponse, error) {
+	body, headers, err := encodeBody(obj, headers)
+	if err != nil {
+		return serverResponse{}, err
+	}
+	return cli.sendRequest(ctx, http.MethodPut, path, query, body, headers)
+}
+
 // putRaw sends an http request to the docker API using the method PUT.
 func (cli *Client) putRaw(ctx context.Context, path string, query url.Values, body io.Reader, headers map[string][]string) (serverResponse, error) {
 	return cli.sendRequest(ctx, http.MethodPut, path, query, body, headers)
@@ -88,15 +96,13 @@ func (cli *Client) buildRequest(method, path string, body io.Reader, headers hea
 		return nil, err
 	}
 	req = cli.addHeaders(req, headers)
+	req.URL.Scheme = cli.scheme
+	req.URL.Host = cli.addr
 
 	if cli.proto == "unix" || cli.proto == "npipe" {
-		// For local communications, it doesn't matter what the host is. We just
-		// need a valid and meaningful host name. (See #189)
-		req.Host = "docker"
+		// Override host header for non-tcp connections.
+		req.Host = DummyHost
 	}
-
-	req.URL.Host = cli.addr
-	req.URL.Scheme = cli.scheme
 
 	if expectedPayload && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", "text/plain")
@@ -109,11 +115,16 @@ func (cli *Client) sendRequest(ctx context.Context, method, path string, query u
 	if err != nil {
 		return serverResponse{}, err
 	}
+
 	resp, err := cli.doRequest(ctx, req)
-	if err != nil {
-		return resp, errdefs.FromStatusCode(err, resp.statusCode)
+	switch {
+	case errors.Is(err, context.Canceled):
+		return serverResponse{}, errdefs.Cancelled(err)
+	case errors.Is(err, context.DeadlineExceeded):
+		return serverResponse{}, errdefs.Deadline(err)
+	case err == nil:
+		err = cli.checkResponseErr(resp)
 	}
-	err = cli.checkResponseErr(resp)
 	return resp, errdefs.FromStatusCode(err, resp.statusCode)
 }
 
@@ -233,14 +244,14 @@ func (cli *Client) addHeaders(req *http.Request, headers headers) *http.Request 
 	// Add CLI Config's HTTP Headers BEFORE we set the Docker headers
 	// then the user can't change OUR headers
 	for k, v := range cli.customHTTPHeaders {
-		if versions.LessThan(cli.version, "1.25") && k == "User-Agent" {
+		if versions.LessThan(cli.version, "1.25") && http.CanonicalHeaderKey(k) == "User-Agent" {
 			continue
 		}
 		req.Header.Set(k, v)
 	}
 
 	for k, v := range headers {
-		req.Header[k] = v
+		req.Header[http.CanonicalHeaderKey(k)] = v
 	}
 	return req
 }

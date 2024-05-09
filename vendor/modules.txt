@@ -24,9 +24,12 @@ github.com/Masterminds/sprig/v3
 # github.com/Masterminds/squirrel v1.5.3 => github.com/Masterminds/squirrel v1.5.3
 ## explicit; go 1.14
 github.com/Masterminds/squirrel
-# github.com/Microsoft/go-winio v0.5.2 => github.com/Microsoft/go-winio v0.5.2
-## explicit; go 1.13
+# github.com/Microsoft/go-winio v0.6.1 => github.com/Microsoft/go-winio v0.6.1
+## explicit; go 1.17
 github.com/Microsoft/go-winio
+github.com/Microsoft/go-winio/internal/fs
+github.com/Microsoft/go-winio/internal/socket
+github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
 # github.com/NYTimes/gziphandler v1.1.1
 ## explicit; go 1.11
@@ -126,7 +129,7 @@ github.com/chai2010/gettext-go
 github.com/chai2010/gettext-go/mo
 github.com/chai2010/gettext-go/plural
 github.com/chai2010/gettext-go/po
-# github.com/containerd/containerd v1.6.18 => github.com/containerd/containerd v1.6.18
+# github.com/containerd/containerd v1.7.6 => github.com/containerd/containerd v1.6.18
 ## explicit; go 1.17
 github.com/containerd/containerd/archive/compression
 github.com/containerd/containerd/content
@@ -171,7 +174,7 @@ github.com/davecgh/go-spew/spew
 # github.com/dennwc/varint v1.0.0
 ## explicit; go 1.12
 github.com/dennwc/varint
-# github.com/docker/cli v20.10.22+incompatible => github.com/docker/cli v20.10.22+incompatible
+# github.com/docker/cli v24.0.6+incompatible => github.com/docker/cli v20.10.22+incompatible
 ## explicit
 github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
@@ -193,7 +196,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v20.10.24+incompatible => github.com/docker/docker v20.10.24+incompatible
+# github.com/docker/docker v24.0.9+incompatible => github.com/docker/docker v24.0.9+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -216,12 +219,8 @@ github.com/docker/docker/errdefs
 github.com/docker/docker/pkg/homedir
 github.com/docker/docker/pkg/ioutils
 github.com/docker/docker/pkg/jsonmessage
-github.com/docker/docker/pkg/locker
 github.com/docker/docker/pkg/longpath
-github.com/docker/docker/pkg/stringid
-github.com/docker/docker/pkg/term
 github.com/docker/docker/registry
-github.com/docker/docker/rootless
 # github.com/docker/docker-credential-helpers v0.7.0 => github.com/docker/docker-credential-helpers v0.7.0
 ## explicit; go 1.18
 github.com/docker/docker-credential-helpers/client
@@ -464,7 +463,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.5.1 => github.com/google/go-containerregistry v0.5.1
+# github.com/google/go-containerregistry v0.14.0 => github.com/google/go-containerregistry v0.5.1
 ## explicit; go 1.14
 github.com/google/go-containerregistry/internal/and
 github.com/google/go-containerregistry/internal/gzip
@@ -554,7 +553,7 @@ github.com/huandu/xstrings
 # github.com/imdario/mergo v0.3.12 => github.com/imdario/mergo v0.3.12
 ## explicit; go 1.13
 github.com/imdario/mergo
-# github.com/inconshreveable/mousetrap v1.0.1 => github.com/inconshreveable/mousetrap v1.0.1
+# github.com/inconshreveable/mousetrap v1.1.0 => github.com/inconshreveable/mousetrap v1.0.1
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 => github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
@@ -582,7 +581,7 @@ github.com/jszwec/csvutil
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd => github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 ## explicit
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.13.6 => github.com/klauspost/compress v1.13.6
+# github.com/klauspost/compress v1.16.0 => github.com/klauspost/compress v1.13.6
 ## explicit; go 1.15
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
@@ -829,7 +828,7 @@ github.com/open-policy-agent/opa/version
 # github.com/opencontainers/go-digest v1.0.0 => github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.1.0-rc2 => github.com/opencontainers/image-spec v1.1.0-rc2
+# github.com/opencontainers/image-spec v1.1.0-rc5 => github.com/opencontainers/image-spec v1.1.0-rc2
 ## explicit; go 1.17
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
@@ -1040,7 +1039,7 @@ github.com/sergi/go-diff/diffmatchpatch
 # github.com/shopspring/decimal v1.2.0 => github.com/shopspring/decimal v1.2.0
 ## explicit; go 1.13
 github.com/shopspring/decimal
-# github.com/sirupsen/logrus v1.9.0 => github.com/sirupsen/logrus v1.9.0
+# github.com/sirupsen/logrus v1.9.3 => github.com/sirupsen/logrus v1.9.0
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 # github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009 => github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
@@ -1057,7 +1056,7 @@ github.com/spf13/afero/mem
 # github.com/spf13/cast v1.5.0 => github.com/spf13/cast v1.5.0
 ## explicit; go 1.18
 github.com/spf13/cast
-# github.com/spf13/cobra v1.6.1 => github.com/spf13/cobra v1.6.1
+# github.com/spf13/cobra v1.7.0 => github.com/spf13/cobra v1.6.1
 ## explicit; go 1.15
 github.com/spf13/cobra
 # github.com/spf13/jwalterweatherman v1.1.0 => github.com/spf13/jwalterweatherman v1.1.0
@@ -1078,7 +1077,7 @@ github.com/src-d/gcfg/types
 # github.com/stoewer/go-strcase v1.2.0
 ## explicit; go 1.11
 github.com/stoewer/go-strcase
-# github.com/stretchr/testify v1.8.3 => github.com/stretchr/testify v1.8.1
+# github.com/stretchr/testify v1.8.4 => github.com/stretchr/testify v1.8.1
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
@@ -1141,7 +1140,7 @@ go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc/inte
 # go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.37.0
 ## explicit; go 1.18
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
-# go.opentelemetry.io/otel v1.11.2 => go.opentelemetry.io/otel v1.11.2
+# go.opentelemetry.io/otel v1.14.0 => go.opentelemetry.io/otel v1.11.2
 ## explicit; go 1.18
 go.opentelemetry.io/otel
 go.opentelemetry.io/otel/attribute
@@ -1185,7 +1184,7 @@ go.opentelemetry.io/otel/sdk/internal
 go.opentelemetry.io/otel/sdk/internal/env
 go.opentelemetry.io/otel/sdk/resource
 go.opentelemetry.io/otel/sdk/trace
-# go.opentelemetry.io/otel/trace v1.11.2 => go.opentelemetry.io/otel/trace v1.11.2
+# go.opentelemetry.io/otel/trace v1.14.0 => go.opentelemetry.io/otel/trace v1.11.2
 ## explicit; go 1.18
 go.opentelemetry.io/otel/trace
 # go.opentelemetry.io/proto/otlp v0.19.0
@@ -1281,7 +1280,7 @@ golang.org/x/net/websocket
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.1.0 => golang.org/x/sync v0.1.0
+# golang.org/x/sync v0.3.0 => golang.org/x/sync v0.1.0
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
@@ -1326,6 +1325,7 @@ golang.org/x/text/width
 golang.org/x/time/rate
 # golang.org/x/tools v0.7.0 => golang.org/x/tools v0.6.0
 ## explicit; go 1.18
+golang.org/x/tools/cmd/stringer
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/packagesdriver
@@ -2406,7 +2406,7 @@ kubesphere.io/monitoring-dashboard/api/v1alpha2/panels
 kubesphere.io/monitoring-dashboard/api/v1alpha2/templatings
 kubesphere.io/monitoring-dashboard/api/v1alpha2/time
 kubesphere.io/monitoring-dashboard/tools/converter
-# oras.land/oras-go v1.2.2 => oras.land/oras-go v1.2.2
+# oras.land/oras-go v1.2.4 => oras.land/oras-go v1.2.4
 ## explicit; go 1.18
 oras.land/oras-go/pkg/artifact
 oras.land/oras-go/pkg/auth
@@ -2614,7 +2614,7 @@ sigs.k8s.io/yaml
 # github.com/Masterminds/semver/v3 => github.com/Masterminds/semver/v3 v3.2.0
 # github.com/Masterminds/sprig/v3 => github.com/Masterminds/sprig/v3 v3.2.3
 # github.com/Masterminds/squirrel => github.com/Masterminds/squirrel v1.5.3
-# github.com/Microsoft/go-winio => github.com/Microsoft/go-winio v0.5.2
+# github.com/Microsoft/go-winio => github.com/Microsoft/go-winio v0.6.1
 # github.com/OneOfOne/xxhash => github.com/OneOfOne/xxhash v1.2.8
 # github.com/PuerkitoBio/goquery => github.com/PuerkitoBio/goquery v1.5.0
 # github.com/agnivade/levenshtein => github.com/agnivade/levenshtein v1.1.1
@@ -2634,7 +2634,7 @@ sigs.k8s.io/yaml
 # github.com/davecgh/go-spew => github.com/davecgh/go-spew v1.1.1
 # github.com/docker/cli => github.com/docker/cli v20.10.22+incompatible
 # github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
-# github.com/docker/docker => github.com/docker/docker v20.10.24+incompatible
+# github.com/docker/docker => github.com/docker/docker v24.0.9+incompatible
 # github.com/docker/docker-credential-helpers => github.com/docker/docker-credential-helpers v0.7.0
 # github.com/docker/go-connections => github.com/docker/go-connections v0.4.0
 # github.com/docker/go-metrics => github.com/docker/go-metrics v0.0.1
@@ -2844,7 +2844,7 @@ sigs.k8s.io/yaml
 # kubesphere.io/client-go => ./staging/src/kubesphere.io/client-go
 # kubesphere.io/monitoring-dashboard => kubesphere.io/monitoring-dashboard v0.2.2
 # kubesphere.io/utils => ./staging/src/kubesphere.io/utils
-# oras.land/oras-go => oras.land/oras-go v1.2.2
+# oras.land/oras-go => oras.land/oras-go v1.2.4
 # sigs.k8s.io/application => sigs.k8s.io/application v0.8.4-0.20201016185654-c8e2959e57a0
 # sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.14.4
 # sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.11.1
