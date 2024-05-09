@@ -6,7 +6,7 @@ go 1.19
 
 require (
 	github.com/go-logr/logr v1.2.3
-	github.com/onsi/gomega v1.27.1
+	github.com/onsi/gomega v1.27.10
 	github.com/projectcalico/api v0.0.0
 	github.com/projectcalico/calico v0.0.0-20230227071013-a73515ddc939
 	github.com/prometheus/common v0.39.0
@@ -54,7 +54,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/grafana/regexp v0.0.0-20221122212121-6b5c0a4cb7fd // indirect
@@ -88,12 +88,14 @@ require (
 	go.uber.org/goleak v1.2.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/exp v0.0.0-20230124195608-d38c7dcee874 // indirect
+	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/tools v0.13.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
@@ -113,6 +115,8 @@ require (
 replace (
 	github.com/golang/glog => github.com/golang/glog v1.0.0
 	github.com/golang/protobuf => github.com/golang/protobuf v1.5.2
+	github.com/google/go-cmp => github.com/google/go-cmp v0.5.9
+	github.com/onsi/gomega => github.com/onsi/gomega v1.27.1
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/projectcalico/api => github.com/kubesphere/calico/api v0.0.0-20230227071013-a73515ddc939 // v3.25.0
 	github.com/projectcalico/calico => github.com/kubesphere/calico v0.0.0-20230227071013-a73515ddc939 // v3.25.0

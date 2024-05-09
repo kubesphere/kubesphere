@@ -163,7 +163,7 @@ github.com/coreos/go-semver/semver
 ## explicit; go 1.12
 github.com/coreos/go-systemd/v22/daemon
 github.com/coreos/go-systemd/v22/journal
-# github.com/cyphar/filepath-securejoin v0.2.3 => github.com/cyphar/filepath-securejoin v0.2.3
+# github.com/cyphar/filepath-securejoin v0.2.4 => github.com/cyphar/filepath-securejoin v0.2.3
 ## explicit; go 1.13
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1 => github.com/davecgh/go-spew v1.1.1
@@ -267,7 +267,7 @@ github.com/emicklei/go-restful-openapi/v2
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
-# github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
+# github.com/emirpasic/gods v1.18.1 => github.com/emirpasic/gods v1.12.0
 ## explicit
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -456,7 +456,7 @@ github.com/google/gnostic/extensions
 github.com/google/gnostic/jsonschema
 github.com/google/gnostic/openapiv2
 github.com/google/gnostic/openapiv3
-# github.com/google/go-cmp v0.5.9 => github.com/google/go-cmp v0.5.9
+# github.com/google/go-cmp v0.6.0 => github.com/google/go-cmp v0.5.9
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
@@ -578,7 +578,7 @@ github.com/json-iterator/go
 # github.com/jszwec/csvutil v1.5.0 => github.com/jszwec/csvutil v1.5.0
 ## explicit; go 1.13
 github.com/jszwec/csvutil
-# github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd => github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
+# github.com/kevinburke/ssh_config v1.2.0 => github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 ## explicit
 github.com/kevinburke/ssh_config
 # github.com/klauspost/compress v1.16.0 => github.com/klauspost/compress v1.13.6
@@ -737,7 +737,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.27.1 => github.com/onsi/gomega v1.27.1
+# github.com/onsi/gomega v1.27.10 => github.com/onsi/gomega v1.27.1
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -1084,7 +1084,7 @@ github.com/stretchr/testify/require
 # github.com/tchap/go-patricia/v2 v2.3.1 => github.com/tchap/go-patricia/v2 v2.3.1
 ## explicit; go 1.16
 github.com/tchap/go-patricia/v2/patricia
-# github.com/xanzy/ssh-agent v0.2.1 => github.com/xanzy/ssh-agent v0.2.1
+# github.com/xanzy/ssh-agent v0.3.3 => github.com/xanzy/ssh-agent v0.2.1
 ## explicit
 github.com/xanzy/ssh-agent
 # github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb => github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
@@ -1253,7 +1253,7 @@ golang.org/x/crypto/ssh/knownhosts
 ## explicit; go 1.18
 golang.org/x/exp/constraints
 golang.org/x/exp/slices
-# golang.org/x/mod v0.9.0
+# golang.org/x/mod v0.12.0
 ## explicit; go 1.17
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
@@ -1323,7 +1323,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.3.0 => golang.org/x/time v0.3.0
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.7.0 => golang.org/x/tools v0.6.0
+# golang.org/x/tools v0.13.0 => golang.org/x/tools v0.6.0
 ## explicit; go 1.18
 golang.org/x/tools/cmd/stringer
 golang.org/x/tools/go/ast/astutil
