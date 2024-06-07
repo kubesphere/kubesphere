@@ -1,0 +1,20 @@
+{{ if eq (include "role" .) "host" }}
+apiVersion: v1
+stringData:
+  configuration.yaml: |
+    name: kubesphere
+    secret: kubesphere
+    grantMethod: auto
+    trusted: true
+    scopeRestrictions:
+      - 'openid'
+      - 'email'
+      - 'profile'
+kind: Secret
+metadata:
+  name: oauthclient-kubesphere
+  namespace: kubesphere-system
+  labels:
+    config.kubesphere.io/type: oauthclient
+type: config.kubesphere.io/oauthclient
+{{ end }}

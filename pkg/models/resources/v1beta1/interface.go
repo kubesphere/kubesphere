@@ -1,3 +1,8 @@
+/*
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
+
 package v1beta1
 
 import (
@@ -10,6 +15,7 @@ import (
 	"github.com/oliveagle/jsonpath"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
@@ -17,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 type ResourceManager interface {
@@ -26,7 +33,7 @@ type ResourceManager interface {
 	CreateResource(ctx context.Context, object client.Object) error
 	UpdateResource(ctx context.Context, object client.Object) error
 	PatchResource(ctx context.Context, object client.Object) error
-	DeleteResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, name string) error
+	DeleteResource(ctx context.Context, object client.Object) error
 	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, name string) (client.Object, error)
 	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string, query *query.Query) (client.ObjectList, error)
 
@@ -34,31 +41,28 @@ type ResourceManager interface {
 	List(ctx context.Context, namespace string, query *query.Query, object client.ObjectList) error
 	Create(ctx context.Context, object client.Object) error
 	Delete(ctx context.Context, object client.Object) error
-	Update(ctx context.Context, old, new client.Object) error
+	Update(ctx context.Context, object client.Object) error
 	Patch(ctx context.Context, old, new client.Object) error
 }
 
-// CompareFunc return true is left greater than right
 type CompareFunc func(runtime.Object, runtime.Object, query.Field) bool
 
 type FilterFunc func(runtime.Object, query.Filter) bool
 
 type TransformFunc func(runtime.Object) runtime.Object
 
-func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) ([]runtime.Object, *int64) {
+func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) ([]runtime.Object, int, int) {
 	// selected matched ones
 	var filtered []runtime.Object
 	if len(q.Filters) != 0 {
 		for _, object := range objects {
-			selected := true
+			match := true
 			for field, value := range q.Filters {
-				if !filterFunc(object, query.Filter{Field: field, Value: value}) {
-					selected = false
+				if match = filterFunc(object, query.Filter{Field: field, Value: value}); !match {
 					break
 				}
 			}
-
-			if selected {
+			if match {
 				for _, transform := range transformFuncs {
 					object = transform(object)
 				}
@@ -84,12 +88,12 @@ func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFu
 	}
 
 	start, end := q.Pagination.GetValidPagination(total)
-	remainingItemCount := int64(total - end)
+	remainingItemCount := total - end
+	totalCount := total
 
-	return filtered[start:end], &remainingItemCount
+	return filtered[start:end], remainingItemCount, totalCount
 }
 
-// DefaultObjectMetaCompare return true is left greater than right
 func DefaultObjectMetaCompare(left, right metav1.Object, sortBy query.Field) bool {
 	switch sortBy {
 	// ?sortBy=name
@@ -102,19 +106,30 @@ func DefaultObjectMetaCompare(left, right metav1.Object, sortBy query.Field) boo
 		fallthrough
 	case query.FieldCreationTimeStamp:
 		// compare by name if creation timestamp is equal
-		ltime := left.GetCreationTimestamp()
-		rtime := right.GetCreationTimestamp()
-		if ltime.Equal(&rtime) {
+		lTime := left.GetCreationTimestamp()
+		rTime := right.GetCreationTimestamp()
+		if lTime.Equal(&rTime) {
 			return strings.Compare(left.GetName(), right.GetName()) > 0
 		}
 		return left.GetCreationTimestamp().After(right.GetCreationTimestamp().Time)
 	}
 }
 
-// Default metadata filter
+// DefaultObjectMetaFilter filters the metadata of Kubernetes objects based on the given filter conditions.
+// Supported filter fields include: FieldNames, FieldName, FieldUID, FieldNamespace,
+// FieldOwnerReference, FieldOwnerKind, FieldAnnotation, FieldLabel, and ParameterFieldSelector.
+// Returns true if the object satisfies the filter conditions; otherwise, returns false.
+//
+// Parameters:
+//   - item: Metadata of the Kubernetes object to be filtered.
+//   - filter: Query object containing filter conditions.
+//
+// Returns:
+//   - bool: True if the object satisfies the filter conditions; false otherwise.
 func DefaultObjectMetaFilter(item metav1.Object, filter query.Filter) bool {
 	switch filter.Field {
 	case query.FieldNames:
+		// Check if the object's name matches any name in the filter.
 		for _, name := range strings.Split(string(filter.Value), ",") {
 			if item.GetName() == name {
 				return true
@@ -123,6 +138,10 @@ func DefaultObjectMetaFilter(item metav1.Object, filter query.Filter) bool {
 		return false
 	// /namespaces?page=1&limit=10&name=default
 	case query.FieldName:
+		displayName := item.GetAnnotations()[constants.DisplayNameAnnotationKey]
+		if displayName != "" && strings.Contains(strings.ToLower(displayName), strings.ToLower(string(filter.Value))) {
+			return true
+		}
 		return strings.Contains(item.GetName(), string(filter.Value))
 		// /namespaces?page=1&limit=10&uid=a8a8d6cf-f6a5-4fea-9c1b-e57610115706
 	case query.FieldUID:
@@ -152,26 +171,39 @@ func DefaultObjectMetaFilter(item metav1.Object, filter query.Filter) bool {
 		// /namespaces?page=1&limit=10&label=kubesphere.io/workspace:system-workspace
 	case query.FieldLabel:
 		return labelMatch(item.GetLabels(), string(filter.Value))
+		// /namespaces?page=1&limit=10&labelSelector=environment in (production, qa)
+	case query.ParameterLabelSelector:
+		return labelSelectorMatch(item.GetLabels(), string(filter.Value))
 	case query.ParameterFieldSelector:
 		return contains(item.(runtime.Object), filter.Value)
 	default:
-		return false
+		return true
 	}
 }
 
+func labelSelectorMatch(objLabels map[string]string, filter string) bool {
+	selector, err := labels.Parse(filter)
+	if err != nil {
+		klog.V(4).Infof("failed parse labelSelector error: %s", err)
+		return false
+	}
+
+	return selector.Matches(labels.Set(objLabels))
+}
+
 func labelMatch(labels map[string]string, filter string) bool {
-	fields := strings.SplitN(filter, "=", 2)
+	conditions := strings.SplitN(filter, "=", 2)
 	var key, value string
 	var opposite bool
-	if len(fields) == 2 {
-		key = fields[0]
+	if len(conditions) == 2 {
+		key = conditions[0]
 		if strings.HasSuffix(key, "!") {
 			key = strings.TrimSuffix(key, "!")
 			opposite = true
 		}
-		value = fields[1]
+		value = conditions[1]
 	} else {
-		key = fields[0]
+		key = conditions[0]
 		value = "*"
 	}
 	for k, v := range labels {
@@ -226,6 +258,18 @@ func contains(object runtime.Object, queryValue query.Value) bool {
 			klog.V(4).Infof("failed to lookup jsonpath: %s", err)
 			return false
 		}
+
+		// Values prefixed with ~ support case insensitivity. (e.g., a=~b, can hit b, B)
+		if strings.HasPrefix(value, "~") {
+			value = strings.TrimPrefix(value, "~")
+			if (negative && !strings.EqualFold(fmt.Sprintf("%v", rawValue), value)) ||
+				(!negative && strings.EqualFold(fmt.Sprintf("%v", rawValue), value)) {
+				continue
+			} else {
+				return false
+			}
+		}
+
 		if (negative && fmt.Sprintf("%v", rawValue) != value) || (!negative && fmt.Sprintf("%v", rawValue) == value) {
 			continue
 		} else {

@@ -1,25 +1,8 @@
-/*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package v1alpha2
 
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -89,16 +72,14 @@ const (
 	PreRegistrationUserGroup              = "pre-registration"
 )
 
-// +genclient
-// +genclient:nonNamespaced
 // +kubebuilder:object:root=true
 // +k8s:openapi-gen=true
-
-// User is the Schema for the users API
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Email",type="string",JSONPath=".spec.email"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
-// +kubebuilder:object:root=true
+
+// User is the Schema for the users API
 type User struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -176,7 +157,7 @@ type UserStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:object:root=true
+
 // UserList contains a list of User
 type UserList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -186,11 +167,10 @@ type UserList struct {
 	Items           []User `json:"items"`
 }
 
-// +genclient
-// +genclient:nonNamespaced
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:categories="iam",scope="Cluster"
-// +kubebuilder:object:root=true
+
 type GlobalRole struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -202,7 +182,7 @@ type GlobalRole struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:object:root=true
+
 // GlobalRoleList contains a list of GlobalRole
 type GlobalRoleList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -210,12 +190,11 @@ type GlobalRoleList struct {
 	Items           []GlobalRole `json:"items"`
 }
 
-// +genclient
-// +genclient:nonNamespaced
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:categories="iam",scope="Cluster"
+
 // GlobalRoleBinding is the Schema for the globalrolebindings API
-// +kubebuilder:object:root=true
 type GlobalRoleBinding struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -231,7 +210,7 @@ type GlobalRoleBinding struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:object:root=true
+
 // GlobalRoleBindingList contains a list of GlobalRoleBinding
 type GlobalRoleBindingList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -241,13 +220,12 @@ type GlobalRoleBindingList struct {
 	Items           []GlobalRoleBinding `json:"items"`
 }
 
-// +genclient
-// +genclient:nonNamespaced
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
 // +kubebuilder:printcolumn:name="Alias",type="string",JSONPath=".metadata.annotations.kubesphere\\.io/alias-name"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
-// +kubebuilder:object:root=true
+
 type WorkspaceRole struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -259,7 +237,7 @@ type WorkspaceRole struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:object:root=true
+
 // WorkspaceRoleList contains a list of WorkspaceRole
 type WorkspaceRoleList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -267,13 +245,12 @@ type WorkspaceRoleList struct {
 	Items           []WorkspaceRole `json:"items"`
 }
 
-// +genclient
-// +genclient:nonNamespaced
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
+
 // WorkspaceRoleBinding is the Schema for the workspacerolebindings API
-// +kubebuilder:object:root=true
 type WorkspaceRoleBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -288,7 +265,7 @@ type WorkspaceRoleBinding struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:object:root=true
+
 // WorkspaceRoleBindingList contains a list of WorkspaceRoleBinding
 type WorkspaceRoleBindingList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -296,31 +273,8 @@ type WorkspaceRoleBindingList struct {
 	Items           []WorkspaceRoleBinding `json:"items"`
 }
 
-// +genclient
-// +genclient:nonNamespaced
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:categories="iam",scope="Cluster"
-// +kubebuilder:object:root=true
-type RoleBase struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:EmbeddedResource
-	Role runtime.RawExtension `json:"role"`
-}
-
-// +kubebuilder:object:root=true
-// +kubebuilder:object:root=true
-// RoleBaseList contains a list of RoleBase
-type RoleBaseList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []RoleBase `json:"items"`
-}
-
-// +genclient
-// +genclient:nonNamespaced
-// +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".spec.type"
 // +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".spec.provider"
 // +kubebuilder:printcolumn:name="From",type="string",JSONPath=".spec.sourceIP"
@@ -328,7 +282,7 @@ type RoleBaseList struct {
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".spec.reason"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
-// +kubebuilder:object:root=true
+
 type LoginRecord struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -359,10 +313,74 @@ const (
 )
 
 // +kubebuilder:object:root=true
-// +kubebuilder:object:root=true
+
 // LoginRecordList contains a list of LoginRecord
 type LoginRecordList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []LoginRecord `json:"items"`
+}
+
+// GroupSpec defines the desired state of Group
+type GroupSpec struct {
+}
+
+// GroupStatus defines the observed state of Group
+type GroupStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
+// +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
+// +kubebuilder:resource:categories="group",scope="Cluster"
+
+// Group is the Schema for the groups API
+type Group struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   GroupSpec   `json:"spec,omitempty"`
+	Status GroupStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// GroupList contains a list of Group
+type GroupList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Group `json:"items"`
+}
+
+// GroupRef defines the desired relation of GroupBinding
+type GroupRef struct {
+	APIGroup string `json:"apiGroup,omitempty"`
+	Kind     string `json:"kind,omitempty"`
+	Name     string `json:"name,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
+// +kubebuilder:printcolumn:name="Group",type="string",JSONPath=".groupRef.name"
+// +kubebuilder:printcolumn:name="Users",type="string",JSONPath=".users"
+// +kubebuilder:resource:categories="group",scope="Cluster"
+
+// GroupBinding is the Schema for the groupbindings API
+type GroupBinding struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	GroupRef GroupRef `json:"groupRef,omitempty"`
+	Users    []string `json:"users,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// GroupBindingList contains a list of GroupBinding
+type GroupBindingList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []GroupBinding `json:"items"`
 }

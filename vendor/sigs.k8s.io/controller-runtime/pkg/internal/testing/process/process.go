@@ -155,6 +155,7 @@ func (ps *State) Start(stdout, stderr io.Writer) (err error) {
 	ps.Cmd = exec.Command(ps.Path, ps.Args...)
 	ps.Cmd.Stdout = stdout
 	ps.Cmd.Stderr = stderr
+	ps.Cmd.SysProcAttr = GetSysProcAttr()
 
 	ready := make(chan bool)
 	timedOut := time.After(ps.StartTimeout)
@@ -265,6 +266,9 @@ func (ps *State) Stop() error {
 	case <-ps.waitDone:
 		break
 	case <-timedOut:
+		if err := ps.Cmd.Process.Signal(syscall.SIGKILL); err != nil {
+			return fmt.Errorf("unable to kill process %s: %w", ps.Path, err)
+		}
 		return fmt.Errorf("timeout waiting for process %s to stop", path.Base(ps.Path))
 	}
 	ps.ready = false

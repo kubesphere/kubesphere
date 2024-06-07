@@ -1,18 +1,7 @@
 /*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package token
 
@@ -33,7 +22,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog/v2"
 
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 const (
@@ -93,9 +82,9 @@ type Claims struct {
 
 	// The following is well-known ID Token fields
 
-	// End-User's full name in displayable form including all name parts,
+	// End-User's full url in displayable form including all url parts,
 	// possibly including titles and suffixes, ordered according to the End-User's locale and preferences.
-	Name string `json:"name,omitempty"`
+	Name string `json:"url,omitempty"`
 	// String value used to associate a Client session with an ID Token, and to mitigate replay attacks.
 	// The value is passed through unmodified from the Authentication Request to the ID Token.
 	Nonce string `json:"nonce,omitempty"`
@@ -103,13 +92,13 @@ type Claims struct {
 	Email string `json:"email,omitempty"`
 	// End-User's locale, represented as a BCP47 [RFC5646] language tag.
 	Locale string `json:"locale,omitempty"`
-	// Shorthand name by which the End-User wishes to be referred to at the RP,
+	// Shorthand url by which the End-User wishes to be referred to at the RP,
 	PreferredUsername string `json:"preferred_username,omitempty"`
 }
 
 type issuer struct {
-	// Issuer Identity
-	name string
+	// Issuer Identifier
+	url string
 	// signing access_token and refresh_token
 	secret []byte
 	// signing id_token
@@ -127,7 +116,7 @@ func (s *issuer) IssueTo(request *IssueRequest) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: jwt.NewNumericDate(issueAt),
 			Subject:  request.User.GetName(),
-			Issuer:   s.name,
+			Issuer:   s.url,
 		},
 	}
 
@@ -253,19 +242,19 @@ func generatePrivateKeyData() ([]byte, error) {
 	return pemData, nil
 }
 
-func loadSignKey(options *authentication.Options) (*rsa.PrivateKey, string, error) {
+func loadSignKey(config *oauth.IssuerOptions) (*rsa.PrivateKey, string, error) {
 	var signKey *rsa.PrivateKey
 	var signKeyData []byte
 	var err error
 
-	if options.OAuthOptions.SignKey != "" {
-		signKeyData, err = os.ReadFile(options.OAuthOptions.SignKey)
+	if config.SignKey != "" {
+		signKeyData, err = os.ReadFile(config.SignKey)
 		if err != nil {
-			klog.Errorf("issuer: failed to read private key file %s: %v", options.OAuthOptions.SignKey, err)
+			klog.Errorf("issuer: failed to read private key file %s: %v", config.SignKey, err)
 			return nil, "", err
 		}
-	} else if options.OAuthOptions.SignKeyData != "" {
-		signKeyData, err = base64.StdEncoding.DecodeString(options.OAuthOptions.SignKeyData)
+	} else if config.SignKeyData != "" {
+		signKeyData, err = base64.StdEncoding.DecodeString(config.SignKeyData)
 		if err != nil {
 			klog.Errorf("issuer: failed to decode sign key data: %s", err)
 			return nil, "", err
@@ -292,16 +281,16 @@ func loadSignKey(options *authentication.Options) (*rsa.PrivateKey, string, erro
 	return signKey, keyID, nil
 }
 
-func NewIssuer(options *authentication.Options) (Issuer, error) {
+func NewIssuer(config *oauth.IssuerOptions) (Issuer, error) {
 	// TODO(hongming) automatically rotates keys
-	signKey, keyID, err := loadSignKey(options)
+	signKey, keyID, err := loadSignKey(config)
 	if err != nil {
 		return nil, err
 	}
 	return &issuer{
-		name:             options.OAuthOptions.Issuer,
-		secret:           []byte(options.JwtSecret),
-		maximumClockSkew: options.MaximumClockSkew,
+		url:              config.URL,
+		secret:           []byte(config.JWTSecret),
+		maximumClockSkew: config.MaximumClockSkew,
 		signKey: &Keys{
 			SigningKey: &jose.JSONWebKey{
 				Key:       signKey,

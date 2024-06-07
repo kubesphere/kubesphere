@@ -1,20 +1,7 @@
 /*
-
- Copyright 2021 The KubeSphere Authors.
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package oauth
 
@@ -32,18 +19,19 @@ const (
 	// ScopeProfile This scope value requests access to the End-User's default profile Claims,
 	// which are: name, family_name, given_name, middle_name, nickname, preferred_username,
 	// profile, picture, website, gender, birthdate, zoneinfo, locale, and updated_at.
-	ScopeProfile = "profile"
-	// ScopePhone This scope value requests access to the phone_number and phone_number_verified Claims.
-	ScopePhone = "phone"
-	// ScopeAddress This scope value requests access to the address Claim.
-	ScopeAddress    = "address"
-	ResponseCode    = "code"
-	ResponseIDToken = "id_token"
-	ResponseToken   = "token"
+	ScopeProfile               = "profile"
+	ResponseTypeCode           = "code"
+	ResponseTypeIDToken        = "id_token"
+	ResponseTypeToken          = "token"
+	GrantTypePassword          = "password"
+	GrantTypeRefreshToken      = "refresh_token"
+	GrantTypeCode              = "code"
+	GrantTypeAuthorizationCode = "authorization_code"
+	GrantTypeOTP               = "otp"
 )
 
 var ValidScopes = []string{ScopeOpenID, ScopeEmail, ScopeProfile}
-var ValidResponseTypes = []string{ResponseCode, ResponseIDToken, ResponseToken}
+var ValidResponseTypes = []string{ResponseTypeCode, ResponseTypeIDToken, ResponseTypeToken}
 
 func IsValidScopes(scopes []string) bool {
 	for _, scope := range scopes {

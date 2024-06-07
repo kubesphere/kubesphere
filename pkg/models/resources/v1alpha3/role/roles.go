@@ -1,31 +1,24 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package role
 
 import (
+	"context"
 	"encoding/json"
+
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 	"k8s.io/klog/v2"
 
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -33,31 +26,38 @@ import (
 )
 
 type rolesGetter struct {
-	sharedInformers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &rolesGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &rolesGetter{cache: cache}
 }
 
 func (d *rolesGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Rbac().V1().Roles().Lister().Roles(namespace).Get(name)
+	role := &rbacv1.Role{}
+	return role, d.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, role)
 }
 
 func (d *rolesGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-
 	var roles []*rbacv1.Role
 	var err error
 
-	if aggregateTo := query.Filters[iamv1alpha2.AggregateTo]; aggregateTo != "" {
+	if aggregateTo := query.Filters[iamv1beta1.AggregateTo]; aggregateTo != "" {
 		roles, err = d.fetchAggregationRoles(namespace, string(aggregateTo))
-		delete(query.Filters, iamv1alpha2.AggregateTo)
+		if err != nil {
+			return nil, err
+		}
+		delete(query.Filters, iamv1beta1.AggregateTo)
 	} else {
-		roles, err = d.sharedInformers.Rbac().V1().Roles().Lister().Roles(namespace).List(query.Selector())
-	}
-
-	if err != nil {
-		return nil, err
+		roleList := &rbacv1.RoleList{}
+		if err := d.cache.List(context.Background(), roleList, client.InNamespace(namespace),
+			client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
+			return nil, err
+		}
+		roles = make([]*rbacv1.Role, 0)
+		for _, item := range roleList.Items {
+			roles = append(roles, item.DeepCopy())
+		}
 	}
 
 	var result []runtime.Object
@@ -69,7 +69,6 @@ func (d *rolesGetter) List(namespace string, query *query.Query) (*api.ListResul
 }
 
 func (d *rolesGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
 	leftRole, ok := left.(*rbacv1.Role)
 	if !ok {
 		return false
@@ -105,7 +104,7 @@ func (d *rolesGetter) fetchAggregationRoles(namespace, name string) ([]*rbacv1.R
 		return nil, err
 	}
 
-	if annotation := obj.(*rbacv1.Role).Annotations[iamv1alpha2.AggregationRolesAnnotation]; annotation != "" {
+	if annotation := obj.(*rbacv1.Role).Annotations[iamv1beta1.AggregationRolesAnnotation]; annotation != "" {
 		var roleNames []string
 		if err = json.Unmarshal([]byte(annotation), &roleNames); err == nil {
 			for _, roleName := range roleNames {

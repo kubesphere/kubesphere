@@ -1,8 +1,0 @@
-comment: off
-
-coverage:
-  status:
-    patch: off
-
-ignore:
-  - "opensearchapi/api.*.go"

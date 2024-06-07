@@ -1,0 +1,35 @@
+apiVersion: v1
+data:
+  local_config.yaml: |
+    server:
+      http:
+        hostname: localhost
+        port: 8000
+        static:
+          production:
+            /public: server/public
+            /assets: dist/assets
+            /dist: dist
+      redis:
+        port: 6379
+        host: redis.kubesphere-system.svc
+      redisTimeout: 5000
+      sessionTimeout: 7200000
+      apiServer:
+    {{- if .Values.internalTLS }}
+        url: https://ks-apiserver
+        wsUrl: wss://ks-apiserver
+    {{- else }}
+        url: http://ks-apiserver
+        wsUrl: ws://ks-apiserver
+    {{ end }}
+    client:
+      version:
+        kubesphere: {{ .Chart.AppVersion }}
+        kubernetes: {{ .Capabilities.KubeVersion.Version }}
+      enableKubeConfig: true
+      enableNodeListTerminal: {{ .Values.console.config.enableNodeListTerminal }}
+kind: ConfigMap
+metadata:
+  name: ks-console-config
+  namespace: kubesphere-system

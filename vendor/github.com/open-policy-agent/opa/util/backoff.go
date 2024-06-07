@@ -15,7 +15,9 @@ func init() {
 	// a call to rand.Seed() we'd get the same stream of numbers for each program
 	// run. (Or not, if some other packages happens to seed the global randomness
 	// source.)
-	rand.Seed(time.Now().UnixNano())
+	// Note(philipc): rand.Seed() was deprecated in Go 1.20, so we've switched to
+	// using the recommended rand.New(rand.NewSource(seed)) style.
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // DefaultBackoff returns a delay with an exponential backoff based on the

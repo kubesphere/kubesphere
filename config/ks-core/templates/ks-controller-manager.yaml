@@ -1,3 +1,4 @@
+{{ if eq (include "role" .) "host" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,113 +7,107 @@ metadata:
     tier: backend
     version: {{ .Chart.AppVersion }}
   name: ks-controller-manager
+  namespace: kubesphere-system
 spec:
   strategy:
     rollingUpdate:
-      maxSurge: 0
+      maxSurge: 1
+      maxUnavailable: 0
     type: RollingUpdate
   progressDeadlineSeconds: 600
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ if .Values.ha.enabled }}3{{ else }}1{{ end }}
   revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: ks-controller-manager
       tier: backend
-      # version: {{ .Chart.AppVersion }}
   template:
     metadata:
       labels:
         app: ks-controller-manager
         tier: backend
-        # version: {{ .Chart.AppVersion }}
+      annotations:
+        # force restart ks-controller-manager after the upgrade is complete if kubesphere-config changes
+        checksum/config: {{ include (print $.Template.BasePath "/kubesphere-config.yaml") . | sha256sum }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
+      serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
+      {{- include "controller.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      affinity:
+      {{- with .Values.affinity }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      containers:
-      - command:
-        - controller-manager
-        - --logtostderr=true
-        - --leader-elect=true
-        - --controllers=user,workspacetemplate,workspace,workspacerole,workspacerolebinding,namespace
-        image: {{ .Values.image.ks_controller_manager_repo }}:{{ .Values.image.ks_controller_manager_tag | default .Chart.AppVersion }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        name: ks-controller-manager
-        ports:
-        - containerPort: 8080
-          protocol: TCP
-        - containerPort: 8443
-          protocol: TCP
-        resources:
-          {{- toYaml .Values.controller.resources | nindent 12 }}
-        volumeMounts:
-        - mountPath: /etc/kubesphere/
-          name: kubesphere-config
-        - mountPath: /tmp/k8s-webhook-server/serving-certs
-          name: webhook-secret
-        - mountPath: /etc/localtime
-          name: host-time
-          readOnly: true
-        {{- if .Values.controller.extraVolumeMounts }}
-          {{- toYaml .Values.controller.extraVolumeMounts | nindent 8 }}
+        podAntiAffinity:
+        {{- if .Values.controller.hardAntiAffinity }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: ks-controller-manager
+              topologyKey: kubernetes.io/hostname
+              namespaces:
+                - {{ .Release.Namespace | quote }}
+        {{- else }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: ks-controller-manager
+                topologyKey: kubernetes.io/hostname
+                namespaces:
+                  - {{ .Release.Namespace | quote }}
         {{- end }}
-        env:
-        {{- if .Values.env }}
-        {{- toYaml .Values.env | nindent 8 }}
-        {{- end }}
+      {{- if .Values.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.tolerations "context" .) | nindent 8 }}
+      {{- end }}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
-      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
       terminationGracePeriodSeconds: 30
+      containers:
+        - name: ks-controller-manager
+          image: {{ template "ks-controller-manager.image" . }}
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          {{- if .Values.controller.containerPorts }}
+          ports: {{- include "common.tplvalues.render" (dict "value" .Values.controller.containerPorts "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.controller.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.controller.command "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            {{- if .Values.controller.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.controller.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+          {{- if .Values.controller.resources }}
+          resources: {{- toYaml .Values.controller.resources | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /etc/kubesphere/
+              name: kubesphere-config
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: webhook-secret
+            - mountPath: /etc/localtime
+              name: host-time
+              readOnly: true
+          {{- if .Values.controller.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.controller.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
       volumes:
-      - name: kubesphere-config
-        configMap:
-          name: kubesphere-config
-          defaultMode: 420
-      - name: webhook-secret
-        secret:
-          defaultMode: 420
-          secretName: ks-controller-manager-webhook-cert
-      - hostPath:
-          path: /etc/localtime
-          type: ""
-        name: host-time
-      {{- if .Values.controller.extraVolumes }}
-        {{ toYaml .Values.controller.extraVolumes | nindent 6 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: ks-controller-manager
-    tier: backend
-    version: {{ .Chart.AppVersion }}
-  name: ks-controller-manager
-spec:
-  ports:
-  - port: 443
-    protocol: TCP
-    targetPort: 8443
-  selector:
-    app: ks-controller-manager
-    tier: backend
-    # version: {{ .Chart.AppVersion }}
-  sessionAffinity: None
-  type: ClusterIP
+        - name: kubesphere-config
+          configMap:
+            name: kubesphere-config
+            defaultMode: 420
+        - name: webhook-secret
+          secret:
+            defaultMode: 420
+            secretName: ks-controller-manager-webhook-cert
+        - hostPath:
+            path: /etc/localtime
+            type: ""
+          name: host-time
+        {{- if .Values.controller.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.controller.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+{{ end }}

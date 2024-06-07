@@ -15,10 +15,10 @@ jobs:
       GO111MODULE: on
     steps:
 
-      - name: Set up Go 1.19
+      - name: Set up Go 1.21
         uses: actions/setup-go@v2
         with:
-          go-version: 1.19
+          go-version: 1.21
         id: go
 
       - name: Check out code into the Go module directory

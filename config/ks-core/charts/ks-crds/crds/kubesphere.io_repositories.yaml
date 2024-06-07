@@ -1,0 +1,80 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: repositories.kubesphere.io
+spec:
+  group: kubesphere.io
+  names:
+    categories:
+    - extensions
+    kind: Repository
+    listKind: RepositoryList
+    plural: repositories
+    singular: repository
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Repository declared a docker image containing the extension helm chart.
+          The extension manager controller will deploy and synchronizes the extensions from the image repository.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              basicAuth:
+                properties:
+                  password:
+                    type: string
+                  username:
+                    type: string
+                type: object
+              caBundle:
+                description: if the caBundle is empty, use --insecure-skip-tls-verify.
+                type: string
+              description:
+                type: string
+              image:
+                type: string
+              updateStrategy:
+                properties:
+                  registryPoll:
+                    properties:
+                      interval:
+                        type: string
+                    required:
+                    - interval
+                    type: object
+                type: object
+              url:
+                type: string
+            type: object
+          status:
+            properties:
+              lastSyncTime:
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true

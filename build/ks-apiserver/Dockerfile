@@ -1,9 +1,5 @@
-# Copyright 2020 The KubeSphere Authors. All rights reserved.
-# Use of this source code is governed by an Apache license
-# that can be found in the LICENSE file.
-
 # Build
-FROM golang:1.19.4 as build_context
+FROM golang:1.20.7 AS build_context
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin/

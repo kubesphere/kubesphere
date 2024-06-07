@@ -1,0 +1,165 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: loginrecords.iam.kubesphere.io
+spec:
+  group: iam.kubesphere.io
+  names:
+    categories:
+    - iam
+    kind: LoginRecord
+    listKind: LoginRecordList
+    plural: loginrecords
+    singular: loginrecord
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.provider
+      name: Provider
+      type: string
+    - jsonPath: .spec.sourceIP
+      name: From
+      type: string
+    - jsonPath: .spec.success
+      name: Success
+      type: string
+    - jsonPath: .spec.reason
+      name: Reason
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    deprecated: true
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              provider:
+                description: Provider of authentication, Ldap/Github etc.
+                type: string
+              reason:
+                description: States failed login attempt reason
+                type: string
+              sourceIP:
+                description: Source IP of client
+                type: string
+              success:
+                description: Successful login attempt or not
+                type: boolean
+              type:
+                description: Which authentication method used, Password/OAuth/Token
+                type: string
+              userAgent:
+                description: User agent of login attempt
+                type: string
+            required:
+            - provider
+            - reason
+            - sourceIP
+            - success
+            - type
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: false
+    subresources: {}
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.provider
+      name: Provider
+      type: string
+    - jsonPath: .spec.sourceIP
+      name: From
+      type: string
+    - jsonPath: .spec.success
+      name: Success
+      type: string
+    - jsonPath: .spec.reason
+      name: Reason
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              provider:
+                description: Provider of authentication, Ldap/Github etc.
+                type: string
+              reason:
+                description: States failed login attempt reason
+                type: string
+              sourceIP:
+                description: Source IP of client
+                type: string
+              success:
+                description: Successful login attempt or not
+                type: boolean
+              type:
+                description: Which authentication method used, Password/OAuth/Token
+                type: string
+              userAgent:
+                description: User agent of login attempt
+                type: string
+            required:
+            - provider
+            - reason
+            - sourceIP
+            - success
+            - type
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources: {}

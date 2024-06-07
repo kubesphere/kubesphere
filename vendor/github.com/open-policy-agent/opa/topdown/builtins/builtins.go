@@ -249,7 +249,11 @@ func NumberToFloat(n ast.Number) *big.Float {
 
 // FloatToNumber converts f to a number.
 func FloatToNumber(f *big.Float) ast.Number {
-	return ast.Number(f.Text('g', -1))
+	var format byte = 'g'
+	if f.IsInt() {
+		format = 'f'
+	}
+	return ast.Number(f.Text(format, -1))
 }
 
 // NumberToInt converts n to a big int.

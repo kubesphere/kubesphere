@@ -1,18 +1,7 @@
 /*
-Copyright 2020 KubeSphere Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package auth
 
@@ -23,33 +12,30 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
-
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type LoginRecorder interface {
-	RecordLogin(username string, loginType iamv1alpha2.LoginType, provider string, sourceIP string, userAgent string, authErr error) error
+	RecordLogin(ctx context.Context, username string, loginType iamv1beta1.LoginType, provider string, sourceIP string, userAgent string, authErr error) error
 }
 
 type loginRecorder struct {
-	ksClient   kubesphere.Interface
-	userGetter *userGetter
+	client     runtimeclient.Client
+	userMapper userMapper
 }
 
-func NewLoginRecorder(ksClient kubesphere.Interface, userLister iamv1alpha2listers.UserLister) LoginRecorder {
+func NewLoginRecorder(cacheClient runtimeclient.Client) LoginRecorder {
 	return &loginRecorder{
-		ksClient:   ksClient,
-		userGetter: &userGetter{userLister: userLister},
+		client:     cacheClient,
+		userMapper: userMapper{cache: cacheClient},
 	}
 }
 
 // RecordLogin Create v1alpha2.LoginRecord for existing accounts
-func (l *loginRecorder) RecordLogin(username string, loginType iamv1alpha2.LoginType, provider, sourceIP, userAgent string, authErr error) error {
+func (l *loginRecorder) RecordLogin(ctx context.Context, username string, loginType iamv1beta1.LoginType, provider, sourceIP, userAgent string, authErr error) error {
 	// only for existing accounts, solve the problem of huge entries
-	user, err := l.userGetter.findUser(username)
+	user, err := l.userMapper.Find(ctx, username)
 	if err != nil {
 		// ignore not found error
 		if errors.IsNotFound(err) {
@@ -58,30 +44,29 @@ func (l *loginRecorder) RecordLogin(username string, loginType iamv1alpha2.Login
 		klog.Error(err)
 		return err
 	}
-	loginEntry := &iamv1alpha2.LoginRecord{
+	record := &iamv1beta1.LoginRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", user.Name),
 			Labels: map[string]string{
-				iamv1alpha2.UserReferenceLabel: user.Name,
+				iamv1beta1.UserReferenceLabel: user.Name,
 			},
 		},
-		Spec: iamv1alpha2.LoginRecordSpec{
+		Spec: iamv1beta1.LoginRecordSpec{
 			Type:      loginType,
 			Provider:  provider,
 			Success:   true,
-			Reason:    iamv1alpha2.AuthenticatedSuccessfully,
+			Reason:    iamv1beta1.AuthenticatedSuccessfully,
 			SourceIP:  sourceIP,
 			UserAgent: userAgent,
 		},
 	}
 
 	if authErr != nil {
-		loginEntry.Spec.Success = false
-		loginEntry.Spec.Reason = authErr.Error()
+		record.Spec.Success = false
+		record.Spec.Reason = authErr.Error()
 	}
 
-	_, err = l.ksClient.IamV1alpha2().LoginRecords().Create(context.Background(), loginEntry, metav1.CreateOptions{})
-	if err != nil {
+	if err = l.client.Create(context.Background(), record); err != nil {
 		klog.Error(err)
 		return err
 	}

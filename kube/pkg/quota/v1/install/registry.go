@@ -18,10 +18,11 @@ package install
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	quota "kubesphere.io/kubesphere/kube/pkg/quota/v1"
-	core "kubesphere.io/kubesphere/kube/pkg/quota/v1/evaluator/core"
-	generic "kubesphere.io/kubesphere/kube/pkg/quota/v1/generic"
+	"kubesphere.io/kubesphere/kube/pkg/quota/v1"
+	"kubesphere.io/kubesphere/kube/pkg/quota/v1/evaluator/core"
+	"kubesphere.io/kubesphere/kube/pkg/quota/v1/generic"
 )
 
 // NewQuotaConfigurationForAdmission returns a quota configuration for admission control.
@@ -31,8 +32,8 @@ func NewQuotaConfigurationForAdmission() quota.Configuration {
 }
 
 // NewQuotaConfigurationForControllers returns a quota configuration for controllers.
-func NewQuotaConfigurationForControllers(f quota.ListerForResourceFunc) quota.Configuration {
-	evaluators := core.NewEvaluators(f)
+func NewQuotaConfigurationForControllers(client client.Client) quota.Configuration {
+	evaluators := core.NewEvaluators(client)
 	return generic.NewConfiguration(evaluators, DefaultIgnoredResources())
 }
 

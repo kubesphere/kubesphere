@@ -1,0 +1,188 @@
+{{ if eq (include "role" .) "host" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ks-console
+    tier: frontend
+    version: {{ .Chart.AppVersion }}
+  name: ks-console
+  namespace: kubesphere-system
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  replicas: {{ if .Values.ha.enabled }} 3 {{ else }} 1 {{ end }}
+  selector:
+    matchLabels:
+      app: ks-console
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: ks-console
+        tier: frontend
+      annotations:
+        # force restart ks-console after the upgrade is complete if ks-console-config changes
+        checksum/config: {{ include (print $.Template.BasePath "/ks-console-config.yaml") . | sha256sum }}
+    spec:
+      serviceAccount: {{ template "ks-core.serviceAccountName" . }}
+      serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
+      {{- include "console.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      affinity:
+      {{- with .Values.affinity }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+        podAntiAffinity:
+        {{- if .Values.console.hardAntiAffinity }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: ks-console
+              topologyKey: kubernetes.io/hostname
+              namespaces:
+                - {{ .Release.Namespace | quote }}
+        {{- else }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: ks-console
+                topologyKey: kubernetes.io/hostname
+                namespaces:
+                  - {{ .Release.Namespace | quote }}
+        {{- end }}
+        {{- if .Values.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.internalTLS }}
+      initContainers:
+        - name: init-ca
+          image: {{ template "kubectl.image" . }}
+          command: [ "/bin/sh", "-c" ]
+          args: [ "cp /tmp/ca.crt /usr/local/share/ca-certificates/ \
+                  && update-ca-certificates && cp /etc/ssl/certs/ca-certificates.crt /certs/"]
+          volumeMounts:
+          - name: tls-cert
+            mountPath: /tmp/ca.crt
+            subPath: ca.crt
+            readOnly: false
+          - name: sys-cert
+            mountPath: /certs
+            readOnly: false
+      {{- end }}
+      containers:
+        - name: ks-console
+          image: {{ template "ks-console.image" . }}
+          imagePullPolicy: {{ .Values.console.image.pullPolicy }}
+          {{- if .Values.console.containerPorts }}
+          ports: {{- include "common.tplvalues.render" (dict "value" .Values.console.containerPorts "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.console.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.console.command "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            {{- if .Values.console.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.console.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+            {{- if .Values.internalTLS }}
+            - name: NODE_EXTRA_CA_CERTS
+              value: "/etc/ssl/certs/ca-certificates.crt"
+            {{- end }}
+          {{- if .Values.console.resources }}
+          resources: {{- toYaml .Values.console.resources | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 8
+          volumeMounts:
+            - name: ks-console-config
+              mountPath: /opt/kubesphere/console/configs/local_config.yaml
+              subPath: local_config.yaml
+            - name: host-time
+              mountPath: /etc/localtime
+              readOnly: true
+          {{- if .Values.console.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.console.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.internalTLS }}
+            - name: tls-cert
+              mountPath: /etc/kubesphere/pki/
+            - name: sys-cert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: false
+          {{- end }}
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: ks-console-config
+            items:
+              - key: local_config.yaml
+                path: local_config.yaml
+          name: ks-console-config
+        - hostPath:
+            path: /etc/localtime
+            type: ""
+          name: host-time
+        {{- if .Values.console.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.console.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.internalTLS }}
+        - name: tls-cert
+          secret:
+            secretName: ks-console-tls-certs
+            defaultMode: 420
+        - name: sys-cert
+          emptyDir: {}
+        {{- end }}
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ks-console
+    tier: frontend
+    version: {{ .Chart.AppVersion }}
+  annotations:
+    {{- if .Values.internalTLS }}
+    {{- if eq .Values.ingress.ingressClassName "traefik" }}
+    traefik.ingress.kubernetes.io/service.serverstransport: {{ printf "%s-%s@kubernetescrd" .Release.Namespace "ks-console-transport" }}
+    {{- end }}
+    {{- end }}
+  name: ks-console
+spec:
+  ports:
+  - name: nginx
+  {{- if .Values.internalTLS }}
+    port: 443
+  {{- else }}
+    port: 80
+  {{- end }}
+    protocol: TCP
+    targetPort: 8000
+    {{- with .Values.console.nodePort }}
+    nodePort:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  selector:
+    app: ks-console
+    tier: frontend
+{{- if .Values.console.nodePort }}
+  type: NodePort
+{{- else}}
+  type: ClusterIP
+{{- end}}
+{{ end }}

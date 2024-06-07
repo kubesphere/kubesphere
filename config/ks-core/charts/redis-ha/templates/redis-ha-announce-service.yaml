@@ -1,0 +1,64 @@
+{{- $fullName := include "redis-ha.fullname" . }}
+{{- $namespace := .Release.Namespace -}}
+{{- $replicas := int (toString .Values.replicas) }}
+{{- $root := . }}
+{{- range $i := until $replicas }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-announce-{{ $i }}
+  namespace: {{ $namespace | quote}}
+  labels:
+{{ include "labels.standard" $root | indent 4 }}
+    {{- range $key, $value := $root.Values.extraLabels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  annotations:
+{{- if (semverCompare "<=1.10-0" $.Capabilities.KubeVersion.GitVersion) }}
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+{{- end }}
+  {{- if $root.Values.serviceAnnotations }}
+{{ toYaml $root.Values.serviceAnnotations | indent 4 }}
+  {{- end }}
+spec:
+{{- if (semverCompare ">=1.11-0" $.Capabilities.KubeVersion.GitVersion) }}
+  publishNotReadyAddresses: true
+{{- end }}
+  type: ClusterIP
+  ports:
+  {{- if ne (int $root.Values.redis.port) 0 }}
+  - name: tcp-server
+    port: {{ $root.Values.redis.port }}
+    protocol: TCP
+    targetPort: redis
+  {{- end }}
+  {{- if $root.Values.redis.tlsPort }}
+  - name: server-tls
+    port: {{ $root.Values.redis.tlsPort }}
+    protocol: TCP
+    targetPort: redis-tls
+  {{- end }}
+  {{- if ne (int $root.Values.sentinel.port) 0 }}
+  - name: tcp-sentinel
+    port: {{ $root.Values.sentinel.port }}
+    protocol: TCP
+    targetPort: sentinel
+  {{- end }}
+  {{- if $root.Values.sentinel.tlsPort }}
+  - name: sentinel-tls
+    port: {{ $root.Values.sentinel.tlsPort }}
+    protocol: TCP
+    targetPort: sentinel-tls
+  {{- end }}
+  {{- if $root.Values.exporter.enabled }}
+  - name: http-exporter
+    port: {{ $root.Values.exporter.port }}
+    protocol: TCP
+    targetPort: {{ $root.Values.exporter.portName }}
+  {{- end }}
+  selector:
+    release: {{ $root.Release.Name }}
+    app: {{ include "redis-ha.name" $root }}
+    "statefulset.kubernetes.io/pod-name": {{ $fullName }}-server-{{ $i }}
+{{- end }}

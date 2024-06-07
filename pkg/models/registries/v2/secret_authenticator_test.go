@@ -1,16 +1,8 @@
-// Copyright 2022 The KubeSphere Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
+
 package v2
 
 import (
@@ -21,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 
@@ -139,7 +131,7 @@ func TestRegistry(t *testing.T) {
 	RunSpecs(t, "Registry Test Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	// anonymous registry
 	fakeHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -147,8 +139,7 @@ var _ = BeforeSuite(func(done Done) {
 	})
 	tlsRegistryServer = httptest.NewTLSServer(fakeHandler)
 	registryServer = httptest.NewServer(fakeHandler)
-	close(done)
-}, 30)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

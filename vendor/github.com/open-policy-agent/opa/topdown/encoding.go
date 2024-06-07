@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"strings"
 
-	ghodss "github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown/builtins"
@@ -232,7 +232,7 @@ func builtinYAMLMarshal(_ BuiltinContext, operands []*ast.Term, iter func(*ast.T
 		return err
 	}
 
-	bs, err := ghodss.JSONToYAML(buf.Bytes())
+	bs, err := yaml.JSONToYAML(buf.Bytes())
 	if err != nil {
 		return err
 	}
@@ -247,7 +247,7 @@ func builtinYAMLUnmarshal(_ BuiltinContext, operands []*ast.Term, iter func(*ast
 		return err
 	}
 
-	bs, err := ghodss.YAMLToJSON([]byte(str))
+	bs, err := yaml.YAMLToJSON([]byte(str))
 	if err != nil {
 		return err
 	}
@@ -273,7 +273,7 @@ func builtinYAMLIsValid(_ BuiltinContext, operands []*ast.Term, iter func(*ast.T
 	}
 
 	var x interface{}
-	err = ghodss.Unmarshal([]byte(str), &x)
+	err = yaml.Unmarshal([]byte(str), &x)
 	return iter(ast.BooleanTerm(err == nil))
 }
 

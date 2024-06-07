@@ -1,0 +1,17 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "redis-ha.fullname" . }}
+  {{- if .Values.prometheusRule.namespace }}
+  namespace: {{ .Values.prometheusRule.namespace }}
+  {{- end }}
+  labels: {{- toYaml .Values.prometheusRule.additionalLabels | nindent 4 }}
+spec:
+  groups:
+    - name: {{ template "redis-ha.fullname" . }}
+      {{- if .Values.prometheusRule.interval }}
+      interval: {{ .Values.prometheusRule.interval }}
+      {{- end }}
+      rules: {{- tpl (toYaml .Values.prometheusRule.rules) . | nindent 8 }}
+{{- end }}

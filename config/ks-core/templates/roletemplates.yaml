@@ -1,0 +1,2082 @@
+# global scope role templates
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"workspaces": "create"}'
+  labels:
+    iam.kubesphere.io/category: global-workspace-management
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-create-workspaces
+spec:
+  description:
+    en: 'Create workspaces and become an administrator of the created projects.'
+    zh: '创建企业空间。'
+  displayName:
+    en: Workspace Creation
+    zh: '企业空间创建'
+  rules:
+    - apiGroups:
+        - tenant.kubesphere.io
+      resources:
+        - workspaces
+        - workspacetemplates
+      verbs:
+        - create
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"workspaces": "view"}'
+  labels:
+    iam.kubesphere.io/category: global-workspace-management
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-view-workspaces
+spec:
+  description:
+    en: 'View all workspaces and workspace resources.'
+    zh: '查看所有工作空间和企业空间下的资源。'
+  displayName:
+    en: Workspace Viewing
+    zh: 企业空间查看
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - abnormalworkloads
+        - quotas
+        - workloads
+        - configmaps
+        - endpoints
+        - events
+        - limitranges
+        - namespaces
+        - persistentvolumeclaims
+        - podtemplates
+        - replicationcontrollers
+        - resourcequotas
+        - secrets
+        - serviceaccounts
+        - services
+        - applications
+        - controllerrevisions
+        - deployments
+        - replicasets
+        - statefulsets
+        - daemonsets
+        - meshpolicies
+        - cronjobs
+        - jobs
+        - horizontalpodautoscalers
+        - events
+        - ingresses
+        - router
+        - filters
+        - pods
+        - pods/log
+        - pods/exec
+        - pods/containers
+        - namespacenetworkpolicies
+        - workspacenetworkpolicies
+        - networkpolicies
+        - podsecuritypolicies
+        - rolebindings
+        - roles
+        - namespacemembers
+        - servicepolicies
+        - workspaces
+        - workspacetemplates
+        - workspaceroles
+        - workspacemembers
+        - workspacemembers/namespaces
+        - workspacerolebindings
+        - workloads
+      verbs:
+        - get
+        - list
+        - watch
+    - apiGroups:
+        - resources.kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - list
+        - get
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"workspaces": "manage"}'
+  labels:
+    iam.kubesphere.io/category: global-workspace-management
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-manage-workspaces
+spec:
+  description:
+    en: 'Manage all workspaces and workspace resources.'
+    zh: '管理所有企业空间和企业空间下的资源。'
+  displayName:
+    en: Workspace Management
+    zh: '企业空间管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - abnormalworkloads
+        - quotas
+        - workloads
+        - configmaps
+        - endpoints
+        - events
+        - limitranges
+        - namespaces
+        - persistentvolumeclaims
+        - podtemplates
+        - replicationcontrollers
+        - resourcequotas
+        - secrets
+        - serviceaccounts
+        - services
+        - applications
+        - controllerrevisions
+        - deployments
+        - replicasets
+        - statefulsets
+        - daemonsets
+        - meshpolicies
+        - cronjobs
+        - jobs
+        - horizontalpodautoscalers
+        - events
+        - ingresses
+        - router
+        - filters
+        - pods
+        - pods/log
+        - pods/exec
+        - pods/containers
+        - namespacenetworkpolicies
+        - workspacenetworkpolicies
+        - networkpolicies
+        - podsecuritypolicies
+        - rolebindings
+        - roles
+        - namespacemembers
+        - servicepolicies
+        - workspaces
+        - workspacetemplates
+        - workspaceroles
+        - workspacemembers
+        - workspacemembers/namespaces
+        - workspacerolebindings
+        - workloads
+      verbs:
+        - '*'
+    - apiGroups:
+        - resources.kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"clusters": "view"}'
+    iam.kubesphere.io/rego-override: |-
+      package authz
+      default allow = false
+      allow = true {
+        allowedScopes := ["Workspace","Namespace","Cluster"]
+        allowedScopes[_] == input.ResourceScope
+        allowedVerbs := ["get","list","watch"]
+        allowedVerbs[_] == input.Verb
+      }
+  labels:
+    iam.kubesphere.io/category: global-cluster-management
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-view-clusters
+spec:
+  description:
+    en: 'View all clusters and cluster resources.'
+    zh: '查看所有集群和集群资源。'
+  displayName:
+    en: Cluster Viewing
+    zh: '集群查看'
+  rules:
+    - apiGroups:
+        - ""
+        - apiextensions.k8s.io
+        - app.k8s.io
+        - apps
+        - autoscaling
+        - batch
+        - config.istio.io
+        - events.k8s.io
+        - events.kubesphere.io
+        - extensions
+        - metrics.k8s.io
+        - networking.k8s.io
+        - node.k8s.io
+        - rbac.istio.io
+        - scheduling.k8s.io
+        - security.istio.io
+        - storage.k8s.io
+        - storage.kubesphere.io
+        - resources.kubesphere.io
+        - cluster.kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - get
+        - list
+        - watch
+    - apiGroups:
+        - tenant.kubesphere.io
+      resources:
+        - workspaces
+        - workspacetemplates
+      verbs:
+        - get
+        - list
+        - watch
+    - apiGroups:
+        - iam.kubesphere.io
+      resources:
+        - clustermembers
+        - clusterroles
+      verbs:
+        - get
+        - list
+        - watch
+    - nonResourceURLs:
+        - '*'
+      verbs:
+        - GET
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["global-view-clusters"]'
+    iam.kubesphere.io/role-template-rules: '{"clusters": "manage"}'
+    kubesphere.io/description: '{"zh":"创建集群、删除集群和管理集群中的所有资源。"}'
+    iam.kubesphere.io/rego-override: |-
+      package authz
+      default allow = false
+      allow = true {
+        allowedScopes := ["Workspace","Namespace","Cluster"]
+        allowedScopes[_] == input.ResourceScope
+      }
+  labels:
+    iam.kubesphere.io/category: global-cluster-management
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-manage-clusters
+spec:
+  description:
+    en: 'Create clusters, delete clusters, and manage resources in all clusters.'
+    zh: '创建集群、删除集群和管理集群中的所有资源。'
+  displayName:
+    en: Cluster Management
+    zh: '集群管理'
+  rules:
+    - apiGroups:
+        - ""
+        - apiextensions.k8s.io
+        - app.k8s.io
+        - apps
+        - autoscaling
+        - batch
+        - events.k8s.io
+        - extensions
+        - node.k8s.io
+        - scheduling.k8s.io
+        - storage.k8s.io
+        - storage.k8s.io
+        - storage.kubesphere.io
+        - resources.kubesphere.io
+        - cluster.kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - '*'
+    - apiGroups:
+        - tenant.kubesphere.io
+      resources:
+        - workspaces
+        - workspacetemplates
+      verbs:
+        - update
+        - patch
+    - apiGroups:
+        - iam.kubesphere.io
+      resources:
+        - clustermembers
+        - clusterroles
+      verbs:
+        - '*'
+    - nonResourceURLs:
+        - '*'
+      verbs:
+        - GET
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"platform-settings": "manage"}'
+  labels:
+    iam.kubesphere.io/category: global-platform-settings
+    iam.kubesphere.io/hidden-role-template: "true"
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-manage-platform-settings
+spec:
+  description:
+    zh: '查看和编辑 KubeSphere 平台的设置。'
+    en: 'View and edit settings of the KubeSphere platform.'
+  displayName:
+    en: Platform Settings Management
+    zh: '平台设置管理'
+  rules:
+    - apiGroups:
+        - extensions.kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - '*'
+    - apiGroups:
+        - kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["global-view-users"]'
+    iam.kubesphere.io/role-template-rules: '{"roles": "view"}'
+  labels:
+    iam.kubesphere.io/category: global-access-control
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-view-roles
+spec:
+  description:
+    en: 'View platform roles.'
+    zh: '查看平台角色。'
+  displayName:
+    en: Role Viewing
+    zh: '角色查看'
+  rules:
+    - apiGroups:
+        - iam.kubesphere.io
+      resources:
+        - globalroles
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"roles": "manage"}'
+  labels:
+    iam.kubesphere.io/category: global-access-control
+    iam.kubesphere.io/hidden-role-template: "true"
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-manage-roles
+spec:
+  description:
+    en: 'Manage platform roles.'
+    zh: '管理平台角色。'
+  displayName:
+    en: Role Management
+    zh: '角色管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - globalroles
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"users": "view"}'
+  labels:
+    iam.kubesphere.io/category: global-access-control
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-view-users
+spec:
+  description:
+    en: 'View users.'
+    zh: '查看用户。'
+  displayName:
+    en: User Viewing
+    zh: '用户查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - users
+        - users/loginrecords
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"users": "manage"}'
+  labels:
+    iam.kubesphere.io/category: global-access-control
+    iam.kubesphere.io/hidden-role-template: "true"
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: global-manage-users
+spec:
+  description:
+    en: 'Manage users.'
+    zh: '管理用户。'
+  displayName:
+    en: User Management
+    zh: '用户管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - users
+        - users/password
+        - users/loginrecords
+      verbs:
+        - '*'
+
+
+# cluster scope role templates
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"cluster-settings": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-settings
+    iam.kubesphere.io/scope: "cluster"
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    kubesphere.io/managed: "true"
+  name: cluster-view-cluster-settings
+spec:
+  displayName:
+    en: Cluster Settings View
+    zh: '集群设置查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"cluster-settings": "manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-settings
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: "true"
+  name: cluster-manage-cluster-settings
+spec:
+  displayName:
+    en: Cluster Settings Management
+    zh: '集群设置管理'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"customresources": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-resource-management
+    iam.kubesphere.io/scope: "cluster"
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    kubesphere.io/managed: "true"
+  name: cluster-view-crds
+spec:
+  displayName:
+    en: Custom Resource Definition Viewing
+    zh: '定制资源定义查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"customresources": "manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-resource-management
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: "true"
+  name: cluster-manage-crds
+spec:
+  displayName:
+    en: Custom Resource Definition Management
+    zh: '定制资源定义管理'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"members": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-access-control
+    iam.kubesphere.io/scope: "cluster"
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: cluster-view-members
+spec:
+  displayName:
+    en: Member Viewing
+    zh: '成员查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-roles", "cluster-view-members"]'
+    iam.kubesphere.io/role-template-rules: '{"members": "manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-access-control
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-manage-members
+spec:
+  displayName:
+    en: Member Management
+    zh: '成员管理'
+  rules: []
+
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-members"]'
+    iam.kubesphere.io/role-template-rules: '{"roles": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-access-control
+    iam.kubesphere.io/scope: "cluster"
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: cluster-view-roles
+spec:
+  displayName:
+    en: Role Viewing
+    zh: '角色查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-roles"]'
+    iam.kubesphere.io/role-template-rules: '{"roles": "manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-access-control
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-manage-roles
+spec:
+  displayName:
+    en: Role Management
+    zh: '角色管理'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"nodes": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-resource-management
+    iam.kubesphere.io/scope: "cluster"
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: cluster-view-nodes
+spec:
+  displayName:
+    en: Node Viewing
+    zh: '节点查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-nodes"]'
+    iam.kubesphere.io/role-template-rules: '{"nodes": "manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-resource-management
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-manage-nodes
+spec:
+  displayName:
+    en: Node Management
+    zh: '节点管理'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-projects"]'
+    iam.kubesphere.io/role-template-rules: '{"deployments":"view","statefulsets":"view",
+        "daemonsets":"view","jobs":"view","cronjobs":"view","pods":"view","services":"view","ingresses":"view",
+        "configmaps":"view","secrets":"view","serviceaccounts":"view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-app-workloads-management
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-view-app-workloads
+spec:
+  displayName:
+    en: Application Workload Viewing
+    zh: '应用负载查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-app-workloads", "cluster-view-projects"]'
+    iam.kubesphere.io/role-template-rules: '{"deployments":"manage","statefulsets":"manage",
+            "daemonsets":"manage","jobs":"manage","cronjobs":"manage","pods":"manage","services":"manage",
+            "ingresses":"manage","configmaps":"manage","secrets":"manage","serviceaccounts":"manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-app-workloads-management
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-manage-app-workloads
+spec:
+  displayName:
+    en: Application Workload Management
+    zh: '应用负载管理'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"projects": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-project-management
+    iam.kubesphere.io/scope: "cluster"
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: cluster-view-projects
+spec:
+  displayName:
+    en: Project Viewing
+    zh: '项目查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-projects"]'
+    iam.kubesphere.io/role-template-rules: '{"projects": "manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-project-management
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-manage-projects
+spec:
+  displayName:
+    en: Project Management
+    zh: '项目管理'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-persistentvolumeclaims"]'
+    iam.kubesphere.io/role-template-rules: '{"storageclasses": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-storage-management
+    iam.kubesphere.io/scope: "cluster"
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: cluster-view-storageclasses
+spec:
+  displayName:
+    en: Storage Class Viewing
+    zh: '存储类查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-persistentvolumeclaims", "cluster-view-storageclasses"]'
+    iam.kubesphere.io/role-template-rules: '{"storageclasses": "manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-storage-management
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-manage-storageclasses
+spec:
+  displayName:
+    en: Storage Class Management
+    zh: '存储类管理'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"persistentvolumeclaims": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-storage-management
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-view-persistentvolumeclaims
+spec:
+  displayName:
+    en: Persistent Volume Claim Viewing
+    zh: '持久卷声明查看'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["cluster-view-persistentvolumeclaims", "cluster-view-storageclasses"]'
+    iam.kubesphere.io/role-template-rules: '{"persistentvolumeclaims": "manage"}'
+  labels:
+    iam.kubesphere.io/category: cluster-storage-management
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-manage-persistentvolumeclaims
+spec:
+  displayName:
+    en: Persistent Volume Claim Management
+    zh: '持久卷声明管理'
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"components": "view"}'
+  labels:
+    iam.kubesphere.io/category: cluster-resource-management
+    iam.kubesphere.io/scope: "cluster"
+    iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: cluster-view-components
+spec:
+  displayName:
+    en: System Component Viewing
+    zh: '系统组件查看'
+  rules: []
+
+# workspace scope role templates
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"workspace-settings": "view"}'
+  labels:
+    iam.kubesphere.io/category: workspace-settings
+    iam.kubesphere.io/scope: "workspace"
+    iam.kubesphere.io/aggregate-to-regular: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/aggregate-to-self-provisioner: ""
+    iam.kubesphere.io/hidden-role-template: 'true'
+    iam.kubesphere.io/basic-role-template: 'true'
+    kubesphere.io/managed: 'true'
+  name: workspace-view-workspace-settings
+spec:
+  description:
+    en: 'View workspace settings.'
+    zh: '查看企业空间设置。'
+  displayName:
+    en: Workspace Settings Viewing
+    zh: '企业空间设置查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - workspaces
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"workspace-settings": "manage"}'
+  labels:
+    iam.kubesphere.io/category: workspace-settings
+    iam.kubesphere.io/hidden-role-template: 'true'
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: 'true'
+  name: workspace-manage-workspace-settings
+spec:
+  description:
+    en: 'Manage workspace settings and edit workspace information and network policies.'
+    zh: '管理企业空间的基本信息、网络策略等设置。'
+  displayName:
+    en: Workspace Settings Management
+    zh: '企业空间设置管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - workspaces
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"projects": "create"}'
+  labels:
+    iam.kubesphere.io/category: workspace-project-management
+    iam.kubesphere.io/aggregate-to-self-provisioner: ""
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: 'true'
+  name: workspace-create-projects
+spec:
+  description:
+    en: 'Create projects and become an administrator of the created projects.'
+    zh: '创建项目并成为所创建的项目的管理员。'
+  displayName:
+    en: Project Creation
+    zh: '项目创建'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - workspaces
+        - workspacemembers
+        - quotas
+        - abnormalworkloads
+        - pods
+      verbs:
+        - get
+        - list
+        - watch
+    - apiGroups:
+        - '*'
+      resources:
+        - namespaces
+        - federatednamespaces
+      verbs:
+        - create
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"projects": "view"}'
+  labels:
+    iam.kubesphere.io/category: workspace-project-management
+    iam.kubesphere.io/scope: "workspace"
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: workspace-view-projects
+spec:
+  description:
+    en: 'View all projects and project resources.'
+    zh: '查看企业空间中的所有项目及项目下的资源。'
+  displayName:
+    en: Project Viewing
+    zh: '项目查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - namespaces
+        - configmaps
+        - endpoints
+        - events
+        - limitranges
+        - persistentvolumeclaims
+        - podtemplates
+        - replicationcontrollers
+        - resourcequotas
+        - secrets
+        - serviceaccounts
+        - services
+        - applications
+        - controllerrevisions
+        - deployments
+        - replicasets
+        - statefulsets
+        - daemonsets
+        - cronjobs
+        - jobs
+        - events
+        - ingresses
+        - router
+        - pods
+        - pods/log
+        - pods/containers
+        - namespacenetworkpolicies
+        - networkpolicies
+        - podsecuritypolicies
+        - rolebindings
+        - roles
+        - namespacemembers
+        - servicepolicies
+        - workspaces
+        - quotas
+        - abnormalworkloads
+        - workloads
+        - router
+        - strategies
+      verbs:
+        - get
+        - list
+        - watch
+    - apiGroups:
+        - apps
+        - extensions
+        - batch
+        - autoscaling
+        - app.k8s.io
+        - operations.kubesphere.io
+        - resources.kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - list
+        - get
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["workspace-view-projects","workspace-view-members","workspace-create-projects"]'
+    iam.kubesphere.io/role-template-rules: '{"projects": "manage"}'
+  labels:
+    iam.kubesphere.io/category: workspace-project-management
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: 'true'
+  name: workspace-manage-projects
+spec:
+  description:
+    en: 'Create, edit, and delete projects in the workspace.'
+    zh: '创建、编辑和删除企业空间中的项目。'
+  displayName:
+    en: Project Management
+    zh: '项目管理'
+  rules:
+    - apiGroups:
+        - apps
+        - extensions
+        - batch
+        - autoscaling
+        - app.k8s.io
+        - operations.kubesphere.io
+        - resources.kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - '*'
+    - apiGroups:
+        - '*'
+      resources:
+        - namespaces
+        - configmaps
+        - endpoints
+        - events
+        - limitranges
+        - persistentvolumeclaims
+        - podtemplates
+        - replicationcontrollers
+        - resourcequotas
+        - secrets
+        - serviceaccounts
+        - services
+        - applications
+        - controllerrevisions
+        - deployments
+        - replicasets
+        - statefulsets
+        - daemonsets
+        - meshpolicies
+        - cronjobs
+        - jobs
+        - events
+        - ingresses
+        - router
+        - pods
+        - pods/log
+        - pods/exec
+        - pods/containers
+        - namespacenetworkpolicies
+        - networkpolicies
+        - podsecuritypolicies
+        - rolebindings
+        - roles
+        - namespacemembers
+        - servicepolicies
+        - workspaces
+        - quotas
+        - abnormalworkloads
+        - workloads
+        - router
+        - strategies
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"members": "view"}'
+  labels:
+    iam.kubesphere.io/category: workspace-access-control
+    iam.kubesphere.io/scope: "workspace"
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: workspace-view-members
+spec:
+  description:
+    en: 'View workspace members.'
+    zh: '查看企业空间成员。'
+  displayName:
+    en: Member Viewing
+    zh: '成员查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - workspacemembers
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"members": "manage"}'
+  labels:
+    iam.kubesphere.io/category: workspace-access-control
+    iam.kubesphere.io/hidden-role-template: "true"
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: 'true'
+  name: workspace-manage-members
+spec:
+  description:
+    en: 'Manage workspace members.'
+    zh: '管理企业空间成员。'
+  displayName:
+    en: Member Management
+    zh: '成员管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - workspacemembers
+      verbs:
+        - '*'
+    - apiGroups:
+        - '*'
+      resources:
+        - workspaceroles
+      verbs:
+        - list
+        - get
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["workspace-view-members"]'
+    iam.kubesphere.io/role-template-rules: '{"roles": "view"}'
+  labels:
+    iam.kubesphere.io/category: workspace-access-control
+    iam.kubesphere.io/scope: "workspace"
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    kubesphere.io/managed: 'true'
+  name: workspace-view-roles
+spec:
+  description:
+    en: 'View workspace roles.'
+    zh: '查看企业空间角色。'
+  displayName:
+    en: Role Viewing
+    zh: "角色查看"
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - workspaceroles
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"roles": "manage"}'
+  labels:
+    iam.kubesphere.io/category: workspace-access-control
+    iam.kubesphere.io/hidden-role-template: "true"
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: 'true'
+  name: workspace-manage-roles
+spec:
+  description:
+    en: 'Manage workspace roles.'
+    zh: '管理企业空间角色。'
+  displayName:
+    en: Role Management
+    zh: '角色管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - workspaceroles
+      verbs:
+        - '*'
+
+# namespace scope role templates
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"project-settings": "view"}'
+  labels:
+    iam.kubesphere.io/category: namespace-settings
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/basic-role-template: 'true'
+    iam.kubesphere.io/hidden-role-template: 'true'
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+  name: namespace-view-project-settings
+spec:
+  description:
+    en: 'View project settings including project basic information, external access settings and resource quotas settings.'
+    zh: '查看项目设置，包括项目基本信息、外部访问设置、资源配额等。'
+  displayName:
+    en: Project Settings Viewing
+    zh: '项目设置查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - 'namespaces'
+      verbs:
+        - 'get'
+    - apiGroups:
+        - 'resources.kubesphere.io'
+      resources:
+        - 'quotas'
+        - 'metrics'
+      verbs:
+        - 'list'
+    - apiGroups:
+        - ''
+      resources:
+        - 'limitranges'
+      verbs:
+        - 'list'
+
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"project-settings": "manage"}'
+  labels:
+    iam.kubesphere.io/category: namespace-settings
+    iam.kubesphere.io/hidden-role-template: 'true'
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-project-settings
+spec:
+  description:
+    en: 'Manage project settings including project basic information, external access settings and resource quotas settings.'
+    zh: '管理项目设置，包括项目基本信息、外部访问设置、资源配额等。'
+  displayName:
+    en: Project Settings Management
+    zh: '项目设置管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - '*'
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"members": "view"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/category: namespace-access-control
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-view-members
+spec:
+  description:
+    en: 'View project members.'
+    zh: '查看项目成员。'
+  displayName:
+    en: Member Viewing
+    zh: '成员查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - namespacemembers
+        - rolebindings
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"members": "manage"}'
+  labels:
+    iam.kubesphere.io/category: namespace-access-control
+    iam.kubesphere.io/hidden-role-template: "true"
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-members
+spec:
+  description:
+    en: 'Manage project members.'
+    zh: '管理项目成员。'
+  displayName:
+    en: Member Management
+    zh: '成员管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - namespacemembers
+        - rolebindings
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-members"]'
+    iam.kubesphere.io/role-template-rules: '{"roles": "view"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/category: namespace-access-control
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-view-roles
+spec:
+  description:
+    en: 'View project roles.'
+    zh: '查看项目角色。'
+  displayName:
+    en: Role Viewing
+    zh: '角色查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - roles
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"roles": "manage"}'
+  labels:
+    iam.kubesphere.io/category: namespace-access-control
+    iam.kubesphere.io/hidden-role-template: "true"
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-roles
+spec:
+  description:
+    en: 'Manage project roles.'
+    zh: '管理项目角色。'
+  displayName:
+    en: Role Management
+    zh: '角色管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - roles
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-volumes","namespace-view-secrets","namespace-view-configmaps"]'
+    iam.kubesphere.io/role-template-rules: '{"applications":"view","deployments":"view","statefulsets":"view",
+    "daemonsets":"view","jobs":"view","cronjobs":"view","pods":"view","services":"view","ingresses":"view"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/category: namespace-application-workloads
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-view-app-workloads
+spec:
+  description:
+    en: 'View resources such as applications, services, workloads and jobs in the project.'
+    zh: '查看项目中的应用、服务、工作负载和任务等资源。'
+  displayName:
+    en: Application Workload Viewing
+    zh: '应用负载查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - services
+        - applications
+        - controllerrevisions
+        - deployments
+        - replicasets
+        - statefulsets
+        - daemonsets
+        - jobs
+        - cronjobs
+        - pods
+        - pods/log
+        - pods/containers
+        - services
+        - ingresses
+        - router
+        - horizontalpodautoscalers
+        - configmaps
+        - secrets
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-app-workloads"]'
+    iam.kubesphere.io/role-template-rules: '{"applications":"manage","deployments":"manage","statefulsets":"manage",
+      "daemonsets":"manage","jobs":"manage","cronjobs":"manage","pods":"manage","services":"manage","ingresses":"manage"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/category: namespace-application-workloads
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-app-workloads
+spec:
+  description:
+    en: 'Manage resources such as applications, services, workloads and jobs in the project.'
+    zh: '管理项目中的应用、服务、工作负载和任务等资源。'
+  displayName:
+    en: Application Workload Management
+    zh: '应用负载管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - services
+        - applications
+        - controllerrevisions
+        - deployments
+        - replicasets
+        - statefulsets
+        - daemonsets
+        - jobs
+        - cronjobs
+        - pods
+        - pods/log
+        - pods/exec
+        - pods/containers
+        - services
+        - ingresses
+        - router
+        - workloads
+        - horizontalpodautoscalers
+      verbs:
+        - '*'
+    - apiGroups:
+        - '*'
+      resources:
+        - secrets
+      verbs:
+        - list
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"configmaps": "view"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/category: namespace-configuration-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-view-configmaps
+spec:
+  description:
+    en: 'View configmaps in the project.'
+    zh: '查看项目中的配置字典。'
+  displayName:
+    en: ConfigMap Viewing
+    zh: '配置字典查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - configmaps
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-configmaps"]'
+    iam.kubesphere.io/role-template-rules: '{"configmaps": "manage"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/category: namespace-configuration-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-configmaps
+spec:
+  description:
+    en: 'Create, edit, and delete configmaps in the project.'
+    zh: '创建、编辑和删除项目中的配置字典。'
+  displayName:
+    en: ConfigMap Management
+    zh: '配置字典管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - configmaps
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"secrets": "view"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/category: namespace-configuration-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-view-secrets
+spec:
+  description:
+    en: 'View secrets in the project.'
+    zh: '查看项目中的保密字典。'
+  displayName:
+    en: Secret Viewing
+    zh: '保密字典查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - secrets
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-secrets"]'
+    iam.kubesphere.io/role-template-rules: '{"secrets": "manage"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/category: namespace-configuration-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-secrets
+spec:
+  description:
+    en: 'Create, edit, and delete secrets in the project.'
+    zh: '创建、编辑和删除项目中的保密字典。'
+  displayName:
+    en: Secret Management
+    zh: '保密字典管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - secrets
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-roles","namespace-view-secrets"]'
+    iam.kubesphere.io/role-template-rules: '{"serviceaccounts": "view"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/category: namespace-configuration-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-view-serviceaccount
+spec:
+  description:
+    en: 'View service accounts in the project.'
+    zh: '查看项目中的服务账户。'
+  displayName:
+    en: Service Account Viewing
+    zh: '服务账户查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - serviceaccounts
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-serviceaccount"]'
+    iam.kubesphere.io/role-template-rules: '{"serviceaccounts": "manage"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/category: namespace-configuration-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-serviceaccount
+spec:
+  description:
+    en: 'Create, edit, and delete service accounts in the project.'
+    zh: '创建、编辑和删除项目中的服务帐户。'
+  displayName:
+    en: Service Account Management
+    zh: '服务账户管理'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - serviceaccounts
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"persistentvolumeclaims": "view"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/category: namespace-storage-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-view-persistentvolumeclaims
+spec:
+  description:
+    en: 'View persistent volume claims in the project.'
+    zh: '查看项目中的持久卷声明。'
+  displayName:
+    en: PersistentVolumeClaims Viewing
+    zh: '持久卷声明查看'
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - persistentvolumeclaims
+      verbs:
+        - get
+        - list
+        - watch
+    - apiGroups:
+        - '*'
+      resources:
+        - pods
+      verbs:
+        - list
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-persistentvolumeclaims"]'
+    iam.kubesphere.io/role-template-rules: '{"persistentvolumeclaims": "manage"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/category: namespace-storage-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-persistentvolumeclaims
+spec:
+  description:
+    en: 'Create, edit, and delete persistent volume claims in the project.'
+    zh: '创建、编辑和删除项目中的持久卷声明。'
+  displayName:
+    en: PersistentVolumeClaims Management
+    zh: 持久卷声明管理
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - persistentvolumeclaims
+      verbs:
+        - '*'
+    - apiGroups:
+        - '*'
+      resources:
+        - pods
+      verbs:
+        - list
+
+---
+# global scope role templates
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"manage-app": "manage"}'
+  labels:
+    iam.kubesphere.io/category: manage-app
+    iam.kubesphere.io/scope: global
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-admin: ""
+  name: global-role-template-manage-app
+spec:
+  description:
+    en: 'AppStore Management'
+    zh: '应用商店管理'
+  displayName:
+    en: 'AppStore Management'
+    zh: '应用商店管理'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - '*'
+      verbs:
+        - '*'
+
+# workspace scope role templates
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-repos": "view"}'
+  labels:
+    iam.kubesphere.io/category: workspace-app
+    iam.kubesphere.io/scope: workspace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-viewer: ""
+  name: workspace-view-app-repos
+spec:
+  description:
+    en: 'Workspace App Repos View'
+    zh: '企业空间应用仓库查看。'
+  displayName:
+    en: 'Workspace App Repos View'
+    zh: '应用仓库查看'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - repos
+        - repos/events
+      verbs:
+        - get
+        - list
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-repos": "manage"}'
+    iam.kubesphere.io/dependencies: '["workspace-view-app-repos"]'
+  labels:
+    iam.kubesphere.io/category: workspace-app
+    iam.kubesphere.io/scope: workspace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-self-provisioner: ""
+    iam.kubesphere.io/aggregate-to-admin: ""
+  name: workspace-manage-app-repos
+spec:
+  description:
+    en: 'Workspace App Repos Management'
+    zh: '企业空间应用仓库管理。'
+  displayName:
+    en: 'Workspace App Repos Management'
+    zh: '应用仓库管理'
+  rules:
+    - apiGroups:
+        - 'application.kubesphere.io'
+      resources:
+        - 'repos'
+        - 'repos/events'
+      verbs:
+        - '*'
+
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-templates": "view"}'
+  labels:
+    iam.kubesphere.io/category: workspace-app
+    iam.kubesphere.io/scope: workspace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-viewer: ""
+  name: workspace-view-app-templates
+spec:
+  description:
+    en: 'Application/application version/application instance view'
+    zh: '应用/应用版本/应用实例查看'
+  displayName:
+    en: 'Application/application version/application instance view'
+    zh: '应用/应用版本/应用实例查看'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - 'apps'
+        - 'apps/versions'
+        - 'applications'
+        - 'attachments'
+      verbs:
+        - get
+        - list
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-templates": "view"}'
+  labels:
+    iam.kubesphere.io/category: workspace-app
+    iam.kubesphere.io/scope: workspace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-viewer: ""
+  name: workspace-view-create-app-templates
+spec:
+  description:
+    en: 'Workspace Application/application version/application instance view and create'
+    zh: '应用/应用版本/应用实例查看和创建'
+  displayName:
+    en: 'Workspace Application/application version/application instance view and create'
+    zh: '应用/应用版本/应用实例查看和创建'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - 'apps'
+        - 'apps/versions'
+        - 'applications'
+        - 'attachments'
+      verbs:
+        - get
+        - list
+        - create
+        - update
+        - patch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-templates": "view"}'
+  labels:
+    iam.kubesphere.io/category: workspace-app
+    iam.kubesphere.io/scope: workspace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-viewer: ""
+  name: workspace-delete-app-templates
+spec:
+  description:
+    en: 'Workspace Application/application version/application instance deletion'
+    zh: '应用/应用版本/应用实例删除'
+  displayName:
+    en: 'Application/application version/application instance deletion'
+    zh: '应用/应用版本/应用实例删除'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - 'apps'
+        - 'apps/versions'
+        - 'applications'
+        - 'attachments'
+      verbs:
+        - delete
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-templates": "manage"}'
+    iam.kubesphere.io/dependencies: '["workspace-view-app-templates","workspace-view-create-app-templates","workspace-delete-app-templates"]'
+  labels:
+    iam.kubesphere.io/category: workspace-app
+    iam.kubesphere.io/scope: workspace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-self-provisioner: ""
+    iam.kubesphere.io/aggregate-to-admin: ""
+  name: workspace-manage-app-templates
+spec:
+  description:
+    en: 'Workspace applications/application versions/application instance management'
+    zh: '应用/应用版本/应用实例管理'
+  displayName:
+    en: 'Workspace applications/application versions/application instance management'
+    zh: '应用/应用版本/应用实例管理'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - 'apps'
+        - 'apps/versions'
+        - 'applications'
+        - 'attachments'
+      verbs:
+        - '*'
+
+# namespace scope role templates
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-releases": "view"}'
+  labels:
+    iam.kubesphere.io/category: namespace-app
+    iam.kubesphere.io/scope: namespace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-viewer: ""
+  name: namespace-view-app-releases
+spec:
+  description:
+    en: 'Namespace App Releases View'
+    zh: '项目下查看应用实例等。'
+  displayName:
+    en: 'Namespace App Releases View'
+    zh: '应用实例查看'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - applications
+        - attachments
+      verbs:
+        - get
+        - list
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-releases": "manage"}'
+    iam.kubesphere.io/dependencies: '["namespace-view-app-releases","namespace-delete-app-releases","namespace-create-app-releases"]'
+  labels:
+    iam.kubesphere.io/category: namespace-app
+    iam.kubesphere.io/scope: namespace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-admin: ""
+  name: namespace-manage-app-releases
+spec:
+  description:
+    en: 'Namespace App Releases Management'
+    zh: '项目下应用实例管理'
+  displayName:
+    en: 'Namespace App Releases Management'
+    zh: '应用实例管理'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - applications
+        - attachments
+      verbs:
+        - '*'
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-releases": "manage"}'
+  labels:
+    iam.kubesphere.io/category: namespace-app
+    iam.kubesphere.io/scope: namespace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-admin: ""
+  name: namespace-delete-app-releases
+spec:
+  description:
+    en: 'Namespace Application instance deletion'
+    zh: '项目下应用实例删除'
+  displayName:
+    en: 'Namespace Application instance deletion'
+    zh: '应用实例删除'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - applications
+        - attachments
+      verbs:
+        - delete
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/role-template-rules: '{"app-releases": "manage"}'
+  labels:
+    iam.kubesphere.io/category: namespace-app
+    iam.kubesphere.io/scope: namespace
+    kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-admin: ""
+  name: namespace-create-app-releases
+spec:
+  description:
+    en: 'Namespace Application instance create'
+    zh: '项目下应用实例创建'
+  displayName:
+    en: 'Namespace Application instance create'
+    zh: '应用实例创建'
+  rules:
+    - apiGroups:
+        - application.kubesphere.io
+      resources:
+        - applications
+        - attachments
+      verbs:
+        - post

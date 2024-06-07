@@ -1,358 +1,221 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package globalrole
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"reflect"
-	"time"
+	"strings"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
-
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
-	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/constants"
+	rbachelper "kubesphere.io/kubesphere/pkg/componenthelper/auth/rbac"
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
+	"kubesphere.io/kubesphere/pkg/controller/cluster/predicate"
+	clusterutils "kubesphere.io/kubesphere/pkg/controller/cluster/utils"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 )
 
 const (
-	// SuccessSynced is used as part of the Event 'reason' when a Foo is synced
-	successSynced = "Synced"
-	// is synced successfully
-	messageResourceSynced = "GlobalRole synced successfully"
-	controllerName        = "globalrole-controller"
+	controllerName = "globalrole"
+	finalizer      = "finalizers.kubesphere.io/globalroles"
 )
 
-type Controller struct {
-	k8sClient                    kubernetes.Interface
-	ksClient                     kubesphere.Interface
-	globalRoleInformer           iamv1alpha2informers.GlobalRoleInformer
-	globalRoleLister             iamv1alpha2listers.GlobalRoleLister
-	globalRoleSynced             cache.InformerSynced
-	fedGlobalRoleCache           cache.Store
-	fedGlobalRoleCacheController cache.Controller
-	// workqueue is a rate limited work queue. This is used to queue work to be
-	// processed instead of performing it as soon as a change happens. This
-	// means we can ensure we only process a fixed amount of resources at a
-	// time, and makes it easy to ensure we are never processing the same item
-	// simultaneously in two different workers.
-	workqueue workqueue.RateLimitingInterface
-	// recorder is an event recorder for recording Event resources to the
-	// Kubernetes API.
-	recorder record.EventRecorder
+var _ kscontroller.Controller = &Reconciler{}
+var _ reconcile.Reconciler = &Reconciler{}
+
+func (r *Reconciler) Name() string {
+	return controllerName
 }
 
-func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface, globalRoleInformer iamv1alpha2informers.GlobalRoleInformer,
-	fedGlobalRoleCache cache.Store, fedGlobalRoleCacheController cache.Controller) *Controller {
-	// Create event broadcaster
-	// Add sample-controller types to the default Kubernetes Scheme so Events can be
-	// logged for sample-controller types.
-
-	klog.V(4).Info("Creating event broadcaster")
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(klog.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
-	ctl := &Controller{
-		k8sClient:                    k8sClient,
-		ksClient:                     ksClient,
-		globalRoleInformer:           globalRoleInformer,
-		globalRoleLister:             globalRoleInformer.Lister(),
-		globalRoleSynced:             globalRoleInformer.Informer().HasSynced,
-		fedGlobalRoleCache:           fedGlobalRoleCache,
-		fedGlobalRoleCacheController: fedGlobalRoleCacheController,
-		workqueue:                    workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "GlobalRole"),
-		recorder:                     recorder,
-	}
-	klog.Info("Setting up event handlers")
-	globalRoleInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: ctl.enqueueGlobalRole,
-		UpdateFunc: func(old, new interface{}) {
-			ctl.enqueueGlobalRole(new)
-		},
-		DeleteFunc: ctl.enqueueGlobalRole,
-	})
-	return ctl
+func (r *Reconciler) Enabled(clusterRole string) bool {
+	return strings.EqualFold(clusterRole, string(clusterv1alpha1.ClusterRoleHost))
 }
 
-func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
-	defer utilruntime.HandleCrash()
-	defer c.workqueue.ShutDown()
-
-	// Start the informer factories to begin populating the informer caches
-	klog.Info("Starting GlobalRole controller")
-
-	// Wait for the caches to be synced before starting workers
-	klog.Info("Waiting for informer caches to sync")
-
-	if ok := cache.WaitForCacheSync(stopCh, c.globalRoleSynced, c.fedGlobalRoleCacheController.HasSynced); !ok {
-		return fmt.Errorf("failed to wait for caches to sync")
-	}
-
-	klog.Info("Starting workers")
-
-	for i := 0; i < threadiness; i++ {
-		go wait.Until(c.runWorker, time.Second, stopCh)
-	}
-
-	klog.Info("Started workers")
-	<-stopCh
-	klog.Info("Shutting down workers")
-	return nil
+type Reconciler struct {
+	client.Client
+	logger        logr.Logger
+	recorder      record.EventRecorder
+	helper        *rbachelper.Helper
+	clusterClient clusterclient.Interface
 }
 
-func (c *Controller) enqueueGlobalRole(obj interface{}) {
-	var key string
-	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		utilruntime.HandleError(err)
-		return
-	}
-	c.workqueue.Add(key)
+func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
+	r.clusterClient = mgr.ClusterClient
+	r.Client = mgr.GetClient()
+	r.helper = rbachelper.NewHelper(r.Client)
+	r.logger = mgr.GetLogger().WithName(controllerName)
+	r.recorder = mgr.GetEventRecorderFor(controllerName)
+	return builder.
+		ControllerManagedBy(mgr).
+		For(&iamv1beta1.GlobalRole{}).
+		Watches(
+			&clusterv1alpha1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.mapper),
+			builder.WithPredicates(predicate.ClusterStatusChangedPredicate{}),
+		).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
+		Named(controllerName).
+		Complete(r)
 }
 
-func (c *Controller) runWorker() {
-	for c.processNextWorkItem() {
+func (r *Reconciler) mapper(ctx context.Context, o client.Object) []reconcile.Request {
+	cluster := o.(*clusterv1alpha1.Cluster)
+	var requests []reconcile.Request
+	if !clusterutils.IsClusterReady(cluster) {
+		return requests
 	}
+	globalRoles := &iamv1beta1.GlobalRoleList{}
+	if err := r.List(ctx, globalRoles); err != nil {
+		r.logger.Error(err, "failed to list global roles")
+		return requests
+	}
+	for _, globalRole := range globalRoles.Items {
+		requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: globalRole.Name}})
+	}
+	return requests
 }
 
-func (c *Controller) processNextWorkItem() bool {
-	obj, shutdown := c.workqueue.Get()
-
-	if shutdown {
-		return false
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	globalRole := &iamv1beta1.GlobalRole{}
+	if err := r.Get(ctx, req.NamespacedName, globalRole); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// We wrap this block in a func so we can defer c.workqueue.Done.
-	err := func(obj interface{}) error {
-		// We call Done here so the workqueue knows we have finished
-		// processing this item. We also must remember to call Forget if we
-		// do not want this work item being re-queued. For example, we do
-		// not call Forget if a transient error occurs, instead the item is
-		// put back on the workqueue and attempted again after a back-off
-		// period.
-		defer c.workqueue.Done(obj)
-		var key string
-		var ok bool
-		// We expect strings to come off the workqueue. These are of the
-		// form namespace/name. We do this as the delayed nature of the
-		// workqueue means the items in the informer cache may actually be
-		// more up to date that when the item was initially put onto the
-		// workqueue.
-		if key, ok = obj.(string); !ok {
-			// As the item in the workqueue is actually invalid, we call
-			// Forget here else we'd go into a loop of attempting to
-			// process a work item that is invalid.
-			c.workqueue.Forget(obj)
-			utilruntime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
-			return nil
+	if globalRole.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so if it does not have our finalizer,
+		// then lets add the finalizer and update the object.
+		if !controllerutil.ContainsFinalizer(globalRole, finalizer) {
+			expected := globalRole.DeepCopy()
+			controllerutil.AddFinalizer(expected, finalizer)
+			return ctrl.Result{}, r.Patch(ctx, expected, client.MergeFrom(globalRole))
 		}
-		// Run the reconcile, passing it the namespace/name string of the
-		// Foo resource to be synced.
-		if err := c.reconcile(key); err != nil {
-			// Put the item back on the workqueue to handle any transient errors.
-			c.workqueue.AddRateLimited(key)
-			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
+	} else {
+		// The object is being deleted
+		if controllerutil.ContainsFinalizer(globalRole, finalizer) {
+			if err := r.deleteRelatedResources(ctx, globalRole); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to delete related resources: %s", err)
+			}
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(globalRole, finalizer)
+			if err := r.Update(ctx, globalRole, &client.UpdateOptions{}); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
-		// Finally, if no error occurs we Forget this item so it does not
-		// get queued again until another change happens.
-		c.workqueue.Forget(obj)
-		klog.Infof("Successfully synced %s:%s", "key", key)
-		return nil
-	}(obj)
-
-	if err != nil {
-		utilruntime.HandleError(err)
-		return true
+		return ctrl.Result{}, nil
 	}
 
-	return true
-}
-
-// reconcile compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the Foo resource
-// with the current status of the resource.
-func (c *Controller) reconcile(key string) error {
-
-	globalRole, err := c.globalRoleLister.Get(key)
-	if err != nil {
-		// The resource may no longer exist, in which case we stop
-		// processing.
-		if errors.IsNotFound(err) {
-			utilruntime.HandleError(fmt.Errorf("globalrole '%s' in work queue no longer exists", key))
-			return nil
+	if globalRole.AggregationRoleTemplates != nil {
+		if err := r.helper.AggregationRole(ctx, rbachelper.GlobalRoleRuleOwner{GlobalRole: globalRole}, r.recorder); err != nil {
+			return ctrl.Result{}, err
 		}
-		klog.Error(err)
-		return err
 	}
 
-	if err = c.multiClusterSync(context.Background(), globalRole); err != nil {
-		klog.Error(err)
-		return err
+	if err := r.multiClusterSync(ctx, globalRole); err != nil {
+		return ctrl.Result{}, err
 	}
-
-	c.recorder.Event(globalRole, corev1.EventTypeNormal, successSynced, messageResourceSynced)
-	return nil
+	return ctrl.Result{}, nil
 }
 
-func (c *Controller) Start(ctx context.Context) error {
-	return c.Run(4, ctx.Done())
-}
-
-func (c *Controller) multiClusterSync(ctx context.Context, globalRole *iamv1alpha2.GlobalRole) error {
-
-	if err := c.ensureNotControlledByKubefed(ctx, globalRole); err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	obj, exist, err := c.fedGlobalRoleCache.GetByKey(globalRole.Name)
-	if !exist {
-		return c.createFederatedGlobalRole(ctx, globalRole)
-	}
+func (r *Reconciler) deleteRelatedResources(ctx context.Context, globalRole *iamv1beta1.GlobalRole) error {
+	clusters, err := r.clusterClient.ListClusters(ctx)
 	if err != nil {
-		klog.Error(err)
-		return err
+		return fmt.Errorf("failed to list clusters: %s", err)
 	}
-
-	var federatedGlobalRole iamv1alpha2.FederatedRole
-
-	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.(*unstructured.Unstructured).Object, &federatedGlobalRole); err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	if !reflect.DeepEqual(federatedGlobalRole.Spec.Template.Rules, globalRole.Rules) ||
-		!reflect.DeepEqual(federatedGlobalRole.Spec.Template.Labels, globalRole.Labels) ||
-		!reflect.DeepEqual(federatedGlobalRole.Spec.Template.Annotations, globalRole.Annotations) {
-
-		federatedGlobalRole.Spec.Template.Rules = globalRole.Rules
-		federatedGlobalRole.Spec.Template.Annotations = globalRole.Annotations
-		federatedGlobalRole.Spec.Template.Labels = globalRole.Labels
-
-		return c.updateFederatedGlobalRole(ctx, &federatedGlobalRole)
-	}
-
-	return nil
-}
-
-func (c *Controller) createFederatedGlobalRole(ctx context.Context, globalRole *iamv1alpha2.GlobalRole) error {
-	federatedGlobalRole := &iamv1alpha2.FederatedRole{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       iamv1alpha2.FedGlobalRoleKind,
-			APIVersion: iamv1alpha2.FedGlobalRoleResource.Group + "/" + iamv1alpha2.FedGlobalRoleResource.Version,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: globalRole.Name,
-		},
-		Spec: iamv1alpha2.FederatedRoleSpec{
-			Template: iamv1alpha2.RoleTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      globalRole.Labels,
-					Annotations: globalRole.Annotations,
-				},
-				Rules: globalRole.Rules,
-			},
-			Placement: iamv1alpha2.Placement{
-				ClusterSelector: iamv1alpha2.ClusterSelector{},
-			},
-		},
-	}
-
-	err := controllerutil.SetControllerReference(globalRole, federatedGlobalRole, scheme.Scheme)
-	if err != nil {
-		return err
-	}
-
-	data, err := json.Marshal(federatedGlobalRole)
-	if err != nil {
-		return err
-	}
-
-	cli := c.k8sClient.(*kubernetes.Clientset)
-	err = cli.RESTClient().Post().
-		AbsPath(fmt.Sprintf("/apis/%s/%s/%s", iamv1alpha2.FedGlobalRoleResource.Group,
-			iamv1alpha2.FedGlobalRoleResource.Version, iamv1alpha2.FedGlobalRoleResource.Name)).
-		Body(data).
-		Do(ctx).Error()
-	if err != nil {
-		if errors.IsAlreadyExists(err) {
-			return nil
+	var notReadyClusters []string
+	for _, cluster := range clusters {
+		if clusterutils.IsHostCluster(&cluster) {
+			continue
 		}
-		return err
-	}
-
-	return nil
-}
-
-func (c *Controller) updateFederatedGlobalRole(ctx context.Context, federatedGlobalRole *iamv1alpha2.FederatedRole) error {
-
-	data, err := json.Marshal(federatedGlobalRole)
-	if err != nil {
-		return err
-	}
-
-	cli := c.k8sClient.(*kubernetes.Clientset)
-
-	err = cli.RESTClient().Put().
-		AbsPath(fmt.Sprintf("/apis/%s/%s/%s/%s", iamv1alpha2.FedGlobalRoleResource.Group,
-			iamv1alpha2.FedGlobalRoleResource.Version, iamv1alpha2.FedGlobalRoleResource.Name,
-			federatedGlobalRole.Name)).
-		Body(data).
-		Do(ctx).Error()
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
+		// skip if cluster is not ready
+		if !clusterutils.IsClusterReady(&cluster) {
+			notReadyClusters = append(notReadyClusters, cluster.Name)
+			continue
 		}
-		return err
-	}
-
-	return nil
-}
-
-func (c *Controller) ensureNotControlledByKubefed(ctx context.Context, globalRole *iamv1alpha2.GlobalRole) error {
-	if globalRole.Labels[constants.KubefedManagedLabel] != "false" {
-		if globalRole.Labels == nil {
-			globalRole.Labels = make(map[string]string, 0)
-		}
-		globalRole = globalRole.DeepCopy()
-		globalRole.Labels[constants.KubefedManagedLabel] = "false"
-		_, err := c.ksClient.IamV1alpha2().GlobalRoles().Update(ctx, globalRole, metav1.UpdateOptions{})
+		clusterClient, err := r.clusterClient.GetRuntimeClient(cluster.Name)
 		if err != nil {
-			klog.Error(err)
+			return fmt.Errorf("failed to get cluster client: %s", err)
+		}
+		if err = clusterClient.Delete(ctx, &iamv1beta1.GlobalRole{ObjectMeta: metav1.ObjectMeta{Name: globalRole.Name}}); err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return err
 		}
 	}
+	if len(notReadyClusters) > 0 {
+		err = fmt.Errorf("cluster not ready: %s", strings.Join(notReadyClusters, ","))
+		klog.FromContext(ctx).Error(err, "failed to delete related resources")
+		r.recorder.Event(globalRole, corev1.EventTypeWarning, kscontroller.SyncFailed, fmt.Sprintf("cluster not ready: %s", strings.Join(notReadyClusters, ",")))
+		return err
+	}
+	return nil
+}
+
+func (r *Reconciler) multiClusterSync(ctx context.Context, globalRole *iamv1beta1.GlobalRole) error {
+	clusters, err := r.clusterClient.ListClusters(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list clusters: %s", err)
+	}
+	var notReadyClusters []string
+	for _, cluster := range clusters {
+		// skip if cluster is not ready
+		if !clusterutils.IsClusterReady(&cluster) {
+			notReadyClusters = append(notReadyClusters, cluster.Name)
+			continue
+		}
+		if clusterutils.IsHostCluster(&cluster) {
+			continue
+		}
+		if err := r.syncGlobalRole(ctx, cluster, globalRole); err != nil {
+			return fmt.Errorf("failed to sync global role %s to cluster %s: %s", globalRole.Name, cluster.Name, err)
+		}
+	}
+	if len(notReadyClusters) > 0 {
+		klog.FromContext(ctx).V(4).Info("cluster not ready", "clusters", strings.Join(notReadyClusters, ","))
+		r.recorder.Event(globalRole, corev1.EventTypeWarning, kscontroller.SyncFailed, fmt.Sprintf("cluster not ready: %s", strings.Join(notReadyClusters, ",")))
+	}
+	return nil
+}
+
+func (r *Reconciler) syncGlobalRole(ctx context.Context, cluster clusterv1alpha1.Cluster, globalRole *iamv1beta1.GlobalRole) error {
+	if clusterutils.IsHostCluster(&cluster) {
+		return nil
+	}
+	clusterClient, err := r.clusterClient.GetRuntimeClient(cluster.Name)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster client: %s", err)
+	}
+	target := &iamv1beta1.GlobalRole{ObjectMeta: metav1.ObjectMeta{Name: globalRole.Name}}
+	op, err := controllerutil.CreateOrUpdate(ctx, clusterClient, target, func() error {
+		target.Labels = globalRole.Labels
+		target.Annotations = globalRole.Annotations
+		target.Rules = globalRole.Rules
+		target.AggregationRoleTemplates = globalRole.AggregationRoleTemplates
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update global role: %s", err)
+	}
+
+	r.logger.V(4).Info("global role successfully synced", "cluster", cluster.Name, "operation", op, "name", globalRole.Name)
 	return nil
 }

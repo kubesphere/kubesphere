@@ -1,18 +1,7 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package workspacerolebinding
 
@@ -20,15 +9,13 @@ import (
 	"context"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
-	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
-	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
 )
 
 var _ = Describe("WorkspaceRoleBinding", func() {
@@ -36,7 +23,7 @@ var _ = Describe("WorkspaceRoleBinding", func() {
 	const timeout = time.Second * 30
 	const interval = time.Second * 1
 
-	workspace := &tenantv1alpha2.WorkspaceTemplate{
+	workspace := &tenantv1beta1.WorkspaceTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "workspace1",
 		},
@@ -52,15 +39,10 @@ var _ = Describe("WorkspaceRoleBinding", func() {
 	// test Kubernetes API server, which isn't the goal here.
 	Context("WorkspaceRoleBinding Controller", func() {
 		It("Should create successfully", func() {
-			workspaceAdminBinding := &iamv1alpha2.WorkspaceRoleBinding{
+			workspaceAdminBinding := &iamv1beta1.WorkspaceRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   "admin-workspace1-admin",
-					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: workspace.Name},
-				},
-				RoleRef: rbacv1.RoleRef{
-					APIGroup: iamv1alpha2.SchemeGroupVersion.String(),
-					Kind:     iamv1alpha2.FedWorkspaceRoleKind,
-					Name:     "workspace1-admin",
+					Labels: map[string]string{tenantv1beta1.WorkspaceLabel: workspace.Name},
 				},
 			}
 

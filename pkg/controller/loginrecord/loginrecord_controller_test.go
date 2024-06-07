@@ -1,38 +1,26 @@
 /*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package loginrecord
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
-	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	fakek8s "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/kubernetes/scheme"
-	clienttesting "k8s.io/client-go/testing"
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"kubesphere.io/kubesphere/pkg/apis"
-	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	"kubesphere.io/kubesphere/pkg/scheme"
 )
 
 func TestLoginRecordController(t *testing.T) {
@@ -40,54 +28,43 @@ func TestLoginRecordController(t *testing.T) {
 	RunSpecs(t, "LoginRecord Controller Test Suite")
 }
 
-func newLoginRecord(username string) *iamv1alpha2.LoginRecord {
-	return &iamv1alpha2.LoginRecord{
+func newLoginRecord(username string) *iamv1beta1.LoginRecord {
+	return &iamv1beta1.LoginRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-%d", username, rand.Intn(1000000)),
 			Labels: map[string]string{
-				iamv1alpha2.UserReferenceLabel: username,
+				iamv1beta1.UserReferenceLabel: username,
 			},
 			CreationTimestamp: metav1.Now(),
 		},
-		Spec: iamv1alpha2.LoginRecordSpec{
-			Type:      iamv1alpha2.Token,
+		Spec: iamv1beta1.LoginRecordSpec{
+			Type:      iamv1beta1.Token,
 			Provider:  "",
 			Success:   true,
-			Reason:    iamv1alpha2.AuthenticatedSuccessfully,
+			Reason:    iamv1beta1.AuthenticatedSuccessfully,
 			SourceIP:  "",
 			UserAgent: "",
 		},
 	}
 }
 
-func newUser(username string) *iamv1alpha2.User {
-	return &iamv1alpha2.User{
+func newUser(username string) *iamv1beta1.User {
+	return &iamv1beta1.User{
 		ObjectMeta: metav1.ObjectMeta{Name: username},
 	}
 }
 
 var _ = Describe("LoginRecord", func() {
-	var k8sClient *fakek8s.Clientset
-	var ksClient *fakeks.Clientset
-	var user *iamv1alpha2.User
-	var loginRecord *iamv1alpha2.LoginRecord
-	var controller *loginRecordController
-	var informers externalversions.SharedInformerFactory
+	var user *iamv1beta1.User
+	var loginRecord *iamv1beta1.LoginRecord
+	var reconciler *Reconciler
 	BeforeEach(func() {
 		user = newUser("admin")
 		loginRecord = newLoginRecord(user.Name)
-		k8sClient = fakek8s.NewSimpleClientset()
-		ksClient = fakeks.NewSimpleClientset(loginRecord, user)
-		informers = externalversions.NewSharedInformerFactory(ksClient, 0)
-		loginRecordInformer := informers.Iam().V1alpha2().LoginRecords()
-		userInformer := informers.Iam().V1alpha2().Users()
-		err := loginRecordInformer.Informer().GetIndexer().Add(loginRecord)
-		Expect(err).Should(BeNil())
-		err = userInformer.Informer().GetIndexer().Add(user)
-		Expect(err).Should(BeNil())
-		err = apis.AddToScheme(scheme.Scheme)
-		Expect(err).NotTo(HaveOccurred())
-		controller = NewLoginRecordController(k8sClient, ksClient, loginRecordInformer, userInformer, time.Hour, 1)
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(user, loginRecord).Build()
+		reconciler = &Reconciler{}
+		reconciler.Client = fakeClient
+		reconciler.recorder = record.NewFakeRecorder(2)
 	})
 
 	// Add Tests for OpenAPI validation (or additional CRD features) specified in
@@ -96,20 +73,11 @@ var _ = Describe("LoginRecord", func() {
 	// test Kubernetes API server, which isn't the goal here.
 	Context("LoginRecord Controller", func() {
 		It("Should create successfully", func() {
-
 			By("Expecting to reconcile successfully")
-			err := controller.reconcile(loginRecord.Name)
+			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: types.NamespacedName{
+				Name: loginRecord.Name,
+			}})
 			Expect(err).Should(BeNil())
-
-			By("Expecting to update user last login time successfully")
-			err = controller.reconcile(loginRecord.Name)
-			Expect(err).Should(BeNil())
-			actions := ksClient.Actions()
-			Expect(len(actions)).Should(Equal(1))
-			newObject := user.DeepCopy()
-			newObject.Status.LastLoginTime = &loginRecord.CreationTimestamp
-			updateAction := clienttesting.NewUpdateAction(iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralUser), "", newObject)
-			Expect(actions[0]).Should(Equal(updateAction))
 		})
 	})
 })

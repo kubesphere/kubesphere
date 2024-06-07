@@ -1,75 +1,73 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package clusterrole
 
 import (
+	"context"
 	"encoding/json"
+
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 	"k8s.io/klog/v2"
 
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 )
 
-type clusterrolesGetter struct {
-	sharedInformers informers.SharedInformerFactory
+type clusterRolesGetter struct {
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &clusterrolesGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &clusterRolesGetter{cache: cache}
 }
 
-func (d *clusterrolesGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Rbac().V1().ClusterRoles().Lister().Get(name)
+func (d *clusterRolesGetter) Get(_, name string) (runtime.Object, error) {
+	clusterRole := &rbacv1.ClusterRole{}
+	return clusterRole, d.cache.Get(context.Background(), types.NamespacedName{Name: name}, clusterRole)
 }
 
-func (d *clusterrolesGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-
+func (d *clusterRolesGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
 	var roles []*rbacv1.ClusterRole
 	var err error
-
-	if aggregateTo := query.Filters[iamv1alpha2.AggregateTo]; aggregateTo != "" {
+	if aggregateTo := query.Filters[iamv1beta1.AggregateTo]; aggregateTo != "" {
 		roles, err = d.fetchAggregationRoles(string(aggregateTo))
-		delete(query.Filters, iamv1alpha2.AggregateTo)
+		if err != nil {
+			return nil, err
+		}
+		delete(query.Filters, iamv1beta1.AggregateTo)
 	} else {
-		roles, err = d.sharedInformers.Rbac().V1().ClusterRoles().Lister().List(query.Selector())
-	}
-
-	if err != nil {
-		return nil, err
+		clusterRoleList := &rbacv1.ClusterRoleList{}
+		if err := d.cache.List(context.Background(), clusterRoleList,
+			client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
+			return nil, err
+		}
+		roles = make([]*rbacv1.ClusterRole, 0)
+		for _, item := range clusterRoleList.Items {
+			roles = append(roles, item.DeepCopy())
+		}
 	}
 
 	var result []runtime.Object
-	for _, clusterrole := range roles {
-		result = append(result, clusterrole)
+	for _, clusterRole := range roles {
+		result = append(result, clusterRole)
 	}
 
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
-func (d *clusterrolesGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
+func (d *clusterRolesGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 	leftClusterRole, ok := left.(*rbacv1.ClusterRole)
 	if !ok {
 		return false
@@ -83,7 +81,7 @@ func (d *clusterrolesGetter) compare(left runtime.Object, right runtime.Object, 
 	return v1alpha3.DefaultObjectMetaCompare(leftClusterRole.ObjectMeta, rightClusterRole.ObjectMeta, field)
 }
 
-func (d *clusterrolesGetter) filter(object runtime.Object, filter query.Filter) bool {
+func (d *clusterRolesGetter) filter(object runtime.Object, filter query.Filter) bool {
 	role, ok := object.(*rbacv1.ClusterRole)
 
 	if !ok {
@@ -93,7 +91,7 @@ func (d *clusterrolesGetter) filter(object runtime.Object, filter query.Filter) 
 	return v1alpha3.DefaultObjectMetaFilter(role.ObjectMeta, filter)
 }
 
-func (d *clusterrolesGetter) fetchAggregationRoles(name string) ([]*rbacv1.ClusterRole, error) {
+func (d *clusterRolesGetter) fetchAggregationRoles(name string) ([]*rbacv1.ClusterRole, error) {
 	roles := make([]*rbacv1.ClusterRole, 0)
 
 	obj, err := d.Get("", name)
@@ -105,7 +103,7 @@ func (d *clusterrolesGetter) fetchAggregationRoles(name string) ([]*rbacv1.Clust
 		return nil, err
 	}
 
-	if annotation := obj.(*rbacv1.ClusterRole).Annotations[iamv1alpha2.AggregationRolesAnnotation]; annotation != "" {
+	if annotation := obj.(*rbacv1.ClusterRole).Annotations[iamv1beta1.AggregationRolesAnnotation]; annotation != "" {
 		var roleNames []string
 		if err = json.Unmarshal([]byte(annotation), &roleNames); err == nil {
 

@@ -20,6 +20,7 @@ import (
 	"context"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -141,6 +142,7 @@ type SubResourceWriter interface {
 	// Create saves the subResource object in the Kubernetes cluster. obj must be a
 	// struct pointer so that obj can be updated with the content returned by the Server.
 	Create(ctx context.Context, obj Object, subResource Object, opts ...SubResourceCreateOption) error
+
 	// Update updates the fields corresponding to the status subresource for the
 	// given obj. obj must be a struct pointer so that obj can be updated
 	// with the content returned by the Server.
@@ -169,6 +171,10 @@ type Client interface {
 	Scheme() *runtime.Scheme
 	// RESTMapper returns the rest this client is using.
 	RESTMapper() meta.RESTMapper
+	// GroupVersionKindFor returns the GroupVersionKind for the given object.
+	GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error)
+	// IsObjectNamespaced returns true if the GroupVersionKind of the object is namespaced.
+	IsObjectNamespaced(obj runtime.Object) (bool, error)
 }
 
 // WithWatch supports Watch on top of the CRUD operations supported by

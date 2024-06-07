@@ -19,20 +19,31 @@ const (
 
 type dirLoaderFS struct {
 	sync.Mutex
-	filesystem fs.FS
-	files      []string
-	idx        int
-	filter     filter.LoaderFilter
+	filesystem        fs.FS
+	files             []string
+	idx               int
+	filter            filter.LoaderFilter
+	root              string
+	pathFormat        PathFormat
+	maxSizeLimitBytes int64
 }
 
 // NewFSLoader returns a basic DirectoryLoader implementation
 // that will load files from a fs.FS interface
 func NewFSLoader(filesystem fs.FS) (DirectoryLoader, error) {
+	return NewFSLoaderWithRoot(filesystem, defaultFSLoaderRoot), nil
+}
+
+// NewFSLoaderWithRoot returns a basic DirectoryLoader implementation
+// that will load files from a fs.FS interface at the supplied root
+func NewFSLoaderWithRoot(filesystem fs.FS, root string) DirectoryLoader {
 	d := dirLoaderFS{
 		filesystem: filesystem,
+		root:       normalizeRootDirectory(root),
+		pathFormat: Chrooted,
 	}
 
-	return &d, nil
+	return &d
 }
 
 func (d *dirLoaderFS) walkDir(path string, dirEntry fs.DirEntry, err error) error {
@@ -51,6 +62,10 @@ func (d *dirLoaderFS) walkDir(path string, dirEntry fs.DirEntry, err error) erro
 				return nil
 			}
 
+			if d.maxSizeLimitBytes > 0 && info.Size() > d.maxSizeLimitBytes {
+				return fmt.Errorf("file %s size %d exceeds limit of %d", path, info.Size(), d.maxSizeLimitBytes)
+			}
+
 			d.files = append(d.files, path)
 		} else if dirEntry.Type().IsDir() {
 			if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, true)) {
@@ -67,6 +82,18 @@ func (d *dirLoaderFS) WithFilter(filter filter.LoaderFilter) DirectoryLoader {
 	return d
 }
 
+// WithPathFormat specifies how a path is formatted in a Descriptor
+func (d *dirLoaderFS) WithPathFormat(pathFormat PathFormat) DirectoryLoader {
+	d.pathFormat = pathFormat
+	return d
+}
+
+// WithSizeLimitBytes specifies the maximum size of any file in the filesystem directory to read
+func (d *dirLoaderFS) WithSizeLimitBytes(sizeLimitBytes int64) DirectoryLoader {
+	d.maxSizeLimitBytes = sizeLimitBytes
+	return d
+}
+
 // NextFile iterates to the next file in the directory tree
 // and returns a file Descriptor for the file.
 func (d *dirLoaderFS) NextFile() (*Descriptor, error) {
@@ -74,7 +101,7 @@ func (d *dirLoaderFS) NextFile() (*Descriptor, error) {
 	defer d.Unlock()
 
 	if d.files == nil {
-		err := fs.WalkDir(d.filesystem, defaultFSLoaderRoot, d.walkDir)
+		err := fs.WalkDir(d.filesystem, d.root, d.walkDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list files: %w", err)
 		}
@@ -94,7 +121,7 @@ func (d *dirLoaderFS) NextFile() (*Descriptor, error) {
 		return nil, fmt.Errorf("failed to open file %s: %w", fileName, err)
 	}
 
-	fileNameWithSlash := fmt.Sprintf("/%s", fileName)
-	f := newDescriptor(fileNameWithSlash, fileNameWithSlash, fh).withCloser(fh)
+	cleanedPath := formatPath(fileName, d.root, d.pathFormat)
+	f := NewDescriptor(cleanedPath, cleanedPath, fh).WithCloser(fh)
 	return f, nil
 }

@@ -1,159 +1,151 @@
 /*
-
- Copyright 2021 The KubeSphere Authors.
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package auth
 
 import (
 	"context"
+	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	authuser "k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/klog/v2"
-
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 )
 
 type passwordAuthenticator struct {
-	ksClient    kubesphere.Interface
-	userGetter  *userGetter
-	authOptions *authentication.Options
+	userGetter                          *userMapper
+	client                              runtimeclient.Client
+	authOptions                         *authentication.Options
+	identityProviderConfigurationGetter identityprovider.ConfigurationGetter
 }
 
-func NewPasswordAuthenticator(ksClient kubesphere.Interface,
-	userLister iamv1alpha2listers.UserLister,
-	options *authentication.Options) PasswordAuthenticator {
+func NewPasswordAuthenticator(cacheClient runtimeclient.Client, options *authentication.Options) PasswordAuthenticator {
 	passwordAuthenticator := &passwordAuthenticator{
-		ksClient:    ksClient,
-		userGetter:  &userGetter{userLister: userLister},
-		authOptions: options,
+		client:                              cacheClient,
+		userGetter:                          &userMapper{cache: cacheClient},
+		identityProviderConfigurationGetter: identityprovider.NewConfigurationGetter(cacheClient),
+		authOptions:                         options,
 	}
 	return passwordAuthenticator
 }
 
-func (p *passwordAuthenticator) Authenticate(_ context.Context, provider, username, password string) (authuser.Info, string, error) {
+func (p *passwordAuthenticator) Authenticate(ctx context.Context, provider, username, password string) (authuser.Info, error) {
 	// empty username or password are not allowed
 	if username == "" || password == "" {
-		return nil, "", IncorrectPasswordError
+		return nil, IncorrectPasswordError
 	}
 	if provider != "" {
-		return p.authByProvider(provider, username, password)
+		return p.authByProvider(ctx, provider, username, password)
 	}
-	return p.authByKubeSphere(username, password)
+	return p.authByKubeSphere(ctx, username, password)
 }
 
 // authByKubeSphere authenticate by the kubesphere user
-func (p *passwordAuthenticator) authByKubeSphere(username, password string) (authuser.Info, string, error) {
-	user, err := p.userGetter.findUser(username)
+func (p *passwordAuthenticator) authByKubeSphere(ctx context.Context, username, password string) (authuser.Info, error) {
+	user, err := p.userGetter.Find(ctx, username)
 	if err != nil {
-		// ignore not found error
-		if !errors.IsNotFound(err) {
-			klog.Error(err)
-			return nil, "", err
+		if errors.IsNotFound(err) {
+			return nil, IncorrectPasswordError
 		}
+		return nil, fmt.Errorf("failed to find user: %s", err)
+	}
+
+	if user == nil {
+		return nil, IncorrectPasswordError
 	}
 
 	// check user status
-	if user != nil && user.Status.State != iamv1alpha2.UserActive {
-		if user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
-			klog.Errorf("%s, username: %s", RateLimitExceededError, username)
-			return nil, "", RateLimitExceededError
+	if user.Status.State != iamv1beta1.UserActive {
+		if user.Status.State == iamv1beta1.UserAuthLimitExceeded {
+			return nil, RateLimitExceededError
 		} else {
-			// state not active
-			klog.Errorf("%s, username: %s", AccountIsNotActiveError, username)
-			return nil, "", AccountIsNotActiveError
+			return nil, AccountIsNotActiveError
 		}
 	}
 
 	// if the password is not empty, means that the password has been reset, even if the user was mapping from IDP
-	if user != nil && user.Spec.EncryptedPassword != "" {
-		if err = PasswordVerify(user.Spec.EncryptedPassword, password); err != nil {
-			klog.Error(err)
-			return nil, "", err
-		}
-		u := &authuser.DefaultInfo{
-			Name:   user.Name,
-			Groups: user.Spec.Groups,
-		}
-		// check if the password is initialized
-		if uninitialized := user.Annotations[iamv1alpha2.UninitializedAnnotation]; uninitialized != "" {
-			u.Extra = map[string][]string{
-				iamv1alpha2.ExtraUninitialized: {uninitialized},
-			}
-		}
-		return u, "", nil
+	if user.Spec.EncryptedPassword == "" {
+		return nil, IncorrectPasswordError
 	}
 
-	return nil, "", IncorrectPasswordError
+	if err = PasswordVerify(user.Spec.EncryptedPassword, password); err != nil {
+		return nil, err
+	}
+
+	info := &authuser.DefaultInfo{
+		Name:   user.Name,
+		Groups: user.Spec.Groups,
+	}
+
+	// check if the password is initialized
+	if uninitialized := user.Annotations[iamv1beta1.UninitializedAnnotation]; uninitialized != "" {
+		info.Extra = map[string][]string{
+			iamv1beta1.ExtraUninitialized: {uninitialized},
+		}
+	}
+
+	return info, nil
 }
 
 // authByProvider authenticate by the third-party identity provider user
-func (p *passwordAuthenticator) authByProvider(provider, username, password string) (authuser.Info, string, error) {
-	providerOptions, err := p.authOptions.OAuthOptions.IdentityProviderOptions(provider)
-	if err != nil {
-		klog.Error(err)
-		return nil, "", err
+func (p *passwordAuthenticator) authByProvider(ctx context.Context, provider, username, password string) (authuser.Info, error) {
+	genericProvider, exist := identityprovider.SharedIdentityProviderController.GetGenericProvider(provider)
+	if !exist {
+		return nil, fmt.Errorf("generic identity provider %s not found", provider)
 	}
-	genericProvider, err := identityprovider.GetGenericProvider(providerOptions.Name)
+
+	providerConfig, err := p.identityProviderConfigurationGetter.GetConfiguration(ctx, provider)
 	if err != nil {
-		klog.Error(err)
-		return nil, "", err
+		return nil, fmt.Errorf("failed to get identity provider configuration: %s", err)
 	}
-	authenticated, err := genericProvider.Authenticate(username, password)
+
+	identity, err := genericProvider.Authenticate(username, password)
 	if err != nil {
-		klog.Error(err)
 		if errors.IsUnauthorized(err) {
-			return nil, "", IncorrectPasswordError
+			return nil, IncorrectPasswordError
 		}
-		return nil, "", err
-	}
-	linkedAccount, err := p.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
-
-	if err != nil && !errors.IsNotFound(err) {
-		klog.Error(err)
-		return nil, "", err
+		return nil, err
 	}
 
-	if linkedAccount != nil {
-		return &authuser.DefaultInfo{Name: linkedAccount.Name}, provider, nil
+	mappedUser, err := p.userGetter.FindMappedUser(ctx, provider, identity.GetUserID())
+	if err != nil {
+		return nil, fmt.Errorf("failed to find mapped user: %s", err)
 	}
 
-	// the user will automatically create and mapping when login successful.
-	if providerOptions.MappingMethod == oauth.MappingMethodAuto {
-		if !providerOptions.DisableLoginConfirmation {
-			return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
+	if mappedUser == nil {
+		if providerConfig.MappingMethod == identityprovider.MappingMethodLookup {
+			return nil, fmt.Errorf("failed to find mapped user: %s", identity.GetUserID())
 		}
-		linkedAccount, err = p.ksClient.IamV1alpha2().Users().Create(context.Background(), mappedUser(providerOptions.Name, authenticated), metav1.CreateOptions{})
-		if err != nil {
-			klog.Error(err)
-			return nil, "", err
+
+		if providerConfig.MappingMethod == identityprovider.MappingMethodManual {
+			return newRreRegistrationUser(providerConfig.Name, identity), nil
 		}
-		return &authuser.DefaultInfo{Name: linkedAccount.Name}, provider, nil
+
+		if providerConfig.MappingMethod == identityprovider.MappingMethodAuto {
+			mappedUser = newMappedUser(providerConfig.Name, identity)
+
+			if err = p.client.Create(ctx, mappedUser); err != nil {
+				return nil, err
+			}
+
+			return &authuser.DefaultInfo{Name: mappedUser.GetName()}, nil
+		}
+
+		return nil, fmt.Errorf("invalid mapping method found %s", providerConfig.MappingMethod)
 	}
 
-	return nil, "", err
+	if mappedUser.Status.State == iamv1beta1.UserDisabled {
+		return nil, AccountIsNotActiveError
+	}
+
+	return &authuser.DefaultInfo{Name: mappedUser.GetName()}, nil
 }
 
 func PasswordVerify(encryptedPassword, password string) error {

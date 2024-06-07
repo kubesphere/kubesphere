@@ -118,7 +118,9 @@ func (cm *connectionManager) closeAll() {
 // grpcTunnel implements Tunnel
 type grpcTunnel struct {
 	stream      client.ProxyService_ProxyClient
-	clientConn  clientConn
+	sendLock    sync.Mutex
+	recvLock    sync.Mutex
+	grpcConn    clientConn
 	pendingDial pendingDialManager
 	conns       connectionManager
 
@@ -129,6 +131,11 @@ type grpcTunnel struct {
 	// The done channel is closed after the tunnel has cleaned up all connections and is no longer
 	// serving.
 	done chan struct{}
+
+	// started is an atomic bool represented as a 0 or 1, and set to true when a single-use tunnel has been started (dialed).
+	// started should only be accessed through atomic methods.
+	// TODO: switch this to an atomic.Bool once the client is exclusively buit with go1.19+
+	started uint32
 
 	// closing is an atomic bool represented as a 0 or 1, and set to true when the tunnel is being closed.
 	// closing should only be accessed through atomic methods.
@@ -190,11 +197,12 @@ func CreateSingleUseGrpcTunnelWithContext(createCtx, tunnelCtx context.Context, 
 func newUnstartedTunnel(stream client.ProxyService_ProxyClient, c clientConn) *grpcTunnel {
 	t := grpcTunnel{
 		stream:             stream,
-		clientConn:         c,
+		grpcConn:           c,
 		pendingDial:        pendingDialManager{pendingDials: make(map[int64]pendingDial)},
 		conns:              connectionManager{conns: make(map[int64]*conn)},
 		readTimeoutSeconds: 10,
 		done:               make(chan struct{}),
+		started:            0,
 	}
 	s := metrics.ClientConnectionStatusCreated
 	t.prevStatus.Store(s)
@@ -230,7 +238,7 @@ func (t *grpcTunnel) closeMetric() {
 
 func (t *grpcTunnel) serve(tunnelCtx context.Context) {
 	defer func() {
-		t.clientConn.Close()
+		t.grpcConn.Close()
 
 		// A connection in t.conns after serve() returns means
 		// we never received a CLOSE_RSP for it, so we need to
@@ -243,20 +251,17 @@ func (t *grpcTunnel) serve(tunnelCtx context.Context) {
 	}()
 
 	for {
-		pkt, err := t.stream.Recv()
+		pkt, err := t.Recv()
 		if err == io.EOF {
 			return
 		}
-		const segment = commonmetrics.SegmentToClient
 		isClosing := t.isClosing()
 		if err != nil || pkt == nil {
 			if !isClosing {
 				klog.ErrorS(err, "stream read failure")
 			}
-			metrics.Metrics.ObserveStreamErrorNoPacket(segment, err)
 			return
 		}
-		metrics.Metrics.ObservePacket(segment, pkt.Type)
 		if isClosing {
 			return
 		}
@@ -273,7 +278,7 @@ func (t *grpcTunnel) serve(tunnelCtx context.Context) {
 				//   2. grpcTunnel.DialContext() returned early due to a dial timeout or the client canceling the context
 				//
 				// In either scenario, we should return here and close the tunnel as it is no longer needed.
-				kvs := []interface{}{"dialID", resp.Random, "connectID", resp.ConnectID}
+				kvs := []interface{}{"dialID", resp.Random, "connectionID", resp.ConnectID}
 				if resp.Error != "" {
 					kvs = append(kvs, "error", resp.Error)
 				}
@@ -335,11 +340,16 @@ func (t *grpcTunnel) serve(tunnelCtx context.Context) {
 
 		case client.PacketType_DATA:
 			resp := pkt.GetData()
+			if resp.ConnectID == 0 {
+				klog.ErrorS(nil, "Received packet missing ConnectID", "packetType", "DATA")
+				continue
+			}
 			// TODO: flow control
 			conn, ok := t.conns.get(resp.ConnectID)
 
 			if !ok {
-				klog.V(1).InfoS("Connection not recognized", "connectionID", resp.ConnectID)
+				klog.ErrorS(nil, "Connection not recognized", "connectionID", resp.ConnectID, "packetType", "DATA")
+				t.sendCloseRequest(resp.ConnectID)
 				continue
 			}
 			timer := time.NewTimer((time.Duration)(t.readTimeoutSeconds) * time.Second)
@@ -358,7 +368,7 @@ func (t *grpcTunnel) serve(tunnelCtx context.Context) {
 			conn, ok := t.conns.get(resp.ConnectID)
 
 			if !ok {
-				klog.V(1).InfoS("Connection not recognized", "connectionID", resp.ConnectID)
+				klog.V(1).InfoS("Connection not recognized", "connectionID", resp.ConnectID, "packetType", "CLOSE_RSP")
 				continue
 			}
 			close(conn.readCh)
@@ -382,6 +392,11 @@ func (t *grpcTunnel) DialContext(requestCtx context.Context, protocol, address s
 }
 
 func (t *grpcTunnel) dialContext(requestCtx context.Context, protocol, address string) (net.Conn, error) {
+	prevStarted := atomic.SwapUint32(&t.started, 1)
+	if prevStarted != 0 {
+		return nil, &dialFailure{"single-use dialer already dialed", metrics.DialFailureAlreadyStarted}
+	}
+
 	select {
 	case <-t.done:
 		return nil, errors.New("tunnel is closed")
@@ -418,20 +433,16 @@ func (t *grpcTunnel) dialContext(requestCtx context.Context, protocol, address s
 	}
 	klog.V(5).InfoS("[tracing] send packet", "type", req.Type)
 
-	const segment = commonmetrics.SegmentFromClient
-	metrics.Metrics.ObservePacket(segment, req.Type)
-	err := t.stream.Send(req)
+	err := t.Send(req)
 	if err != nil {
-		metrics.Metrics.ObserveStreamError(segment, err, req.Type)
 		return nil, err
 	}
 
 	klog.V(5).Infoln("DIAL_REQ sent to proxy server")
 
 	c := &conn{
-		stream:      t.stream,
-		random:      random,
-		closeTunnel: t.closeTunnel,
+		tunnel: t,
+		random: random,
 	}
 
 	select {
@@ -445,11 +456,17 @@ func (t *grpcTunnel) dialContext(requestCtx context.Context, protocol, address s
 		t.conns.add(res.connid, c)
 	case <-time.After(30 * time.Second):
 		klog.V(5).InfoS("Timed out waiting for DialResp", "dialID", random)
-		go t.closeDial(random)
+		go func() {
+			defer t.closeTunnel()
+			t.sendDialClose(random)
+		}()
 		return nil, &dialFailure{"dial timeout, backstop", metrics.DialFailureTimeout}
 	case <-requestCtx.Done():
 		klog.V(5).InfoS("Context canceled waiting for DialResp", "ctxErr", requestCtx.Err(), "dialID", random)
-		go t.closeDial(random)
+		go func() {
+			defer t.closeTunnel()
+			t.sendDialClose(random)
+		}()
 		return nil, &dialFailure{"dial timeout, context", metrics.DialFailureContext}
 	case <-t.done:
 		klog.V(5).InfoS("Tunnel closed while waiting for DialResp", "dialID", random)
@@ -464,7 +481,21 @@ func (t *grpcTunnel) Done() <-chan struct{} {
 }
 
 // Send a best-effort DIAL_CLS request for the given dial ID.
-func (t *grpcTunnel) closeDial(dialID int64) {
+
+func (t *grpcTunnel) sendCloseRequest(connID int64) error {
+	req := &client.Packet{
+		Type: client.PacketType_CLOSE_REQ,
+		Payload: &client.Packet_CloseRequest{
+			CloseRequest: &client.CloseRequest{
+				ConnectID: connID,
+			},
+		},
+	}
+	klog.V(5).InfoS("[tracing] send req", "type", req.Type)
+	return t.Send(req)
+}
+
+func (t *grpcTunnel) sendDialClose(dialID int64) error {
 	req := &client.Packet{
 		Type: client.PacketType_DIAL_CLS,
 		Payload: &client.Packet_CloseDial{
@@ -473,22 +504,46 @@ func (t *grpcTunnel) closeDial(dialID int64) {
 			},
 		},
 	}
-	const segment = commonmetrics.SegmentFromClient
-	metrics.Metrics.ObservePacket(segment, req.Type)
-	if err := t.stream.Send(req); err != nil {
-		metrics.Metrics.ObserveStreamError(segment, err, req.Type)
-		klog.V(5).InfoS("Failed to send DIAL_CLS", "err", err, "dialID", dialID)
-	}
-	t.closeTunnel()
+	klog.V(5).InfoS("[tracing] send req", "type", req.Type)
+	return t.Send(req)
 }
 
 func (t *grpcTunnel) closeTunnel() {
 	atomic.StoreUint32(&t.closing, 1)
-	t.clientConn.Close()
+	t.grpcConn.Close()
 }
 
 func (t *grpcTunnel) isClosing() bool {
 	return atomic.LoadUint32(&t.closing) != 0
+}
+
+func (t *grpcTunnel) Send(pkt *client.Packet) error {
+	t.sendLock.Lock()
+	defer t.sendLock.Unlock()
+
+	const segment = commonmetrics.SegmentFromClient
+	metrics.Metrics.ObservePacket(segment, pkt.Type)
+	err := t.stream.Send(pkt)
+	if err != nil && err != io.EOF {
+		metrics.Metrics.ObserveStreamError(segment, err, pkt.Type)
+	}
+	return err
+}
+
+func (t *grpcTunnel) Recv() (*client.Packet, error) {
+	t.recvLock.Lock()
+	defer t.recvLock.Unlock()
+
+	const segment = commonmetrics.SegmentToClient
+	pkt, err := t.stream.Recv()
+	if err != nil {
+		if err != io.EOF {
+			metrics.Metrics.ObserveStreamErrorNoPacket(segment, err)
+		}
+		return nil, err
+	}
+	metrics.Metrics.ObservePacket(segment, pkt.Type)
+	return pkt, nil
 }
 
 func GetDialFailureReason(err error) (isDialFailure bool, reason metrics.DialFailureReason) {

@@ -1,19 +1,3 @@
-/*
-Copyright 2022 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package helm
 
 import (
@@ -24,11 +8,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 )
 
-func NewClusterRESTClientGetter(kubeconfig, namespace string) genericclioptions.RESTClientGetter {
-	if kubeconfig != "" {
-		return NewMemoryRESTClientGetter([]byte(kubeconfig), namespace)
+func NewClusterRESTClientGetter(kubeconfig []byte, namespace string) genericclioptions.RESTClientGetter {
+	if len(kubeconfig) > 0 {
+		return NewMemoryRESTClientGetter(kubeconfig, namespace)
 	}
 	flags := genericclioptions.NewConfigFlags(true)
 	flags.Namespace = &namespace
@@ -37,19 +22,19 @@ func NewClusterRESTClientGetter(kubeconfig, namespace string) genericclioptions.
 
 // MemoryRESTClientGetter is an implementation of the genericclioptions.RESTClientGetter.
 type MemoryRESTClientGetter struct {
-	kubeConfig []byte
+	kubeconfig []byte
 	namespace  string
 }
 
-func NewMemoryRESTClientGetter(kubeConfig []byte, namespace string) genericclioptions.RESTClientGetter {
+func NewMemoryRESTClientGetter(kubeconfig []byte, namespace string) genericclioptions.RESTClientGetter {
 	return &MemoryRESTClientGetter{
-		kubeConfig: kubeConfig,
+		kubeconfig: kubeconfig,
 		namespace:  namespace,
 	}
 }
 
 func (c *MemoryRESTClientGetter) ToRESTConfig() (*rest.Config, error) {
-	cfg, err := clientcmd.RESTConfigFromKubeConfig(c.kubeConfig)
+	cfg, err := clientcmd.RESTConfigFromKubeConfig(c.kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +57,12 @@ func (c *MemoryRESTClientGetter) ToRESTMapper() (meta.RESTMapper, error) {
 		return nil, err
 	}
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	expander := restmapper.NewShortcutExpander(mapper, discoveryClient)
+	expander := restmapper.NewShortcutExpander(mapper, discoveryClient, c.warning)
 	return expander, nil
+}
+
+func (c *MemoryRESTClientGetter) warning(msg string) {
+	klog.Warning(msg)
 }
 
 func (c *MemoryRESTClientGetter) ToRawKubeConfigLoader() clientcmd.ClientConfig {

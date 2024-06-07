@@ -132,18 +132,25 @@ func buildOperation(ws *restful.WebService, r restful.Route, patterns map[string
 	return o
 }
 
-// stringAutoType automatically picks the correct type from an ambiguously typed
-// string. Ex. numbers become int, true/false become bool, etc.
-func stringAutoType(ambiguous string) interface{} {
+// stringAutoType picks the correct type when dataType is set. Otherwise, it automatically picks the correct type from
+// an ambiguously typed string. Ex. numbers become int, true/false become bool, etc.
+func stringAutoType(dataType, ambiguous string) interface{} {
 	if ambiguous == "" {
 		return nil
 	}
-	if parsedInt, err := strconv.ParseInt(ambiguous, 10, 64); err == nil {
-		return parsedInt
+
+	if dataType == "" || dataType == "integer" {
+		if parsedInt, err := strconv.ParseInt(ambiguous, 10, 64); err == nil {
+			return parsedInt
+		}
 	}
-	if parsedBool, err := strconv.ParseBool(ambiguous); err == nil {
-		return parsedBool
+
+	if dataType == "" || dataType == "boolean" {
+		if parsedBool, err := strconv.ParseBool(ambiguous); err == nil {
+			return parsedBool
+		}
 	}
+
 	return ambiguous
 }
 
@@ -188,7 +195,7 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 		// init Enum to our known size and populate it
 		p.Enum = make([]interface{}, 0, numPossible)
 		for _, value := range param.PossibleValues {
-			p.Enum = append(p.Enum, value)
+			p.Enum = append(p.Enum, stringAutoType(p.Type, value))
 		}
 	} else {
 		if numAllowable := len(param.AllowableValues); numAllowable > 0 {
@@ -204,7 +211,7 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 			// init Enum to our known size and populate it
 			p.Enum = make([]interface{}, 0, numAllowable)
 			for _, key := range allowableSortedKeys {
-				p.Enum = append(p.Enum, param.AllowableValues[key])
+				p.Enum = append(p.Enum, stringAutoType(p.Type, key))
 			}
 		}
 	}
@@ -250,7 +257,7 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 		} else {
 			p.Type = param.DataType
 		}
-		p.Default = stringAutoType(param.DefaultValue)
+		p.Default = stringAutoType(param.DataType, param.DefaultValue)
 		p.Format = param.DataFormat
 	}
 

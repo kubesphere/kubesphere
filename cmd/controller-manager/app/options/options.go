@@ -1,18 +1,7 @@
 /*
-Copyright 2020 KubeSphere Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package options
 
@@ -22,52 +11,29 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
-	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
-	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/gateway"
+	"kubesphere.io/kubesphere/pkg/config"
+	"kubesphere.io/kubesphere/pkg/controller"
+	"kubesphere.io/kubesphere/pkg/controller/options"
+	"kubesphere.io/kubesphere/pkg/scheme"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
-	"kubesphere.io/kubesphere/pkg/simple/client/network"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 )
 
-type KubeSphereControllerManagerOptions struct {
-	KubernetesOptions     *k8s.KubernetesOptions
-	DevopsOptions         *jenkins.Options
-	AuthenticationOptions *authentication.Options
-	LdapOptions           *ldapclient.Options
-	OpenPitrixOptions     *openpitrix.Options
-	NetworkOptions        *network.Options
-	MultiClusterOptions   *multicluster.Options
-	ServiceMeshOptions    *servicemesh.Options
-	GatewayOptions        *gateway.Options
-	MonitoringOptions     *prometheus.Options
-	AlertingOptions       *alerting.Options
-	LeaderElect           bool
-	LeaderElection        *leaderelection.LeaderElectionConfig
-	WebhookCertDir        string
-
-	// KubeSphere is using sigs.k8s.io/application as fundamental object to implement Application Management.
-	// There are other projects also built on sigs.k8s.io/application, when KubeSphere installed along side
-	// them, conflicts happen. So we leave an option to only reconcile applications  matched with the given
-	// selector. Default will reconcile all applications.
-	//    For example
-	//      "kubesphere.io/creator=" means reconcile applications with this label key
-	//      "!kubesphere.io/creator" means exclude applications with this key
-	ApplicationSelector string
-
+type ControllerManagerOptions struct {
+	options.Options
+	LeaderElect    bool
+	LeaderElection *leaderelection.LeaderElectionConfig
+	WebhookCertDir string
 	// ControllerGates is the list of controller gates to enable or disable controller.
 	// '*' means "all enabled by default controllers"
 	// 'foo' means "enable 'foo'"
@@ -78,49 +44,28 @@ type KubeSphereControllerManagerOptions struct {
 	//     e.g. *,-foo, means "disable 'foo'"
 	ControllerGates []string
 
-	// Enable gops or not.
-	GOPSEnabled bool
+	DebugMode bool
 }
 
-func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
-	s := &KubeSphereControllerManagerOptions{
-		KubernetesOptions:     k8s.NewKubernetesOptions(),
-		DevopsOptions:         jenkins.NewDevopsOptions(),
-		LdapOptions:           ldapclient.NewOptions(),
-		OpenPitrixOptions:     openpitrix.NewOptions(),
-		NetworkOptions:        network.NewNetworkOptions(),
-		MultiClusterOptions:   multicluster.NewOptions(),
-		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
-		AuthenticationOptions: authentication.NewOptions(),
-		GatewayOptions:        gateway.NewGatewayOptions(),
-		AlertingOptions:       alerting.NewAlertingOptions(),
+func NewControllerManagerOptions() *ControllerManagerOptions {
+	return &ControllerManagerOptions{
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,
 			RetryPeriod:   5 * time.Second,
 		},
-		LeaderElect:         false,
-		WebhookCertDir:      "",
-		ApplicationSelector: "",
-		ControllerGates:     []string{"*"},
+		LeaderElect:     false,
+		WebhookCertDir:  "",
+		ControllerGates: []string{"*"},
 	}
-
-	return s
 }
 
-func (s *KubeSphereControllerManagerOptions) Flags(allControllerNameSelectors []string) cliflag.NamedFlagSets {
+func (s *ControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
-	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.AuthenticationOptions.AddFlags(fss.FlagSet("authentication"), s.AuthenticationOptions)
-	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
-	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
-	s.NetworkOptions.AddFlags(fss.FlagSet("network"), s.NetworkOptions)
 	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
-	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
-	s.GatewayOptions.AddFlags(fss.FlagSet("gateway"), s.GatewayOptions)
-	s.AlertingOptions.AddFlags(fss.FlagSet("alerting"), s.AlertingOptions)
 	fs := fss.FlagSet("leaderelection")
 	s.bindLeaderElectionFlags(s.LeaderElection, fs)
 
@@ -134,16 +79,12 @@ func (s *KubeSphereControllerManagerOptions) Flags(allControllerNameSelectors []
 		"{TempDir}/k8s-webhook-server/serving-certs")
 
 	gfs := fss.FlagSet("generic")
-	gfs.StringVar(&s.ApplicationSelector, "application-selector", s.ApplicationSelector, ""+
-		"Only reconcile application(sigs.k8s.io/application) objects match given selector, this could avoid conflicts with "+
-		"other projects built on top of sig-application. Default behavior is to reconcile all of application objects.")
 	gfs.StringSliceVar(&s.ControllerGates, "controllers", []string{"*"}, fmt.Sprintf(""+
 		"A list of controllers to enable. '*' enables all on-by-default controllers, 'foo' enables the controller "+
 		"named 'foo', '-foo' disables the controller named 'foo'.\nAll controllers: %s",
-		strings.Join(allControllerNameSelectors, ", ")))
+		strings.Join(controller.Controllers.Keys(), ", ")))
 
-	gfs.BoolVar(&s.GOPSEnabled, "gops", s.GOPSEnabled, "Whether to enable gops or not.  When enabled this option, "+
-		"controller-manager will listen on a random port on 127.0.0.1, then you can use the gops tool to list and diagnose the controller-manager currently running.")
+	gfs.BoolVar(&s.DebugMode, "debug", false, "Don't enable this if you don't know what it means.")
 
 	kfs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
@@ -157,26 +98,14 @@ func (s *KubeSphereControllerManagerOptions) Flags(allControllerNameSelectors []
 }
 
 // Validate Options and Genetic Options
-func (s *KubeSphereControllerManagerOptions) Validate(allControllerNameSelectors []string) []error {
+func (s *ControllerManagerOptions) Validate() []error {
 	var errs []error
-	errs = append(errs, s.DevopsOptions.Validate()...)
 	errs = append(errs, s.KubernetesOptions.Validate()...)
-	errs = append(errs, s.OpenPitrixOptions.Validate()...)
-	errs = append(errs, s.NetworkOptions.Validate()...)
-	errs = append(errs, s.LdapOptions.Validate()...)
 	errs = append(errs, s.MultiClusterOptions.Validate()...)
-	errs = append(errs, s.AlertingOptions.Validate()...)
-
-	// genetic option: application-selector
-	if len(s.ApplicationSelector) != 0 {
-		_, err := labels.Parse(s.ApplicationSelector)
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
+	errs = append(errs, s.ComposedAppOptions.Validate()...)
 
 	// genetic option: controllers, check all selectors are valid
-	allControllersNameSet := sets.New(allControllerNameSelectors...)
+	allControllersNameSet := sets.KeySet(controller.Controllers)
 	for _, selector := range s.ControllerGates {
 		if selector == "*" {
 			continue
@@ -186,29 +115,10 @@ func (s *KubeSphereControllerManagerOptions) Validate(allControllerNameSelectors
 			errs = append(errs, fmt.Errorf("%q is not in the list of known controllers", selector))
 		}
 	}
-
 	return errs
 }
 
-// IsControllerEnabled check if a specified controller enabled or not.
-func (s *KubeSphereControllerManagerOptions) IsControllerEnabled(name string) bool {
-	hasStar := false
-	for _, ctrl := range s.ControllerGates {
-		if ctrl == name {
-			return true
-		}
-		if ctrl == "-"+name {
-			return false
-		}
-		if ctrl == "*" {
-			hasStar = true
-		}
-	}
-
-	return hasStar
-}
-
-func (s *KubeSphereControllerManagerOptions) bindLeaderElectionFlags(l *leaderelection.LeaderElectionConfig, fs *pflag.FlagSet) {
+func (s *ControllerManagerOptions) bindLeaderElectionFlags(l *leaderelection.LeaderElectionConfig, fs *pflag.FlagSet) {
 	fs.DurationVar(&l.LeaseDuration, "leader-elect-lease-duration", l.LeaseDuration, ""+
 		"The duration that non-leader candidates will wait after observing a leadership "+
 		"renewal until attempting to acquire leadership of a led but unrenewed leader "+
@@ -224,18 +134,118 @@ func (s *KubeSphereControllerManagerOptions) bindLeaderElectionFlags(l *leaderel
 		"of a leadership. This is only applicable if leader election is enabled.")
 }
 
-// MergeConfig merge new config without validation
+// Merge new config without validation
 // When misconfigured, the app should just crash directly
-func (s *KubeSphereControllerManagerOptions) MergeConfig(cfg *controllerconfig.Config) {
-	s.KubernetesOptions = cfg.KubernetesOptions
-	s.DevopsOptions = cfg.DevopsOptions
-	s.AuthenticationOptions = cfg.AuthenticationOptions
-	s.LdapOptions = cfg.LdapOptions
-	s.OpenPitrixOptions = cfg.OpenPitrixOptions
-	s.NetworkOptions = cfg.NetworkOptions
-	s.MultiClusterOptions = cfg.MultiClusterOptions
-	s.ServiceMeshOptions = cfg.ServiceMeshOptions
-	s.GatewayOptions = cfg.GatewayOptions
-	s.MonitoringOptions = cfg.MonitoringOptions
-	s.AlertingOptions = cfg.AlertingOptions
+func (s *ControllerManagerOptions) Merge(conf *config.Config) {
+	if conf == nil {
+		return
+	}
+	if conf.KubernetesOptions != nil {
+		s.KubernetesOptions = conf.KubernetesOptions
+	}
+	if conf.AuthenticationOptions != nil {
+		s.AuthenticationOptions = conf.AuthenticationOptions
+	}
+	if conf.MultiClusterOptions != nil {
+		s.MultiClusterOptions = conf.MultiClusterOptions
+	}
+	if conf.TerminalOptions != nil {
+		s.TerminalOptions = conf.TerminalOptions
+	}
+	if conf.TelemetryOptions != nil {
+		s.TelemetryOptions = conf.TelemetryOptions
+	}
+	if conf.HelmExecutorOptions != nil {
+		s.HelmExecutorOptions = conf.HelmExecutorOptions
+	}
+	if conf.ExtensionOptions != nil {
+		s.ExtensionOptions = conf.ExtensionOptions
+	}
+	if conf.KubeSphereOptions != nil {
+		s.KubeSphereOptions = conf.KubeSphereOptions
+	}
+	if conf.ComposedAppOptions != nil {
+		s.ComposedAppOptions = conf.ComposedAppOptions
+	}
+	if conf.S3Options != nil {
+		s.S3Options = conf.S3Options
+	}
+}
+
+func (s *ControllerManagerOptions) NewControllerManager() (*controller.Manager, error) {
+	cm := &controller.Manager{}
+
+	webhookServer := webhook.NewServer(webhook.Options{
+		CertDir: s.WebhookCertDir,
+		Port:    8443,
+	})
+
+	cmOptions := manager.Options{
+		Scheme:        scheme.Scheme,
+		WebhookServer: webhookServer,
+	}
+
+	if s.LeaderElect {
+		cmOptions = manager.Options{
+			Scheme:                  scheme.Scheme,
+			WebhookServer:           webhookServer,
+			LeaderElection:          s.LeaderElect,
+			LeaderElectionNamespace: "kubesphere-system",
+			LeaderElectionID:        "ks-controller-manager-leader-election",
+			LeaseDuration:           &s.LeaderElection.LeaseDuration,
+			RetryPeriod:             &s.LeaderElection.RetryPeriod,
+			RenewDeadline:           &s.LeaderElection.RenewDeadline,
+		}
+	}
+
+	k8sClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create kubernetes client: %v", err)
+	}
+	k8sVersionInfo, err := k8sClient.Discovery().ServerVersion()
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch k8s version info: %v", err)
+	}
+	k8sVersion, err := semver.NewVersion(k8sVersionInfo.GitVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	klog.V(0).Info("setting up manager")
+	ctrl.SetLogger(klog.NewKlogr())
+	// Use 8443 instead of 443 because we need root permission to bind port 443
+	mgr, err := manager.New(k8sClient.Config(), cmOptions)
+	if err != nil {
+		klog.Fatalf("unable to set up overall controller manager: %v", err)
+	}
+
+	clusterClient, err := clusterclient.NewClusterClientSet(mgr.GetCache())
+	if err != nil {
+		return nil, fmt.Errorf("unable to create cluster client: %v", err)
+	}
+
+	cm.K8sClient = k8sClient
+	cm.ClusterClient = clusterClient
+	cm.Options = s.Options
+	cm.IsControllerEnabled = s.IsControllerEnabled
+	cm.Manager = mgr
+	cm.K8sVersion = k8sVersion
+	return cm, nil
+}
+
+// IsControllerEnabled check if a specified controller enabled or not.
+func (s *ControllerManagerOptions) IsControllerEnabled(name string) bool {
+	allowedAll := false
+	for _, controllerGate := range s.ControllerGates {
+		if controllerGate == name {
+			return true
+		}
+		if controllerGate == "-"+name {
+			return false
+		}
+		if controllerGate == "*" {
+			allowedAll = true
+		}
+	}
+	return allowedAll
 }

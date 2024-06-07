@@ -1,19 +1,5 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 The KubeSphere Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # This script checks coding style for go language files in each
 # Kubernetes package by golint.
 # Usage: `hack/verify-golangci-lint.sh`.
@@ -38,9 +24,7 @@ export GO111MODULE=on
 if ! command -v golangci-lint ; then
 # Install golangci-lint
   echo 'installing golangci-lint'
-  pushd "${KUBE_ROOT}/hack/tools" >/dev/null
-    GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
-  popd >/dev/null
+  GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.2
 fi
 
 cd "${KUBE_ROOT}"
@@ -53,8 +37,11 @@ function error_exit {
 }
 trap "error_exit" EXIT
 
+go build ./...
+
 echo "running golangci-lint: REV=HEAD^"
 golangci-lint run \
+  -v \
   --timeout 30m \
   --disable-all \
   -E unused \
@@ -64,4 +51,4 @@ golangci-lint run \
   -E bodyclose \
   --skip-dirs pkg/client \
   --new-from-rev=HEAD^ \
-  pkg/... cmd/... tools/... test/... kube/...
+  ./...

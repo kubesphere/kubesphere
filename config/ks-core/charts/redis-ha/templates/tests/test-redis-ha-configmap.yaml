@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ template "redis-ha.fullname" . }}-configmap-test
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "labels.standard" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  nodeSelector: {{ toYaml .Values.nodeSelector | nindent 4 }}
+  tolerations: {{ toYaml .Values.tolerations | nindent 4 }}
+  containers:
+  - name: check-init
+    image: {{ .Values.configmapTest.image.repository }}:{{ .Values.configmapTest.image.tag }}
+    args:
+    - --shell=sh
+    - /readonly-config/init.sh
+    volumeMounts:
+    - name: config
+      mountPath: /readonly-config
+      readOnly: true
+    resources: {{ toYaml .Values.configmapTest.resources | nindent 6 }}
+    securityContext: {{ toYaml .Values.containerSecurityContext | nindent 6 }}
+  {{- if .Values.imagePullSecrets }}
+  imagePullSecrets: {{ toYaml .Values.imagePullSecrets | nindent 4 }}
+  {{- end }}
+  restartPolicy: Never
+  volumes:
+  - name: config
+    configMap:
+      name: {{ template "redis-ha.fullname" . }}-configmap

@@ -1,0 +1,107 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: applications.application.kubesphere.io
+spec:
+  group: application.kubesphere.io
+  names:
+    kind: Application
+    listKind: ApplicationList
+    plural: applications
+    shortNames:
+    - app
+    singular: application
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.labels.application\.kubesphere\.io/repo-name
+      name: repo
+      type: string
+    - jsonPath: .metadata.labels.kubesphere\.io/workspace
+      name: workspace
+      type: string
+    - jsonPath: .spec.appType
+      name: appType
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v2
+    schema:
+      openAPIV3Schema:
+        description: Application is the Schema for the applications API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ApplicationSpec defines the desired state of Application
+            properties:
+              abstraction:
+                type: string
+              appHome:
+                type: string
+              appType:
+                type: string
+              attachments:
+                items:
+                  type: string
+                type: array
+              icon:
+                type: string
+              resources:
+                items:
+                  properties:
+                    Desc:
+                      type: string
+                    Group:
+                      type: string
+                    Name:
+                      type: string
+                    ParentNode:
+                      type: string
+                    Resource:
+                      type: string
+                    Version:
+                      type: string
+                  type: object
+                type: array
+            type: object
+          status:
+            description: ApplicationStatus defines the observed state of Application
+            properties:
+              state:
+                description: 'the state of the helm application: draft, submitted,
+                  passed, rejected, suspended, active'
+                type: string
+              updateTime:
+                format: date-time
+                type: string
+            required:
+            - updateTime
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

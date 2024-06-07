@@ -1,18 +1,7 @@
 /*
-Copyright 2020 KubeSphere Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package v1alpha3
 
@@ -25,29 +14,26 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/emicklei/go-restful/v3"
-	"k8s.io/klog/v2"
-
 	"github.com/google/go-cmp/cmp"
-	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/client/v4/clientset/versioned/fake"
-	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	fakek8s "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
+	runtimefakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/components"
-	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	v2 "kubesphere.io/kubesphere/pkg/models/registries/v2"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	"kubesphere.io/kubesphere/pkg/scheme"
+	"kubesphere.io/kubesphere/pkg/simple/client/overview"
 )
 
-func TestResourceV1alpha2Fallback(t *testing.T) {
+func TestResourceV1alpha3(t *testing.T) {
 	tests := []struct {
 		description   string
 		namespace     string
@@ -71,7 +57,7 @@ func TestResourceV1alpha2Fallback(t *testing.T) {
 			},
 			expectedError: nil,
 			expected: &api.ListResult{
-				Items:      []interface{}{kubesphereNamespace, defaultNamespace},
+				Items:      []runtime.Object{kubesphereNamespace, defaultNamespace},
 				TotalItems: 2,
 			},
 		},
@@ -90,7 +76,7 @@ func TestResourceV1alpha2Fallback(t *testing.T) {
 			},
 			expectedError: nil,
 			expected: &api.ListResult{
-				Items:      []interface{}{secretFoo2, secretFoo1},
+				Items:      []runtime.Object{secretFoo2, secretFoo1},
 				TotalItems: 2,
 			},
 		},
@@ -103,7 +89,6 @@ func TestResourceV1alpha2Fallback(t *testing.T) {
 
 	for _, test := range tests {
 		got, err := listResources(test.namespace, test.resource, test.query, handler)
-
 		if err != test.expectedError {
 			t.Fatalf("expected error: %s, got: %s", test.expectedError, err)
 		}
@@ -113,20 +98,12 @@ func TestResourceV1alpha2Fallback(t *testing.T) {
 	}
 }
 
-func listResources(namespace, resourceType string, query *query.Query, h *Handler) (*api.ListResult, error) {
-
+func listResources(namespace, resourceType string, query *query.Query, h *handler) (*api.ListResult, error) {
 	result, err := h.resourceGetterV1alpha3.List(resourceType, namespace, query)
-
-	if err == nil {
-		return result, nil
-	}
-
-	if err != resource.ErrResourceNotSupported {
+	if err != nil {
 		return nil, err
 	}
-
-	// fallback to v1alpha2
-	return h.fallback(resourceType, namespace, query)
+	return result, nil
 }
 
 var (
@@ -200,51 +177,29 @@ var (
 			Selector: map[string]string{"app": "ks-controller-app"},
 		},
 	}
-	deployments = []interface{}{redisDeployment, nginxDeployment}
-	namespaces  = []interface{}{defaultNamespace, kubesphereNamespace}
-	secrets     = []interface{}{secretFoo1, secretFoo2}
-	services    = []interface{}{apiServerService, ksControllerService}
+	deployments = []runtime.Object{redisDeployment, nginxDeployment}
+	namespaces  = []runtime.Object{defaultNamespace, kubesphereNamespace}
+	secrets     = []runtime.Object{secretFoo1, secretFoo2}
+	services    = []runtime.Object{apiServerService, ksControllerService}
 )
 
-func prepare() (*Handler, error) {
+func prepare() (*handler, error) {
+	client := runtimefakeclient.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithRuntimeObjects(namespaces...).
+		WithRuntimeObjects(deployments...).
+		WithRuntimeObjects(secrets...).
+		WithRuntimeObjects(services...).
+		Build()
 
-	ksClient := fakeks.NewSimpleClientset()
-	k8sClient := fakek8s.NewSimpleClientset()
-	istioClient := fakeistio.NewSimpleClientset()
-	snapshotClient := fakesnapshot.NewSimpleClientset()
-	apiextensionsClient := fakeapiextensions.NewSimpleClientset()
+	k8sVersion120, _ := semver.NewVersion("1.20.0")
 
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, snapshotClient, apiextensionsClient, nil)
-
-	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
-
-	for _, namespace := range namespaces {
-		err := k8sInformerFactory.Core().V1().Namespaces().Informer().GetIndexer().Add(namespace)
-		if err != nil {
-			return nil, err
-		}
+	handler := &handler{
+		resourceGetterV1alpha3: resourcev1alpha3.NewResourceGetter(client, k8sVersion120),
+		componentsGetter:       components.NewComponentsGetter(client),
+		registryHelper:         v2.NewRegistryHelper(),
+		counter:                overview.New(client),
 	}
-	for _, deployment := range deployments {
-		err := k8sInformerFactory.Apps().V1().Deployments().Informer().GetIndexer().Add(deployment)
-		if err != nil {
-			return nil, err
-		}
-	}
-	for _, secret := range secrets {
-		err := k8sInformerFactory.Core().V1().Secrets().Informer().GetIndexer().Add(secret)
-		if err != nil {
-			return nil, err
-		}
-	}
-	for _, service := range services {
-		err := k8sInformerFactory.Core().V1().Services().Informer().GetIndexer().Add(service)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	handler := New(resourcev1alpha3.NewResourceGetter(fakeInformerFactory, nil), resourcev1alpha2.NewResourceGetter(fakeInformerFactory), components.NewComponentsGetter(fakeInformerFactory.KubernetesSharedInformerFactory()))
-
 	return handler, nil
 }
 
@@ -261,8 +216,7 @@ func TestHandleGetComponentStatus(t *testing.T) {
 		t.Fatal("init handler failed")
 	}
 
-	handler.handleGetComponentStatus(request, response)
-
+	handler.GetComponentStatus(request, response)
 	if status := response.StatusCode(); status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
@@ -278,9 +232,7 @@ func TestHandleGetComponents(t *testing.T) {
 	if err != nil {
 		t.Fatal("init handler failed")
 	}
-
-	handler.handleGetComponents(request, response)
-
+	handler.GetComponents(request, response)
 	if status := response.StatusCode(); status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)

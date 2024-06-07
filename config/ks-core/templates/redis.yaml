@@ -1,0 +1,148 @@
+{{- if and .Values.ha.enabled (not .Values.ha.cache) }}
+{{- if lookup "v1" "Secret" "kubesphere-system" "redis-secret" }}
+{{- lookup "v1" "Secret" "kubesphere-system" "redis-secret" | toYaml }}
+{{- else }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+  namespace: kubesphere-system
+type: Opaque
+data:
+  auth: {{  randAlphaNum 15 | b64enc }}
+{{- end }}
+{{- end }}
+
+{{- if and (and .Values.ha.enabled (not .Values.redisHA.enabled)) (not .Values.ha.cache) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: redis
+    tier: database
+    version: redis-4.0
+  name: redis
+  namespace: kubesphere-system
+spec:
+  replicas: {{ .Values.redis.replicaCount }}
+  selector:
+    matchLabels:
+      app: redis
+      tier: database
+  template:
+    metadata:
+      labels:
+        app: redis
+        tier: database
+        version: redis-4.0
+    spec:
+      containers:
+        - image: {{ template "redis.image" . }}
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          command: ['sh', '-c', 'cat /tmp/redis/redis.conf | sed "s/REDIS_PASSWORD/$KUBESPHERE_CACHE_OPTIONS_PASSWORD/" > /data/redis.conf | redis-server /data/redis.conf']
+          name: redis
+          args: ["/data/redis.conf"]
+          env:
+            - name: KUBESPHERE_CACHE_OPTIONS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: auth
+          volumeMounts:
+            - name: redis-config
+              mountPath: "/tmp/redis"
+              readOnly: true
+{{- if .Values.redis.persistentVolume.enabled }}
+            - mountPath: /data
+              name: redis-pvc
+              subPath: redis-data
+{{- end }}
+          ports:
+            - containerPort: {{ .Values.redis.port | default 6379 }}
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1000Mi
+            requests:
+              cpu: 20m
+              memory: 100Mi
+      volumes:
+        - name: redis-config
+          configMap:
+            name: redis-configmap
+{{- if .Values.redis.persistentVolume.enabled }}
+        - name: redis-pvc
+          persistentVolumeClaim:
+            claimName: redis-pvc
+{{- end }}
+      affinity: {{ if .Values.affinity }}{{ .Values.affinity | toYaml | nindent 8 }}
+        {{- else }}
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: In
+                    values:
+                      - ""
+        {{- end }}
+      {{- if .Values.nodeSelector }}
+      nodeSelector: {{- toYaml .Values.nodeSelector | nindent 8 }}{{- end }}
+      {{- if .Values.tolerations }}
+      tolerations: {{- toYaml .Values.tolerations | nindent 8 }}{{- end }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-configmap
+  labels:
+    app: redis
+    tier: database
+    version: redis-4.0
+data:
+  redis.conf: |
+    requirepass REDIS_PASSWORD
+    masterauth REDIS_PASSWORD
+    port {{ .Values.redis.port | default 6379 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: redis
+    tier: database
+  name: redis
+  namespace: kubesphere-system
+spec:
+  ports:
+    - name: redis
+      port: {{ .Values.redis.port | default 6379 }}
+      protocol: TCP
+      targetPort: {{ .Values.redis.port | default 6379 }}
+  selector:
+    app: redis
+    tier: database
+  sessionAffinity: None
+  type: ClusterIP
+
+{{- if .Values.redis.persistentVolume.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: kubesphere-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.redis.persistentVolume.size | default "2Gi" }}
+{{- end }}
+
+{{- end }}

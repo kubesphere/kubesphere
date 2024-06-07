@@ -40,12 +40,10 @@ func (b definitionBuilder) addModelFrom(sample interface{}) {
 func (b definitionBuilder) addModel(st reflect.Type, nameOverride string) *spec.Schema {
 	// Turn pointers into simpler types so further checks are
 	// correct.
-	isArray := false
 	if st.Kind() == reflect.Ptr {
 		st = st.Elem()
 	}
 	if b.isSliceOrArrayType(st.Kind()) {
-		isArray = true
 		st = st.Elem()
 	}
 
@@ -75,15 +73,6 @@ func (b definitionBuilder) addModel(st reflect.Type, nameOverride string) *spec.
 			Required:   []string{},
 			Properties: map[string]spec.Schema{},
 		},
-	}
-
-	// fixes issue 77 but feels like a workaround.
-	if b.isPrimitiveType(modelName, st.Kind()) {
-		if isArray {
-			sm.Type = []string{"array"}
-			sm.Items = &spec.SchemaOrArray{Schema: &spec.Schema{
-				SchemaProps: spec.SchemaProps{Type: []string{jsonSchemaType(st.Kind().String())}}}}
-		}
 	}
 
 	// reference the model before further initializing (enables recursive structs)
@@ -267,8 +256,12 @@ func (b definitionBuilder) buildStructTypeProperty(field reflect.StructField, js
 	}
 
 	if field.Name == fieldType.Name() && field.Anonymous && !hasNamedJSONTag(field) {
+		definitions := make(map[string]spec.Schema, len(b.Definitions))
+		for k, v := range b.Definitions {
+			definitions[k] = v
+		}
 		// embedded struct
-		sub := definitionBuilder{b.Definitions, b.Config}
+		sub := definitionBuilder{definitions, b.Config}
 		sub.addModel(fieldType, "")
 		subKey := keyFrom(fieldType, b.Config)
 		// merge properties from sub
@@ -313,26 +306,41 @@ func (b definitionBuilder) buildArrayTypeProperty(field reflect.StructField, jso
 		prop.Type = []string{stringt}
 		return jsonName, prop
 	}
-	var pType = "array"
-	prop.Type = []string{pType}
-	isPrimitive := b.isPrimitiveType(fieldType.Elem().Name(), fieldType.Elem().Kind())
-	elemTypeName := b.getElementTypeName(modelName, jsonName, fieldType.Elem())
 	prop.Items = &spec.SchemaOrArray{
 		Schema: &spec.Schema{},
 	}
+	itemSchema := &prop
+	itemType := fieldType
+	isArray := b.isSliceOrArrayType(fieldType.Kind())
+	for isArray {
+		itemType = itemType.Elem()
+		isArray = b.isSliceOrArrayType(itemType.Kind())
+		if itemType.Kind() == reflect.Uint8 {
+			stringt := "string"
+			itemSchema.Type = []string{stringt}
+			return jsonName, prop
+		}
+		itemSchema.Items = &spec.SchemaOrArray{
+			Schema: &spec.Schema{},
+		}
+		itemSchema.Type = []string{"array"}
+		itemSchema = itemSchema.Items.Schema
+	}
+	isPrimitive := b.isPrimitiveType(itemType.Name(), itemType.Kind())
+	elemTypeName := b.getElementTypeName(modelName, jsonName, itemType)
 	if isPrimitive {
-		mapped := b.jsonSchemaType(elemTypeName, fieldType.Elem().Kind())
-		prop.Items.Schema.Type = []string{mapped}
-		prop.Items.Schema.Format = b.jsonSchemaFormat(elemTypeName, fieldType.Elem().Kind())
+		mapped := b.jsonSchemaType(elemTypeName, itemType.Kind())
+		itemSchema.Type = []string{mapped}
+		itemSchema.Format = b.jsonSchemaFormat(elemTypeName, itemType.Kind())
 	} else {
-		prop.Items.Schema.Ref = spec.MustCreateRef("#/definitions/" + elemTypeName)
+		itemSchema.Ref = spec.MustCreateRef("#/definitions/" + elemTypeName)
 	}
 	// add|overwrite model for element type
-	if fieldType.Elem().Kind() == reflect.Ptr {
-		fieldType = fieldType.Elem()
+	if itemType.Kind() == reflect.Ptr {
+		itemType = itemType.Elem()
 	}
 	if !isPrimitive {
-		b.addModel(fieldType.Elem(), elemTypeName)
+		b.addModel(itemType, elemTypeName)
 	}
 	return jsonName, prop
 }

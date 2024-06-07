@@ -21,14 +21,14 @@ CONTAINER_BUILDER=${CONTAINER_BUILDER:-build}
 TARGETOS=${TARGETOS:-$(kube::util::host_os)}
 TARGETARCH=${TARGETARCH:-$(kube::util::host_arch)}
 
-${CONTAINER_CLI} "${CONTAINER_BUILDER}" \
+${CONTAINER_CLI} ${CONTAINER_BUILDER} \
   --build-arg TARGETARCH="${TARGETARCH}" \
   --build-arg TARGETOS="${TARGETOS}" \
   -f build/ks-apiserver/Dockerfile \
   -t "${REPO}"/ks-apiserver:"${TAG}" .
 
 
-${CONTAINER_CLI} "${CONTAINER_BUILDER}" \
+${CONTAINER_CLI} ${CONTAINER_BUILDER} \
   --build-arg "TARGETARCH=${TARGETARCH}" \
   --build-arg "TARGETOS=${TARGETOS}" \
   -f build/ks-controller-manager/Dockerfile \

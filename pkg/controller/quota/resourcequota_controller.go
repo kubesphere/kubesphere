@@ -1,29 +1,16 @@
 /*
-
- Copyright 2021 The KubeSphere Authors.
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package quota
 
 import (
 	"context"
-	"math"
 	"time"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -32,6 +19,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/clock"
+	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -39,31 +31,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
-	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
-
+	quotav1 "kubesphere.io/kubesphere/kube/pkg/quota/v1"
 	evaluatorcore "kubesphere.io/kubesphere/kube/pkg/quota/v1/evaluator/core"
 	"kubesphere.io/kubesphere/kube/pkg/quota/v1/generic"
 	"kubesphere.io/kubesphere/kube/pkg/quota/v1/install"
 	"kubesphere.io/kubesphere/pkg/constants"
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-
-	k8sinformers "k8s.io/client-go/informers"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	corev1 "k8s.io/api/core/v1"
-
-	quotav1 "kubesphere.io/kubesphere/kube/pkg/quota/v1"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 const (
-	ControllerName                 = "resourcequota-controller"
+	controllerName                 = "resourcequota"
 	DefaultResyncPeriod            = 5 * time.Minute
 	DefaultMaxConcurrentReconciles = 8
 )
+
+var _ kscontroller.Controller = &Reconciler{}
+var _ reconcile.Reconciler = &Reconciler{}
 
 // Reconciler reconciles a Workspace object
 type Reconciler struct {
@@ -75,27 +59,25 @@ type Reconciler struct {
 
 	MaxConcurrentReconciles int
 	// Controls full recalculation of quota usage
-	ResyncPeriod    time.Duration
-	InformerFactory k8sinformers.SharedInformerFactory
+	ResyncPeriod time.Duration
 
 	scheme *runtime.Scheme
 }
 
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.logger = ctrl.Log.WithName("controllers").WithName(ControllerName)
-	r.recorder = mgr.GetEventRecorderFor(ControllerName)
+func (r *Reconciler) Name() string {
+	return controllerName
+}
+
+func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
+	r.logger = ctrl.Log.WithName("controllers").WithName(controllerName)
+	r.recorder = mgr.GetEventRecorderFor(controllerName)
 	r.scheme = mgr.GetScheme()
-	r.registry = generic.NewRegistry(install.NewQuotaConfigurationForControllers(
-		generic.ListerFuncForResourceFunc(r.InformerFactory.ForResource)).Evaluators())
-	if r.Client == nil {
-		r.Client = mgr.GetClient()
-	}
-	if r.MaxConcurrentReconciles <= 0 {
-		r.MaxConcurrentReconciles = DefaultMaxConcurrentReconciles
-	}
-	r.ResyncPeriod = time.Duration(math.Max(float64(r.ResyncPeriod), float64(DefaultResyncPeriod)))
+	r.registry = generic.NewRegistry(install.NewQuotaConfigurationForControllers(mgr.GetClient()).Evaluators())
+	r.Client = mgr.GetClient()
+	r.MaxConcurrentReconciles = DefaultMaxConcurrentReconciles
+	r.ResyncPeriod = DefaultResyncPeriod
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		Named(ControllerName).
+		Named(controllerName).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
 		}).
@@ -121,8 +103,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	realClock := clock.RealClock{}
 	for _, resource := range resources {
-		err := c.Watch(
-			&source.Kind{Type: resource},
+		if err = c.Watch(
+			source.Kind(mgr.GetCache(), resource),
 			handler.EnqueueRequestsFromMapFunc(r.mapper),
 			predicate.Funcs{
 				GenericFunc: func(e event.GenericEvent) bool {
@@ -151,19 +133,17 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				DeleteFunc: func(e event.DeleteEvent) bool {
 					return true
 				},
-			})
-		if err != nil {
+			}); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *Reconciler) mapper(h client.Object) []reconcile.Request {
+func (r *Reconciler) mapper(ctx context.Context, h client.Object) []reconcile.Request {
 	// check if the quota controller can evaluate this kind, if not, ignore it altogether...
 	var result []reconcile.Request
 	evaluators := r.registry.List()
-	ctx := context.TODO()
 	resourceQuotaNames, err := resourceQuotaNamesFor(ctx, r.Client, h.GetNamespace())
 	if err != nil {
 		klog.Errorf("failed to get resource quota names for: %v %T %v, err: %v", h.GetNamespace(), h, h.GetName(), err)
@@ -207,7 +187,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	r.recorder.Event(resourceQuota, corev1.EventTypeNormal, "Synced", "Synced successfully")
+	r.recorder.Event(resourceQuota, corev1.EventTypeNormal, kscontroller.Synced, kscontroller.MessageResourceSynced)
 	return ctrl.Result{RequeueAfter: r.ResyncPeriod}, nil
 }
 
@@ -245,6 +225,10 @@ func (r *Reconciler) syncQuotaForNamespaces(originalQuota *quotav1alpha2.Resourc
 	matchingNamespaceList := corev1.NamespaceList{}
 	if err := r.List(ctx, &matchingNamespaceList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(quota.Spec.LabelSelector)}); err != nil {
 		return err
+	}
+
+	if quota.Status.Namespaces == nil {
+		quota.Status.Namespaces = make([]quotav1alpha2.ResourceQuotaStatusByNamespace, 0)
 	}
 
 	matchingNamespaceNames := make([]string, 0)

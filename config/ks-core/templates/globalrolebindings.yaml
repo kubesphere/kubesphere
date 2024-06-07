@@ -1,0 +1,60 @@
+apiVersion: iam.kubesphere.io/v1beta1
+kind: GlobalRoleBinding
+metadata:
+  labels:
+    iam.kubesphere.io/role-ref: platform-admin
+    iam.kubesphere.io/user-ref: admin
+  name: admin
+roleRef:
+  apiGroup: iam.kubesphere.io
+  kind: GlobalRole
+  name: platform-admin
+subjects:
+  - apiGroup: iam.kubesphere.io
+    kind: User
+    name: admin
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: GlobalRoleBinding
+metadata:
+  name: anonymous
+roleRef:
+  apiGroup: iam.kubesphere.io
+  kind: GlobalRole
+  name: anonymous
+subjects:
+  - apiGroup: iam.kubesphere.io
+    kind: Group
+    name: system:unauthenticated
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: GlobalRoleBinding
+metadata:
+  name: authenticated
+roleRef:
+  apiGroup: iam.kubesphere.io
+  kind: GlobalRole
+  name: authenticated
+subjects:
+  - apiGroup: iam.kubesphere.io
+    kind: Group
+    name: system:authenticated
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: GlobalRoleBinding
+metadata:
+  name: pre-registration
+roleRef:
+  apiGroup: iam.kubesphere.io
+  kind: GlobalRole
+  name: pre-registration
+subjects:
+  - apiGroup: iam.kubesphere.io
+    kind: Group
+    name: pre-registration
+  - apiGroup: iam.kubesphere.io
+    kind: User
+    name: system:pre-registration

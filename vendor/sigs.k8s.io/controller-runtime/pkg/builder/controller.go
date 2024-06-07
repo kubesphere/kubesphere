@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	internalsource "sigs.k8s.io/controller-runtime/pkg/internal/source"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -40,14 +41,14 @@ import (
 var newController = controller.New
 var getGvk = apiutil.GVKForObject
 
-// project represents other forms that the we can use to
+// project represents other forms that we can use to
 // send/receive a given resource (metadata-only, unstructured, etc).
 type objectProjection int
 
 const (
 	// projectAsNormal doesn't change the object from the form given.
 	projectAsNormal objectProjection = iota
-	// projectAsMetadata turns this into an metadata-only watch.
+	// projectAsMetadata turns this into a metadata-only watch.
 	projectAsMetadata
 )
 
@@ -68,7 +69,7 @@ func ControllerManagedBy(m manager.Manager) *Builder {
 	return &Builder{mgr: m}
 }
 
-// ForInput represents the information set by For method.
+// ForInput represents the information set by the For method.
 type ForInput struct {
 	object           client.Object
 	predicates       []predicate.Predicate
@@ -96,14 +97,20 @@ func (blder *Builder) For(object client.Object, opts ...ForOption) *Builder {
 
 // OwnsInput represents the information set by Owns method.
 type OwnsInput struct {
+	matchEveryOwner  bool
 	object           client.Object
 	predicates       []predicate.Predicate
 	objectProjection objectProjection
 }
 
 // Owns defines types of Objects being *generated* by the ControllerManagedBy, and configures the ControllerManagedBy to respond to
-// create / delete / update events by *reconciling the owner object*.  This is the equivalent of calling
-// Watches(&source.Kind{Type: <ForType-forInput>}, &handler.EnqueueRequestForOwner{OwnerType: apiType, IsController: true}).
+// create / delete / update events by *reconciling the owner object*.
+//
+// The default behavior reconciles only the first controller-type OwnerReference of the given type.
+// Use Owns(object, builder.MatchEveryOwner) to reconcile all owners.
+//
+// By default, this is the equivalent of calling
+// Watches(object, handler.EnqueueRequestForOwner([...], ownerType, OnlyControllerOwner())).
 func (blder *Builder) Owns(object client.Object, opts ...OwnsOption) *Builder {
 	input := OwnsInput{object: object}
 	for _, opt := range opts {
@@ -117,16 +124,60 @@ func (blder *Builder) Owns(object client.Object, opts ...OwnsOption) *Builder {
 // WatchesInput represents the information set by Watches method.
 type WatchesInput struct {
 	src              source.Source
-	eventhandler     handler.EventHandler
+	eventHandler     handler.EventHandler
 	predicates       []predicate.Predicate
 	objectProjection objectProjection
 }
 
-// Watches exposes the lower-level ControllerManagedBy Watches functions through the builder.  Consider using
-// Owns or For instead of Watches directly.
+// Watches defines the type of Object to watch, and configures the ControllerManagedBy to respond to create / delete /
+// update events by *reconciling the object* with the given EventHandler.
+//
+// This is the equivalent of calling
+// WatchesRawSource(source.Kind(cache, object), eventHandler, opts...).
+func (blder *Builder) Watches(object client.Object, eventHandler handler.EventHandler, opts ...WatchesOption) *Builder {
+	src := source.Kind(blder.mgr.GetCache(), object)
+	return blder.WatchesRawSource(src, eventHandler, opts...)
+}
+
+// WatchesMetadata is the same as Watches, but forces the internal cache to only watch PartialObjectMetadata.
+//
+// This is useful when watching lots of objects, really big objects, or objects for which you only know
+// the GVK, but not the structure. You'll need to pass metav1.PartialObjectMetadata to the client
+// when fetching objects in your reconciler, otherwise you'll end up with a duplicate structured or unstructured cache.
+//
+// When watching a resource with metadata only, for example the v1.Pod, you should not Get and List using the v1.Pod type.
+// Instead, you should use the special metav1.PartialObjectMetadata type.
+//
+// ❌ Incorrect:
+//
+//	pod := &v1.Pod{}
+//	mgr.GetClient().Get(ctx, nsAndName, pod)
+//
+// ✅ Correct:
+//
+//	pod := &metav1.PartialObjectMetadata{}
+//	pod.SetGroupVersionKind(schema.GroupVersionKind{
+//	    Group:   "",
+//	    Version: "v1",
+//	    Kind:    "Pod",
+//	})
+//	mgr.GetClient().Get(ctx, nsAndName, pod)
+//
+// In the first case, controller-runtime will create another cache for the
+// concrete type on top of the metadata cache; this increases memory
+// consumption and leads to race conditions as caches are not in sync.
+func (blder *Builder) WatchesMetadata(object client.Object, eventHandler handler.EventHandler, opts ...WatchesOption) *Builder {
+	opts = append(opts, OnlyMetadata)
+	return blder.Watches(object, eventHandler, opts...)
+}
+
+// WatchesRawSource exposes the lower-level ControllerManagedBy Watches functions through the builder.
 // Specified predicates are registered only for given source.
-func (blder *Builder) Watches(src source.Source, eventhandler handler.EventHandler, opts ...WatchesOption) *Builder {
-	input := WatchesInput{src: src, eventhandler: eventhandler}
+//
+// STOP! Consider using For(...), Owns(...), Watches(...), WatchesMetadata(...) instead.
+// This method is only exposed for more advanced use cases, most users should use one of the higher level functions.
+func (blder *Builder) WatchesRawSource(src source.Source, eventHandler handler.EventHandler, opts ...WatchesOption) *Builder {
+	input := WatchesInput{src: src, eventHandler: eventHandler}
 	for _, opt := range opts {
 		opt.ApplyToWatches(&input)
 	}
@@ -136,7 +187,7 @@ func (blder *Builder) Watches(src source.Source, eventhandler handler.EventHandl
 }
 
 // WithEventFilter sets the event filters, to filter which create/update/delete/generic events eventually
-// trigger reconciliations.  For example, filtering on whether the resource version has changed.
+// trigger reconciliations. For example, filtering on whether the resource version has changed.
 // Given predicate is added for all watched objects.
 // Defaults to the empty list.
 func (blder *Builder) WithEventFilter(p predicate.Predicate) *Builder {
@@ -144,7 +195,7 @@ func (blder *Builder) WithEventFilter(p predicate.Predicate) *Builder {
 	return blder
 }
 
-// WithOptions overrides the controller options use in doController. Defaults to empty.
+// WithOptions overrides the controller options used in doController. Defaults to empty.
 func (blder *Builder) WithOptions(options controller.Options) *Builder {
 	blder.ctrlOptions = options
 	return blder
@@ -156,7 +207,7 @@ func (blder *Builder) WithLogConstructor(logConstructor func(*reconcile.Request)
 	return blder
 }
 
-// Named sets the name of the controller to the given name.  The name shows up
+// Named sets the name of the controller to the given name. The name shows up
 // in metrics, among other things, and thus should be a prometheus compatible name
 // (underscores and alphanumeric characters only).
 //
@@ -217,13 +268,14 @@ func (blder *Builder) project(obj client.Object, proj objectProjection) (client.
 func (blder *Builder) doWatch() error {
 	// Reconcile type
 	if blder.forInput.object != nil {
-		typeForSrc, err := blder.project(blder.forInput.object, blder.forInput.objectProjection)
+		obj, err := blder.project(blder.forInput.object, blder.forInput.objectProjection)
 		if err != nil {
 			return err
 		}
-		src := &source.Kind{Type: typeForSrc}
+		src := source.Kind(blder.mgr.GetCache(), obj)
 		hdler := &handler.EnqueueRequestForObject{}
-		allPredicates := append(blder.globalPredicates, blder.forInput.predicates...)
+		allPredicates := append([]predicate.Predicate(nil), blder.globalPredicates...)
+		allPredicates = append(allPredicates, blder.forInput.predicates...)
 		if err := blder.ctrl.Watch(src, hdler, allPredicates...); err != nil {
 			return err
 		}
@@ -234,15 +286,20 @@ func (blder *Builder) doWatch() error {
 		return errors.New("Owns() can only be used together with For()")
 	}
 	for _, own := range blder.ownsInput {
-		typeForSrc, err := blder.project(own.object, own.objectProjection)
+		obj, err := blder.project(own.object, own.objectProjection)
 		if err != nil {
 			return err
 		}
-		src := &source.Kind{Type: typeForSrc}
-		hdler := &handler.EnqueueRequestForOwner{
-			OwnerType:    blder.forInput.object,
-			IsController: true,
+		src := source.Kind(blder.mgr.GetCache(), obj)
+		opts := []handler.OwnerOption{}
+		if !own.matchEveryOwner {
+			opts = append(opts, handler.OnlyControllerOwner())
 		}
+		hdler := handler.EnqueueRequestForOwner(
+			blder.mgr.GetScheme(), blder.mgr.GetRESTMapper(),
+			blder.forInput.object,
+			opts...,
+		)
 		allPredicates := append([]predicate.Predicate(nil), blder.globalPredicates...)
 		allPredicates = append(allPredicates, own.predicates...)
 		if err := blder.ctrl.Watch(src, hdler, allPredicates...); err != nil {
@@ -255,19 +312,17 @@ func (blder *Builder) doWatch() error {
 		return errors.New("there are no watches configured, controller will never get triggered. Use For(), Owns() or Watches() to set them up")
 	}
 	for _, w := range blder.watchesInput {
-		allPredicates := append([]predicate.Predicate(nil), blder.globalPredicates...)
-		allPredicates = append(allPredicates, w.predicates...)
-
-		// If the source of this watch is of type *source.Kind, project it.
-		if srckind, ok := w.src.(*source.Kind); ok {
-			typeForSrc, err := blder.project(srckind.Type, w.objectProjection)
+		// If the source of this watch is of type Kind, project it.
+		if srcKind, ok := w.src.(*internalsource.Kind); ok {
+			typeForSrc, err := blder.project(srcKind.Type, w.objectProjection)
 			if err != nil {
 				return err
 			}
-			srckind.Type = typeForSrc
+			srcKind.Type = typeForSrc
 		}
-
-		if err := blder.ctrl.Watch(w.src, w.eventhandler, allPredicates...); err != nil {
+		allPredicates := append([]predicate.Predicate(nil), blder.globalPredicates...)
+		allPredicates = append(allPredicates, w.predicates...)
+		if err := blder.ctrl.Watch(w.src, w.eventHandler, allPredicates...); err != nil {
 			return err
 		}
 	}
@@ -285,15 +340,18 @@ func (blder *Builder) getControllerName(gvk schema.GroupVersionKind, hasGVK bool
 }
 
 func (blder *Builder) doController(r reconcile.Reconciler) error {
-	globalOpts := blder.mgr.GetControllerOptions() //nolint:staticcheck
+	globalOpts := blder.mgr.GetControllerOptions()
 
 	ctrlOptions := blder.ctrlOptions
+	if ctrlOptions.Reconciler != nil && r != nil {
+		return errors.New("reconciler was set via WithOptions() and via Build() or Complete()")
+	}
 	if ctrlOptions.Reconciler == nil {
 		ctrlOptions.Reconciler = r
 	}
 
 	// Retrieve the GVK from the object we're reconciling
-	// to prepopulate logger information, and to optionally generate a default name.
+	// to pre-populate logger information, and to optionally generate a default name.
 	var gvk schema.GroupVersionKind
 	hasGVK := blder.forInput.object != nil
 	if hasGVK {
@@ -314,8 +372,8 @@ func (blder *Builder) doController(r reconcile.Reconciler) error {
 	}
 
 	// Setup cache sync timeout.
-	if ctrlOptions.CacheSyncTimeout == 0 && globalOpts.CacheSyncTimeout != nil {
-		ctrlOptions.CacheSyncTimeout = *globalOpts.CacheSyncTimeout
+	if ctrlOptions.CacheSyncTimeout == 0 && globalOpts.CacheSyncTimeout > 0 {
+		ctrlOptions.CacheSyncTimeout = globalOpts.CacheSyncTimeout
 	}
 
 	controllerName, err := blder.getControllerName(gvk, hasGVK)

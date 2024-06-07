@@ -1,61 +1,51 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package rolebinding
 
 import (
+	"context"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 )
 
-type rolebindingsGetter struct {
-	sharedInformers informers.SharedInformerFactory
+type roleBindingsGetter struct {
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &rolebindingsGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &roleBindingsGetter{cache: cache}
 }
 
-func (d *rolebindingsGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Rbac().V1().RoleBindings().Lister().RoleBindings(namespace).Get(name)
+func (d *roleBindingsGetter) Get(namespace, name string) (runtime.Object, error) {
+	roleBinding := &rbacv1.RoleBinding{}
+	return roleBinding, d.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, roleBinding)
 }
 
-func (d *rolebindingsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-
-	roleBindings, err := d.sharedInformers.Rbac().V1().RoleBindings().Lister().RoleBindings(namespace).List(query.Selector())
-
-	if err != nil {
+func (d *roleBindingsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
+	roleBindings := &rbacv1.RoleBindingList{}
+	if err := d.cache.List(context.Background(), roleBindings, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, roleBinding := range roleBindings {
-		result = append(result, roleBinding)
+	for _, item := range roleBindings.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
-func (d *rolebindingsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
+func (d *roleBindingsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 	leftRoleBinding, ok := left.(*rbacv1.RoleBinding)
 	if !ok {
 		return false
@@ -69,7 +59,7 @@ func (d *rolebindingsGetter) compare(left runtime.Object, right runtime.Object, 
 	return v1alpha3.DefaultObjectMetaCompare(leftRoleBinding.ObjectMeta, rightRoleBinding.ObjectMeta, field)
 }
 
-func (d *rolebindingsGetter) filter(object runtime.Object, filter query.Filter) bool {
+func (d *roleBindingsGetter) filter(object runtime.Object, filter query.Filter) bool {
 	role, ok := object.(*rbacv1.RoleBinding)
 
 	if !ok {

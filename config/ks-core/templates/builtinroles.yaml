@@ -1,0 +1,256 @@
+apiVersion: iam.kubesphere.io/v1beta1
+kind: BuiltinRole
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+  name: project-admin
+targetSelector:
+  matchLabels:
+    kubesphere.io/managed: "true"
+role:
+  aggregationRoleTemplates:
+    roleSelector:
+      matchLabels:
+        iam.kubesphere.io/scope: "namespace"
+        kubesphere.io/managed: "true"
+  apiVersion: iam.kubesphere.io/v1beta1
+  kind: Role
+  metadata:
+    annotations:
+      kubesphere.io/creator: system
+      kubesphere.io/description: '{"zh": "管理项目中的所有资源。", "en": "Manage all resources in the project."}'
+      iam.kubesphere.io/auto-aggregate: "true"
+    name: admin
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - '*'
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: BuiltinRole
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+  name: project-operator
+targetSelector:
+  matchLabels:
+    kubesphere.io/managed: "true"
+role:
+  aggregationRoleTemplates:
+    roleSelector:
+      matchLabels:
+        iam.kubesphere.io/aggregate-to-operator: ""
+        kubesphere.io/managed: "true"
+        iam.kubesphere.io/scope: "namespace"
+  apiVersion: iam.kubesphere.io/v1beta1
+  kind: Role
+  metadata:
+    annotations:
+      kubesphere.io/creator: system
+      kubesphere.io/description: '{"zh": "管理项目中除用户和角色之外的资源。", "en": "Manage resources other than users and roles in the project."}'
+      iam.kubesphere.io/auto-aggregate: "true"
+    name: operator
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - '*'
+      verbs:
+        - get
+        - list
+        - watch
+    - apiGroups:
+        - ""
+        - apps
+        - extensions
+        - batch
+        - autoscaling
+        - app.k8s.io
+        - operations.kubesphere.io
+        - resources.kubesphere.io
+        - config.istio.io
+        - events.k8s.io
+        - events.kubesphere.io
+        - snapshot.storage.k8s.io
+        - networking.k8s.io
+      resources:
+        - '*'
+      verbs:
+        - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: BuiltinRole
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+  name: project-viewer
+targetSelector:
+  matchLabels:
+    kubesphere.io/managed: "true"
+role:
+  aggregationRoleTemplates:
+    roleSelector:
+      matchLabels:
+        iam.kubesphere.io/aggregate-to-viewer: ""
+        kubesphere.io/managed: "true"
+        iam.kubesphere.io/scope: "namespace"
+  apiVersion: iam.kubesphere.io/v1beta1
+  kind: Role
+  metadata:
+    annotations:
+      kubesphere.io/creator: system
+      kubesphere.io/description: '{"zh": "查看项目中的所有资源。", "en": "View all resources in the project."}'
+      iam.kubesphere.io/auto-aggregate: "true"
+    name: viewer
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - '*'
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: BuiltinRole
+metadata:
+  name: workspace-admin
+  labels:
+    iam.kubesphere.io/scope: "workspace"
+role:
+  aggregationRoleTemplates:
+    roleSelector:
+      matchLabels:
+        iam.kubesphere.io/scope: 'workspace'
+    templateNames:
+      - workspace-manage-workspace-settings
+      - workspace-view-workspace-settings
+      - workspace-manage-projects
+      - workspace-view-projects
+      - workspace-create-projects
+      - workspace-view-members
+      - workspace-manage-members
+      - workspace-manage-roles
+      - workspace-view-roles
+      - workspace-manage-groups
+      - workspace-view-groups
+  apiVersion: iam.kubesphere.io/v1beta1
+  kind: WorkspaceRole
+  metadata:
+    annotations:
+      kubesphere.io/creator: system
+      kubesphere.io/description: '{"zh": "管理企业空间中的所有资源。", "en": "Manage all resources in the workspace."}'
+      iam.kubesphere.io/auto-aggregate: "true"
+    name: admin
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - '*'
+      verbs:
+        - '*'
+
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: BuiltinRole
+metadata:
+  name: workspace-regular
+  labels:
+    iam.kubesphere.io/scope: "workspace"
+role:
+  aggregationRoleTemplates:
+    roleSelector:
+      matchLabels:
+        iam.kubesphere.io/aggregate-to-regular: ""
+        iam.kubesphere.io/scope: "workspace"
+    templateNames:
+      - workspace-view-workspace-settings
+  apiVersion: iam.kubesphere.io/v1beta1
+  kind: WorkspaceRole
+  metadata:
+    annotations:
+      kubesphere.io/creator: system
+      kubesphere.io/description: '{"zh": "查看企业空间设置。", "en": "View workspace settings."}'
+      iam.kubesphere.io/auto-aggregate: "true"
+    name: regular
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - workspaces
+        - workspacemembers
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: BuiltinRole
+metadata:
+  name: workspace-self-provisioner
+  labels:
+    iam.kubesphere.io/scope: "workspace"
+role:
+  aggregationRoleTemplates:
+    roleSelector:
+      matchLabels:
+        iam.kubesphere.io/aggregate-to-self-provisioner: ""
+        iam.kubesphere.io/scope: "workspace"
+    templateNames:
+      - workspace-create-projects
+      - workspace-view-workspace-settings
+  apiVersion: iam.kubesphere.io/v1beta1
+  kind: WorkspaceRole
+  metadata:
+    annotations:
+      kubesphere.io/creator: system
+      kubesphere.io/description: '{"zh": "查看企业设置、创建项目。", "en": "View workspace settings, create projects."}'
+      iam.kubesphere.io/auto-aggregate: "true"
+    name: self-provisioner
+  rules: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: BuiltinRole
+metadata:
+  name: workspace-viewer
+  labels:
+    iam.kubesphere.io/scope: "workspace"
+role:
+  aggregationRoleTemplates:
+    roleSelector:
+      matchLabels:
+        iam.kubesphere.io/scope: "workspace"
+        iam.kubesphere.io/aggregate-to-viewer: ""
+    templateNames:
+      - workspace-view-projects
+      - workspace-view-members
+      - workspace-view-roles
+      - workspace-view-groups
+      - workspace-view-workspace-settings
+  apiVersion: iam.kubesphere.io/v1beta1
+  kind: WorkspaceRole
+  metadata:
+    annotations:
+      kubesphere.io/creator: system
+      kubesphere.io/description: '{"zh": "查看企业空间中的所有资源。", "en": "View all resources in the workspace."}'
+      iam.kubesphere.io/auto-aggregate: "true"
+    name: viewer
+  rules:
+    - apiGroups:
+        - '*'
+      resources:
+        - '*'
+      verbs:
+        - get
+        - list
+        - watch

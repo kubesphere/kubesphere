@@ -1,40 +1,32 @@
 recursive-delete-patterns:
-- BUILD
-default-go-version: 1.16.3
+  - BUILD
+default-go-version: 1.21
 rules:
-- destination: client-go
-  library: true
-  branches:
-  - source:
-      branch: master
-      dir: staging/src/kubesphere.io/client-go
-    name: master
-    go: 1.19.4
-  - source:
-      branch: release-3.1
-      dir: staging/src/kubesphere.io/client-go
-    name: release-3.1
-    go: 1.13.15
+  - destination: client-go
+    library: true
+    branches:
+      - source:
+          branch: master
+          dir: staging/src/kubesphere.io/client-go
+        name: master
 
-- destination: api
-  library: true
-  branches:
-  - source:
-      branch: master
-      dir: staging/src/kubesphere.io/api
-    name: master
-    go: 1.19.4
+  - destination: api
+    library: true
+    branches:
+      - source:
+          branch: master
+          dir: staging/src/kubesphere.io/api
+        name: master
 
-  smoke-test: |
-    # assumes GO111MODULE=on
-    go build ./...
-    go test ./...
+    smoke-test: |
+      # assumes GO111MODULE=on
+      go build ./...
+      go test ./...
 
-- destination: utils
-  library: true
-  branches:
-  - source:
-      branch: master
-      dir: staging/src/kubesphere.io/utils
-    name: master
-    go: 1.19.4
+  - destination: utils
+    library: true
+    branches:
+      - source:
+          branch: master
+          dir: staging/src/kubesphere.io/utils
+        name: master

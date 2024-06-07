@@ -1,0 +1,10 @@
+---
+## Enable HAProxy to manage Load Balancing
+haproxy:
+  enabled: true
+  annotations:
+    any.domain/key: "value"
+  serviceAccount:
+    create: true
+  metrics:
+    enabled: true

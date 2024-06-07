@@ -1,6 +1,6 @@
 = vendor/github.com/gorilla/mux licensed under: =
 
-Copyright (c) 2012-2018 The Gorilla Authors. All rights reserved.
+Copyright (c) 2023 The Gorilla Authors. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -28,4 +28,4 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-= vendor/github.com/gorilla/mux/LICENSE 33fa1116c45f9e8de714033f99edde13
+= vendor/github.com/gorilla/mux/LICENSE c30eee78985cf2584cded5f89ba3d787

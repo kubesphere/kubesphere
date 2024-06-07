@@ -1,19 +1,3 @@
-/*
-Copyright 2020 KubeSphere Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 // Package ginkgowrapper wraps Ginkgo Fail and Skip functions to panic
 // with structured data instead of a constant string.
 package ginkgowrapper
@@ -26,7 +10,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 )
 
 // FailurePanic is the value that will be panicked from Fail.
@@ -38,7 +22,7 @@ type FailurePanic struct {
 }
 
 // String makes FailurePanic look like the old Ginkgo panic when printed.
-func (FailurePanic) String() string { return ginkgo.GINKGO_PANIC }
+func (p FailurePanic) String() string { return p.Message }
 
 // Fail wraps ginkgo.Fail so that it panics with more useful
 // information about the failure. This function will panic with a

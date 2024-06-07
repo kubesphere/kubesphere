@@ -1,0 +1,191 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: resourcequotas.quota.kubesphere.io
+spec:
+  group: quota.kubesphere.io
+  names:
+    categories:
+    - quota
+    kind: ResourceQuota
+    listKind: ResourceQuotaList
+    plural: resourcequotas
+    singular: resourcequota
+  scope: Cluster
+  versions:
+  - name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: ResourceQuota sets aggregate quota restrictions enforced per
+          workspace
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired quota
+            properties:
+              quota:
+                description: Quota defines the desired quota
+                properties:
+                  hard:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      hard is the set of desired hard limits for each named resource.
+                      More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/
+                    type: object
+                  scopeSelector:
+                    description: |-
+                      scopeSelector is also a collection of filters like scopes that must match each object tracked by a quota
+                      but expressed using ScopeSelectorOperator in combination with possible values.
+                      For a resource to match, both scopes AND scopeSelector (if specified in spec), must be matched.
+                    properties:
+                      matchExpressions:
+                        description: A list of scope selector requirements by scope
+                          of the resources.
+                        items:
+                          description: |-
+                            A scoped-resource selector requirement is a selector that contains values, a scope name, and an operator
+                            that relates the scope name and values.
+                          properties:
+                            operator:
+                              description: |-
+                                Represents a scope's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists, DoesNotExist.
+                              type: string
+                            scopeName:
+                              description: The name of the scope that the selector
+                                applies to.
+                              type: string
+                            values:
+                              description: |-
+                                An array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty.
+                                This array is replaced during a strategic merge patch.
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - operator
+                          - scopeName
+                          type: object
+                        type: array
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  scopes:
+                    description: |-
+                      A collection of filters that must match each object tracked by a quota.
+                      If not specified, the quota matches all objects.
+                    items:
+                      description: A ResourceQuotaScope defines a filter that must
+                        match each object tracked by a quota
+                      type: string
+                    type: array
+                type: object
+              selector:
+                additionalProperties:
+                  type: string
+                description: LabelSelector is used to select projects by label.
+                type: object
+            required:
+            - quota
+            - selector
+            type: object
+          status:
+            description: Status defines the actual enforced quota and its current
+              usage
+            properties:
+              namespaces:
+                description: Namespaces slices the usage by project.
+                items:
+                  description: ResourceQuotaStatusByNamespace gives status for a particular
+                    project
+                  properties:
+                    hard:
+                      additionalProperties:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description: |-
+                        Hard is the set of enforced hard limits for each named resource.
+                        More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/
+                      type: object
+                    namespace:
+                      description: Namespace the project this status applies to
+                      type: string
+                    used:
+                      additionalProperties:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description: Used is the current observed total usage of the
+                        resource in the namespace.
+                      type: object
+                  required:
+                  - namespace
+                  type: object
+                type: array
+              total:
+                description: Total defines the actual enforced quota and its current
+                  usage across all projects
+                properties:
+                  hard:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Hard is the set of enforced hard limits for each named resource.
+                      More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/
+                    type: object
+                  used:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: Used is the current observed total usage of the resource
+                      in the namespace.
+                    type: object
+                type: object
+            required:
+            - namespaces
+            - total
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

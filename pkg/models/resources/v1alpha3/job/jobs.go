@@ -1,29 +1,22 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package job
 
 import (
+	"context"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -37,33 +30,32 @@ const (
 )
 
 type jobsGetter struct {
-	sharedInformers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &jobsGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &jobsGetter{cache: cache}
 }
 
 func (d *jobsGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Batch().V1().Jobs().Lister().Jobs(namespace).Get(name)
+	job := &batchv1.Job{}
+	return job, d.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, job)
 }
 
 func (d *jobsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	jobs, err := d.sharedInformers.Batch().V1().Jobs().Lister().Jobs(namespace).List(query.Selector())
-	if err != nil {
+	jobs := &batchv1.JobList{}
+	if err := d.cache.List(context.Background(), jobs, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, job := range jobs {
-		result = append(result, job)
+	for _, item := range jobs.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
 func (d *jobsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
 	leftJob, ok := left.(*batchv1.Job)
 	if !ok {
 		return false
@@ -108,7 +100,6 @@ func jobStatus(status batchv1.JobStatus) string {
 			return jobFailed
 		}
 	}
-
 	return jobRunning
 }
 

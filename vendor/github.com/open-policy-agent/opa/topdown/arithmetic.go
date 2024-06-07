@@ -5,9 +5,8 @@
 package topdown
 
 import (
-	"math/big"
-
 	"fmt"
+	"math/big"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown/builtins"
@@ -52,6 +51,54 @@ func arithFloor(a *big.Float) (*big.Float, error) {
 	}
 
 	return new(big.Float).Sub(f, big.NewFloat(1.0)), nil
+}
+
+func builtinPlus(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	n1, err := builtins.NumberOperand(operands[0].Value, 1)
+	if err != nil {
+		return err
+	}
+	n2, err := builtins.NumberOperand(operands[1].Value, 2)
+	if err != nil {
+		return err
+	}
+
+	x, ok1 := n1.Int()
+	y, ok2 := n2.Int()
+
+	if ok1 && ok2 && inSmallIntRange(x) && inSmallIntRange(y) {
+		return iter(ast.IntNumberTerm(x + y))
+	}
+
+	f, err := arithPlus(builtins.NumberToFloat(n1), builtins.NumberToFloat(n2))
+	if err != nil {
+		return err
+	}
+	return iter(ast.NewTerm(builtins.FloatToNumber(f)))
+}
+
+func builtinMultiply(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	n1, err := builtins.NumberOperand(operands[0].Value, 1)
+	if err != nil {
+		return err
+	}
+	n2, err := builtins.NumberOperand(operands[1].Value, 2)
+	if err != nil {
+		return err
+	}
+
+	x, ok1 := n1.Int()
+	y, ok2 := n2.Int()
+
+	if ok1 && ok2 && inSmallIntRange(x) && inSmallIntRange(y) {
+		return iter(ast.IntNumberTerm(x * y))
+	}
+
+	f, err := arithMultiply(builtins.NumberToFloat(n1), builtins.NumberToFloat(n2))
+	if err != nil {
+		return err
+	}
+	return iter(ast.NewTerm(builtins.FloatToNumber(f)))
 }
 
 func arithPlus(a, b *big.Float) (*big.Float, error) {
@@ -119,6 +166,14 @@ func builtinMinus(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) e
 	n2, ok2 := operands[1].Value.(ast.Number)
 
 	if ok1 && ok2 {
+
+		x, okx := n1.Int()
+		y, oky := n2.Int()
+
+		if okx && oky && inSmallIntRange(x) && inSmallIntRange(y) {
+			return iter(ast.IntNumberTerm(x - y))
+		}
+
 		f, err := arithMinus(builtins.NumberToFloat(n1), builtins.NumberToFloat(n2))
 		if err != nil {
 			return err
@@ -150,6 +205,17 @@ func builtinRem(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) err
 
 	if ok1 && ok2 {
 
+		x, okx := n1.Int()
+		y, oky := n2.Int()
+
+		if okx && oky && inSmallIntRange(x) && inSmallIntRange(y) {
+			if y == 0 {
+				return fmt.Errorf("modulo by zero")
+			}
+
+			return iter(ast.IntNumberTerm(x % y))
+		}
+
 		op1, err1 := builtins.NumberToInt(n1)
 		op2, err2 := builtins.NumberToInt(n2)
 
@@ -171,14 +237,18 @@ func builtinRem(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) err
 	return builtins.NewOperandTypeErr(2, operands[1].Value, "number")
 }
 
+func inSmallIntRange(num int) bool {
+	return -1000 < num && num < 1000
+}
+
 func init() {
 	RegisterBuiltinFunc(ast.Abs.Name, builtinArithArity1(arithAbs))
 	RegisterBuiltinFunc(ast.Round.Name, builtinArithArity1(arithRound))
 	RegisterBuiltinFunc(ast.Ceil.Name, builtinArithArity1(arithCeil))
 	RegisterBuiltinFunc(ast.Floor.Name, builtinArithArity1(arithFloor))
-	RegisterBuiltinFunc(ast.Plus.Name, builtinArithArity2(arithPlus))
+	RegisterBuiltinFunc(ast.Plus.Name, builtinPlus)
 	RegisterBuiltinFunc(ast.Minus.Name, builtinMinus)
-	RegisterBuiltinFunc(ast.Multiply.Name, builtinArithArity2(arithMultiply))
+	RegisterBuiltinFunc(ast.Multiply.Name, builtinMultiply)
 	RegisterBuiltinFunc(ast.Divide.Name, builtinArithArity2(arithDivide))
 	RegisterBuiltinFunc(ast.Rem.Name, builtinRem)
 }

@@ -1,25 +1,18 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package ingress
 
 import (
+	"context"
+
 	v1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -27,34 +20,32 @@ import (
 )
 
 type ingressGetter struct {
-	sharedInformers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &ingressGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &ingressGetter{cache: cache}
 }
 
 func (g *ingressGetter) Get(namespace, name string) (runtime.Object, error) {
-	return g.sharedInformers.Networking().V1().Ingresses().Lister().Ingresses(namespace).Get(name)
+	ingress := &v1.Ingress{}
+	return ingress, g.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, ingress)
 }
 
 func (g *ingressGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	// first retrieves all deployments within given namespace
-	ingresses, err := g.sharedInformers.Networking().V1().Ingresses().Lister().Ingresses(namespace).List(query.Selector())
-	if err != nil {
+	ingresses := &v1.IngressList{}
+	if err := g.cache.List(context.Background(), ingresses, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, ingress := range ingresses {
-		result = append(result, ingress)
+	for _, item := range ingresses.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, g.compare, g.filter), nil
 }
 
 func (g *ingressGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
 	leftIngress, ok := left.(*v1.Ingress)
 	if !ok {
 		return false

@@ -1,18 +1,7 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 // NOTE: This file is copied from k8s.io/apiserver/pkg/endpoints/request.
 // We expanded requestInfo.
@@ -81,9 +70,6 @@ type RequestInfo struct {
 	// Cluster of requested resource, this is empty in single-cluster environment
 	Cluster string
 
-	// DevOps project of requested resource
-	DevOps string
-
 	// Scope of requested resource.
 	ResourceScope string
 
@@ -125,8 +111,8 @@ type RequestInfoFactory struct {
 // /kapis/{api-group}/{version}/namespaces/{namespace}/{resource}
 // /kapis/{api-group}/{version}/namespaces/{namespace}/{resource}/{resourceName}
 // With workspaces:
-// /kapis/clusters/{cluster}/{api-group}/{version}/namespaces/{namespace}/{resource}
-// /kapis/clusters/{cluster}/{api-group}/{version}/namespaces/{namespace}/{resource}/{resourceName}
+// /clusters/{cluster}/kapis/{api-group}/{version}/namespaces/{namespace}/{resource}
+// /clusters/{cluster}/kapis/{api-group}/{version}/namespaces/{namespace}/{resource}/{resourceName}
 func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, error) {
 	requestInfo := RequestInfo{
 		IsKubernetesRequest: false,
@@ -144,7 +130,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		prefix := requestInfo.APIPrefix
 		if prefix == "" {
 			currentParts := splitPath(requestInfo.Path)
-			//Proxy discovery API
+			// Proxy discovery API
 			if len(currentParts) > 0 && len(currentParts) < 3 {
 				prefix = currentParts[0]
 			}
@@ -159,6 +145,18 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		return &requestInfo, nil
 	}
 
+	// URL forms: /clusters/{cluster}/*
+	if currentParts[0] == "clusters" {
+		if len(currentParts) > 1 {
+			requestInfo.Cluster = currentParts[1]
+			// resolve the real path behind the cluster dispatcher
+			requestInfo.Path = strings.TrimPrefix(requestInfo.Path, fmt.Sprintf("/clusters/%s", requestInfo.Cluster))
+		}
+		if len(currentParts) > 2 {
+			currentParts = currentParts[2:]
+		}
+	}
+
 	if !r.APIPrefixes.Has(currentParts[0]) {
 		// return a non-resource request
 		return &requestInfo, nil
@@ -166,13 +164,19 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	requestInfo.APIPrefix = currentParts[0]
 	currentParts = currentParts[1:]
 
-	// URL forms: /clusters/{cluster}/*
-	if currentParts[0] == "clusters" {
-		if len(currentParts) > 1 {
-			requestInfo.Cluster = currentParts[1]
-		}
-		if len(currentParts) > 2 {
-			currentParts = currentParts[2:]
+	// fallback to legacy cluster API
+	// TODO remove the following codes
+	if requestInfo.Cluster == "" {
+		// URL forms: /(kapis|apis|api)/clusters/{cluster}/*
+		if currentParts[0] == "clusters" {
+			if len(currentParts) > 1 {
+				requestInfo.Cluster = currentParts[1]
+				// resolve the real path behind the cluster dispatcher
+				requestInfo.Path = strings.Replace(requestInfo.Path, fmt.Sprintf("/clusters/%s", requestInfo.Cluster), "", 1)
+			}
+			if len(currentParts) > 2 {
+				currentParts = currentParts[2:]
+			}
 		}
 	}
 
@@ -216,7 +220,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	}
 
 	// URL forms: /workspaces/{workspace}/*
-	if currentParts[0] == "workspaces" {
+	if currentParts[0] == "workspaces" || currentParts[0] == "workspacetemplates" {
 		if len(currentParts) > 1 {
 			requestInfo.Workspace = currentParts[1]
 		}
@@ -230,25 +234,12 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		if len(currentParts) > 1 {
 			requestInfo.Namespace = currentParts[1]
 
-			// if there is another step after the namespace name and it is not a known namespace subresource
+			// if there is another step after the namespace name, and it is not a known namespace subresource
 			// move currentParts to include it as a resource in its own right
 			if len(currentParts) > 2 && !namespaceSubresources.Has(currentParts[2]) {
 				currentParts = currentParts[2:]
 			}
 		}
-	} else if currentParts[0] == "devops" {
-		if len(currentParts) > 1 {
-			requestInfo.DevOps = currentParts[1]
-
-			// if there is another step after the devops name
-			// move currentParts to include it as a resource in its own right
-			if len(currentParts) > 2 {
-				currentParts = currentParts[2:]
-			}
-		}
-	} else {
-		requestInfo.Namespace = metav1.NamespaceNone
-		requestInfo.DevOps = metav1.NamespaceNone
 	}
 
 	// parsing successful, so we now know the proper value for .Parts
@@ -327,7 +318,7 @@ type requestInfoKeyType int
 const requestInfoKey requestInfoKeyType = iota
 
 func WithRequestInfo(parent context.Context, info *RequestInfo) context.Context {
-	return k8srequest.WithValue(parent, requestInfoKey, info)
+	return context.WithValue(parent, requestInfoKey, info)
 }
 
 func RequestInfoFrom(ctx context.Context) (*RequestInfo, bool) {
@@ -349,21 +340,20 @@ const (
 	ClusterScope            = "Cluster"
 	WorkspaceScope          = "Workspace"
 	NamespaceScope          = "Namespace"
-	DevOpsScope             = "DevOps"
 	workspaceSelectorPrefix = constants.WorkspaceLabelKey + "="
 )
 
 func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
 	if r.isGlobalScopeResource(request.APIGroup, request.Resource) {
+		// GET /apis/tenant.kubesphere.io/v1beta1/workspaces/{workspace}
+		if request.Workspace != "" {
+			return WorkspaceScope
+		}
 		return GlobalScope
 	}
 
 	if request.Namespace != "" {
 		return NamespaceScope
-	}
-
-	if request.DevOps != "" {
-		return DevOpsScope
 	}
 
 	if request.Workspace != "" {
