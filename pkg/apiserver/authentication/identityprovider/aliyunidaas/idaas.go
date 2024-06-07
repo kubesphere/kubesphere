@@ -23,7 +23,6 @@ import (
 	"net/http"
 
 	"github.com/mitchellh/mapstructure"
-
 	"golang.org/x/oauth2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
@@ -31,7 +30,7 @@ import (
 )
 
 func init() {
-	identityprovider.RegisterOAuthProvider(&idaasProviderFactory{})
+	identityprovider.RegisterOAuthProviderFactory(&idaasProviderFactory{})
 }
 
 type aliyunIDaaS struct {

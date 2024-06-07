@@ -22,10 +22,9 @@ type PageableResponse struct {
 }
 
 type Workspace struct {
-	Group          `json:",inline"`
-	Admin          string   `json:"admin,omitempty"`
-	Namespaces     []string `json:"namespaces"`
-	DevopsProjects []string `json:"devops_projects"`
+	Group      `json:",inline"`
+	Admin      string   `json:"admin,omitempty"`
+	Namespaces []string `json:"namespaces"`
 }
 
 type Group struct {
@@ -36,10 +35,4 @@ type Group struct {
 	Logo        string   `json:"logo"`
 	ChildGroups []string `json:"child_groups"`
 	Description string   `json:"description"`
-}
-
-type PodInfo struct {
-	Namespace string `json:"namespace" description:"namespace"`
-	Pod       string `json:"pod" description:"pod name"`
-	Container string `json:"container" description:"container name"`
 }

@@ -31,5 +31,6 @@ coverage.txt
 kustomize/network/etcd
 apiserver.local.config
 tmp/
+_tmp
 kubesphere.yaml
 testbin/

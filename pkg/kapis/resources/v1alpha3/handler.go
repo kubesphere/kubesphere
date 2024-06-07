@@ -19,7 +19,6 @@ package v1alpha3
 import (
 	"fmt"
 	"net/http"
-	"sort"
 	"strings"
 
 	"github.com/emicklei/go-restful/v3"
@@ -31,50 +30,42 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/components"
 	v2 "kubesphere.io/kubesphere/pkg/models/registries/v2"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
-	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
-	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/overview"
 )
 
-type Handler struct {
-	resourceGetterV1alpha3  *resourcev1alpha3.ResourceGetter
-	resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter
-	componentsGetter        components.ComponentsGetter
-	registryHelper          v2.RegistryHelper
-}
-
-func New(resourceGetterV1alpha3 *resourcev1alpha3.ResourceGetter, resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter, componentsGetter components.ComponentsGetter) *Handler {
-	return &Handler{
-		resourceGetterV1alpha3:  resourceGetterV1alpha3,
-		resourcesGetterV1alpha2: resourcesGetterV1alpha2,
-		componentsGetter:        componentsGetter,
-		registryHelper:          v2.NewRegistryHelper(),
+var (
+	ClusterMetricNames = []string{
+		overview.NamespaceCount, overview.PodCount, overview.DeploymentCount,
+		overview.StatefulSetCount, overview.DaemonSetCount, overview.JobCount,
+		overview.CronJobCount, overview.PersistentVolumeClaimCount, overview.ServiceCount,
+		overview.IngressCount, overview.ClusterRoleBindingCount, overview.ClusterRoleCount,
 	}
+
+	NamespaceMetricNames = []string{
+		overview.PodCount, overview.DeploymentCount, overview.StatefulSetCount,
+		overview.DaemonSetCount, overview.JobCount, overview.CronJobCount,
+		overview.PersistentVolumeClaimCount, overview.ServiceCount,
+		overview.IngressCount, overview.RoleCount, overview.RoleBindingCount,
+	}
+)
+
+type handler struct {
+	resourceGetterV1alpha3 *resourcev1alpha3.Getter
+	componentsGetter       components.Getter
+	registryHelper         v2.RegistryHelper
+	counter                overview.Counter
 }
 
-func (h *Handler) handleGetResources(request *restful.Request, response *restful.Response) {
+func (h *handler) GetResources(request *restful.Request, response *restful.Response) {
 	namespace := request.PathParameter("namespace")
 	resourceType := request.PathParameter("resources")
 	name := request.PathParameter("name")
 
 	// use informers to retrieve resources
 	result, err := h.resourceGetterV1alpha3.Get(resourceType, namespace, name)
-	if err == nil {
-		response.WriteEntity(result)
-		return
-	}
-
-	if err != resourcev1alpha3.ErrResourceNotSupported {
-		klog.Errorf("%s, resource type: %s", err, resourceType)
-		api.HandleInternalError(response, nil, err)
-		return
-	}
-
-	// fallback to v1alpha2
-	resultV1alpha2, err := h.resourcesGetterV1alpha2.GetResource(namespace, resourceType, name)
 	if err != nil {
-		if err == resourcev1alpha2.ErrResourceNotSupported {
+		if err == resourcev1alpha3.ErrResourceNotSupported {
 			api.HandleNotFound(response, request, err)
 			return
 		}
@@ -83,32 +74,18 @@ func (h *Handler) handleGetResources(request *restful.Request, response *restful
 		return
 	}
 
-	response.WriteEntity(resultV1alpha2)
-
+	response.WriteEntity(result)
 }
 
-// handleListResources retrieves resources
-func (h *Handler) handleListResources(request *restful.Request, response *restful.Response) {
+// ListResources retrieves resources
+func (h *handler) ListResources(request *restful.Request, response *restful.Response) {
 	query := query.ParseQueryParameter(request)
 	resourceType := request.PathParameter("resources")
 	namespace := request.PathParameter("namespace")
 
 	result, err := h.resourceGetterV1alpha3.List(resourceType, namespace, query)
-	if err == nil {
-		response.WriteEntity(result)
-		return
-	}
-
-	if err != resourcev1alpha3.ErrResourceNotSupported {
-		klog.Errorf("%s, resource type: %s", err, resourceType)
-		api.HandleInternalError(response, request, err)
-		return
-	}
-
-	// fallback to v1alpha2
-	result, err = h.fallback(resourceType, namespace, query)
 	if err != nil {
-		if err == resourcev1alpha2.ErrResourceNotSupported {
+		if err == resourcev1alpha3.ErrResourceNotSupported {
 			api.HandleNotFound(response, request, err)
 			return
 		}
@@ -116,60 +93,11 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 		api.HandleError(response, request, err)
 		return
 	}
+
 	response.WriteEntity(result)
 }
 
-func (h *Handler) fallback(resourceType string, namespace string, q *query.Query) (*api.ListResult, error) {
-	orderBy := string(q.SortBy)
-	limit, offset := q.Pagination.Limit, q.Pagination.Offset
-	reverse := !q.Ascending
-	conditions := &params.Conditions{Match: make(map[string]string, 0), Fuzzy: make(map[string]string, 0)}
-	for field, value := range q.Filters {
-		switch field {
-		case query.FieldName:
-			conditions.Fuzzy[v1alpha2.Name] = string(value)
-		case query.FieldNames:
-			conditions.Match[v1alpha2.Name] = string(value)
-		case query.FieldCreationTimeStamp:
-			conditions.Match[v1alpha2.CreateTime] = string(value)
-		case query.FieldLastUpdateTimestamp:
-			conditions.Match[v1alpha2.UpdateTime] = string(value)
-		case query.FieldLabel:
-			values := strings.SplitN(string(value), ":", 2)
-			if len(values) == 2 {
-				conditions.Match[values[0]] = values[1]
-			} else {
-				conditions.Match[v1alpha2.Label] = values[0]
-			}
-		case query.FieldAnnotation:
-			values := strings.SplitN(string(value), ":", 2)
-			if len(values) == 2 {
-				conditions.Match[v1alpha2.Annotation] = values[1]
-			} else {
-				conditions.Match[v1alpha2.Annotation] = values[0]
-			}
-		case query.FieldStatus:
-			conditions.Match[v1alpha2.Status] = string(value)
-		case query.FieldOwnerReference:
-			conditions.Match[v1alpha2.Owner] = string(value)
-		default:
-			conditions.Match[string(field)] = string(value)
-		}
-	}
-
-	result, err := h.resourcesGetterV1alpha2.ListResources(namespace, resourceType, conditions, orderBy, reverse, limit, offset)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return &api.ListResult{
-		Items:      result.Items,
-		TotalItems: result.TotalCount,
-	}, nil
-}
-
-func (h *Handler) handleGetComponentStatus(request *restful.Request, response *restful.Response) {
+func (h *handler) GetComponentStatus(request *restful.Request, response *restful.Response) {
 	component := request.PathParameter("component")
 	result, err := h.componentsGetter.GetComponentStatus(component)
 	if err != nil {
@@ -180,7 +108,7 @@ func (h *Handler) handleGetComponentStatus(request *restful.Request, response *r
 	response.WriteEntity(result)
 }
 
-func (h *Handler) handleGetSystemHealthStatus(request *restful.Request, response *restful.Response) {
+func (h *handler) GetSystemHealthStatus(request *restful.Request, response *restful.Response) {
 	result, err := h.componentsGetter.GetSystemHealthStatus()
 	if err != nil {
 		klog.Error(err)
@@ -192,7 +120,7 @@ func (h *Handler) handleGetSystemHealthStatus(request *restful.Request, response
 }
 
 // get all componentsHandler
-func (h *Handler) handleGetComponents(request *restful.Request, response *restful.Response) {
+func (h *handler) GetComponents(request *restful.Request, response *restful.Response) {
 	result, err := h.componentsGetter.GetAllComponentsStatus()
 	if err != nil {
 		klog.Error(err)
@@ -203,10 +131,10 @@ func (h *Handler) handleGetComponents(request *restful.Request, response *restfu
 	response.WriteEntity(result)
 }
 
-// handleVerifyImageRepositorySecret verifies image secret against registry, it takes k8s.io/api/core/v1/types.Secret
+// VerifyImageRepositorySecret verifies image secret against registry, it takes k8s.io/api/core/v1/types.Secret
 // as input, and authenticate registry with credential specified. Returns http.StatusOK if authenticate successfully,
 // returns http.StatusUnauthorized if failed.
-func (h *Handler) handleVerifyImageRepositorySecret(request *restful.Request, response *restful.Response) {
+func (h *handler) VerifyImageRepositorySecret(request *restful.Request, response *restful.Response) {
 	secret := &v1.Secret{}
 	err := request.ReadEntity(secret)
 	if err != nil {
@@ -222,8 +150,8 @@ func (h *Handler) handleVerifyImageRepositorySecret(request *restful.Request, re
 	}
 }
 
-// handleGetImageConfig fetches container image spec described in https://github.com/opencontainers/image-spec/blob/main/manifest.md
-func (h *Handler) handleGetImageConfig(request *restful.Request, response *restful.Response) {
+// GetImageConfig fetches container image spec described in https://github.com/opencontainers/image-spec/blob/main/manifest.md
+func (h *handler) GetImageConfig(request *restful.Request, response *restful.Response) {
 	secretName := request.QueryParameter("secret")
 	namespace := request.PathParameter("namespace")
 	image := request.QueryParameter("image")
@@ -247,14 +175,11 @@ func (h *Handler) handleGetImageConfig(request *restful.Request, response *restf
 	response.WriteHeaderAndJson(http.StatusOK, config, restful.MIME_JSON)
 }
 
-// handleGetRepositoryTags fetchs all tags of given repository, no paging.
-func (h *Handler) handleGetRepositoryTags(request *restful.Request, response *restful.Response) {
+// GetRepositoryTags fetchs all tags of given repository, no paging.
+func (h *handler) GetRepositoryTags(request *restful.Request, response *restful.Response) {
 	secretName := request.QueryParameter("secret")
 	namespace := request.PathParameter("namespace")
 	repository := request.QueryParameter("repository")
-
-	q := query.ParseQueryParameter(request)
-
 	var secret *v1.Secret
 
 	if len(repository) == 0 {
@@ -276,13 +201,26 @@ func (h *Handler) handleGetRepositoryTags(request *restful.Request, response *re
 		return
 	}
 
-	if !q.Ascending {
-		sort.Sort(sort.Reverse(sort.StringSlice(tags.Tags)))
-	}
-	startIndex, endIndex := q.Pagination.GetValidPagination(len(tags.Tags))
-	tags.Tags = tags.Tags[startIndex:endIndex]
-
 	response.WriteHeaderAndJson(http.StatusOK, tags, restful.MIME_JSON)
+}
+
+func (h *handler) GetClusterOverview(request *restful.Request, response *restful.Response) {
+	metrics, err := h.counter.GetMetrics(ClusterMetricNames, "", "", "cluster")
+	if err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+	_ = response.WriteEntity(metrics)
+}
+
+func (h *handler) GetNamespaceOverview(request *restful.Request, response *restful.Response) {
+	namespace := request.PathParameter("namespace")
+	metrics, err := h.counter.GetMetrics(NamespaceMetricNames, namespace, "", "namespace")
+	if err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+	_ = response.WriteEntity(metrics)
 }
 
 func canonicalizeRegistryError(request *restful.Request, response *restful.Response, err error) {

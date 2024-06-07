@@ -28,9 +28,10 @@ import (
 )
 
 type ResourceInfo struct {
-	gvk  schema.GroupVersionKind
-	obj  runtime.Object
-	list runtime.Object
+	gvk          schema.GroupVersionKind
+	obj          runtime.Object
+	list         runtime.Object
+	singularName string
 }
 
 type StatusResourceInfo struct {
@@ -118,6 +119,10 @@ func (r *StandardStorage) ConvertToTable(ctx context.Context, object runtime.Obj
 
 func (r *StandardStorage) NamespaceScoped() bool {
 	return false
+}
+
+func (r *StandardStorage) GetSingularName() string {
+	return r.cfg.singularName
 }
 
 func (r *StatusStandardStorage) GroupVersionKind(containingGV schema.GroupVersion) schema.GroupVersionKind {

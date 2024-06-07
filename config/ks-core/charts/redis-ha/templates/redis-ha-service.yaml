@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "redis-ha.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "labels.standard" . | indent 4 }}
+{{- if .Values.exporter.enabled }}
+    exporter: enabled
+{{- end }}
+{{- range $key, $value := .Values.extraLabels }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
+{{- range $key, $value := .Values.serviceLabels }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
+  annotations:
+  {{- if .Values.serviceAnnotations }}
+{{ toYaml .Values.serviceAnnotations | indent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  {{- if ne (int .Values.redis.port) 0 }}
+  - name: tcp-server
+    port: {{ .Values.redis.port }}
+    protocol: TCP
+    targetPort: redis
+  {{- end }}
+  {{- if .Values.redis.tlsPort }}
+  - name: server-tls
+    port: {{ .Values.redis.tlsPort }}
+    protocol: TCP
+    targetPort: redis-tls
+  {{- end }}
+  {{- if ne (int .Values.sentinel.port) 0 }}
+  - name: tcp-sentinel
+    port: {{ .Values.sentinel.port }}
+    protocol: TCP
+    targetPort: sentinel
+  {{- end }}
+  {{- if .Values.sentinel.tlsPort }}
+  - name: sentinel-tls
+    port: {{ .Values.sentinel.tlsPort }}
+    protocol: TCP
+    targetPort: sentinel-tls
+  {{- end }}
+{{- if .Values.exporter.enabled }}
+  - name: http-exporter-port
+    port: {{ .Values.exporter.port }}
+    protocol: TCP
+    targetPort: {{ .Values.exporter.portName }}
+{{- end }}
+  selector:
+    release: {{ .Release.Name }}
+    app: {{ template "redis-ha.name" . }}

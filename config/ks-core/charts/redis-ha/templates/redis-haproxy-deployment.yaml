@@ -1,0 +1,199 @@
+{{- if .Values.haproxy.enabled }}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ template "redis-ha.fullname" . }}-haproxy
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "labels.standard" . | indent 4 }}
+    {{- range $key, $value := .Values.extraLabels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  {{- with .Values.haproxy.deploymentStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  revisionHistoryLimit: 1
+  replicas: {{ .Values.haproxy.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "redis-ha.name" . }}-haproxy
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      name: {{ template "redis-ha.fullname" . }}-haproxy
+      labels:
+        app: {{ template "redis-ha.name" . }}-haproxy
+        release: {{ .Release.Name }}
+        {{- range $key, $value := .Values.haproxy.labels }}
+        {{ $key }}: {{ $value | toString }}
+        {{- end }}
+        {{- range $key, $value := .Values.extraLabels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+      annotations:
+      {{- if and (.Values.haproxy.metrics.enabled) (not .Values.haproxy.metrics.serviceMonitor.enabled)  }}
+        prometheus.io/port: "{{ .Values.haproxy.metrics.port }}"
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "{{ .Values.haproxy.metrics.scrapePath }}"
+      {{- end }}
+        checksum/config: {{ print (include "config-haproxy.cfg" .) (include "config-haproxy_init.sh" .) | sha256sum }}
+      {{- if .Values.haproxy.annotations }}
+{{ toYaml .Values.haproxy.annotations | indent 8 }}
+      {{- end }}
+    spec:
+      # Needed when using unmodified rbac-setup.yml
+      {{ if .Values.haproxy.serviceAccount.create }}
+      serviceAccountName: {{ template "redis-ha.serviceAccountName" . }}-haproxy
+      {{- else }}
+      serviceAccountName: {{ .Values.haproxy.serviceAccountName }}
+      {{- end }}
+      securityContext: {{ toYaml .Values.haproxy.securityContext | nindent 8 }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+      affinity:
+    {{- if .Values.haproxy.affinity }}
+    {{- with .Values.haproxy.affinity }}
+{{ tpl . $ | indent 8 }}
+    {{- end }}
+    {{- else }}
+    {{- if .Values.haproxy.additionalAffinities }}
+{{ toYaml .Values.haproxy.additionalAffinities | indent 8 }}
+    {{- end }}
+        podAntiAffinity:
+    {{- if .Values.haproxy.hardAntiAffinity }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: {{ template "redis-ha.name" . }}-haproxy
+                  release: {{ .Release.Name }}
+              topologyKey: kubernetes.io/hostname
+    {{- else }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: {{ template "redis-ha.name" . }}-haproxy
+                    release: {{ .Release.Name }}
+                topologyKey: kubernetes.io/hostname
+    {{- end }}
+    {{- end }}
+    {{- if .Values.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+      - maxSkew: {{ .Values.topologySpreadConstraints.maxSkew | default 1 }}
+        topologyKey: {{ .Values.topologySpreadConstraints.topologyKey | default "topology.kubernetes.io/zone" }}
+        whenUnsatisfiable: {{ .Values.topologySpreadConstraints.whenUnsatisfiable | default "ScheduleAnyway" }}
+        labelSelector:
+          matchLabels:
+            app: {{ template "redis-ha.name" . }}-haproxy
+            release: {{ .Release.Name }}
+      {{- end }}
+      initContainers:
+      - name: config-init
+        image: {{ template "haproxy.image" . }}
+        imagePullPolicy: {{ .Values.haproxy.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.haproxy.init.resources | indent 10 }}
+        command:
+        - sh
+        args:
+        - /readonly/haproxy_init.sh
+        securityContext: {{ toYaml .Values.haproxy.containerSecurityContext | nindent 10 }}
+        volumeMounts:
+        - name: config-volume
+          mountPath: /readonly
+          readOnly: true
+        - name: data
+          mountPath: /data
+      {{- if .Values.haproxy.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.haproxy.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: haproxy
+        image: {{ template "haproxy.image" . }}
+        imagePullPolicy: {{ .Values.haproxy.image.pullPolicy }}
+        securityContext: {{ toYaml .Values.haproxy.containerSecurityContext | nindent 10 }}
+    {{- if or .Values.auth .Values.sentinel.auth}}
+        env:
+      {{- if .Values.auth }}
+        - name: AUTH
+          valueFrom:
+            secretKeyRef:
+            {{- if .Values.existingSecret }}
+              name: {{ .Values.existingSecret }}
+            {{- else }}
+              name: {{ template "redis-ha.fullname" . }}
+            {{- end }}
+              key: {{ .Values.authKey }}
+      {{- end }}
+      {{- if .Values.sentinel.auth }}
+        - name: SENTINELAUTH
+          valueFrom:
+            secretKeyRef:
+            {{- if .Values.sentinel.existingSecret }}
+              name: {{ .Values.sentinel.existingSecret }}
+            {{- else }}
+              name: {{ template "redis-ha.fullname" . }}-sentinel
+            {{- end }}
+              key: {{ .Values.sentinel.authKey }}
+      {{- end }}
+    {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8888
+          initialDelaySeconds: 5
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8888
+          initialDelaySeconds: 5
+          periodSeconds: 3
+        ports:
+        - name: redis
+          containerPort: {{ default "6379" .Values.haproxy.containerPort }}
+        {{- if .Values.haproxy.readOnly.enabled }}
+        - name: readonlyport
+          containerPort: {{ default "6380" .Values.haproxy.readOnly.port }}
+        {{- end }}
+        {{- if .Values.haproxy.metrics.enabled }}
+        - name: metrics-port
+          containerPort: {{ default "9101" .Values.haproxy.metrics.port }}
+        {{- end }}
+        resources:
+{{ toYaml .Values.haproxy.resources | indent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /usr/local/etc/haproxy
+        - name: shared-socket
+          mountPath: /run/haproxy
+{{- if .Values.haproxy.tls.enabled }}
+        - name: pemfile
+          mountPath: {{ .Values.haproxy.tls.certMountPath }}
+{{- end }}
+        lifecycle:
+{{ toYaml .Values.haproxy.lifecycle | indent 10 }}
+{{- if .Values.haproxy.priorityClassName }}
+      priorityClassName: {{ .Values.haproxy.priorityClassName }}
+{{- end }}
+      volumes:
+{{- if .Values.haproxy.tls.enabled }}
+      - name: pemfile
+        secret:
+          secretName: {{ .Values.haproxy.tls.secretName }}
+{{- end }}
+      - name: config-volume
+        configMap:
+          name: {{ template "redis-ha.fullname" . }}-configmap
+      - name: shared-socket
+        emptyDir:
+{{ toYaml .Values.haproxy.emptyDir | indent 10 }}
+      - name: data
+        emptyDir:
+{{ toYaml .Values.haproxy.emptyDir | indent 10 }}
+{{- end }}

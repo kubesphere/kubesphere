@@ -1,0 +1,74 @@
+{{- if and .Values.haproxy.enabled .Values.haproxy.networkPolicy.enabled }}
+{{- $root := . }}
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ template "redis-ha.fullname" . }}-haproxy-network-policy
+  namespace: {{ .Release.Namespace | quote }}
+  {{- if .Values.haproxy.networkPolicy.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.haproxy.networkPolicy.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  labels:
+    {{- include "labels.standard" . | nindent 4 }}
+    {{- range $key, $value := .Values.haproxy.networkPolicy.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  podSelector:
+    matchLabels:
+      release: {{ .Release.Name }}
+      app: {{ template "redis-ha.name" . }}-haproxy
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              release: {{ .Release.Name }}
+              app: {{ template "redis-ha.name" . }}
+      ports:
+        - port: {{ .Values.redis.port }}
+          protocol: TCP
+        - port: {{ .Values.sentinel.port }}
+          protocol: TCP
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    {{-  range $rule := .Values.haproxy.networkPolicy.egressRules }}
+    - to:
+        {{- (tpl (toYaml $rule.selectors) $) | nindent 8 }}
+      ports:
+        {{- toYaml $rule.ports | nindent 8 }}
+    {{- end }}
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              release: {{ .Release.Name }}
+              app: {{ template "redis-ha.name" . }}
+      ports:
+        - port: {{ .Values.redis.port }}
+          protocol: TCP
+        - port: {{ .Values.sentinel.port }}
+          protocol: TCP
+    {{-  range $rule := .Values.haproxy.networkPolicy.ingressRules }}
+    - from:
+        {{- (tpl (toYaml $rule.selectors) $) | nindent 8 }}
+      ports:
+        {{- if $rule.ports }}
+        {{- toYaml $rule.ports | nindent 8 }}
+        {{- end }}
+        - port: {{ $root.Values.redis.port }}
+          protocol: TCP
+        - port: {{ $root.Values.sentinel.port }}
+          protocol: TCP
+    {{- end }}
+{{- end }}

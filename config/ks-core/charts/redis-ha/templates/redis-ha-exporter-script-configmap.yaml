@@ -1,0 +1,14 @@
+{{- if .Values.exporter.script }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "redis-ha.fullname" . }}-exporter-script-configmap
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "labels.standard" . | indent 4 }}
+    {{- range $key, $value := .Values.extraLabels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+data:
+  script: {{ toYaml .Values.exporter.script | indent 2 }}
+{{- end }}

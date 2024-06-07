@@ -17,9 +17,13 @@ limitations under the License.
 package service
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -27,34 +31,32 @@ import (
 )
 
 type servicesGetter struct {
-	sharedInformers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &servicesGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &servicesGetter{cache: cache}
 }
 
 func (d *servicesGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Core().V1().Services().Lister().Services(namespace).Get(name)
+	service := &corev1.Service{}
+	return service, d.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, service)
 }
 
 func (d *servicesGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	// first retrieves all services within given namespace
-	services, err := d.sharedInformers.Core().V1().Services().Lister().Services(namespace).List(query.Selector())
-	if err != nil {
+	services := &corev1.ServiceList{}
+	if err := d.cache.List(context.Background(), services, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, deployment := range services {
-		result = append(result, deployment)
+	for _, item := range services.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
 func (d *servicesGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
 	leftService, ok := left.(*corev1.Service)
 	if !ok {
 		return false

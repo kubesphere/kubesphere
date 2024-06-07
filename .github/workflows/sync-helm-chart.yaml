@@ -1,0 +1,40 @@
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'config/ks-core/**'
+    branches:
+      - 'master'
+
+jobs:
+  sync-chart:
+    runs-on: self-runner-kubesphere
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup SSH
+        uses: MrSquaare/ssh-setup-action@v2
+        with:
+          host: github.com
+          private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - run: |
+          git config --global user.email "ci-bot@kubesphere.io"
+          git config --global user.name "ks-ci-bot"
+          git clone git@github.com:kubesphere/helm-charts.git
+          rm -rf helm-charts/src/test/ks-core
+          cp -r config/ks-core helm-charts/src/test/
+          cd helm-charts/
+          git add .
+          git commit -m "update ks-core helm chart"
+          git push origin master:sync/ks-core --force
+
+      - env:
+          GH_TOKEN: ${{ secrets.CIBOT_ACCESS_TOKEN }}
+        run: |
+          cd helm-charts/
+          if [[ $(gh pr ls -H sync/ks-core -B master) == "" ]]; then
+            gh pr create -H sync/ks-core -B master --title "Update ks-core helm chart" --body "Update ks-core helm chart"
+          fi

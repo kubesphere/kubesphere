@@ -26,9 +26,6 @@ import (
 
 var supportedQoSComputeResources = sets.New(string(corev1.ResourceCPU), string(corev1.ResourceMemory))
 
-// QOSList is a set of (resource name, QoS class) pairs.
-type QOSList map[corev1.ResourceName]corev1.PodQOSClass
-
 func isSupportedQoSComputeResource(name corev1.ResourceName) bool {
 	return supportedQoSComputeResources.Has(string(name))
 }

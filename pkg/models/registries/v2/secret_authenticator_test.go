@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 
@@ -139,7 +139,7 @@ func TestRegistry(t *testing.T) {
 	RunSpecs(t, "Registry Test Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	// anonymous registry
 	fakeHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -147,8 +147,7 @@ var _ = BeforeSuite(func(done Done) {
 	})
 	tlsRegistryServer = httptest.NewTLSServer(fakeHandler)
 	registryServer = httptest.NewServer(fakeHandler)
-	close(done)
-}, 30)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

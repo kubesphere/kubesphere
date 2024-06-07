@@ -20,14 +20,16 @@ import (
 	"sort"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 type Interface interface {
@@ -38,7 +40,7 @@ type Interface interface {
 	List(namespace string, query *query.Query) (*api.ListResult, error)
 }
 
-// CompareFunc return true is left great than right
+// CompareFunc return true is left greater than right
 type CompareFunc func(runtime.Object, runtime.Object, query.Field) bool
 
 type FilterFunc func(runtime.Object, query.Filter) bool
@@ -47,7 +49,7 @@ type TransformFunc func(runtime.Object) runtime.Object
 
 func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) *api.ListResult {
 	// selected matched ones
-	var filtered []runtime.Object
+	filtered := make([]runtime.Object, 0)
 	for _, object := range objects {
 		selected := true
 		for field, value := range q.Filters {
@@ -83,11 +85,11 @@ func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFu
 
 	return &api.ListResult{
 		TotalItems: len(filtered),
-		Items:      objectsToInterfaces(filtered[start:end]),
+		Items:      filtered[start:end],
 	}
 }
 
-// DefaultObjectMetaCompare return true is left great than right
+// DefaultObjectMetaCompare return true is left greater than right
 func DefaultObjectMetaCompare(left, right metav1.ObjectMeta, sortBy query.Field) bool {
 	switch sortBy {
 	// ?sortBy=name
@@ -107,7 +109,7 @@ func DefaultObjectMetaCompare(left, right metav1.ObjectMeta, sortBy query.Field)
 	}
 }
 
-// Default metadata filter
+// DefaultObjectMetaFilter is default metadata filter
 func DefaultObjectMetaFilter(item metav1.ObjectMeta, filter query.Filter) bool {
 	switch filter.Field {
 	case query.FieldNames:
@@ -119,20 +121,18 @@ func DefaultObjectMetaFilter(item metav1.ObjectMeta, filter query.Filter) bool {
 		return false
 	// /namespaces?page=1&limit=10&name=default
 	case query.FieldName:
-		return strings.Contains(item.Name, string(filter.Value))
-	// /clusters?page=1&limit=10&alias=xxx
-	case query.FieldAlias:
-		if item.Annotations == nil {
-			return false
+		displayName := item.GetAnnotations()[constants.DisplayNameAnnotationKey]
+		if displayName != "" && strings.Contains(displayName, string(filter.Value)) {
+			return true
 		}
-		return strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], string(filter.Value))
-	// /namespaces?page=1&limit=10&uid=a8a8d6cf-f6a5-4fea-9c1b-e57610115706
+		return strings.Contains(item.GetName(), string(filter.Value))
+		// /namespaces?page=1&limit=10&uid=a8a8d6cf-f6a5-4fea-9c1b-e57610115706
 	case query.FieldUID:
 		return strings.Compare(string(item.UID), string(filter.Value)) == 0
-	// /deployments?page=1&limit=10&namespace=kubesphere-system
+		// /deployments?page=1&limit=10&namespace=kubesphere-system
 	case query.FieldNamespace:
 		return strings.Compare(item.Namespace, string(filter.Value)) == 0
-	// /namespaces?page=1&limit=10&ownerReference=a8a8d6cf-f6a5-4fea-9c1b-e57610115706
+		// /namespaces?page=1&limit=10&ownerReference=a8a8d6cf-f6a5-4fea-9c1b-e57610115706
 	case query.FieldOwnerReference:
 		for _, ownerReference := range item.OwnerReferences {
 			if strings.Compare(string(ownerReference.UID), string(filter.Value)) == 0 {
@@ -140,7 +140,7 @@ func DefaultObjectMetaFilter(item metav1.ObjectMeta, filter query.Filter) bool {
 			}
 		}
 		return false
-	// /namespaces?page=1&limit=10&ownerKind=Workspace
+		// /namespaces?page=1&limit=10&ownerKind=Workspace
 	case query.FieldOwnerKind:
 		for _, ownerReference := range item.OwnerReferences {
 			if strings.Compare(ownerReference.Kind, string(filter.Value)) == 0 {
@@ -148,14 +148,15 @@ func DefaultObjectMetaFilter(item metav1.ObjectMeta, filter query.Filter) bool {
 			}
 		}
 		return false
-	// /namespaces?page=1&limit=10&annotation=openpitrix_runtime
+		// /namespaces?page=1&limit=10&annotation=openpitrix_runtime
 	case query.FieldAnnotation:
 		return labelMatch(item.Annotations, string(filter.Value))
-	// /namespaces?page=1&limit=10&label=kubesphere.io/workspace:system-workspace
+		// /namespaces?page=1&limit=10&label=kubesphere.io/workspace:system-workspace
 	case query.FieldLabel:
 		return labelMatch(item.Labels, string(filter.Value))
+		// not supported filter
 	default:
-		return false
+		return true
 	}
 }
 
@@ -166,12 +167,4 @@ func labelMatch(m map[string]string, filter string) bool {
 		return false
 	}
 	return labelSelector.Matches(labels.Set(m))
-}
-
-func objectsToInterfaces(objs []runtime.Object) []interface{} {
-	res := make([]interface{}, 0)
-	for _, obj := range objs {
-		res = append(res, obj)
-	}
-	return res
 }

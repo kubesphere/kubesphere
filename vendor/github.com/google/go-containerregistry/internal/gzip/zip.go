@@ -24,7 +24,8 @@ import (
 	"github.com/google/go-containerregistry/internal/and"
 )
 
-var gzipMagicHeader = []byte{'\x1f', '\x8b'}
+// MagicHeader is the start of gzip files.
+var MagicHeader = []byte{'\x1f', '\x8b'}
 
 // ReadCloser reads uncompressed input data from the io.ReadCloser and
 // returns an io.ReadCloser from which compressed data may be read.
@@ -84,7 +85,7 @@ func ReadCloserLevel(r io.ReadCloser, level int) io.ReadCloser {
 }
 
 // UnzipReadCloser reads compressed input data from the io.ReadCloser and
-// returns an io.ReadCloser from which uncompessed data may be read.
+// returns an io.ReadCloser from which uncompressed data may be read.
 func UnzipReadCloser(r io.ReadCloser) (io.ReadCloser, error) {
 	gr, err := gzip.NewReader(r)
 	if err != nil {
@@ -113,5 +114,5 @@ func Is(r io.Reader) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return bytes.Equal(magicHeader, gzipMagicHeader), nil
+	return bytes.Equal(magicHeader, MagicHeader), nil
 }

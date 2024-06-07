@@ -161,11 +161,6 @@ type Environment struct {
 	// environment variable or 20 seconds if unspecified
 	ControlPlaneStopTimeout time.Duration
 
-	// KubeAPIServerFlags is the set of flags passed while starting the api server.
-	//
-	// Deprecated: use ControlPlane.GetAPIServer().Configure() instead.
-	KubeAPIServerFlags []string
-
 	// AttachControlPlaneOutput indicates if control plane output will be attached to os.Stdout and os.Stderr.
 	// Enable this to get more visibility of the testing control plane.
 	// It respect KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT environment variable.
@@ -210,19 +205,7 @@ func (te *Environment) Start() (*rest.Config, error) {
 		}
 	} else {
 		apiServer := te.ControlPlane.GetAPIServer()
-		if len(apiServer.Args) == 0 { //nolint:staticcheck
-			// pass these through separately from above in case something like
-			// AddUser defaults APIServer.
-			//
-			// TODO(directxman12): if/when we feel like making a bigger
-			// breaking change here, just make APIServer and Etcd non-pointers
-			// in ControlPlane.
 
-			// NB(directxman12): we still pass these in so that things work if the
-			// user manually specifies them, but in most cases we expect them to
-			// be nil so that we use the new .Configure() logic.
-			apiServer.Args = te.KubeAPIServerFlags //nolint:staticcheck
-		}
 		if te.ControlPlane.Etcd == nil {
 			te.ControlPlane.Etcd = &controlplane.Etcd{}
 		}
@@ -230,17 +213,19 @@ func (te *Environment) Start() (*rest.Config, error) {
 		if os.Getenv(envAttachOutput) == "true" {
 			te.AttachControlPlaneOutput = true
 		}
-		if apiServer.Out == nil && te.AttachControlPlaneOutput {
-			apiServer.Out = os.Stdout
-		}
-		if apiServer.Err == nil && te.AttachControlPlaneOutput {
-			apiServer.Err = os.Stderr
-		}
-		if te.ControlPlane.Etcd.Out == nil && te.AttachControlPlaneOutput {
-			te.ControlPlane.Etcd.Out = os.Stdout
-		}
-		if te.ControlPlane.Etcd.Err == nil && te.AttachControlPlaneOutput {
-			te.ControlPlane.Etcd.Err = os.Stderr
+		if te.AttachControlPlaneOutput {
+			if apiServer.Out == nil {
+				apiServer.Out = os.Stdout
+			}
+			if apiServer.Err == nil {
+				apiServer.Err = os.Stderr
+			}
+			if te.ControlPlane.Etcd.Out == nil {
+				te.ControlPlane.Etcd.Out = os.Stdout
+			}
+			if te.ControlPlane.Etcd.Err == nil {
+				te.ControlPlane.Etcd.Err = os.Stderr
+			}
 		}
 
 		apiServer.Path = process.BinPathFinder("kube-apiserver", te.BinaryAssetsDirectory)
@@ -287,6 +272,9 @@ func (te *Environment) Start() (*rest.Config, error) {
 	}
 
 	log.V(1).Info("installing CRDs")
+	if te.CRDInstallOptions.Scheme == nil {
+		te.CRDInstallOptions.Scheme = te.Scheme
+	}
 	te.CRDInstallOptions.CRDs = mergeCRDs(te.CRDInstallOptions.CRDs, te.CRDs)
 	te.CRDInstallOptions.Paths = mergePaths(te.CRDInstallOptions.Paths, te.CRDDirectoryPaths)
 	te.CRDInstallOptions.ErrorIfPathMissing = te.ErrorIfCRDPathMissing

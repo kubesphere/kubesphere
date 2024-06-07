@@ -17,14 +17,17 @@ limitations under the License.
 package secret
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -35,33 +38,31 @@ import (
 )
 
 type secretSearcher struct {
-	informers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(informers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &secretSearcher{informers: informers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &secretSearcher{cache: cache}
 }
 
 func (s *secretSearcher) Get(namespace, name string) (runtime.Object, error) {
-	return s.informers.Core().V1().Secrets().Lister().Secrets(namespace).Get(name)
+	secret := &v1.Secret{}
+	return secret, s.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, secret)
 }
 
 func (s *secretSearcher) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	secrets, err := s.informers.Core().V1().Secrets().Lister().Secrets(namespace).List(query.Selector())
-	if err != nil {
+	secrets := &v1.SecretList{}
+	if err := s.cache.List(context.Background(), secrets, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, secret := range secrets {
-		result = append(result, secret)
+	for _, item := range secrets.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, s.compare, s.filter), nil
 }
 
 func (s *secretSearcher) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
 	leftSecret, ok := left.(*v1.Secret)
 	if !ok {
 		return false

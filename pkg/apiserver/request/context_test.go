@@ -17,35 +17,17 @@ limitations under the License.
 package request
 
 import (
+	"context"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // Following code copied from k8s.io/apiserver/pkg/endpoints/request to avoid import collision
 
-// TestNamespaceContext validates that a namespace can be get/set on a context object
-func TestNamespaceContext(t *testing.T) {
-	ctx := NewDefaultContext()
-	result, ok := NamespaceFrom(ctx)
-	if !ok {
-		t.Fatalf("Error getting namespace")
-	}
-	if metav1.NamespaceDefault != result {
-		t.Fatalf("Expected: %s, Actual: %s", metav1.NamespaceDefault, result)
-	}
-
-	ctx = NewContext()
-	_, ok = NamespaceFrom(ctx)
-	if ok {
-		t.Fatalf("Should not be ok because there is no namespace on the context")
-	}
-}
-
 // TestUserContext validates that a userinfo can be get/set on a context object
 func TestUserContext(t *testing.T) {
-	ctx := NewContext()
+	ctx := context.TODO()
 	_, ok := UserFrom(ctx)
 	if ok {
 		t.Fatalf("Should not be ok because there is no user.Info on the context")
@@ -91,5 +73,4 @@ func TestUserContext(t *testing.T) {
 	} else if actualExtra[expectedExtraKey][0] != expectedExtraValue {
 		t.Fatalf("Get user extra map value error, Expected: %s, Actual: %s", expectedExtraValue, actualExtra[expectedExtraKey])
 	}
-
 }

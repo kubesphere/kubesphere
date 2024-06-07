@@ -1,0 +1,56 @@
+apiVersion: iam.kubesphere.io/v1beta1
+kind: ClusterRole
+metadata:
+  annotations:
+    kubesphere.io/creator: system
+    kubesphere.io/description: '{"zh": "管理集群中的所有资源。", "en": "Manage all resources in the cluster."}'
+    iam.kubesphere.io/auto-aggregate: "true"
+  name: cluster-admin
+aggregationRoleTemplates:
+  roleSelector:
+    matchLabels:
+      iam.kubesphere.io/scope: "cluster"
+  templateNames: []
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - nonResourceURLs:
+      - '*'
+    verbs:
+      - '*'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: ClusterRole
+metadata:
+  annotations:
+    kubesphere.io/creator: system
+    kubesphere.io/description: '{"zh": "查看集群中的所有资源。", "en": "View all resources in the cluster."}'
+    iam.kubesphere.io/auto-aggregate: "true"
+  name: cluster-viewer
+aggregationRoleTemplates:
+  roleSelector:
+    matchLabels:
+      iam.kubesphere.io/aggregate-to-cluster-viewer: ""
+  templateNames:
+    - cluster-view-components
+    - cluster-view-volume-snapshot-classes
+    - cluster-view-volumes
+    - cluster-view-roles
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - get
+      - list
+      - watch
+  - nonResourceURLs:
+      - '*'
+    verbs:
+      - GET

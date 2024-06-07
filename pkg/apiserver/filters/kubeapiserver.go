@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"k8s.io/apimachinery/pkg/util/httpstream"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/client-go/rest"
@@ -58,15 +60,23 @@ func (k kubeAPIProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if info.IsKubernetesRequest {
-		s := *req.URL
-		s.Host = k.kubeAPIServer.Host
-		s.Scheme = k.kubeAPIServer.Scheme
+		location := &url.URL{}
+		location.Scheme = k.kubeAPIServer.Scheme
+		location.Host = k.kubeAPIServer.Host
+		location.Path = req.URL.Path
+		location.RawQuery = req.URL.Query().Encode()
+
+		newReq := req.WithContext(req.Context())
+		newReq.Header = utilnet.CloneHeader(req.Header)
+		newReq.URL = location
+		newReq.Host = location.Host
 
 		// make sure we don't override kubernetes's authorization
-		req.Header.Del("Authorization")
-		httpProxy := proxy.NewUpgradeAwareHandler(&s, k.transport, true, false, &responder{})
+		newReq.Header.Del("Authorization")
+		upgrade := httpstream.IsUpgradeRequest(req)
+		httpProxy := proxy.NewUpgradeAwareHandler(location, k.transport, false, upgrade, &responder{})
 		httpProxy.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(k.transport, k.transport)
-		httpProxy.ServeHTTP(w, req)
+		httpProxy.ServeHTTP(w, newReq)
 		return
 	}
 

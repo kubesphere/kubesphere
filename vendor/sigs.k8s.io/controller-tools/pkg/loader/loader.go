@@ -23,7 +23,6 @@ import (
 	"go/scanner"
 	"go/token"
 	"go/types"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -111,7 +110,7 @@ func (p *Package) NeedSyntax() {
 	for i, filename := range p.CompiledGoFiles {
 		go func(i int, filename string) {
 			defer wg.Done()
-			src, err := ioutil.ReadFile(filename)
+			src, err := os.ReadFile(filename)
 			if err != nil {
 				p.AddError(err)
 				return

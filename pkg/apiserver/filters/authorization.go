@@ -68,7 +68,7 @@ func (a *authzFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	klog.V(4).Infof("Forbidden: %#v, Reason: %q", req.RequestURI, reason)
+	klog.V(4).Infof("Forbidden: %s %#v, User: %s", req.Method, req.RequestURI, attributes.GetUser().GetName())
 	responsewriters.Forbidden(ctx, attributes, w, req, reason, a.serializer)
 }
 
@@ -98,7 +98,6 @@ func getAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error)
 	attribs.Resource = requestInfo.Resource
 	attribs.Subresource = requestInfo.Subresource
 	attribs.Namespace = requestInfo.Namespace
-	attribs.DevOps = requestInfo.DevOps
 	attribs.Name = requestInfo.Name
 
 	return &attribs, nil

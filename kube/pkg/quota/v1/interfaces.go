@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/client-go/tools/cache"
 )
 
 // UsageStatsOptions is an options structs that describes how stats should be calculated
@@ -83,6 +82,3 @@ type Registry interface {
 	// List from registry
 	List() []Evaluator
 }
-
-// ListerForResourceFunc knows how to get a lister for a specific resource
-type ListerForResourceFunc func(schema.GroupVersionResource) (cache.GenericLister, error)

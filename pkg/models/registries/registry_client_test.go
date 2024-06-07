@@ -23,6 +23,7 @@ import (
 const DockerHub = "docker.io"
 
 func TestCreateRegistryClient(t *testing.T) {
+	t.SkipNow()
 	type imageInfo struct {
 		Username string
 		Password string

@@ -17,16 +17,18 @@ limitations under the License.
 package core
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/utils/clock"
@@ -96,16 +98,14 @@ var validationSet = sets.New(
 )
 
 // NewPodEvaluator returns an evaluator that can evaluate pods
-func NewPodEvaluator(f quota.ListerForResourceFunc, clock clock.Clock) quota.Evaluator {
-	listFuncByNamespace := generic.ListResourceUsingListerFunc(f, corev1.SchemeGroupVersion.WithResource("pods"))
-	podEvaluator := &podEvaluator{listFuncByNamespace: listFuncByNamespace, clock: clock}
+func NewPodEvaluator(cache client.Reader, clock clock.Clock) quota.Evaluator {
+	podEvaluator := &podEvaluator{cache: cache, clock: clock}
 	return podEvaluator
 }
 
 // podEvaluator knows how to measure usage of pods.
 type podEvaluator struct {
-	// knows how to list pods
-	listFuncByNamespace generic.ListFuncByNamespace
+	cache client.Reader
 	// used to track time
 	clock clock.Clock
 }
@@ -212,7 +212,19 @@ func (p *podEvaluator) Usage(item runtime.Object) (corev1.ResourceList, error) {
 
 // UsageStats calculates aggregate usage for the object.
 func (p *podEvaluator) UsageStats(options quota.UsageStatsOptions) (quota.UsageStats, error) {
-	return generic.CalculateUsageStats(options, p.listFuncByNamespace, podMatchesScopeFunc, p.Usage)
+	return generic.CalculateUsageStats(options, p.listPods, podMatchesScopeFunc, p.Usage)
+}
+
+func (p *podEvaluator) listPods(namespace string) ([]runtime.Object, error) {
+	podList := &corev1.PodList{}
+	if err := p.cache.List(context.Background(), podList, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	pods := make([]runtime.Object, 0)
+	for _, pod := range podList.Items {
+		pods = append(pods, &pod)
+	}
+	return pods, nil
 }
 
 // verifies we implement the required interface.

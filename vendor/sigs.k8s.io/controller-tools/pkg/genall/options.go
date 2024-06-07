@@ -136,6 +136,9 @@ func protoFromOptions(optionsRegistry *markers.Registry, options []string) (prot
 		switch val := val.(type) {
 		case Generator:
 			gens = append(gens, &val)
+			if _, alreadyExists := gensByName[defn.Name]; alreadyExists {
+				return protoRuntime{}, fmt.Errorf("multiple instances of '%s' generator specified", defn.Name)
+			}
 			gensByName[defn.Name] = &val
 		case OutputRule:
 			_, genName := splitOutputRuleOption(defn.Name)

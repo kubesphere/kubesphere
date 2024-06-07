@@ -31,6 +31,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 
 	"k8s.io/kube-openapi/pkg/builder"
@@ -78,7 +79,7 @@ func RenderOpenAPISpec(cfg Config) (string, error) {
 	recommendedOptions.Etcd = nil
 	recommendedOptions.Authentication = nil
 	recommendedOptions.Authorization = nil
-	recommendedOptions.CoreAPI = nil
+	recommendedOptions.CoreAPI.CoreAPIKubeconfigPath = clientcmd.NewDefaultPathOptions().GetDefaultFilename()
 	recommendedOptions.Admission = nil
 
 	// TODO have a "real" external address
@@ -94,6 +95,8 @@ func RenderOpenAPISpec(cfg Config) (string, error) {
 	}
 	serverConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(cfg.GetOpenAPIDefinitions, apiopenapi.NewDefinitionNamer(cfg.Scheme))
 	serverConfig.OpenAPIConfig.Info.InfoProps = cfg.Info
+	serverConfig.OpenAPIV3Config = genericapiserver.DefaultOpenAPIV3Config(cfg.GetOpenAPIDefinitions, apiopenapi.NewDefinitionNamer(cfg.Scheme))
+	serverConfig.OpenAPIV3Config.Info.InfoProps = cfg.Info
 
 	genericServer, err := serverConfig.Complete().New("stash-server", genericapiserver.NewEmptyDelegate()) // completion is done in Complete, no need for a second time
 	if err != nil {
@@ -130,9 +133,10 @@ func RenderOpenAPISpec(cfg Config) (string, error) {
 			}
 
 			resmap[gvr.Resource] = ResourceInfo{
-				gvk:  gvk,
-				obj:  obj,
-				list: list,
+				gvk:          gvk,
+				obj:          obj,
+				list:         list,
+				singularName: gvr.Resource,
 			}
 		}
 

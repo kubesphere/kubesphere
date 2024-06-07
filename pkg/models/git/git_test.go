@@ -18,6 +18,10 @@ package git
 
 import (
 	"testing"
+
+	runtimefakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"kubesphere.io/kubesphere/pkg/scheme"
 )
 
 func TestGitReadVerifyWithBasicAuth(t *testing.T) {
@@ -50,7 +54,11 @@ func TestGitReadVerifyWithBasicAuth(t *testing.T) {
 			"remote":   "git@fdsfs41342`@@@2414!!!!github.com:kubesphere/kubesphere.git",
 		},
 	}
-	verifier := gitVerifier{informers: nil}
+	client := runtimefakeclient.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		Build()
+
+	verifier := gitVerifier{cache: client}
 
 	for _, item := range shouldSuccess {
 		err := verifier.gitReadVerifyWithBasicAuth(item["username"], item["password"], item["remote"])

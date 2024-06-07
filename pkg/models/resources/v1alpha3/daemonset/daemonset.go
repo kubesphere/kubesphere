@@ -17,11 +17,15 @@ limitations under the License.
 package daemonset
 
 import (
+	"context"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -35,34 +39,32 @@ const (
 )
 
 type daemonSetGetter struct {
-	sharedInformers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &daemonSetGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &daemonSetGetter{cache: cache}
 }
 
 func (d *daemonSetGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(name)
+	daemonSet := &appsv1.DaemonSet{}
+	return daemonSet, d.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, daemonSet)
 }
 
 func (d *daemonSetGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	// first retrieves all daemonSets within given namespace
-	daemonSets, err := d.sharedInformers.Apps().V1().DaemonSets().Lister().DaemonSets(namespace).List(query.Selector())
-	if err != nil {
+	daemonSets := &appsv1.DaemonSetList{}
+	if err := d.cache.List(context.Background(), daemonSets, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, daemonSet := range daemonSets {
-		result = append(result, daemonSet)
+	for _, item := range daemonSets.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
 func (d *daemonSetGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
 	leftDaemonSet, ok := left.(*appsv1.DaemonSet)
 	if !ok {
 		return false
@@ -83,13 +85,13 @@ func (d *daemonSetGetter) filter(object runtime.Object, filter query.Filter) boo
 	}
 	switch filter.Field {
 	case query.FieldStatus:
-		return strings.Compare(daemonsetStatus(&daemonSet.Status), string(filter.Value)) == 0
+		return strings.Compare(daemonSetStatus(&daemonSet.Status), string(filter.Value)) == 0
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(daemonSet.ObjectMeta, filter)
 	}
 }
 
-func daemonsetStatus(status *appsv1.DaemonSetStatus) string {
+func daemonSetStatus(status *appsv1.DaemonSetStatus) string {
 	if status.DesiredNumberScheduled == 0 && status.NumberReady == 0 {
 		return statusStopped
 	} else if status.DesiredNumberScheduled == status.NumberReady {

@@ -38,7 +38,8 @@ go get github.com/xeipuuv/gojsonschema
 Dependencies :
 * [github.com/xeipuuv/gojsonpointer](https://github.com/xeipuuv/gojsonpointer)
 * [github.com/xeipuuv/gojsonreference](https://github.com/xeipuuv/gojsonreference)
-* [github.com/stretchr/testify/assert](https://github.com/stretchr/testify#assert-package)
+* [github.com/stretchr/testify/assert](https://github.com/stretchr/testify#assert-package) - (Note, this dependency has
+  been removed to reduce dependencies in OPA)
 
 ## Usage
 

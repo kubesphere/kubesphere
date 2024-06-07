@@ -1,0 +1,13 @@
+apiVersion: iam.kubesphere.io/v1beta1
+kind: User
+metadata:
+  name: admin
+  annotations:
+    iam.kubesphere.io/uninitialized: "true"
+    iam.kubesphere.io/globalrole: "platform-admin"
+    kubesphere.io/creator: "system"
+spec:
+  email: admin@kubesphere.io
+  password: {{ include "getOrDefaultPass" . | quote }}
+status:
+  state: Active

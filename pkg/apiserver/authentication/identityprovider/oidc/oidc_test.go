@@ -36,7 +36,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/options"
 
 	"github.com/golang-jwt/jwt/v4"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"gopkg.in/square/go-jose.v2"
@@ -53,7 +53,7 @@ func TestOIDC(t *testing.T) {
 	RunSpecs(t, "OIDC Identity Provider Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	privateKey, err := rsa.GenerateKey(cryptorand.Reader, 2048)
 	Expect(err).Should(BeNil())
 	jwk := jose.JSONWebKey{
@@ -152,8 +152,7 @@ var _ = BeforeSuite(func(done Done) {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(data)
 	}))
-	close(done)
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

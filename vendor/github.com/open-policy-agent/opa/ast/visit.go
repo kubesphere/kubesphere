@@ -7,13 +7,15 @@ package ast
 // Visitor defines the interface for iterating AST elements. The Visit function
 // can return a Visitor w which will be used to visit the children of the AST
 // element v. If the Visit function returns nil, the children will not be
-// visited. This is deprecated.
+// visited.
+// Deprecated: use GenericVisitor or another visitor implementation
 type Visitor interface {
 	Visit(v interface{}) (w Visitor)
 }
 
 // BeforeAndAfterVisitor wraps Visitor to provide hooks for being called before
-// and after the AST has been visited. This is deprecated.
+// and after the AST has been visited.
+// Deprecated: use GenericVisitor or another visitor implementation
 type BeforeAndAfterVisitor interface {
 	Visitor
 	Before(x interface{})
@@ -21,7 +23,8 @@ type BeforeAndAfterVisitor interface {
 }
 
 // Walk iterates the AST by calling the Visit function on the Visitor
-// v for x before recursing. This is deprecated.
+// v for x before recursing.
+// Deprecated: use GenericVisitor.Walk
 func Walk(v Visitor, x interface{}) {
 	if bav, ok := v.(BeforeAndAfterVisitor); !ok {
 		walk(v, x)
@@ -33,7 +36,8 @@ func Walk(v Visitor, x interface{}) {
 }
 
 // WalkBeforeAndAfter iterates the AST by calling the Visit function on the
-// Visitor v for x before recursing. This is deprecated.
+// Visitor v for x before recursing.
+// Deprecated: use GenericVisitor.Walk
 func WalkBeforeAndAfter(v BeforeAndAfterVisitor, x interface{}) {
 	Walk(v, x)
 }

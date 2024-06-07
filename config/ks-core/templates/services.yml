@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubernetes.io/created-by: kubesphere.io/ks-apiserver
+  labels:
+    app: ks-apiserver
+    tier: backend
+    version: {{ .Chart.AppVersion }}
+  name: ks-apiserver
+  namespace: kubesphere-system
+spec:
+  ports:
+    - protocol: TCP
+    {{- if .Values.internalTLS }}
+      port: 443
+    {{- else }}
+      port: 80
+    {{- end }}
+      targetPort: 9090
+    {{- with .Values.apiserver.nodePort }}
+      nodePort:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+  selector:
+    {{- if eq (include "role" .) "host" }}
+    app: ks-apiserver
+    {{- else }}
+    app: ks-agent
+    {{- end }}
+    tier: backend
+    # version: {{ .Chart.AppVersion }}
+{{- if .Values.apiserver.nodePort }}
+  type: NodePort
+{{- else}}
+  type: ClusterIP
+{{- end}}
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ks-controller-manager
+    tier: backend
+    version: {{ .Chart.AppVersion }}
+  name: ks-controller-manager
+  namespace: kubesphere-system
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 8443
+  selector:
+    {{- if eq (include "role" .) "host" }}
+    app: ks-controller-manager
+    {{- else }}
+    app: ks-agent
+    {{- end }}
+    tier: backend
+    # version: {{ .Chart.AppVersion }}
+  sessionAffinity: None
+  type: ClusterIP

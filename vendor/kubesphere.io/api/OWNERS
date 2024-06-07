@@ -1,0 +1,16 @@
+approvers:
+    - zryfish #oncall
+    - rayzhou2017
+
+reviewers:
+    - rayzhou2017
+    - zryfish
+    - benjaminhuo
+    - calvinyv
+    - FeynmanZhou
+    - pixiake
+    - wansir
+    - zheng1
+    - stoneshi-yunify
+    - linuxsuren
+    - RolandMa1986

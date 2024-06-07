@@ -11,12 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package apiserver
 
 import (
 	compbasemetrics "k8s.io/component-base/metrics"
 
-	"kubesphere.io/kubesphere/pkg/utils/metrics"
+	"kubesphere.io/kubesphere/pkg/apiserver/metrics"
 )
 
 var (
@@ -51,6 +52,6 @@ var (
 
 func registerMetrics() {
 	for _, m := range metricsList {
-		metrics.MustRegister(m)
+		metrics.Registry.MustRegister(m)
 	}
 }

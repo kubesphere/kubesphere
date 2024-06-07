@@ -10,6 +10,15 @@ import (
 
 func evalWalk(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	input := operands[0]
+
+	if pathIsWildcard(operands) {
+		// When the path assignment is a wildcard: walk(input, [_, value])
+		// we may skip the path construction entirely, and simply return
+		// same pointer in each iteration. This is a much more efficient
+		// path when only the values are needed.
+		return walkNoPath(input, iter)
+	}
+
 	filter := getOutputPath(operands)
 	return walk(filter, nil, input, iter)
 }
@@ -70,6 +79,33 @@ func walk(filter, path *ast.Array, input *ast.Term, iter func(*ast.Term) error) 
 	return nil
 }
 
+var emptyArr = ast.ArrayTerm()
+
+func walkNoPath(input *ast.Term, iter func(*ast.Term) error) error {
+	if err := iter(ast.ArrayTerm(emptyArr, input)); err != nil {
+		return err
+	}
+
+	switch v := input.Value.(type) {
+	case ast.Object:
+		return v.Iter(func(_, v *ast.Term) error {
+			return walkNoPath(v, iter)
+		})
+	case *ast.Array:
+		for i := 0; i < v.Len(); i++ {
+			if err := walkNoPath(v.Elem(i), iter); err != nil {
+				return err
+			}
+		}
+	case ast.Set:
+		return v.Iter(func(elem *ast.Term) error {
+			return walkNoPath(elem, iter)
+		})
+	}
+
+	return nil
+}
+
 func pathAppend(path *ast.Array, key *ast.Term) *ast.Array {
 	if path == nil {
 		return ast.NewArray(key)
@@ -80,15 +116,24 @@ func pathAppend(path *ast.Array, key *ast.Term) *ast.Array {
 
 func getOutputPath(operands []*ast.Term) *ast.Array {
 	if len(operands) == 2 {
-		if arr, ok := operands[1].Value.(*ast.Array); ok {
-			if arr.Len() == 2 {
-				if path, ok := arr.Elem(0).Value.(*ast.Array); ok {
-					return path
-				}
+		if arr, ok := operands[1].Value.(*ast.Array); ok && arr.Len() == 2 {
+			if path, ok := arr.Elem(0).Value.(*ast.Array); ok {
+				return path
 			}
 		}
 	}
 	return nil
+}
+
+func pathIsWildcard(operands []*ast.Term) bool {
+	if len(operands) == 2 {
+		if arr, ok := operands[1].Value.(*ast.Array); ok && arr.Len() == 2 {
+			if v, ok := arr.Elem(0).Value.(ast.Var); ok {
+				return v.IsWildcard()
+			}
+		}
+	}
+	return false
 }
 
 func init() {

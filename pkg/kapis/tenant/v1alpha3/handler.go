@@ -19,53 +19,47 @@ package v1alpha3
 import (
 	"fmt"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/apiserver/rest"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix"
-	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
-	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
-	"kubesphere.io/kubesphere/pkg/simple/client/events"
-	"kubesphere.io/kubesphere/pkg/simple/client/logging"
-	meteringclient "kubesphere.io/kubesphere/pkg/simple/client/metering"
-	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 )
 
-type tenantHandler struct {
-	tenant          tenant.Interface
-	meteringOptions *meteringclient.Options
+type handler struct {
+	tenant tenant.Interface
+	auth   authorizer.Authorizer
+	client runtimeclient.Client
 }
 
-func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface,
-	evtsClient events.Client, loggingClient logging.Client, auditingclient auditing.Client,
-	am am.AccessManagementInterface, im im.IdentityManagementInterface, authorizer authorizer.Authorizer,
-	monitoringclient monitoringclient.Interface, resourceGetter *resourcev1alpha3.ResourceGetter,
-	meteringOptions *meteringclient.Options, opClient openpitrix.Interface) *tenantHandler {
-
-	if meteringOptions == nil || meteringOptions.RetentionDay == "" {
-		meteringOptions = &meteringclient.DefaultMeteringOption
-	}
-
-	return &tenantHandler{
-		tenant:          tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient, am, im, authorizer, monitoringclient, resourceGetter, opClient),
-		meteringOptions: meteringOptions,
+func NewHandler(client runtimeclient.Client, k8sVersion *semver.Version, clusterClient clusterclient.Interface,
+	am am.AccessManagementInterface, im im.IdentityManagementInterface, authorizer authorizer.Authorizer) rest.Handler {
+	return &handler{
+		tenant: tenant.New(client, k8sVersion, clusterClient, am, im, authorizer),
+		client: client,
+		auth:   authorizer,
 	}
 }
 
-func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Response) {
+func NewFakeHandler() rest.Handler {
+	return &handler{}
+}
+
+func (h *handler) ListWorkspaceTemplates(req *restful.Request, resp *restful.Response) {
+	authenticated, ok := request.UserFrom(req.Request.Context())
 	queryParam := query.ParseQueryParameter(req)
-	user, ok := request.UserFrom(req.Request.Context())
+
 	if !ok {
 		err := fmt.Errorf("cannot obtain user info")
 		klog.Errorln(err)
@@ -73,16 +67,137 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 		return
 	}
 
-	result, err := h.tenant.ListWorkspaces(user, queryParam)
+	result, err := h.tenant.ListWorkspaceTemplates(authenticated, queryParam)
+
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
-	resp.WriteEntity(result)
+	_ = resp.WriteEntity(result)
 }
 
-func (h *tenantHandler) GetWorkspace(request *restful.Request, response *restful.Response) {
+func (h *handler) ListNamespaces(req *restful.Request, resp *restful.Response) {
+	workspace := req.PathParameter("workspace")
+	queryParam := query.ParseQueryParameter(req)
+
+	var workspaceMember user.Info
+	if username := req.PathParameter("workspacemember"); username != "" {
+		workspaceMember = &user.DefaultInfo{
+			Name: username,
+		}
+	} else {
+		requestUser, ok := request.UserFrom(req.Request.Context())
+		if !ok {
+			err := fmt.Errorf("cannot obtain user info")
+			klog.Errorln(err)
+			api.HandleForbidden(resp, nil, err)
+			return
+		}
+		workspaceMember = requestUser
+	}
+
+	result, err := h.tenant.ListNamespaces(workspaceMember, workspace, queryParam)
+	if err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	_ = resp.WriteEntity(result)
+}
+
+func (h *handler) DescribeWorkspaceTemplate(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	workspace, err := h.tenant.DescribeWorkspaceTemplate(workspaceName)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+	_ = response.WriteEntity(workspace)
+}
+
+func (h *handler) ListWorkspaceClusters(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+
+	result, err := h.tenant.ListWorkspaceClusters(workspaceName)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	_ = response.WriteEntity(result)
+}
+
+func (h *handler) DescribeNamespace(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	namespaceName := request.PathParameter("namespace")
+	ns, err := h.tenant.DescribeNamespace(workspaceName, namespaceName)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	_ = response.WriteEntity(ns)
+}
+
+func (h *handler) ListClusters(r *restful.Request, response *restful.Response) {
+	authenticated, ok := request.UserFrom(r.Request.Context())
+
+	if !ok {
+		_ = response.WriteEntity([]interface{}{})
+		return
+	}
+
+	queryParam := query.ParseQueryParameter(r)
+	result, err := h.tenant.ListClusters(authenticated, queryParam)
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, r, err)
+			return
+		}
+		api.HandleInternalError(response, r, err)
+		return
+	}
+
+	_ = response.WriteEntity(result)
+}
+
+func (h *handler) ListWorkspaces(req *restful.Request, resp *restful.Response) {
+	queryParam := query.ParseQueryParameter(req)
+	authenticated, ok := request.UserFrom(req.Request.Context())
+	if !ok {
+		err := fmt.Errorf("cannot obtain user info")
+		klog.Errorln(err)
+		api.HandleForbidden(resp, nil, err)
+		return
+	}
+
+	result, err := h.tenant.ListWorkspaces(authenticated, queryParam)
+	if err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	_ = resp.WriteEntity(result)
+}
+
+func (h *handler) GetWorkspace(request *restful.Request, response *restful.Response) {
 	workspace, err := h.tenant.GetWorkspace(request.PathParameter("workspace"))
 	if err != nil {
 		klog.Error(err)
@@ -94,5 +209,5 @@ func (h *tenantHandler) GetWorkspace(request *restful.Request, response *restful
 		return
 	}
 
-	response.WriteEntity(workspace)
+	_ = response.WriteEntity(workspace)
 }

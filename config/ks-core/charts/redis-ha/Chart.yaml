@@ -1,0 +1,21 @@
+apiVersion: v2
+appVersion: 7.2.4
+description: This Helm chart provides a highly available Redis implementation with
+  a master/slave configuration and uses Sentinel sidecars for failover management
+home: http://redis.io/
+icon: https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Redis_Logo.svg/1200px-Redis_Logo.svg.png
+keywords:
+- redis
+- keyvalue
+- database
+maintainers:
+- email: salimsalaues@gmail.com
+  name: ssalaues
+- email: aaron.layfield@gmail.com
+  name: dandydeveloper
+name: redis-ha
+sources:
+- https://redis.io/download
+- https://github.com/DandyDeveloper/charts/blob/master/charts/redis-ha
+- https://github.com/oliver006/redis_exporter
+version: 4.26.1

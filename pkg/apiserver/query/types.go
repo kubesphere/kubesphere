@@ -77,8 +77,16 @@ func (q *Query) Selector() labels.Selector {
 	}
 }
 
-func (p *Pagination) GetValidPagination(total int) (startIndex, endIndex int) {
+func (q *Query) AppendLabelSelector(ls map[string]string) error {
+	labelsMap, err := labels.ConvertSelectorToLabelsMap(q.LabelSelector)
+	if err != nil {
+		return err
+	}
+	q.LabelSelector = labels.Merge(labelsMap, ls).String()
+	return nil
+}
 
+func (p *Pagination) GetValidPagination(total int) (startIndex, endIndex int) {
 	// no pagination
 	if p.Limit == NoPagination.Limit {
 		return 0, total
@@ -109,8 +117,8 @@ func New() *Query {
 }
 
 type Filter struct {
-	Field Field
-	Value Value
+	Field Field `json:"field"`
+	Value Value `json:"value"`
 }
 
 func ParseQueryParameter(request *restful.Request) *Query {
@@ -142,10 +150,11 @@ func ParseQueryParameter(request *restful.Request) *Query {
 
 	for key, values := range request.Request.URL.Query() {
 		if !sliceutil.HasString([]string{ParameterPage, ParameterLimit, ParameterOrderBy, ParameterAscending, ParameterLabelSelector}, key) {
-			// support multiple query condition
-			for _, value := range values {
-				query.Filters[Field(key)] = Value(value)
+			value := ""
+			if len(values) > 0 {
+				value = values[0]
 			}
+			query.Filters[Field(key)] = Value(value)
 		}
 	}
 
