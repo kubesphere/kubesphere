@@ -68,3 +68,8 @@ func Get() Info {
 		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
 }
+
+// SetGitVersion sets the gitVersion, this is mainly for testing use.
+func SetGitVersion(v string) {
+	gitVersion = v
+}

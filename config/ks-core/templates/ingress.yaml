@@ -1,0 +1,67 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ks-console
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    {{- if .Values.internalTLS }}
+    {{- if eq .Values.ingress.ingressClassName "nginx" }}
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- else if eq .Values.ingress.ingressClassName "traefik" }}
+    ingress.kubernetes.io/protocol: "https"
+    {{- end }}
+    {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  {{- if eq .Values.ingress.tls.source "letsEncrypt" }}
+    {{- if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
+    certmanager.k8s.io/issuer: letsencrypt
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+    cert-manager.io/issuer: letsencrypt
+    cert-manager.io/issuer-kind: Issuer
+    {{- end }}
+  {{- else if eq .Values.ingress.tls.source "generation" }}
+    {{- if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
+    certmanager.k8s.io/issuer: self-signed
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+    cert-manager.io/issuer: self-signed
+    cert-manager.io/issuer-kind: Issuer
+    {{- end }}
+  {{- end }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.portal.hostname }}
+      http:
+        paths:
+          - backend:
+              {{- if or (.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress") (not (.Capabilities.APIVersions.Has "networking.k8s.io/v1beta1/Ingress")) }}
+              service:
+                name: ks-console
+                port:
+                  {{- if .Values.internalTLS }}
+                  number: 443
+                  {{- else }}
+                  number: 80
+                  {{- end }}
+              {{- else }}
+              serviceName: ks-console
+              {{- if .Values.internalTLS }}
+              servicePort: 443
+              {{- else }}
+              servicePort: 80
+              {{- end }}
+              {{- end }}
+            {{- if or (.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress") (not (.Capabilities.APIVersions.Has "networking.k8s.io/v1beta1/Ingress")) }}
+            pathType: ImplementationSpecific
+            {{- end }}
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.portal.hostname }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+{{- end }}
+{{- end }}

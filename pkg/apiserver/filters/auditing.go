@@ -53,12 +53,6 @@ func (a *auditingFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Auditing should ignore k8s request when k8s auditing is enabled.
-	if info.IsKubernetesRequest && a.K8sAuditingEnabled() {
-		a.next.ServeHTTP(w, req)
-		return
-	}
-
 	if event := a.LogRequestObject(req, info); event != nil {
 		resp := auditing.NewResponseCapture(w)
 		a.next.ServeHTTP(resp, req)

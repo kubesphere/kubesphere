@@ -19,12 +19,15 @@ package v1alpha2
 import (
 	"net/http"
 
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/rest"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/models/workloads"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
@@ -34,23 +37,31 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, client kubernetes.Interface) error {
+func NewHandler(cacheClient runtimeclient.Client) rest.Handler {
+	return &handler{
+		jobRunner: workloads.NewJobRunner(cacheClient),
+	}
+}
 
-	webservice := runtime.NewWebService(GroupVersion)
+func NewFakeHandler() rest.Handler {
+	return &handler{}
+}
 
-	handler := newOperationHandler(client)
+func (h *handler) AddToContainer(c *restful.Container) error {
+	ws := runtime.NewWebService(GroupVersion)
 
-	webservice.Route(webservice.POST("/namespaces/{namespace}/jobs/{job}").
-		To(handler.handleJobReRun).
-		Doc("Rerun job whether the job is complete or not").
+	ws.Route(ws.POST("/namespaces/{namespace}/jobs/{job}").
+		To(h.JobReRun).
 		Deprecate().
-		Param(webservice.PathParameter("job", "job name")).
-		Param(webservice.PathParameter("namespace", "the name of the namespace where the job runs in")).
-		Param(webservice.QueryParameter("action", "action must be \"rerun\"")).
-		Param(webservice.QueryParameter("resourceVersion", "version of job, rerun when the version matches").Required(true)).
+		Doc("Job rerun").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagAdvancedOperations}).
+		Notes("Rerun job whether the job is complete or not.").
+		Param(ws.PathParameter("job", "job name")).
+		Param(ws.PathParameter("namespace", "The specified namespace.")).
+		Param(ws.QueryParameter("action", "action must be \"rerun\"")).
+		Param(ws.QueryParameter("resourceVersion", "version of job, rerun when the version matches").Required(true)).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}))
 
-	c.Add(webservice)
-
+	c.Add(ws)
 	return nil
 }

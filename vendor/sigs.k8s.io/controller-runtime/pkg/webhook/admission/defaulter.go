@@ -27,15 +27,17 @@ import (
 )
 
 // Defaulter defines functions for setting defaults on resources.
+// Deprecated: Ue CustomDefaulter instead.
 type Defaulter interface {
 	runtime.Object
 	Default()
 }
 
 // DefaultingWebhookFor creates a new Webhook for Defaulting the provided type.
-func DefaultingWebhookFor(defaulter Defaulter) *Webhook {
+// Deprecated: Use WithCustomDefaulter instead.
+func DefaultingWebhookFor(scheme *runtime.Scheme, defaulter Defaulter) *Webhook {
 	return &Webhook{
-		Handler: &mutatingHandler{defaulter: defaulter},
+		Handler: &mutatingHandler{defaulter: defaulter, decoder: NewDecoder(scheme)},
 	}
 }
 
@@ -44,16 +46,11 @@ type mutatingHandler struct {
 	decoder   *Decoder
 }
 
-var _ DecoderInjector = &mutatingHandler{}
-
-// InjectDecoder injects the decoder into a mutatingHandler.
-func (h *mutatingHandler) InjectDecoder(d *Decoder) error {
-	h.decoder = d
-	return nil
-}
-
 // Handle handles admission requests.
 func (h *mutatingHandler) Handle(ctx context.Context, req Request) Response {
+	if h.decoder == nil {
+		panic("decoder should never be nil")
+	}
 	if h.defaulter == nil {
 		panic("defaulter should never be nil")
 	}

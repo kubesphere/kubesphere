@@ -20,13 +20,12 @@ import (
 	"context"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
-	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
+	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/constants"
 )
@@ -36,7 +35,7 @@ var _ = Describe("Namespace", func() {
 	const timeout = time.Second * 30
 	const interval = time.Second * 1
 
-	workspace := &tenantv1alpha1.Workspace{
+	workspace := &tenantv1beta1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-workspace",
 		},
@@ -55,7 +54,7 @@ var _ = Describe("Namespace", func() {
 			namespace := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   "test-namespace",
-					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: workspace.Name},
+					Labels: map[string]string{tenantv1beta1.WorkspaceLabel: workspace.Name},
 				},
 			}
 

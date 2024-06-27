@@ -19,13 +19,13 @@ package main
 import (
 	"os"
 
+	"k8s.io/component-base/cli"
+
 	"kubesphere.io/kubesphere/cmd/controller-manager/app"
 )
 
 func main() {
-	command := app.NewControllerManagerCommand()
-
-	if err := command.Execute(); err != nil {
-		os.Exit(1)
-	}
+	cmd := app.NewControllerManagerCommand()
+	code := cli.Run(cmd)
+	os.Exit(code)
 }

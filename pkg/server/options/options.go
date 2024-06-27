@@ -56,7 +56,7 @@ func NewServerRunOptions() *ServerRunOptions {
 }
 
 func (s *ServerRunOptions) Validate() []error {
-	errs := []error{}
+	var errs []error
 
 	if s.SecurePort == 0 && s.InsecurePort == 0 {
 		errs = append(errs, fmt.Errorf("insecure and secure port can not be disabled at the same time"))

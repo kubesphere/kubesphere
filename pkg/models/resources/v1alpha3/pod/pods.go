@@ -17,13 +17,16 @@ limitations under the License.
 package pod
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -45,34 +48,35 @@ const (
 )
 
 type podsGetter struct {
-	informer informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &podsGetter{informer: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &podsGetter{cache: cache}
 }
 
 func (p *podsGetter) Get(namespace, name string) (runtime.Object, error) {
-	return p.informer.Core().V1().Pods().Lister().Pods(namespace).Get(name)
+	pod := &corev1.Pod{}
+	if err := p.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, pod); err != nil {
+		return nil, err
+	}
+	return p.setPodStatus(pod.DeepCopy()), nil
 }
 
 func (p *podsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-
-	pods, err := p.informer.Core().V1().Pods().Lister().Pods(namespace).List(query.Selector())
-	if err != nil {
+	pods := &corev1.PodList{}
+	if err := p.cache.List(context.Background(), pods, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, pod := range pods {
-		result = append(result, pod)
+	for _, item := range pods.Items {
+		result = append(result, p.setPodStatus(item.DeepCopy()))
 	}
-
 	return v1alpha3.DefaultList(result, query, p.compare, p.filter), nil
 }
 
 func (p *podsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
 	leftPod, ok := left.(*corev1.Pod)
 	if !ok {
 		return false
@@ -100,8 +104,7 @@ func (p *podsGetter) filter(object runtime.Object, filter query.Filter) bool {
 	case fieldServiceName:
 		return p.podBelongToService(pod, string(filter.Value))
 	case fieldStatus:
-		_, statusType := p.getPodStatus(pod)
-		return statusType == string(filter.Value)
+		return p.getPodStatus(pod) == string(filter.Value)
 	case fieldPhase:
 		return string(pod.Status.Phase) == string(filter.Value)
 	case fieldPodIP:
@@ -131,8 +134,8 @@ func (p *podsGetter) podBindPVC(item *corev1.Pod, pvcName string) bool {
 }
 
 func (p *podsGetter) podBelongToService(item *corev1.Pod, serviceName string) bool {
-	service, err := p.informer.Core().V1().Services().Lister().Services(item.Namespace).Get(serviceName)
-	if err != nil {
+	service := &corev1.Service{}
+	if err := p.cache.Get(context.Background(), types.NamespacedName{Namespace: item.Namespace, Name: serviceName}, service); err != nil {
 		return false
 	}
 	selector := labels.Set(service.Spec.Selector).AsSelectorPreValidated()
@@ -142,13 +145,18 @@ func (p *podsGetter) podBelongToService(item *corev1.Pod, serviceName string) bo
 	return true
 }
 
+func (p *podsGetter) setPodStatus(pod *corev1.Pod) *corev1.Pod {
+	pod.Status.Phase = corev1.PodPhase(p.getPodStatus(pod))
+	return pod
+}
+
 // getPodStatus refer to `kubectl get po` result.
 // https://github.com/kubernetes/kubernetes/blob/45279654db87f4908911569c07afc42804f0e246/pkg/printers/internalversion/printers.go#L820-920
 // podStatusPhase 			  = []string("Pending", "Running","Succeeded","Failed","Unknown")
 // podStatusReasons           = []string{"Evicted", "NodeAffinity", "NodeLost", "Shutdown", "UnexpectedAdmissionError"}
 // containerWaitingReasons    = []string{"ContainerCreating", "CrashLoopBackOff", "CreateContainerConfigError", "ErrImagePull", "ImagePullBackOff", "CreateContainerError", "InvalidImageName"}
 // containerTerminatedReasons = []string{"OOMKilled", "Completed", "Error", "ContainerCannotRun", "DeadlineExceeded", "Evicted"}
-func (p *podsGetter) getPodStatus(pod *corev1.Pod) (string, string) {
+func (p *podsGetter) getPodStatus(pod *corev1.Pod) string {
 	reason := string(pod.Status.Phase)
 
 	if pod.Status.Reason != "" {
@@ -251,7 +259,7 @@ func (p *podsGetter) getPodStatus(pod *corev1.Pod) (string, string) {
 			statusType = statusTypeError
 		}
 	}
-	return reason, statusType
+	return statusType
 }
 
 func hasPodReadyCondition(conditions []corev1.PodCondition) bool {

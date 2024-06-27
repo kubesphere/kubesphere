@@ -1,3 +1,4 @@
+{{ if eq (include "role" .) "host" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,112 +7,107 @@ metadata:
     tier: backend
     version: {{ .Chart.AppVersion }}
   name: ks-apiserver
+  namespace: kubesphere-system
 spec:
   strategy:
     rollingUpdate:
-      maxSurge: 0
+      maxSurge: 1
+      maxUnavailable: 0
     type: RollingUpdate
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ if .Values.ha.enabled }} 3 {{ else }} 1 {{ end }}
   selector:
     matchLabels:
       app: ks-apiserver
       tier: backend
-      # version: {{ .Chart.AppVersion }}
   template:
     metadata:
       labels:
         app: ks-apiserver
         tier: backend
-        # version: {{ .Chart.AppVersion }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      containers:
-      - command:
-        - ks-apiserver
-        - --logtostderr=true
-        image: {{ .Values.image.ks_apiserver_repo }}:{{ .Values.image.ks_apiserver_tag | default .Chart.AppVersion }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        name: ks-apiserver
-        ports:
-        - containerPort: 9090
-          protocol: TCP
-        resources:
-          {{- toYaml .Values.apiserver.resources | nindent 12 }}
-        volumeMounts:
-        - mountPath: /etc/kubesphere/
-          name: kubesphere-config
-        - mountPath: /etc/localtime
-          name: host-time
-          readOnly: true
-        {{- if .Values.apiserver.extraVolumeMounts }}
-          {{- toYaml .Values.apiserver.extraVolumeMounts | nindent 8 }}
-        {{- end }}
-        env:
-        {{- if .Values.env }}
-        {{- toYaml .Values.env | nindent 8 }}
-        {{- end }}
-        livenessProbe:
-          failureThreshold: 8
-          httpGet:
-            path: /kapis/version
-            port: 9090
-            scheme: HTTP
-          initialDelaySeconds: 15
-          timeoutSeconds: 15
-      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
+      {{- include "apiserver.imagePullSecrets" . | nindent 6 }}
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      volumes:
-      - configMap:
-          defaultMode: 420
-          name: kubesphere-config
-        name: kubesphere-config
-      - hostPath:
-          path: /etc/localtime
-          type: ""
-        name: host-time
-      {{- if .Values.apiserver.extraVolumes }}
-        {{ toYaml .Values.apiserver.extraVolumes | nindent 6 }}
+      {{- if .Values.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.nodeSelector "context" $) | nindent 8 }}
       {{- end }}
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    kubernetes.io/created-by: kubesphere.io/ks-apiserver
-  labels:
-    app: ks-apiserver
-    tier: backend
-    version: {{ .Chart.AppVersion }}
-  name: ks-apiserver
-spec:
-  ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 9090
-    {{- with .Values.apiserver.nodePort }}
-    nodePort:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-  selector:
-    app: ks-apiserver
-    tier: backend
-{{- if .Values.apiserver.nodePort }}
-  type: NodePort
-{{- else}}
-  type: ClusterIP
-{{- end}}
+      {{- if .Values.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: ks-apiserver
+          image: {{ template "ks-apiserver.image" . }}
+          imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
+          {{- if .Values.apiserver.containerPorts }}
+          ports: {{- include "common.tplvalues.render" (dict "value" .Values.apiserver.containerPorts "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.apiserver.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.apiserver.command "context" $) | nindent 12 }}
+            {{- if .Values.internalTLS }}
+            - --secure-port=9090
+            - --tls-private-key=/etc/kubesphere/pki/tls.key
+            - --tls-cert-file=/etc/kubesphere/pki/tls.crt
+            {{- end }}
+          {{- end }}
+          env:
+            {{- if .Values.apiserver.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.apiserver.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+          {{- if .Values.apiserver.resources }}
+          resources: {{- toYaml .Values.apiserver.resources | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            failureThreshold: 8
+            httpGet:
+              path: /version
+              port: 9090
+            {{- if .Values.internalTLS }}
+              scheme: HTTPS
+            {{- else }}
+              scheme: HTTP
+            {{- end }}
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+          volumeMounts:
+            - mountPath: /etc/kubesphere/
+              name: kubesphere-config
+            - mountPath: /etc/localtime
+              name: host-time
+              readOnly: true
+          {{- if .Values.apiserver.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.apiserver.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.internalTLS }}
+            - name: tls-cert
+              mountPath: /etc/kubesphere/pki/
+          {{- end }}
+          {{ if .Values.ha.enabled }}
+          env:
+            - name: KUBESPHERE_CACHE_OPTIONS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: auth
+          {{ end }}
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: kubesphere-config
+          name: kubesphere-config
+        - hostPath:
+            path: /etc/localtime
+            type: ""
+          name: host-time
+        {{- if .Values.apiserver.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.apiserver.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.internalTLS }}
+        - name: tls-cert
+          secret:
+            secretName: ks-apiserver-tls-certs
+            defaultMode: 420
+        {{- end }}
+{{ end }}

@@ -41,10 +41,9 @@ func registerFlags(t *TestContextType) {
 		"Password to login to KubeSphere API Server")
 }
 
-var TestContext *TestContextType = &TestContextType{}
+var TestContext = &TestContextType{}
 
 func setDefaultValue(t *TestContextType) {
-
 	if t.Host == "" {
 		t.Host = constant.LocalAPIServer
 	}

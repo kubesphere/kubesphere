@@ -22,10 +22,10 @@ import (
 	"reflect"
 	"testing"
 
+	"kubesphere.io/api/tenant/v1beta1"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
 )
 
 func TestIsControlledBy(t *testing.T) {
@@ -43,11 +43,11 @@ func TestIsControlledBy(t *testing.T) {
 			name: "controlled by Workspace",
 			args: args{
 				ownerReferences: []metav1.OwnerReference{{
-					APIVersion: tenantv1alpha1.SchemeGroupVersion.String(),
-					Kind:       tenantv1alpha1.ResourceKindWorkspace,
+					APIVersion: v1beta1.SchemeGroupVersion.String(),
+					Kind:       v1beta1.ResourceKindWorkspace,
 					Name:       "workspace-test",
 				}},
-				kind: tenantv1alpha1.ResourceKindWorkspace,
+				kind: v1beta1.ResourceKindWorkspace,
 			},
 			want: true,
 		},
@@ -55,11 +55,11 @@ func TestIsControlledBy(t *testing.T) {
 			name: "controlled by workspace-test",
 			args: args{
 				ownerReferences: []metav1.OwnerReference{{
-					APIVersion: tenantv1alpha1.SchemeGroupVersion.String(),
-					Kind:       tenantv1alpha1.ResourceKindWorkspace,
+					APIVersion: v1beta1.SchemeGroupVersion.String(),
+					Kind:       v1beta1.ResourceKindWorkspace,
 					Name:       "workspace-test",
 				}},
-				kind: tenantv1alpha1.ResourceKindWorkspace,
+				kind: v1beta1.ResourceKindWorkspace,
 				name: "workspace-test",
 			},
 			want: true,
@@ -68,11 +68,11 @@ func TestIsControlledBy(t *testing.T) {
 			name: "not controlled by workspace-test",
 			args: args{
 				ownerReferences: []metav1.OwnerReference{{
-					APIVersion: tenantv1alpha1.SchemeGroupVersion.String(),
-					Kind:       tenantv1alpha1.ResourceKindWorkspace,
+					APIVersion: v1beta1.SchemeGroupVersion.String(),
+					Kind:       v1beta1.ResourceKindWorkspace,
 					Name:       "workspace",
 				}},
-				kind: tenantv1alpha1.ResourceKindWorkspace,
+				kind: v1beta1.ResourceKindWorkspace,
 				name: "workspace-test",
 			},
 			want: false,
@@ -99,8 +99,8 @@ func TestRemoveWorkspaceOwnerReference(t *testing.T) {
 		{
 			name: "remove workspace owner reference",
 			args: args{ownerReferences: []metav1.OwnerReference{{
-				APIVersion: tenantv1alpha1.SchemeGroupVersion.String(),
-				Kind:       tenantv1alpha1.ResourceKindWorkspace,
+				APIVersion: v1beta1.SchemeGroupVersion.String(),
+				Kind:       v1beta1.ResourceKindWorkspace,
 				Name:       "workspace-test",
 			}}},
 			want: []metav1.OwnerReference{},

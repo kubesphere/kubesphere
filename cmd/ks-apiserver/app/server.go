@@ -18,6 +18,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -26,28 +27,25 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
-
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
-	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/config"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
 func NewAPIServerCommand() *cobra.Command {
-	s := options.NewServerRunOptions()
-
-	// Load configuration from file
-	conf, err := apiserverconfig.TryLoadFromDisk()
-	if err == nil {
-		s.Config = conf
+	s := options.NewAPIServerOptions()
+	if conf, err := config.TryLoadFromDisk(); err == nil {
+		s.Merge(conf)
 	} else {
 		klog.Fatalf("Failed to load configuration from disk: %v", err)
 	}
 
 	cmd := &cobra.Command{
-		Use: "ks-apiserver",
+		Use: constants.KubeSphereAPIServerName,
 		Long: `The KubeSphere API server validates and configures data for the API objects. 
 The API Server services REST operations and provides the frontend to the
 cluster's shared state through which all other components interact.`,
@@ -60,11 +58,11 @@ cluster's shared state through which all other components interact.`,
 				// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
 				// Bind to a random port on address 127.0.0.1.
 				if err := agent.Listen(agent.Options{}); err != nil {
-					klog.Fatal(err)
+					klog.Fatalln(err)
 				}
 			}
 
-			return Run(s, apiserverconfig.WatchConfigChange(), signals.SetupSignalHandler())
+			return Run(signals.SetupSignalHandler(), s)
 		},
 		SilenceUsage: true,
 	}
@@ -78,7 +76,7 @@ cluster's shared state through which all other components interact.`,
 	usageFmt := "Usage:\n  %s\n"
 	cols, _, _ := term.TerminalSize(cmd.OutOrStdout())
 	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		fmt.Fprintf(cmd.OutOrStdout(), "%s\n\n"+usageFmt, cmd.Long, cmd.UseLine())
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s\n\n"+usageFmt, cmd.Long, cmd.UseLine())
 		cliflag.PrintSections(cmd.OutOrStdout(), namedFlagSets, cols)
 	})
 
@@ -91,62 +89,20 @@ cluster's shared state through which all other components interact.`,
 	}
 
 	cmd.AddCommand(versionCmd)
-
 	return cmd
 }
 
-func Run(s *options.ServerRunOptions, configCh <-chan apiserverconfig.Config, ctx context.Context) error {
-	ictx, cancelFunc := context.WithCancel(context.TODO())
-	errCh := make(chan error)
-	defer close(errCh)
-	go func() {
-		if err := run(s, ictx); err != nil {
-			errCh <- err
-		}
-	}()
-
-	// The ctx (signals.SetupSignalHandler()) is to control the entire program life cycle,
-	// The ictx(internal context)  is created here to control the life cycle of the ks-apiserver(http server, sharedInformer etc.)
-	// when config change, stop server and renew context, start new server
-	for {
-		select {
-		case <-ctx.Done():
-			cancelFunc()
-			return nil
-		case cfg := <-configCh:
-			cancelFunc()
-			s.Config = &cfg
-			ictx, cancelFunc = context.WithCancel(context.TODO())
-			go func() {
-				if errs := s.Validate(); len(errs) != 0 {
-					for _, err := range errs {
-						errCh <- err
-					}
-				}
-				if err := run(s, ictx); err != nil {
-					errCh <- err
-				}
-			}()
-		case err := <-errCh:
-			cancelFunc()
-			return err
-		}
-	}
-}
-
-func run(s *options.ServerRunOptions, ctx context.Context) error {
-	apiserver, err := s.NewAPIServer(ctx.Done())
+func Run(ctx context.Context, s *options.APIServerOptions) error {
+	apiServer, err := s.NewAPIServer(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = apiserver.PrepareRun(ctx.Done())
-	if err != nil {
+	if err = apiServer.PrepareRun(ctx.Done()); err != nil {
 		return err
 	}
 
-	err = apiserver.Run(ctx)
-	if err == http.ErrServerClosed {
+	if errors.Is(apiServer.Run(ctx), http.ErrServerClosed) {
 		return nil
 	}
 	return err

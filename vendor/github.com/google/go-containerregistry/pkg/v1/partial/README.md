@@ -29,7 +29,7 @@ In a tarball, blobs are (often) uncompressed, so it's easiest to implement a `v1
 of uncompressed layers. `tarball.uncompressedImage` does this by implementing `UncompressedImageCore`:
 
 ```go
-type CompressedImageCore interface {
+type UncompressedImageCore interface {
 	RawConfigFile() ([]byte, error)
 	MediaType() (types.MediaType, error)
 	LayerByDiffID(v1.Hash) (UncompressedLayer, error)

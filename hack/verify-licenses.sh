@@ -34,9 +34,7 @@ then
 
     # Install skywalking-eyes
     echo 'installing skywalking-eyes '
-    pushd "${KUBE_ROOT}/hack/tools" >/dev/null
-      go install github.com/apache/skywalking-eyes/cmd/license-eye@v0.2.0
-    popd >/dev/null
+    go install -mod=mod github.com/apache/skywalking-eyes/cmd/license-eye@v0.2.0
 fi
 
 cd "${KUBE_ROOT}"

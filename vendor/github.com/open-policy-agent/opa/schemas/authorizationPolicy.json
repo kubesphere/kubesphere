@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Schema for the OPA Authorization Policy Input document",
+  "type": "object",
+  "properties": {
+    "identity": {
+      "type": "string"
+    },
+    "client_certificates": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "method": {
+      "type": "string"
+    },
+    "path": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "params": {
+      "type": "object"
+    },
+    "headers": {
+      "type": "object"
+    },
+    "body": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "identity",
+    "client_certificates",
+    "method",
+    "path",
+    "params",
+    "headers",
+    "body"
+  ]
+}

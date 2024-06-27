@@ -33,7 +33,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog/v2"
 
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
 const (
@@ -253,19 +253,19 @@ func generatePrivateKeyData() ([]byte, error) {
 	return pemData, nil
 }
 
-func loadSignKey(options *authentication.Options) (*rsa.PrivateKey, string, error) {
+func loadSignKey(config *oauth.IssuerOptions) (*rsa.PrivateKey, string, error) {
 	var signKey *rsa.PrivateKey
 	var signKeyData []byte
 	var err error
 
-	if options.OAuthOptions.SignKey != "" {
-		signKeyData, err = os.ReadFile(options.OAuthOptions.SignKey)
+	if config.SignKey != "" {
+		signKeyData, err = os.ReadFile(config.SignKey)
 		if err != nil {
-			klog.Errorf("issuer: failed to read private key file %s: %v", options.OAuthOptions.SignKey, err)
+			klog.Errorf("issuer: failed to read private key file %s: %v", config.SignKey, err)
 			return nil, "", err
 		}
-	} else if options.OAuthOptions.SignKeyData != "" {
-		signKeyData, err = base64.StdEncoding.DecodeString(options.OAuthOptions.SignKeyData)
+	} else if config.SignKeyData != "" {
+		signKeyData, err = base64.StdEncoding.DecodeString(config.SignKeyData)
 		if err != nil {
 			klog.Errorf("issuer: failed to decode sign key data: %s", err)
 			return nil, "", err
@@ -292,16 +292,16 @@ func loadSignKey(options *authentication.Options) (*rsa.PrivateKey, string, erro
 	return signKey, keyID, nil
 }
 
-func NewIssuer(options *authentication.Options) (Issuer, error) {
+func NewIssuer(config *oauth.IssuerOptions) (Issuer, error) {
 	// TODO(hongming) automatically rotates keys
-	signKey, keyID, err := loadSignKey(options)
+	signKey, keyID, err := loadSignKey(config)
 	if err != nil {
 		return nil, err
 	}
 	return &issuer{
-		name:             options.OAuthOptions.Issuer,
-		secret:           []byte(options.JwtSecret),
-		maximumClockSkew: options.MaximumClockSkew,
+		name:             config.Host,
+		secret:           []byte(config.JWTSecret),
+		maximumClockSkew: config.MaximumClockSkew,
 		signKey: &Keys{
 			SigningKey: &jose.JSONWebKey{
 				Key:       signKey,

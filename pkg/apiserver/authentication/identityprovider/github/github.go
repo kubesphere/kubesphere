@@ -38,7 +38,7 @@ const (
 )
 
 func init() {
-	identityprovider.RegisterOAuthProvider(&ldapProviderFactory{})
+	identityprovider.RegisterOAuthProviderFactory(&ldapProviderFactory{})
 }
 
 type github struct {

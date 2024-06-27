@@ -3,8 +3,11 @@ package location
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+
+	astJSON "github.com/open-policy-agent/opa/ast/json"
 )
 
 // Location records a position in source code
@@ -14,6 +17,9 @@ type Location struct {
 	Row    int    `json:"row"`  // The line in the source.
 	Col    int    `json:"col"`  // The column in the row.
 	Offset int    `json:"-"`    // The byte offset for the location in the source.
+
+	// JSONOptions specifies options for marshaling and unmarshalling of locations
+	JSONOptions astJSON.Options
 }
 
 // NewLocation returns a new Location object.
@@ -86,4 +92,41 @@ func (loc *Location) Compare(other *Location) int {
 		return 1
 	}
 	return 0
+}
+
+func (loc *Location) MarshalJSON() ([]byte, error) {
+	// structs are used here to preserve the field ordering of the original Location struct
+	if loc.JSONOptions.MarshalOptions.ExcludeLocationFile {
+		data := struct {
+			Row  int    `json:"row"`
+			Col  int    `json:"col"`
+			Text []byte `json:"text,omitempty"`
+		}{
+			Row: loc.Row,
+			Col: loc.Col,
+		}
+
+		if loc.JSONOptions.MarshalOptions.IncludeLocationText {
+			data.Text = loc.Text
+		}
+
+		return json.Marshal(data)
+	}
+
+	data := struct {
+		File string `json:"file"`
+		Row  int    `json:"row"`
+		Col  int    `json:"col"`
+		Text []byte `json:"text,omitempty"`
+	}{
+		Row:  loc.Row,
+		Col:  loc.Col,
+		File: loc.File,
+	}
+
+	if loc.JSONOptions.MarshalOptions.IncludeLocationText {
+		data.Text = loc.Text
+	}
+
+	return json.Marshal(data)
 }

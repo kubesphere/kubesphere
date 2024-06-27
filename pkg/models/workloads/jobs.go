@@ -22,12 +22,13 @@ import (
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/batch/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const retryTimes = 3
@@ -37,16 +38,16 @@ type JobRunner interface {
 }
 
 type jobRunner struct {
-	client kubernetes.Interface
+	client runtimeclient.Client
 }
 
-func NewJobRunner(client kubernetes.Interface) JobRunner {
+func NewJobRunner(client runtimeclient.Client) JobRunner {
 	return &jobRunner{client: client}
 }
 
 func (r *jobRunner) JobReRun(namespace, jobName, resourceVersion string) error {
-	job, err := r.client.BatchV1().Jobs(namespace).Get(context.Background(), jobName, metav1.GetOptions{})
-	if err != nil {
+	job := &batchv1.Job{}
+	if err := r.client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: jobName}, job); err != nil {
 		return err
 	}
 	// do not rerun job if resourceVersion not match
@@ -60,23 +61,21 @@ func (r *jobRunner) JobReRun(namespace, jobName, resourceVersion string) error {
 
 	newJob := *job
 	newJob.ResourceVersion = ""
-	newJob.Status = v1.JobStatus{}
+	newJob.Status = batchv1.JobStatus{}
 	newJob.ObjectMeta.UID = ""
 	newJob.Annotations["revisions"] = strings.Replace(job.Annotations["revisions"], "running", "unfinished", -1)
 
 	delete(newJob.Spec.Selector.MatchLabels, "controller-uid")
 	delete(newJob.Spec.Template.ObjectMeta.Labels, "controller-uid")
 
-	err = r.deleteJob(namespace, jobName)
-
-	if err != nil {
+	if err := r.deleteJob(namespace, jobName); err != nil {
 		klog.Errorf("failed to rerun job %s, reason: %s", jobName, err)
 		return fmt.Errorf("failed to rerun job %s", jobName)
 	}
 
+	var err error
 	for i := 0; i < retryTimes; i++ {
-		_, err = r.client.BatchV1().Jobs(namespace).Create(context.Background(), &newJob, metav1.CreateOptions{})
-		if err != nil {
+		if err = r.client.Create(context.Background(), &newJob); err != nil {
 			time.Sleep(time.Second)
 			continue
 		}
@@ -92,6 +91,6 @@ func (r *jobRunner) JobReRun(namespace, jobName, resourceVersion string) error {
 }
 
 func (r *jobRunner) deleteJob(namespace, job string) error {
-	err := r.client.BatchV1().Jobs(namespace).Delete(context.Background(), job, metav1.DeleteOptions{})
-	return err
+	return r.client.Delete(context.Background(),
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: job}})
 }

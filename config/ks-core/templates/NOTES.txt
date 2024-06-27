@@ -1,17 +1,39 @@
-Please wait for several seconds for KubeSphere deployment to complete.
+Thank you for choosing KubeSphere Helm Chart.
 
-1. Make sure KubeSphere components are running:
+Please be patient and wait for several seconds for the KubeSphere deployment to complete.
 
-     kubectl get pods -n {{ .Release.Namespace }}
+1. Wait for Deployment Completion
 
-2. Then you should be able to visit the console NodePort:
+    Confirm that all KubeSphere components are running by executing the following command:
 
-     Console: http://{{ include "getNodeAddress" . }}:{{ .Values.console.nodePort }}
+    kubectl get pods -n {{ .Release.Namespace }}
 
-3. To login to your KubeSphere console:
+{{- if or (eq .Values.role "") (eq .Values.role "host") }}
+2. Access the KubeSphere Console
 
-     Account: admin
-     Password: {{ include "printOrDefaultPass" . | quote }}
-     NOTE: Please change the default password after login.
+    Once the deployment is complete, you can access the KubeSphere console using the following URL:  {{"\n"}}
+    {{- if not .Values.internalTLS }}
+    http://{{ include "getNodeAddress" . }}:{{ .Values.console.nodePort }}
+    {{- else }}
+    https://{{ include "getNodeAddress" . }}:{{ .Values.console.nodePort }}
+    {{- end }}
 
-For more details, please visit https://kubesphere.io.
+3. Login to KubeSphere Console
+
+    Use the following credentials to log in:
+
+    Account: admin
+    Password: {{ include "printOrDefaultPass" . }}
+
+NOTE: It is highly recommended to change the default password immediately after the first login.
+{{- else }}
+
+Cluster Member Installed Successfully!
+
+Congratulations! The cluster member has been successfully installed.
+
+You can view the information of the member cluster by accessing the ks-console of the host cluster.
+
+Happy deploying!
+{{- end }}
+For additional information and details, please visit https://kubesphere.io.

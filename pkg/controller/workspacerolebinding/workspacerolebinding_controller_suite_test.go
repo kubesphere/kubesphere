@@ -17,23 +17,30 @@ limitations under the License.
 package workspacerolebinding
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega/gexec"
-	"k8s.io/client-go/kubernetes/scheme"
+	"kubesphere.io/kubesphere/pkg/controller"
+	kscontroller "kubesphere.io/kubesphere/pkg/controller/options"
+
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+
+	"kubesphere.io/kubesphere/pkg/multicluster"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	"kubesphere.io/kubesphere/pkg/apis"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	"kubesphere.io/kubesphere/pkg/scheme"
+	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -42,13 +49,15 @@ import (
 var k8sClient client.Client
 var k8sManager ctrl.Manager
 var testEnv *envtest.Environment
+var ctx context.Context
+var cancel context.CancelFunc
 
 func TestWorkspaceRoleBindingController(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "WorkspaceRoleBinding Controller Test Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	logf.SetLogger(klog.NewKlogr())
 
 	By("bootstrapping test environment")
@@ -68,32 +77,35 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = apis.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
 	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
+		Scheme: scheme.Scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: "0",
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&Reconciler{}).SetupWithManager(k8sManager)
+	clusterClient, err := clusterclient.NewClusterClientSet(k8sManager.GetCache())
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&Reconciler{}).SetupWithManager(&controller.Manager{ClusterClient: clusterClient, Manager: k8sManager,
+		Options: kscontroller.Options{MultiClusterOptions: &multicluster.Options{ClusterRole: string(clusterv1alpha1.ClusterRoleHost)}}})
+	Expect(err).ToNot(HaveOccurred())
+
+	ctx, cancel = context.WithCancel(context.Background())
 	go func() {
-		err = k8sManager.Start(ctrl.SetupSignalHandler())
+		err = k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
 	k8sClient = k8sManager.GetClient()
 	Expect(k8sClient).ToNot(BeNil())
-
-	close(done)
-}, 60)
+})
 
 var _ = AfterSuite(func() {
+	cancel()
 	By("tearing down the test environment")
-	gexec.KillAndWait(5 * time.Second)
-	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
+	Eventually(func() error {
+		return testEnv.Stop()
+	}, 30*time.Second, 5*time.Second).ShouldNot(HaveOccurred())
 })

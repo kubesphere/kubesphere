@@ -24,6 +24,8 @@ import (
 	"sort"
 	"sync"
 
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +33,6 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	admissionapi "k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -42,6 +43,7 @@ import (
 	"kubesphere.io/kubesphere/kube/pkg/quota/v1/install"
 	"kubesphere.io/kubesphere/kube/plugin/pkg/admission/resourcequota"
 	resourcequotaapi "kubesphere.io/kubesphere/kube/plugin/pkg/admission/resourcequota/apis/resourcequota"
+	"kubesphere.io/kubesphere/pkg/scheme"
 )
 
 const (
@@ -62,17 +64,26 @@ type ResourceQuotaAdmission struct {
 	evaluator resourcequota.Evaluator
 }
 
-func NewResourceQuotaAdmission(client client.Client, scheme *runtime.Scheme) (webhook.AdmissionHandler, error) {
-	decoder, err := admission.NewDecoder(scheme)
-	if err != nil {
-		return nil, err
-	}
-	return &ResourceQuotaAdmission{
-		client:      client,
+const webhookName = "resource-quota-webhook"
+
+func (w *Webhook) Name() string {
+	return webhookName
+}
+
+var _ kscontroller.Controller = &Webhook{}
+
+type Webhook struct {
+}
+
+func (w *Webhook) SetupWithManager(mgr *kscontroller.Manager) error {
+	resourceQuotaAdmission := &ResourceQuotaAdmission{
+		client:      mgr.GetClient(),
 		lockFactory: NewDefaultLockFactory(),
-		decoder:     decoder,
+		decoder:     admission.NewDecoder(mgr.GetScheme()),
 		registry:    generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators()),
-	}, nil
+	}
+	mgr.GetWebhookServer().Register("/validate-quota-kubesphere-io-v1alpha2", &webhook.Admission{Handler: resourceQuotaAdmission})
+	return nil
 }
 
 func (r *ResourceQuotaAdmission) Handle(ctx context.Context, req webhook.AdmissionRequest) webhook.AdmissionResponse {

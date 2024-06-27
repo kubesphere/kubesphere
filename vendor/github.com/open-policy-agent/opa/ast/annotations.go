@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	astJSON "github.com/open-policy-agent/opa/ast/json"
 	"github.com/open-policy-agent/opa/internal/deepcopy"
 	"github.com/open-policy-agent/opa/util"
 )
@@ -26,7 +27,6 @@ const (
 type (
 	// Annotations represents metadata attached to other AST nodes such as rules.
 	Annotations struct {
-		Location         *Location                    `json:"-"`
 		Scope            string                       `json:"scope"`
 		Title            string                       `json:"title,omitempty"`
 		Entrypoint       bool                         `json:"entrypoint,omitempty"`
@@ -36,8 +36,11 @@ type (
 		Authors          []*AuthorAnnotation          `json:"authors,omitempty"`
 		Schemas          []*SchemaAnnotation          `json:"schemas,omitempty"`
 		Custom           map[string]interface{}       `json:"custom,omitempty"`
-		node             Node
-		comments         []*Comment
+		Location         *Location                    `json:"location,omitempty"`
+
+		comments    []*Comment
+		node        Node
+		jsonOptions astJSON.Options
 	}
 
 	// SchemaAnnotation contains a schema declaration for the document identified by the path.
@@ -59,7 +62,7 @@ type (
 
 	AnnotationSet struct {
 		byRule    map[*Rule][]*Annotations
-		byPackage map[*Package]*Annotations
+		byPackage map[int]*Annotations
 		byPath    *annotationTreeNode
 		modules   []*Module // Modules this set was constructed from
 	}
@@ -70,10 +73,13 @@ type (
 	}
 
 	AnnotationsRef struct {
-		Location    *Location    `json:"location"` // The location of the node the annotations are applied to
-		Path        Ref          `json:"path"`     // The path of the node the annotations are applied to
+		Path        Ref          `json:"path"` // The path of the node the annotations are applied to
 		Annotations *Annotations `json:"annotations,omitempty"`
-		node        Node         // The node the annotations are applied to
+		Location    *Location    `json:"location,omitempty"` // The location of the node the annotations are applied to
+
+		jsonOptions astJSON.Options
+
+		node Node // The node the annotations are applied to
 	}
 
 	AnnotationsRefSet []*AnnotationsRef
@@ -82,7 +88,7 @@ type (
 )
 
 func (a *Annotations) String() string {
-	bs, _ := json.Marshal(a)
+	bs, _ := a.MarshalJSON()
 	return string(bs)
 }
 
@@ -169,10 +175,67 @@ func (a *Annotations) GetTargetPath() Ref {
 	case *Package:
 		return n.Path
 	case *Rule:
-		return n.Path()
+		return n.Ref().GroundPrefix()
 	default:
 		return nil
 	}
+}
+
+func (a *Annotations) setJSONOptions(opts astJSON.Options) {
+	a.jsonOptions = opts
+	if a.Location != nil {
+		a.Location.JSONOptions = opts
+	}
+}
+
+func (a *Annotations) MarshalJSON() ([]byte, error) {
+	if a == nil {
+		return []byte(`{"scope":""}`), nil
+	}
+
+	data := map[string]interface{}{
+		"scope": a.Scope,
+	}
+
+	if a.Title != "" {
+		data["title"] = a.Title
+	}
+
+	if a.Description != "" {
+		data["description"] = a.Description
+	}
+
+	if a.Entrypoint {
+		data["entrypoint"] = a.Entrypoint
+	}
+
+	if len(a.Organizations) > 0 {
+		data["organizations"] = a.Organizations
+	}
+
+	if len(a.RelatedResources) > 0 {
+		data["related_resources"] = a.RelatedResources
+	}
+
+	if len(a.Authors) > 0 {
+		data["authors"] = a.Authors
+	}
+
+	if len(a.Schemas) > 0 {
+		data["schemas"] = a.Schemas
+	}
+
+	if len(a.Custom) > 0 {
+		data["custom"] = a.Custom
+	}
+
+	if a.jsonOptions.MarshalOptions.IncludeLocation.Annotations {
+		if a.Location != nil {
+			data["location"] = a.Location
+		}
+	}
+
+	return json.Marshal(data)
 }
 
 func NewAnnotationsRef(a *Annotations) *AnnotationsRef {
@@ -186,6 +249,7 @@ func NewAnnotationsRef(a *Annotations) *AnnotationsRef {
 		Path:        a.GetTargetPath(),
 		Annotations: a,
 		node:        a.node,
+		jsonOptions: a.jsonOptions,
 	}
 }
 
@@ -207,6 +271,24 @@ func (ar *AnnotationsRef) GetRule() *Rule {
 	default:
 		return nil
 	}
+}
+
+func (ar *AnnotationsRef) MarshalJSON() ([]byte, error) {
+	data := map[string]interface{}{
+		"path": ar.Path,
+	}
+
+	if ar.Annotations != nil {
+		data["annotations"] = ar.Annotations
+	}
+
+	if ar.jsonOptions.MarshalOptions.IncludeLocation.AnnotationsRef {
+		if ar.Location != nil {
+			data["location"] = ar.Location
+		}
+	}
+
+	return json.Marshal(data)
 }
 
 func scopeCompare(s1, s2 string) int {
@@ -270,12 +352,12 @@ func compareRelatedResources(a, b []*RelatedResourceAnnotation) int {
 }
 
 func compareSchemas(a, b []*SchemaAnnotation) int {
-	max := len(a)
-	if len(b) < max {
-		max = len(b)
+	maxLen := len(a)
+	if len(b) < maxLen {
+		maxLen = len(b)
 	}
 
-	for i := 0; i < max; i++ {
+	for i := 0; i < maxLen; i++ {
 		if cmp := a[i].Compare(b[i]); cmp != 0 {
 			return cmp
 		}
@@ -481,7 +563,8 @@ func validateAnnotationScopeAttachment(a *Annotations) *Error {
 		return newScopeAttachmentErr(a, "package")
 	}
 
-	return NewError(ParseErr, a.Loc(), "invalid annotation scope '%v'", a.Scope)
+	return NewError(ParseErr, a.Loc(), "invalid annotation scope '%v'. Use one of '%s', '%s', '%s', or '%s'",
+		a.Scope, annotationScopeRule, annotationScopeDocument, annotationScopePackage, annotationScopeSubpackages)
 }
 
 func validateAnnotationEntrypointAttachment(a *Annotations) *Error {
@@ -595,7 +678,7 @@ func (s *SchemaAnnotation) String() string {
 func newAnnotationSet() *AnnotationSet {
 	return &AnnotationSet{
 		byRule:    map[*Rule][]*Annotations{},
-		byPackage: map[*Package]*Annotations{},
+		byPackage: map[int]*Annotations{},
 		byPath:    newAnnotationTree(),
 	}
 }
@@ -628,14 +711,15 @@ func (as *AnnotationSet) add(a *Annotations) *Error {
 		}
 	case annotationScopePackage:
 		if pkg, ok := a.node.(*Package); ok {
-			if exist, ok := as.byPackage[pkg]; ok {
+			hash := pkg.Path.Hash()
+			if exist, ok := as.byPackage[hash]; ok {
 				return errAnnotationRedeclared(a, exist.Location)
 			}
-			as.byPackage[pkg] = a
+			as.byPackage[hash] = a
 		}
 	case annotationScopeDocument:
 		if rule, ok := a.node.(*Rule); ok {
-			path := rule.Path()
+			path := rule.Ref().GroundPrefix()
 			x := as.byPath.get(path)
 			if x != nil {
 				return errAnnotationRedeclared(a, x.Value.Location)
@@ -682,7 +766,7 @@ func (as *AnnotationSet) GetPackageScope(pkg *Package) *Annotations {
 	if as == nil {
 		return nil
 	}
-	return as.byPackage[pkg]
+	return as.byPackage[pkg.Path.Hash()]
 }
 
 // Flatten returns a flattened list view of this AnnotationSet.
@@ -731,7 +815,7 @@ func (as *AnnotationSet) Chain(rule *Rule) AnnotationsRefSet {
 		// Make sure there is always a leading entry representing the passed rule, even if it has no annotations
 		refs = append(refs, &AnnotationsRef{
 			Location: rule.Location,
-			Path:     rule.Path(),
+			Path:     rule.Ref().GroundPrefix(),
 			node:     rule,
 		})
 	}
@@ -743,7 +827,7 @@ func (as *AnnotationSet) Chain(rule *Rule) AnnotationsRefSet {
 		})
 	}
 
-	docAnnots := as.GetDocumentScope(rule.Path())
+	docAnnots := as.GetDocumentScope(rule.Ref().GroundPrefix())
 	if docAnnots != nil {
 		refs = append(refs, NewAnnotationsRef(docAnnots))
 	}

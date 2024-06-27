@@ -59,7 +59,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		},
 		{
 			name:                      "list clusterRoles of cluster gondor",
-			url:                       "/apis/clusters/gondor/rbac.authorization.k8s.io/v1/clusterroles",
+			url:                       "/clusters/gondor/apis/rbac.authorization.k8s.io/v1/clusterroles",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",
@@ -81,7 +81,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		},
 		{
 			name:                      "list nodes of cluster gondor",
-			url:                       "/api/clusters/gondor/v1/nodes",
+			url:                       "/clusters/gondor/api/v1/nodes",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",
@@ -92,7 +92,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		},
 		{
 			name:                      "list roles of cluster gondor",
-			url:                       "/apis/clusters/gondor/rbac.authorization.k8s.io/v1/namespaces/namespace1/roles",
+			url:                       "/clusters/gondor/apis/rbac.authorization.k8s.io/v1/namespaces/namespace1/roles",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",
@@ -128,7 +128,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		},
 		{
 			name:                      "list namespaces of cluster gondor",
-			url:                       "/kapis/clusters/gondor/resources.kubesphere.io/v1alpha3/workspaces/workspace1/namespaces",
+			url:                       "/clusters/gondor/kapis/resources.kubesphere.io/v1alpha3/workspaces/workspace1/namespaces",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",

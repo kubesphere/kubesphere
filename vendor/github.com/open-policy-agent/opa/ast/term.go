@@ -22,6 +22,7 @@ import (
 
 	"github.com/OneOfOne/xxhash"
 
+	astJSON "github.com/open-policy-agent/opa/ast/json"
 	"github.com/open-policy-agent/opa/ast/location"
 	"github.com/open-policy-agent/opa/util"
 )
@@ -291,8 +292,10 @@ func MustInterfaceToValue(x interface{}) Value {
 
 // Term is an argument to a function.
 type Term struct {
-	Value    Value     `json:"value"` // the value of the Term as represented in Go
-	Location *Location `json:"-"`     // the location of the Term in the source
+	Value    Value     `json:"value"`              // the value of the Term as represented in Go
+	Location *Location `json:"location,omitempty"` // the location of the Term in the source
+
+	jsonOptions astJSON.Options
 }
 
 // NewTerm returns a new Term object.
@@ -417,6 +420,13 @@ func (term *Term) IsGround() bool {
 	return term.Value.IsGround()
 }
 
+func (term *Term) setJSONOptions(opts astJSON.Options) {
+	term.jsonOptions = opts
+	if term.Location != nil {
+		term.Location.JSONOptions = opts
+	}
+}
+
 // MarshalJSON returns the JSON encoding of the term.
 //
 // Specialized marshalling logic is required to include a type hint for Value.
@@ -424,6 +434,11 @@ func (term *Term) MarshalJSON() ([]byte, error) {
 	d := map[string]interface{}{
 		"type":  TypeName(term.Value),
 		"value": term.Value,
+	}
+	if term.jsonOptions.MarshalOptions.IncludeLocation.Term {
+		if term.Location != nil {
+			d["location"] = term.Location
+		}
 	}
 	return json.Marshal(d)
 }
@@ -433,7 +448,7 @@ func (term *Term) String() string {
 }
 
 // UnmarshalJSON parses the byte array and stores the result in term.
-// Specialized unmarshalling is required to handle Value.
+// Specialized unmarshalling is required to handle Value and Location.
 func (term *Term) UnmarshalJSON(bs []byte) error {
 	v := map[string]interface{}{}
 	if err := util.UnmarshalJSON(bs, &v); err != nil {
@@ -444,6 +459,14 @@ func (term *Term) UnmarshalJSON(bs []byte) error {
 		return err
 	}
 	term.Value = val
+
+	if loc, ok := v["location"].(map[string]interface{}); ok {
+		term.Location = &Location{}
+		err := unmarshalLocation(term.Location, loc)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -869,8 +892,8 @@ func PtrRef(head *Term, s string) (Ref, error) {
 		return Ref{head}, nil
 	}
 	parts := strings.Split(s, "/")
-	if max := math.MaxInt32; len(parts) >= max {
-		return nil, fmt.Errorf("path too long: %s, %d > %d (max)", s, len(parts), max)
+	if maxLen := math.MaxInt32; len(parts) >= maxLen {
+		return nil, fmt.Errorf("path too long: %s, %d > %d (max)", s, len(parts), maxLen)
 	}
 	ref := make(Ref, uint(len(parts))+1)
 	ref[0] = head
@@ -1009,6 +1032,20 @@ func (ref Ref) ConstantPrefix() Ref {
 	return ref[:i]
 }
 
+func (ref Ref) StringPrefix() Ref {
+	r := ref.Copy()
+
+	for i := 1; i < len(ref); i++ {
+		switch r[i].Value.(type) {
+		case String: // pass
+		default: // cut off
+			return r[:i]
+		}
+	}
+
+	return r
+}
+
 // GroundPrefix returns the ground portion of the ref starting from the head. By
 // definition, the head of the reference is always ground.
 func (ref Ref) GroundPrefix() Ref {
@@ -1022,6 +1059,14 @@ func (ref Ref) GroundPrefix() Ref {
 	}
 
 	return prefix
+}
+
+func (ref Ref) DynamicSuffix() Ref {
+	i := ref.Dynamic()
+	if i < 0 {
+		return nil
+	}
+	return ref[i:]
 }
 
 // IsGround returns true if all of the parts of the Ref are ground.
@@ -1058,6 +1103,10 @@ func (ref Ref) Ptr() (string, error) {
 }
 
 var varRegexp = regexp.MustCompile("^[[:alpha:]_][[:alpha:][:digit:]_]*$")
+
+func IsVarCompatibleString(s string) bool {
+	return varRegexp.MatchString(s)
+}
 
 func (ref Ref) String() string {
 	if len(ref) == 0 {
@@ -1821,22 +1870,34 @@ func ObjectTerm(o ...[2]*Term) *Term {
 }
 
 func LazyObject(blob map[string]interface{}) Object {
-	return &lazyObj{native: blob}
+	return &lazyObj{native: blob, cache: map[string]Value{}}
 }
 
 type lazyObj struct {
 	strict Object
+	cache  map[string]Value
 	native map[string]interface{}
 }
 
 func (l *lazyObj) force() Object {
 	if l.strict == nil {
 		l.strict = MustInterfaceToValue(l.native).(Object)
+		// NOTE(jf): a possible performance improvement here would be to check how many
+		// entries have been realized to AST in the cache, and if some threshold compared to the
+		// total number of keys is exceeded, realize the remaining entries and set l.strict to l.cache.
+		l.cache = map[string]Value{} // We don't need the cache anymore; drop it to free up memory.
 	}
 	return l.strict
 }
 
 func (l *lazyObj) Compare(other Value) int {
+	o1 := sortOrder(l)
+	o2 := sortOrder(other)
+	if o1 < o2 {
+		return -1
+	} else if o2 < o1 {
+		return 1
+	}
 	return l.force().Compare(other)
 }
 
@@ -1905,13 +1966,20 @@ func (l *lazyObj) Get(k *Term) *Term {
 		return l.strict.Get(k)
 	}
 	if s, ok := k.Value.(String); ok {
+		if v, ok := l.cache[string(s)]; ok {
+			return NewTerm(v)
+		}
+
 		if val, ok := l.native[string(s)]; ok {
+			var converted Value
 			switch val := val.(type) {
 			case map[string]interface{}:
-				return NewTerm(&lazyObj{native: val})
+				converted = LazyObject(val)
 			default:
-				return NewTerm(MustInterfaceToValue(val))
+				converted = MustInterfaceToValue(val)
 			}
+			l.cache[string(s)] = converted
+			return NewTerm(converted)
 		}
 	}
 	return nil
@@ -1966,13 +2034,20 @@ func (l *lazyObj) Find(path Ref) (Value, error) {
 		return l, nil
 	}
 	if p0, ok := path[0].Value.(String); ok {
+		if v, ok := l.cache[string(p0)]; ok {
+			return v.Find(path[1:])
+		}
+
 		if v, ok := l.native[string(p0)]; ok {
+			var converted Value
 			switch v := v.(type) {
 			case map[string]interface{}:
-				return (&lazyObj{native: v}).Find(path[1:])
+				converted = LazyObject(v)
 			default:
-				return MustInterfaceToValue(v).Find(path[1:])
+				converted = MustInterfaceToValue(v)
 			}
+			l.cache[string(p0)] = converted
+			return converted.Find(path[1:])
 		}
 	}
 	return nil, errFindNotFound
@@ -2897,6 +2972,14 @@ func unmarshalExpr(expr *Expr, v map[string]interface{}) error {
 			return fmt.Errorf("ast: unable to unmarshal negated field with type: %T (expected true or false)", v["negated"])
 		}
 	}
+	if generatedRaw, ok := v["generated"]; ok {
+		if b, ok := generatedRaw.(bool); ok {
+			expr.Generated = b
+		} else {
+			return fmt.Errorf("ast: unable to unmarshal generated field with type: %T (expected true or false)", v["generated"])
+		}
+	}
+
 	if err := unmarshalExprIndex(expr, v); err != nil {
 		return err
 	}
@@ -2929,6 +3012,46 @@ func unmarshalExpr(expr *Expr, v map[string]interface{}) error {
 			expr.With = ws
 		}
 	}
+	if loc, ok := v["location"].(map[string]interface{}); ok {
+		expr.Location = &Location{}
+		if err := unmarshalLocation(expr.Location, loc); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func unmarshalLocation(loc *Location, v map[string]interface{}) error {
+	if x, ok := v["file"]; ok {
+		if s, ok := x.(string); ok {
+			loc.File = s
+		} else {
+			return fmt.Errorf("ast: unable to unmarshal file field with type: %T (expected string)", v["file"])
+		}
+	}
+	if x, ok := v["row"]; ok {
+		if n, ok := x.(json.Number); ok {
+			i64, err := n.Int64()
+			if err != nil {
+				return err
+			}
+			loc.Row = int(i64)
+		} else {
+			return fmt.Errorf("ast: unable to unmarshal row field with type: %T (expected number)", v["row"])
+		}
+	}
+	if x, ok := v["col"]; ok {
+		if n, ok := x.(json.Number); ok {
+			i64, err := n.Int64()
+			if err != nil {
+				return err
+			}
+			loc.Col = int(i64)
+		} else {
+			return fmt.Errorf("ast: unable to unmarshal col field with type: %T (expected number)", v["col"])
+		}
+	}
+
 	return nil
 }
 
@@ -2946,11 +3069,22 @@ func unmarshalExprIndex(expr *Expr, v map[string]interface{}) error {
 }
 
 func unmarshalTerm(m map[string]interface{}) (*Term, error) {
+	var term Term
+
 	v, err := unmarshalValue(m)
 	if err != nil {
 		return nil, err
 	}
-	return &Term{Value: v}, nil
+	term.Value = v
+
+	if loc, ok := m["location"].(map[string]interface{}); ok {
+		term.Location = &Location{}
+		if err := unmarshalLocation(term.Location, loc); err != nil {
+			return nil, err
+		}
+	}
+
+	return &term, nil
 }
 
 func unmarshalTermSlice(s []interface{}) ([]*Term, error) {

@@ -1,4 +1,3 @@
-
 apiVersion: v1
 data:
   local_config.yaml: |
@@ -16,13 +15,21 @@ data:
         host: redis.kubesphere-system.svc
       redisTimeout: 5000
       sessionTimeout: 7200000
+      apiServer:
+    {{- if .Values.internalTLS }}
+        url: https://ks-apiserver
+        wsUrl: wss://ks-apiserver
+    {{- else }}
+        url: http://ks-apiserver
+        wsUrl: ws://ks-apiserver
+    {{ end }}
     client:
       version:
         kubesphere: {{ .Chart.AppVersion }}
-        kubernetes: {{ .Values.kube_version }}
-        openpitrix: {{ .Chart.AppVersion }}
+        kubernetes: {{ .Capabilities.KubeVersion.Version }}
       enableKubeConfig: true
-    defaultClusterName: {{ .Values.console.defaultClusterName }}
+      enableNodeListTerminal: {{ .Values.console.config.enableNodeListTerminal }}
 kind: ConfigMap
 metadata:
   name: ks-console-config
+  namespace: kubesphere-system

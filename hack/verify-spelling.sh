@@ -30,11 +30,12 @@ export GOBIN="${KUBE_OUTPUT_BINPATH}"
 PATH="${GOBIN}:${PATH}"
 
 # Install tools we need
-pushd "${KUBE_ROOT}/hack/tools" >/dev/null
+if ! command -v misspell ; then
   # As GOFLAGS may equal to `-mod=vendor`, we must download the modules to vendor or go install will fail.
-  go mod vendor
-  GO111MODULE=on go install github.com/client9/misspell/cmd/misspell
-popd >/dev/null
+  GO111MODULE=on go install -mod=mod github.com/client9/misspell/cmd/misspell@v0.3.4
+fi
+
+cd "${KUBE_ROOT}"
 
 # Spell checking
 # All the skipping files are defined in hack/.spelling_failures

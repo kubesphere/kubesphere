@@ -5,28 +5,25 @@
 # Download dependencies
 FROM alpine:3.18.3 as base_os_context
 
-ARG INGRESS_NGINX_VERSION=4.2.5
-
 ENV OUTDIR=/out
-RUN mkdir -p ${OUTDIR}/var/helm-charts
+RUN mkdir -p ${OUTDIR}/usr/local/bin/
+RUN apk add --no-cache ca-certificates curl
 
-WORKDIR /tmp
+ARG TARGETARCH
 
-RUN apk add --no-cache ca-certificates
+ENV ARCH=$TARGETARCH
 
+RUN curl -LO https://github.com/kubesphere/telemetry/releases/download/v1.0.0/telemetry_1.0.0_linux_${ARCH}.tar.gz && \
+    tar -zxvf telemetry_1.0.0_linux_${ARCH}.tar.gz -C ${OUTDIR}/usr/local/bin/ telemetry
 
-# Install Nginx Ingress Helm Chart
-ADD https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-${INGRESS_NGINX_VERSION}/ingress-nginx-${INGRESS_NGINX_VERSION}.tgz /tmp
-RUN tar xvzf /tmp/ingress-nginx-${INGRESS_NGINX_VERSION}.tgz -C /tmp
-RUN mv /tmp/ingress-nginx ${OUTDIR}/var/helm-charts/
+# Add KS Core Helm Chart
+COPY config/ks-core ${OUTDIR}/var/helm-charts/ks-core
 
 # Build
-
-FROM golang:1.19.4 as build_context
+FROM golang:1.20.7 as build_context
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin/
-RUN mkdir -p ${OUTDIR}/var/helm-charts
 
 WORKDIR /workspace
 ADD . /workspace/
@@ -34,12 +31,7 @@ ADD . /workspace/
 RUN make ks-controller-manager
 RUN mv /workspace/bin/cmd/controller-manager ${OUTDIR}/usr/local/bin/
 
-# Copy gateway config and helm chart
-RUN mv /workspace/config/gateway ${OUTDIR}/var/helm-charts/
-RUN mv /workspace/config/watches.yaml ${OUTDIR}/var/helm-charts/
-
 # Final Image
-
 FROM alpine:3.18.3
 
 COPY --from=base_os_context /out/ /
@@ -47,6 +39,5 @@ COPY --from=build_context /out/ /
 
 WORKDIR /
 
-EXPOSE 8443 8080
-
+EXPOSE 8443
 CMD ["sh"]

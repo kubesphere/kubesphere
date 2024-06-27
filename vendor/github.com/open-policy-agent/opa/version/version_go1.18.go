@@ -6,28 +6,3 @@
 // +build go1.18
 
 package version
-
-import (
-	"runtime/debug"
-)
-
-func init() {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		return
-	}
-	dirty := false
-	for _, s := range bi.Settings {
-		switch s.Key {
-		case "vcs.time":
-			Timestamp = s.Value
-		case "vcs.revision":
-			Vcs = s.Value
-		case "vcs.modified":
-			dirty = s.Value == "true"
-		}
-	}
-	if dirty {
-		Vcs = Vcs + "-dirty"
-	}
-}

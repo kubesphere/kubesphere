@@ -1,0 +1,534 @@
+# Copyright 2020 The Kubernetes Authors.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    api-approved.kubernetes.io: https://github.com/kubernetes-sigs/application/pull/2
+    controller-gen.kubebuilder.io/version: v0.4.0
+  labels:
+    kubesphere.io/resource-served: 'true'
+  creationTimestamp: null
+  name: applications.app.k8s.io
+spec:
+  group: app.k8s.io
+  names:
+    categories:
+      - all
+    kind: Application
+    listKind: ApplicationList
+    plural: applications
+    shortNames:
+      - app
+    singular: application
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - description: The type of the application
+          jsonPath: .spec.descriptor.type
+          name: Type
+          type: string
+        - description: The creation date
+          jsonPath: .spec.descriptor.version
+          name: Version
+          type: string
+        - description: The application object owns the matched resources
+          jsonPath: .spec.addOwnerRef
+          name: Owner
+          type: boolean
+        - description: Numbers of components ready
+          jsonPath: .status.componentsReady
+          name: Ready
+          type: string
+        - description: The creation date
+          jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1beta1
+      schema:
+        openAPIV3Schema:
+          description: Application is the Schema for the applications API
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: ApplicationSpec defines the specification for an Application.
+              properties:
+                addOwnerRef:
+                  description: AddOwnerRef objects - flag to indicate if we need to
+                    add OwnerRefs to matching objects Matching is done by using Selector
+                    to query all ComponentGroupKinds
+                  type: boolean
+                assemblyPhase:
+                  description: AssemblyPhase represents the current phase of the application's
+                    assembly. An empty value is equivalent to "Succeeded".
+                  type: string
+                componentKinds:
+                  description: ComponentGroupKinds is a list of Kinds for Application's
+                    components (e.g. Deployments, Pods, Services, CRDs). It can be used
+                    in conjunction with the Application's Selector to list or watch
+                    the Applications components.
+                  items:
+                    description: GroupKind specifies a Group and a Kind, but does not
+                      force a version.  This is useful for identifying concepts during
+                      lookup stages without having partially valid types
+                    properties:
+                      group:
+                        type: string
+                      kind:
+                        type: string
+                    required:
+                      - group
+                      - kind
+                    type: object
+                  type: array
+                descriptor:
+                  description: Descriptor regroups information and metadata about an
+                    application.
+                  properties:
+                    description:
+                      description: Description is a brief string description of the
+                        Application.
+                      type: string
+                    icons:
+                      description: Icons is an optional list of icons for an application.
+                        Icon information includes the source, size, and mime type.
+                      items:
+                        description: ImageSpec contains information about an image used
+                          as an icon.
+                        properties:
+                          size:
+                            description: (optional) The size of the image in pixels
+                              (e.g., 25x25).
+                            type: string
+                          src:
+                            description: The source for image represented as either
+                              an absolute URL to the image or a Data URL containing
+                              the image. Data URLs are defined in RFC 2397.
+                            type: string
+                          type:
+                            description: (optional) The mine type of the image (e.g.,
+                              "image/png").
+                            type: string
+                        required:
+                          - src
+                        type: object
+                      type: array
+                    keywords:
+                      description: Keywords is an optional list of key words associated
+                        with the application (e.g. MySQL, RDBMS, database).
+                      items:
+                        type: string
+                      type: array
+                    links:
+                      description: Links are a list of descriptive URLs intended to
+                        be used to surface additional documentation, dashboards, etc.
+                      items:
+                        description: Link contains information about an URL to surface
+                          documentation, dashboards, etc.
+                        properties:
+                          description:
+                            description: Description is human readable content explaining
+                              the purpose of the link.
+                            type: string
+                          url:
+                            description: Url typically points at a website address.
+                            type: string
+                        type: object
+                      type: array
+                    maintainers:
+                      description: Maintainers is an optional list of maintainers of
+                        the application. The maintainers in this list maintain the the
+                        source code, images, and package for the application.
+                      items:
+                        description: ContactData contains information about an individual
+                          or organization.
+                        properties:
+                          email:
+                            description: Email is the email address.
+                            type: string
+                          name:
+                            description: Name is the descriptive name.
+                            type: string
+                          url:
+                            description: Url could typically be a website address.
+                            type: string
+                        type: object
+                      type: array
+                    notes:
+                      description: Notes contain a human readable snippets intended
+                        as a quick start for the users of the Application. CommonMark
+                        markdown syntax may be used for rich text representation.
+                      type: string
+                    owners:
+                      description: Owners is an optional list of the owners of the installed
+                        application. The owners of the application should be contacted
+                        in the event of a planned or unplanned disruption affecting
+                        the application.
+                      items:
+                        description: ContactData contains information about an individual
+                          or organization.
+                        properties:
+                          email:
+                            description: Email is the email address.
+                            type: string
+                          name:
+                            description: Name is the descriptive name.
+                            type: string
+                          url:
+                            description: Url could typically be a website address.
+                            type: string
+                        type: object
+                      type: array
+                    type:
+                      description: Type is the type of the application (e.g. WordPress,
+                        MySQL, Cassandra).
+                      type: string
+                    version:
+                      description: Version is an optional version indicator for the
+                        Application.
+                      type: string
+                  type: object
+                info:
+                  description: Info contains human readable key,value pairs for the
+                    Application.
+                  items:
+                    description: InfoItem is a human readable key,value pair containing
+                      important information about how to access the Application.
+                    properties:
+                      name:
+                        description: Name is a human readable title for this piece of
+                          information.
+                        type: string
+                      type:
+                        description: Type of the value for this InfoItem.
+                        type: string
+                      value:
+                        description: Value is human readable content.
+                        type: string
+                      valueFrom:
+                        description: ValueFrom defines a reference to derive the value
+                          from another source.
+                        properties:
+                          configMapKeyRef:
+                            description: Selects a key of a ConfigMap.
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: 'If referring to a piece of an object instead
+                                of an entire object, this string should contain a
+                                valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                For example, if the object reference is to a container
+                                within a pod, this would take on a value like: "spec.containers{name}"
+                                (where "name" refers to the name of the container
+                                that triggered the event) or if no container name
+                                is specified "spec.containers[2]" (container with
+                                index 2 in this pod). This syntax is chosen only to
+                                have some well-defined way of referencing a part of
+                                an object. TODO: this design is not final and this
+                                field is subject to change in the future.'
+                                type: string
+                              key:
+                                description: The key to select.
+                                type: string
+                              kind:
+                                description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                type: string
+                              namespace:
+                                description: 'Namespace of the referent. More info:
+                                https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                type: string
+                              resourceVersion:
+                                description: 'Specific resourceVersion to which this
+                                reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                type: string
+                              uid:
+                                description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                type: string
+                            type: object
+                          ingressRef:
+                            description: Select an Ingress.
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: 'If referring to a piece of an object instead
+                                of an entire object, this string should contain a
+                                valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                For example, if the object reference is to a container
+                                within a pod, this would take on a value like: "spec.containers{name}"
+                                (where "name" refers to the name of the container
+                                that triggered the event) or if no container name
+                                is specified "spec.containers[2]" (container with
+                                index 2 in this pod). This syntax is chosen only to
+                                have some well-defined way of referencing a part of
+                                an object. TODO: this design is not final and this
+                                field is subject to change in the future.'
+                                type: string
+                              host:
+                                description: The optional host to select.
+                                type: string
+                              kind:
+                                description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                type: string
+                              namespace:
+                                description: 'Namespace of the referent. More info:
+                                https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                type: string
+                              path:
+                                description: The optional HTTP path.
+                                type: string
+                              protocol:
+                                description: Protocol for the ingress
+                                type: string
+                              resourceVersion:
+                                description: 'Specific resourceVersion to which this
+                                reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                type: string
+                              uid:
+                                description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                type: string
+                            type: object
+                          secretKeyRef:
+                            description: Selects a key of a Secret.
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: 'If referring to a piece of an object instead
+                                of an entire object, this string should contain a
+                                valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                For example, if the object reference is to a container
+                                within a pod, this would take on a value like: "spec.containers{name}"
+                                (where "name" refers to the name of the container
+                                that triggered the event) or if no container name
+                                is specified "spec.containers[2]" (container with
+                                index 2 in this pod). This syntax is chosen only to
+                                have some well-defined way of referencing a part of
+                                an object. TODO: this design is not final and this
+                                field is subject to change in the future.'
+                                type: string
+                              key:
+                                description: The key to select.
+                                type: string
+                              kind:
+                                description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                type: string
+                              namespace:
+                                description: 'Namespace of the referent. More info:
+                                https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                type: string
+                              resourceVersion:
+                                description: 'Specific resourceVersion to which this
+                                reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                type: string
+                              uid:
+                                description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                type: string
+                            type: object
+                          serviceRef:
+                            description: Select a Service.
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: 'If referring to a piece of an object instead
+                                of an entire object, this string should contain a
+                                valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                For example, if the object reference is to a container
+                                within a pod, this would take on a value like: "spec.containers{name}"
+                                (where "name" refers to the name of the container
+                                that triggered the event) or if no container name
+                                is specified "spec.containers[2]" (container with
+                                index 2 in this pod). This syntax is chosen only to
+                                have some well-defined way of referencing a part of
+                                an object. TODO: this design is not final and this
+                                field is subject to change in the future.'
+                                type: string
+                              kind:
+                                description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                type: string
+                              namespace:
+                                description: 'Namespace of the referent. More info:
+                                https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                type: string
+                              path:
+                                description: The optional HTTP path.
+                                type: string
+                              port:
+                                description: The optional port to select.
+                                format: int32
+                                type: integer
+                              protocol:
+                                description: Protocol for the service
+                                type: string
+                              resourceVersion:
+                                description: 'Specific resourceVersion to which this
+                                reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                type: string
+                              uid:
+                                description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                type: string
+                            type: object
+                          type:
+                            description: Type of source.
+                            type: string
+                        type: object
+                    type: object
+                  type: array
+                selector:
+                  description: 'Selector is a label query over kinds that created by
+                  the application. It must match the component objects'' labels. More
+                  info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements.
+                        The requirements are ANDed.
+                      items:
+                        description: A label selector requirement is a selector that
+                          contains values, a key, and an operator that relates the key
+                          and values.
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies
+                              to.
+                            type: string
+                          operator:
+                            description: operator represents a key's relationship to
+                              a set of values. Valid operators are In, NotIn, Exists
+                              and DoesNotExist.
+                            type: string
+                          values:
+                            description: values is an array of string values. If the
+                              operator is In or NotIn, the values array must be non-empty.
+                              If the operator is Exists or DoesNotExist, the values
+                              array must be empty. This array is replaced during a strategic
+                              merge patch.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                          - key
+                          - operator
+                        type: object
+                      type: array
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      description: matchLabels is a map of {key,value} pairs. A single
+                        {key,value} in the matchLabels map is equivalent to an element
+                        of matchExpressions, whose key field is "key", the operator
+                        is "In", and the values array contains only "value". The requirements
+                        are ANDed.
+                      type: object
+                  type: object
+              type: object
+            status:
+              description: ApplicationStatus defines controller's the observed state
+                of Application
+              properties:
+                components:
+                  description: Object status array for all matching objects
+                  items:
+                    description: ObjectStatus is a generic status holder for objects
+                    properties:
+                      group:
+                        description: Object group
+                        type: string
+                      kind:
+                        description: Kind of object
+                        type: string
+                      link:
+                        description: Link to object
+                        type: string
+                      name:
+                        description: Name of object
+                        type: string
+                      status:
+                        description: 'Status. Values: InProgress, Ready, Unknown'
+                        type: string
+                    type: object
+                  type: array
+                componentsReady:
+                  description: 'ComponentsReady: status of the components in the format
+                  ready/total'
+                  type: string
+                conditions:
+                  description: Conditions represents the latest state of the object
+                  items:
+                    description: Condition describes the state of an object at a certain
+                      point.
+                    properties:
+                      lastTransitionTime:
+                        description: Last time the condition transitioned from one status
+                          to another.
+                        format: date-time
+                        type: string
+                      lastUpdateTime:
+                        description: Last time the condition was probed
+                        format: date-time
+                        type: string
+                      message:
+                        description: A human readable message indicating details about
+                          the transition.
+                        type: string
+                      reason:
+                        description: The reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition, one of True, False, Unknown.
+                        type: string
+                      type:
+                        description: Type of condition.
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                observedGeneration:
+                  description: ObservedGeneration is the most recent generation observed.
+                    It corresponds to the Object's generation, which is updated on mutation
+                    by the API Server.
+                  format: int64
+                  type: integer
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

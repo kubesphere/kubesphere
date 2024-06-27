@@ -39,7 +39,7 @@ const (
 )
 
 func init() {
-	identityprovider.RegisterGenericProvider(&ldapProviderFactory{})
+	identityprovider.RegisterGenericProviderFactory(&ldapProviderFactory{})
 }
 
 type ldapProvider struct {

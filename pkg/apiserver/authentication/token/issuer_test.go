@@ -26,7 +26,6 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
@@ -62,28 +61,26 @@ PsSsOHhPx0g+Wl8K2+Edg3FQRZ1m0rQFAZn66jd96u85aA9NH/bw3A3VYUdVJyHh
 
 func TestNewIssuer(t *testing.T) {
 	signKeyData := base64.StdEncoding.EncodeToString([]byte(privateKeyData))
-	options := &authentication.Options{
+	config := &oauth.IssuerOptions{
+		Host:             "kubesphere",
+		SignKeyData:      signKeyData,
 		MaximumClockSkew: 10 * time.Second,
-		JwtSecret:        "test-secret",
-		OAuthOptions: &oauth.Options{
-			Issuer:      "kubesphere",
-			SignKeyData: signKeyData,
-		},
+		JWTSecret:        "test-secret",
 	}
-	got, err := NewIssuer(options)
+	got, err := NewIssuer(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	signKey, keyID, err := loadSignKey(options)
+	signKey, keyID, err := loadSignKey(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	want := &issuer{
-		name:             options.OAuthOptions.Issuer,
-		secret:           []byte(options.JwtSecret),
-		maximumClockSkew: options.MaximumClockSkew,
+		name:             config.Host,
+		secret:           []byte(config.JWTSecret),
+		maximumClockSkew: config.MaximumClockSkew,
 		signKey: &Keys{
 			SigningKey: &jose.JSONWebKey{
 				Key:       signKey,
@@ -100,21 +97,19 @@ func TestNewIssuer(t *testing.T) {
 		},
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("NewIssuer() got = %v, want %v", got, want)
+		t.Errorf("NewIssuerOptions() got = %v, want %v", got, want)
 		return
 	}
 }
 
 func TestNewIssuerGenerateSignKey(t *testing.T) {
-	options := &authentication.Options{
+	config := &oauth.IssuerOptions{
+		Host:             "kubesphere",
 		MaximumClockSkew: 10 * time.Second,
-		JwtSecret:        "test-secret",
-		OAuthOptions: &oauth.Options{
-			Issuer: "kubesphere",
-		},
+		JWTSecret:        "test-secret",
 	}
 
-	got, err := NewIssuer(options)
+	got, err := NewIssuer(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -335,7 +330,7 @@ func Test_issuer_keyFunc(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, err := NewIssuer(authentication.NewOptions())
+			s, err := NewIssuer(oauth.NewIssuerOptions())
 			if err != nil {
 				t.Error(err)
 				return

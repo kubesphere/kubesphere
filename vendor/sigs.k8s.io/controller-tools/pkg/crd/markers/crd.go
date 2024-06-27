@@ -283,7 +283,7 @@ type Resource struct {
 	Scope string `marker:",optional"`
 }
 
-func (s Resource) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version string) error {
+func (s Resource) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, _ string) error {
 	if s.Path != "" {
 		crd.Names.Plural = s.Path
 	}
@@ -362,13 +362,16 @@ type Metadata struct {
 	Labels []string `marker:",optional"`
 }
 
-func (s Metadata) ApplyToCRD(crd *apiext.CustomResourceDefinition, version string) error {
+func (s Metadata) ApplyToCRD(crd *apiext.CustomResourceDefinition, _ string) error {
 	if len(s.Annotations) > 0 {
 		if crd.Annotations == nil {
 			crd.Annotations = map[string]string{}
 		}
 		for _, str := range s.Annotations {
 			kv := strings.SplitN(str, "=", 2)
+			if len(kv) < 2 {
+				return fmt.Errorf("annotation %s is not in 'xxx=xxx' format", str)
+			}
 			crd.Annotations[kv[0]] = kv[1]
 		}
 	}

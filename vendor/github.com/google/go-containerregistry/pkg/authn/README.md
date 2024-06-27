@@ -4,15 +4,15 @@
 
 This README outlines how we acquire and use credentials when interacting with a registry.
 
-As much as possible, we attempt to emulate docker's authentication behavior and configuration so that this library "just works" if you've already configured credentials that work with docker; however, when things don't work, a basic understanding of what's going on can help with debugging.
+As much as possible, we attempt to emulate `docker`'s authentication behavior and configuration so that this library "just works" if you've already configured credentials that work with `docker`; however, when things don't work, a basic understanding of what's going on can help with debugging.
 
-The official documentation for how docker authentication works is (reasonably) scattered across several different sites and GitHub repositories, so we've tried to summarize the relevant bits here.
+The official documentation for how authentication with `docker` works is (reasonably) scattered across several different sites and GitHub repositories, so we've tried to summarize the relevant bits here.
 
 ## tl;dr for consumers of this package
 
 By default, [`pkg/v1/remote`](https://godoc.org/github.com/google/go-containerregistry/pkg/v1/remote) uses [`Anonymous`](https://godoc.org/github.com/google/go-containerregistry/pkg/authn#Anonymous) credentials (i.e. _none_), which for most registries will only allow read access to public images.
 
-To use the credentials found in your docker config file, you can use the [`DefaultKeychain`](https://godoc.org/github.com/google/go-containerregistry/pkg/authn#DefaultKeychain), e.g.:
+To use the credentials found in your Docker config file, you can use the [`DefaultKeychain`](https://godoc.org/github.com/google/go-containerregistry/pkg/authn#DefaultKeychain), e.g.:
 
 ```go
 package main
@@ -42,15 +42,95 @@ func main() {
 }
 ```
 
-(If you're only using [gcr.io](https://gcr.io), see the [`pkg/v1/google.Keychain`](https://godoc.org/github.com/google/go-containerregistry/pkg/v1/google#Keychain), which emulates [`docker-credential-gcr`](https://github.com/GoogleCloudPlatform/docker-credential-gcr).)
+The `DefaultKeychain` will use credentials as described in your Docker config file -- usually `~/.docker/config.json`, or `%USERPROFILE%\.docker\config.json` on Windows -- or the location described by the `DOCKER_CONFIG` environment variable, if set.
 
-## The Config File
+If those are not found, `DefaultKeychain` will look for credentials configured using [Podman's expectation](https://docs.podman.io/en/latest/markdown/podman-login.1.html) that these are found in `${XDG_RUNTIME_DIR}/containers/auth.json`.
 
-This file contains various configuration options for docker and is (by default) located at:
-* `$HOME/.docker/config.json` (on linux and darwin), or
-* `%USERPROFILE%\.docker\config.json` (on windows).
+[See below](#docker-config-auth) for more information about what is configured in this file.
 
-You can override this location with the `DOCKER_CONFIG` environment variable.
+## Emulating Cloud Provider Credential Helpers
+
+[`pkg/v1/google.Keychain`](https://pkg.go.dev/github.com/google/go-containerregistry/pkg/v1/google#Keychain) provides a `Keychain` implementation that emulates [`docker-credential-gcr`](https://github.com/GoogleCloudPlatform/docker-credential-gcr) to find credentials in the environment.
+See [`google.NewEnvAuthenticator`](https://pkg.go.dev/github.com/google/go-containerregistry/pkg/v1/google#NewEnvAuthenticator) and [`google.NewGcloudAuthenticator`](https://pkg.go.dev/github.com/google/go-containerregistry/pkg/v1/google#NewGcloudAuthenticator) for more information.
+
+To emulate other credential helpers without requiring them to be available as executables, [`NewKeychainFromHelper`](https://pkg.go.dev/github.com/google/go-containerregistry/pkg/authn#NewKeychainFromHelper) provides an adapter that takes a Go implementation satisfying a subset of the [`credentials.Helper`](https://pkg.go.dev/github.com/docker/docker-credential-helpers/credentials#Helper) interface, and makes it available as a `Keychain`.
+
+This means that you can emulate, for example, [Amazon ECR's `docker-credential-ecr-login` credential helper](https://github.com/awslabs/amazon-ecr-credential-helper) using the same implementation:
+
+```go
+import (
+	ecr "github.com/awslabs/amazon-ecr-credential-helper/ecr-login"
+	"github.com/awslabs/amazon-ecr-credential-helper/ecr-login/api"
+
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+)
+
+func main() {
+	// ...
+	ecrHelper := ecr.ECRHelper{ClientFactory: api.DefaultClientFactory{}}
+	img, err := remote.Get(ref, remote.WithAuthFromKeychain(authn.NewKeychainFromHelper(ecrHelper)))
+	if err != nil {
+		panic(err)
+	}
+	// ...
+}
+```
+
+Likewise, you can emulate [Azure's ACR `docker-credential-acr-env` credential helper](https://github.com/chrismellard/docker-credential-acr-env):
+
+```go
+import (
+	"github.com/chrismellard/docker-credential-acr-env/pkg/credhelper"
+
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+)
+
+func main() {
+	// ...
+	acrHelper := credhelper.NewACRCredentialsHelper()
+	img, err := remote.Get(ref, remote.WithAuthFromKeychain(authn.NewKeychainFromHelper(acrHelper)))
+	if err != nil {
+		panic(err)
+	}
+	// ...
+}
+```
+
+<!-- TODO(jasonhall): Wrap these in docker-credential-magic and reference those from here. -->
+
+## Using Multiple `Keychain`s
+
+[`NewMultiKeychain`](https://pkg.go.dev/github.com/google/go-containerregistry/pkg/authn#NewMultiKeychain) allows you to specify multiple `Keychain` implementations, which will be checked in order when credentials are needed.
+
+For example:
+
+```go
+kc := authn.NewMultiKeychain(
+    authn.DefaultKeychain,
+    google.Keychain,
+    authn.NewKeychainFromHelper(ecr.ECRHelper{ClientFactory: api.DefaultClientFactory{}}),
+    authn.NewKeychainFromHelper(acr.ACRCredHelper{}),
+)
+```
+
+This multi-keychain will:
+
+- first check for credentials found in the Docker config file, as describe above, then
+- check for GCP credentials available in the environment, as described above, then
+- check for ECR credentials by emulating the ECR credential helper, then
+- check for ACR credentials by emulating the ACR credential helper.
+
+If any keychain implementation is able to provide credentials for the request, they will be used, and further keychain implementations will not be consulted.
+
+If no implementations are able to provide credentials, `Anonymous` credentials will be used.
+
+## Docker Config Auth
+
+What follows attempts to gather useful information about Docker's config.json and make it available in one place.
+
+If you have questions, please [file an issue](https://github.com/google/go-containerregistry/issues/new).
 
 ### Plaintext
 
@@ -92,7 +172,7 @@ For what it's worth, this config file is equivalent to:
 
 ### Helpers
 
-If you log in like this, docker will warn you that you should use a [credential helper](https://docs.docker.com/engine/reference/commandline/login/#credentials-store), and you should!
+If you log in like this, `docker` will warn you that you should use a [credential helper](https://docs.docker.com/engine/reference/commandline/login/#credentials-store), and you should!
 
 To configure a global credential helper:
 ```json

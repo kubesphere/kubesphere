@@ -20,9 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	tenantv1alpha1 "kubesphere.io/api/tenant/v1alpha1"
-	tenantv1alpha2 "kubesphere.io/api/tenant/v1alpha2"
+	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
 )
 
 // IsControlledBy returns whether the ownerReferences contains the specified resource kind
@@ -39,8 +37,8 @@ func IsControlledBy(ownerReferences []metav1.OwnerReference, kind string, name s
 func RemoveWorkspaceOwnerReference(ownerReferences []metav1.OwnerReference) []metav1.OwnerReference {
 	tmp := make([]metav1.OwnerReference, 0)
 	for _, owner := range ownerReferences {
-		if owner.Kind != tenantv1alpha1.ResourceKindWorkspace &&
-			owner.Kind != tenantv1alpha2.ResourceKindWorkspaceTemplate {
+		if owner.Kind != tenantv1beta1.ResourceKindWorkspace &&
+			owner.Kind != tenantv1beta1.ResourceKindWorkspaceTemplate {
 			tmp = append(tmp, owner)
 		}
 	}
@@ -50,8 +48,8 @@ func RemoveWorkspaceOwnerReference(ownerReferences []metav1.OwnerReference) []me
 // GetWorkspaceOwnerName return workspace kind owner name
 func GetWorkspaceOwnerName(ownerReferences []metav1.OwnerReference) string {
 	for _, owner := range ownerReferences {
-		if owner.Kind == tenantv1alpha1.ResourceKindWorkspace ||
-			owner.Kind == tenantv1alpha2.ResourceKindWorkspaceTemplate {
+		if owner.Kind == tenantv1beta1.ResourceKindWorkspace ||
+			owner.Kind == tenantv1beta1.ResourceKindWorkspaceTemplate {
 			return owner.Name
 		}
 	}
@@ -71,4 +69,23 @@ func LoadKubeConfigFromBytes(kubeconfig []byte) (*rest.Config, error) {
 	}
 
 	return config, nil
+}
+
+func GetObjectMeta(obj metav1.Object) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:                       obj.GetName(),
+		GenerateName:               obj.GetGenerateName(),
+		Namespace:                  obj.GetNamespace(),
+		UID:                        obj.GetUID(),
+		ResourceVersion:            obj.GetResourceVersion(),
+		Generation:                 obj.GetGeneration(),
+		CreationTimestamp:          obj.GetCreationTimestamp(),
+		DeletionTimestamp:          obj.GetDeletionTimestamp(),
+		DeletionGracePeriodSeconds: obj.GetDeletionGracePeriodSeconds(),
+		Labels:                     obj.GetLabels(),
+		Annotations:                obj.GetAnnotations(),
+		OwnerReferences:            obj.GetOwnerReferences(),
+		Finalizers:                 obj.GetFinalizers(),
+		ManagedFields:              obj.GetManagedFields(),
+	}
 }

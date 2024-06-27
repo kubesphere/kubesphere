@@ -287,22 +287,37 @@ func (s *saveSupport) List() []*ast.Module {
 }
 
 func (s *saveSupport) Exists(path ast.Ref) bool {
-	k := path[:len(path)-1].String()
-	module, ok := s.modules[k]
+	pkg, ruleRef := splitPackageAndRule(path)
+	module, ok := s.modules[pkg.String()]
 	if !ok {
 		return false
 	}
-	name := ast.Var(path[len(path)-1].Value.(ast.String))
+
+	if len(ruleRef) == 1 {
+		name := ruleRef[0].Value.(ast.Var)
+		for _, rule := range module.Rules {
+			if rule.Head.Name.Equal(name) {
+				return true
+			}
+		}
+		return false
+	}
+
 	for _, rule := range module.Rules {
-		if rule.Head.Name.Equal(name) {
+		if rule.Head.Ref().HasPrefix(ruleRef) {
 			return true
 		}
 	}
+
 	return false
 }
 
 func (s *saveSupport) Insert(path ast.Ref, rule *ast.Rule) {
-	pkg := path[:len(path)-1]
+	pkg, _ := splitPackageAndRule(path)
+	s.InsertByPkg(pkg, rule)
+}
+
+func (s *saveSupport) InsertByPkg(pkg ast.Ref, rule *ast.Rule) {
 	k := pkg.String()
 	module, ok := s.modules[k]
 	if !ok {
@@ -315,6 +330,25 @@ func (s *saveSupport) Insert(path ast.Ref, rule *ast.Rule) {
 	}
 	rule.Module = module
 	module.Rules = append(module.Rules, rule)
+}
+
+func splitPackageAndRule(path ast.Ref) (ast.Ref, ast.Ref) {
+	p := path.Copy()
+
+	ruleRefStart := 2 // path always contains at least 3 terms (data. + one term in package + rule name)
+	for i := ruleRefStart; i < len(p.StringPrefix()); i++ {
+		t := p[i]
+		if str, ok := t.Value.(ast.String); ok && ast.IsVarCompatibleString(string(str)) {
+			ruleRefStart = i
+		} else {
+			break
+		}
+	}
+
+	pkg := p[:ruleRefStart]
+	rule := p[ruleRefStart:]
+	rule[0].Value = ast.Var(rule[0].Value.(ast.String))
+	return pkg, rule
 }
 
 // saveRequired returns true if the statement x will result in some expressions

@@ -193,12 +193,12 @@ func arraySubset(super, sub *ast.Array) bool {
 			return true
 		}
 
-		if superCursor == super.Len() {
+		if superCursor+subCursor == super.Len() {
 			return false
 		}
 
 		subElem := sub.Elem(subCursor)
-		superElem := sub.Elem(superCursor + subCursor)
+		superElem := super.Elem(superCursor + subCursor)
 		if superElem == nil {
 			return false
 		}

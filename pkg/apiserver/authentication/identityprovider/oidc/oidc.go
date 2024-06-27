@@ -36,7 +36,7 @@ import (
 )
 
 func init() {
-	identityprovider.RegisterOAuthProvider(&oidcProviderFactory{})
+	identityprovider.RegisterOAuthProviderFactory(&oidcProviderFactory{})
 }
 
 type oidcProvider struct {

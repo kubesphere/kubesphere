@@ -27,7 +27,7 @@ const (
 	ApiRootPath = "/kapis"
 )
 
-// container holds all webservice of apiserver
+// Container holds all webservice of apiserver
 var Container = restful.NewContainer()
 
 type ContainerBuilder []func(c *restful.Container) error
@@ -63,10 +63,4 @@ func (cb *ContainerBuilder) Register(funcs ...func(*restful.Container) error) {
 	for _, f := range funcs {
 		*cb = append(*cb, f)
 	}
-}
-
-func NewContainerBuilder(funcs ...func(*restful.Container) error) ContainerBuilder {
-	var cb ContainerBuilder
-	cb.Register(funcs...)
-	return cb
 }

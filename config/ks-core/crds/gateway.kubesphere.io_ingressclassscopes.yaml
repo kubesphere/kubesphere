@@ -1,0 +1,68 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: ingressclassscopes.gateway.kubesphere.io
+spec:
+  group: gateway.kubesphere.io
+  names:
+    kind: IngressClassScope
+    listKind: IngressClassScopeList
+    plural: ingressclassscopes
+    singular: ingressclassscope
+  scope: Cluster
+  versions:
+  - name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          IngressClassScope is a special resource used to
+          connect other gateways to the KubeSphere platform.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              ingressClass:
+                properties:
+                  default:
+                    type: boolean
+                  name:
+                    type: string
+                type: object
+              scope:
+                description: |-
+                  Watching scope, when both are empty, watching all namespaces,
+                  when neither is empty, namespaces is preferred.
+                properties:
+                  namespaceSelector:
+                    type: string
+                  namespaces:
+                    items:
+                      type: string
+                    type: array
+                type: object
+            type: object
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true

@@ -32,18 +32,19 @@ const (
 	// ScopeProfile This scope value requests access to the End-User's default profile Claims,
 	// which are: name, family_name, given_name, middle_name, nickname, preferred_username,
 	// profile, picture, website, gender, birthdate, zoneinfo, locale, and updated_at.
-	ScopeProfile = "profile"
-	// ScopePhone This scope value requests access to the phone_number and phone_number_verified Claims.
-	ScopePhone = "phone"
-	// ScopeAddress This scope value requests access to the address Claim.
-	ScopeAddress    = "address"
-	ResponseCode    = "code"
-	ResponseIDToken = "id_token"
-	ResponseToken   = "token"
+	ScopeProfile               = "profile"
+	ResponseTypeCode           = "code"
+	ResponseTypeIDToken        = "id_token"
+	ResponseTypeToken          = "token"
+	GrantTypePassword          = "password"
+	GrantTypeRefreshToken      = "refresh_token"
+	GrantTypeCode              = "code"
+	GrantTypeAuthorizationCode = "authorization_code"
+	GrantTypeOTP               = "otp"
 )
 
 var ValidScopes = []string{ScopeOpenID, ScopeEmail, ScopeProfile}
-var ValidResponseTypes = []string{ResponseCode, ResponseIDToken, ResponseToken}
+var ValidResponseTypes = []string{ResponseTypeCode, ResponseTypeIDToken, ResponseTypeToken}
 
 func IsValidScopes(scopes []string) bool {
 	for _, scope := range scopes {

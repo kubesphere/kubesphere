@@ -30,7 +30,7 @@ import (
 )
 
 func init() {
-	identityprovider.RegisterOAuthProvider(&casProviderFactory{})
+	identityprovider.RegisterOAuthProviderFactory(&casProviderFactory{})
 }
 
 type cas struct {

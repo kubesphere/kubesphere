@@ -17,9 +17,13 @@ limitations under the License.
 package statefulset
 
 import (
+	"context"
+
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -33,34 +37,32 @@ const (
 )
 
 type statefulSetGetter struct {
-	sharedInformers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &statefulSetGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &statefulSetGetter{cache: cache}
 }
 
 func (d *statefulSetGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Apps().V1().StatefulSets().Lister().StatefulSets(namespace).Get(name)
+	statefulSet := &appsv1.StatefulSet{}
+	return statefulSet, d.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, statefulSet)
 }
 
 func (d *statefulSetGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	// first retrieves all statefulSets within given namespace
-	statefulSets, err := d.sharedInformers.Apps().V1().StatefulSets().Lister().StatefulSets(namespace).List(query.Selector())
-	if err != nil {
+	statefulSets := &appsv1.StatefulSetList{}
+	if err := d.cache.List(context.Background(), statefulSets, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, deployment := range statefulSets {
-		result = append(result, deployment)
+	for _, item := range statefulSets.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
 func (d *statefulSetGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
 	leftStatefulSet, ok := left.(*appsv1.StatefulSet)
 	if !ok {
 		return false

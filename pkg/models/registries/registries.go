@@ -23,12 +23,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/docker/docker/api/types"
+	dockertypes "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 	"github.com/emicklei/go-restful/v3"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 )
@@ -61,11 +62,11 @@ type RegistryGetter interface {
 }
 
 type registryGetter struct {
-	informers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func NewRegistryGetter(informers informers.SharedInformerFactory) RegistryGetter {
-	return &registryGetter{informers: informers}
+func NewRegistryGetter(cacheReader runtimeclient.Reader) RegistryGetter {
+	return &registryGetter{cache: cacheReader}
 }
 
 func (c *registryGetter) VerifyRegistryCredential(credential api.RegistryCredential) error {
@@ -77,7 +78,7 @@ func (c *registryGetter) VerifyRegistryCredential(credential api.RegistryCredent
 		klog.Error(err)
 	}
 
-	config := types.AuthConfig{
+	config := dockertypes.AuthConfig{
 		Username:      credential.Username,
 		Password:      credential.Password,
 		Auth:          auth,
@@ -118,10 +119,12 @@ func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName strin
 	if namespace == "" || secretName == "" {
 		config = &DockerConfigEntry{}
 	} else {
-		secret, err := c.informers.Core().V1().Secrets().Lister().Secrets(namespace).Get(secretName)
-		if err != nil {
+		secret := &corev1.Secret{}
+		if err := c.cache.Get(context.Background(),
+			types.NamespacedName{Namespace: namespace, Name: secretName}, secret); err != nil {
 			return failedImageDetails, err
 		}
+		var err error
 		config, err = getDockerEntryFromDockerSecret(secret)
 		if err != nil {
 			return failedImageDetails, err

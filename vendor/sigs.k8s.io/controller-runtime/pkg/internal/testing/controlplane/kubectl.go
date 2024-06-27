@@ -112,6 +112,7 @@ func (k *KubeCtl) Run(args ...string) (stdout, stderr io.Reader, err error) {
 	cmd := exec.Command(k.Path, allArgs...)
 	cmd.Stdout = stdoutBuffer
 	cmd.Stderr = stderrBuffer
+	cmd.SysProcAttr = process.GetSysProcAttr()
 
 	err = cmd.Run()
 

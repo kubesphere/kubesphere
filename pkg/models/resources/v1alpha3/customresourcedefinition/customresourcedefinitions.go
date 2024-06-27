@@ -17,10 +17,14 @@ limitations under the License.
 package customresourcedefinition
 
 import (
+	"context"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -29,30 +33,28 @@ import (
 )
 
 type crdGetter struct {
-	informers apiextensionsinformers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(informers apiextensionsinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &crdGetter{
-		informers: informers,
-	}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &crdGetter{cache: cache}
 }
 
 func (c crdGetter) Get(_, name string) (runtime.Object, error) {
-	return c.informers.Apiextensions().V1().CustomResourceDefinitions().Lister().Get(name)
+	crd := &v1.CustomResourceDefinition{}
+	return crd, c.cache.Get(context.Background(), types.NamespacedName{Name: name}, crd)
 }
 
 func (c crdGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	crds, err := c.informers.Apiextensions().V1().CustomResourceDefinitions().Lister().List(query.Selector())
-	if err != nil {
+	crds := &v1.CustomResourceDefinitionList{}
+	if err := c.cache.List(context.Background(), crds,
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, crd := range crds {
-		result = append(result, crd)
+	for _, item := range crds.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, c.compare, c.filter), nil
 }
 
