@@ -447,7 +447,7 @@ func (h handler) handleGrafanaDashboardImport(req *restful.Request, resp *restfu
 
 		err = h.rtClient.Get(ctx, objKey, &dashboard)
 
-		if err == nil {
+		if err != nil {
 			api.HandleBadRequest(resp, nil, errors.New("dashboards with the same name already exists."))
 			return
 		}
