@@ -256,6 +256,10 @@ func (c *cachedRepos) addRepo(repo *v1alpha1.HelmRepo, builtin bool) error {
 		for _, chartVersion := range app.Charts {
 			chartsCount += 1
 			hvw := helmrepoindex.HelmVersionWrapper{ChartVersion: &chartVersion.ChartVersion}
+			if chartVersion.Metadata == nil {
+				klog.Infof("app %s: %d is invalid, skip", appName, chartsCount)
+				continue
+			}
 			appVerName = chartVersion.ApplicationVersionId
 			version := &v1alpha1.HelmApplicationVersion{
 				ObjectMeta: metav1.ObjectMeta{
