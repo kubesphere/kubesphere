@@ -420,7 +420,15 @@ func (c *ResponseCapture) Header() http.Header {
 func (c *ResponseCapture) Write(data []byte) (int, error) {
 	c.WriteHeader(http.StatusOK)
 	c.body.Write(data)
-	return c.ResponseWriter.Write(data)
+
+	n, err := c.ResponseWriter.Write(data)
+	if err != nil {
+		return n, err
+	}
+	if flusher, ok := c.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	return n, nil
 }
 
 func (c *ResponseCapture) WriteHeader(statusCode int) {

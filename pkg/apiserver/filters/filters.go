@@ -22,7 +22,6 @@ import (
 
 type metaResponseWriter struct {
 	http.ResponseWriter
-
 	statusCode int
 	size       int
 }
@@ -39,10 +38,20 @@ func (r *metaResponseWriter) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
+func (r *metaResponseWriter) Header() http.Header {
+	return r.ResponseWriter.Header()
+}
+
 func (r *metaResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.size += size
-	return size, err
+	if err != nil {
+		return size, err
+	}
+	if flusher, ok := r.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	return size, nil
 }
 
 func (r *metaResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
