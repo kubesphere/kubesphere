@@ -15,7 +15,7 @@ import (
 func EnrichSwaggerObject(swo *spec.Swagger) {
 	swo.Info = &spec.Info{
 		InfoProps: spec.InfoProps{
-			Title:       "KSE API",
+			Title:       "KubeSphere API",
 			Description: "KubeSphere Enterprise OpenAPI",
 			Version:     ksVersion.Get().GitVersion,
 			Contact: &spec.ContactInfo{

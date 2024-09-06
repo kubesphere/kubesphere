@@ -269,7 +269,7 @@ helmExecutor:
   image:
     registry: ""
     repository: kubesphere/kubectl
-    tag: "v1.27.12"
+    tag: "v1.27.16"
     pullPolicy: IfNotPresent
   resources:
     limits:
@@ -287,7 +287,7 @@ kubectl:
   image:
     registry: ""
     repository: kubesphere/kubectl
-    tag: "v1.27.12"
+    tag: "v1.27.16"
     pullPolicy: IfNotPresent
 
 ingress:
@@ -317,7 +317,7 @@ nodeShell:
   image:
     registry: ""
     repository: kubesphere/kubectl
-    tag: "v1.27.12"
+    tag: "v1.27.16"
     pullPolicy: IfNotPresent
 
 cloud:
@@ -329,7 +329,7 @@ extension:
   ingress:
     ingressClassName: ""
     # The domain name suffix used to create the ingress of each extension.
-    # Depending on your ingress address, it can be an LB hostname address (xx.com), {node_ip}.nip.io or an internal DNS address (kse.local).
+    # Depending on your ingress address, it can be an LB hostname address (xx.com), {node_ip}.nip.io or an internal DNS address (ks.local).
     domainSuffix: ""
     httpPort: 80
     httpsPort: 443
@@ -422,7 +422,7 @@ ksCRDs:
     image:
       registry: ""
       repository: kubesphere/kubectl
-      tag: "v1.27.12"
+      tag: "v1.27.16"
       pullPolicy: IfNotPresent
     resources:
       limits:

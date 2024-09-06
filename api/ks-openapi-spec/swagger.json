@@ -8,7 +8,7 @@
       "url": "https://kubesphere.com.cn",
       "email": "support@kubesphere.cloud"
     },
-    "version": "v3.3.2-cmft-rc.11"
+    "version": "v4.1.1"
   },
   "paths": {
     "/.well-known/openid-configuration": {
@@ -3213,6 +3213,27 @@
             "description": "Secret name of the image repository credential, left empty means anonymous fetch.",
             "name": "secret",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "page=%d",
+            "default": "page=1",
+            "description": "page",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "limit",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "ascending=false",
+            "description": "sort parameters, e.g. reverse=true",
+            "name": "ascending",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6233,9 +6254,6 @@
         "locale": {
           "type": "string"
         },
-        "name": {
-          "type": "string"
-        },
         "nbf": {
           "type": "string"
         },
@@ -6255,6 +6273,9 @@
           "type": "string"
         },
         "token_type": {
+          "type": "string"
+        },
+        "url": {
           "type": "string"
         },
         "username": {
@@ -11279,7 +11300,8 @@
       "required": [
         "registry",
         "repository",
-        "tags"
+        "tags",
+        "total"
       ],
       "properties": {
         "registry": {
@@ -11293,6 +11315,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "total": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
@@ -11386,7 +11412,8 @@
         "PermittedURIDomains",
         "ExcludedURIDomains",
         "CRLDistributionPoints",
-        "PolicyIdentifiers"
+        "PolicyIdentifiers",
+        "Policies"
       ],
       "properties": {
         "AuthorityKeyId": {
@@ -11526,6 +11553,12 @@
             "type": "string"
           }
         },
+        "Policies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/x509.OID"
+          }
+        },
         "PolicyIdentifiers": {
           "type": "array",
           "items": {
@@ -11606,7 +11639,17 @@
         }
       }
     },
-    "x509.Certificate.PublicKey": {}
+    "x509.Certificate.PublicKey": {},
+    "x509.OID": {
+      "required": [
+        "der"
+      ],
+      "properties": {
+        "der": {
+          "type": "string"
+        }
+      }
+    }
   },
   "securityDefinitions": {
     "BearerToken": {
