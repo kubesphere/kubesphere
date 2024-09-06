@@ -1,0 +1,88 @@
+{{- $kubeVersion := .Capabilities.KubeVersion }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Release.Name }}-post-delete-scripts"
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded,hook-failed
+data:
+  map.yaml: |
+    mappings:
+    {{- range $path, $_ := .Files.Glob "charts/ks-crds/crds/**" }}
+    {{- $crd := $.Files.Get $path | fromYaml }}
+    {{- range $_, $version := $crd.spec.versions }}
+      - deprecatedAPI: "apiVersion: {{ $crd.spec.group }}/{{ $version.name }}\nkind: {{ $crd.spec.names.kind }}\n"
+        removedInVersion: "{{ $kubeVersion }}"
+    {{- end }}
+    {{- end }}
+{{ (.Files.Glob "scripts/post-delete.sh").AsConfig | indent 2 }}
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Release.Name }}-post-delete"
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "{{ .Release.Name }}-post-delete"
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: "{{ .Release.Name }}-post-delete"
+    namespace: {{ .Release.Namespace }}
+
+---
+
+{{- $crdNameList := list }}
+{{- range $path, $_ := .Files.Glob "charts/ks-crds/crds/**" }}
+{{- $crd := $.Files.Get $path | fromYaml }}
+{{- $crdNameList = append $crdNameList $crd.metadata.name }}
+{{- end }}
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-post-delete"
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: "{{ .Release.Name }}-post-delete"
+      containers:
+        - name: post-delete-job
+          image: {{ template "kubectl.image" . }}
+          command:
+            - /bin/bash
+            - /scripts/post-delete.sh
+            - '{{ join " " $crdNameList }}'
+            - /scripts/map.yaml
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: "{{ .Release.Name }}-post-delete-scripts"
+            defaultMode: 420

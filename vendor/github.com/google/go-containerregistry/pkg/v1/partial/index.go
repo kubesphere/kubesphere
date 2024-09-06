@@ -26,7 +26,7 @@ func FindManifests(index v1.ImageIndex, matcher match.Matcher) ([]v1.Descriptor,
 	// get the actual manifest list
 	indexManifest, err := index.IndexManifest()
 	if err != nil {
-		return nil, fmt.Errorf("unable to get raw index: %v", err)
+		return nil, fmt.Errorf("unable to get raw index: %w", err)
 	}
 	manifests := []v1.Descriptor{}
 	// try to get the root of our image

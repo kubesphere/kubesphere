@@ -1,62 +1,61 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package globalrole
 
 import (
+	"context"
 	"encoding/json"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 )
 
-type globalrolesGetter struct {
-	sharedInformers informers.SharedInformerFactory
+type globalRolesGetter struct {
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &globalrolesGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &globalRolesGetter{cache: cache}
 }
 
-func (d *globalrolesGetter) Get(_, name string) (runtime.Object, error) {
-	return d.sharedInformers.Iam().V1alpha2().GlobalRoles().Lister().Get(name)
+func (d *globalRolesGetter) Get(_, name string) (runtime.Object, error) {
+	globalRole := &iamv1beta1.GlobalRole{}
+	return globalRole, d.cache.Get(context.Background(), types.NamespacedName{Name: name}, globalRole)
 }
 
-func (d *globalrolesGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-
-	var roles []*iamv1alpha2.GlobalRole
+func (d *globalRolesGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
+	var roles []*iamv1beta1.GlobalRole
 	var err error
 
-	if aggregateTo := query.Filters[iamv1alpha2.AggregateTo]; aggregateTo != "" {
+	if aggregateTo := query.Filters[iamv1beta1.AggregateTo]; aggregateTo != "" {
 		roles, err = d.fetchAggregationRoles(string(aggregateTo))
-		delete(query.Filters, iamv1alpha2.AggregateTo)
+		if err != nil {
+			return nil, err
+		}
+		delete(query.Filters, iamv1beta1.AggregateTo)
 	} else {
-		roles, err = d.sharedInformers.Iam().V1alpha2().GlobalRoles().Lister().List(query.Selector())
-	}
-
-	if err != nil {
-		return nil, err
+		globalRoleList := &iamv1beta1.GlobalRoleList{}
+		if err := d.cache.List(context.Background(), globalRoleList,
+			client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
+			return nil, err
+		}
+		roles = make([]*iamv1beta1.GlobalRole, 0)
+		for _, item := range globalRoleList.Items {
+			roles = append(roles, item.DeepCopy())
+		}
 	}
 
 	var result []runtime.Object
@@ -67,14 +66,13 @@ func (d *globalrolesGetter) List(_ string, query *query.Query) (*api.ListResult,
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
-func (d *globalrolesGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
-	leftRole, ok := left.(*iamv1alpha2.GlobalRole)
+func (d *globalRolesGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+	leftRole, ok := left.(*iamv1beta1.GlobalRole)
 	if !ok {
 		return false
 	}
 
-	rightRole, ok := right.(*iamv1alpha2.GlobalRole)
+	rightRole, ok := right.(*iamv1beta1.GlobalRole)
 	if !ok {
 		return false
 	}
@@ -82,8 +80,8 @@ func (d *globalrolesGetter) compare(left runtime.Object, right runtime.Object, f
 	return v1alpha3.DefaultObjectMetaCompare(leftRole.ObjectMeta, rightRole.ObjectMeta, field)
 }
 
-func (d *globalrolesGetter) filter(object runtime.Object, filter query.Filter) bool {
-	role, ok := object.(*iamv1alpha2.GlobalRole)
+func (d *globalRolesGetter) filter(object runtime.Object, filter query.Filter) bool {
+	role, ok := object.(*iamv1beta1.GlobalRole)
 
 	if !ok {
 		return false
@@ -92,8 +90,8 @@ func (d *globalrolesGetter) filter(object runtime.Object, filter query.Filter) b
 	return v1alpha3.DefaultObjectMetaFilter(role.ObjectMeta, filter)
 }
 
-func (d *globalrolesGetter) fetchAggregationRoles(name string) ([]*iamv1alpha2.GlobalRole, error) {
-	roles := make([]*iamv1alpha2.GlobalRole, 0)
+func (d *globalRolesGetter) fetchAggregationRoles(name string) ([]*iamv1beta1.GlobalRole, error) {
+	roles := make([]*iamv1beta1.GlobalRole, 0)
 
 	obj, err := d.Get("", name)
 
@@ -104,7 +102,7 @@ func (d *globalrolesGetter) fetchAggregationRoles(name string) ([]*iamv1alpha2.G
 		return nil, err
 	}
 
-	if annotation := obj.(*iamv1alpha2.GlobalRole).Annotations[iamv1alpha2.AggregationRolesAnnotation]; annotation != "" {
+	if annotation := obj.(*iamv1beta1.GlobalRole).Annotations[iamv1beta1.AggregationRolesAnnotation]; annotation != "" {
 		var roleNames []string
 		if err = json.Unmarshal([]byte(annotation), &roleNames); err == nil {
 
@@ -119,7 +117,7 @@ func (d *globalrolesGetter) fetchAggregationRoles(name string) ([]*iamv1alpha2.G
 					return nil, err
 				}
 
-				roles = append(roles, role.(*iamv1alpha2.GlobalRole))
+				roles = append(roles, role.(*iamv1beta1.GlobalRole))
 			}
 		}
 	}

@@ -24,24 +24,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1" //nolint:staticcheck
+	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
 
 // ControllerManagerConfiguration defines the functions necessary to parse a config file
 // and to configure the Options struct for the ctrl.Manager.
 //
-// Deprecated: This package has been deprecated and will be removed in a future release.
+// Deprecated: The component config package has been deprecated and will be removed in a future release. Users should migrate to their own config implementation, please share feedback in https://github.com/kubernetes-sigs/controller-runtime/issues/895.
 type ControllerManagerConfiguration interface {
 	runtime.Object
 
 	// Complete returns the versioned configuration
-	Complete() (v1alpha1.ControllerManagerConfigurationSpec, error) //nolint:staticcheck
+	Complete() (v1alpha1.ControllerManagerConfigurationSpec, error)
 }
 
 // DeferredFileLoader is used to configure the decoder for loading controller
 // runtime component config types.
 //
-// Deprecated: This package has been deprecated and will be removed in a future release.
+// Deprecated: The component config package has been deprecated and will be removed in a future release. Users should migrate to their own config implementation, please share feedback in https://github.com/kubernetes-sigs/controller-runtime/issues/895.
 type DeferredFileLoader struct {
 	ControllerManagerConfiguration
 	path   string
@@ -57,7 +57,7 @@ type DeferredFileLoader struct {
 // * Path: "./config.yaml"
 // * Kind: GenericControllerManagerConfiguration
 //
-// Deprecated: This package has been deprecated and will be removed in a future release.
+// Deprecated: The component config package has been deprecated and will be removed in a future release. Users should migrate to their own config implementation, please share feedback in https://github.com/kubernetes-sigs/controller-runtime/issues/895.
 func File() *DeferredFileLoader {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
@@ -69,8 +69,6 @@ func File() *DeferredFileLoader {
 }
 
 // Complete will use sync.Once to set the scheme.
-//
-// Deprecated: This package has been deprecated and will be removed in a future release.
 func (d *DeferredFileLoader) Complete() (v1alpha1.ControllerManagerConfigurationSpec, error) {
 	d.once.Do(d.loadFile)
 	if d.err != nil {
@@ -79,33 +77,19 @@ func (d *DeferredFileLoader) Complete() (v1alpha1.ControllerManagerConfiguration
 	return d.ControllerManagerConfiguration.Complete()
 }
 
-// AtPath will set the path to load the file for the decoder
-//
-// Deprecated: This package has been deprecated and will be removed in a future release.
+// AtPath will set the path to load the file for the decoder.
 func (d *DeferredFileLoader) AtPath(path string) *DeferredFileLoader {
 	d.path = path
 	return d
 }
 
 // OfKind will set the type to be used for decoding the file into.
-//
-// Deprecated: This package has been deprecated and will be removed in a future release.
 func (d *DeferredFileLoader) OfKind(obj ControllerManagerConfiguration) *DeferredFileLoader {
 	d.ControllerManagerConfiguration = obj
 	return d
 }
 
-// InjectScheme will configure the scheme to be used for decoding the file.
-//
-// Deprecated: This package has been deprecated and will be removed in a future release.
-func (d *DeferredFileLoader) InjectScheme(scheme *runtime.Scheme) error {
-	d.scheme = scheme
-	return nil
-}
-
 // loadFile is used from the mutex.Once to load the file.
-//
-// Deprecated: This package has been deprecated and will be removed in a future release.
 func (d *DeferredFileLoader) loadFile() {
 	if d.scheme == nil {
 		d.err = fmt.Errorf("scheme not supplied to controller configuration loader")

@@ -1,43 +1,78 @@
-# Default values for ks-core.
+## @param global.imageRegistry Global Docker image registry
+## @param global.tag Global Docker image tag
+global:
+  imageRegistry: docker.io
+  tag: v4.1.1
+  imagePullSecrets: []
 
-replicaCount: 1
-
-image:
-  # Overrides the image tag whose default is the chart appVersion.
-  ks_controller_manager_repo: kubesphere/ks-controller-manager
-  ks_controller_manager_tag: ""
-
-  ks_apiserver_repo: kubesphere/ks-apiserver
-  ks_apiserver_tag: ""
-  ks_console_repo: "kubesphere/ks-console"
-  ks_console_tag: ""
-
-  ks_kubectl_repo: kubesphere/kubectl
-  ks_kubectl_tag: ""
-
-  pullPolicy: IfNotPresent
-
-adminPassword: ""
-
-config:
-  # Specifies whether the kubesphere-config configmap should be created
-  create: true
-  authentication:
-    oauthOptions:
-      clients:
-      - name: kubesphere
-        secret: kubesphere
-        redirectURIs:
-        - '*'
-  # Jwt Secret is required by ks-apiserver, a random string would be generated if it's empty
-  jwtSecret: ""
-  multicluster: {}
-  monitoring: {}
-  notification: {}
-
-imagePullSecrets: []
+## @param nameOverride String to partially override common.names.fullname
+##
 nameOverride: ""
+## @param fullnameOverride String to fully override common.names.fullname
+##
 fullnameOverride: ""
+## @param commonLabels Labels to add to all deployed objects
+##
+commonLabels: {}
+## @param commonAnnotations Annotations to add to all deployed objects
+##
+commonAnnotations: {}
+
+## Role represents the role of the current cluster,
+## and it can have one of two values: "host" or "member".
+## Priority: specified in values > get from kubesphere-config > default role (host)
+role: ""
+
+## Priority: specified in values > get from kubesphere-config > default name (host)
+hostClusterName: ""
+
+portal:
+  ## The IP address or hostname to access ks-console service.
+  ## DO NOT use IP address if ingress is enabled.
+  hostname: "ks-console.kubesphere-system.svc"
+  http:
+    port: 30880
+#  https:
+#    port: 30443
+
+s3:
+  #  If endpoint is empty, disable s3 storage
+  endpoint: ""
+  region: "us-east-1"
+  disableSSL: true
+  forcePathStyle: true
+  accessKeyID: "admin"
+  secretAccessKey: "admin"
+  bucket: "uploads"
+
+authentication:
+  authenticateRateLimiterMaxTries: 10
+  authenticationRateLimiterDuration: 10m0s
+  loginHistoryRetentionPeriod: 168h
+  enableMultiLogin: true
+  adminPassword: ""
+  issuer:
+    maximumClockSkew: 10s
+    # Jwt Secret is required by ks-apiserver, a random string would be generated if it's empty
+    # Priority: specified in values > get from kubesphere-config > default jwtSecret (a random string)
+    jwtSecret: ""
+    accessTokenMaxAge: 2h
+    accessTokenInactivityTimeout: 30m
+
+experimental:
+  # Strict fails the request on unknown/duplicate fields
+  # Ignore ignores unknown/duplicate fields
+  # Warn responds with a warning, but successfully serve the request
+  validationDirective: ""
+auditing:
+  enable: false
+  auditLevel: Metadata
+  logOptions:
+    path: /etc/audit/audit.log
+    maxAge: 7
+    maxBackups: 10
+    maxSize: 100
+
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -45,48 +80,56 @@ serviceAccount:
   # Annotations to add to the service account
   annotations: {}
   # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
   name: "kubesphere"
 
-podAnnotations: {}
-
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
-# Kubernetes Version shows in KubeSphere console
-kube_version: "v1.19.4"
-
-env: []
-
-tolerations: 
+tolerations:
   - key: node-role.kubernetes.io/master
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
     effect: NoSchedule
   - key: CriticalAddonsOnly
     operator: Exists
-  - effect: NoExecute
-    key: node.kubernetes.io/not-ready
-    operator: Exists
-    tolerationSeconds: 60
-  - effect: NoExecute
-    key: node.kubernetes.io/unreachable
-    operator: Exists
-    tolerationSeconds: 60
 
-affinity: {}
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-role.kubernetes.io/control-plane
+              operator: In
+              values:
+                - ""
 
 nodeSelector: {}
 
-## deployment specific configuration
+## enable tls communication between all components
+internalTLS: false
 
 apiserver:
+  image:
+    registry: ""
+    repository: kubesphere/ks-apiserver
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+    ## Optionally, specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## e.g.:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+  ## @param containerPorts [array] List of container ports to enable in the ks-apiserver container
+  ##
+  containerPorts:
+    - protocol: TCP
+      containerPort: 9090
+  # nodePort: 30881
+  ## @param resources.limits The resource limits for the ks-apiserver containers
+  ## @param resources.requests The requested resources for the ks-apiserver containers
+  ##
   resources:
     limits:
       cpu: 1
@@ -94,20 +137,52 @@ apiserver:
     requests:
       cpu: 20m
       memory: 100Mi
-
+  ## @param command Override default container command (useful when using custom images)
+  ##
+  command:
+    - ks-apiserver
+    - --logtostderr=true
+  ## @param extraEnvVars Array with extra environment variables to add to ks-apiserver
+  ## e.g.:
+  ## extraEnvVars:
+  ##   - name: FOO
+  ##     value: "bar"
+  ##
+  extraEnvVars: []
+  ## @param extraVolumeMounts Optionally specify an extra list of additional volumeMounts for the ks-apiserver container(s)
+  ##
   extraVolumeMounts: []
-  ## Additional volumeMounts to the apiserver container.
-  #  - name: example-config
-  #   mountPath: /etc/kubesphere/example
-
+  ## @param extraVolumes Optionally specify an extra list of additional volumes for the ks-apiserver pod(s)
+  ##
   extraVolumes: []
-  ## Additional volumes to the apiserver pod.
-  #  - name: example-config
-  #    emptyDir: {}
+
+  ## Whether the ks-apiserver pods should be forced to run on separate nodes.
+  hardAntiAffinity: false
 
 console:
+  image:
+    registry: ""
+    repository: kubesphere/ks-console
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+    ## Optionally, specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## e.g.:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+  config:
+    enableNodeListTerminal: true
+  ## @param containerPorts [array] List of container ports to enable in the ks-console container
+  ##
+  containerPorts: []
   nodePort: 30880
-  defaultClusterName: "default"
+  ## @param resources.limits The resource limits for the ks-console containers
+  ## @param resources.requests The requested resources for the ks-console containers
+  ##
   resources:
     limits:
       cpu: 1
@@ -115,18 +190,47 @@ console:
     requests:
       cpu: 20m
       memory: 100Mi
-
+  ## @param command Override default container command (useful when using custom images)
+  ##
+  command: []
+  ## @param extraEnvVars Array with extra environment variables to add to ks-console
+  ##
+  extraEnvVars: []
+  ## @param extraVolumeMounts Optionally specify an extra list of additional volumeMounts for the ks-console container(s)
+  ##
   extraVolumeMounts: []
-  ## Additional volumeMounts to the console container.
-  #  - name: example-config
-  #   mountPath: /etc/kubesphere/example
-
+  ## @param extraVolumes Optionally specify an extra list of additional volumes for the ks-console pod(s)
+  ##
   extraVolumes: []
-  ## Additional volumes to the console pod.
-  #  - name: example-config
-  #    emptyDir: {}
+
+  ## Whether the ks-console pods should be forced to run on separate nodes.
+  hardAntiAffinity: false
 
 controller:
+  image:
+    registry: ""
+    repository: kubesphere/ks-controller-manager
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+    ## Optionally, specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## e.g.:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+  ## @param containerPorts [array] List of container ports to enable in the ks-controller-manager container
+  ##
+  containerPorts:
+    - containerPort: 8080
+      protocol: TCP
+    - containerPort: 8443
+      protocol: TCP
+  ## @param resources.limits The resource limits for the ks-controller-manager containers
+  ## @param resources.requests The requested resources for the ks-controller-manager containers
+  ##
   resources:
     limits:
       cpu: 1
@@ -134,14 +238,196 @@ controller:
     requests:
       cpu: 30m
       memory: 50Mi
-
+  ## @param command Override default container command (useful when using custom images)
+  ##
+  command:
+    - controller-manager
+    - --logtostderr=true
+    - --leader-elect=true
+    - --controllers=*
+  ## @param extraEnvVars Array with extra environment variables to add to ks-controller-manager
+  ##
+  extraEnvVars: []
+  ## @param extraVolumeMounts Optionally specify an extra list of additional volumeMounts for the ks-controller-manager container(s)
+  ##
   extraVolumeMounts: []
-  ## Additional volumeMounts to the controller container.
-  #  - name: example-config
-  #   mountPath: /etc/kubesphere/example
-
+  ## @param extraVolumes Optionally specify an extra list of additional volumes for the ks-controller-manager pod(s)
+  ##
   extraVolumes: []
-  ## Additional volumes to the controller pod.
-  #  - name: example-config
-  #    emptyDir: {}
 
+  ## Whether the ks-controller-manager pods should be forced to run on separate nodes.
+  hardAntiAffinity: false
+
+agent:
+  replicaCount: 1
+
+helmExecutor:
+  timeout: 10m
+  historyMax: 2
+  # clean up all finished Jobs after this time, 0s means no to clean up
+  jobTTLAfterFinished: 0s
+  image:
+    registry: ""
+    repository: kubesphere/kubectl
+    tag: "v1.27.16"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 100m
+      memory: 100Mi
+
+composedApp:
+  # Selector to filter k8s applications to reconcile
+  appSelector: ""
+
+kubectl:
+  image:
+    registry: ""
+    repository: kubesphere/kubectl
+    tag: "v1.27.16"
+    pullPolicy: IfNotPresent
+
+ingress:
+  # If set to false, ingress will not be created
+  # Defaults to true
+  # options: true, false
+  enabled: false
+
+  # options: traefik, nginx
+  ingressClassName: ""
+  # backend port number
+  tls:
+    enabled: true
+    # options: generation, importation, letsEncrypt
+    source: generation
+    secretName: kubesphere-tls-certs
+
+letsEncrypt:
+  # email: none@example.com
+  environment: production
+
+certmanager:
+  duration: 2160h
+  renewBefore: 360h
+
+nodeShell:
+  image:
+    registry: ""
+    repository: kubesphere/kubectl
+    tag: "v1.27.16"
+    pullPolicy: IfNotPresent
+
+cloud:
+  enabled: true
+
+extension:
+  imageRegistry: ""
+  nodeSelector: {}
+  ingress:
+    ingressClassName: ""
+    # The domain name suffix used to create the ingress of each extension.
+    # Depending on your ingress address, it can be an LB hostname address (xx.com), {node_ip}.nip.io or an internal DNS address (ks.local).
+    domainSuffix: ""
+    httpPort: 80
+    httpsPort: 443
+
+hook:
+  resources:
+    limits:
+      cpu: 1
+      memory: 1024Mi
+    requests:
+      cpu: 20m
+      memory: 100Mi
+
+ha:
+  enabled: false
+#  cache:
+#    type: redis
+#    options:
+#      host: ""
+#      port: 6379
+#      password: ""
+#      db: 0
+
+redis:
+  port: 6379
+  image:
+    registry: ""
+    repository: kubesphere/redis
+    digest: ""
+    tag: 7.2.4-alpine
+    pullPolicy: IfNotPresent
+  persistentVolume:
+    enabled: true
+    size: 2Gi
+
+redisHA:
+  enabled: false
+  redis:
+    port: 6379
+  image:
+    registry: ""
+    repository: kubesphere/redis
+    tag: 7.2.4-alpine
+    digest: ""
+    pullPolicy: IfNotPresent
+  persistentVolume:
+    enabled: true
+    size: 2Gi
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+    - key: CriticalAddonsOnly
+      operator: Exists
+  hardAntiAffinity: false
+  additionalAffinities:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: In
+                values:
+                  - ""
+  haproxy:
+    servicePort: 6379
+    containerPort: 6379
+    image:
+      registry: ""
+      repository: kubesphere/haproxy
+      tag: 2.9.6-alpine
+      digest: ""
+      pullPolicy: IfNotPresent
+    hardAntiAffinity: false
+    additionalAffinities:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: In
+                  values:
+                    - ""
+
+ksCRDs:
+  preUpgrade:
+    image:
+      registry: ""
+      repository: kubesphere/kubectl
+      tag: "v1.27.16"
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 1
+        memory: 1024Mi
+      requests:
+        cpu: 20m
+        memory: 100Mi

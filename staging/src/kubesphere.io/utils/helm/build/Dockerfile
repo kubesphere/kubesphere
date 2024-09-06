@@ -1,14 +1,10 @@
-# Copyright 2022 The KubeSphere Authors. All rights reserved.
-# Use of this source code is governed by an Apache license
-# that can be found in the LICENSE file.
-
 # Download dependencies
-FROM alpine:3.16 as base_os_context
+FROM alpine:3.18 as base_os_context
 
 ARG TARGETARCH=amd64
 ARG TARGETOS=linux
-ARG HELM_VERSION=v3.5.2
-ARG KUSTOMIZE_VERSION=v4.2.0
+ARG HELM_VERSION=v3.12.1
+ARG KUSTOMIZE_VERSION=v5.1.0
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin
@@ -28,7 +24,7 @@ RUN tar xvzf /tmp/kustomize_${KUSTOMIZE_VERSION}_${TARGETOS}_${TARGETARCH}.tar.g
 RUN mv /tmp/kustomize ${OUTDIR}/usr/local/bin/
 
 # Final Image
-FROM alpine:3.16
+FROM alpine:3.18
 
 COPY --from=base_os_context /out/ /
 

@@ -46,7 +46,7 @@ func builtinRegexMatch(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Te
 	if err != nil {
 		return err
 	}
-	return iter(ast.BooleanTerm(re.Match([]byte(s2))))
+	return iter(ast.BooleanTerm(re.MatchString(string(s2))))
 }
 
 func builtinRegexMatchTemplate(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {

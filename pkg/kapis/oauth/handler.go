@@ -1,22 +1,12 @@
 /*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package oauth
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -30,8 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog/v2"
-
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
@@ -39,17 +28,16 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/apiserver/rest"
 	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
-	"kubesphere.io/kubesphere/pkg/server/errors"
+	serverrors "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 const (
-	KindTokenReview       = "TokenReview"
-	grantTypePassword     = "password"
-	grantTypeRefreshToken = "refresh_token"
-	grantTypeCode         = "code"
+	KindTokenReview            = "TokenReview"
+	internalServerErrorMessage = "An internal server error occurred while processing the request."
 )
 
 type Spec struct {
@@ -80,8 +68,8 @@ func (request *TokenReview) Validate() error {
 	return nil
 }
 
-// https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
-type discovery struct {
+// ProviderMetadata https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+type ProviderMetadata struct {
 	// URL using the https scheme with no query or fragment component that the OP
 	// asserts as its Issuer Identifier.
 	Issuer string `json:"issuer"`
@@ -121,20 +109,29 @@ type handler struct {
 	passwordAuthenticator auth.PasswordAuthenticator
 	oauthAuthenticator    auth.OAuthAuthenticator
 	loginRecorder         auth.LoginRecorder
+	clientGetter          oauth.ClientGetter
 }
 
-func newHandler(im im.IdentityManagementInterface,
+func NewHandler(im im.IdentityManagementInterface,
 	tokenOperator auth.TokenManagementInterface,
 	passwordAuthenticator auth.PasswordAuthenticator,
-	oauthAuthenticator auth.OAuthAuthenticator,
+	oauth2Authenticator auth.OAuthAuthenticator,
 	loginRecorder auth.LoginRecorder,
-	options *authentication.Options) *handler {
-	return &handler{im: im,
+	options *authentication.Options,
+	oauthOperator oauth.ClientGetter) rest.Handler {
+	handler := &handler{im: im,
 		tokenOperator:         tokenOperator,
 		passwordAuthenticator: passwordAuthenticator,
-		oauthAuthenticator:    oauthAuthenticator,
+		oauthAuthenticator:    oauth2Authenticator,
 		loginRecorder:         loginRecorder,
-		options:               options}
+		options:               options,
+		clientGetter:          oauthOperator}
+	return handler
+}
+
+func FakeHandler() rest.Handler {
+	handler := &handler{}
+	return handler
 }
 
 // tokenReview Implement webhook authentication interface
@@ -168,53 +165,51 @@ func (h *handler) tokenReview(req *restful.Request, resp *restful.Response) {
 		},
 	}
 
-	resp.WriteEntity(success)
+	_ = resp.WriteEntity(success)
 }
 
-func (h *handler) discovery(req *restful.Request, response *restful.Response) {
-	result := discovery{
-		Issuer:            h.options.OAuthOptions.Issuer,
-		Auth:              h.options.OAuthOptions.Issuer + "/authorize",
-		Token:             h.options.OAuthOptions.Issuer + "/token",
-		Keys:              h.options.OAuthOptions.Issuer + "/keys",
-		UserInfo:          h.options.OAuthOptions.Issuer + "/userinfo",
+func (h *handler) discovery(_ *restful.Request, response *restful.Response) {
+	result := ProviderMetadata{
+		Issuer:            h.options.Issuer.URL,
+		Auth:              h.options.Issuer.URL + root + "/authorize",
+		Token:             h.options.Issuer.URL + root + "/token",
+		Keys:              h.options.Issuer.URL + root + "/keys",
+		UserInfo:          h.options.Issuer.URL + root + "/userinfo",
 		Subjects:          []string{"public"},
-		GrantTypes:        []string{"authorization_code", "refresh_token"},
+		GrantTypes:        []string{oauth.GrantTypeAuthorizationCode, oauth.GrantTypeRefreshToken},
 		IDTokenAlgs:       []string{string(jose.RS256)},
-		CodeChallengeAlgs: []string{"S256", "plain"},
-		Scopes:            []string{"openid", "email", "profile", "offline_access"},
-		// TODO(hongming) support client_secret_jwt
-		AuthMethods: []string{"client_secret_basic", "client_secret_post"},
+		CodeChallengeAlgs: []string{"plain", "S256"},
+		Scopes:            []string{oauth.ScopeOpenID, oauth.ScopeEmail, oauth.ScopeProfile},
+		AuthMethods:       []string{"client_secret_post"},
 		Claims: []string{
 			"iss", "sub", "aud", "iat", "exp", "email", "locale", "preferred_username",
 		},
 		ResponseTypes: []string{
-			"code",
-			"token",
+			oauth.ResponseTypeCode,
+			oauth.ResponseTypeIDToken,
 		},
 	}
 
-	response.WriteEntity(result)
+	_ = response.WriteAsJson(result)
 }
 
-func (h *handler) keys(req *restful.Request, response *restful.Response) {
+func (h *handler) keys(_ *restful.Request, response *restful.Response) {
 	jwks := jose.JSONWebKeySet{
 		Keys: []jose.JSONWebKey{*h.tokenOperator.Keys().SigningKeyPub},
 	}
-	response.WriteEntity(jwks)
+	_ = response.WriteEntity(jwks)
 }
 
 // The Authorization Endpoint performs Authentication of the End-User.
 func (h *handler) authorize(req *restful.Request, response *restful.Response) {
-	var scope, responseType, clientID, redirectURI, state, nonce string
+	var scope, responseType, clientID, redirectURI, state, nonce, prompt string
 	scope = req.QueryParameter("scope")
 	clientID = req.QueryParameter("client_id")
 	redirectURI = req.QueryParameter("redirect_uri")
-	//prompt = req.QueryParameter("prompt")
 	responseType = req.QueryParameter("response_type")
 	state = req.QueryParameter("state")
 	nonce = req.QueryParameter("nonce")
-
+	prompt = req.QueryParameter("prompt")
 	// Authorization Servers MUST support the use of the HTTP GET and POST methods
 	// defined in RFC 2616 [RFC2616] at the Authorization Endpoint.
 	if req.Request.Method == http.MethodPost {
@@ -224,25 +219,43 @@ func (h *handler) authorize(req *restful.Request, response *restful.Response) {
 		responseType, _ = req.BodyParameter("response_type")
 		state, _ = req.BodyParameter("state")
 		nonce, _ = req.BodyParameter("nonce")
+		prompt, _ = req.BodyParameter("prompt")
 	}
 
-	oauthClient, err := h.options.OAuthOptions.OAuthClient(clientID)
+	client, err := h.clientGetter.GetOAuthClient(req.Request.Context(), clientID)
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidClient(err))
+		if errors.Is(err, oauth.ErrorClientNotFound) {
+			_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidClient("The provided client_id is invalid or does not exist."))
+			return
+		}
+		klog.Errorf("failed to get oauth client: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
 	}
 
-	redirectURL, err := oauthClient.ResolveRedirectURL(redirectURI)
+	redirectURL, err := client.ResolveRedirectURL(redirectURI)
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidRequest(err))
+		_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidRequest("Redirect URI is not allowed."))
 		return
 	}
 
-	authenticated, _ := request.UserFrom(req.Request.Context())
-	if authenticated == nil || authenticated.GetName() == user.Anonymous {
-		response.Header().Add("WWW-Authenticate", "Basic")
-		response.WriteHeaderAndEntity(http.StatusUnauthorized, oauth.ErrorLoginRequired)
-		return
+	// Unless the Redirection URI is invalid, the Authorization Server returns the Client to the Redirection URI
+	// specified in the Authorization Request with the appropriate error and state parameters.
+	// Other parameters SHOULD NOT be returned.
+	// The authorization server informs the client by adding the following
+	// parameters to the query component of the redirection URI using the
+	// "application/x-www-form-urlencoded" format
+	informsError := func(err *oauth.Error) {
+		values := make(url.Values)
+		values.Add("error", string(err.Type))
+		if err.Description != "" {
+			values.Add("error_description", err.Description)
+		}
+		if state != "" {
+			values.Add("state", state)
+		}
+		redirectURL.RawQuery = values.Encode()
+		http.Redirect(response.ResponseWriter, req.Request, redirectURL.String(), http.StatusFound)
 	}
 
 	// If no openid scope value is present, the request may still be a valid OAuth 2.0 request,
@@ -256,205 +269,217 @@ func (h *handler) authorize(req *restful.Request, response *restful.Response) {
 		responseTypes = strings.Split(responseType, " ")
 	}
 
-	// If the resource owner denies the access request or if the request
-	// fails for reasons other than a missing or invalid redirection URI,
-	// the authorization server informs the client by adding the following
-	// parameters to the query component of the redirection URI using the
-	// "application/x-www-form-urlencoded" format
-	informsError := func(err oauth.Error) {
-		values := make(url.Values, 0)
-		values.Add("error", err.Type)
-		if err.Description != "" {
-			values.Add("error_description", err.Description)
-		}
-		if state != "" {
-			values.Add("state", state)
-		}
-		redirectURL.RawQuery = values.Encode()
-		http.Redirect(response.ResponseWriter, req.Request, redirectURL.String(), http.StatusFound)
-	}
-
-	// Other scope values MAY be present.
-	// Scope values used that are not understood by an implementation SHOULD be ignored.
-	if !oauth.IsValidScopes(scopes) {
-		klog.Warningf("Some requested scopes were invalid: %v", scopes)
-	}
-
-	if !oauth.IsValidResponseTypes(responseTypes) {
-		err := fmt.Errorf("Some requested response types were invalid")
-		informsError(oauth.NewInvalidRequest(err))
+	if !client.IsValidScope(scope) {
+		informsError(oauth.NewInvalidScope("The requested scope is invalid or not supported."))
 		return
 	}
 
-	// TODO(hongming) support Hybrid Flow
-	// Authorization Code Flow
-	if responseType == oauth.ResponseCode {
-		code, err := h.tokenOperator.IssueTo(&token.IssueRequest{
-			User: authenticated,
-			Claims: token.Claims{
-				RegisteredClaims: jwt.RegisteredClaims{
-					Audience: []string{clientID},
-				},
-				TokenType: token.AuthorizationCode,
-				Nonce:     nonce,
-				Scopes:    scopes,
-			},
-			// A maximum authorization code lifetime of 10 minutes is
-			ExpiresIn: 10 * time.Minute,
-		})
-		if err != nil {
-			response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+	// Hybrid flow is not supported now
+	if len(responseTypes) > 1 || !oauth.IsValidResponseTypes(responseTypes) {
+		informsError(oauth.NewError(oauth.UnsupportedResponseType, fmt.Sprintf("The provided response_type %s is not supported by the authorization server.", responseType)))
+		return
+	}
+
+	if client.GrantMethod == oauth.GrantMethodDeny {
+		informsError(oauth.NewInvalidGrant("The resource owner or authorization server denied the request."))
+		return
+	}
+
+	authenticated, _ := request.UserFrom(req.Request.Context())
+	if authenticated == nil || authenticated.GetName() == user.Anonymous {
+		if prompt == "none" {
+			informsError(oauth.NewError(oauth.LoginRequired, "Not authenticated."))
 			return
 		}
-		values := redirectURL.Query()
-		values.Add("code", code)
-		redirectURL.RawQuery = values.Encode()
-		http.Redirect(response, req.Request, redirectURL.String(), http.StatusFound)
-	}
-
-	// Implicit Flow
-	if responseType != oauth.ResponseToken {
-		informsError(oauth.ErrorUnsupportedResponseType)
+		// TODO redirect to login page with refer
+		http.Redirect(response.ResponseWriter, req.Request, h.options.Issuer.URL, http.StatusFound)
 		return
 	}
 
-	result, err := h.issueTokenTo(authenticated)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+	approved := client.GrantMethod == oauth.GrantMethodAuto
+	if prompt == "none" && !approved {
+		informsError(oauth.NewError(oauth.InteractionRequired, "Consent is required before proceeding with the request."))
 		return
 	}
 
-	values := make(url.Values, 0)
-	values.Add("access_token", result.AccessToken)
-	values.Add("refresh_token", result.RefreshToken)
-	values.Add("token_type", result.TokenType)
-	values.Add("expires_in", fmt.Sprint(result.ExpiresIn))
-	redirectURL.Fragment = values.Encode()
-	http.Redirect(response, req.Request, redirectURL.String(), http.StatusFound)
+	// TODO oauth.GrantMethodPrompt
+
+	// oauth.GrantMethodAuto
+	switch responseType {
+	case oauth.ResponseTypeCode:
+		h.handleAuthorizationCodeRequest(req, response, authCodeRequest{
+			authenticated: authenticated,
+			clientID:      clientID,
+			nonce:         nonce,
+			scopes:        scopes,
+			redirectURL:   redirectURL,
+			state:         state,
+		})
+	case oauth.ResponseTypeIDToken:
+		h.handleAuthIDTokenRequest(req, response, &authIDTokenRequest{
+			idTokenRequest: &idTokenRequest{
+				authenticated: authenticated,
+				client:        client,
+				nonce:         nonce,
+				scopes:        scopes,
+			},
+			redirectURL: redirectURL,
+			state:       state,
+		})
+	default:
+		informsError(oauth.NewError(oauth.UnsupportedResponseType, "The provided response_type is not supported by the authorization server."))
+	}
 }
 
 func (h *handler) oauthCallback(req *restful.Request, response *restful.Response) {
 	provider := req.PathParameter("callback")
-	authenticated, provider, err := h.oauthAuthenticator.Authenticate(req.Request.Context(), provider, req.Request)
+	authenticated, err := h.oauthAuthenticator.Authenticate(req.Request.Context(), provider, req.Request)
 	if err != nil {
 		api.HandleUnauthorized(response, req, apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)))
 		return
 	}
 
-	result, err := h.issueTokenTo(authenticated)
+	// TODO(@hongming) using the really client configuration
+	result, err := h.issueTokenTo(authenticated, nil)
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		klog.Errorf("failed to issue token: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
 	}
 
 	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
-	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
+	if err = h.loginRecorder.RecordLogin(req.Request.Context(), authenticated.GetName(), iamv1beta1.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
 		klog.Errorf("Failed to record successful login for user %s, error: %v", authenticated.GetName(), err)
 	}
 
-	response.WriteEntity(result)
+	_ = response.WriteEntity(result)
 }
 
-// To obtain an Access Token, an ID Token, and optionally a Refresh Token,
-// the RP (Client) sends a Token Request to the Token Endpoint to obtain a Token Response,
-// as described in Section 3.2 of OAuth 2.0 [RFC6749], when using the Authorization Code Flow.
-// Communication with the Token Endpoint MUST utilize TLS.
+// token handles the Token Request to obtain an Access Token, an ID Token, and optionally a Refresh Token.
+// This is used in the Authorization Code Flow, where the RP (Client) sends a Token Request to the Token Endpoint
+// (described in Section 3.2 of OAuth 2.0 [RFC6749]) to obtain a Token Response.
+// Communication with the Token Endpoint is required to utilize TLS for security.
 func (h *handler) token(req *restful.Request, response *restful.Response) {
-	// TODO(hongming) support basic auth
-	// https://datatracker.ietf.org/doc/html/rfc6749#section-2.3
-	clientID, err := req.BodyParameter("client_id")
+	clientID, _ := req.BodyParameter("client_id")
+	clientSecret, _ := req.BodyParameter("client_secret")
+	grantType, _ := req.BodyParameter("grant_type")
+
+	// All Token Responses containing sensitive information MUST include the following HTTP response header fields and values:
+	// Cache-Control: no-store
+	// Pragma: no-cache
+	response.Header().Set("Cache-Control", "no-store")
+	response.Header().Set("Pragma", "no-cache")
+
+	// Retrieve the OAuth client associated with the provided client_id.
+	client, err := h.clientGetter.GetOAuthClient(req.Request.Context(), clientID)
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusUnauthorized, oauth.NewInvalidClient(err))
-		return
-	}
-	clientSecret, err := req.BodyParameter("client_secret")
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusUnauthorized, oauth.NewInvalidClient(err))
+		if errors.Is(err, oauth.ErrorClientNotFound) {
+			klog.Warningf("The provided client_id %s is invalid or does not exist.", clientID)
+			_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidClient("The provided client_id is invalid or does not exist."))
+			return
+		}
+		klog.Errorf("failed to get oauth client: %v", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
 	}
 
-	client, err := h.options.OAuthOptions.OAuthClient(clientID)
-	if err != nil {
-		oauthError := oauth.NewInvalidClient(err)
-		response.WriteHeaderAndEntity(http.StatusUnauthorized, oauthError)
-		return
-	}
-
+	// Check if the client_secret matches the one associated with the retrieved client.
 	if client.Secret != clientSecret {
-		oauthError := oauth.NewInvalidClient(fmt.Errorf("invalid client credential"))
-		response.WriteHeaderAndEntity(http.StatusUnauthorized, oauthError)
+		klog.Warningf("Invalid client credential for client_id %s", clientID)
+		_ = response.WriteHeaderAndEntity(http.StatusUnauthorized, oauth.NewError(oauth.UnauthorizedClient, "Invalid client credential."))
 		return
 	}
 
-	grantType, err := req.BodyParameter("grant_type")
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidRequest(err))
-		return
-	}
+	unsupportedGrantType := oauth.NewError(oauth.UnsupportedGrantType, "The provided grant_type is not supported.")
 
 	switch grantType {
-	case grantTypePassword:
-		username, _ := req.BodyParameter("username")
-		password, _ := req.BodyParameter("password")
-		h.passwordGrant("", username, password, req, response)
-		return
-	case grantTypeRefreshToken:
-		h.refreshTokenGrant(req, response)
-		return
-	case grantTypeCode:
-		h.codeGrant(req, response)
-		return
+	case oauth.GrantTypePassword:
+		if client.Trusted {
+			h.passwordGrant(req, response, client)
+			return
+		}
+		klog.Warningf("The client %s is not trusted.", client.Name)
+		_ = response.WriteHeaderAndEntity(http.StatusBadRequest, unsupportedGrantType)
+	case oauth.GrantTypeRefreshToken:
+		h.refreshTokenGrant(req, response, client)
+	case oauth.GrantTypeCode, oauth.GrantTypeAuthorizationCode:
+		h.codeGrant(req, response, client)
 	default:
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.ErrorUnsupportedGrantType)
-		return
+		klog.Warningf("The provided grant_type %s is not supported.", grantType)
+		_ = response.WriteHeaderAndEntity(http.StatusBadRequest, unsupportedGrantType)
 	}
 }
 
-// passwordGrant handle Resource Owner Password Credentials Grant
-// for more details: https://datatracker.ietf.org/doc/html/rfc6749#section-4.3
-// The resource owner password credentials grant type is suitable in
-// cases where the resource owner has a trust relationship with the client,
-// such as the device operating system or a highly privileged application.
-// The authorization server should take special care when enabling this
-// grant type and only allow it when other flows are not viable.
-func (h *handler) passwordGrant(provider, username string, password string, req *restful.Request, response *restful.Response) {
-	authenticated, provider, err := h.passwordAuthenticator.Authenticate(req.Request.Context(), provider, username, password)
+// passwordGrant handles the Resource Owner Password Credentials Grant.
+// For more details, refer to: https://datatracker.ietf.org/doc/html/rfc6749#section-4.3
+//
+// The resource owner password credentials grant type is suitable in cases where
+// the resource owner has a trust relationship with the client, such as the device
+// operating system or a highly privileged application. The authorization server should
+// take special care when enabling this grant type and only allow it when other flows
+// are not viable.
+func (h *handler) passwordGrant(req *restful.Request, response *restful.Response, client *oauth.Client) {
+	// Extracting parameters from the request body.
+	username, _ := req.BodyParameter("username")
+	password, _ := req.BodyParameter("password")
+	provider, _ := req.BodyParameter("provider")
+
+	// Authenticate the user credentials.
+	authenticated, err := h.passwordAuthenticator.Authenticate(req.Request.Context(), provider, username, password)
 	if err != nil {
-		switch err {
-		case auth.AccountIsNotActiveError:
-			response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
+		switch {
+		case errors.Is(err, auth.AccountIsNotActiveError):
+			// The Account is suspended.
+			_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant("Account suspended."))
 			return
-		case auth.IncorrectPasswordError:
+		case errors.Is(err, auth.IncorrectPasswordError):
+			// Record unsuccessful login attempt.
 			requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
-			if err := h.loginRecorder.RecordLogin(username, iamv1alpha2.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, err); err != nil {
+			if err := h.loginRecorder.RecordLogin(req.Request.Context(), username, iamv1beta1.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, err); err != nil {
 				klog.Errorf("Failed to record unsuccessful login attempt for user %s, error: %v", username, err)
 			}
-			response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
+			// Invalid username or password.
+			_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant("Invalid username or password."))
 			return
-		case auth.RateLimitExceededError:
-			response.WriteHeaderAndEntity(http.StatusTooManyRequests, oauth.NewInvalidGrant(err))
+		case errors.Is(err, auth.RateLimitExceededError):
+			// Rate limit exceeded.
+			_ = response.WriteHeaderAndEntity(http.StatusTooManyRequests, oauth.NewInvalidGrant("Rate limit exceeded."))
 			return
 		default:
-			response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+			// Authentication failed.
+			klog.Errorf("Authentication failed: %s", err)
+			_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 			return
 		}
 	}
 
-	result, err := h.issueTokenTo(authenticated)
+	// Issue token to the authenticated user.
+	result, err := h.issueTokenTo(authenticated, client)
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		// Failed to issue token.
+		klog.Errorf("Failed to issue token: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
 	}
 
+	// Record successful login.
 	requestInfo, _ := request.RequestInfoFrom(req.Request.Context())
-	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
+	if err = h.loginRecorder.RecordLogin(req.Request.Context(), authenticated.GetName(), iamv1beta1.Token, provider, requestInfo.SourceIP, requestInfo.UserAgent, nil); err != nil {
 		klog.Errorf("Failed to record successful login for user %s, error: %v", authenticated.GetName(), err)
 	}
 
-	response.WriteEntity(result)
+	// Respond with the issued token.
+	_ = response.WriteEntity(result)
 }
 
-func (h *handler) issueTokenTo(user user.Info) (*oauth.Token, error) {
+func (h *handler) issueTokenTo(user user.Info, client *oauth.Client) (*oauth.Token, error) {
+	accessTokenMaxAge := h.options.Issuer.AccessTokenMaxAge
+	accessTokenInactivityTimeout := h.options.Issuer.AccessTokenInactivityTimeout
+	if client != nil && client.AccessTokenMaxAgeSeconds > 0 && client.AccessTokenInactivityTimeoutSeconds > 0 {
+		accessTokenMaxAge = time.Duration(client.AccessTokenMaxAgeSeconds) * time.Second
+		accessTokenInactivityTimeout = time.Duration(client.AccessTokenInactivityTimeoutSeconds) * time.Second
+	}
+
 	if !h.options.MultipleLogin {
 		if err := h.tokenOperator.RevokeAllUserTokens(user.GetName()); err != nil {
 			return nil, err
@@ -463,7 +488,7 @@ func (h *handler) issueTokenTo(user user.Info) (*oauth.Token, error) {
 	accessToken, err := h.tokenOperator.IssueTo(&token.IssueRequest{
 		User:      user,
 		Claims:    token.Claims{TokenType: token.AccessToken},
-		ExpiresIn: h.options.OAuthOptions.AccessTokenMaxAge,
+		ExpiresIn: accessTokenMaxAge,
 	})
 	if err != nil {
 		return nil, err
@@ -471,7 +496,7 @@ func (h *handler) issueTokenTo(user user.Info) (*oauth.Token, error) {
 	refreshToken, err := h.tokenOperator.IssueTo(&token.IssueRequest{
 		User:      user,
 		Claims:    token.Claims{TokenType: token.RefreshToken},
-		ExpiresIn: h.options.OAuthOptions.AccessTokenMaxAge + h.options.OAuthOptions.AccessTokenInactivityTimeout,
+		ExpiresIn: accessTokenMaxAge + accessTokenInactivityTimeout,
 	})
 	if err != nil {
 		return nil, err
@@ -482,156 +507,181 @@ func (h *handler) issueTokenTo(user user.Info) (*oauth.Token, error) {
 		// as specified in OAuth 2.0 Bearer Token Usage [RFC6750]
 		TokenType:    "Bearer",
 		RefreshToken: refreshToken,
-		ExpiresIn:    int(h.options.OAuthOptions.AccessTokenMaxAge.Seconds()),
+		ExpiresIn:    int(accessTokenMaxAge.Seconds()),
 	}
 	return &result, nil
 }
 
-func (h *handler) refreshTokenGrant(req *restful.Request, response *restful.Response) {
-	refreshToken, err := req.BodyParameter("refresh_token")
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidRequest(err))
-		return
-	}
-
+func (h *handler) refreshTokenGrant(req *restful.Request, response *restful.Response, client *oauth.Client) {
+	refreshToken, _ := req.BodyParameter("refresh_token")
 	verified, err := h.tokenOperator.Verify(refreshToken)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
-		return
-	}
-
-	if verified.TokenType != token.RefreshToken {
-		err = fmt.Errorf("ivalid token type %v want %v", verified.TokenType, token.RefreshToken)
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
+	if err != nil || verified.TokenType != token.RefreshToken {
+		_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant("The refresh token is invalid or expired."))
 		return
 	}
 
 	authenticated := verified.User
 	// update token after registration
-	if authenticated.GetName() == iamv1alpha2.PreRegistrationUser &&
+	if authenticated.GetName() == iamv1beta1.PreRegistrationUser &&
 		authenticated.GetExtra() != nil &&
-		len(authenticated.GetExtra()[iamv1alpha2.ExtraIdentityProvider]) > 0 &&
-		len(authenticated.GetExtra()[iamv1alpha2.ExtraUID]) > 0 {
+		len(authenticated.GetExtra()[iamv1beta1.ExtraIdentityProvider]) > 0 &&
+		len(authenticated.GetExtra()[iamv1beta1.ExtraUID]) > 0 {
 
-		idp := authenticated.GetExtra()[iamv1alpha2.ExtraIdentityProvider][0]
-		uid := authenticated.GetExtra()[iamv1alpha2.ExtraUID][0]
+		idp := authenticated.GetExtra()[iamv1beta1.ExtraIdentityProvider][0]
+		uid := authenticated.GetExtra()[iamv1beta1.ExtraUID][0]
 		queryParam := query.New()
-		queryParam.LabelSelector = labels.SelectorFromSet(labels.Set{
-			iamv1alpha2.IdentifyProviderLabel: idp,
-			iamv1alpha2.OriginUIDLabel:        uid}).String()
-		result, err := h.im.ListUsers(queryParam)
+		queryParam.LabelSelector = labels.SelectorFromSet(labels.Set{iamv1beta1.IdentifyProviderLabel: idp, iamv1beta1.OriginUIDLabel: uid}).String()
+		users, err := h.im.ListUsers(queryParam)
 		if err != nil {
-			response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+			klog.Errorf("failed to list users: %s", err)
+			_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 			return
 		}
-		if len(result.Items) != 1 {
-			response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(fmt.Errorf("authenticated user does not exist")))
+		if len(users.Items) != 1 {
+			if len(users.Items) > 1 {
+				klog.Errorf("duplicate user IDs associated: %s/%s", idp, uid)
+			}
+			_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant("Authenticated user does not exist."))
 			return
 		}
 
-		authenticated = &user.DefaultInfo{Name: result.Items[0].(*iamv1alpha2.User).Name}
+		authenticated = &user.DefaultInfo{Name: users.Items[0].(*iamv1beta1.User).Name}
 	}
 
-	result, err := h.issueTokenTo(authenticated)
+	result, err := h.issueTokenTo(authenticated, client)
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		klog.Errorf("failed to issue token: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
 	}
 
-	response.WriteEntity(result)
+	_ = response.WriteEntity(result)
 }
 
-func (h *handler) codeGrant(req *restful.Request, response *restful.Response) {
-	code, err := req.BodyParameter("code")
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidRequest(err))
+func (h *handler) codeGrant(req *restful.Request, response *restful.Response, client *oauth.Client) {
+	code, _ := req.BodyParameter("code")
+	if code == "" {
+		_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidRequest("The authorization code is empty or missing."))
+		return
+	}
+	redirectURI, _ := req.BodyParameter("redirect_uri")
+	if _, err := client.ResolveRedirectURL(redirectURI); err != nil {
+		_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidRequest("Redirect URI is not allowed."))
 		return
 	}
 
 	authorizeContext, err := h.tokenOperator.Verify(code)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
-		return
-	}
-
-	if authorizeContext.TokenType != token.AuthorizationCode {
-		err = fmt.Errorf("ivalid token type %v want %v", authorizeContext.TokenType, token.AuthorizationCode)
-		response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant(err))
+	if err != nil || authorizeContext.TokenType != token.AuthorizationCode {
+		_ = response.WriteHeaderAndEntity(http.StatusBadRequest, oauth.NewInvalidGrant("The authorization code is invalid or expired."))
 		return
 	}
 
 	defer func() {
 		// The client MUST NOT use the authorization code more than once.
-		err = h.tokenOperator.Revoke(code)
-		if err != nil {
+		if err = h.tokenOperator.Revoke(code); err != nil {
 			klog.Warningf("grant: failed to revoke authorization code: %v", err)
 		}
 	}()
 
-	result, err := h.issueTokenTo(authorizeContext.User)
+	result, err := h.issueTokenTo(authorizeContext.User, client)
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		klog.Errorf("failed to issue token: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
 	}
 
 	// If no openid scope value is present, the request may still be a valid OAuth 2.0 request,
 	// but is not an OpenID Connect request.
 	if !sliceutil.HasString(authorizeContext.Scopes, oauth.ScopeOpenID) {
-		response.WriteEntity(result)
+		_ = response.WriteEntity(result)
 		return
 	}
 
-	authenticated, err := h.im.DescribeUser(authorizeContext.User.GetName())
+	idTokenRequest, err := h.buildIDTokenIssueRequest(&idTokenRequest{
+		authenticated: authorizeContext.User,
+		client:        client,
+		scopes:        authorizeContext.Scopes,
+		nonce:         authorizeContext.Nonce,
+	})
+
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		klog.Errorf("failed to build id token request: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
-	}
-
-	idTokenRequest := &token.IssueRequest{
-		User: authorizeContext.User,
-		Claims: token.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				Audience: authorizeContext.Audience,
-			},
-			Nonce:     authorizeContext.Nonce,
-			TokenType: token.IDToken,
-			Name:      authorizeContext.User.GetName(),
-		},
-		ExpiresIn: h.options.OAuthOptions.AccessTokenMaxAge + h.options.OAuthOptions.AccessTokenInactivityTimeout,
-	}
-
-	if sliceutil.HasString(authorizeContext.Scopes, oauth.ScopeProfile) {
-		idTokenRequest.PreferredUsername = authenticated.Name
-		idTokenRequest.Locale = authenticated.Spec.Lang
-	}
-
-	if sliceutil.HasString(authorizeContext.Scopes, oauth.ScopeEmail) {
-		idTokenRequest.Email = authenticated.Spec.Email
 	}
 
 	idToken, err := h.tokenOperator.IssueTo(idTokenRequest)
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		klog.Errorf("failed to issue id token: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
 	}
 
 	result.IDToken = idToken
 
-	response.WriteEntity(result)
+	_ = response.WriteEntity(result)
+}
+
+func (h *handler) buildIDTokenIssueRequest(request *idTokenRequest) (*token.IssueRequest, error) {
+	authenticated, err := h.im.DescribeUser(request.authenticated.GetName())
+	if err != nil {
+		return nil, err
+	}
+
+	accessTokenMaxAge := h.options.Issuer.AccessTokenMaxAge
+	accessTokenInactivityTimeout := h.options.Issuer.AccessTokenInactivityTimeout
+	if request.client != nil && request.client.AccessTokenMaxAgeSeconds > 0 && request.client.AccessTokenInactivityTimeoutSeconds > 0 {
+		accessTokenMaxAge = time.Duration(request.client.AccessTokenMaxAgeSeconds) * time.Second
+		accessTokenInactivityTimeout = time.Duration(request.client.AccessTokenInactivityTimeoutSeconds) * time.Second
+	}
+
+	idTokenRequest := &token.IssueRequest{
+		User: request.authenticated,
+		Claims: token.Claims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				Audience: []string{request.client.Name},
+			},
+			Nonce:     request.nonce,
+			TokenType: token.IDToken,
+			Name:      request.authenticated.GetName(),
+		},
+		ExpiresIn: accessTokenMaxAge + accessTokenInactivityTimeout,
+	}
+
+	if sliceutil.HasString(request.scopes, oauth.ScopeProfile) {
+		idTokenRequest.PreferredUsername = authenticated.Name
+		idTokenRequest.Locale = authenticated.Spec.Lang
+	}
+
+	if sliceutil.HasString(request.scopes, oauth.ScopeEmail) {
+		idTokenRequest.Email = authenticated.Spec.Email
+	}
+	return idTokenRequest, nil
 }
 
 func (h *handler) logout(req *restful.Request, resp *restful.Response) {
-	authenticated, ok := request.UserFrom(req.Request.Context())
-	if ok {
-		if err := h.tokenOperator.RevokeAllUserTokens(authenticated.GetName()); err != nil {
-			api.HandleInternalError(resp, req, apierrors.NewInternalError(err))
-			return
-		}
+	authHeader := strings.TrimSpace(req.Request.Header.Get("Authorization"))
+	if authHeader == "" {
+		_ = resp.WriteAsJson(serverrors.None)
+		return
+	}
+	parts := strings.Split(authHeader, " ")
+	if len(parts) < 2 || strings.ToLower(parts[0]) != "bearer" {
+		_ = resp.WriteAsJson(serverrors.None)
+		return
+	}
+
+	accessToken := parts[1]
+	if err := h.tokenOperator.Revoke(accessToken); err != nil {
+		reason := fmt.Errorf("failed to revoke access token")
+		klog.Errorf("%s: %s", reason, err)
+		api.HandleInternalError(resp, req, reason)
+		return
 	}
 
 	postLogoutRedirectURI := req.QueryParameter("post_logout_redirect_uri")
 	if postLogoutRedirectURI == "" {
-		resp.WriteAsJson(errors.None)
+		_ = resp.WriteAsJson(serverrors.None)
 		return
 	}
 
@@ -656,31 +706,101 @@ func (h *handler) logout(req *restful.Request, resp *restful.Response) {
 func (h *handler) userinfo(req *restful.Request, response *restful.Response) {
 	authenticated, _ := request.UserFrom(req.Request.Context())
 	if authenticated == nil || authenticated.GetName() == user.Anonymous {
-		response.WriteHeaderAndEntity(http.StatusUnauthorized, oauth.ErrorLoginRequired)
+		_ = response.WriteHeaderAndEntity(http.StatusUnauthorized, oauth.LoginRequired)
 		return
 	}
-	detail, err := h.im.DescribeUser(authenticated.GetName())
+	userDetails, err := h.im.DescribeUser(authenticated.GetName())
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(err))
+		klog.Errorf("failed to get user details: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
 		return
 	}
 
 	result := token.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject: detail.Name,
+			Subject: userDetails.Name,
 		},
-		Name:              detail.Name,
-		Email:             detail.Spec.Email,
-		Locale:            detail.Spec.Lang,
-		PreferredUsername: detail.Name,
+		Name:              userDetails.Name,
+		Email:             userDetails.Spec.Email,
+		Locale:            userDetails.Spec.Lang,
+		PreferredUsername: userDetails.Name,
 	}
-	response.WriteEntity(result)
+	_ = response.WriteEntity(result)
 }
 
-func (h *handler) loginByIdentityProvider(req *restful.Request, response *restful.Response) {
-	username, _ := req.BodyParameter("username")
-	password, _ := req.BodyParameter("password")
-	idp := req.PathParameter("identityprovider")
+type authCodeRequest struct {
+	authenticated user.Info
+	clientID      string
+	nonce         string
+	scopes        []string
+	redirectURL   *url.URL
+	state         string
+}
 
-	h.passwordGrant(idp, username, password, req, response)
+func (h *handler) handleAuthorizationCodeRequest(req *restful.Request, response *restful.Response, authCodeRequest authCodeRequest) {
+	code, err := h.tokenOperator.IssueTo(&token.IssueRequest{
+		User: authCodeRequest.authenticated,
+		Claims: token.Claims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				Audience: []string{authCodeRequest.clientID},
+			},
+			TokenType: token.AuthorizationCode,
+			Nonce:     authCodeRequest.nonce,
+			Scopes:    authCodeRequest.scopes,
+		},
+		// A maximum authorization code lifetime of 10 minutes is
+		ExpiresIn: 10 * time.Minute,
+	})
+	if err != nil {
+		klog.Errorf("failed to issue auth code: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
+		return
+	}
+	values := authCodeRequest.redirectURL.Query()
+	values.Add("code", code)
+	if authCodeRequest.state != "" {
+		values.Add("state", authCodeRequest.state)
+	}
+	authCodeRequest.redirectURL.RawQuery = values.Encode()
+	http.Redirect(response, req.Request, authCodeRequest.redirectURL.String(), http.StatusFound)
+}
+
+type idTokenRequest struct {
+	authenticated user.Info
+	client        *oauth.Client
+	nonce         string
+	scopes        []string
+}
+
+type authIDTokenRequest struct {
+	*idTokenRequest
+	state       string
+	redirectURL *url.URL
+}
+
+func (h *handler) handleAuthIDTokenRequest(req *restful.Request, response *restful.Response, authIDTokenRequest *authIDTokenRequest) {
+	if authIDTokenRequest.nonce == "" {
+		return
+	}
+
+	idTokenRequest, err := h.buildIDTokenIssueRequest(authIDTokenRequest.idTokenRequest)
+	if err != nil {
+		klog.Errorf("failed to build id token request: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
+		return
+	}
+
+	idToken, err := h.tokenOperator.IssueTo(idTokenRequest)
+	if err != nil {
+		klog.Errorf("failed to issue id token: %s", err)
+		_ = response.WriteHeaderAndEntity(http.StatusInternalServerError, oauth.NewServerError(internalServerErrorMessage))
+	}
+
+	values := make(url.Values)
+	values.Add("id_token", idToken)
+	if authIDTokenRequest.state != "" {
+		values.Add("state", authIDTokenRequest.state)
+	}
+	authIDTokenRequest.redirectURL.Fragment = values.Encode()
+	http.Redirect(response, req.Request, authIDTokenRequest.redirectURL.String(), http.StatusFound)
 }

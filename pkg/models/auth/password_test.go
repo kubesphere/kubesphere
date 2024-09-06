@@ -1,20 +1,7 @@
 /*
-
- Copyright 2020 The KubeSphere Authors.
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package auth
 
@@ -23,20 +10,30 @@ import (
 	"reflect"
 	"testing"
 
+	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
+
+	"kubesphere.io/kubesphere/pkg/constants"
+
+	"gopkg.in/yaml.v3"
+
+	runtimefakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"kubesphere.io/kubesphere/pkg/scheme"
+
 	"kubesphere.io/kubesphere/pkg/server/options"
 
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	authuser "k8s.io/apiserver/pkg/authentication/user"
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 )
 
 func TestEncryptPassword(t *testing.T) {
@@ -56,87 +53,154 @@ func hashPassword(password string) (string, error) {
 }
 
 func Test_passwordAuthenticator_Authenticate(t *testing.T) {
-
+	identityprovider.RegisterGenericProviderFactory(&fakePasswordProviderFactory{})
 	oauthOptions := &authentication.Options{
-		OAuthOptions: &oauth.Options{
-			IdentityProviders: []oauth.IdentityProviderOptions{
-				{
-					Name:          "fakepwd",
-					MappingMethod: "auto",
-					Type:          "fakePasswordProvider",
-					Provider: options.DynamicOptions{
-						"identities": map[string]interface{}{
-							"user1": map[string]string{
-								"uid":      "100001",
-								"email":    "user1@kubesphere.io",
-								"username": "user1",
-								"password": "password",
-							},
-							"user2": map[string]string{
-								"uid":      "100002",
-								"email":    "user2@kubesphere.io",
-								"username": "user2",
-								"password": "password",
-							},
-						},
-					},
+		Issuer: &oauth.IssuerOptions{},
+	}
+
+	fakepwd1 := &identityprovider.Configuration{
+		Name:          "fakepwd1",
+		MappingMethod: "manual",
+		Type:          "fakePasswordProvider",
+		ProviderOptions: options.DynamicOptions{
+			"identities": map[string]interface{}{
+				"user1": map[string]string{
+					"uid":      "100001",
+					"email":    "user1@kubesphere.io",
+					"username": "user1",
+					"password": "password",
 				},
-				{
-					Name:                     "fakepwd2",
-					MappingMethod:            "auto",
-					Type:                     "fakePasswordProvider",
-					DisableLoginConfirmation: true,
-					Provider: options.DynamicOptions{
-						"identities": map[string]interface{}{
-							"user5": map[string]string{
-								"uid":      "100005",
-								"email":    "user5@kubesphere.io",
-								"username": "user5",
-								"password": "password",
-							},
-						},
-					},
-				},
-				{
-					Name:                     "fakepwd3",
-					MappingMethod:            "lookup",
-					Type:                     "fakePasswordProvider",
-					DisableLoginConfirmation: true,
-					Provider: options.DynamicOptions{
-						"identities": map[string]interface{}{
-							"user6": map[string]string{
-								"uid":      "100006",
-								"email":    "user6@kubesphere.io",
-								"username": "user6",
-								"password": "password",
-							},
-						},
-					},
+				"user2": map[string]string{
+					"uid":      "100002",
+					"email":    "user2@kubesphere.io",
+					"username": "user2",
+					"password": "password",
 				},
 			},
 		},
 	}
 
-	identityprovider.RegisterGenericProvider(&fakePasswordProviderFactory{})
-	if err := identityprovider.SetupWithOptions(oauthOptions.OAuthOptions.IdentityProviders); err != nil {
-		t.Fatal(err)
+	fakepwd2 := &identityprovider.Configuration{
+		Name:          "fakepwd2",
+		MappingMethod: "auto",
+		Type:          "fakePasswordProvider",
+		ProviderOptions: options.DynamicOptions{
+			"identities": map[string]interface{}{
+				"user5": map[string]string{
+					"uid":      "100005",
+					"email":    "user5@kubesphere.io",
+					"username": "user5",
+					"password": "password",
+				},
+			},
+		},
 	}
 
-	ksClient := fakeks.NewSimpleClientset()
-	ksInformerFactory := ksinformers.NewSharedInformerFactory(ksClient, 0)
-	err := ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newUser("user1", "100001", "fakepwd"))
-	_ = ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newUser("user3", "100003", ""))
-	_ = ksInformerFactory.Iam().V1alpha2().Users().Informer().GetIndexer().Add(newActiveUser("user4", "password"))
+	fakepwd3 := &identityprovider.Configuration{
+		Name:          "fakepwd3",
+		MappingMethod: "lookup",
+		Type:          "fakePasswordProvider",
+		ProviderOptions: options.DynamicOptions{
+			"identities": map[string]interface{}{
+				"user6": map[string]string{
+					"uid":      "100006",
+					"email":    "user6@kubesphere.io",
+					"username": "user6",
+					"password": "password",
+				},
+			},
+		},
+	}
 
+	marshal1, err := yaml.Marshal(fakepwd1)
+	if err != nil {
+		return
+	}
+
+	fakepwd1Secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-fake-idp",
+			Namespace: "kubesphere-system",
+			Labels: map[string]string{
+				constants.GenericConfigTypeLabel: identityprovider.ConfigTypeIdentityProvider,
+			},
+		},
+		Data: map[string][]byte{
+			"configuration.yaml": marshal1,
+		},
+		Type: identityprovider.SecretTypeIdentityProvider,
+	}
+
+	marshal2, err := yaml.Marshal(fakepwd2)
+	if err != nil {
+		return
+	}
+	fakepwd2Secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-fake-idp2",
+			Namespace: "kubesphere-system",
+			Labels: map[string]string{
+				constants.GenericConfigTypeLabel: identityprovider.ConfigTypeIdentityProvider,
+			},
+		},
+		Data: map[string][]byte{
+			"configuration.yaml": marshal2,
+		},
+		Type: identityprovider.SecretTypeIdentityProvider,
+	}
+
+	marshal3, err := yaml.Marshal(fakepwd3)
+	if err != nil {
+		return
+	}
+	fakepwd3Secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-fake-idp3",
+			Namespace: "kubesphere-system",
+			Labels: map[string]string{
+				constants.GenericConfigTypeLabel: identityprovider.ConfigTypeIdentityProvider,
+			},
+		},
+		Data: map[string][]byte{
+			"configuration.yaml": marshal3,
+		},
+		Type: identityprovider.SecretTypeIdentityProvider,
+	}
+
+	client := runtimefakeclient.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithRuntimeObjects(
+			newUser("user1", "100001", "fakepwd1"),
+			newUser("user3", "100003", ""),
+			newActiveUser("user4", "password"),
+			fakepwd1Secret,
+			fakepwd2Secret,
+			fakepwd3Secret,
+		).
+		Build()
+
+	fakeCache := informertest.FakeInformers{Scheme: scheme.Scheme}
+	err = fakeCache.Start(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeSecretInformer, err := fakeCache.FakeInformerFor(context.Background(), &v1.Secret{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	authenticator := NewPasswordAuthenticator(
-		ksClient,
-		ksInformerFactory.Iam().V1alpha2().Users().Lister(),
-		oauthOptions,
-	)
+	identityprovider.RegisterOAuthProviderFactory(&fakeProviderFactory{})
+	identityprovider.SharedIdentityProviderController = identityprovider.NewController()
+	err = identityprovider.SharedIdentityProviderController.WatchConfigurationChanges(context.Background(), &fakeCache)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fakeSecretInformer.Add(fakepwd1Secret)
+	fakeSecretInformer.Add(fakepwd2Secret)
+	fakeSecretInformer.Add(fakepwd3Secret)
+
+	authenticator := NewPasswordAuthenticator(client, oauthOptions)
 
 	type args struct {
 		ctx      context.Context
@@ -159,7 +223,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 				ctx:      context.Background(),
 				username: "user1",
 				password: "password",
-				provider: "fakepwd",
+				provider: "fakepwd1",
 			},
 			want: &user.DefaultInfo{
 				Name: "user1",
@@ -173,13 +237,13 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 				ctx:      context.Background(),
 				username: "user2",
 				password: "password",
-				provider: "fakepwd",
+				provider: "fakepwd1",
 			},
 			want: &user.DefaultInfo{
 				Name: "system:pre-registration",
 				Extra: map[string][]string{
 					"email":    {"user2@kubesphere.io"},
-					"idp":      {"fakepwd"},
+					"idp":      {"fakepwd1"},
 					"uid":      {"100002"},
 					"username": {"user2"},
 				},
@@ -236,7 +300,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := tt.passwordAuthenticator
-			got, _, err := p.Authenticate(tt.args.ctx, tt.args.provider, tt.args.username, tt.args.password)
+			got, err := p.Authenticate(tt.args.ctx, tt.args.provider, tt.args.username, tt.args.password)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("passwordAuthenticator.Authenticate() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -298,10 +362,10 @@ func encrypt(password string) (string, error) {
 	return string(bytes), err
 }
 
-func newActiveUser(username string, password string) *iamv1alpha2.User {
+func newActiveUser(username string, password string) *iamv1beta1.User {
 	u := newUser(username, "", "")
 	password, _ = encrypt(password)
 	u.Spec.EncryptedPassword = password
-	u.Status.State = iamv1alpha2.UserActive
+	u.Status.State = iamv1beta1.UserActive
 	return u
 }

@@ -1,0 +1,103 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: repos.application.kubesphere.io
+spec:
+  group: application.kubesphere.io
+  names:
+    kind: Repo
+    listKind: RepoList
+    plural: repos
+    shortNames:
+    - repo
+    singular: repo
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.labels.kubesphere\.io/workspace
+      name: Workspace
+      type: string
+    - jsonPath: .spec.url
+      name: url
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v2
+    schema:
+      openAPIV3Schema:
+        description: Repo is the Schema for the repoes API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RepoSpec defines the desired state of Repo
+            properties:
+              credential:
+                properties:
+                  caFile:
+                    description: verify certificates of HTTPS-enabled servers using
+                      this CA bundle
+                    type: string
+                  certFile:
+                    description: identify HTTPS client using this SSL certificate
+                      file
+                    type: string
+                  insecureSkipTLSVerify:
+                    description: skip tls certificate checks for the repository, default
+                      is ture
+                    type: boolean
+                  keyFile:
+                    description: identify HTTPS client using this SSL key file
+                    type: string
+                  password:
+                    description: chart repository password
+                    type: string
+                  username:
+                    description: chart repository username
+                    type: string
+                type: object
+              description:
+                type: string
+              syncPeriod:
+                type: integer
+              url:
+                type: string
+            required:
+            - url
+            type: object
+          status:
+            description: RepoStatus defines the observed state of Repo
+            properties:
+              lastUpdateTime:
+                format: date-time
+                type: string
+              state:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

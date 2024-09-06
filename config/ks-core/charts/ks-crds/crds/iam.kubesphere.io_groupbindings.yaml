@@ -1,0 +1,113 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: groupbindings.iam.kubesphere.io
+spec:
+  group: iam.kubesphere.io
+  names:
+    categories:
+    - group
+    kind: GroupBinding
+    listKind: GroupBindingList
+    plural: groupbindings
+    singular: groupbinding
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .groupRef.name
+      name: Group
+      type: string
+    - jsonPath: .users
+      name: Users
+      type: string
+    deprecated: true
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: GroupBinding is the Schema for the groupbindings API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          groupRef:
+            description: GroupRef defines the desired relation of GroupBinding
+            properties:
+              apiGroup:
+                type: string
+              kind:
+                type: string
+              name:
+                type: string
+            type: object
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          users:
+            items:
+              type: string
+            type: array
+        type: object
+    served: true
+    storage: false
+    subresources: {}
+  - additionalPrinterColumns:
+    - jsonPath: .groupRef.name
+      name: Group
+      type: string
+    - jsonPath: .users
+      name: Users
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: GroupBinding is the Schema for the groupbindings API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          groupRef:
+            description: GroupRef defines the desired relation of GroupBinding
+            properties:
+              apiGroup:
+                type: string
+              kind:
+                type: string
+              name:
+                type: string
+            type: object
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          users:
+            items:
+              type: string
+            type: array
+        type: object
+    served: true
+    storage: true
+    subresources: {}

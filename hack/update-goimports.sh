@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -34,9 +35,7 @@ export GO111MODULE=on
 if ! command -v goimports ; then
 # Install goimports
   echo 'installing goimports'
-  pushd "${KUBE_ROOT}/hack/tools" >/dev/null
-    GO111MODULE=auto go install -mod=mod golang.org/x/tools/cmd/goimports@v0.7.0
-  popd >/dev/null
+  GO111MODULE=auto go install -mod=mod golang.org/x/tools/cmd/goimports@v0.7.0
 fi
 
 cd "${KUBE_ROOT}" || exit 1

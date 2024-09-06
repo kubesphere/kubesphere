@@ -1,9 +1,0 @@
-{
-  "aggs":{
-    "container_count":{
-      "cardinality":{
-        "field":"kubernetes.docker_id.keyword"
-      }
-    }
-  }
-}

@@ -30,13 +30,13 @@ func (p pflagValueSet) VisitAll(fn func(flag FlagValue)) {
 	})
 }
 
-// pflagValue is a wrapper aroung *pflag.flag
-// that implements FlagValue
+// pflagValue is a wrapper around *pflag.flag
+// that implements FlagValue.
 type pflagValue struct {
 	flag *pflag.Flag
 }
 
-// HasChanges returns whether the flag has changes or not.
+// HasChanged returns whether the flag has changes or not.
 func (p pflagValue) HasChanged() bool {
 	return p.flag.Changed
 }

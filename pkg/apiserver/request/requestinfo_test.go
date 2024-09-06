@@ -1,18 +1,7 @@
 /*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package request
 
@@ -59,7 +48,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		},
 		{
 			name:                      "list clusterRoles of cluster gondor",
-			url:                       "/apis/clusters/gondor/rbac.authorization.k8s.io/v1/clusterroles",
+			url:                       "/clusters/gondor/apis/rbac.authorization.k8s.io/v1/clusterroles",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",
@@ -81,7 +70,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		},
 		{
 			name:                      "list nodes of cluster gondor",
-			url:                       "/api/clusters/gondor/v1/nodes",
+			url:                       "/clusters/gondor/api/v1/nodes",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",
@@ -92,7 +81,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		},
 		{
 			name:                      "list roles of cluster gondor",
-			url:                       "/apis/clusters/gondor/rbac.authorization.k8s.io/v1/namespaces/namespace1/roles",
+			url:                       "/clusters/gondor/apis/rbac.authorization.k8s.io/v1/namespaces/namespace1/roles",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",
@@ -128,7 +117,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		},
 		{
 			name:                      "list namespaces of cluster gondor",
-			url:                       "/kapis/clusters/gondor/resources.kubesphere.io/v1alpha3/workspaces/workspace1/namespaces",
+			url:                       "/clusters/gondor/kapis/resources.kubesphere.io/v1alpha3/workspaces/workspace1/namespaces",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",

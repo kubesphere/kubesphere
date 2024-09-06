@@ -1,6 +1,0 @@
-apiVersion: v2
-appVersion: 1.16.0
-description: The Gateway helm Chart creates a Nginx Ingress Controller release by render a Nginx.gateway.kubesphere.io Kind. 
-name: gateway
-type: application
-version: 0.1.0

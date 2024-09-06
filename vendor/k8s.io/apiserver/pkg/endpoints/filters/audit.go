@@ -51,11 +51,11 @@ func WithAudit(handler http.Handler, sink audit.Sink, policy audit.PolicyRuleEva
 			return
 		}
 
-		if ac == nil || ac.Event == nil {
+		if !ac.Enabled() {
 			handler.ServeHTTP(w, req)
 			return
 		}
-		ev := ac.Event
+		ev := &ac.Event
 
 		ctx := req.Context()
 		omitStages := ac.RequestAuditConfig.OmitStages
@@ -124,7 +124,7 @@ func evaluatePolicyAndCreateAuditEvent(req *http.Request, policy audit.PolicyRul
 	ctx := req.Context()
 	ac := audit.AuditContextFrom(ctx)
 	if ac == nil {
-		// Auditing not enabled.
+		// Auditing not configured.
 		return nil, nil
 	}
 
@@ -133,10 +133,10 @@ func evaluatePolicyAndCreateAuditEvent(req *http.Request, policy audit.PolicyRul
 		return ac, fmt.Errorf("failed to GetAuthorizerAttributes: %v", err)
 	}
 
-	ls := policy.EvaluatePolicyRule(attribs)
-	audit.ObservePolicyLevel(ctx, ls.Level)
-	ac.RequestAuditConfig = ls.RequestAuditConfig
-	if ls.Level == auditinternal.LevelNone {
+	rac := policy.EvaluatePolicyRule(attribs)
+	audit.ObservePolicyLevel(ctx, rac.Level)
+	ac.RequestAuditConfig = rac
+	if rac.Level == auditinternal.LevelNone {
 		// Don't audit.
 		return ac, nil
 	}
@@ -145,12 +145,7 @@ func evaluatePolicyAndCreateAuditEvent(req *http.Request, policy audit.PolicyRul
 	if !ok {
 		requestReceivedTimestamp = time.Now()
 	}
-	ev, err := audit.NewEventFromRequest(req, requestReceivedTimestamp, ls.Level, attribs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to complete audit event from request: %v", err)
-	}
-
-	ac.Event = ev
+	audit.LogRequestMetadata(ctx, req, requestReceivedTimestamp, rac.Level, attribs)
 
 	return ac, nil
 }

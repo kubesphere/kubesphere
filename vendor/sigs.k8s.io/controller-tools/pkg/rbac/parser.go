@@ -149,6 +149,12 @@ func (r *Rule) ToRule() rbacv1.PolicyRule {
 type Generator struct {
 	// RoleName sets the name of the generated ClusterRole.
 	RoleName string
+
+	// HeaderFile specifies the header text (e.g. license) to prepend to generated files.
+	HeaderFile string `marker:",optional"`
+
+	// Year specifies the year to substitute for " YEAR" in the header file.
+	Year string `marker:",optional"`
 }
 
 func (Generator) RegisterMarkers(into *markers.Registry) error {
@@ -263,5 +269,15 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 		return nil
 	}
 
-	return ctx.WriteYAML("role.yaml", objs)
+	var headerText string
+	if g.HeaderFile != "" {
+		headerBytes, err := ctx.ReadFile(g.HeaderFile)
+		if err != nil {
+			return err
+		}
+		headerText = string(headerBytes)
+	}
+	headerText = strings.ReplaceAll(headerText, " YEAR", " "+g.Year)
+
+	return ctx.WriteYAML("role.yaml", headerText, objs, genall.WithTransform(genall.TransformRemoveCreationTimestamp))
 }

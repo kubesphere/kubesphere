@@ -1,0 +1,205 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: users.iam.kubesphere.io
+spec:
+  group: iam.kubesphere.io
+  names:
+    categories:
+    - iam
+    kind: User
+    listKind: UserList
+    plural: users
+    singular: user
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.email
+      name: Email
+      type: string
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    deprecated: true
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: User is the Schema for the users API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: UserSpec defines the desired state of User
+            properties:
+              description:
+                description: Description of the user.
+                type: string
+              displayName:
+                type: string
+              email:
+                description: Unique email address(https://www.ietf.org/rfc/rfc5322.txt).
+                type: string
+              groups:
+                items:
+                  type: string
+                type: array
+              lang:
+                description: The preferred written or spoken language for the user.
+                type: string
+              password:
+                description: |-
+                  password will be encrypted by mutating admission webhook
+                  Password pattern is tricky here.
+                  The rule is simple: length between [6,64], at least one uppercase letter, one lowercase letter, one digit.
+                  The regexp in console(javascript) is quite straightforward: ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^]{6,64}$
+                  But in Go, we don't have ?= (back tracking) capability in regexp (also in CRD validation pattern)
+                  So we adopted an alternative scheme to achieve.
+                  Use 6 different regexp to combine to achieve the same effect.
+                  These six schemes enumerate the arrangement of numbers, uppercase letters, and lowercase letters that appear for the first time.
+                  - ^(.*[a-z].*[A-Z].*[0-9].*)$ stands for lowercase letter comes first, then followed by an uppercase letter, then a digit.
+                  - ^(.*[a-z].*[0-9].*[A-Z].*)$ stands for lowercase letter comes first, then followed by a digit, then an uppercase leeter.
+                  - ^(.*[A-Z].*[a-z].*[0-9].*)$ ...
+                  - ^(.*[A-Z].*[0-9].*[a-z].*)$ ...
+                  - ^(.*[0-9].*[a-z].*[A-Z].*)$ ...
+                  - ^(.*[0-9].*[A-Z].*[a-z].*)$ ...
+                  Last but not least, the bcrypt string is also included to match the encrypted password. ^(\$2[ayb]\$.{56})$
+                maxLength: 64
+                minLength: 8
+                pattern: ^(.*[a-z].*[A-Z].*[0-9].*)$|^(.*[a-z].*[0-9].*[A-Z].*)$|^(.*[A-Z].*[a-z].*[0-9].*)$|^(.*[A-Z].*[0-9].*[a-z].*)$|^(.*[0-9].*[a-z].*[A-Z].*)$|^(.*[0-9].*[A-Z].*[a-z].*)$|^(\$2[ayb]\$.{56})$
+                type: string
+            required:
+            - email
+            type: object
+          status:
+            description: UserStatus defines the observed state of User
+            properties:
+              lastLoginTime:
+                description: Last login attempt timestamp
+                format: date-time
+                type: string
+              lastTransitionTime:
+                format: date-time
+                type: string
+              reason:
+                type: string
+              state:
+                description: The user status
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: false
+    subresources: {}
+  - additionalPrinterColumns:
+    - jsonPath: .spec.email
+      name: Email
+      type: string
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: User is the Schema for the users API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: UserSpec defines the desired state of User
+            properties:
+              description:
+                description: Description of the user.
+                type: string
+              displayName:
+                type: string
+              email:
+                description: Unique email address(https://www.ietf.org/rfc/rfc5322.txt).
+                type: string
+              groups:
+                items:
+                  type: string
+                type: array
+              lang:
+                description: The preferred written or spoken language for the user.
+                type: string
+              password:
+                description: |-
+                  password will be encrypted by mutating admission webhook
+                  Password pattern is tricky here.
+                  The rule is simple: length between [6,64], at least one uppercase letter, one lowercase letter, one digit.
+                  The regexp in console(javascript) is quite straightforward: ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^]{6,64}$
+                  But in Go, we don't have ?= (back tracking) capability in regexp (also in CRD validation pattern)
+                  So we adopted an alternative scheme to achieve.
+                  Use 6 different regexp to combine to achieve the same effect.
+                  These six schemes enumerate the arrangement of numbers, uppercase letters, and lowercase letters that appear for the first time.
+                  - ^(.*[a-z].*[A-Z].*[0-9].*)$ stands for lowercase letter comes first, then followed by an uppercase letter, then a digit.
+                  - ^(.*[a-z].*[0-9].*[A-Z].*)$ stands for lowercase letter comes first, then followed by a digit, then an uppercase leeter.
+                  - ^(.*[A-Z].*[a-z].*[0-9].*)$ ...
+                  - ^(.*[A-Z].*[0-9].*[a-z].*)$ ...
+                  - ^(.*[0-9].*[a-z].*[A-Z].*)$ ...
+                  - ^(.*[0-9].*[A-Z].*[a-z].*)$ ...
+                  Last but not least, the bcrypt string is also included to match the encrypted password. ^(\$2[ayb]\$.{56})$
+                maxLength: 64
+                minLength: 8
+                pattern: ^(.*[a-z].*[A-Z].*[0-9].*)$|^(.*[a-z].*[0-9].*[A-Z].*)$|^(.*[A-Z].*[a-z].*[0-9].*)$|^(.*[A-Z].*[0-9].*[a-z].*)$|^(.*[0-9].*[a-z].*[A-Z].*)$|^(.*[0-9].*[A-Z].*[a-z].*)$|^(\$2[ayb]\$.{56})$
+                type: string
+            required:
+            - email
+            type: object
+          status:
+            description: UserStatus defines the observed state of User
+            properties:
+              lastLoginTime:
+                description: Last login attempt timestamp
+                format: date-time
+                type: string
+              lastTransitionTime:
+                format: date-time
+                type: string
+              reason:
+                type: string
+              state:
+                description: The user status
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources: {}

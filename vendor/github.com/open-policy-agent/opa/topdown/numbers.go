@@ -28,32 +28,71 @@ func builtinNumbersRange(bctx BuiltinContext, operands []*ast.Term, iter func(*a
 		return err
 	}
 
-	result := ast.NewArray()
+	ast, err := generateRange(bctx, x, y, one, "numbers.range")
+	if err != nil {
+		return err
+	}
+
+	return iter(ast)
+}
+
+func builtinNumbersRangeStep(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+
+	x, err := builtins.BigIntOperand(operands[0].Value, 1)
+	if err != nil {
+		return err
+	}
+
+	y, err := builtins.BigIntOperand(operands[1].Value, 2)
+	if err != nil {
+		return err
+	}
+
+	step, err := builtins.BigIntOperand(operands[2].Value, 3)
+	if err != nil {
+		return err
+	}
+
+	if step.Cmp(big.NewInt(0)) <= 0 {
+		return fmt.Errorf("numbers.range_step: step must be a positive number above zero")
+	}
+
+	ast, err := generateRange(bctx, x, y, step, "numbers.range_step")
+	if err != nil {
+		return err
+	}
+
+	return iter(ast)
+}
+
+func generateRange(bctx BuiltinContext, x *big.Int, y *big.Int, step *big.Int, funcName string) (*ast.Term, error) {
+
 	cmp := x.Cmp(y)
+
+	comp := func(i *big.Int, y *big.Int) bool { return i.Cmp(y) <= 0 }
+	iter := func(i *big.Int) *big.Int { return i.Add(i, step) }
+
+	if cmp > 0 {
+		comp = func(i *big.Int, y *big.Int) bool { return i.Cmp(y) >= 0 }
+		iter = func(i *big.Int) *big.Int { return i.Sub(i, step) }
+	}
+
+	result := ast.NewArray()
 	haltErr := Halt{
 		Err: &Error{
 			Code:    CancelErr,
-			Message: "numbers.range: timed out before generating all numbers in range",
+			Message: fmt.Sprintf("%s: timed out before generating all numbers in range", funcName),
 		},
 	}
 
-	if cmp <= 0 {
-		for i := new(big.Int).Set(x); i.Cmp(y) <= 0; i = i.Add(i, one) {
-			if bctx.Cancel != nil && bctx.Cancel.Cancelled() {
-				return haltErr
-			}
-			result = result.Append(ast.NewTerm(builtins.IntToNumber(i)))
+	for i := new(big.Int).Set(x); comp(i, y); i = iter(i) {
+		if bctx.Cancel != nil && bctx.Cancel.Cancelled() {
+			return nil, haltErr
 		}
-	} else {
-		for i := new(big.Int).Set(x); i.Cmp(y) >= 0; i = i.Sub(i, one) {
-			if bctx.Cancel != nil && bctx.Cancel.Cancelled() {
-				return haltErr
-			}
-			result = result.Append(ast.NewTerm(builtins.IntToNumber(i)))
-		}
+		result = result.Append(ast.NewTerm(builtins.IntToNumber(i)))
 	}
 
-	return iter(ast.NewTerm(result))
+	return ast.NewTerm(result), nil
 }
 
 func builtinRandIntn(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
@@ -95,5 +134,6 @@ func builtinRandIntn(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.T
 
 func init() {
 	RegisterBuiltinFunc(ast.NumbersRange.Name, builtinNumbersRange)
+	RegisterBuiltinFunc(ast.NumbersRangeStep.Name, builtinNumbersRangeStep)
 	RegisterBuiltinFunc(ast.RandIntn.Name, builtinRandIntn)
 }

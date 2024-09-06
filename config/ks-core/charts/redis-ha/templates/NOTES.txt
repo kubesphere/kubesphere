@@ -1,0 +1,25 @@
+Redis can be accessed via {{ if ne (int .Values.redis.port) 0 }}port {{ .Values.redis.port }}{{ end }}  {{ if .Values.redis.tlsPort }} tls-port {{ .Values.redis.tlsPort }}{{ end }} and Sentinel can be accessed via {{ if ne (int .Values.sentinel.port) 0 }}port {{ .Values.sentinel.port }}{{ end }}  {{ if .Values.sentinel.tlsPort }} tls-port {{ .Values.sentinel.tlsPort }}{{ end }}  on the following DNS name from within your cluster:
+{{ template "redis-ha.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+
+To connect to your Redis server:
+
+{{- if .Values.auth }}
+1. To retrieve the redis password:
+   echo $(kubectl get secret {{ template "redis-ha.fullname" . }} -o "jsonpath={.data['auth']}" | base64 --decode)
+
+2. Connect to the Redis master pod that you can use as a client. By default the {{ template "redis-ha.fullname" . }}-server-0 pod is configured as the master:
+
+   kubectl exec -it {{ template "redis-ha.fullname" . }}-server-0 -n {{ .Release.Namespace }} -c redis -- sh
+
+3. Connect using the Redis CLI (inside container):
+
+   redis-cli -a <REDIS-PASS-FROM-SECRET>
+{{- else }}
+1. Run a Redis pod that you can use as a client:
+
+   kubectl exec -it {{ template "redis-ha.fullname" . }}-server-0 -n {{ .Release.Namespace }} -c redis -- sh
+
+2. Connect using the Redis CLI:
+
+  redis-cli -h {{ template "redis-ha.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+{{- end }}

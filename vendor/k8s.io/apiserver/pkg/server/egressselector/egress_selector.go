@@ -22,10 +22,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -36,7 +36,7 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	egressmetrics "k8s.io/apiserver/pkg/server/egressselector/metrics"
-	compbasemetrics "k8s.io/component-base/metrics"
+	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/component-base/tracing"
 	"k8s.io/klog/v2"
 	client "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
@@ -45,7 +45,7 @@ import (
 var directDialer utilnet.DialFunc = http.DefaultTransport.(*http.Transport).DialContext
 
 func init() {
-	client.Metrics.RegisterMetrics(compbasemetrics.NewKubeRegistry().Registerer())
+	client.Metrics.RegisterMetrics(legacyregistry.Registerer())
 }
 
 // EgressSelector is the map of network context type to context dialer, for network egress.
@@ -277,7 +277,7 @@ func getTLSConfig(t *apiserver.TLSConfig) (*tls.Config, error) {
 	}
 	certPool := x509.NewCertPool()
 	if caCert != "" {
-		certBytes, err := ioutil.ReadFile(caCert)
+		certBytes, err := os.ReadFile(caCert)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read cert file %s, got %v", caCert, err)
 		}

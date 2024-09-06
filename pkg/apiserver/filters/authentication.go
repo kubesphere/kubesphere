@@ -1,24 +1,12 @@
 /*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package filters
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -72,8 +60,16 @@ func (a *authnFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			responsewriters.InternalError(w, req, errors.New("no RequestInfo found in the context"))
 			return
 		}
+		if err != nil {
+			klog.Errorf("Request authentication failed: %v", err)
+		}
 		gv := schema.GroupVersion{Group: requestInfo.APIGroup, Version: requestInfo.APIVersion}
-		responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)), a.serializer, gv, w, req)
+		if err != nil {
+			err = apierrors.NewUnauthorized(err.Error())
+		} else {
+			err = apierrors.NewUnauthorized("The request cannot be authenticated.")
+		}
+		responsewriters.ErrorNegotiated(err, a.serializer, gv, w, req)
 		return
 	}
 

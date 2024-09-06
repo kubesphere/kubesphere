@@ -1,28 +1,16 @@
 /*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package v1alpha2
 
 import (
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"kubesphere.io/kubesphere/pkg/simple/client/gpu"
-
-	kubesphereconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 )
 
@@ -32,30 +20,39 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, config *kubesphereconfig.Config) error {
+func (h *handler) AddToContainer(c *restful.Container) error {
 	webservice := runtime.NewWebService(GroupVersion)
 
 	webservice.Route(webservice.GET("/configs/oauth").
-		Doc("Information about the authorization server are published.").
-		To(func(request *restful.Request, response *restful.Response) {
-			response.WriteEntity(config.AuthenticationOptions.OAuthOptions)
-		}))
+		Doc("OAuth configurations").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagPlatformConfigurations}).
+		Notes("Information about the authorization server are published.").
+		Operation("oauth-config").
+		To(h.getOAuthConfiguration))
 
 	webservice.Route(webservice.GET("/configs/configz").
-		Doc("Information about the server configuration").
+		Deprecate().
+		Doc("Component configurations").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagPlatformConfigurations}).
+		Notes("Information about the components configuration").
+		Operation("component-config").
 		To(func(request *restful.Request, response *restful.Response) {
-			response.WriteAsJson(config.ToMap())
+			_ = response.WriteAsJson(h.config)
 		}))
 
-	webservice.Route(webservice.GET("/configs/gpu/kinds").
-		Doc("Get all supported GPU kinds.").
-		To(func(request *restful.Request, response *restful.Response) {
-			var kinds []gpu.GPUKind
-			if config.GPUOptions != nil {
-				kinds = config.GPUOptions.Kinds
-			}
-			response.WriteAsJson(kinds)
-		}))
+	webservice.Route(webservice.GET("/configs/theme").
+		Doc("Retrieve theme configurations").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagPlatformConfigurations}).
+		Notes("Retrieve theme configuration settings.").
+		Operation("get-theme-config").
+		To(h.getThemeConfiguration))
+
+	webservice.Route(webservice.POST("/configs/theme").
+		Doc("Update theme configurations").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagPlatformConfigurations}).
+		Notes("Update theme configuration settings.").
+		Operation("update-theme-config").
+		To(h.updateThemeConfiguration))
 
 	c.Add(webservice)
 	return nil

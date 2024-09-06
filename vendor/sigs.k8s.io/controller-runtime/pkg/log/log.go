@@ -34,8 +34,12 @@ limitations under the License.
 package log
 
 import (
+	"bytes"
 	"context"
-	"sync"
+	"fmt"
+	"os"
+	"runtime/debug"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -43,35 +47,32 @@ import (
 
 // SetLogger sets a concrete logging implementation for all deferred Loggers.
 func SetLogger(l logr.Logger) {
-	loggerWasSetLock.Lock()
-	defer loggerWasSetLock.Unlock()
-
-	loggerWasSet = true
-	dlog.Fulfill(l.GetSink())
+	logFullfilled.Store(true)
+	rootLog.Fulfill(l.GetSink())
 }
 
-// It is safe to assume that if this wasn't set within the first 30 seconds of a binaries
-// lifetime, it will never get set. The DelegatingLogSink causes a high number of memory
-// allocations when not given an actual Logger, so we set a NullLogSink to avoid that.
-//
-// We need to keep the DelegatingLogSink because we have various inits() that get a logger from
-// here. They will always get executed before any code that imports controller-runtime
-// has a chance to run and hence to set an actual logger.
-func init() {
-	// Init is blocking, so start a new goroutine
-	go func() {
-		time.Sleep(30 * time.Second)
-		loggerWasSetLock.Lock()
-		defer loggerWasSetLock.Unlock()
-		if !loggerWasSet {
-			dlog.Fulfill(NullLogSink{})
+func eventuallyFulfillRoot() {
+	if logFullfilled.Load() {
+		return
+	}
+	if time.Since(rootLogCreated).Seconds() >= 30 {
+		if logFullfilled.CompareAndSwap(false, true) {
+			stack := debug.Stack()
+			stackLines := bytes.Count(stack, []byte{'\n'})
+			sep := []byte{'\n', '\t', '>', ' ', ' '}
+
+			fmt.Fprintf(os.Stderr,
+				"[controller-runtime] log.SetLogger(...) was never called; logs will not be displayed.\nDetected at:%s%s", sep,
+				// prefix every line, so it's clear this is a stack trace related to the above message
+				bytes.Replace(stack, []byte{'\n'}, sep, stackLines-1),
+			)
+			SetLogger(logr.New(NullLogSink{}))
 		}
-	}()
+	}
 }
 
 var (
-	loggerWasSetLock sync.Mutex
-	loggerWasSet     bool
+	logFullfilled atomic.Bool
 )
 
 // Log is the base logger used by kubebuilder.  It delegates
@@ -80,8 +81,10 @@ var (
 // the first 30 seconds of a binaries lifetime, it will get
 // set to a NullLogSink.
 var (
-	dlog = NewDelegatingLogSink(NullLogSink{})
-	Log  = logr.New(dlog)
+	rootLog, rootLogCreated = func() (*delegatingLogSink, time.Time) {
+		return newDelegatingLogSink(NullLogSink{}), time.Now()
+	}()
+	Log = logr.New(rootLog)
 )
 
 // FromContext returns a logger with predefined values from a context.Context.

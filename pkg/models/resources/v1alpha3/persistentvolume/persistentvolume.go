@@ -1,27 +1,20 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package persistentvolume
 
 import (
+	"context"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -33,26 +26,27 @@ const (
 )
 
 type persistentVolumeGetter struct {
-	informers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(informer informers.SharedInformerFactory) v1alpha3.Interface {
-	return &persistentVolumeGetter{informers: informer}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &persistentVolumeGetter{cache: cache}
 }
 
-func (p *persistentVolumeGetter) Get(namespace, name string) (runtime.Object, error) {
-	pv, err := p.informers.Core().V1().PersistentVolumes().Lister().Get(name)
-	return pv, err
+func (p *persistentVolumeGetter) Get(_, name string) (runtime.Object, error) {
+	pv := &corev1.PersistentVolume{}
+	return pv, p.cache.Get(context.Background(), types.NamespacedName{Name: name}, pv)
 }
 
 func (p *persistentVolumeGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := p.informers.Core().V1().PersistentVolumes().Lister().List(query.Selector())
-	if err != nil {
+	persistentVolumes := &corev1.PersistentVolumeList{}
+	if err := p.cache.List(context.Background(), persistentVolumes, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
 	var result []runtime.Object
-	for _, pv := range all {
-		result = append(result, pv)
+	for _, item := range persistentVolumes.Items {
+		result = append(result, item.DeepCopy())
 	}
 	return v1alpha3.DefaultList(result, query, p.compare, p.filter), nil
 }

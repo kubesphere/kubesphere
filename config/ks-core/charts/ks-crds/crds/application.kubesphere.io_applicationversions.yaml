@@ -1,0 +1,111 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: applicationversions.application.kubesphere.io
+spec:
+  group: application.kubesphere.io
+  names:
+    kind: ApplicationVersion
+    listKind: ApplicationVersionList
+    plural: applicationversions
+    shortNames:
+    - appver
+    singular: applicationversion
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.labels.application\.kubesphere\.io/repo-name
+      name: repo
+      type: string
+    - jsonPath: .metadata.labels.kubesphere\.io/workspace
+      name: workspace
+      type: string
+    - jsonPath: .metadata.labels.application\.kubesphere\.io/app-id
+      name: app
+      type: string
+    - jsonPath: .spec.appType
+      name: appType
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v2
+    schema:
+      openAPIV3Schema:
+        description: ApplicationVersion is the Schema for the applicationversions
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ApplicationVersionSpec defines the desired state of ApplicationVersion
+            properties:
+              appHome:
+                type: string
+              appType:
+                type: string
+              created:
+                format: date-time
+                type: string
+              digest:
+                type: string
+              icon:
+                type: string
+              maintainer:
+                items:
+                  description: Maintainer describes a Chart maintainer.
+                  properties:
+                    email:
+                      type: string
+                    name:
+                      type: string
+                    url:
+                      type: string
+                  type: object
+                type: array
+              pullUrl:
+                type: string
+              versionName:
+                type: string
+            required:
+            - versionName
+            type: object
+          status:
+            description: ApplicationVersionStatus defines the observed state of ApplicationVersion
+            properties:
+              message:
+                type: string
+              state:
+                type: string
+              updated:
+                format: date-time
+                type: string
+              userName:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

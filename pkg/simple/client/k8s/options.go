@@ -1,19 +1,3 @@
-/*
-Copyright 2020 KubeSphere Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package k8s
 
 import (
@@ -24,11 +8,9 @@ import (
 	"k8s.io/client-go/util/homedir"
 
 	"github.com/spf13/pflag"
-
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
-type KubernetesOptions struct {
+type Options struct {
 	// kubeconfig path, if not specified, will use
 	// in cluster way to create clientset
 	KubeConfig string `json:"kubeconfig" yaml:"kubeconfig"`
@@ -48,8 +30,8 @@ type KubernetesOptions struct {
 }
 
 // NewKubernetesOptions returns a `zero` instance
-func NewKubernetesOptions() (option *KubernetesOptions) {
-	option = &KubernetesOptions{
+func NewKubernetesOptions() (option *Options) {
+	option = &Options{
 		QPS:   1e6,
 		Burst: 1e6,
 	}
@@ -70,8 +52,8 @@ func NewKubernetesOptions() (option *KubernetesOptions) {
 	return
 }
 
-func (k *KubernetesOptions) Validate() []error {
-	errors := []error{}
+func (k *Options) Validate() []error {
+	var errors []error
 
 	if k.KubeConfig != "" {
 		if _, err := os.Stat(k.KubeConfig); err != nil {
@@ -81,11 +63,7 @@ func (k *KubernetesOptions) Validate() []error {
 	return errors
 }
 
-func (k *KubernetesOptions) ApplyTo(options *KubernetesOptions) {
-	reflectutils.Override(options, k)
-}
-
-func (k *KubernetesOptions) AddFlags(fs *pflag.FlagSet, c *KubernetesOptions) {
+func (k *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.StringVar(&k.KubeConfig, "kubeconfig", c.KubeConfig, ""+
 		"Path for kubernetes kubeconfig file, if left blank, will use "+
 		"in cluster way.")

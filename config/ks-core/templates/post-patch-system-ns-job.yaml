@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-post-patch-system-ns"
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded,hook-failed
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      containers:
+        - name: post-patch-system-ns
+          image:  {{ template "kubectl.image" . }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              kubectl create namespace kubesphere-controls-system --dry-run=client -o yaml | kubectl apply -f -
+              for ns in kubesphere-system kubesphere-controls-system default kube-node-lease kube-public kube-system;
+              do
+                kubectl label ns $ns kubesphere.io/workspace=system-workspace
+                kubectl label ns $ns kubesphere.io/managed=true
+              done
+              kubectl get ns -l 'kubesphere.io/workspace,!kubesphere.io/managed' --no-headers -o custom-columns=NAME:.metadata.name | \
+              xargs -I {} kubectl label ns {} kubesphere.io/managed=true

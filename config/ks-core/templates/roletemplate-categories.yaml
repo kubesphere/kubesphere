@@ -1,0 +1,276 @@
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: 'true'
+  name: global-platform-settings
+spec:
+  displayName:
+    en: 'Platform Settings'
+    zh: '平台设置'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: 'true'
+  name: global-access-control
+spec:
+  displayName:
+    en: Access Control
+    zh: '访问控制'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: 'true'
+  name: global-workspace-management
+spec:
+  displayName:
+    en: Workspace
+    zh: '企业空间'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: 'true'
+  name: global-cluster-management
+spec:
+  displayName:
+    en: Cluster Management
+    zh: '集群管理'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-access-control
+spec:
+  displayName:
+    en: Access Control
+    zh: '访问控制'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-resource-management
+spec:
+  displayName:
+    en: Cluster Resources
+    zh: '集群资源'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-settings
+spec:
+  displayName:
+    en: Cluster Settings
+    zh: '集群设置'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-app-workloads-management
+spec:
+  displayName:
+    en: Application Workloads
+    zh: '应用负载'
+
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-project-management
+spec:
+  displayName:
+    en: Project
+    zh: '项目'
+
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "cluster"
+    kubesphere.io/managed: 'true'
+  name: cluster-storage-management
+spec:
+  displayName:
+    en: Storage
+    zh: '存储'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: 'true'
+  name: workspace-settings
+spec:
+  displayName:
+    en: Workspace Settings
+    zh: '企业空间设置'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: 'true'
+  name: workspace-project-management
+spec:
+  displayName:
+    en: Projects
+    zh: '项目'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: 'true'
+  name: workspace-access-control
+spec:
+  displayName:
+    en: Access Control
+    zh: '访问控制'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-access-control
+spec:
+  displayName:
+    en: Access Control
+    zh: '访问控制'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-configuration-management
+spec:
+  displayName:
+    en: Configuration
+    zh: '配置'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-storage-management
+spec:
+  displayName:
+    en: Storage
+    zh: '存储'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-application-workloads
+spec:
+  displayName:
+    en: Application Workloads
+    zh: '应用负载'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-settings
+spec:
+  displayName:
+    en: Project Settings
+    zh: '项目设置'
+
+---
+  # category
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "global"
+    kubesphere.io/managed: "true"
+  name: manage-app
+spec:
+  displayName:
+    en: 'AppStore Manage'
+    zh: '应用商店管理'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "workspace"
+    kubesphere.io/managed: "true"
+  name: workspace-app
+spec:
+  displayName:
+    en: 'Workspace Apps'
+    zh: '应用管理'
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Category
+metadata:
+  labels:
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-app
+spec:
+  displayName:
+    en: 'App Releases'
+    zh: '应用'

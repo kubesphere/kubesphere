@@ -1,24 +1,9 @@
-/*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package cache
 
 import (
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"kubesphere.io/kubesphere/pkg/server/options"
@@ -62,13 +47,25 @@ type InMemoryCacheOptions struct {
 
 // imMemoryCache implements cache.Interface use memory objects, it should be used only for testing
 type inMemoryCache struct {
+	store *threadSafeStore
+}
+
+type threadSafeStore struct {
 	store map[string]simpleObject
+	mutex sync.RWMutex
+}
+
+func newThreadSafeStore() *threadSafeStore {
+	return &threadSafeStore{
+		store: make(map[string]simpleObject),
+		mutex: sync.RWMutex{},
+	}
 }
 
 func NewInMemoryCache(options *InMemoryCacheOptions, stopCh <-chan struct{}) (Interface, error) {
 	var cleanupPeriod time.Duration
 	cache := &inMemoryCache{
-		store: make(map[string]simpleObject),
+		store: newThreadSafeStore(),
 	}
 
 	if options == nil || options.CleanupPeriod == 0 {
@@ -82,11 +79,40 @@ func NewInMemoryCache(options *InMemoryCacheOptions, stopCh <-chan struct{}) (In
 }
 
 func (s *inMemoryCache) cleanInvalidToken() {
-	for k, v := range s.store {
-		if v.IsExpired() {
-			delete(s.store, k)
+	for _, k := range s.store.Keys() {
+		if v, ok := s.store.Get(k); ok && v.IsExpired() {
+			s.store.Delete(k)
 		}
 	}
+}
+
+func (s *threadSafeStore) Delete(key string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	delete(s.store, key)
+}
+
+func (s *threadSafeStore) Get(key string) (simpleObject, bool) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	object, exist := s.store[key]
+	return object, exist
+}
+
+func (s *threadSafeStore) Set(key string, obj simpleObject) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.store[key] = obj
+}
+
+func (s *threadSafeStore) Keys() []string {
+	var keys []string
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	for k := range s.store {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 func (s *inMemoryCache) Keys(pattern string) ([]string, error) {
@@ -99,7 +125,7 @@ func (s *inMemoryCache) Keys(pattern string) ([]string, error) {
 		return nil, err
 	}
 	var keys []string
-	for k := range s.store {
+	for _, k := range s.store.Keys() {
 		if re.MatchString(k) {
 			keys = append(keys, k)
 		}
@@ -119,19 +145,19 @@ func (s *inMemoryCache) Set(key string, value string, duration time.Duration) er
 		sobject.neverExpire = true
 	}
 
-	s.store[key] = sobject
+	s.store.Set(key, sobject)
 	return nil
 }
 
 func (s *inMemoryCache) Del(keys ...string) error {
 	for _, key := range keys {
-		delete(s.store, key)
+		s.store.Delete(key)
 	}
 	return nil
 }
 
 func (s *inMemoryCache) Get(key string) (string, error) {
-	if sobject, ok := s.store[key]; ok {
+	if sobject, ok := s.store.Get(key); ok {
 		if sobject.neverExpire || time.Now().Before(sobject.expiredAt) {
 			return sobject.value, nil
 		}
@@ -142,7 +168,7 @@ func (s *inMemoryCache) Get(key string) (string, error) {
 
 func (s *inMemoryCache) Exists(keys ...string) (bool, error) {
 	for _, key := range keys {
-		if _, ok := s.store[key]; !ok {
+		if _, ok := s.store.Get(key); !ok {
 			return false, nil
 		}
 	}
@@ -166,7 +192,7 @@ func (s *inMemoryCache) Expire(key string, duration time.Duration) error {
 		sobject.neverExpire = true
 	}
 
-	s.store[key] = sobject
+	s.store.Set(key, sobject)
 	return nil
 }
 

@@ -49,6 +49,11 @@ type WebhookInstallOptions struct {
 	// ValidatingWebhooks is a list of ValidatingWebhookConfigurations to install
 	ValidatingWebhooks []*admissionv1.ValidatingWebhookConfiguration
 
+	// IgnoreSchemeConvertible, will modify any CRD conversion webhook to use the local serving host and port,
+	// bypassing the need to have the types registered in the Scheme. This is useful for testing CRD conversion webhooks
+	// with unregistered or unstructured types.
+	IgnoreSchemeConvertible bool
+
 	// IgnoreErrorIfPathMissing will ignore an error if a DirectoryPath does not exist when set to true
 	IgnoreErrorIfPathMissing bool
 
@@ -147,6 +152,8 @@ func (o *WebhookInstallOptions) PrepWithoutInstalling() error {
 
 // Install installs specified webhooks to the API server.
 func (o *WebhookInstallOptions) Install(config *rest.Config) error {
+	defaultWebhookOptions(o)
+
 	if len(o.LocalServingCAData) == 0 {
 		if err := o.PrepWithoutInstalling(); err != nil {
 			return err
@@ -168,11 +175,22 @@ func (o *WebhookInstallOptions) Cleanup() error {
 	return nil
 }
 
+// defaultWebhookOptions sets the default values for Webhooks.
+func defaultWebhookOptions(o *WebhookInstallOptions) {
+	if o.MaxTime == 0 {
+		o.MaxTime = defaultMaxWait
+	}
+	if o.PollInterval == 0 {
+		o.PollInterval = defaultPollInterval
+	}
+}
+
 // WaitForWebhooks waits for the Webhooks to be available through API server.
 func WaitForWebhooks(config *rest.Config,
 	mutatingWebhooks []*admissionv1.MutatingWebhookConfiguration,
 	validatingWebhooks []*admissionv1.ValidatingWebhookConfiguration,
-	options WebhookInstallOptions) error {
+	options WebhookInstallOptions,
+) error {
 	waitingFor := map[schema.GroupVersionKind]*sets.Set[string]{}
 
 	for _, hook := range mutatingWebhooks {
@@ -203,7 +221,7 @@ func WaitForWebhooks(config *rest.Config,
 
 	// Poll until all resources are found in discovery
 	p := &webhookPoller{config: config, waitingFor: waitingFor}
-	return wait.PollImmediate(options.PollInterval, options.MaxTime, p.poll)
+	return wait.PollUntilContextTimeout(context.TODO(), options.PollInterval, options.MaxTime, true, p.poll)
 }
 
 // poller checks if all the resources have been found in discovery, and returns false if not.
@@ -216,7 +234,7 @@ type webhookPoller struct {
 }
 
 // poll checks if all the resources have been found in discovery, and returns false if not.
-func (p *webhookPoller) poll() (done bool, err error) {
+func (p *webhookPoller) poll(ctx context.Context) (done bool, err error) {
 	// Create a new clientset to avoid any client caching of discovery
 	c, err := client.New(p.config, client.Options{})
 	if err != nil {
@@ -230,7 +248,7 @@ func (p *webhookPoller) poll() (done bool, err error) {
 			continue
 		}
 		for _, name := range names.UnsortedList() {
-			var obj = &unstructured.Unstructured{}
+			obj := &unstructured.Unstructured{}
 			obj.SetGroupVersionKind(gvk)
 			err := c.Get(context.Background(), client.ObjectKey{
 				Namespace: "",

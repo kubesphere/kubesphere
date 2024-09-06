@@ -1,23 +1,16 @@
 /*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package git
 
 import (
 	"testing"
+
+	runtimefakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"kubesphere.io/kubesphere/pkg/scheme"
 )
 
 func TestGitReadVerifyWithBasicAuth(t *testing.T) {
@@ -50,7 +43,11 @@ func TestGitReadVerifyWithBasicAuth(t *testing.T) {
 			"remote":   "git@fdsfs41342`@@@2414!!!!github.com:kubesphere/kubesphere.git",
 		},
 	}
-	verifier := gitVerifier{informers: nil}
+	client := runtimefakeclient.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		Build()
+
+	verifier := gitVerifier{cache: client}
 
 	for _, item := range shouldSuccess {
 		err := verifier.gitReadVerifyWithBasicAuth(item["username"], item["password"], item["remote"])

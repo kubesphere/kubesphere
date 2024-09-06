@@ -1,18 +1,7 @@
 /*
-Copyright 2020 KubeSphere Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package components
 
@@ -21,12 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	runtimefakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"kubesphere.io/kubesphere/pkg/scheme"
+
 	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"kubesphere.io/kubesphere/pkg/api/resource/v1alpha2"
 )
@@ -108,6 +100,10 @@ func nodes(name string, healthNodes, totalNodes int) []runtime.Object {
 
 	return ns
 }
+
+var _ = Describe("Components", func() {
+
+})
 
 func TestGetSystemHealthStatus(t *testing.T) {
 	var tests = []struct {
@@ -221,30 +217,17 @@ func TestGetSystemHealthStatus(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			ps := pods(test.name, test.namespace, test.labels, test.healthPods, test.totalPods)
+			pods := pods(test.name, test.namespace, test.labels, test.healthPods, test.totalPods)
 			svc := service(test.name, test.namespace, test.labels)
-			ns := nodes(test.name, test.healthNodes, test.totalNodes)
+			nodes := nodes(test.name, test.healthNodes, test.totalNodes)
 
-			var objs []runtime.Object
-			objs = append(objs, ps...)
-			objs = append(objs, svc)
-			objs = append(objs, ns...)
+			client := runtimefakeclient.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithRuntimeObjects(pods...).
+				WithRuntimeObjects(svc).
+				WithRuntimeObjects(nodes...).Build()
 
-			client := fake.NewSimpleClientset(objs...)
-
-			informer := informers.NewSharedInformerFactory(client, time.Minute*10)
-
-			informer.Core().V1().Services().Informer().GetIndexer().Add(svc)
-
-			for _, obj := range ps {
-				informer.Core().V1().Pods().Informer().GetIndexer().Add(obj)
-			}
-
-			for _, obj := range ns {
-				informer.Core().V1().Nodes().Informer().GetIndexer().Add(obj)
-			}
-
-			c := NewComponentsGetter(informer)
+			c := NewComponentsGetter(client)
 			healthStatus, err := c.GetSystemHealthStatus()
 			if err != nil {
 				t.Fatal(err)
@@ -340,24 +323,15 @@ func TestGetComponentStatus(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			ps := pods(test.name, test.namespace, test.labels, test.healthPods, test.totalPods)
+			pods := pods(test.name, test.namespace, test.labels, test.healthPods, test.totalPods)
 			svc := service(test.name, test.namespace, test.labels)
 
-			var objs []runtime.Object
-			objs = append(objs, ps...)
-			objs = append(objs, svc)
+			client := runtimefakeclient.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithRuntimeObjects(pods...).
+				WithRuntimeObjects(svc).Build()
 
-			client := fake.NewSimpleClientset(objs...)
-
-			informer := informers.NewSharedInformerFactory(client, time.Minute*10)
-
-			informer.Core().V1().Services().Informer().GetIndexer().Add(svc)
-
-			for _, obj := range ps {
-				informer.Core().V1().Pods().Informer().GetIndexer().Add(obj)
-			}
-
-			c := NewComponentsGetter(informer)
+			c := NewComponentsGetter(client)
 			healthStatus, err := c.GetComponentStatus(test.name)
 			if err == nil && test.expectedError {
 				t.Fatalf("expected error while got nothing")

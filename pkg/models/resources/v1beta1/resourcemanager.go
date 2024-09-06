@@ -1,37 +1,94 @@
+/*
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
+
 package v1beta1
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/open-policy-agent/opa/rego"
+	"gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	toolscache "k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-
-	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const labelResourceServed = "kubesphere.io/resource-served"
+const (
+	defaultRegoQuery    = "data.filter.match"
+	defaultRegoFileName = "filter.rego"
+	labelResourceServed = "kubesphere.io/resource-served"
+	defaultConfigFile   = "configuration.yaml"
+	defaultResyncPeriod = 10 * time.Hour
+)
 
-// Note that: If delete the crd at the cluster when is running, the client.cache does not return err but empty result
+// Note:
+// If the Custom Resource Definition (CRD) is deleted in the cluster while it is running,
+// the `client.cache` may not return an error but instead provide an empty result.
 
-func New(client client.Client, cache cache.Cache) ResourceManager {
-	return &resourceManager{
-		client: client,
-		cache:  cache,
+func New(ctx context.Context, runtimeClient client.Client, runtimeCache cache.Cache) (ResourceManager, error) {
+	secretInformer, err := runtimeCache.GetInformer(ctx, &corev1.Secret{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get informer for secret: %v", err)
 	}
+
+	resourceManager := &resourceManager{
+		client: runtimeClient,
+		ctx:    ctx,
+	}
+
+	_, err = secretInformer.AddEventHandlerWithResyncPeriod(toolscache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			secret := obj.(*corev1.Secret)
+
+			customFilter := customResourceFilterFromSecret(secret)
+			if customFilter != nil {
+				resourceManager.onCustomResourceFilterChange(customFilter)
+			}
+		},
+		UpdateFunc: func(_, obj interface{}) {
+			secret := obj.(*corev1.Secret)
+			customFilter := customResourceFilterFromSecret(secret)
+			if customFilter != nil {
+				resourceManager.onCustomResourceFilterChange(customFilter)
+			}
+		},
+		DeleteFunc: func(obj interface{}) {
+			secret := obj.(*corev1.Secret)
+			customFilter := customResourceFilterFromSecret(secret)
+			if customFilter != nil {
+				resourceManager.onCustomResourceFilterDelete(customFilter)
+			}
+		},
+	}, defaultResyncPeriod)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add event handler for secret: %v", err)
+	}
+
+	return resourceManager, nil
 }
 
 type resourceManager struct {
-	client client.Client
-	cache  cache.Cache
+	client                client.Client
+	ctx                   context.Context
+	customResourceFilters sync.Map
 }
 
 func (h *resourceManager) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (client.Object, error) {
@@ -83,7 +140,7 @@ func (h *resourceManager) CreateObjectFromRawData(gvr schema.GroupVersionResourc
 		return nil, err
 	}
 
-	// The object`s GroupVersionKind could be overridden if apiVersion and kind of rawData are different
+	// The object's GroupVersionKind could be overridden if apiVersion and kind of rawData are different
 	// with GroupVersionKind from url, so that we should check GroupVersionKind after Unmarshal rawDate.
 	if obj.GetObjectKind().GroupVersionKind().String() != gvk.String() {
 		return nil, errors.NewBadRequest("wrong resource GroupVersionKind")
@@ -120,22 +177,12 @@ func (h *resourceManager) ListResources(ctx context.Context, gvr schema.GroupVer
 	return obj, nil
 }
 
-func (h *resourceManager) DeleteResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) error {
-	resource, err := h.GetResource(ctx, gvr, namespace, name)
-	if err != nil {
-		return err
-	}
-	return h.Delete(ctx, resource)
+func (h *resourceManager) DeleteResource(ctx context.Context, object client.Object) error {
+	return h.Delete(ctx, object)
 }
 
 func (h *resourceManager) UpdateResource(ctx context.Context, object client.Object) error {
-	old := object.DeepCopyObject().(client.Object)
-	err := h.Get(ctx, object.GetNamespace(), object.GetName(), old)
-	if err != nil {
-		return err
-	}
-
-	return h.Update(ctx, old, object)
+	return h.Update(ctx, object)
 }
 
 func (h *resourceManager) PatchResource(ctx context.Context, object client.Object) error {
@@ -144,7 +191,6 @@ func (h *resourceManager) PatchResource(ctx context.Context, object client.Objec
 	if err != nil {
 		return err
 	}
-
 	return h.Patch(ctx, old, object)
 }
 
@@ -179,7 +225,7 @@ func (h *resourceManager) IsServed(gvr schema.GroupVersionResource) (bool, error
 	}
 
 	crd := &extv1.CustomResourceDefinition{}
-	if err := h.cache.Get(context.Background(), client.ObjectKey{Name: gvr.GroupResource().String()}, crd); err != nil {
+	if err := h.client.Get(context.Background(), client.ObjectKey{Name: gvr.GroupResource().String()}, crd); err != nil {
 		if errors.IsNotFound(err) {
 			return false, nil
 		}
@@ -194,7 +240,7 @@ func (h *resourceManager) IsServed(gvr schema.GroupVersionResource) (bool, error
 }
 
 func (h *resourceManager) Get(ctx context.Context, namespace, name string, object client.Object) error {
-	return h.cache.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, object)
+	return h.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, object)
 }
 
 func (h *resourceManager) List(ctx context.Context, namespace string, query *query.Query, list client.ObjectList) error {
@@ -203,8 +249,7 @@ func (h *resourceManager) List(ctx context.Context, namespace string, query *que
 		Namespace:     namespace,
 	}
 
-	err := h.cache.List(ctx, list, listOpt)
-	if err != nil {
+	if err := h.client.List(ctx, list, listOpt); err != nil {
 		return err
 	}
 
@@ -213,8 +258,10 @@ func (h *resourceManager) List(ctx context.Context, namespace string, query *que
 		return err
 	}
 
-	filtered, remainingItemCount := DefaultList(extractList, query, compare, filter)
-	list.SetRemainingItemCount(remainingItemCount)
+	filtered, remainingItemCount, total := DefaultList(extractList, query, DefaultCompare, h.CustomResourceFilter)
+	remaining := int64(remainingItemCount)
+	list.SetRemainingItemCount(&remaining)
+	list.SetContinue(strconv.Itoa(total))
 	if err := meta.SetList(list, filtered); err != nil {
 		return err
 	}
@@ -229,16 +276,16 @@ func (h *resourceManager) Delete(ctx context.Context, object client.Object) erro
 	return h.client.Delete(ctx, object)
 }
 
-func (h *resourceManager) Update(ctx context.Context, old, new client.Object) error {
-	new.SetResourceVersion(old.GetResourceVersion())
+func (h *resourceManager) Update(ctx context.Context, new client.Object) error {
 	return h.client.Update(ctx, new)
 }
 
 func (h *resourceManager) Patch(ctx context.Context, old, new client.Object) error {
+	new.SetResourceVersion(old.GetResourceVersion())
 	return h.client.Patch(ctx, new, client.MergeFrom(old))
 }
 
-func compare(left, right runtime.Object, field query.Field) bool {
+func DefaultCompare(left, right runtime.Object, field query.Field) bool {
 	l, err := meta.Accessor(left)
 	if err != nil {
 		return false
@@ -250,7 +297,105 @@ func compare(left, right runtime.Object, field query.Field) bool {
 	return DefaultObjectMetaCompare(l, r, field)
 }
 
-func filter(object runtime.Object, filter query.Filter) bool {
+type Input struct {
+	Filter query.Filter   `json:"filter"`
+	Object runtime.Object `json:"object"`
+}
+
+func (h *resourceManager) RegoFilter(object runtime.Object, filter query.Filter, preparedEvalQuery *rego.PreparedEvalQuery) bool {
+	results, err := preparedEvalQuery.Eval(h.ctx, rego.EvalInput(Input{
+		Filter: filter,
+		Object: object,
+	}))
+	if err != nil {
+		klog.Warningf("failed to eval reogo query: %s", err)
+		return false
+	}
+
+	if len(results) > 0 {
+		if match, ok := results[0].Expressions[0].Value.(bool); ok {
+			return match
+		} else {
+			return false
+		}
+	}
+	return false
+}
+
+func (h *resourceManager) CustomResourceFilter(object runtime.Object, filter query.Filter) bool {
+	typed, err := meta.TypeAccessor(object)
+	if err != nil {
+		return false
+	}
+	if !DefaultFilter(object, filter) {
+		return false
+	}
+	if value, ok := h.customResourceFilters.Load(schema.FromAPIVersionAndKind(typed.GetAPIVersion(), typed.GetKind())); ok {
+		preparedEvalQuery := value.(*rego.PreparedEvalQuery)
+		if !h.RegoFilter(object, filter, preparedEvalQuery) {
+			return false
+		}
+	}
+	return true
+}
+
+type Resource struct {
+	Group   string `json:"group" yaml:"group"`
+	Version string `json:"version" yaml:"version"`
+	Kind    string `json:"kind" yaml:"kind"`
+}
+
+type CustomResourceFilter struct {
+	Resource   Resource `json:"resource" yaml:"resource"`
+	RegoPolicy string   `json:"regoPolicy" yaml:"regoPolicy"`
+}
+
+func customResourceFilterFromSecret(secret *corev1.Secret) *CustomResourceFilter {
+	if secret == nil {
+		return nil
+	}
+	if secret.Type != "config.kubesphere.io/custom-resource-filter" {
+		return nil
+	}
+	filter := &CustomResourceFilter{}
+	if err := yaml.Unmarshal(secret.Data[defaultConfigFile], filter); err != nil {
+		klog.Warningf("failed to unmarshal custom resource filter: %s", err)
+		return nil
+	}
+	return filter
+}
+
+func (h *resourceManager) onCustomResourceFilterChange(customResourceFilter *CustomResourceFilter) {
+	if customResourceFilter == nil {
+		return
+	}
+	regoInstance := rego.New(rego.Query(defaultRegoQuery), rego.Module(defaultRegoFileName, customResourceFilter.RegoPolicy))
+	if preparedEvalQuery, err := regoInstance.PrepareForEval(h.ctx); err != nil {
+		klog.Warningf("failed to prepare reogo query: %s", err)
+	} else {
+		gvk := schema.GroupVersionKind{
+			Group:   customResourceFilter.Resource.Group,
+			Version: customResourceFilter.Resource.Version,
+			Kind:    customResourceFilter.Resource.Kind,
+		}
+		h.customResourceFilters.Swap(gvk, &preparedEvalQuery)
+		klog.V(4).Infof("custom resource filter for %s is updated", gvk.String())
+	}
+}
+
+func (h *resourceManager) onCustomResourceFilterDelete(filter *CustomResourceFilter) {
+	if filter == nil {
+		return
+	}
+	gvk := schema.GroupVersionKind{
+		Group:   filter.Resource.Group,
+		Version: filter.Resource.Version,
+		Kind:    filter.Resource.Kind,
+	}
+	h.customResourceFilters.Delete(gvk)
+}
+
+func DefaultFilter(object runtime.Object, filter query.Filter) bool {
 	o, err := meta.Accessor(object)
 	if err != nil {
 		return false

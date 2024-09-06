@@ -1,59 +1,50 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package components
 
 import (
+	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/informers"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api/resource/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
-type ComponentsGetter interface {
+type Getter interface {
 	GetComponentStatus(name string) (v1alpha2.ComponentStatus, error)
 	GetSystemHealthStatus() (v1alpha2.HealthStatus, error)
 	GetAllComponentsStatus() ([]v1alpha2.ComponentStatus, error)
 }
 
 type componentsGetter struct {
-	informers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func NewComponentsGetter(informers informers.SharedInformerFactory) ComponentsGetter {
-	return &componentsGetter{informers: informers}
+func NewComponentsGetter(cache runtimeclient.Reader) Getter {
+	return &componentsGetter{cache: cache}
 }
 
 func (c *componentsGetter) GetComponentStatus(name string) (v1alpha2.ComponentStatus, error) {
 
-	var service *corev1.Service
+	service := &corev1.Service{}
 	var err error
-
 	for _, ns := range constants.SystemNamespaces {
-		service, err = c.informers.Core().V1().Services().Lister().Services(ns).Get(name)
-		if err == nil {
+		if err := c.cache.Get(context.Background(), types.NamespacedName{
+			Namespace: ns,
+			Name:      name,
+		}, service); err == nil {
 			break
 		}
 	}
-
 	if err != nil {
 		return v1alpha2.ComponentStatus{}, err
 	}
@@ -62,9 +53,11 @@ func (c *componentsGetter) GetComponentStatus(name string) (v1alpha2.ComponentSt
 		return v1alpha2.ComponentStatus{}, fmt.Errorf("component %s has no selector", name)
 	}
 
-	pods, err := c.informers.Core().V1().Pods().Lister().Pods(service.Namespace).List(labels.SelectorFromValidatedSet(service.Spec.Selector))
-
-	if err != nil {
+	pods := &corev1.PodList{}
+	if err := c.cache.List(context.Background(), pods, &runtimeclient.ListOptions{
+		LabelSelector: labels.SelectorFromValidatedSet(service.Spec.Selector),
+		Namespace:     service.Namespace,
+	}); err != nil {
 		return v1alpha2.ComponentStatus{}, err
 	}
 
@@ -76,9 +69,9 @@ func (c *componentsGetter) GetComponentStatus(name string) (v1alpha2.ComponentSt
 		HealthyBackends: 0,
 		TotalBackends:   0,
 	}
-	for _, pod := range pods {
+	for _, pod := range pods.Items {
 		component.TotalBackends++
-		if pod.Status.Phase == corev1.PodRunning && isAllContainersReady(pod) {
+		if pod.Status.Phase == corev1.PodRunning && isAllContainersReady(&pod) {
 			component.HealthyBackends++
 		}
 	}
@@ -106,16 +99,16 @@ func (c *componentsGetter) GetSystemHealthStatus() (v1alpha2.HealthStatus, error
 
 	status.KubeSphereComponents = components
 
+	nodes := &corev1.NodeList{}
 	// get node status
-	nodes, err := c.informers.Core().V1().Nodes().Lister().List(labels.Everything())
-	if err != nil {
+	if err := c.cache.List(context.Background(), nodes); err != nil {
 		klog.Errorln(err)
 		return status, nil
 	}
 
 	totalNodes := 0
 	healthyNodes := 0
-	for _, nodes := range nodes {
+	for _, nodes := range nodes.Items {
 		totalNodes++
 		for _, condition := range nodes.Status.Conditions {
 			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
@@ -138,15 +131,15 @@ func (c *componentsGetter) GetAllComponentsStatus() ([]v1alpha2.ComponentStatus,
 	var err error
 	for _, ns := range constants.SystemNamespaces {
 
-		services, err := c.informers.Core().V1().Services().Lister().Services(ns).List(labels.Everything())
-
-		if err != nil {
+		services := &corev1.ServiceList{}
+		if err := c.cache.List(context.Background(), services, &runtimeclient.ListOptions{
+			Namespace: ns,
+		}); err != nil {
 			klog.Error(err)
 			continue
 		}
 
-		for _, service := range services {
-
+		for _, service := range services.Items {
 			// skip services without a selector
 			if len(service.Spec.Selector) == 0 {
 				continue
@@ -161,16 +154,23 @@ func (c *componentsGetter) GetAllComponentsStatus() ([]v1alpha2.ComponentStatus,
 				TotalBackends:   0,
 			}
 
-			pods, err := c.informers.Core().V1().Pods().Lister().Pods(ns).List(labels.SelectorFromValidatedSet(service.Spec.Selector))
+			pods := &corev1.PodList{}
+			if err := c.cache.List(context.Background(), pods, &runtimeclient.ListOptions{
+				LabelSelector: labels.SelectorFromValidatedSet(service.Spec.Selector),
+				Namespace:     ns,
+			}); err != nil {
+				klog.Error(err)
+				continue
+			}
 
 			if err != nil {
 				klog.Errorln(err)
 				continue
 			}
 
-			for _, pod := range pods {
+			for _, pod := range pods.Items {
 				component.TotalBackends++
-				if pod.Status.Phase == corev1.PodRunning && isAllContainersReady(pod) {
+				if pod.Status.Phase == corev1.PodRunning && isAllContainersReady(&pod) {
 					component.HealthyBackends++
 				}
 			}

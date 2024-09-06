@@ -34,6 +34,26 @@ import (
 var admissionScheme = runtime.NewScheme()
 var admissionCodecs = serializer.NewCodecFactory(admissionScheme)
 
+// adapted from https://github.com/kubernetes/kubernetes/blob/c28c2009181fcc44c5f6b47e10e62dacf53e4da0/staging/src/k8s.io/pod-security-admission/cmd/webhook/server/server.go
+//
+// From https://github.com/kubernetes/apiserver/blob/d6876a0600de06fef75968c4641c64d7da499f25/pkg/server/config.go#L433-L442C5:
+//
+//	     1.5MB is the recommended client request size in byte
+//		 the etcd server should accept. See
+//		 https://github.com/etcd-io/etcd/blob/release-3.4/embed/config.go#L56.
+//		 A request body might be encoded in json, and is converted to
+//		 proto when persisted in etcd, so we allow 2x as the largest request
+//		 body size to be accepted and decoded in a write request.
+//
+// For the admission request, we can infer that it contains at most two objects
+// (the old and new versions of the object being admitted), each of which can
+// be at most 3MB in size. For the rest of the request, we can assume that
+// it will be less than 1MB in size. Therefore, we can set the max request
+// size to 7MB.
+// If your use case requires larger max request sizes, please
+// open an issue (https://github.com/kubernetes-sigs/controller-runtime/issues/new).
+const maxRequestSize = int64(7 * 1024 * 1024)
+
 func init() {
 	utilruntime.Must(v1.AddToScheme(admissionScheme))
 	utilruntime.Must(v1beta1.AddToScheme(admissionScheme))
@@ -42,36 +62,38 @@ func init() {
 var _ http.Handler = &Webhook{}
 
 func (wh *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var body []byte
-	var err error
 	ctx := r.Context()
 	if wh.WithContextFunc != nil {
 		ctx = wh.WithContextFunc(ctx, r)
 	}
 
-	var reviewResponse Response
-	if r.Body == nil {
-		err = errors.New("request body is empty")
-		wh.log.Error(err, "bad request")
-		reviewResponse = Errored(http.StatusBadRequest, err)
-		wh.writeResponse(w, reviewResponse)
+	if r.Body == nil || r.Body == http.NoBody {
+		err := errors.New("request body is empty")
+		wh.getLogger(nil).Error(err, "bad request")
+		wh.writeResponse(w, Errored(http.StatusBadRequest, err))
 		return
 	}
 
 	defer r.Body.Close()
-	if body, err = io.ReadAll(r.Body); err != nil {
-		wh.log.Error(err, "unable to read the body from the incoming request")
-		reviewResponse = Errored(http.StatusBadRequest, err)
-		wh.writeResponse(w, reviewResponse)
+	limitedReader := &io.LimitedReader{R: r.Body, N: maxRequestSize}
+	body, err := io.ReadAll(limitedReader)
+	if err != nil {
+		wh.getLogger(nil).Error(err, "unable to read the body from the incoming request")
+		wh.writeResponse(w, Errored(http.StatusBadRequest, err))
+		return
+	}
+	if limitedReader.N <= 0 {
+		err := fmt.Errorf("request entity is too large; limit is %d bytes", maxRequestSize)
+		wh.getLogger(nil).Error(err, "unable to read the body from the incoming request; limit reached")
+		wh.writeResponse(w, Errored(http.StatusRequestEntityTooLarge, err))
 		return
 	}
 
 	// verify the content type is accurate
 	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
 		err = fmt.Errorf("contentType=%s, expected application/json", contentType)
-		wh.log.Error(err, "unable to process a request with an unknown content type", "content type", contentType)
-		reviewResponse = Errored(http.StatusBadRequest, err)
-		wh.writeResponse(w, reviewResponse)
+		wh.getLogger(nil).Error(err, "unable to process a request with unknown content type")
+		wh.writeResponse(w, Errored(http.StatusBadRequest, err))
 		return
 	}
 
@@ -88,15 +110,13 @@ func (wh *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ar.SetGroupVersionKind(v1.SchemeGroupVersion.WithKind("AdmissionReview"))
 	_, actualAdmRevGVK, err := admissionCodecs.UniversalDeserializer().Decode(body, nil, &ar)
 	if err != nil {
-		wh.log.Error(err, "unable to decode the request")
-		reviewResponse = Errored(http.StatusBadRequest, err)
-		wh.writeResponse(w, reviewResponse)
+		wh.getLogger(nil).Error(err, "unable to decode the request")
+		wh.writeResponse(w, Errored(http.StatusBadRequest, err))
 		return
 	}
-	wh.log.V(1).Info("received request", "UID", req.UID, "kind", req.Kind, "resource", req.Resource)
+	wh.getLogger(&req).V(5).Info("received request")
 
-	reviewResponse = wh.Handle(ctx, req)
-	wh.writeResponseTyped(w, reviewResponse, actualAdmRevGVK)
+	wh.writeResponseTyped(w, wh.Handle(ctx, req), actualAdmRevGVK)
 }
 
 // writeResponse writes response to w generically, i.e. without encoding GVK information.
@@ -124,7 +144,7 @@ func (wh *Webhook) writeResponseTyped(w io.Writer, response Response, admRevGVK 
 // writeAdmissionResponse writes ar to w.
 func (wh *Webhook) writeAdmissionResponse(w io.Writer, ar v1.AdmissionReview) {
 	if err := json.NewEncoder(w).Encode(ar); err != nil {
-		wh.log.Error(err, "unable to encode and write the response")
+		wh.getLogger(nil).Error(err, "unable to encode and write the response")
 		// Since the `ar v1.AdmissionReview` is a clear and legal object,
 		// it should not have problem to be marshalled into bytes.
 		// The error here is probably caused by the abnormal HTTP connection,
@@ -132,15 +152,15 @@ func (wh *Webhook) writeAdmissionResponse(w io.Writer, ar v1.AdmissionReview) {
 		// to avoid endless circular calling.
 		serverError := Errored(http.StatusInternalServerError, err)
 		if err = json.NewEncoder(w).Encode(v1.AdmissionReview{Response: &serverError.AdmissionResponse}); err != nil {
-			wh.log.Error(err, "still unable to encode and write the InternalServerError response")
+			wh.getLogger(nil).Error(err, "still unable to encode and write the InternalServerError response")
 		}
 	} else {
 		res := ar.Response
-		if log := wh.log; log.V(1).Enabled() {
+		if log := wh.getLogger(nil); log.V(5).Enabled() {
 			if res.Result != nil {
-				log = log.WithValues("code", res.Result.Code, "reason", res.Result.Reason)
+				log = log.WithValues("code", res.Result.Code, "reason", res.Result.Reason, "message", res.Result.Message)
 			}
-			log.V(1).Info("wrote response", "UID", res.UID, "allowed", res.Allowed)
+			log.V(5).Info("wrote response", "requestID", res.UID, "allowed", res.Allowed)
 		}
 	}
 }

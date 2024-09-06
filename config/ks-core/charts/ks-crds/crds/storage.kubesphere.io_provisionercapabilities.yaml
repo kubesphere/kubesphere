@@ -1,0 +1,117 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: provisionercapabilities.storage.kubesphere.io
+spec:
+  group: storage.kubesphere.io
+  names:
+    kind: ProvisionerCapability
+    listKind: ProvisionerCapabilityList
+    plural: provisionercapabilities
+    singular: provisionercapability
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.pluginInfo.name
+      name: Provisioner
+      type: string
+    - jsonPath: .spec.features.volume.expandMode
+      name: Expand
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ProvisionerCapability is the schema for the provisionercapability
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ProvisionerCapabilitySpec defines the desired state of ProvisionerCapability
+            properties:
+              features:
+                description: CapabilityFeatures describe storage features
+                properties:
+                  snapshot:
+                    description: SnapshotFeature describe snapshot features
+                    properties:
+                      create:
+                        type: boolean
+                      list:
+                        type: boolean
+                    required:
+                    - create
+                    - list
+                    type: object
+                  topology:
+                    type: boolean
+                  volume:
+                    description: VolumeFeature describe volume features
+                    properties:
+                      attach:
+                        type: boolean
+                      clone:
+                        type: boolean
+                      create:
+                        type: boolean
+                      expandMode:
+                        type: string
+                      list:
+                        type: boolean
+                      stats:
+                        type: boolean
+                    required:
+                    - attach
+                    - clone
+                    - create
+                    - expandMode
+                    - list
+                    - stats
+                    type: object
+                required:
+                - snapshot
+                - topology
+                - volume
+                type: object
+              pluginInfo:
+                description: PluginInfo describes plugin info
+                properties:
+                  name:
+                    type: string
+                  version:
+                    type: string
+                required:
+                - name
+                - version
+                type: object
+            required:
+            - features
+            - pluginInfo
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources: {}

@@ -1,30 +1,25 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package quotas
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/Masterminds/semver/v3"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/informers"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 )
 
 const (
@@ -37,21 +32,7 @@ const (
 	persistentvolumeclaimsKey = "persistentvolumeclaims"
 	jobsKey                   = "count/jobs.batch"
 	cronJobsKey               = "count/cronjobs.batch"
-	s2iBuilders               = "count/s2ibuilders.devops.kubesphere.io"
 )
-
-var supportedResources = map[string]schema.GroupVersionResource{
-	deploymentsKey:            {Group: "apps", Version: "v1", Resource: "deployments"},
-	daemonsetsKey:             {Group: "apps", Version: "v1", Resource: "daemonsets"},
-	statefulsetsKey:           {Group: "apps", Version: "v1", Resource: "statefulsets"},
-	podsKey:                   {Group: "", Version: "v1", Resource: "pods"},
-	servicesKey:               {Group: "", Version: "v1", Resource: "services"},
-	persistentvolumeclaimsKey: {Group: "", Version: "v1", Resource: "persistentvolumeclaims"},
-	ingressKey:                {Group: "networking.k8s.io", Version: "v1", Resource: "ingresses"},
-	jobsKey:                   {Group: "batch", Version: "v1", Resource: "jobs"},
-	cronJobsKey:               {Group: "batch", Version: "v1", Resource: "cronjobs"},
-	s2iBuilders:               {Group: "devops.kubesphere.io", Version: "v1alpha1", Resource: "s2ibuilders"},
-}
 
 type ResourceQuotaGetter interface {
 	GetClusterQuota() (*api.ResourceQuota, error)
@@ -59,35 +40,67 @@ type ResourceQuotaGetter interface {
 }
 
 type resourceQuotaGetter struct {
-	informers informers.SharedInformerFactory
+	client             runtimeclient.Client
+	supportedResources map[string]schema.GroupVersionKind
 }
 
-func NewResourceQuotaGetter(informers informers.SharedInformerFactory) ResourceQuotaGetter {
-	return &resourceQuotaGetter{informers: informers}
+func NewResourceQuotaGetter(client runtimeclient.Client, k8sVersion *semver.Version) ResourceQuotaGetter {
+	supportedResources := map[string]schema.GroupVersionKind{
+		deploymentsKey:            {Group: "apps", Version: "v1", Kind: "DeploymentList"},
+		daemonsetsKey:             {Group: "apps", Version: "v1", Kind: "DaemonSetList"},
+		statefulsetsKey:           {Group: "apps", Version: "v1", Kind: "StatefulSetList"},
+		podsKey:                   {Group: "", Version: "v1", Kind: "PodList"},
+		servicesKey:               {Group: "", Version: "v1", Kind: "ServiceList"},
+		persistentvolumeclaimsKey: {Group: "", Version: "v1", Kind: "PersistentVolumeClaimList"},
+		ingressKey:                {Group: "networking.k8s.io", Version: "v1", Kind: "IngressList"},
+		jobsKey:                   {Group: "batch", Version: "v1", Kind: "JobList"},
+		cronJobsKey:               {Group: "batch", Version: "v1", Kind: "CronJobList"},
+	}
+	if k8sutil.ServeBatchV1beta1(k8sVersion) {
+		cronJobs := supportedResources[cronJobsKey]
+		cronJobs.Version = "v1beta1"
+		supportedResources[cronJobsKey] = cronJobs
+	}
+
+	return &resourceQuotaGetter{client: client, supportedResources: supportedResources}
 }
 
 func (c *resourceQuotaGetter) getUsage(namespace, resource string) (int, error) {
-
-	genericInformer, err := c.informers.ForResource(supportedResources[resource])
-	if err != nil {
-		// we deliberately ignore error if trying to get non existed resource
-		return 0, nil
+	var obj runtimeclient.ObjectList
+	gvk, ok := c.supportedResources[resource]
+	if !ok {
+		return 0, fmt.Errorf("resource %s is not supported", resource)
 	}
 
-	result, err := genericInformer.Lister().ByNamespace(namespace).List(labels.Everything())
-	if err != nil {
+	if c.client.Scheme().Recognizes(gvk) {
+		gvkObject, err := c.client.Scheme().New(gvk)
+		if err != nil {
+			return 0, nil
+		}
+		obj = gvkObject.(runtimeclient.ObjectList)
+	} else {
+		u := &unstructured.UnstructuredList{}
+		u.SetGroupVersionKind(gvk)
+		obj = u
+	}
+
+	if err := c.client.List(context.Background(), obj, runtimeclient.InNamespace(namespace)); err != nil {
 		return 0, err
 	}
 
-	return len(result), nil
+	items, err := meta.ExtractList(obj)
+	if err != nil {
+		return 0, err
+	}
+	return len(items), nil
 }
 
-// no one use this api anymore， marked as deprecated
+// GetClusterQuota no one use this api anymore， marked as deprecated
 func (c *resourceQuotaGetter) GetClusterQuota() (*api.ResourceQuota, error) {
 
 	quota := v1.ResourceQuotaStatus{Hard: make(v1.ResourceList), Used: make(v1.ResourceList)}
 
-	for r := range supportedResources {
+	for r := range c.supportedResources {
 		used, err := c.getUsage("", r)
 		if err != nil {
 			return nil, err
@@ -126,7 +139,7 @@ func (c *resourceQuotaGetter) GetNamespaceQuota(namespace string) (*api.Namespac
 	}
 
 	// add extra quota usage, cause user may not specify them
-	for key := range supportedResources {
+	for key := range c.supportedResources {
 		// only add them when they don't exist in quotastatus
 		if _, ok := quota.Used[v1.ResourceName(key)]; !ok {
 			used, err := c.getUsage(namespace, key)
@@ -166,18 +179,17 @@ func updateNamespaceQuota(tmpResourceList, resourceList v1.ResourceList) {
 }
 
 func (c *resourceQuotaGetter) getNamespaceResourceQuota(namespace string) (*v1.ResourceQuotaStatus, error) {
-	resourceQuotaLister := c.informers.Core().V1().ResourceQuotas().Lister()
-	quotaList, err := resourceQuotaLister.ResourceQuotas(namespace).List(labels.Everything())
-	if err != nil {
+	resourceQuotaList := &v1.ResourceQuotaList{}
+	if err := c.client.List(context.Background(), resourceQuotaList, runtimeclient.InNamespace(namespace)); err != nil {
 		klog.Error(err)
 		return nil, err
-	} else if len(quotaList) == 0 {
+	} else if len(resourceQuotaList.Items) == 0 {
 		return nil, nil
 	}
 
 	quotaStatus := v1.ResourceQuotaStatus{Hard: make(v1.ResourceList), Used: make(v1.ResourceList)}
 
-	for _, quota := range quotaList {
+	for _, quota := range resourceQuotaList.Items {
 		updateNamespaceQuota(quotaStatus.Hard, quota.Status.Hard)
 		updateNamespaceQuota(quotaStatus.Used, quota.Status.Used)
 	}

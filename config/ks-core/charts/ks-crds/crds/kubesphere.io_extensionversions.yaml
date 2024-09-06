@@ -1,0 +1,170 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: extensionversions.kubesphere.io
+spec:
+  group: kubesphere.io
+  names:
+    categories:
+    - extensions
+    kind: ExtensionVersion
+    listKind: ExtensionVersionList
+    plural: extensionversions
+    singular: extensionversion
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ExtensionVersionSpec contains the details of a specific version
+              extension.
+            properties:
+              category:
+                type: string
+              chartDataRef:
+                description: ChartDataRef refers to a configMap which contains raw
+                  chart data.
+                properties:
+                  key:
+                    description: The key to select.
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?
+                    type: string
+                  namespace:
+                    type: string
+                  optional:
+                    description: Specify whether the ConfigMap or its key must be
+                      defined
+                    type: boolean
+                required:
+                - key
+                - namespace
+                type: object
+                x-kubernetes-map-type: atomic
+              chartURL:
+                type: string
+              created:
+                format: date-time
+                type: string
+              description:
+                additionalProperties:
+                  type: string
+                type: object
+              digest:
+                type: string
+              displayName:
+                additionalProperties:
+                  type: string
+                type: object
+              docs:
+                type: string
+              externalDependencies:
+                description: ExternalDependencies
+                items:
+                  properties:
+                    name:
+                      description: Name of the external dependency
+                      type: string
+                    required:
+                      description: Indicates if the dependency is required
+                      type: boolean
+                    type:
+                      description: Type of dependency, defaults to extension
+                      type: string
+                    version:
+                      description: SemVer
+                      type: string
+                  required:
+                  - name
+                  - required
+                  - version
+                  type: object
+                type: array
+              home:
+                type: string
+              icon:
+                type: string
+              installationMode:
+                default: HostOnly
+                enum:
+                - HostOnly
+                - Multicluster
+                type: string
+              keywords:
+                items:
+                  type: string
+                type: array
+              ksVersion:
+                description: |-
+                  KSVersion is a SemVer constraint specifying the version of KubeSphere required.
+                  eg: >= 1.2.0, see https://github.com/Masterminds/semver for more info.
+                type: string
+              kubeVersion:
+                description: |-
+                  KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
+                  eg: >= 1.2.0, see https://github.com/Masterminds/semver for more info.
+                type: string
+              namespace:
+                description: |-
+                  Namespace represents the namespace in which the extension is installed.
+                  If empty, it will be installed in the namespace named extension-{name}.
+                type: string
+              provider:
+                additionalProperties:
+                  description: Provider describes an extension provider.
+                  properties:
+                    email:
+                      description: Email is an optional email address to contact the
+                        named provider
+                      type: string
+                    name:
+                      description: Name is a username or organization name
+                      type: string
+                    url:
+                      description: URL is an optional URL to an address for the named
+                        provider
+                      type: string
+                  type: object
+                type: object
+              repository:
+                type: string
+              screenshots:
+                items:
+                  type: string
+                type: array
+              sources:
+                items:
+                  type: string
+                type: array
+              version:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true

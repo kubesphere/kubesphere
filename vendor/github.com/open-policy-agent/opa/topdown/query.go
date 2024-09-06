@@ -471,6 +471,14 @@ func (q *Query) Run(ctx context.Context) (QueryResultSet, error) {
 // Iter executes the query and invokes the iter function with query results
 // produced by evaluating the query.
 func (q *Query) Iter(ctx context.Context, iter func(QueryResult) error) error {
+	// Query evaluation must not be allowed if the compiler has errors and is in an undefined, possibly inconsistent state
+	if q.compiler != nil && len(q.compiler.Errors) > 0 {
+		return &Error{
+			Code:    InternalErr,
+			Message: "compiler has errors",
+		}
+	}
+
 	if q.seed == nil {
 		q.seed = rand.Reader
 	}

@@ -53,7 +53,7 @@ func getReqBodyBytes(body, rawBody *ast.Term) ([]byte, error) {
 }
 
 func objectToMap(o ast.Object) map[string][]string {
-	var out map[string][]string
+	out := make(map[string][]string, o.Len())
 	o.Foreach(func(k, v *ast.Term) {
 		ks := stringFromTerm(k)
 		vs := stringFromTerm(v)
@@ -172,10 +172,21 @@ func builtinAWSSigV4SignReq(ctx BuiltinContext, operands []*ast.Term, iter func(
 	}
 
 	// Sign the request object's headers, and reconstruct the headers map.
-	authHeader, signedHeadersMap := aws.SignV4(objectToMap(headers), method, theURL, body, service, awsCreds, signingTimestamp)
+	headersMap := objectToMap(headers)
+	authHeader, awsHeadersMap := aws.SignV4(headersMap, method, theURL, body, service, awsCreds, signingTimestamp)
 	signedHeadersObj := ast.NewObject()
+	// Restore original headers
+	for k, v := range headersMap {
+		// objectToMap doesn't support arrays
+		if len(v) == 1 {
+			signedHeadersObj.Insert(ast.StringTerm(k), ast.StringTerm(v[0]))
+		}
+	}
+	// Set authorization header
 	signedHeadersObj.Insert(ast.StringTerm("Authorization"), ast.StringTerm(authHeader))
-	for k, v := range signedHeadersMap {
+
+	// set aws signature headers
+	for k, v := range awsHeadersMap {
 		signedHeadersObj.Insert(ast.StringTerm(k), ast.StringTerm(v))
 	}
 

@@ -1,0 +1,14 @@
+apiVersion: v1
+stringData:
+  configuration.yaml: |
+    resource:
+      group: "kubesphere.io"
+      version: "v1alpha1"
+      kind: "Extension"
+    regoPolicy: |
+{{ .Files.Get "files/extensions.customresourcefilters.rego" | indent 6 }}
+kind: Secret
+metadata:
+  name: extensions.customresourcefilters
+  namespace: kubesphere-system
+type: config.kubesphere.io/custom-resource-filter

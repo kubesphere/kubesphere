@@ -1,33 +1,26 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package deployment
 
 import (
+	"context"
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 
-	v1 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 const (
@@ -37,40 +30,38 @@ const (
 )
 
 type deploymentsGetter struct {
-	sharedInformers informers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &deploymentsGetter{sharedInformers: sharedInformers}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &deploymentsGetter{cache: cache}
 }
 
 func (d *deploymentsGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.sharedInformers.Apps().V1().Deployments().Lister().Deployments(namespace).Get(name)
+	deployment := &appsv1.Deployment{}
+	return deployment, d.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, deployment)
 }
 
 func (d *deploymentsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	// first retrieves all deployments within given namespace
-	deployments, err := d.sharedInformers.Apps().V1().Deployments().Lister().Deployments(namespace).List(query.Selector())
-	if err != nil {
+	deployments := &appsv1.DeploymentList{}
+	if err := d.cache.List(context.Background(), deployments, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, deployment := range deployments {
-		result = append(result, deployment)
+	for _, item := range deployments.Items {
+		result = append(result, item.DeepCopy())
 	}
-
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
 func (d *deploymentsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-
-	leftDeployment, ok := left.(*v1.Deployment)
+	leftDeployment, ok := left.(*appsv1.Deployment)
 	if !ok {
 		return false
 	}
 
-	rightDeployment, ok := right.(*v1.Deployment)
+	rightDeployment, ok := right.(*appsv1.Deployment)
 	if !ok {
 		return false
 	}
@@ -86,7 +77,7 @@ func (d *deploymentsGetter) compare(left runtime.Object, right runtime.Object, f
 }
 
 func (d *deploymentsGetter) filter(object runtime.Object, filter query.Filter) bool {
-	deployment, ok := object.(*v1.Deployment)
+	deployment, ok := object.(*appsv1.Deployment)
 	if !ok {
 		return false
 	}
@@ -99,7 +90,7 @@ func (d *deploymentsGetter) filter(object runtime.Object, filter query.Filter) b
 	}
 }
 
-func deploymentStatus(status v1.DeploymentStatus) string {
+func deploymentStatus(status appsv1.DeploymentStatus) string {
 	if status.ReadyReplicas == 0 && status.Replicas == 0 {
 		return statusStopped
 	} else if status.ReadyReplicas == status.Replicas {
@@ -109,7 +100,7 @@ func deploymentStatus(status v1.DeploymentStatus) string {
 	}
 }
 
-func lastUpdateTime(deployment *v1.Deployment) time.Time {
+func lastUpdateTime(deployment *appsv1.Deployment) time.Time {
 	lut := deployment.CreationTimestamp.Time
 	for _, condition := range deployment.Status.Conditions {
 		if condition.LastUpdateTime.After(lut) {

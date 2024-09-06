@@ -200,7 +200,16 @@ func mergewithOverwriteInPlace(obj, other ast.Object, frozenKeys map[*ast.Term]s
 		v2 := obj.Get(k)
 		// The key didn't exist in other, keep the original value.
 		if v2 == nil {
-			obj.Insert(k, v)
+			nestedObj, ok := v.Value.(ast.Object)
+			if !ok {
+				// v is not an object
+				obj.Insert(k, v)
+			} else {
+				// Copy the nested object so the original object would not be modified
+				nestedObjCopy := nestedObj.Copy()
+				obj.Insert(k, ast.NewTerm(nestedObjCopy))
+			}
+
 			return
 		}
 		// The key exists in both. Merge or reject change.

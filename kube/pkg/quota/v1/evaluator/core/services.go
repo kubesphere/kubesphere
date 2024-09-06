@@ -17,7 +17,10 @@ limitations under the License.
 package core
 
 import (
+	"context"
 	"fmt"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -41,16 +44,15 @@ var serviceResources = []corev1.ResourceName{
 }
 
 // NewServiceEvaluator returns an evaluator that can evaluate services.
-func NewServiceEvaluator(f quota.ListerForResourceFunc) quota.Evaluator {
-	listFuncByNamespace := generic.ListResourceUsingListerFunc(f, corev1.SchemeGroupVersion.WithResource("services"))
-	serviceEvaluator := &serviceEvaluator{listFuncByNamespace: listFuncByNamespace}
+func NewServiceEvaluator(cache client.Reader) quota.Evaluator {
+	serviceEvaluator := &serviceEvaluator{cache: cache}
 	return serviceEvaluator
 }
 
 // serviceEvaluator knows how to measure usage for services.
 type serviceEvaluator struct {
 	// knows how to list items by namespace
-	listFuncByNamespace generic.ListFuncByNamespace
+	cache client.Reader
 }
 
 // Constraints verifies that all required resources are present on the item
@@ -131,9 +133,21 @@ func (p *serviceEvaluator) Usage(item runtime.Object) (corev1.ResourceList, erro
 	return result, nil
 }
 
+func (p *serviceEvaluator) listServices(namespace string) ([]runtime.Object, error) {
+	serviceList := &corev1.ServiceList{}
+	if err := p.cache.List(context.Background(), serviceList, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	services := make([]runtime.Object, 0)
+	for _, svc := range serviceList.Items {
+		services = append(services, &svc)
+	}
+	return services, nil
+}
+
 // UsageStats calculates aggregate usage for the object.
 func (p *serviceEvaluator) UsageStats(options quota.UsageStatsOptions) (quota.UsageStats, error) {
-	return generic.CalculateUsageStats(options, p.listFuncByNamespace, generic.MatchesNoScopeFunc, p.Usage)
+	return generic.CalculateUsageStats(options, p.listServices, generic.MatchesNoScopeFunc, p.Usage)
 }
 
 var _ quota.Evaluator = &serviceEvaluator{}

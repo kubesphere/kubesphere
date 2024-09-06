@@ -1,20 +1,7 @@
 /*
-
- Copyright 2021 The KubeSphere Authors.
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package quota
 
@@ -172,10 +159,9 @@ func (a *accessor) GetQuotas(namespaceName string) ([]corev1.ResourceQuota, erro
 }
 
 func (a *accessor) waitForReadyResourceQuotaNames(namespaceName string) ([]string, error) {
-	ctx := context.TODO()
 	var resourceQuotaNames []string
 	// wait for a valid mapping cache.  The overall response can be delayed for up to 10 seconds.
-	err := utilwait.PollImmediate(100*time.Millisecond, 8*time.Second, func() (done bool, err error) {
+	err := utilwait.PollUntilContextTimeout(context.TODO(), 100*time.Millisecond, 8*time.Second, true, func(ctx context.Context) (done bool, err error) {
 		resourceQuotaNames, err = resourceQuotaNamesFor(ctx, a.client, namespaceName)
 		// if we can't find the namespace yet, just wait for the cache to update.  Requests to non-existent namespaces
 		// may hang, but those people are doing something wrong and namespace lifecycle should reject them.
@@ -191,10 +177,9 @@ func (a *accessor) waitForReadyResourceQuotaNames(namespaceName string) ([]strin
 }
 
 func (a *accessor) waitForReadyNamespacedResourceQuotas(namespaceName string) ([]corev1.ResourceQuota, error) {
-	ctx := context.TODO()
 	var resourceQuotas []corev1.ResourceQuota
 	// wait for a valid mapping cache.  The overall response can be delayed for up to 10 seconds.
-	err := utilwait.PollImmediate(100*time.Millisecond, 8*time.Second, func() (done bool, err error) {
+	err := utilwait.PollUntilContextTimeout(context.TODO(), 100*time.Millisecond, 8*time.Second, true, func(ctx context.Context) (done bool, err error) {
 		resourceQuotaList := &corev1.ResourceQuotaList{}
 		err = a.client.List(ctx, resourceQuotaList, &client.ListOptions{Namespace: namespaceName})
 		if err != nil {

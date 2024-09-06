@@ -1,30 +1,20 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package persistentvolumeclaim
 
 import (
-	"strconv"
+	"context"
 	"strings"
 
-	snapshotinformers "github.com/kubernetes-csi/external-snapshotter/client/v4/informers/externalversions"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -32,113 +22,67 @@ import (
 )
 
 const (
-	storageClassName = "storageClassName"
-
+	storageClassName             = "storageClassName"
 	annotationInUse              = "kubesphere.io/in-use"
 	annotationAllowSnapshot      = "kubesphere.io/allow-snapshot"
 	annotationStorageProvisioner = "volume.beta.kubernetes.io/storage-provisioner"
 )
 
 type persistentVolumeClaimGetter struct {
-	informers         informers.SharedInformerFactory
-	snapshotInformers snapshotinformers.SharedInformerFactory
+	cache runtimeclient.Reader
 }
 
-func New(informer informers.SharedInformerFactory, snapshotInformer snapshotinformers.SharedInformerFactory) v1alpha3.Interface {
-	return &persistentVolumeClaimGetter{informers: informer, snapshotInformers: snapshotInformer}
+func New(cache runtimeclient.Reader) v1alpha3.Interface {
+	return &persistentVolumeClaimGetter{cache: cache}
 }
 
 func (p *persistentVolumeClaimGetter) Get(namespace, name string) (runtime.Object, error) {
-	pvc, err := p.informers.Core().V1().PersistentVolumeClaims().Lister().PersistentVolumeClaims(namespace).Get(name)
-	if err != nil {
-		return pvc, err
-	}
-	// we should never mutate the shared objects from informers
-	pvc = pvc.DeepCopy()
-	p.annotatePVC(pvc)
-	return pvc, nil
+	pvc := &corev1.PersistentVolumeClaim{}
+	return pvc, p.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, pvc)
 }
 
 func (p *persistentVolumeClaimGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := p.informers.Core().V1().PersistentVolumeClaims().Lister().PersistentVolumeClaims(namespace).List(query.Selector())
-	if err != nil {
+	persistentVolumeClaims := &corev1.PersistentVolumeClaimList{}
+	if err := p.cache.List(context.Background(), persistentVolumeClaims, client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: query.Selector()}); err != nil {
 		return nil, err
 	}
-
 	var result []runtime.Object
-	for _, pvc := range all {
-		pvc = pvc.DeepCopy()
-		p.annotatePVC(pvc)
-		result = append(result, pvc)
+	for _, item := range persistentVolumeClaims.Items {
+		result = append(result, item.DeepCopy())
 	}
 	return v1alpha3.DefaultList(result, query, p.compare, p.filter), nil
 }
 
 func (p *persistentVolumeClaimGetter) compare(left, right runtime.Object, field query.Field) bool {
-	leftSnapshot, ok := left.(*v1.PersistentVolumeClaim)
+	leftPVC, ok := left.(*corev1.PersistentVolumeClaim)
 	if !ok {
 		return false
 	}
-	rightSnapshot, ok := right.(*v1.PersistentVolumeClaim)
+	rightPVC, ok := right.(*corev1.PersistentVolumeClaim)
 	if !ok {
 		return false
 	}
-	return v1alpha3.DefaultObjectMetaCompare(leftSnapshot.ObjectMeta, rightSnapshot.ObjectMeta, field)
+	return v1alpha3.DefaultObjectMetaCompare(leftPVC.ObjectMeta, rightPVC.ObjectMeta, field)
 }
 
 func (p *persistentVolumeClaimGetter) filter(object runtime.Object, filter query.Filter) bool {
-	pvc, ok := object.(*v1.PersistentVolumeClaim)
+	pvc, ok := object.(*corev1.PersistentVolumeClaim)
 	if !ok {
 		return false
 	}
-
 	switch filter.Field {
 	case query.FieldStatus:
-		return strings.EqualFold(string(pvc.Status.Phase), string(filter.Value))
+		statuses := strings.Split(string(filter.Value), "|")
+		for _, status := range statuses {
+			if !strings.EqualFold(string(pvc.Status.Phase), status) {
+				return false
+			}
+		}
+		return true
 	case storageClassName:
 		return pvc.Spec.StorageClassName != nil && *pvc.Spec.StorageClassName == string(filter.Value)
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(pvc.ObjectMeta, filter)
 	}
-}
-
-func (p *persistentVolumeClaimGetter) annotatePVC(pvc *v1.PersistentVolumeClaim) {
-	inUse := p.countPods(pvc.Name, pvc.Namespace)
-	isSnapshotAllow := p.isSnapshotAllowed(pvc.GetAnnotations()[annotationStorageProvisioner])
-	if pvc.Annotations == nil {
-		pvc.Annotations = make(map[string]string)
-	}
-	pvc.Annotations[annotationInUse] = strconv.FormatBool(inUse)
-	pvc.Annotations[annotationAllowSnapshot] = strconv.FormatBool(isSnapshotAllow)
-}
-
-func (p *persistentVolumeClaimGetter) countPods(name, namespace string) bool {
-	pods, err := p.informers.Core().V1().Pods().Lister().Pods(namespace).List(labels.Everything())
-	if err != nil {
-		return false
-	}
-	for _, pod := range pods {
-		for _, pvc := range pod.Spec.Volumes {
-			if pvc.PersistentVolumeClaim != nil && pvc.PersistentVolumeClaim.ClaimName == name {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (p *persistentVolumeClaimGetter) isSnapshotAllowed(provisioner string) bool {
-	if len(provisioner) == 0 {
-		return false
-	}
-	volumeSnapshotClasses, err := p.snapshotInformers.Snapshot().V1().VolumeSnapshotClasses().Lister().List(labels.Everything())
-	if err != nil {
-		return false
-	}
-	for _, volumeSnapshotClass := range volumeSnapshotClasses {
-		if volumeSnapshotClass.Driver == provisioner {
-			return true
-		}
-	}
-	return false
 }

@@ -1,0 +1,39 @@
+{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) ( .Values.haproxy.metrics.serviceMonitor.enabled ) ( .Values.haproxy.metrics.enabled ) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "redis-ha.fullname" . }}-haproxy
+  namespace: {{ .Values.haproxy.metrics.serviceMonitor.namespace | default .Release.Namespace | quote }}
+  labels:
+{{ include "labels.standard" . | indent 4 }}
+    {{- range $key, $value := .Values.extraLabels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+    {{- range $key, $value := .Values.haproxy.metrics.serviceMonitor.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  endpoints:
+  - targetPort: {{ .Values.haproxy.metrics.port }}
+{{- if .Values.haproxy.metrics.serviceMonitor.interval }}
+    interval: {{ .Values.haproxy.metrics.serviceMonitor.interval }}
+{{- end }}
+{{- if .Values.haproxy.metrics.serviceMonitor.telemetryPath }}
+    path: {{ .Values.haproxy.metrics.serviceMonitor.telemetryPath }}
+{{- end }}
+{{- if .Values.haproxy.metrics.serviceMonitor.timeout }}
+    scrapeTimeout: {{ .Values.haproxy.metrics.serviceMonitor.timeout }}
+{{- end }}
+{{- with .Values.haproxy.metrics.serviceMonitor.endpointAdditionalProperties }}
+{{- toYaml . | nindent 4 }}
+{{- end }}
+  jobLabel: {{ template "redis-ha.fullname" . }}-haproxy
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace | quote }}
+  selector:
+    matchLabels:
+      app: {{ template "redis-ha.name" . }}
+      release: {{ .Release.Name }}
+      component: {{ template "redis-ha.fullname" . }}-haproxy
+{{- end }}

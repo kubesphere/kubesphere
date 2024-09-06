@@ -1,3 +1,8 @@
+/*
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
+
 package filters
 
 import (
@@ -5,8 +10,13 @@ import (
 	"io"
 	"net/http"
 
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1beta1"
+
 	"github.com/emicklei/go-restful/v3"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -80,31 +90,53 @@ func (d *DynamicResourceHandler) HandleServiceError(serviceError restful.Service
 			api.HandleError(w, req, err)
 			return
 		}
-
 		object, err = d.CreateObjectFromRawData(gvr, rawData)
 		if err != nil {
 			api.HandleError(w, req, err)
 			return
 		}
 	}
+	if reqInfo.Verb == request.VerbDelete {
+		object, err = d.GetResource(req.Request.Context(), gvr, reqInfo.Namespace, reqInfo.Name)
+		if err != nil {
+			api.HandleError(w, req, err)
+			return
+		}
+	}
 
-	var result interface{}
-
+	var result runtime.Object
 	switch reqInfo.Verb {
 	case request.VerbGet:
 		result, err = d.GetResource(req.Request.Context(), gvr, reqInfo.Namespace, reqInfo.Name)
+		obj, ok := result.(metav1.Object)
+		if reqInfo.Workspace != "" && ok && obj.GetLabels()[tenantv1alpha1.WorkspaceLabel] != reqInfo.Workspace {
+			err = errors.NewNotFound(gvr.GroupResource(), reqInfo.Name)
+		}
 	case request.VerbList:
-		result, err = d.ListResources(req.Request.Context(), gvr, reqInfo.Namespace, query.ParseQueryParameter(req))
+		q := query.ParseQueryParameter(req)
+		if reqInfo.Workspace != "" {
+			_ = q.AppendLabelSelector(map[string]string{tenantv1alpha1.WorkspaceLabel: reqInfo.Workspace})
+		}
+		result, err = d.ListResources(req.Request.Context(), gvr, reqInfo.Namespace, q)
 	case request.VerbCreate:
+		obj, ok := object.(metav1.Object)
+		if reqInfo.Workspace != "" && ok && obj.GetLabels()[tenantv1alpha1.WorkspaceLabel] != reqInfo.Workspace {
+			labels := obj.GetLabels()
+			if labels == nil {
+				labels = make(map[string]string)
+			}
+			labels[tenantv1alpha1.WorkspaceLabel] = reqInfo.Workspace
+			obj.SetLabels(labels)
+		}
 		err = d.CreateResource(req.Request.Context(), object)
 	case request.VerbUpdate:
 		err = d.UpdateResource(req.Request.Context(), object)
 	case request.VerbDelete:
-		err = d.DeleteResource(req.Request.Context(), gvr, reqInfo.Namespace, reqInfo.Name)
+		err = d.DeleteResource(req.Request.Context(), object)
 	case request.VerbPatch:
 		err = d.PatchResource(req.Request.Context(), object)
 	default:
-		err = NotSupportedVerbError
+		err = errors.NewBadRequest(NotSupportedVerbError.Error())
 	}
 
 	if err != nil {
@@ -116,5 +148,5 @@ func (d *DynamicResourceHandler) HandleServiceError(serviceError restful.Service
 		return
 	}
 
-	w.WriteAsJson(result)
+	_ = w.WriteAsJson(result)
 }

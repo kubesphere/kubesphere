@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "redis-ha.fullname" . }}-configmap
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app: {{ template "redis-ha.fullname" . }}
+    {{- range $key, $value := .Values.configmap.labels }}
+    {{ $key }}: {{ $value | toString }}
+    {{- end }}
+    {{- range $key, $value := .Values.extraLabels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+data:
+  redis.conf: |
+{{- include "config-redis.conf" . }}
+
+  sentinel.conf: |
+{{- include "config-sentinel.conf" . }}
+
+  init.sh: |
+{{- include "config-init.sh" . }}
+
+  fix-split-brain.sh: |
+{{- include "fix-split-brain.sh" . }}
+
+{{ if .Values.haproxy.enabled }}
+  haproxy.cfg: |
+{{- include "config-haproxy.cfg" . }}
+{{- end }}
+  haproxy_init.sh: |
+{{- include "config-haproxy_init.sh" . }}
+  trigger-failover-if-master.sh: |
+{{- include "trigger-failover-if-master.sh" . }}

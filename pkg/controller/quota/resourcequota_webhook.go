@@ -1,20 +1,7 @@
 /*
-
- Copyright 2021 The KubeSphere Authors.
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package quota
 
@@ -24,6 +11,8 @@ import (
 	"sort"
 	"sync"
 
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +20,6 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	admissionapi "k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -42,6 +30,7 @@ import (
 	"kubesphere.io/kubesphere/kube/pkg/quota/v1/install"
 	"kubesphere.io/kubesphere/kube/plugin/pkg/admission/resourcequota"
 	resourcequotaapi "kubesphere.io/kubesphere/kube/plugin/pkg/admission/resourcequota/apis/resourcequota"
+	"kubesphere.io/kubesphere/pkg/scheme"
 )
 
 const (
@@ -62,17 +51,26 @@ type ResourceQuotaAdmission struct {
 	evaluator resourcequota.Evaluator
 }
 
-func NewResourceQuotaAdmission(client client.Client, scheme *runtime.Scheme) (webhook.AdmissionHandler, error) {
-	decoder, err := admission.NewDecoder(scheme)
-	if err != nil {
-		return nil, err
-	}
-	return &ResourceQuotaAdmission{
-		client:      client,
+const webhookName = "resource-quota-webhook"
+
+func (w *Webhook) Name() string {
+	return webhookName
+}
+
+var _ kscontroller.Controller = &Webhook{}
+
+type Webhook struct {
+}
+
+func (w *Webhook) SetupWithManager(mgr *kscontroller.Manager) error {
+	resourceQuotaAdmission := &ResourceQuotaAdmission{
+		client:      mgr.GetClient(),
 		lockFactory: NewDefaultLockFactory(),
-		decoder:     decoder,
+		decoder:     admission.NewDecoder(mgr.GetScheme()),
 		registry:    generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators()),
-	}, nil
+	}
+	mgr.GetWebhookServer().Register("/validate-quota-kubesphere-io-v1alpha2", &webhook.Admission{Handler: resourceQuotaAdmission})
+	return nil
 }
 
 func (r *ResourceQuotaAdmission) Handle(ctx context.Context, req webhook.AdmissionRequest) webhook.AdmissionResponse {

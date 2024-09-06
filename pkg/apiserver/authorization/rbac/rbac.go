@@ -1,19 +1,3 @@
-/*
-Copyright 2020 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 // NOTE: This file is copied from k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac.
 
 package rbac
@@ -24,20 +8,20 @@ import (
 	"fmt"
 
 	"github.com/open-policy-agent/opa/rego"
+	rbacv1 "k8s.io/api/rbac/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/klog/v2"
 
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	ksserviceaccount "kubesphere.io/kubesphere/pkg/utils/serviceaccount"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-
-	"k8s.io/klog/v2"
-
-	rbacv1 "k8s.io/api/rbac/v1"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 const (
@@ -45,7 +29,7 @@ const (
 	defaultRegoFileName = "authz.rego"
 )
 
-type RBACAuthorizer struct {
+type Authorizer struct {
 	am am.AccessManagementInterface
 }
 
@@ -90,7 +74,7 @@ func (r *ruleAccumulator) visit(_ fmt.Stringer, _ string, rule *rbacv1.PolicyRul
 	return true
 }
 
-func (r *RBACAuthorizer) Authorize(requestAttributes authorizer.Attributes) (authorizer.Decision, string, error) {
+func (r *Authorizer) Authorize(requestAttributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	ruleCheckingVisitor := &authorizingVisitor{requestAttributes: requestAttributes}
 
 	r.visitRulesFor(requestAttributes, ruleCheckingVisitor.visit)
@@ -100,7 +84,7 @@ func (r *RBACAuthorizer) Authorize(requestAttributes authorizer.Attributes) (aut
 	}
 
 	// Build a detailed log of the denial.
-	// Make the whole block conditional so we don't do a lot of string-building we won't use.
+	// Make the whole block conditional, so we don't do a lot of string-building we won't use.
 	if klog.V(4).Enabled() {
 		var operation string
 		if requestAttributes.IsResourceRequest() {
@@ -129,10 +113,10 @@ func (r *RBACAuthorizer) Authorize(requestAttributes authorizer.Attributes) (aut
 		}
 
 		var scope string
-		if ns := requestAttributes.GetNamespace(); len(ns) > 0 {
-			scope = fmt.Sprintf("in namespace %q", ns)
-		} else if ws := requestAttributes.GetWorkspace(); len(ws) > 0 {
-			scope = fmt.Sprintf("in workspace %q", ws)
+		if requestAttributes.GetResourceScope() == request.NamespaceScope {
+			scope = fmt.Sprintf("in namespace %q", requestAttributes.GetNamespace())
+		} else if requestAttributes.GetResourceScope() == request.WorkspaceScope {
+			scope = fmt.Sprintf("in workspace %q", requestAttributes.GetWorkspace())
 		} else if requestAttributes.GetResourceScope() == request.ClusterScope {
 			scope = "cluster scope"
 		} else {
@@ -149,8 +133,8 @@ func (r *RBACAuthorizer) Authorize(requestAttributes authorizer.Attributes) (aut
 	return authorizer.DecisionNoOpinion, reason, nil
 }
 
-func NewRBACAuthorizer(am am.AccessManagementInterface) *RBACAuthorizer {
-	return &RBACAuthorizer{am: am}
+func NewRBACAuthorizer(am am.AccessManagementInterface) *Authorizer {
+	return &Authorizer{am: am}
 }
 
 func ruleAllows(requestAttributes authorizer.Attributes, rule *rbacv1.PolicyRule) bool {
@@ -195,18 +179,16 @@ func regoPolicyAllows(requestAttributes authorizer.Attributes, regoPolicy string
 	return false
 }
 
-func (r *RBACAuthorizer) rulesFor(requestAttributes authorizer.Attributes) ([]rbacv1.PolicyRule, error) {
+func (r *Authorizer) rulesFor(requestAttributes authorizer.Attributes) ([]rbacv1.PolicyRule, error) {
 	visitor := &ruleAccumulator{}
 	r.visitRulesFor(requestAttributes, visitor.visit)
 	return visitor.rules, utilerrors.NewAggregate(visitor.errors)
 }
 
-func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, visitor func(source fmt.Stringer, regoPolicy string, rule *rbacv1.PolicyRule, err error) bool) {
-
-	if globalRoleBindings, err := r.am.ListGlobalRoleBindings(""); err != nil {
-		if !visitor(nil, "", nil, err) {
-			return
-		}
+func (r *Authorizer) visitRulesFor(requestAttributes authorizer.Attributes, visitor func(source fmt.Stringer, regoPolicy string, rule *rbacv1.PolicyRule, err error) bool) {
+	if globalRoleBindings, err := r.am.ListGlobalRoleBindings("", ""); err != nil {
+		visitor(nil, "", nil, err)
+		return
 	} else {
 		sourceDescriber := &globalRoleBindingDescriber{}
 		for _, globalRoleBinding := range globalRoleBindings {
@@ -219,7 +201,7 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 				visitor(nil, "", nil, err)
 				continue
 			}
-			sourceDescriber.binding = globalRoleBinding
+			sourceDescriber.binding = &globalRoleBinding
 			sourceDescriber.subject = &globalRoleBinding.Subjects[subjectIndex]
 			if !visitor(sourceDescriber, regoPolicy, nil, nil) {
 				return
@@ -236,35 +218,25 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		}
 	}
 
-	if requestAttributes.GetResourceScope() == request.WorkspaceScope ||
-		requestAttributes.GetResourceScope() == request.NamespaceScope ||
-		requestAttributes.GetResourceScope() == request.DevOpsScope {
-
-		var workspace string
-		var err error
-		// all of resource under namespace and devops belong to workspace
-		if requestAttributes.GetResourceScope() == request.NamespaceScope {
-			if workspace, err = r.am.GetNamespaceControlledWorkspace(requestAttributes.GetNamespace()); err != nil {
-				if !visitor(nil, "", nil, err) {
-					return
-				}
-			}
-		} else if requestAttributes.GetResourceScope() == request.DevOpsScope {
-			if workspace, err = r.am.GetDevOpsControlledWorkspace(requestAttributes.GetDevOps()); err != nil {
-				if !visitor(nil, "", nil, err) {
-					return
-				}
-			}
+	var targetWorkspace string
+	if requestAttributes.GetResourceScope() == request.NamespaceScope {
+		if workspace, err := r.am.GetNamespaceControlledWorkspace(requestAttributes.GetNamespace()); err != nil {
+			visitor(nil, "", nil, err)
+			return
+		} else {
+			targetWorkspace = workspace
 		}
+	}
 
-		if workspace == "" {
-			workspace = requestAttributes.GetWorkspace()
-		}
+	if requestAttributes.GetResourceScope() == request.WorkspaceScope {
+		targetWorkspace = requestAttributes.GetWorkspace()
+	}
 
-		if workspaceRoleBindings, err := r.am.ListWorkspaceRoleBindings("", nil, workspace); err != nil {
-			if !visitor(nil, "", nil, err) {
-				return
-			}
+	// workspace managed resources
+	if targetWorkspace != "" {
+		if workspaceRoleBindings, err := r.am.ListWorkspaceRoleBindings("", "", nil, targetWorkspace); err != nil {
+			visitor(nil, "", nil, err)
+			return
 		} else {
 			sourceDescriber := &workspaceRoleBindingDescriber{}
 			for _, workspaceRoleBinding := range workspaceRoleBindings {
@@ -275,9 +247,9 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 				regoPolicy, rules, err := r.am.GetRoleReferenceRules(workspaceRoleBinding.RoleRef, "")
 				if err != nil {
 					visitor(nil, "", nil, err)
-					continue
+					return
 				}
-				sourceDescriber.binding = workspaceRoleBinding
+				sourceDescriber.binding = &workspaceRoleBinding
 				sourceDescriber.subject = &workspaceRoleBinding.Subjects[subjectIndex]
 				if !visitor(sourceDescriber, regoPolicy, nil, nil) {
 					return
@@ -291,38 +263,28 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		}
 	}
 
-	if requestAttributes.GetResourceScope() == request.NamespaceScope ||
-		requestAttributes.GetResourceScope() == request.DevOpsScope {
+	var targetNamespace string
+	if requestAttributes.GetResourceScope() == request.NamespaceScope {
+		targetNamespace = requestAttributes.GetNamespace()
+	}
 
-		namespace := requestAttributes.GetNamespace()
-		// list devops role binding
-		if requestAttributes.GetResourceScope() == request.DevOpsScope {
-			if relatedNamespace, err := r.am.GetDevOpsRelatedNamespace(requestAttributes.GetDevOps()); err != nil {
-				if !visitor(nil, "", nil, err) {
-					return
-				}
-			} else {
-				namespace = relatedNamespace
-			}
-		}
-
-		if roleBindings, err := r.am.ListRoleBindings("", nil, namespace); err != nil {
-			if !visitor(nil, "", nil, err) {
-				return
-			}
+	if targetNamespace != "" {
+		if roleBindings, err := r.am.ListRoleBindings("", "", nil, targetNamespace); err != nil {
+			visitor(nil, "", nil, err)
+			return
 		} else {
 			sourceDescriber := &roleBindingDescriber{}
 			for _, roleBinding := range roleBindings {
-				subjectIndex, applies := appliesTo(requestAttributes.GetUser(), roleBinding.Subjects, namespace)
+				subjectIndex, applies := appliesTo(requestAttributes.GetUser(), roleBinding.Subjects, targetNamespace)
 				if !applies {
 					continue
 				}
-				regoPolicy, rules, err := r.am.GetRoleReferenceRules(roleBinding.RoleRef, namespace)
+				regoPolicy, rules, err := r.am.GetRoleReferenceRules(roleBinding.RoleRef, targetNamespace)
 				if err != nil {
 					visitor(nil, "", nil, err)
-					continue
+					return
 				}
-				sourceDescriber.binding = roleBinding
+				sourceDescriber.binding = &roleBinding
 				sourceDescriber.subject = &roleBinding.Subjects[subjectIndex]
 				if !visitor(sourceDescriber, regoPolicy, nil, nil) {
 					return
@@ -336,10 +298,9 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		}
 	}
 
-	if clusterRoleBindings, err := r.am.ListClusterRoleBindings(""); err != nil {
-		if !visitor(nil, "", nil, err) {
-			return
-		}
+	if clusterRoleBindings, err := r.am.ListClusterRoleBindings("", ""); err != nil {
+		visitor(nil, "", nil, err)
+		return
 	} else {
 		sourceDescriber := &clusterRoleBindingDescriber{}
 		for _, clusterRoleBinding := range clusterRoleBindings {
@@ -350,9 +311,9 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 			regoPolicy, rules, err := r.am.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
 			if err != nil {
 				visitor(nil, "", nil, err)
-				continue
+				return
 			}
-			sourceDescriber.binding = clusterRoleBinding
+			sourceDescriber.binding = &clusterRoleBinding
 			sourceDescriber.subject = &clusterRoleBinding.Subjects[subjectIndex]
 			if !visitor(sourceDescriber, regoPolicy, nil, nil) {
 				return
@@ -386,8 +347,9 @@ func appliesToUser(user user.Info, subject rbacv1.Subject, namespace string) boo
 		return sliceutil.HasString(user.GetGroups(), subject.Name)
 
 	case rbacv1.ServiceAccountKind:
-		// default the namespace to namespace we're working in if its available.  This allows rolebindings that reference
-		// SAs in th local namespace to avoid having to qualify them.
+		// Default the namespace to namespace we're working in if it's available.
+		// This allows role bindings that reference
+		// SAs in the local namespace to avoid having to qualify them.
 		saNamespace := namespace
 		if len(subject.Namespace) > 0 {
 			saNamespace = subject.Namespace
@@ -395,15 +357,23 @@ func appliesToUser(user user.Info, subject rbacv1.Subject, namespace string) boo
 		if len(saNamespace) == 0 {
 			return false
 		}
-		// use a more efficient comparison for RBAC checking
-		return serviceaccount.MatchesUsername(saNamespace, subject.Name, user.GetName())
+		switch subject.APIGroup {
+		case rbacv1.GroupName:
+			// use a more efficient comparison for RBAC checking
+			return serviceaccount.MatchesUsername(saNamespace, subject.Name, user.GetName())
+		case corev1alpha1.GroupName:
+			return ksserviceaccount.MatchesUsername(saNamespace, subject.Name, user.GetName())
+		default:
+			return false
+		}
+
 	default:
 		return false
 	}
 }
 
 type globalRoleBindingDescriber struct {
-	binding *iamv1alpha2.GlobalRoleBinding
+	binding *iamv1beta1.GlobalRoleBinding
 	subject *rbacv1.Subject
 }
 
@@ -417,7 +387,7 @@ func (d *globalRoleBindingDescriber) String() string {
 }
 
 type clusterRoleBindingDescriber struct {
-	binding *rbacv1.ClusterRoleBinding
+	binding *iamv1beta1.ClusterRoleBinding
 	subject *rbacv1.Subject
 }
 
@@ -431,7 +401,7 @@ func (d *clusterRoleBindingDescriber) String() string {
 }
 
 type workspaceRoleBindingDescriber struct {
-	binding *iamv1alpha2.WorkspaceRoleBinding
+	binding *iamv1beta1.WorkspaceRoleBinding
 	subject *rbacv1.Subject
 }
 
@@ -445,7 +415,7 @@ func (d *workspaceRoleBindingDescriber) String() string {
 }
 
 type roleBindingDescriber struct {
-	binding *rbacv1.RoleBinding
+	binding *iamv1beta1.RoleBinding
 	subject *rbacv1.Subject
 }
 

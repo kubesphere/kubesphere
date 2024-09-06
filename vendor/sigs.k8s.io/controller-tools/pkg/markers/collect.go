@@ -31,7 +31,7 @@ import (
 type Collector struct {
 	*Registry
 
-	byPackage map[string]map[ast.Node]MarkerValues
+	byPackage map[*loader.Package]map[ast.Node]MarkerValues
 	mu        sync.Mutex
 }
 
@@ -53,7 +53,7 @@ func (c *Collector) init() {
 		c.Registry = &Registry{}
 	}
 	if c.byPackage == nil {
-		c.byPackage = make(map[string]map[ast.Node]MarkerValues)
+		c.byPackage = make(map[*loader.Package]map[ast.Node]MarkerValues)
 	}
 }
 
@@ -75,7 +75,7 @@ func (c *Collector) init() {
 func (c *Collector) MarkersInPackage(pkg *loader.Package) (map[ast.Node]MarkerValues, error) {
 	c.mu.Lock()
 	c.init()
-	if markers, exist := c.byPackage[pkg.ID]; exist {
+	if markers, exist := c.byPackage[pkg]; exist {
 		c.mu.Unlock()
 		return markers, nil
 	}
@@ -91,8 +91,7 @@ func (c *Collector) MarkersInPackage(pkg *loader.Package) (map[ast.Node]MarkerVa
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.byPackage[pkg.ID] = markers
-
+	c.byPackage[pkg] = markers
 	return markers, nil
 }
 

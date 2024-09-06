@@ -1,20 +1,7 @@
 /*
-
- Copyright 2020 The KubeSphere Authors.
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package auth
 
@@ -51,27 +38,30 @@ type tokenOperator struct {
 	cache   cache.Interface
 }
 
-func (t tokenOperator) Revoke(token string) error {
+func (t *tokenOperator) Revoke(token string) error {
 	pattern := fmt.Sprintf("kubesphere:user:*:token:%s", token)
 	if keys, err := t.cache.Keys(pattern); err != nil {
-		klog.Error(err)
 		return err
 	} else if len(keys) > 0 {
 		if err := t.cache.Del(keys...); err != nil {
-			klog.Error(err)
 			return err
 		}
 	}
 	return nil
 }
 
-func NewTokenOperator(cache cache.Interface, issuer token.Issuer, options *authentication.Options) TokenManagementInterface {
+func NewTokenOperator(cache cache.Interface, options *authentication.Options) (TokenManagementInterface, error) {
+	issuer, err := token.NewIssuer(options.Issuer)
+	if err != nil {
+		klog.Errorf("Failed to create token issuer: %v", err)
+		return nil, err
+	}
 	operator := &tokenOperator{
 		issuer:  issuer,
 		options: options,
 		cache:   cache,
 	}
-	return operator
+	return operator, nil
 }
 
 func (t *tokenOperator) Verify(tokenStr string) (*token.VerifiedResponse, error) {
@@ -79,7 +69,7 @@ func (t *tokenOperator) Verify(tokenStr string) (*token.VerifiedResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	if t.options.OAuthOptions.AccessTokenMaxAge == 0 ||
+	if t.options.Issuer.AccessTokenMaxAge == 0 ||
 		response.TokenType == token.StaticToken {
 		return response, nil
 	}
@@ -92,12 +82,10 @@ func (t *tokenOperator) Verify(tokenStr string) (*token.VerifiedResponse, error)
 func (t *tokenOperator) IssueTo(request *token.IssueRequest) (string, error) {
 	tokenStr, err := t.issuer.IssueTo(request)
 	if err != nil {
-		klog.Error(err)
 		return "", err
 	}
 	if request.ExpiresIn > 0 {
 		if err = t.cacheToken(request.User.GetName(), tokenStr, request.ExpiresIn); err != nil {
-			klog.Error(err)
 			return "", err
 		}
 	}
@@ -108,11 +96,9 @@ func (t *tokenOperator) IssueTo(request *token.IssueRequest) (string, error) {
 func (t *tokenOperator) RevokeAllUserTokens(username string) error {
 	pattern := fmt.Sprintf("kubesphere:user:%s:token:*", username)
 	if keys, err := t.cache.Keys(pattern); err != nil {
-		klog.Error(err)
 		return err
 	} else if len(keys) > 0 {
 		if err := t.cache.Del(keys...); err != nil {
-			klog.Error(err)
 			return err
 		}
 	}

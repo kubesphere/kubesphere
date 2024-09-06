@@ -173,6 +173,7 @@ func (i *baseDocEqIndex) AllRules(resolver ValueResolver) (*IndexResult, error) 
 
 	result := NewIndexResult(i.kind)
 	result.Default = i.defaultRule
+	result.OnlyGroundRefs = i.onlyGroundRefs
 	result.Rules = make([]*Rule, 0, len(tr.ordering))
 
 	for _, pos := range tr.ordering {
@@ -482,8 +483,10 @@ func (node *trieNode) String() string {
 	if len(node.mappers) > 0 {
 		flags = append(flags, fmt.Sprintf("%d mapper(s)", len(node.mappers)))
 	}
-	if l := node.values.Len(); l > 0 {
-		flags = append(flags, fmt.Sprintf("%d value(s)", l))
+	if node.values != nil {
+		if l := node.values.Len(); l > 0 {
+			flags = append(flags, fmt.Sprintf("%d value(s)", l))
+		}
 	}
 	return strings.Join(flags, " ")
 }
@@ -697,17 +700,17 @@ func (node *trieNode) traverseArray(resolver ValueResolver, tr *trieTraversalRes
 		return node.Traverse(resolver, tr)
 	}
 
-	head := arr.Elem(0).Value
-
-	if !IsScalar(head) {
-		return nil
-	}
-
 	if node.any != nil {
 		err := node.any.traverseArray(resolver, tr, arr.Slice(1, -1))
 		if err != nil {
 			return err
 		}
+	}
+
+	head := arr.Elem(0).Value
+
+	if !IsScalar(head) {
+		return nil
 	}
 
 	child, ok := node.scalars.Get(head)

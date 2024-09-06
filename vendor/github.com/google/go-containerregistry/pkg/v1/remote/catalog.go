@@ -88,10 +88,13 @@ func Catalog(ctx context.Context, target name.Registry, options ...Option) ([]st
 	}
 
 	uri := &url.URL{
-		Scheme:   target.Scheme(),
-		Host:     target.RegistryStr(),
-		Path:     "/v2/_catalog",
-		RawQuery: "n=10000",
+		Scheme: target.Scheme(),
+		Host:   target.RegistryStr(),
+		Path:   "/v2/_catalog",
+	}
+
+	if o.pageSize > 0 {
+		uri.RawQuery = fmt.Sprintf("n=%d", o.pageSize)
 	}
 
 	client := http.Client{Transport: tr}

@@ -1,76 +1,127 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package app
 
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/google/gops/agent"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
-
-	alertingv2beta1 "kubesphere.io/api/alerting/v2beta1"
 
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
-	"kubesphere.io/kubesphere/pkg/apis"
-	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/config"
+	"kubesphere.io/kubesphere/pkg/controller"
+	"kubesphere.io/kubesphere/pkg/controller/application"
+	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
-	"kubesphere.io/kubesphere/pkg/controller/network/webhooks"
+	"kubesphere.io/kubesphere/pkg/controller/clusterlabel"
+	"kubesphere.io/kubesphere/pkg/controller/clusterrole"
+	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
+	ksconfig "kubesphere.io/kubesphere/pkg/controller/config"
+	"kubesphere.io/kubesphere/pkg/controller/conversion"
+	"kubesphere.io/kubesphere/pkg/controller/core"
+	"kubesphere.io/kubesphere/pkg/controller/extension"
+	"kubesphere.io/kubesphere/pkg/controller/globalrole"
+	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/k8sapplication"
+	"kubesphere.io/kubesphere/pkg/controller/ksserviceaccount"
+	"kubesphere.io/kubesphere/pkg/controller/kubeconfig"
+	"kubesphere.io/kubesphere/pkg/controller/kubectl"
+	"kubesphere.io/kubesphere/pkg/controller/loginrecord"
+	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/quota"
-	storagewebhooks "kubesphere.io/kubesphere/pkg/controller/storage/webhooks"
+	"kubesphere.io/kubesphere/pkg/controller/role"
+	"kubesphere.io/kubesphere/pkg/controller/rolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/roletemplate"
+	"kubesphere.io/kubesphere/pkg/controller/secret"
+	"kubesphere.io/kubesphere/pkg/controller/serviceaccount"
+	"kubesphere.io/kubesphere/pkg/controller/storageclass"
+	"kubesphere.io/kubesphere/pkg/controller/telemetry"
 	"kubesphere.io/kubesphere/pkg/controller/user"
-	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/utils/metrics"
+	"kubesphere.io/kubesphere/pkg/controller/workspace"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerole"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
+func init() {
+	// core
+	runtime.Must(controller.Register(&core.ExtensionReconciler{}))
+	runtime.Must(controller.Register(&core.CategoryReconciler{}))
+	runtime.Must(controller.Register(&core.RepositoryReconciler{}))
+	runtime.Must(controller.Register(&core.InstallPlanReconciler{}))
+	runtime.Must(controller.Register(&core.InstallPlanWebhook{}))
+	// extension
+	runtime.Must(controller.Register(&extension.JSBundleWebhook{}))
+	runtime.Must(controller.Register(&extension.APIServiceWebhook{}))
+	runtime.Must(controller.Register(&extension.ReverseProxyWebhook{}))
+	runtime.Must(controller.Register(&extension.ExtensionEntryWebhook{}))
+	// rbac
+	runtime.Must(controller.Register(&globalrole.Reconciler{}))
+	runtime.Must(controller.Register(&globalrolebinding.Reconciler{}))
+	runtime.Must(controller.Register(&workspacerole.Reconciler{}))
+	runtime.Must(controller.Register(&workspacerolebinding.Reconciler{}))
+	runtime.Must(controller.Register(&clusterrole.Reconciler{}))
+	runtime.Must(controller.Register(&clusterrolebinding.Reconciler{}))
+	runtime.Must(controller.Register(&role.Reconciler{}))
+	runtime.Must(controller.Register(&rolebinding.Reconciler{}))
+	runtime.Must(controller.Register(&roletemplate.Reconciler{}))
+	runtime.Must(controller.Register(&namespace.Reconciler{}))
+	// user management
+	runtime.Must(controller.Register(&user.Reconciler{}))
+	runtime.Must(controller.Register(&user.Webhook{}))
+	runtime.Must(controller.Register(&loginrecord.Reconciler{}))
+	// multi cluster
+	runtime.Must(controller.Register(&cluster.Reconciler{}))
+	runtime.Must(controller.Register(&cluster.Webhook{}))
+	runtime.Must(controller.Register(&clusterlabel.Reconciler{}))
+	// multi tenancy
+	runtime.Must(controller.Register(&workspace.Reconciler{}))
+	runtime.Must(controller.Register(&workspacetemplate.Reconciler{}))
+	// kubesphere service account
+	runtime.Must(controller.Register(&ksserviceaccount.Reconciler{}))
+	runtime.Must(controller.Register(&ksserviceaccount.Webhook{}))
+	runtime.Must(controller.Register(&secret.ServiceAccountSecretReconciler{}))
+	// additional capabilities
+	runtime.Must(controller.Register(&serviceaccount.Reconciler{}))
+	runtime.Must(controller.Register(&job.Reconciler{}))
+	runtime.Must(controller.Register(&storageclass.Reconciler{}))
+	runtime.Must(controller.Register(&telemetry.Runnable{}))
+	runtime.Must(controller.Register(&ksconfig.Webhook{}))
+	runtime.Must(controller.Register(&conversion.Webhook{}))
+	// kubeconfig
+	runtime.Must(controller.Register(&kubeconfig.Reconciler{}))
+	runtime.Must(controller.Register(&certificatesigningrequest.Reconciler{}))
+	// resource quota
+	runtime.Must(controller.Register(&quota.Reconciler{}))
+	runtime.Must(controller.Register(&quota.Webhook{}))
+	// app store
+	runtime.Must(controller.Register(&application.AppReleaseReconciler{}))
+	runtime.Must(controller.Register(&application.RepoReconciler{}))
+	runtime.Must(controller.Register(&application.AppCategoryReconciler{}))
+	runtime.Must(controller.Register(&application.AppVersionReconciler{}))
+	// k8s application
+	runtime.Must(controller.Register(&k8sapplication.Reconciler{}))
+	// kubectl
+	runtime.Must(controller.Register(&kubectl.Reconciler{}))
+}
+
 func NewControllerManagerCommand() *cobra.Command {
-	s := options.NewKubeSphereControllerManagerOptions()
-	conf, err := controllerconfig.TryLoadFromDisk()
-	if err == nil {
-		// make sure LeaderElection is not nil
-		s = &options.KubeSphereControllerManagerOptions{
-			KubernetesOptions:     conf.KubernetesOptions,
-			DevopsOptions:         conf.DevopsOptions,
-			AuthenticationOptions: conf.AuthenticationOptions,
-			LdapOptions:           conf.LdapOptions,
-			OpenPitrixOptions:     conf.OpenPitrixOptions,
-			NetworkOptions:        conf.NetworkOptions,
-			MultiClusterOptions:   conf.MultiClusterOptions,
-			ServiceMeshOptions:    conf.ServiceMeshOptions,
-			GatewayOptions:        conf.GatewayOptions,
-			MonitoringOptions:     conf.MonitoringOptions,
-			AlertingOptions:       conf.AlertingOptions,
-			LeaderElection:        s.LeaderElection,
-			LeaderElect:           s.LeaderElect,
-			WebhookCertDir:        s.WebhookCertDir,
-		}
+	s := options.NewControllerManagerOptions()
+	if conf, err := config.TryLoadFromDisk(); err == nil {
+		s.Merge(conf)
 	} else {
 		klog.Fatalf("Failed to load configuration from disk: %v", err)
 	}
@@ -78,33 +129,26 @@ func NewControllerManagerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "controller-manager",
 		Long: `KubeSphere controller manager is a daemon that embeds the control loops shipped with KubeSphere.`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if errs := s.Validate(allControllers); len(errs) != 0 {
-				klog.Error(utilerrors.NewAggregate(errs))
-				os.Exit(1)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if errs := s.Validate(); len(errs) != 0 {
+				return utilerrors.NewAggregate(errs)
 			}
-
-			if s.GOPSEnabled {
+			if s.DebugMode {
 				// Add agent to report additional information such as the current stack trace, Go version, memory stats, etc.
 				// Bind to a random port on address 127.0.0.1
 				if err := agent.Listen(agent.Options{}); err != nil {
-					klog.Fatal(err)
+					klog.Fatalln(err)
 				}
 			}
-
-			if err = Run(s, controllerconfig.WatchConfigChange(), signals.SetupSignalHandler()); err != nil {
-				klog.Error(err)
-				os.Exit(1)
-			}
+			return Run(signals.SetupSignalHandler(), s)
 		},
 		SilenceUsage: true,
 	}
 
-	fs := cmd.Flags()
-	namedFlagSets := s.Flags(allControllers)
+	namedFlagSets := s.Flags()
 
 	for _, f := range namedFlagSets.FlagSets {
-		fs.AddFlagSet(f)
+		cmd.Flags().AddFlagSet(f)
 	}
 
 	usageFmt := "Usage:\n  %s\n"
@@ -123,155 +167,16 @@ func NewControllerManagerCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(versionCmd)
-
 	return cmd
 }
 
-func Run(s *options.KubeSphereControllerManagerOptions, configCh <-chan controllerconfig.Config, ctx context.Context) error {
-	ictx, cancelFunc := context.WithCancel(context.TODO())
-	errCh := make(chan error)
-	defer close(errCh)
-	go func() {
-		if err := run(s, ictx); err != nil {
-			errCh <- err
-		}
-	}()
-
-	// The ctx (signals.SetupSignalHandler()) is to control the entire program life cycle,
-	// The ictx(internal context)  is created here to control the life cycle of the controller-manager(all controllers, sharedInformer, webhook etc.)
-	// when config changed, stop server and renew context, start new server
-	for {
-		select {
-		case <-ctx.Done():
-			cancelFunc()
-			return nil
-		case cfg := <-configCh:
-			cancelFunc()
-			s.MergeConfig(&cfg)
-			ictx, cancelFunc = context.WithCancel(context.TODO())
-			go func() {
-				if err := run(s, ictx); err != nil {
-					errCh <- err
-				}
-			}()
-		case err := <-errCh:
-			cancelFunc()
-			return err
-		}
-	}
-}
-
-func run(s *options.KubeSphereControllerManagerOptions, ctx context.Context) error {
-
-	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
+func Run(ctx context.Context, s *options.ControllerManagerOptions) error {
+	cm, err := s.NewControllerManager()
 	if err != nil {
-		klog.Errorf("Failed to create kubernetes clientset %v", err)
-		return err
+		return fmt.Errorf("failed to create controller manager: %v", err)
 	}
-
-	informerFactory := informers.NewInformerFactories(
-		kubernetesClient.Kubernetes(),
-		kubernetesClient.KubeSphere(),
-		kubernetesClient.Istio(),
-		kubernetesClient.Snapshot(),
-		kubernetesClient.ApiExtensions(),
-		kubernetesClient.Prometheus())
-
-	mgrOptions := manager.Options{
-		CertDir: s.WebhookCertDir,
-		Port:    8443,
+	if err := cm.Run(ctx, controller.Controllers); err != nil {
+		return fmt.Errorf("failed to run controller manager: %v", err)
 	}
-
-	if s.LeaderElect {
-		mgrOptions = manager.Options{
-			CertDir:                 s.WebhookCertDir,
-			Port:                    8443,
-			LeaderElection:          s.LeaderElect,
-			LeaderElectionNamespace: "kubesphere-system",
-			LeaderElectionID:        "ks-controller-manager-leader-election",
-			LeaseDuration:           &s.LeaderElection.LeaseDuration,
-			RetryPeriod:             &s.LeaderElection.RetryPeriod,
-			RenewDeadline:           &s.LeaderElection.RenewDeadline,
-		}
-	}
-
-	klog.V(0).Info("setting up manager")
-	ctrl.SetLogger(klog.NewKlogr())
-	// Use 8443 instead of 443 cause we need root permission to bind port 443
-	mgr, err := manager.New(kubernetesClient.Config(), mgrOptions)
-	if err != nil {
-		klog.Fatalf("unable to set up overall controller manager: %v", err)
-	}
-
-	if err = apis.AddToScheme(mgr.GetScheme()); err != nil {
-		klog.Fatalf("unable add APIs to scheme: %v", err)
-	}
-
-	// register common meta types into schemas.
-	metav1.AddToGroupVersion(mgr.GetScheme(), metav1.SchemeGroupVersion)
-
-	// TODO(jeff): refactor config with CRD
-	// install all controllers
-	if err = addAllControllers(mgr,
-		kubernetesClient,
-		informerFactory,
-		s,
-		ctx.Done()); err != nil {
-		klog.Fatalf("unable to register controllers to the manager: %v", err)
-	}
-
-	// Start cache data after all informer is registered
-	klog.V(0).Info("Starting cache resource from apiserver...")
-	informerFactory.Start(ctx.Done())
-
-	// Setup webhooks
-	klog.V(2).Info("setting up webhook server")
-	hookServer := mgr.GetWebhookServer()
-
-	klog.V(2).Info("registering webhooks to the webhook server")
-	if s.IsControllerEnabled("cluster") && s.MultiClusterOptions.Enable {
-		hookServer.Register("/validate-cluster-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &cluster.ValidatingHandler{Client: mgr.GetClient()}})
-	}
-	hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
-	hookServer.Register("/validate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.ValidatingHandler{C: mgr.GetClient()}})
-	hookServer.Register("/mutate-network-kubesphere-io-v1alpha1", &webhook.Admission{Handler: &webhooks.MutatingHandler{C: mgr.GetClient()}})
-
-	pvcAdmission, err := storagewebhooks.NewAccessorHandler()
-	if err != nil {
-		klog.Fatalf("unable to create pvc admission: %v", err)
-	}
-	hookServer.Register("/persistentvolumeclaims", &webhook.Admission{Handler: pvcAdmission})
-
-	resourceQuotaAdmission, err := quota.NewResourceQuotaAdmission(mgr.GetClient(), mgr.GetScheme())
-	if err != nil {
-		klog.Fatalf("unable to create resource quota admission: %v", err)
-	}
-	hookServer.Register("/validate-quota-kubesphere-io-v1alpha2", &webhook.Admission{Handler: resourceQuotaAdmission})
-
-	hookServer.Register("/convert", &conversion.Webhook{})
-
-	rulegroup := alertingv2beta1.RuleGroup{}
-	if err := rulegroup.SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("Unable to setup RuleGroup webhook: %v", err)
-	}
-	clusterrulegroup := alertingv2beta1.ClusterRuleGroup{}
-	if err := clusterrulegroup.SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("Unable to setup ClusterRuleGroup webhook: %v", err)
-	}
-	globalrulegroup := alertingv2beta1.GlobalRuleGroup{}
-	if err := globalrulegroup.SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("Unable to setup GlobalRuleGroup webhook: %v", err)
-	}
-
-	klog.V(2).Info("registering metrics to the webhook server")
-	// Add an extra metric endpoint, so we can use the the same metric definition with ks-apiserver
-	// /kapis/metrics is independent of controller-manager's built-in /metrics
-	mgr.AddMetricsExtraHandler("/kapis/metrics", metrics.Handler())
-
-	klog.V(0).Info("Starting the controllers.")
-	if err = mgr.Start(ctx); err != nil {
-		klog.Fatalf("unable to run the manager: %v", err)
-	}
-
 	return nil
 }

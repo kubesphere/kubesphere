@@ -1,0 +1,152 @@
+{{- if or (.Values.internalTLS) (.Values.ingress.tls.enabled) -}}
+  {{- if eq .Values.ingress.tls.source "letsEncrypt" -}}
+    {{- if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+    {{- if or (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+apiVersion: cert-manager.io/v1
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") }}
+apiVersion: cert-manager.io/v1beta1
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") }}
+apiVersion: cert-manager.io/v1alpha2
+    {{- else if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
+apiVersion: certmanager.k8s.io/v1alpha1
+    {{- else }}
+apiVersion: cert-manager.io/v1
+    {{- end }}
+kind: Issuer
+metadata:
+  name: letsencrypt
+  namespace: {{ .Release.Namespace }}
+spec:
+  acme:
+    email: {{ .Values.letsEncrypt.email }}
+    {{- if eq .Values.letsEncrypt.environment "production" }}
+    server: https://acme-v02.api.letsencrypt.org/directory
+    {{- else }}
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    {{- end }}
+    privateKeySecretRef:
+      name: letsencrypt-{{ .Values.letsEncrypt.environment }}
+    {{- if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
+    http01: { }
+    {{- else }}
+    solvers:
+      - http01:
+          ingress:
+            class: {{ .Values.ingress.ingressClassName }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+---
+{{- if or (.Values.internalTLS) (.Values.ingress.tls.enabled) -}}
+{{- if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+    {{- if or (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+apiVersion: cert-manager.io/v1
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") }}
+apiVersion: cert-manager.io/v1beta1
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") }}
+apiVersion: cert-manager.io/v1alpha2
+    {{- else if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
+apiVersion: certmanager.k8s.io/v1alpha1
+    {{- else }}
+apiVersion: cert-manager.io/v1
+    {{- end }}
+kind: Issuer
+metadata:
+  name: self-signed
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}
+{{- end }}
+{{- end }}
+
+---
+{{- if .Values.internalTLS -}}
+  {{- if or (eq .Values.ingress.tls.source "letsEncrypt") (eq .Values.ingress.tls.source "generation") (eq .Values.ingress.tls.source "importation") -}}
+    {{- if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+    {{- if or (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+apiVersion: cert-manager.io/v1
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") }}
+apiVersion: cert-manager.io/v1beta1
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") }}
+apiVersion: cert-manager.io/v1alpha2
+    {{- else if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
+apiVersion: certmanager.k8s.io/v1alpha1
+    {{- else }}
+apiVersion: cert-manager.io/v1
+    {{- end }}
+kind: Certificate
+metadata:
+  name: ks-apiserver-certificate
+  namespace: {{ .Release.Namespace }}
+spec:
+  # Secret names are always required.
+  secretName: ks-apiserver-tls-certs
+  duration: {{ .Values.certmanager.duration }}
+  renewBefore: {{ .Values.certmanager.renewBefore }}
+  subject:
+    organizations:
+      - ks-apiserver
+  commonName: ks-apiserver
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  dnsNames:
+    - ks-apiserver
+    - {{ printf "%s.%s" "ks-apiserver" .Release.Namespace }}
+    - {{ printf "%s.%s.%s" "ks-apiserver" .Release.Namespace "svc" }}
+    - {{ printf "%s.%s.%s" "ks-apiserver" .Release.Namespace "svc.cluster.local" }}
+  issuerRef:
+    name: self-signed
+    kind: Issuer
+    group: cert-manager.io
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+---
+{{- if .Values.internalTLS -}}
+  {{- if or (eq .Values.ingress.tls.source "letsEncrypt") (eq .Values.ingress.tls.source "generation") (eq .Values.ingress.tls.source "importation") -}}
+    {{- if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+    {{- if or (.Capabilities.APIVersions.Has "cert-manager.io/v1") }}
+apiVersion: cert-manager.io/v1
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1beta1") }}
+apiVersion: cert-manager.io/v1beta1
+    {{- else if or (.Capabilities.APIVersions.Has "cert-manager.io/v1alpha2") }}
+apiVersion: cert-manager.io/v1alpha2
+    {{- else if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
+apiVersion: certmanager.k8s.io/v1alpha1
+    {{- else }}
+apiVersion: cert-manager.io/v1
+    {{- end }}
+kind: Certificate
+metadata:
+  name: ks-console-certificate
+  namespace: {{ .Release.Namespace }}
+spec:
+  # Secret names are always required.
+  secretName: ks-console-tls-certs
+  duration: {{ .Values.certmanager.duration }}
+  renewBefore: {{ .Values.certmanager.renewBefore }}
+  subject:
+    organizations:
+      - ks-console
+  commonName: ks-console
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  dnsNames:
+    - ks-console
+    - {{ printf "%s.%s" "ks-console" .Release.Namespace }}
+    - {{ printf "%s.%s.%s" "ks-console" .Release.Namespace "svc" }}
+    - {{ printf "%s.%s.%s" "ks-console" .Release.Namespace "svc.cluster.local" }}
+  issuerRef:
+    name: self-signed
+    kind: Issuer
+    group: cert-manager.io
+    {{- end }}
+  {{- end }}
+{{- end }}

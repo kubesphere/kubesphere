@@ -1,102 +1,84 @@
 /*
-
- Copyright 2021 The KubeSphere Authors.
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package auth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
-
-	"k8s.io/apimachinery/pkg/api/errors"
 	authuser "k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/klog/v2"
-	iamv1alpha2 "kubesphere.io/api/iam/v1alpha2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 )
 
 type oauthAuthenticator struct {
-	ksClient   kubesphere.Interface
-	userGetter *userGetter
-	options    *authentication.Options
+	client                 runtimeclient.Client
+	userGetter             *userMapper
+	idpConfigurationGetter identityprovider.ConfigurationGetter
 }
 
-func NewOAuthAuthenticator(ksClient kubesphere.Interface,
-	userLister iamv1alpha2listers.UserLister,
-	options *authentication.Options) OAuthAuthenticator {
+func NewOAuthAuthenticator(cacheClient runtimeclient.Client) OAuthAuthenticator {
 	authenticator := &oauthAuthenticator{
-		ksClient:   ksClient,
-		userGetter: &userGetter{userLister: userLister},
-		options:    options,
+		client:                 cacheClient,
+		userGetter:             &userMapper{cache: cacheClient},
+		idpConfigurationGetter: identityprovider.NewConfigurationGetter(cacheClient),
 	}
 	return authenticator
 }
 
-func (o *oauthAuthenticator) Authenticate(_ context.Context, provider string, req *http.Request) (authuser.Info, string, error) {
-	providerOptions, err := o.options.OAuthOptions.IdentityProviderOptions(provider)
+func (o *oauthAuthenticator) Authenticate(ctx context.Context, provider string, req *http.Request) (authuser.Info, error) {
+	providerConfig, err := o.idpConfigurationGetter.GetConfiguration(ctx, provider)
 	// identity provider not registered
 	if err != nil {
-		klog.Error(err)
-		return nil, "", err
+		return nil, fmt.Errorf("failed to get identity provider configuration for %s, error: %v", provider, err)
 	}
-	oauthIdentityProvider, err := identityprovider.GetOAuthProvider(providerOptions.Name)
+
+	oauthIdentityProvider, exist := identityprovider.SharedIdentityProviderController.GetOAuthProvider(provider)
+	if !exist {
+		return nil, fmt.Errorf("identity provider %s not exist", provider)
+	}
+
+	identity, err := oauthIdentityProvider.IdentityExchangeCallback(req)
 	if err != nil {
-		klog.Error(err)
-		return nil, "", err
+		return nil, fmt.Errorf("failed to exchange identity for %s, error: %v", provider, err)
 	}
-	authenticated, err := oauthIdentityProvider.IdentityExchangeCallback(req)
+
+	mappedUser, err := o.userGetter.FindMappedUser(ctx, providerConfig.Name, identity.GetUserID())
 	if err != nil {
-		klog.Error(err)
-		return nil, "", err
+		return nil, fmt.Errorf("failed to find mapped user for %s, error: %v", provider, err)
 	}
 
-	user, err := o.userGetter.findMappedUser(providerOptions.Name, authenticated.GetUserID())
-	if user == nil && providerOptions.MappingMethod == oauth.MappingMethodLookup {
-		klog.Error(err)
-		return nil, "", err
-	}
-
-	// the user will automatically create and mapping when login successful.
-	if user == nil && providerOptions.MappingMethod == oauth.MappingMethodAuto {
-		if !providerOptions.DisableLoginConfirmation {
-			return preRegistrationUser(providerOptions.Name, authenticated), providerOptions.Name, nil
+	if mappedUser == nil {
+		if providerConfig.MappingMethod == identityprovider.MappingMethodLookup {
+			return nil, fmt.Errorf("failed to find mapped user: %s", identity.GetUserID())
 		}
-		user, err = o.ksClient.IamV1alpha2().Users().Create(context.Background(), mappedUser(providerOptions.Name, authenticated), metav1.CreateOptions{})
-		if err != nil {
-			return nil, providerOptions.Name, err
+
+		if providerConfig.MappingMethod == identityprovider.MappingMethodManual {
+			return newRreRegistrationUser(providerConfig.Name, identity), nil
 		}
+
+		if providerConfig.MappingMethod == identityprovider.MappingMethodAuto {
+			mappedUser = newMappedUser(providerConfig.Name, identity)
+
+			if err = o.client.Create(ctx, mappedUser); err != nil {
+				return nil, err
+			}
+
+			return &authuser.DefaultInfo{Name: mappedUser.GetName()}, nil
+		}
+
+		return nil, fmt.Errorf("invalid mapping method found %s", providerConfig.MappingMethod)
 	}
 
-	if user != nil {
-		if user.Status.State == iamv1alpha2.UserDisabled {
-			// state not active
-			return nil, "", AccountIsNotActiveError
-		}
-		return &authuser.DefaultInfo{Name: user.GetName()}, providerOptions.Name, nil
+	if mappedUser.Status.State == iamv1beta1.UserDisabled {
+		return nil, AccountIsNotActiveError
 	}
 
-	return nil, "", errors.NewNotFound(iamv1alpha2.Resource("user"), authenticated.GetUsername())
+	return &authuser.DefaultInfo{Name: mappedUser.GetName()}, nil
 }

@@ -1,18 +1,8 @@
 /*
-Copyright 2021 The KubeSphere Authors.
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package token
 
 import (
@@ -26,7 +16,6 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 )
 
@@ -62,28 +51,26 @@ PsSsOHhPx0g+Wl8K2+Edg3FQRZ1m0rQFAZn66jd96u85aA9NH/bw3A3VYUdVJyHh
 
 func TestNewIssuer(t *testing.T) {
 	signKeyData := base64.StdEncoding.EncodeToString([]byte(privateKeyData))
-	options := &authentication.Options{
+	config := &oauth.IssuerOptions{
+		URL:              "https://ks-console.kubesphere-system.svc",
+		SignKeyData:      signKeyData,
 		MaximumClockSkew: 10 * time.Second,
-		JwtSecret:        "test-secret",
-		OAuthOptions: &oauth.Options{
-			Issuer:      "kubesphere",
-			SignKeyData: signKeyData,
-		},
+		JWTSecret:        "test-secret",
 	}
-	got, err := NewIssuer(options)
+	got, err := NewIssuer(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	signKey, keyID, err := loadSignKey(options)
+	signKey, keyID, err := loadSignKey(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	want := &issuer{
-		name:             options.OAuthOptions.Issuer,
-		secret:           []byte(options.JwtSecret),
-		maximumClockSkew: options.MaximumClockSkew,
+		url:              config.URL,
+		secret:           []byte(config.JWTSecret),
+		maximumClockSkew: config.MaximumClockSkew,
 		signKey: &Keys{
 			SigningKey: &jose.JSONWebKey{
 				Key:       signKey,
@@ -100,21 +87,19 @@ func TestNewIssuer(t *testing.T) {
 		},
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("NewIssuer() got = %v, want %v", got, want)
+		t.Errorf("NewIssuerOptions() got = %v, want %v", got, want)
 		return
 	}
 }
 
 func TestNewIssuerGenerateSignKey(t *testing.T) {
-	options := &authentication.Options{
+	config := &oauth.IssuerOptions{
+		URL:              "https://ks-console.kubesphere-system.svc",
 		MaximumClockSkew: 10 * time.Second,
-		JwtSecret:        "test-secret",
-		OAuthOptions: &oauth.Options{
-			Issuer: "kubesphere",
-		},
+		JWTSecret:        "test-secret",
 	}
 
-	got, err := NewIssuer(options)
+	got, err := NewIssuer(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +114,7 @@ func TestNewIssuerGenerateSignKey(t *testing.T) {
 
 func Test_issuer_IssueTo(t *testing.T) {
 	type fields struct {
-		name             string
+		url              string
 		secret           []byte
 		maximumClockSkew time.Duration
 	}
@@ -146,7 +131,7 @@ func Test_issuer_IssueTo(t *testing.T) {
 		{
 			name: "token is successfully issued",
 			fields: fields{
-				name:             "kubesphere",
+				url:              "kubesphere",
 				secret:           []byte("kubesphere"),
 				maximumClockSkew: 0,
 			},
@@ -173,7 +158,7 @@ func Test_issuer_IssueTo(t *testing.T) {
 		{
 			name: "token is successfully issued",
 			fields: fields{
-				name:             "kubesphere",
+				url:              "kubesphere",
 				secret:           []byte("kubesphere"),
 				maximumClockSkew: 0,
 			},
@@ -202,7 +187,7 @@ func Test_issuer_IssueTo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &issuer{
-				name:             tt.fields.name,
+				url:              tt.fields.url,
 				secret:           tt.fields.secret,
 				maximumClockSkew: tt.fields.maximumClockSkew,
 			}
@@ -220,7 +205,7 @@ func Test_issuer_IssueTo(t *testing.T) {
 				return
 			}
 			assert.Equal(t, got.TokenType, tt.want.TokenType)
-			assert.Equal(t, got.Issuer, tt.fields.name)
+			assert.Equal(t, got.Issuer, tt.fields.url)
 			assert.Equal(t, got.Username, tt.want.Username)
 			assert.Equal(t, got.Subject, tt.want.User.GetName())
 			assert.NotZero(t, got.IssuedAt)
@@ -230,7 +215,7 @@ func Test_issuer_IssueTo(t *testing.T) {
 
 func Test_issuer_Verify(t *testing.T) {
 	type fields struct {
-		name             string
+		url              string
 		secret           []byte
 		maximumClockSkew time.Duration
 	}
@@ -247,7 +232,7 @@ func Test_issuer_Verify(t *testing.T) {
 		{
 			name: "token validation failed",
 			fields: fields{
-				name:             "kubesphere",
+				url:              "kubesphere",
 				secret:           []byte("kubesphere"),
 				maximumClockSkew: 0,
 			},
@@ -257,7 +242,7 @@ func Test_issuer_Verify(t *testing.T) {
 		{
 			name: "token is successfully verified",
 			fields: fields{
-				name:             "kubesphere",
+				url:              "kubesphere",
 				secret:           []byte("kubesphere"),
 				maximumClockSkew: 0,
 			},
@@ -277,7 +262,7 @@ func Test_issuer_Verify(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &issuer{
-				name:             tt.fields.name,
+				url:              tt.fields.url,
 				secret:           tt.fields.secret,
 				maximumClockSkew: tt.fields.maximumClockSkew,
 			}
@@ -290,7 +275,7 @@ func Test_issuer_Verify(t *testing.T) {
 				return
 			}
 			assert.Equal(t, got.TokenType, tt.want.TokenType)
-			assert.Equal(t, got.Issuer, tt.fields.name)
+			assert.Equal(t, got.Issuer, tt.fields.url)
 			assert.Equal(t, got.Username, tt.want.Username)
 			assert.Equal(t, got.Subject, tt.want.User.GetName())
 			assert.NotZero(t, got.IssuedAt)
@@ -335,7 +320,7 @@ func Test_issuer_keyFunc(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, err := NewIssuer(authentication.NewOptions())
+			s, err := NewIssuer(oauth.NewIssuerOptions())
 			if err != nil {
 				t.Error(err)
 				return

@@ -102,12 +102,17 @@ func intersectSpecial(g1, g2 Glob) bool {
 
 // intersectPlus accepts two globs such that plussed[0].Flag() == FlagPlus.
 // It returns a boolean describing whether their intersection exists.
-// It ensures that at least one token in other maches plussed[0], before handing flow of control to intersectSpecial.
+// It ensures that at least one token in other maches plussed[0].
 func intersectPlus(plussed, other Glob) bool {
 	if !Match(plussed[0], other[0]) {
 		return false
 	}
-	return intersectStar(plussed, other[1:])
+	// Either the plussed has gobbled up other[0]...
+	if intersectStar(plussed, other[1:]) {
+		return true
+	}
+	// ...or if other[0] has a flag, it may completely gobble up plussed[0].
+	return other[0].Flag() != FlagNone && intersectNormal(plussed[1:], other)
 }
 
 // intersectStar accepts two globs such that starred[0].Flag() == FlagStar.
@@ -145,10 +150,6 @@ func intersectStar(starred, other Glob) bool {
 	}
 
 	// If there was no token following starToken, and everything from other was gobbled, the Globs intersect.
-	if nextToken == nil {
-		return true
-	}
-
-	// If everything from other was gobbles but there was a nextToken to match, they don't intersect.
-	return false
+	//If everything from other was gobbles but there was a nextToken to match, they don't intersect.
+	return nextToken == nil
 }

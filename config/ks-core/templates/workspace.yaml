@@ -1,0 +1,15 @@
+{{ if eq (include "role" .) "host" }}
+apiVersion: tenant.kubesphere.io/v1beta1
+kind: WorkspaceTemplate
+metadata:
+  annotations:
+    kubesphere.io/creator: admin
+    kubesphere.io/description: "system-workspace is a built-in workspace automatically created by KubeSphere. It contains all system components to run KubeSphere."
+  name: system-workspace
+spec:
+  placement:
+    clusterSelector: {}
+  template:
+    spec:
+      manager: admin
+{{ end }}

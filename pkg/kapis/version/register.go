@@ -1,62 +1,62 @@
 /*
-Copyright 2020 KubeSphere Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * Please refer to the LICENSE file in the root directory of the project.
+ * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
+ */
 
 package version
 
 import (
+	"net/http"
+
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	"k8s.io/klog/v2"
+	k8sversion "k8s.io/apimachinery/pkg/version"
 
+	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/rest"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
-// AddToContainer the api /kapis/version will be deprecated and instead with /version
-func AddToContainer(container *restful.Container, k8sDiscovery discovery.DiscoveryInterface) error {
-	webservice := runtime.NewWebService(schema.GroupVersion{})
-	versionWebservice := &restful.WebService{}
-	versionWebservice.Path("/version").Produces(restful.MIME_JSON)
+func NewHandler(k8sVersionInfo *k8sversion.Info) rest.Handler {
+	return &handler{k8sVersionInfo: k8sVersionInfo}
+}
 
+func NewFakeHandler() rest.Handler {
+	return &handler{}
+}
+
+type handler struct {
+	k8sVersionInfo *k8sversion.Info
+}
+
+func (h *handler) AddToContainer(container *restful.Container) error {
+	legacy := runtime.NewWebService(schema.GroupVersion{})
+	ws := &restful.WebService{}
+	ws.Path("/version").Produces(restful.MIME_JSON)
 	versionFunc := func(request *restful.Request, response *restful.Response) {
 		ksVersion := version.Get()
-
-		if k8sDiscovery != nil {
-			k8sVersion, err := k8sDiscovery.ServerVersion()
-			if err == nil {
-				ksVersion.Kubernetes = k8sVersion
-			} else {
-				klog.Errorf("Failed to get kubernetes version, error %v", err)
-			}
-		}
-
+		ksVersion.Kubernetes = h.k8sVersionInfo
 		response.WriteAsJson(ksVersion)
 	}
-
-	webservice.Route(webservice.GET("/version").
+	legacy.Route(legacy.GET("/version").
+		To(versionFunc).
 		Deprecate().
-		To(versionFunc)).
-		Doc("KubeSphere version. Deprecated: please use API `/version`")
+		Doc("KubeSphere version info").
+		Notes("Deprecated, please use `/version` instead.").
+		Operation("version-legacy").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagNonResourceAPI}).
+		Returns(http.StatusOK, api.StatusOK, version.Info{}))
 
-	versionWebservice.Route(versionWebservice.GET("").
-		To(versionFunc)).Doc("KubeSphere version")
+	ws.Route(ws.GET("").
+		To(versionFunc).
+		Doc("KubeSphere version info").
+		Operation("version").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagNonResourceAPI}).
+		Returns(http.StatusOK, api.StatusOK, version.Info{}))
 
-	container.Add(webservice)
-	container.Add(versionWebservice)
-
+	container.Add(legacy)
+	container.Add(ws)
 	return nil
 }
