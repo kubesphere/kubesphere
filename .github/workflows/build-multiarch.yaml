@@ -7,10 +7,7 @@ on:
       - 'release-*'
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - 'master'
-      - 'release-*'
+  workflow_dispatch: # Manual trigger
 
 jobs:
   build:
@@ -23,6 +20,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
+      - name: Login to Aliyun
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-beijing.aliyuncs.com
+          username: ${{ secrets.ALIYUNCS_USERNAME }}
+          password: ${{ secrets.ALIYUNCS_PASSWORD }}
 
       - name: Login to DOCKER
         uses: docker/login-action@v3
@@ -38,13 +42,54 @@ jobs:
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push docker images
-        if: github.event_name == 'push'
+      - name: Chose Registry by tag
+        id: chose_registry
         run: |
-          tag=${GITHUB_REF#refs/*/}
-          if [[ $tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            REGISTRY=docker.io/kubesphere TAG=$tag make container-cross-push
+          if [[ ${GITHUB_REF#refs/*/} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "env=prod" >> "$GITHUB_OUTPUT"
           else
-            REGISTRY=docker.io/kubespheredev TAG=$tag make container-cross-push
+              echo "env=dev" >> "$GITHUB_OUTPUT"
           fi
-          
+          echo "tag=${GITHUB_REF#refs/*/}" >> "$GITHUB_OUTPUT"          
+
+      - name: Build and push ks-apiserver images
+        uses: docker/build-push-action@v6
+        if: steps.chose_registry.outputs.env == 'prod'
+        with:
+          file: build/ks-apiserver/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            docker.io/kubesphere/ks-apiserver:${{ steps.chose_registry.outputs.tag }}
+            registry.cn-beijing.aliyuncs.com/kubesphereio/ks-apiserver:${{ steps.chose_registry.outputs.tag }}
+
+      - name: Build and push ks-apiserver dev images
+        uses: docker/build-push-action@v6
+        if: steps.chose_registry.outputs.env == 'dev'
+        with:
+          file: build/ks-apiserver/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            docker.io/kubespheredev/ks-apiserver:${{ steps.chose_registry.outputs.tag }}
+
+      - name: Build and push ks-controller-manager images
+        uses: docker/build-push-action@v6
+        if: steps.chose_registry.outputs.env == 'prod'
+        with:
+          file: build/ks-controller-manager/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            docker.io/kubesphere/ks-controller-manager:${{ steps.chose_registry.outputs.tag }}
+            registry.cn-beijing.aliyuncs.com/kubesphereio/ks-controller-manager:${{ steps.chose_registry.outputs.tag }}
+
+      - name: Build and push ks-controller-manager dev images
+        uses: docker/build-push-action@v6
+        if: steps.chose_registry.outputs.env == 'dev'
+        with:
+          file: build/ks-controller-manager/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            docker.io/kubespheredev/ks-controller-manager:${{ steps.chose_registry.outputs.tag }}
