@@ -5,36 +5,63 @@ on:
       - 'config/ks-core/**'
     branches:
       - 'master'
+      - 'release-*'
+    tags:
+      - 'v*'
 
 jobs:
   sync-chart:
-    runs-on: self-runner-kubesphere
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Check out kubesphere/kubesphere
+        uses: actions/checkout@v4
         with:
+          path: kubesphere
+          fetch-depth: 0
+
+      - name: Check out kubesphere/helm-charts
+        uses: actions/checkout@v4
+        with:
+          repository: ks-ci-bot/helm-charts
+          token: ${{ secrets.CIBOT_ACCESS_TOKEN }}
+          path: helm-charts
           fetch-depth: 0
 
       - name: Setup SSH
-        uses: MrSquaare/ssh-setup-action@v2
+        uses: MrSquaare/ssh-setup-action@v3
         with:
+          working-directory: helm-charts
           host: github.com
           private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - run: |
+      - name: Sync charts
+        run: |
+          cd helm-charts
           git config --global user.email "ci-bot@kubesphere.io"
           git config --global user.name "ks-ci-bot"
-          git clone git@github.com:kubesphere/helm-charts.git
-          rm -rf helm-charts/src/test/ks-core
-          cp -r config/ks-core helm-charts/src/test/
-          cd helm-charts/
+          git remote add ks git@github.com:kubesphere/helm-charts.git
+          git fetch ks master
+          git checkout -b sync/ks-core/${GITHUB_REF#refs/*/} ks/master
+          rm -rf src/test/ks-core
+          cp -r ../kubesphere/config/ks-core src/test/
+          if [[ ${GITHUB_REF#refs/*/} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            rm -rf src/main/ks-core
+            cp -r ../kubesphere/config/ks-core src/main/
+          fi
           git add .
           git commit -m "update ks-core helm chart"
-          git push origin master:sync/ks-core --force
+          git push origin sync/ks-core/${GITHUB_REF#refs/*/} --force
 
-      - env:
+      - name: Create Pull Request
+        env:
           GH_TOKEN: ${{ secrets.CIBOT_ACCESS_TOKEN }}
         run: |
-          cd helm-charts/
-          if [[ $(gh pr ls -H sync/ks-core -B master) == "" ]]; then
-            gh pr create -H sync/ks-core -B master --title "Update ks-core helm chart" --body "Update ks-core helm chart"
+          cd helm-charts
+          if [[ $(gh pr ls -R kubesphere/helm-charts -H ks-ci-bot:sync/ks-core/${GITHUB_REF#refs/*/} -B master) == "" ]]; then
+            # Create a PR in the kubesphere/helm-charts repository
+            gh pr create -R kubesphere/helm-charts \
+              -B master \
+              -H ks-ci-bot:sync/ks-core/${GITHUB_REF#refs/*/} \
+              -t "Update ks-core helm chart from ${GITHUB_REF#refs/*/}" \
+              -b "Update ks-core helm chart"
           fi

@@ -17,7 +17,7 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -56,6 +56,7 @@ jobs:
         uses: docker/build-push-action@v6
         if: steps.chose_registry.outputs.env == 'prod'
         with:
+          context: ${{ github.workspace }}
           file: build/ks-apiserver/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
@@ -67,6 +68,7 @@ jobs:
         uses: docker/build-push-action@v6
         if: steps.chose_registry.outputs.env == 'dev'
         with:
+          context: ${{ github.workspace }}
           file: build/ks-apiserver/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
@@ -77,6 +79,7 @@ jobs:
         uses: docker/build-push-action@v6
         if: steps.chose_registry.outputs.env == 'prod'
         with:
+          context: ${{ github.workspace }}
           file: build/ks-controller-manager/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
@@ -88,6 +91,7 @@ jobs:
         uses: docker/build-push-action@v6
         if: steps.chose_registry.outputs.env == 'dev'
         with:
+          context: ${{ github.workspace }}
           file: build/ks-controller-manager/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
