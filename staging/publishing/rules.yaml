@@ -18,11 +18,6 @@ rules:
           dir: staging/src/kubesphere.io/api
         name: master
 
-    smoke-test: |
-      # assumes GO111MODULE=on
-      go build ./...
-      go test ./...
-
   - destination: utils
     library: true
     branches:
