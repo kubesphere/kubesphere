@@ -265,12 +265,12 @@ func (r *AppReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			if strings.Contains(release.Info.Description, "context deadline exceeded") && reCheck < timeoutMaxRecheck {
 
 				if apprls.Status.State != appv2.StatusTimeout {
-					err = r.updateStatus(ctx, apprls, appv2.StatusTimeout, "install time out")
+					err = r.updateStatus(ctx, apprls, appv2.StatusTimeout, "Installation timeout")
 					if err != nil {
 						klog.Errorf("failed to update apprelease %s status : %v", apprls.Name, err)
 						return ctrl.Result{}, err
 					}
-					klog.Infof("install time out, will check status again after %d second", timeoutVerificationAgain)
+					klog.Infof("Installation timeout, will check status again after %d second", timeoutVerificationAgain)
 					return ctrl.Result{RequeueAfter: timeoutVerificationAgain * time.Second}, nil
 				}
 
