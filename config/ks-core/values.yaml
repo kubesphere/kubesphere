@@ -434,3 +434,12 @@ ksCRDs:
       requests:
         cpu: 20m
         memory: 100Mi
+
+# add museum for all ks-extensions
+localExtensionRepository:
+  enabled: true
+  image:
+    registry: ""
+    repository: kubesphere/extensions-museum
+    tag: "latest"
+    pullPolicy: Always
