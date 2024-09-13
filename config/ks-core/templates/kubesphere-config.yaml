@@ -69,15 +69,9 @@ data:
       appSelector: {{ .Values.composedApp.appSelector | quote }}
     kubesphere:
       tls: {{ .Values.internalTLS }}
-    {{- if and .Values.cloud.enabled (eq (include "role" .) "host") }}
+    {{- if and .Values.telemetry.enabled (eq (include "role" .) "host") }}
     telemetry:
-      {{- if eq .Values.cloud.env "clouddev.kubesphere.io" }}
-      ksCloudURL: "https://clouddev.kubesphere.io"
-      {{- else if eq .Values.cloud.env "kubesphere.cloud" }}
       ksCloudURL: "https://kubesphere.cloud"
-      {{- else if and .Values.cloud.customEnv .Values.cloud.customEnv.url }}
-      ksCloudURL: {{ $.Values.cloud.customEnv.url | quote }}
-      {{- end }}
     {{- end }}
     {{- if .Values.ha.enabled -}}
     {{- if .Values.ha.cache }}
