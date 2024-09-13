@@ -37,6 +37,10 @@ Return the proper image name
 {{ include "common.images.image" (dict "imageRoot" .Values.preUpgrade.image "global" .Values.global) }}
 {{- end -}}
 
+{{- define "extensions_museum.image" -}}
+{{ include "common.images.image" (dict "imageRoot" .Values.ksExtensionRepository.image "global" .Values.global) }}
+{{- end -}}
+
 {{- define "common.images.image" -}}
 {{- $registryName := .global.imageRegistry -}}
 {{- $repositoryName := .imageRoot.repository -}}
@@ -68,6 +72,10 @@ Return the proper Docker Image Registry Secret Names
 
 {{- define "controller.imagePullSecrets" -}}
 {{- include "common.images.pullSecrets" (dict "images" (list .Values.controller.image) "global" .Values.global) -}}
+{{- end -}}
+
+{{- define "extensions_museum.imagePullSecrets" -}}
+{{- include "common.images.pullSecrets" (dict "images" (list .Values.ksExtensionRepository.image) "global" .Values.global) -}}
 {{- end -}}
 
 {{- define "common.images.pullSecrets" -}}
