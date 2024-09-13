@@ -1,4 +1,4 @@
-{{- if .Values.localExtensionRepository.enabled }}
+{{- if .Values.ksExtensionRepository.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

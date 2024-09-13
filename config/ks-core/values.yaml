@@ -433,10 +433,10 @@ ksCRDs:
         memory: 100Mi
 
 # add museum for all ks-extensions
-localExtensionRepository:
+ksExtensionRepository:
   enabled: true
   image:
     registry: ""
-    repository: kubesphere/extensions-museum
+    repository: kubesphere/ks-extensions-museum
     tag: "latest"
     pullPolicy: Always
