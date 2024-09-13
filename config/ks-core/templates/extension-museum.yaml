@@ -1,0 +1,74 @@
+{{- if .Values.ksExtensionRepository.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: extensions-museum
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: extensions-museum
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: extensions-museum
+  template:
+    metadata:
+      labels:
+        app: extensions-museum
+    spec:
+{{- include "extensions_museum.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: extensions-museum
+          image: {{ template "extensions_museum.image" . }}
+          command:
+            - "/chartmuseum"
+            - "--storage-local-rootdir"
+            - "/charts"
+            - "--storage"
+            - "local"
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: extensions-museum
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: extensions-museum
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+
+---
+apiVersion: kubesphere.io/v1alpha1
+kind: Repository
+metadata:
+  name: extensions-museum
+spec:
+  url: http://extensions-museum.{{ .Release.Namespace }}.svc
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restart-extensions-museum
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: restart-extensions-museum
+              image: {{ template "kubectl.image" . }}
+              command:
+                - /bin/sh
+                - -c
+                - "kubectl rollout restart deployment/extensions-museum -n {{ .Release.Namespace }}"
+          restartPolicy: OnFailure
+          serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
+{{end}}
