@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/apis/audit"
+	"k8s.io/apiserver/pkg/endpoints/responsewriter"
 	"k8s.io/klog/v2"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	"kubesphere.io/api/iam/v1beta1"
@@ -398,6 +399,9 @@ func (a *auditing) eventToBytes(events []*Event) [][]byte {
 	return res
 }
 
+var _ http.ResponseWriter = &ResponseCapture{}
+var _ responsewriter.UserProvidedDecorator = &ResponseCapture{}
+
 type ResponseCapture struct {
 	http.ResponseWriter
 	wroteHeader bool
@@ -413,6 +417,10 @@ func NewResponseCapture(w http.ResponseWriter) *ResponseCapture {
 	}
 }
 
+func (c *ResponseCapture) Unwrap() http.ResponseWriter {
+	return c.ResponseWriter
+}
+
 func (c *ResponseCapture) Header() http.Header {
 	return c.ResponseWriter.Header()
 }
@@ -424,9 +432,6 @@ func (c *ResponseCapture) Write(data []byte) (int, error) {
 	n, err := c.ResponseWriter.Write(data)
 	if err != nil {
 		return n, err
-	}
-	if flusher, ok := c.ResponseWriter.(http.Flusher); ok {
-		flusher.Flush()
 	}
 	return n, nil
 }
