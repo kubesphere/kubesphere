@@ -8,6 +8,7 @@ package filters
 import (
 	"net/http"
 
+	"k8s.io/apiserver/pkg/endpoints/responsewriter"
 	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/auditing"
@@ -44,7 +45,7 @@ func (a *auditingFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if event := a.LogRequestObject(req, info); event != nil {
 		resp := auditing.NewResponseCapture(w)
-		a.next.ServeHTTP(resp, req)
+		a.next.ServeHTTP(responsewriter.WrapForHTTP1Or2(resp), req)
 		go a.LogResponseObject(event, resp)
 	} else {
 		a.next.ServeHTTP(w, req)
