@@ -38,7 +38,7 @@ Return the proper image name
 {{- end -}}
 
 {{- define "extensions_museum.image" -}}
-{{ include "common.images.image" (dict "imageRoot" .Values.localExtensionRepository.image "global" .Values.global) }}
+{{ include "common.images.image" (dict "imageRoot" .Values.ksExtensionRepository.image "global" .Values.global) }}
 {{- end -}}
 
 {{- define "common.images.image" -}}
@@ -75,7 +75,7 @@ Return the proper Docker Image Registry Secret Names
 {{- end -}}
 
 {{- define "extensions_museum.imagePullSecrets" -}}
-{{- include "common.images.pullSecrets" (dict "images" (list .Values.localExtensionRepository.image) "global" .Values.global) -}}
+{{- include "common.images.pullSecrets" (dict "images" (list .Values.ksExtensionRepository.image) "global" .Values.global) -}}
 {{- end -}}
 
 {{- define "common.images.pullSecrets" -}}
