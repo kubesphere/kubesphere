@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"k8s.io/apiserver/pkg/endpoints/responsewriter"
 	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/metrics"
@@ -20,10 +21,17 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 )
 
+var _ http.ResponseWriter = &metaResponseWriter{}
+var _ responsewriter.UserProvidedDecorator = &metaResponseWriter{}
+
 type metaResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 	size       int
+}
+
+func (r *metaResponseWriter) Unwrap() http.ResponseWriter {
+	return r.ResponseWriter
 }
 
 func newMetaResponseWriter(w http.ResponseWriter) *metaResponseWriter {
@@ -48,9 +56,6 @@ func (r *metaResponseWriter) Write(b []byte) (int, error) {
 	if err != nil {
 		return size, err
 	}
-	if flusher, ok := r.ResponseWriter.(http.Flusher); ok {
-		flusher.Flush()
-	}
 	return size, nil
 }
 
@@ -66,7 +71,8 @@ func WithGlobalFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		wrapper := newMetaResponseWriter(w)
 		start := time.Now()
-		handler.ServeHTTP(wrapper, req)
+
+		handler.ServeHTTP(responsewriter.WrapForHTTP1Or2(wrapper), req)
 		elapsedTime := time.Since(start)
 
 		// Record metrics for each request
@@ -94,7 +100,7 @@ func WithGlobalFilter(handler http.Handler) http.Handler {
 			req.Proto,
 			wrapper.statusCode,
 			wrapper.size,
-			elapsedTime.Microseconds(),
+			elapsedTime.Milliseconds(),
 		)
 	})
 }
