@@ -23,7 +23,7 @@ spec:
   template:
     spec:
       restartPolicy: Never
-      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      serviceAccountName: {{ include "ks-crd.serviceAccountName" . }}
       containers:
         - name: crd-install
           image: {{ template "preUpgrade.image" . }}

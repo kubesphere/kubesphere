@@ -2,6 +2,19 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+global:
+  imageRegistry: docker.io
+  tag: v4.1.1
+  imagePullSecrets: [ ]
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  name: "kubesphere"
+
 preUpgrade:
   image:
     registry: ""
@@ -15,3 +28,10 @@ preUpgrade:
     requests:
       cpu: 20m
       memory: 100Mi
+
+kubectl:
+  image:
+    registry: ""
+    repository: kubesphere/kubectl
+    tag: "v1.27.16"
+    pullPolicy: IfNotPresent
