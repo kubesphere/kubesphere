@@ -33,10 +33,6 @@ Return the proper image name
 {{ include "common.images.image" (dict "imageRoot" .Values.redis.image "global" .Values.global) }}
 {{- end -}}
 
-{{- define "preUpgrade.image" -}}
-{{ include "common.images.image" (dict "imageRoot" .Values.preUpgrade.image "global" .Values.global) }}
-{{- end -}}
-
 {{- define "extensions_museum.image" -}}
 {{ include "common.images.image" (dict "imageRoot" .Values.ksExtensionRepository.image "global" .Values.global) }}
 {{- end -}}
