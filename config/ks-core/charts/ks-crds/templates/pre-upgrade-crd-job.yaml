@@ -11,6 +11,36 @@ data:
 {{ (.Files.Glob "crds/*").AsConfig | indent 2 }}
 
 ---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Release.Name }}-pre-upgrade-crd"
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "{{ .Release.Name }}-pre-upgrade-crd"
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: "{{ .Release.Name }}-pre-upgrade-crd"
+    namespace: {{ .Release.Namespace }}
+
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -23,10 +53,10 @@ spec:
   template:
     spec:
       restartPolicy: Never
-      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      serviceAccountName: "{{ .Release.Name }}-pre-upgrade-crd"
       containers:
         - name: crd-install
-          image: {{ template "preUpgrade.image" . }}
+          image: {{ template "kubectl.image" . }}
           command:
             - /bin/bash
             - /scripts/install.sh
@@ -34,7 +64,7 @@ spec:
           volumeMounts:
             - mountPath: /scripts
               name: scripts
-          resources: {{- toYaml .Values.preUpgrade.resources | nindent 12 }}
+          resources: {{- toYaml .Values.kubectl.resources | nindent 12 }}
       volumes:
         - name: scripts
           configMap:
