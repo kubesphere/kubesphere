@@ -51,7 +51,7 @@ spec:
   url: http://extensions-museum.{{ .Release.Namespace }}.svc
 
 ---
-apiVersion: batch/v1
+apiVersion: {{ if semverCompare ">=1.20.0" .Capabilities.KubeVersion.Version }}batch/v1{{ else }}batch/v1beta1{{end}}
 kind: CronJob
 metadata:
   name: restart-extensions-museum
