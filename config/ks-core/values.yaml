@@ -421,7 +421,7 @@ redisHA:
                     - ""
 
 ksCRDs:
-  preUpgrade:
+  kubectl:
     image:
       registry: ""
       repository: kubesphere/kubectl
