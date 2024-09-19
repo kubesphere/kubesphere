@@ -1,16 +1,5 @@
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "ks-crd.serviceAccountName" -}}
-{{- default "kubesphere" (.Values.serviceAccount).name }}
-{{- end }}
-
 {{- define "kubectl.image" -}}
-{{ include "common.images.image" (dict "imageRoot" .Values.kubectl.image "global" .Values.global) }}
-{{- end -}}
-
-{{- define "preUpgrade.image" -}}
-{{ include "common.images.image" (dict "imageRoot" .Values.preUpgrade.image "global" .Values.global) }}
+{{ include "common.images.image" (dict "imageRoot" .Values.kubectl.image "global" (default .Values.global (dict "imageRegistry" "docker.io"))) }}
 {{- end -}}
 
 {{- define "common.images.image" -}}
