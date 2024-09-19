@@ -81,6 +81,7 @@ spec:
           volumeMounts:
             - mountPath: /scripts
               name: scripts
+          resources: {{- toYaml .Values.kubectl.resources | nindent 12 }}
       volumes:
         - name: scripts
           configMap:
