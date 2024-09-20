@@ -26,8 +26,38 @@ spec:
             - "/charts"
             - "--storage"
             - "local"
+            - "--tls-cert"
+            - "/etc/certs/tls.crt"
+            - "--tls-key"
+            - "/etc/certs/tls.key"
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: certs
+              mountPath: /etc/certs/
+      volumes:
+        - name: certs
+          secret:
+            secretName: extensions-museum-certs
+---
+
+{{- $ca := genCA "self-signed-ca" 3650 }}
+{{- $cn := printf "%s-extensions-museum" .Release.Name }}
+{{- $altName1 := printf "extensions-museum.%s" .Release.Namespace }}
+{{- $altName2 := printf "extensions-museum.%s.svc" .Release.Namespace }}
+{{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: extensions-museum-certs
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ b64enc $ca.Cert }}
+  tls.crt: {{ b64enc $cert.Cert }}
+  tls.key: {{ b64enc $cert.Key }}
+
 ---
 apiVersion: v1
 kind: Service
@@ -39,7 +69,7 @@ spec:
     app: extensions-museum
   ports:
     - protocol: TCP
-      port: 80
+      port: 443
       targetPort: 8080
 
 ---
@@ -48,7 +78,8 @@ kind: Repository
 metadata:
   name: extensions-museum
 spec:
-  url: http://extensions-museum.{{ .Release.Namespace }}.svc
+  url: https://extensions-museum.{{ .Release.Namespace }}.svc
+  caBundle: {{ b64enc $ca.Cert }}
 
 ---
 apiVersion: {{ if semverCompare ">=1.20.0" .Capabilities.KubeVersion.Version }}batch/v1{{ else }}batch/v1beta1{{end}}

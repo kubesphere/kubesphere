@@ -11,17 +11,15 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
+	"html/template"
 	"mime"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
-
-	kscontroller "kubesphere.io/kubesphere/pkg/controller"
-
-	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -35,6 +33,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	"kubesphere.io/utils/helm"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"kubesphere.io/kubesphere/pkg/constants"
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 )
 
 const (
@@ -52,6 +53,8 @@ const (
 	defaultRequeueInterval      = 15 * time.Second
 	generateNameFormat          = "repository-%s"
 	extensionFileName           = "extension.yaml"
+	// caTemplate store repository.spec.caBound in local dir.
+	caTemplate = "{{ .TempDIR }}/repository/{{ .RepositoryName }}/ssl/ca.crt"
 )
 
 var extensionRepoConflict = fmt.Errorf("extension repo mismatch")
@@ -179,6 +182,42 @@ func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	cred := helm.RepoCredential{}
+	if repo.Spec.CABundle == "" {
+		cred.InsecureSkipTLSVerify = ptr.To(true)
+	} else {
+		cred.InsecureSkipTLSVerify = ptr.To(false)
+		var buff = &bytes.Buffer{}
+		tmpl, err := template.New("repositoryCABundle").Parse(caTemplate)
+		if err != nil {
+			return err
+		}
+		if err := tmpl.Execute(buff, map[string]string{
+			"TempDIR":        os.TempDir(),
+			"RepositoryName": repo.Name,
+		}); err != nil {
+			return err
+		}
+		caFile := buff.String()
+		if _, err := os.Stat(filepath.Dir(caFile)); err != nil {
+			if !os.IsNotExist(err) {
+				return nil
+			}
+
+			if err := os.MkdirAll(filepath.Dir(caFile), os.ModePerm); err != nil {
+				return err
+			}
+		}
+
+		data, err := base64.StdEncoding.DecodeString(repo.Spec.CABundle)
+		if err != nil {
+			return err
+		}
+
+		if err := os.WriteFile(caFile, data, os.ModePerm); err != nil {
+			return err
+		}
+		cred.CAFile = caFile
+	}
 	if repo.Spec.BasicAuth != nil {
 		cred.Username = repo.Spec.BasicAuth.Username
 		cred.Password = repo.Spec.BasicAuth.Password
@@ -216,7 +255,7 @@ func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *
 				}
 			}
 
-			extensionVersionSpec, err := r.loadExtensionVersionSpecFrom(ctx, chartURL, repo)
+			extensionVersionSpec, err := r.loadExtensionVersionSpecFrom(ctx, chartURL, repo, cred)
 			if err != nil {
 				return fmt.Errorf("failed to load extension version spec: %s", err)
 			}
@@ -435,37 +474,19 @@ func (r *RepositoryReconciler) deployRepository(ctx context.Context, repo *corev
 	return nil
 }
 
-func (r *RepositoryReconciler) loadExtensionVersionSpecFrom(ctx context.Context, chartURL string, repo *corev1alpha1.Repository) (*corev1alpha1.ExtensionVersionSpec, error) {
+func (r *RepositoryReconciler) loadExtensionVersionSpecFrom(ctx context.Context, chartURL string, repo *corev1alpha1.Repository, cred helm.RepoCredential) (*corev1alpha1.ExtensionVersionSpec, error) {
 	logger := klog.FromContext(ctx)
 	var result *corev1alpha1.ExtensionVersionSpec
 
 	err := retry.OnError(retry.DefaultRetry, func(err error) bool {
 		return true
 	}, func() error {
-		req, err := http.NewRequest(http.MethodGet, chartURL, nil)
+		data, err := helm.LoadData(ctx, chartURL, cred)
 		if err != nil {
 			return err
 		}
 
-		if repo.Spec.BasicAuth != nil {
-			req.SetBasicAuth(repo.Spec.BasicAuth.Username, repo.Spec.BasicAuth.Password)
-		}
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			data, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return err
-			}
-			return fmt.Errorf(string(data))
-		}
-
-		files, err := loader.LoadArchiveFiles(resp.Body)
+		files, err := loader.LoadArchiveFiles(data)
 		if err != nil {
 			return err
 		}

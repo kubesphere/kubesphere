@@ -73,6 +73,8 @@ spec:
                 type: string
               appVersionID:
                 type: string
+              icon:
+                type: string
               values:
                 format: byte
                 type: string

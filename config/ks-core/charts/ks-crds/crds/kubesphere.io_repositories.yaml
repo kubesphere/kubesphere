@@ -55,6 +55,8 @@ spec:
               description:
                 type: string
               image:
+                description: 'DEPRECATED: the field will remove in future versions,
+                  please use url.'
                 type: string
               updateStrategy:
                 properties:
