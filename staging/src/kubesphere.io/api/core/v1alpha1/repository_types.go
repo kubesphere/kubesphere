@@ -18,6 +18,7 @@ type BasicAuth struct {
 }
 
 type RepositorySpec struct {
+	// DEPRECATED: the field will remove in future versions, please use url.
 	Image          string          `json:"image,omitempty"`
 	URL            string          `json:"url,omitempty"`
 	Description    string          `json:"description,omitempty"`

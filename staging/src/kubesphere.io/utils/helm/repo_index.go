@@ -24,7 +24,7 @@ func LoadRepoIndex(ctx context.Context, u string, cred RepoCredential) (*helmrep
 		u = fmt.Sprintf("%s%s", u, IndexYaml)
 	}
 
-	resp, err := loadData(ctx, u, cred)
+	resp, err := LoadData(ctx, u, cred)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func loadIndex(data []byte) (*helmrepo.IndexFile, error) {
 	return i, nil
 }
 
-func loadData(ctx context.Context, u string, cred RepoCredential) (*bytes.Buffer, error) {
+func LoadData(ctx context.Context, u string, cred RepoCredential) (*bytes.Buffer, error) {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func loadData(ctx context.Context, u string, cred RepoCredential) (*bytes.Buffer
 		g, _ := getter.NewHTTPGetter()
 		resp, err = g.Get(indexURL,
 			getter.WithTimeout(5*time.Minute),
-			getter.WithURL(u),
+			//getter.WithURL(u),
 			getter.WithInsecureSkipVerifyTLS(skipTLS),
 			getter.WithTLSClientConfig(cred.CertFile, cred.KeyFile, cred.CAFile),
 			getter.WithBasicAuth(cred.Username, cred.Password),

@@ -17,6 +17,6 @@ for PKG in "${PKGS[@]}"; do
     go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=./staging/src/kubesphere.io/api/"${PKG}"
   else
     echo "Generating manifests for ${PKG}"
-    go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=./staging/src/kubesphere.io/api/"${PKG}" rbac:roleName=controller-perms "${CRD_OPTIONS}" output:crd:artifacts:config=config/ks-core/crds
+    go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=./staging/src/kubesphere.io/api/"${PKG}" rbac:roleName=controller-perms "${CRD_OPTIONS}" output:crd:artifacts:config=config/ks-core/charts/ks-crds/crds
   fi
 done
