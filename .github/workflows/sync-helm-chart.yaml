@@ -1,3 +1,5 @@
+name: SyncHelmChart
+
 on:
   workflow_dispatch:
   push:
