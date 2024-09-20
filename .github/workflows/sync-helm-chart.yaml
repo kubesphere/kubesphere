@@ -1,3 +1,5 @@
+name: SyncHelmChart
+
 on:
   workflow_dispatch:
   push:
@@ -8,6 +10,7 @@ on:
       - 'release-*'
     tags:
       - 'helm-chart-*'
+      - 'v*'
 
 jobs:
   sync-chart:
