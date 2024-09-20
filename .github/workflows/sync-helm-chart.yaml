@@ -10,6 +10,7 @@ on:
       - 'release-*'
     tags:
       - 'helm-chart-*'
+      - 'v*'
 
 jobs:
   sync-chart:
