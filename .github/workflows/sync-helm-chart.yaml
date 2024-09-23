@@ -60,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ secrets.CIBOT_ACCESS_TOKEN }}
         run: |
           cd helm-charts
-          if [[ $(gh pr ls -R kubesphere/helm-charts -H ks-ci-bot:sync/ks-core/${GITHUB_REF#refs/*/} -B master) == "" ]]; then
+          if [[ $(gh pr ls -R kubesphere/helm-charts -A ks-ci-bot -H sync/ks-core/${GITHUB_REF#refs/*/} -B master) == "" ]]; then
             # Create a PR in the kubesphere/helm-charts repository
             gh pr create -R kubesphere/helm-charts \
               -B master \
