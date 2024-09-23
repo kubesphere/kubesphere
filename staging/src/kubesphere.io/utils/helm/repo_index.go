@@ -91,7 +91,6 @@ func LoadData(ctx context.Context, u string, cred RepoCredential) (*bytes.Buffer
 		g, _ := getter.NewHTTPGetter()
 		resp, err = g.Get(indexURL,
 			getter.WithTimeout(5*time.Minute),
-			//getter.WithURL(u),
 			getter.WithInsecureSkipVerifyTLS(skipTLS),
 			getter.WithTLSClientConfig(cred.CertFile, cred.KeyFile, cred.CAFile),
 			getter.WithBasicAuth(cred.Username, cred.Password),
