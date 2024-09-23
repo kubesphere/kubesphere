@@ -1,5 +1,5 @@
 # Build
-FROM golang:1.20.7 AS build_context
+FROM golang:1.21.5 AS build_context
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin/
