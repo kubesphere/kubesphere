@@ -456,26 +456,40 @@ func (r *InstallPlanReconciler) loadChartData(ctx context.Context) ([]byte, stri
 	switch chartURL.Scheme {
 	case registry.OCIScheme:
 		opts := make([]getter.Option, 0)
-		opts = append(opts, getter.WithInsecureSkipVerifyTLS(true))
+		if extensionVersion.Spec.Repository != "" {
+			opts = append(opts, getter.WithInsecureSkipVerifyTLS(repo.Spec.Insecure))
+		}
 		if repo.Spec.BasicAuth != nil {
 			opts = append(opts, getter.WithBasicAuth(repo.Spec.BasicAuth.Username, repo.Spec.BasicAuth.Password))
 		}
 		chartGetter, err = getter.NewOCIGetter(opts...)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create chart getter: %v", err)
+		}
 	case "http", "https":
 		opts := make([]getter.Option, 0)
+		if chartURL.Scheme == "https" && extensionVersion.Spec.Repository != "" {
+			opts = append(opts, getter.WithInsecureSkipVerifyTLS(repo.Spec.Insecure))
+		}
+		if repo.Spec.CABundle != "" {
+			caFile, err := storeCAFile(repo.Spec.CABundle, repo.Name)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to store CABundle to local file: %s", err)
+			}
+			opts = append(opts, getter.WithTLSClientConfig("", "", caFile))
+		}
 		if chartURL.Scheme == "https" {
-			opts = append(opts, getter.WithInsecureSkipVerifyTLS(true))
+			opts = append(opts, getter.WithInsecureSkipVerifyTLS(repo.Spec.Insecure))
 		}
 		if repo.Spec.BasicAuth != nil {
 			opts = append(opts, getter.WithBasicAuth(repo.Spec.BasicAuth.Username, repo.Spec.BasicAuth.Password))
 		}
 		chartGetter, err = getter.NewHTTPGetter(opts...)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create chart getter: %v", err)
+		}
 	default:
-		err = fmt.Errorf("unsupported scheme: %s", chartURL.Scheme)
-	}
-
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to create chart getter: %v", err)
+		return nil, "", fmt.Errorf("unsupported scheme: %s", chartURL.Scheme)
 	}
 
 	buffer, err := chartGetter.Get(chartURL.String())

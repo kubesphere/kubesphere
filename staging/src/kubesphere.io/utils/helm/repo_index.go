@@ -81,17 +81,11 @@ func LoadData(ctx context.Context, u string, cred RepoCredential) (*bytes.Buffer
 
 		resp = bytes.NewBuffer(data)
 	} else {
-		skipTLS := true
-		if cred.InsecureSkipTLSVerify != nil && !*cred.InsecureSkipTLSVerify {
-			skipTLS = false
-		}
-
-		indexURL := parsedURL.String()
 		// TODO add user-agent
 		g, _ := getter.NewHTTPGetter()
-		resp, err = g.Get(indexURL,
+		resp, err = g.Get(parsedURL.String(),
 			getter.WithTimeout(5*time.Minute),
-			getter.WithInsecureSkipVerifyTLS(skipTLS),
+			getter.WithInsecureSkipVerifyTLS(cred.InsecureSkipTLSVerify),
 			getter.WithTLSClientConfig(cred.CertFile, cred.KeyFile, cred.CAFile),
 			getter.WithBasicAuth(cred.Username, cred.Password),
 		)
@@ -134,7 +128,7 @@ type RepoCredential struct {
 	// verify certificates of HTTPS-enabled servers using this CA bundle
 	CAFile string `json:"caFile,omitempty"`
 	// skip tls certificate checks for the repository, default is ture
-	InsecureSkipTLSVerify *bool `json:"insecureSkipTLSVerify,omitempty"`
+	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
 
 	S3Config `json:",inline"`
 }

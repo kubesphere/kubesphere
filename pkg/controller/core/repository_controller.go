@@ -11,13 +11,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"html/template"
 	"mime"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -33,7 +30,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	"kubesphere.io/utils/helm"
@@ -181,46 +177,10 @@ func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *
 	logger := klog.FromContext(ctx)
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	cred := helm.RepoCredential{}
-	if repo.Spec.CABundle == "" {
-		cred.InsecureSkipTLSVerify = ptr.To(true)
-	} else {
-		cred.InsecureSkipTLSVerify = ptr.To(false)
-		var buff = &bytes.Buffer{}
-		tmpl, err := template.New("repositoryCABundle").Parse(caTemplate)
-		if err != nil {
-			return err
-		}
-		if err := tmpl.Execute(buff, map[string]string{
-			"TempDIR":        os.TempDir(),
-			"RepositoryName": repo.Name,
-		}); err != nil {
-			return err
-		}
-		caFile := buff.String()
-		if _, err := os.Stat(filepath.Dir(caFile)); err != nil {
-			if !os.IsNotExist(err) {
-				return nil
-			}
 
-			if err := os.MkdirAll(filepath.Dir(caFile), os.ModePerm); err != nil {
-				return err
-			}
-		}
-
-		data, err := base64.StdEncoding.DecodeString(repo.Spec.CABundle)
-		if err != nil {
-			return err
-		}
-
-		if err := os.WriteFile(caFile, data, os.ModePerm); err != nil {
-			return err
-		}
-		cred.CAFile = caFile
-	}
-	if repo.Spec.BasicAuth != nil {
-		cred.Username = repo.Spec.BasicAuth.Username
-		cred.Password = repo.Spec.BasicAuth.Password
+	cred, err := newHelmCred(repo)
+	if err != nil {
+		return err
 	}
 	index, err := helm.LoadRepoIndex(ctx, repoURL, cred)
 	if err != nil {

@@ -7,15 +7,18 @@ package core
 
 import (
 	"bytes"
+	"encoding/base64"
 	goerrors "errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
-
-	yaml3 "gopkg.in/yaml.v3"
+	"text/template"
 
 	"github.com/Masterminds/semver/v3"
+	yaml3 "gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -23,9 +26,9 @@ import (
 	"k8s.io/klog/v2"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
+	"kubesphere.io/utils/helm"
 
 	"kubesphere.io/kubesphere/pkg/utils/hashutil"
-
 	"kubesphere.io/kubesphere/pkg/version"
 )
 
@@ -263,4 +266,59 @@ func configChanged(sub *corev1alpha1.InstallPlan, cluster string) bool {
 		return true
 	}
 	return newConfigHash != oldConfigHash
+}
+
+// newHelmCred from Repository
+func newHelmCred(repo *corev1alpha1.Repository) (helm.RepoCredential, error) {
+	cred := helm.RepoCredential{
+		InsecureSkipTLSVerify: repo.Spec.Insecure,
+	}
+	if repo.Spec.CABundle != "" {
+		caFile, err := storeCAFile(repo.Spec.CABundle, repo.Name)
+		if err != nil {
+			return cred, err
+		}
+		cred.CAFile = caFile
+	}
+	if repo.Spec.BasicAuth != nil {
+		cred.Username = repo.Spec.BasicAuth.Username
+		cred.Password = repo.Spec.BasicAuth.Password
+	}
+	return cred, nil
+}
+
+// storeCAFile in local file from caTemplate.
+func storeCAFile(caBundle string, repoName string) (string, error) {
+	var buff = &bytes.Buffer{}
+	tmpl, err := template.New("repositoryCABundle").Parse(caTemplate)
+	if err != nil {
+		return "", err
+	}
+	if err := tmpl.Execute(buff, map[string]string{
+		"TempDIR":        os.TempDir(),
+		"RepositoryName": repoName,
+	}); err != nil {
+		return "", err
+	}
+	caFile := buff.String()
+	if _, err := os.Stat(filepath.Dir(caFile)); err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+
+		if err := os.MkdirAll(filepath.Dir(caFile), os.ModePerm); err != nil {
+			return "", err
+		}
+	}
+
+	data, err := base64.StdEncoding.DecodeString(caBundle)
+	if err != nil {
+		return "", err
+	}
+
+	if err := os.WriteFile(caFile, data, os.ModePerm); err != nil {
+		return "", err
+	}
+
+	return caFile, nil
 }
