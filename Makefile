@@ -2,9 +2,6 @@
 CRD_OPTIONS ?= "crd:allowDangerousTypes=true"
 MANIFESTS="cluster/v1alpha1 iam/... quota/v1alpha2 storage/v1alpha1 tenant/... extensions/v1alpha1 core/v1alpha1 gateway/v1alpha2 application/v2"
 
-# App Version
-APP_VERSION = v3.2.0
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -112,19 +109,15 @@ container-cross-push: ; $(info $(M)...Begin to build and push.)  @ ## Build and 
 	hack/docker_build_multiarch.sh
 
 helm-package: ; $(info $(M)...Begin to helm-package.)  @ ## Helm-package.
-	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
-	helm package config/ks-core --app-version=${APP_VERSION} --version=0.1.0 -d ./bin
+	helm package config/ks-core -d ./bin
 
 helm-deploy: ; $(info $(M)...Begin to helm-deploy.)  @ ## Helm-deploy.
-	ls config/crds/ | xargs -i cp -r config/crds/{} config/ks-core/crds/
 	- kubectl create ns kubesphere-controls-system
 	helm upgrade --install ks-core ./config/ks-core -n kubesphere-system --create-namespace
-	kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/roles/ks-core/prepare/files/ks-init/role-templates.yaml
 
 helm-uninstall: ; $(info $(M)...Begin to helm-uninstall.)  @ ## Helm-uninstall.
 	- kubectl delete ns kubesphere-controls-system
 	helm uninstall ks-core -n kubesphere-system
-	kubectl delete -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/roles/ks-core/prepare/files/ks-init/role-templates.yaml
 
 # Run tests
 test: vet test-env ;$(info $(M)...Begin to run tests.)  @ ## Run tests.
