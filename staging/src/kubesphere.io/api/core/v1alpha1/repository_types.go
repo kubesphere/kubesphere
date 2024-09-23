@@ -18,14 +18,17 @@ type BasicAuth struct {
 }
 
 type RepositorySpec struct {
+	// DEPRECATED: the field will remove in future versions, please use url.
 	Image          string          `json:"image,omitempty"`
 	URL            string          `json:"url,omitempty"`
 	Description    string          `json:"description,omitempty"`
 	BasicAuth      *BasicAuth      `json:"basicAuth,omitempty"`
 	UpdateStrategy *UpdateStrategy `json:"updateStrategy,omitempty"`
-	// +optional The caBundle (base64 string) is used in helmExecutor to verify the helm server.
-	// if the caBundle is empty, use --insecure-skip-tls-verify.
+	// The caBundle (base64 string) is used in helmExecutor to verify the helm server.
+	// +optional
 	CABundle string `json:"caBundle,omitempty"`
+	// --insecure-skip-tls-verify. default false
+	Insecure bool `json:"insecure,omitempty"`
 }
 
 type RepositoryStatus struct {

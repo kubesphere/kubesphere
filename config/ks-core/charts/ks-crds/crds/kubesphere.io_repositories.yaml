@@ -50,12 +50,18 @@ spec:
                     type: string
                 type: object
               caBundle:
-                description: if the caBundle is empty, use --insecure-skip-tls-verify.
+                description: The caBundle (base64 string) is used in helmExecutor
+                  to verify the helm server.
                 type: string
               description:
                 type: string
               image:
+                description: 'DEPRECATED: the field will remove in future versions,
+                  please use url.'
                 type: string
+              insecure:
+                description: --insecure-skip-tls-verify. default false
+                type: boolean
               updateStrategy:
                 properties:
                   registryPoll:
