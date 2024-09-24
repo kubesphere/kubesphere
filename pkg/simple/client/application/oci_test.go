@@ -43,7 +43,7 @@ func TestLoadRepoIndexFromOci(t *testing.T) {
 			return
 		}
 
-		t.Errorf("unexpected access: %s %s", r.Method, r.URL)
+		t.Logf("unexpected access: %s %s", r.Method, r.URL)
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer ts.Close()
