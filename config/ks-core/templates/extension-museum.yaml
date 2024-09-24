@@ -1,4 +1,11 @@
 {{- if .Values.ksExtensionRepository.enabled }}
+
+{{- $ca := genCA "self-signed-ca" 3650 }}
+{{- $cn := printf "%s-extensions-museum" .Release.Name }}
+{{- $altName1 := printf "extensions-museum.%s" .Release.Namespace }}
+{{- $altName2 := printf "extensions-museum.%s.svc" .Release.Namespace }}
+{{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,6 +22,9 @@ spec:
     metadata:
       labels:
         app: extensions-museum
+      annotations:
+        # force restart ks-apiserver after the upgrade is complete if kubesphere-config changes
+        checksum/cert: {{ sha256sum $cert.Cert }}
     spec:
 {{- include "extensions_museum.imagePullSecrets" . | nindent 6 }}
       containers:
@@ -39,14 +49,8 @@ spec:
         - name: certs
           secret:
             secretName: extensions-museum-certs
+
 ---
-
-{{- $ca := genCA "self-signed-ca" 3650 }}
-{{- $cn := printf "%s-extensions-museum" .Release.Name }}
-{{- $altName1 := printf "extensions-museum.%s" .Release.Namespace }}
-{{- $altName2 := printf "extensions-museum.%s.svc" .Release.Namespace }}
-{{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
-
 apiVersion: v1
 kind: Secret
 metadata:
