@@ -16,7 +16,7 @@ RUN curl -LO https://github.com/kubesphere/telemetry/releases/download/v1.0.0/te
 COPY config/ks-core ${OUTDIR}/var/helm-charts/ks-core
 
 # Build
-FROM golang:1.20.7 AS build_context
+FROM golang:1.21.5 AS build_context
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin/
