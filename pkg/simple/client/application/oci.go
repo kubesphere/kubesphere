@@ -14,6 +14,7 @@ import (
 	helmrepo "helm.sh/helm/v3/pkg/repo"
 	"k8s.io/klog/v2"
 	appv2 "kubesphere.io/api/application/v2"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/oci"
 )
 
