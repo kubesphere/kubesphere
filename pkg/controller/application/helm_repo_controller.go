@@ -247,7 +247,7 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 			FromRepo:     true,
 		}
 		url := ver.URLs[0]
-		methodList := []string{"https://", "http://", "s3://"}
+		methodList := []string{"https://", "http://", "s3://", "oci://"}
 		needContact := true
 		for _, method := range methodList {
 			if strings.HasPrefix(url, method) {

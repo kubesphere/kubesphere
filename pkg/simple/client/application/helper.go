@@ -29,6 +29,7 @@ import (
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/kube"
+	"helm.sh/helm/v3/pkg/registry"
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
@@ -340,6 +341,10 @@ func HelmPull(u string, cred appv2.RepoCredential) (*bytes.Buffer, error) {
 }
 
 func LoadRepoIndex(u string, cred appv2.RepoCredential) (idx helmrepo.IndexFile, err error) {
+	if registry.IsOCI(u) {
+		return LoadRepoIndexFromOci(u, cred)
+	}
+
 	if !strings.HasSuffix(u, "/") {
 		u = fmt.Sprintf("%s/index.yaml", u)
 	} else {

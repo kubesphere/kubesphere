@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"helm.sh/helm/v3/pkg/registry"
 	"k8s.io/klog/v2"
 
 	"io"
@@ -144,6 +145,9 @@ func DownLoadChart(cli runtimeclient.Client, pullUrl, repoName string) (data []b
 	if err != nil {
 		klog.Errorf("failed to get app repo, err: %v", err)
 		return data, err
+	}
+	if registry.IsOCI(pullUrl) {
+		return HelmPullFromOci(pullUrl, repo.Spec.Credential)
 	}
 	buf, err := HelmPull(pullUrl, repo.Spec.Credential)
 	if err != nil {
