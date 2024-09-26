@@ -157,8 +157,7 @@ func (h *Helper) AggregationRole(ctx context.Context, ruleOwner RuleOwner, recor
 	if !cover {
 		needUpdate = true
 		newRule := append(ruleOwner.GetRules(), uncovered...)
-		squashedRules := SquashRules(len(newRule), newRule)
-		ruleOwner.SetRules(squashedRules)
+		ruleOwner.SetRules(newRule)
 	}
 
 	if !templateNamesEqual {

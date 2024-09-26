@@ -96,9 +96,9 @@ func (r *Reconciler) syncToKubernetes(ctx context.Context, role *iamv1beta1.Role
 	})
 
 	if err != nil {
-		r.logger.Error(err, "sync role failed", "role", role.Name)
+		r.logger.Error(err, "sync role failed", "namespace", role.Namespace, "role", role.Name)
 	}
 
-	r.logger.V(4).Info("sync role to K8s", "role", role.Name, "op", op)
+	r.logger.V(4).Info("sync role to K8s", "namespace", role.Namespace, "role", role.Name, "op", op)
 	return nil
 }
