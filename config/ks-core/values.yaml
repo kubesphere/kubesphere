@@ -2,7 +2,7 @@
 ## @param global.tag Global Docker image tag
 global:
   imageRegistry: docker.io
-  tag: v4.1.1
+  tag: v4.1.2
   imagePullSecrets: []
 
 ## @param nameOverride String to partially override common.names.fullname
