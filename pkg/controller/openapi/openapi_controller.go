@@ -40,19 +40,19 @@ func (c *Controller) WatchOpenAPIChanges(ctx context.Context, cache runtimecache
 			AddFunc: func(obj interface{}) {
 				apiService := obj.(*extensionsv1alpha1.APIService)
 				if err := openAPIV2Service.AddUpdateApiService(apiService); err != nil {
-					klog.Error(err)
+					klog.V(4).Infof("add openapi v2 service failed: %v", err)
 				}
 				if err := openAPIV3Service.AddUpdateApiService(apiService); err != nil {
-					klog.Error(err)
+					klog.V(4).Infof("add openapi v3 service failed: %v", err)
 				}
 			},
 			UpdateFunc: func(old, new interface{}) {
 				apiService := new.(*extensionsv1alpha1.APIService)
 				if err := openAPIV2Service.AddUpdateApiService(apiService); err != nil {
-					klog.Error(err)
+					klog.V(4).Infof("update openapi v2 service failed: %v", err)
 				}
 				if err := openAPIV3Service.AddUpdateApiService(apiService); err != nil {
-					klog.Error(err)
+					klog.V(4).Infof("update openapi v3 service failed: %v", err)
 				}
 			},
 			DeleteFunc: func(obj interface{}) {
