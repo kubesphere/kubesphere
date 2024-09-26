@@ -140,7 +140,7 @@ func (r *Reconciler) reconcileWorkspaceOwnerReference(ctx context.Context, names
 		return nil
 	}
 
-	if !metav1.IsControlledBy(namespace, workspace) {
+	if !metav1.IsControlledBy(namespace, workspace) && namespace.Labels[constants.KubeSphereManagedLabel] == "true" {
 		namespace = namespace.DeepCopy()
 		if err := controllerutil.SetControllerReference(workspace, namespace, scheme.Scheme); err != nil {
 			return err

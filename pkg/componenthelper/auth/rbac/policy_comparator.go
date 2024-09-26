@@ -149,7 +149,8 @@ func ruleCovers(ownerRule, subRule rbacv1.PolicyRule) bool {
 	verbMatches := has(ownerRule.Verbs, rbacv1.VerbAll) || hasAll(ownerRule.Verbs, subRule.Verbs)
 	groupMatches := has(ownerRule.APIGroups, rbacv1.APIGroupAll) || hasAll(ownerRule.APIGroups, subRule.APIGroups)
 	resourceMatches := resourceCoversAll(ownerRule.Resources, subRule.Resources)
-	nonResourceURLMatches := nonResourceURLsCoversAll(ownerRule.NonResourceURLs, subRule.NonResourceURLs)
+	nonResourceURLMatches := (len(ownerRule.NonResourceURLs) == 0 && len(subRule.NonResourceURLs) == 0) || (len(ownerRule.Resources) == 0 &&
+		len(subRule.Resources) == 0 && nonResourceURLsCoversAll(ownerRule.NonResourceURLs, subRule.NonResourceURLs))
 
 	resourceNameMatches := false
 

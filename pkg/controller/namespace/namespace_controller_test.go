@@ -42,8 +42,11 @@ var _ = Describe("Namespace", func() {
 		It("Should create successfully", func() {
 			namespace := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "test-namespace",
-					Labels: map[string]string{tenantv1beta1.WorkspaceLabel: workspace.Name},
+					Name: "test-namespace",
+					Labels: map[string]string{
+						tenantv1beta1.WorkspaceLabel:     workspace.Name,
+						constants.KubeSphereManagedLabel: "true",
+					},
 				},
 			}
 
