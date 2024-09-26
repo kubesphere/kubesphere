@@ -313,7 +313,7 @@ func (r *AppReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					return ctrl.Result{}, err
 				}
 				if upgradejob.Status.Succeeded > 0 {
-					return ctrl.Result{}, r.updateStatus(ctx, apprls, appv2.StatusActive)
+					return ctrl.Result{}, r.updateStatus(ctx, apprls, appv2.StatusActive, "")
 				}
 				if upgradejob.Status.Failed > 0 {
 					klog.Infof("upgrade apprls %s job %s , failed times %d/%d", apprls.Name, upgradejob.Name, upgradejob.Status.Failed, *upgradejob.Spec.BackoffLimit+1)
