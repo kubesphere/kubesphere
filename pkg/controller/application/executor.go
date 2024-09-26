@@ -68,8 +68,7 @@ func (r *AppReleaseReconciler) createOrUpgradeAppRelease(ctx context.Context, rl
 			klog.Infof("release %s not found, begin to create", rls.Name)
 		}
 		if err == nil {
-			klog.Infof("release %s found, begin to upgrade status", rls.Name)
-			return r.updateStatus(ctx, rls, appv2.StatusCreated)
+			klog.Infof("release %s found, begin to upgrade", rls.Name)
 		}
 	}
 
