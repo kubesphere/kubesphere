@@ -231,8 +231,8 @@ func (r *AppReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			helm.SetKubeconfig(dstKubeConfig),
 		}
 		release, err := executor.Get(ctx, apprls.Name, options...)
-		if err != nil && err.Error() == "release: not found" {
-			klog.Infof("helm release %s/%s not created yet,check job %s", apprls.GetRlsNamespace(), apprls.Name, apprls.Status.InstallJobName)
+		if (err != nil && err.Error() == "release: not found") || apprls.Status.State == appv2.StatusUpgraded {
+			klog.Infof("helm release %s/%s ready to create or upgrade yet,check job %s", apprls.GetRlsNamespace(), apprls.Name, apprls.Status.InstallJobName)
 
 			job := &batchv1.Job{}
 			if err = runClient.Get(ctx, types.NamespacedName{Namespace: apprls.GetRlsNamespace(), Name: apprls.Status.InstallJobName}, job); err != nil {
@@ -243,14 +243,22 @@ func (r *AppReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				}
 				return ctrl.Result{}, err
 			}
+			// ensure that the upgraded job has a successful status, otherwise mark the apprelease status as Failed so that the front-end can view the upgrade failure logs.
+			if apprls.Status.State == appv2.StatusUpgraded && job.Status.Succeeded > 0 {
+				return ctrl.Result{}, r.updateStatus(ctx, apprls, appv2.StatusActive, "Upgrade succeeful")
+			}
 			if job.Status.Failed > 0 {
 				klog.Infof("install apprls %s job %s , failed times %d/%d", apprls.Name, job.Name, job.Status.Failed, *job.Spec.BackoffLimit+1)
 			}
 			if job.Spec.BackoffLimit != nil && job.Status.Failed > *job.Spec.BackoffLimit {
-				msg := fmt.Sprintf("deploy failed, job %s has failed %d times ", apprls.Status.InstallJobName, job.Status.Failed)
-				return ctrl.Result{}, r.updateStatus(ctx, apprls, appv2.StatusDeployFailed, msg)
+				// When in the upgrade state, if job execution fails while the HelmRelease status remains deployed, directly mark the AppRelease as StatusDeployFailed.
+				if apprls.Status.State != appv2.StatusUpgraded || (release != nil && release.Info.Status == helmrelease.StatusDeployed) {
+					msg := fmt.Sprintf("deploy failed, job %s has failed %d times ", apprls.Status.InstallJobName, job.Status.Failed)
+					return ctrl.Result{}, r.updateStatus(ctx, apprls, appv2.StatusDeployFailed, msg)
+				}
+			} else {
+				return ctrl.Result{RequeueAfter: verificationAgain * time.Second}, nil
 			}
-			return ctrl.Result{RequeueAfter: verificationAgain * time.Second}, nil
 		}
 
 		if err != nil {
@@ -301,29 +309,6 @@ func (r *AppReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			err = r.updateStatus(ctx, apprls, appv2.StatusFailed, release.Info.Description)
 			return ctrl.Result{}, err
 		case helmrelease.StatusDeployed:
-			if apprls.Status.State == appv2.StatusUpgraded {
-				// ensure that the upgraded job has a successful status, otherwise mark the apprelease status as Failed so that the front-end can view the upgrade failure logs.
-				upgradejob := &batchv1.Job{}
-				if err = runClient.Get(ctx, types.NamespacedName{Namespace: apprls.GetRlsNamespace(), Name: apprls.Status.InstallJobName}, upgradejob); err != nil {
-					if apierrors.IsNotFound(err) {
-						klog.Errorf("job %s not found", apprls.Status.InstallJobName)
-						msg := "upgrade failed, job not found"
-						return ctrl.Result{}, r.updateStatus(ctx, apprls, appv2.StatusDeployFailed, msg)
-					}
-					return ctrl.Result{}, err
-				}
-				if upgradejob.Status.Succeeded > 0 {
-					return ctrl.Result{}, r.updateStatus(ctx, apprls, appv2.StatusActive, "Upgrade succeeful")
-				}
-				if upgradejob.Status.Failed > 0 {
-					klog.Infof("upgrade apprls %s job %s , failed times %d/%d", apprls.Name, upgradejob.Name, upgradejob.Status.Failed, *upgradejob.Spec.BackoffLimit+1)
-				}
-				if upgradejob.Spec.BackoffLimit != nil && upgradejob.Status.Failed > *upgradejob.Spec.BackoffLimit {
-					msg := fmt.Sprintf("upgrade failed, job %s has failed %d times ", apprls.Status.InstallJobName, upgradejob.Status.Failed)
-					return ctrl.Result{}, r.updateStatus(ctx, apprls, appv2.StatusDeployFailed, msg)
-				}
-				return ctrl.Result{RequeueAfter: verificationAgain * time.Second}, nil
-			}
 			err = r.updateStatus(ctx, apprls, appv2.StatusActive)
 			return ctrl.Result{}, err
 		default:
