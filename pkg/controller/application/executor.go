@@ -86,7 +86,7 @@ func (r *AppReleaseReconciler) createOrUpgradeAppRelease(ctx context.Context, rl
 		return r.updateStatus(ctx, rls, appv2.StatusFailed, err.Error())
 	}
 
-	return r.updateStatus(ctx, rls, state)
+	return r.updateStatus(ctx, rls, state, "Deploying")
 }
 
 func (r *AppReleaseReconciler) getExecutor(apprls *appv2.ApplicationRelease, kubeConfig []byte, runClient client.Client) (executor helm.Executor, err error) {
