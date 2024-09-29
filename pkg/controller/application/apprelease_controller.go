@@ -294,7 +294,7 @@ func (r *AppReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			err = r.updateStatus(ctx, apprls, appv2.StatusFailed, release.Info.Description)
 			return ctrl.Result{}, err
 		case helmrelease.StatusDeployed:
-			err = r.updateStatus(ctx, apprls, appv2.StatusActive)
+			err = r.updateStatus(ctx, apprls, appv2.StatusActive, release.Info.Description)
 			return ctrl.Result{}, err
 		default:
 			klog.V(5).Infof("helm release %s/%s status %s, check again after %d second", apprls.GetRlsNamespace(), apprls.Name, release.Info.Status, verificationAgain)
@@ -342,7 +342,7 @@ func (r *AppReleaseReconciler) checkJob(ctx context.Context, apprls *appv2.Appli
 }
 
 func (r *AppReleaseReconciler) removeAll(ctx context.Context, apprls *appv2.ApplicationRelease, executor helm.Executor, kubeconfig []byte) (ct ctrl.Result, err error) {
-	err = r.updateStatus(ctx, apprls, appv2.StatusDeleting)
+	err = r.updateStatus(ctx, apprls, appv2.StatusDeleting, "Uninstalling")
 	if err != nil {
 		klog.Errorf("failed to update apprelease %s status : %v", apprls.Name, err)
 		return ctrl.Result{}, err
