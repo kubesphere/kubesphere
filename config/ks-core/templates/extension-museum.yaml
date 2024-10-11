@@ -86,7 +86,7 @@ spec:
   caBundle: {{ b64enc $ca.Cert }}
 
 ---
-apiVersion: {{ if semverCompare ">=1.20.0" .Capabilities.KubeVersion.Version }}batch/v1{{ else }}batch/v1beta1{{end}}
+apiVersion: {{ if semverCompare ">=1.21.0-0" .Capabilities.KubeVersion.Version }}batch/v1{{ else }}batch/v1beta1{{end}}
 kind: CronJob
 metadata:
   name: restart-extensions-museum
