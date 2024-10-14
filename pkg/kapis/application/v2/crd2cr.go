@@ -37,7 +37,7 @@ func (h *appHandler) exampleCr(req *restful.Request, resp *restful.Response) {
 func convertCRDToCR(crd v1.CustomResourceDefinition) (dstCr unstructured.Unstructured, err error) {
 
 	cr := unstructured.Unstructured{}
-	cr.SetName(fmt.Sprintf("%s-Instance", crd.Spec.Names.Singular))
+	cr.SetName(fmt.Sprintf("%s-set-your-own-name", crd.Spec.Names.Singular))
 	cr.SetGroupVersionKind(schema.GroupVersionKind{
 		Group: crd.Spec.Group,
 		Kind:  crd.Spec.Names.Kind,
