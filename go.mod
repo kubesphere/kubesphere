@@ -56,7 +56,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f // indirect
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/json-iterator/go v1.1.11
+	github.com/json-iterator/go v1.1.12
 	github.com/jszwec/csvutil v1.5.0
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
@@ -82,8 +82,6 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
 	github.com/prometheus/prometheus v1.8.2-0.20200907175821-8219b442c864
-	github.com/shirou/gopsutil v0.0.0-20180427012116-c95755e4bcd7 // indirect
-	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.2.1
@@ -478,7 +476,7 @@ replace (
 	github.com/jonboulle/clockwork => github.com/jonboulle/clockwork v0.1.0
 	github.com/jpillora/backoff => github.com/jpillora/backoff v1.0.0
 	github.com/jsimonetti/rtnetlink => github.com/jsimonetti/rtnetlink v0.0.0-20200117123717-f846d4f6c1f4
-	github.com/json-iterator/go => github.com/json-iterator/go v1.1.10
+	github.com/json-iterator/go => github.com/json-iterator/go v1.1.12
 	github.com/jstemmer/go-junit-report => github.com/jstemmer/go-junit-report v0.9.1
 	github.com/jsternberg/zap-logfmt => github.com/jsternberg/zap-logfmt v1.0.0
 	github.com/jszwec/csvutil => github.com/jszwec/csvutil v1.5.0
@@ -558,7 +556,7 @@ replace (
 	github.com/moby/spdystream => github.com/moby/spdystream v0.2.0
 	github.com/moby/term => github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
 	github.com/modern-go/concurrent => github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
-	github.com/modern-go/reflect2 => github.com/modern-go/reflect2 v1.0.1
+	github.com/modern-go/reflect2 => github.com/modern-go/reflect2 v1.0.2
 	github.com/monochromegane/go-gitignore => github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
 	github.com/montanaflynn/stats => github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
 	github.com/morikuni/aec => github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c
