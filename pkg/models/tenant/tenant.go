@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -35,12 +36,17 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	clusterutils "kubesphere.io/kubesphere/pkg/controller/cluster/utils"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	resources "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	jsonpatchutil "kubesphere.io/kubesphere/pkg/utils/josnpatchutil"
+)
+
+const (
+	queryRoleBindingExists = "roleBindingExists"
 )
 
 type Interface interface {
@@ -543,6 +549,27 @@ func (t *tenantOperator) ListClusters(user user.Info, queryParam *query.Query) (
 		items = append(items, cluster)
 	}
 
+	clusterByRoleBinding := false
+	if v, ok := queryParam.Filters[queryRoleBindingExists]; ok && v != "" {
+		clusterByRoleBinding, err = strconv.ParseBool(string(v))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if clusterByRoleBinding {
+		byRoleBinding, err := t.getClusterByRoleBinding(context.Background(), user)
+		if err != nil {
+			return nil, err
+		}
+		for _, cluster := range byRoleBinding {
+			// duplicate cluster will not append to results
+			if !grantedClusters.Has(cluster.Name) {
+				items = append(items, cluster)
+			}
+		}
+	}
+
 	// apply additional labelSelector
 	if queryParam.LabelSelector != "" {
 		queryParam.Filters[query.FieldLabel] = query.Value(queryParam.LabelSelector)
@@ -555,6 +582,35 @@ func (t *tenantOperator) ListClusters(user user.Info, queryParam *query.Query) (
 		return resources.DefaultObjectMetaFilter(workspace.(*clusterv1alpha1.Cluster).ObjectMeta, filter)
 	})
 
+	return result, nil
+}
+
+func (t *tenantOperator) getClusterByRoleBinding(ctx context.Context, user user.Info) ([]*clusterv1alpha1.Cluster, error) {
+	result := []*clusterv1alpha1.Cluster{}
+	clusters, err := t.clusterClient.ListClusters(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cluster := range clusters {
+		if !clusterutils.IsClusterReady(&cluster) {
+			continue
+		}
+		rtClient, err := t.clusterClient.GetRuntimeClient(cluster.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		rbList := &iamv1beta1.RoleBindingList{}
+		err = rtClient.List(ctx, rbList, runtimeclient.MatchingLabels{iamv1beta1.UserReferenceLabel: user.GetName()})
+		if err != nil {
+			return nil, err
+		}
+		if len(rbList.Items) != 0 {
+			result = append(result, &cluster)
+		}
+
+	}
 	return result, nil
 }
 
