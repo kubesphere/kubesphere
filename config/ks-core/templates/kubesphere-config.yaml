@@ -78,6 +78,11 @@ data:
     kubesphere:
       tls: {{ .Values.internalTLS }}
     {{- if and (eq (include "multicluster.role" .) "host") .Values.ha.enabled -}}
+    {{- if and .Values.telemetry.enabled (eq (include "multicluster.role" .) "host") }}
+    telemetry:
+      ksCloudURL: "https://kubesphere.cloud"
+    {{- end }}
+    {{- if and (eq (include "multicluster.role" .) "host" .Values.ha.enabled) -}}
     {{- if .Values.ha.cache }}
     cache: {{- toYaml .Values.ha.cache | nindent 6}}
     {{- else }}
