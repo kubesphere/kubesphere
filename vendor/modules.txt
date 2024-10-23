@@ -480,7 +480,7 @@ github.com/jmespath/go-jmespath
 # github.com/jmoiron/sqlx v1.3.1 => github.com/jmoiron/sqlx v1.2.0
 github.com/jmoiron/sqlx
 github.com/jmoiron/sqlx/reflectx
-# github.com/json-iterator/go v1.1.11 => github.com/json-iterator/go v1.1.10
+# github.com/json-iterator/go v1.1.12 => github.com/json-iterator/go v1.1.12
 ## explicit
 github.com/json-iterator/go
 # github.com/jszwec/csvutil v1.5.0 => github.com/jszwec/csvutil v1.5.0
@@ -559,7 +559,7 @@ github.com/moby/term
 github.com/moby/term/windows
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd => github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
-# github.com/modern-go/reflect2 v1.0.1 => github.com/modern-go/reflect2 v1.0.1
+# github.com/modern-go/reflect2 v1.0.2 => github.com/modern-go/reflect2 v1.0.2
 github.com/modern-go/reflect2
 # github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 => github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
 github.com/monochromegane/go-gitignore
@@ -2519,7 +2519,7 @@ sigs.k8s.io/yaml
 # github.com/jonboulle/clockwork => github.com/jonboulle/clockwork v0.1.0
 # github.com/jpillora/backoff => github.com/jpillora/backoff v1.0.0
 # github.com/jsimonetti/rtnetlink => github.com/jsimonetti/rtnetlink v0.0.0-20200117123717-f846d4f6c1f4
-# github.com/json-iterator/go => github.com/json-iterator/go v1.1.10
+# github.com/json-iterator/go => github.com/json-iterator/go v1.1.12
 # github.com/jstemmer/go-junit-report => github.com/jstemmer/go-junit-report v0.9.1
 # github.com/jsternberg/zap-logfmt => github.com/jsternberg/zap-logfmt v1.0.0
 # github.com/jszwec/csvutil => github.com/jszwec/csvutil v1.5.0
@@ -2598,7 +2598,7 @@ sigs.k8s.io/yaml
 # github.com/moby/spdystream => github.com/moby/spdystream v0.2.0
 # github.com/moby/term => github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
 # github.com/modern-go/concurrent => github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
-# github.com/modern-go/reflect2 => github.com/modern-go/reflect2 v1.0.1
+# github.com/modern-go/reflect2 => github.com/modern-go/reflect2 v1.0.2
 # github.com/monochromegane/go-gitignore => github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
 # github.com/montanaflynn/stats => github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
 # github.com/morikuni/aec => github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c
