@@ -1,3 +1,4 @@
+{{- if eq (include "role" .) "host" }}
 {{- if and .Values.ha.enabled (not .Values.ha.cache) }}
 {{- if lookup "v1" "Secret" "kubesphere-system" "redis-secret" }}
 {{- lookup "v1" "Secret" "kubesphere-system" "redis-secret" | toYaml }}
@@ -145,4 +146,5 @@ spec:
       storage: {{ .Values.redis.persistentVolume.size | default "2Gi" }}
 {{- end }}
 
+{{- end }}
 {{- end }}
