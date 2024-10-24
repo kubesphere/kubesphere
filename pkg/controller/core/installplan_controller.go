@@ -1556,6 +1556,7 @@ func (r *InstallPlanReconciler) newExecutor(plan *corev1alpha1.InstallPlan) (hel
 		helm.SetExecutorNamespace(plan.Status.TargetNamespace),
 		helm.SetExecutorBackoffLimit(0),
 		helm.SetTTLSecondsAfterFinished(r.HelmExecutorOptions.JobTTLAfterFinished),
+		helm.SetExecutorAffinity(r.HelmExecutorOptions.Affinity),
 	}
 	if r.HelmExecutorOptions.Resources != nil {
 		executorOptions = append(executorOptions, helm.SetExecutorResources(corev1.ResourceRequirements{

@@ -278,6 +278,17 @@ helmExecutor:
     requests:
       cpu: 100m
       memory: 100Mi
+  affinity:
+    podAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: ks-controller-manager
+            topologyKey: "kubernetes.io/hostname"
+            namespaces:
+              - kubesphere-system
 
 composedApp:
   # Selector to filter k8s applications to reconcile

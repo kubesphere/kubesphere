@@ -46,6 +46,9 @@ data:
       {{- if .Values.helmExecutor.resources }}
       resources: {{- toYaml .Values.helmExecutor.resources | nindent 8 }}
       {{- end }}
+      {{- if .Values.helmExecutor.affinity }}
+      affinity: {{- toYaml .Values.helmExecutor.affinity | nindent 8 }}
+      {{- end }}
     extension:
       imageRegistry: {{ default .Values.extension.imageRegistry "" | quote }}
       {{- if .Values.extension.nodeSelector }}
