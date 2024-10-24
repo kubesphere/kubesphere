@@ -42,10 +42,18 @@ func (h *templateHandler) list(req *restful.Request, resp *restful.Response) {
 	opts := []client.ListOption{
 		client.MatchingLabelsSelector{Selector: combinedSelector},
 	}
-
+	namespace := req.PathParameter("namespace")
+	if namespace != "" {
+		opts = append(opts, client.InNamespace(namespace))
+	}
 	err := h.client.List(req.Request.Context(), &secretList, opts...)
 	if err != nil {
 		api.HandleError(resp, req, err)
+		return
+	}
+	workspace := req.PathParameter("workspace")
+	if workspace == "" {
+		resp.WriteEntity(k8suitl.ConvertToListResult(&secretList, req))
 		return
 	}
 
@@ -56,7 +64,7 @@ func (h *templateHandler) list(req *restful.Request, resp *restful.Response) {
 		api.HandleForbidden(resp, nil, err)
 		return
 	}
-	workspace := req.PathParameter("workspace")
+
 	filteredList, err := h.FilterByPermissions(workspace, user, secretList)
 	if err != nil {
 		api.HandleError(resp, req, err)
@@ -67,9 +75,7 @@ func (h *templateHandler) list(req *restful.Request, resp *restful.Response) {
 }
 
 func (h *templateHandler) FilterByPermissions(workspace string, user user.Info, secretList corev1.SecretList) (*corev1.SecretList, error) {
-	if workspace == "" {
-		return &secretList, nil
-	}
+
 	listNS := authorizer.AttributesRecord{
 		User:            user,
 		Verb:            "list",
