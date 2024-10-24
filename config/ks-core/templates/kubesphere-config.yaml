@@ -82,7 +82,7 @@ data:
     telemetry:
       ksCloudURL: "https://kubesphere.cloud"
     {{- end }}
-    {{- if and (eq (include "multicluster.role" .) "host" .Values.ha.enabled) -}}
+    {{- if and (eq (include "multicluster.role" .) "host") .Values.ha.enabled -}}
     {{- if .Values.ha.cache }}
     cache: {{- toYaml .Values.ha.cache | nindent 6}}
     {{- else }}
