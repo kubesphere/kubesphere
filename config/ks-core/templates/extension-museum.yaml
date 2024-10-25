@@ -1,4 +1,4 @@
-{{- if .Values.ksExtensionRepository.enabled }}
+{{- if and (eq (include "role" .) "host") .Values.ksExtensionRepository.enabled  }}
 
 {{- $ca := genCA "self-signed-ca" 3650 }}
 {{- $cn := printf "%s-extensions-museum" .Release.Name }}
