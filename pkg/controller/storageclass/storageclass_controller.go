@@ -121,14 +121,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	// Cloning and volumeSnapshot support only available for CSI drivers.
+	// However, the CSIDriver object is optional and may not be present for some CSI storage systems.
 	isCSIStorage := r.hasCSIDriver(ctx, storageClass)
 	// Annotate storageClass
 	storageClassUpdated := storageClass.DeepCopy()
 	if isCSIStorage {
-		r.updateSnapshotAnnotation(storageClassUpdated, isCSIStorage)
-		r.updateCloneVolumeAnnotation(storageClassUpdated, isCSIStorage)
-	} else {
-		r.removeAnnotations(storageClassUpdated)
+		r.updateSnapshotAnnotation(storageClassUpdated, true)
+		r.updateCloneVolumeAnnotation(storageClassUpdated, true)
 	}
 
 	pvcCount, err := r.countPersistentVolumeClaims(ctx, storageClass)
@@ -172,11 +171,6 @@ func (r *Reconciler) updateCloneVolumeAnnotation(storageClass *storagev1.Storage
 	if _, err := strconv.ParseBool(storageClass.Annotations[annotationAllowClone]); err != nil {
 		storageClass.Annotations[annotationAllowClone] = strconv.FormatBool(cloneAllow)
 	}
-}
-
-func (r *Reconciler) removeAnnotations(storageClass *storagev1.StorageClass) {
-	delete(storageClass.Annotations, annotationAllowClone)
-	delete(storageClass.Annotations, annotationAllowSnapshot)
 }
 
 func (r *Reconciler) countPersistentVolumeClaims(ctx context.Context, storageClass *storagev1.StorageClass) (int, error) {
