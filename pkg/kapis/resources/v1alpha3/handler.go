@@ -133,8 +133,7 @@ func (h *handler) VerifyImageRepositorySecret(request *restful.Request, response
 
 	ok, err := h.registryHelper.Auth(secret)
 	if !ok {
-		klog.Error(err)
-		api.HandleUnauthorized(response, request, err)
+		api.HandleBadRequest(response, request, fmt.Errorf("registry auth failed with err: %s", err))
 	} else {
 		response.WriteHeaderAndJson(http.StatusOK, secret, restful.MIME_JSON)
 	}
