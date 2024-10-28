@@ -1721,7 +1721,6 @@ metadata:
     iam.kubesphere.io/dependencies: '["namespace-view-serviceaccount"]'
     iam.kubesphere.io/role-template-rules: '{"serviceaccounts": "manage"}'
   labels:
-    iam.kubesphere.io/aggregate-to-operator: ""
     iam.kubesphere.io/category: namespace-configuration-management
     iam.kubesphere.io/scope: "namespace"
     kubesphere.io/managed: "true"
