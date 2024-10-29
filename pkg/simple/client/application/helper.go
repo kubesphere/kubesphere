@@ -571,14 +571,16 @@ func GenerateShortNameMD5Hash(input string) string {
 
 func FormatVersion(input string) string {
 	re := regexp.MustCompile(`[^a-z0-9-.]`)
-	errs := validation.IsDNS1123Subdomain(input)
-	if len(errs) != 0 {
-		klog.Warningf("Version %s does not meet the Kubernetes naming standard, replacing invalid characters with '-'", input)
-		input = re.ReplaceAllStringFunc(input, func(s string) string {
-			return "-"
-		})
+	if len(validation.IsDNS1123Subdomain(input)) == 0 {
+		return input
 	}
-	return input
+	invalidCharsStr := strings.Join(re.FindAllString(input, -1), "")
+	hash := md5.Sum([]byte(invalidCharsStr))
+	md5Str := hex.EncodeToString(hash[:])[:8]
+	validPart := re.ReplaceAllString(input, "")
+	formattedVersion := fmt.Sprintf("%s%s", validPart, md5Str)
+	klog.Warningf("Version %s does not meet the Kubernetes naming standard, replacing invalid characters with MD5 hash: %s", input, formattedVersion)
+	return formattedVersion
 }
 
 func GetHelmKubeConfig(ctx context.Context, cluster *clusterv1alpha1.Cluster, runClient client.Client) (config []byte, err error) {
