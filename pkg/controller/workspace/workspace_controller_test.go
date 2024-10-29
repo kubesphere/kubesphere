@@ -9,6 +9,8 @@ import (
 	"context"
 	"time"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,9 +41,8 @@ var _ = Describe("Workspace", func() {
 
 			By("Expecting to create workspace successfully")
 			Eventually(func() bool {
-				f := &tenantv1beta1.Workspace{}
-				_ = k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, f)
-				return len(f.Finalizers) > 0
+				_ = k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, workspace)
+				return len(workspace.Finalizers) > 0
 			}, timeout, interval).Should(BeTrue())
 
 			// Update
@@ -60,15 +61,28 @@ var _ = Describe("Workspace", func() {
 			// Delete
 			By("Expecting to delete workspace successfully")
 			Eventually(func() error {
-				f := &tenantv1beta1.Workspace{}
-				_ = k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, f)
-				return k8sClient.Delete(context.Background(), f)
+				if err := k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, workspace); err != nil {
+					return err
+				}
+				return k8sClient.Delete(context.Background(), workspace)
+			}, timeout, interval).Should(Succeed())
+
+			// Update DeletionPropagation
+			By("Expecting to delete workspace successfully")
+			Eventually(func() error {
+				if err := k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, workspace); err != nil {
+					return err
+				}
+				if workspace.Annotations == nil {
+					workspace.Annotations = make(map[string]string)
+				}
+				workspace.Annotations[constants.DeletionPropagationAnnotation] = string(metav1.DeletePropagationBackground)
+				return k8sClient.Update(context.Background(), workspace)
 			}, timeout, interval).Should(Succeed())
 
 			By("Expecting to delete workspace finish")
 			Eventually(func() error {
-				f := &tenantv1beta1.Workspace{}
-				return k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, f)
+				return k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, workspace)
 			}, timeout, interval).ShouldNot(Succeed())
 		})
 	})
