@@ -447,7 +447,7 @@ func (e *executor) setupChartData(release string, kubeconfig []byte, chartData, 
 }
 
 func generateName(name, action string) string {
-	return fmt.Sprintf("helm-executor-%s-%s-%s", action, name, rand.String(6))
+	return fmt.Sprintf("helm-%s-%s-%s", action, name, rand.String(6))
 }
 
 func (e *executor) createConfigMap(ctx context.Context, kubeconfig []byte, name string, release string, chartData, values []byte, labels, annotations map[string]string, caBundle string) error {
