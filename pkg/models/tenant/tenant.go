@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	"github.com/Masterminds/semver/v3"
 	"github.com/mitchellh/mapstructure"
 	corev1 "k8s.io/api/core/v1"
@@ -40,8 +42,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	jsonpatchutil "kubesphere.io/kubesphere/pkg/utils/josnpatchutil"
 )
-
-const orphanFinalizer = "orphan.finalizers.kubesphere.io"
 
 type Interface interface {
 	ListWorkspaces(user user.Info, queryParam *query.Query) (*api.ListResult, error)
@@ -561,16 +561,18 @@ func (t *tenantOperator) ListClusters(user user.Info, queryParam *query.Query) (
 func (t *tenantOperator) DeleteWorkspaceTemplate(workspaceName string, opts metav1.DeleteOptions) error {
 	workspace := &tenantv1beta1.WorkspaceTemplate{}
 	if err := t.client.Get(context.Background(), types.NamespacedName{Name: workspaceName}, workspace); err != nil {
-		return err
+		return fmt.Errorf("failed to get workspace template: %s", err)
 	}
-	if opts.PropagationPolicy != nil && *opts.PropagationPolicy == metav1.DeletePropagationOrphan {
-
-		workspace.Finalizers = append(workspace.Finalizers, orphanFinalizer)
+	if opts.PropagationPolicy != nil {
+		if workspace.Annotations == nil {
+			workspace.Annotations = make(map[string]string)
+		}
+		workspace.Annotations[constants.DeletionPropagationAnnotation] = string(*opts.PropagationPolicy)
 		if err := t.client.Update(context.Background(), workspace); err != nil {
-			return err
+			return fmt.Errorf("failed to update workspace template: %s", err)
 		}
 	}
-	return t.client.Delete(context.Background(), workspace, &runtimeclient.DeleteOptions{Raw: &opts})
+	return t.client.Delete(context.Background(), workspace)
 }
 
 func (t *tenantOperator) getClusterRoleBindingsByUser(clusterName, username string) (*iamv1beta1.ClusterRoleBindingList, error) {

@@ -13,15 +13,17 @@ const (
 	KubeSphereConfigMapDataKey = "kubesphere.yaml"
 	KubectlPodNamePrefix       = "ks-managed-kubectl"
 
-	WorkspaceLabelKey        = "kubesphere.io/workspace"
-	DisplayNameAnnotationKey = "kubesphere.io/alias-name"
-	DescriptionAnnotationKey = "kubesphere.io/description"
-	CreatorAnnotationKey     = "kubesphere.io/creator"
-	UsernameLabelKey         = "kubesphere.io/username"
-	GenericConfigTypeLabel   = "config.kubesphere.io/type"
-	KubectlPodLabel          = "kubesphere.io/kubectl-pod"
-	ConfigHashAnnotation     = "kubesphere.io/config-hash"
-	KubeSphereManagedLabel   = "kubesphere.io/managed"
+	WorkspaceLabelKey             = "kubesphere.io/workspace"
+	DisplayNameAnnotationKey      = "kubesphere.io/alias-name"
+	DescriptionAnnotationKey      = "kubesphere.io/description"
+	CreatorAnnotationKey          = "kubesphere.io/creator"
+	UsernameLabelKey              = "kubesphere.io/username"
+	GenericConfigTypeLabel        = "config.kubesphere.io/type"
+	KubectlPodLabel               = "kubesphere.io/kubectl-pod"
+	ConfigHashAnnotation          = "kubesphere.io/config-hash"
+	KubeSphereManagedLabel        = "kubesphere.io/managed"
+	DeletionPropagationAnnotation = "kubesphere.io/deletion-propagation"
+	CascadingDeletionFinalizer    = "kubesphere.io/cascading-deletion"
 )
 
 var (
