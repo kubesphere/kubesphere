@@ -376,7 +376,6 @@ func (t *terminaler) createKubectlPod(ctx context.Context, podName, username str
 					},
 				},
 			},
-			ServiceAccountName: "kubesphere",
 			Volumes: []corev1.Volume{
 				{
 					Name: "host-time",
