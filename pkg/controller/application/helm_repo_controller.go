@@ -215,14 +215,14 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 
 	appVersionDigestMap := make(map[string]string)
 	for _, i := range appVersionList.Items {
-		key := fmt.Sprintf("%s-%s", i.GetLabels()[appv2.AppIDLabelKey], i.Spec.VersionName)
+		LegalVersion := application.FormatVersion(i.Spec.VersionName)
+		key := fmt.Sprintf("%s-%s", i.GetLabels()[appv2.AppIDLabelKey], LegalVersion)
 		appVersionDigestMap[key] = i.Spec.Digest
 	}
 	for _, ver := range versions {
-
-		ver.Version = application.FormatVersion(ver.Version)
+		legalVersion := application.FormatVersion(ver.Version)
 		shortName := application.GenerateShortNameMD5Hash(ver.Name)
-		key := fmt.Sprintf("%s-%s-%s", helmRepo.Name, shortName, ver.Version)
+		key := fmt.Sprintf("%s-%s-%s", helmRepo.Name, shortName, legalVersion)
 		dig := appVersionDigestMap[key]
 		if dig == ver.Digest {
 			continue
