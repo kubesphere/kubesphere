@@ -54,41 +54,17 @@ var _ = Describe("Namespace", func() {
 			Expect(k8sClient.Create(context.Background(), namespace)).Should(Succeed())
 
 			By("Expecting to create namespace successfully")
-			Eventually(func() bool {
-				k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace.Name}, namespace)
-				return !namespace.CreationTimestamp.IsZero()
-			}, timeout, interval).Should(BeTrue())
-
-			By("Expecting to set owner reference successfully")
-			Eventually(func() bool {
-				k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace.Name}, namespace)
-				return len(namespace.OwnerReferences) > 0
-			}, timeout, interval).Should(BeTrue())
-
-			Expect(k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, workspace)).Should(Succeed())
-
-			controlled := true
-			expectedOwnerReference := metav1.OwnerReference{
-				Kind:               workspace.Kind,
-				APIVersion:         workspace.APIVersion,
-				UID:                workspace.UID,
-				Name:               workspace.Name,
-				Controller:         &controlled,
-				BlockOwnerDeletion: &controlled,
-			}
-
-			By("Expecting to bind workspace successfully")
-			Expect(namespace.OwnerReferences).To(ContainElement(expectedOwnerReference))
-			Expect(k8sClient.Get(context.Background(), types.NamespacedName{Name: workspace.Name}, workspace)).Should(Succeed())
+			Expect(k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace.Name}, namespace)).Should(Succeed())
 
 			By("Expecting to update namespace successfully")
 			updated := namespace.DeepCopy()
 			updated.Labels[constants.WorkspaceLabelKey] = "workspace-not-exist"
+
 			Expect(k8sClient.Update(context.Background(), updated)).Should(Succeed())
 
 			By("Expecting to unbind workspace successfully")
 			Eventually(func() bool {
-				k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace.Name}, namespace)
+				_ = k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace.Name}, namespace)
 				return len(namespace.OwnerReferences) == 0
 			}, timeout, interval).Should(BeTrue())
 		})

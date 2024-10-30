@@ -11,10 +11,11 @@ import (
 	"fmt"
 	"strings"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,17 +41,15 @@ import (
 )
 
 const (
-	controllerName             = "workspacetemplate"
-	workspaceTemplateFinalizer = "finalizers.workspacetemplate.kubesphere.io"
-	orphanFinalizer            = "orphan.finalizers.kubesphere.io"
+	controllerName = "workspacetemplate"
 )
 
 // Reconciler reconciles a WorkspaceRoleBinding object
 type Reconciler struct {
 	client.Client
-	logger        logr.Logger
-	recorder      record.EventRecorder
-	clusterClient clusterclient.Interface
+	logger           logr.Logger
+	recorder         record.EventRecorder
+	clusterClientSet clusterclient.Interface
 }
 
 func (r *Reconciler) Enabled(clusterRole string) bool {
@@ -65,7 +64,7 @@ func (r *Reconciler) Name() string {
 }
 
 func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
-	r.clusterClient = mgr.ClusterClient
+	r.clusterClientSet = mgr.ClusterClient
 	r.Client = mgr.GetClient()
 	r.logger = ctrl.Log.WithName("controllers").WithName(controllerName)
 	r.recorder = mgr.GetEventRecorderFor(controllerName)
@@ -114,23 +113,26 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if workspaceTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object.
-		if !controllerutil.ContainsFinalizer(workspaceTemplate, workspaceTemplateFinalizer) {
+		if !controllerutil.ContainsFinalizer(workspaceTemplate, constants.CascadingDeletionFinalizer) {
 			updated := workspaceTemplate.DeepCopy()
-			controllerutil.AddFinalizer(updated, workspaceTemplateFinalizer)
+			// Remove legacy finalizer
+			controllerutil.RemoveFinalizer(updated, "finalizers.workspacetemplate.kubesphere.io")
+			controllerutil.AddFinalizer(updated, constants.CascadingDeletionFinalizer)
 			return ctrl.Result{}, r.Patch(ctx, updated, client.MergeFrom(workspaceTemplate))
 		}
 	} else {
 		// The object is being deleted
-		if controllerutil.ContainsFinalizer(workspaceTemplate, workspaceTemplateFinalizer) ||
-			controllerutil.ContainsFinalizer(workspaceTemplate, orphanFinalizer) {
-			if err := r.reconcileDelete(ctx, workspaceTemplate); err != nil {
-				return ctrl.Result{}, err
+		if controllerutil.ContainsFinalizer(workspaceTemplate, constants.CascadingDeletionFinalizer) {
+			ok, err := r.workspaceTemplateCascadingDeletion(ctx, workspaceTemplate)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to cascade delete workspacetemplate %s: %s", workspaceTemplate.Name, err)
 			}
-			// remove our finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(workspaceTemplate, workspaceTemplateFinalizer)
-			controllerutil.RemoveFinalizer(workspaceTemplate, orphanFinalizer)
-			if err := r.Update(ctx, workspaceTemplate); err != nil {
-				return ctrl.Result{}, err
+			if ok {
+				// remove our finalizer from the list and update it.
+				controllerutil.RemoveFinalizer(workspaceTemplate, constants.CascadingDeletionFinalizer)
+				if err := r.Update(ctx, workspaceTemplate); err != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %s", err)
+				}
 			}
 		}
 		// Our finalizer has finished, so the reconciler can do nothing.
@@ -152,7 +154,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 func (r *Reconciler) multiClusterSync(ctx context.Context, workspaceTemplate *tenantv1beta1.WorkspaceTemplate) error {
-	clusters, err := r.clusterClient.ListClusters(ctx)
+	clusters, err := r.clusterClientSet.ListClusters(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list clusters: %s", err)
 	}
@@ -175,9 +177,9 @@ func (r *Reconciler) multiClusterSync(ctx context.Context, workspaceTemplate *te
 }
 
 func (r *Reconciler) syncWorkspaceTemplate(ctx context.Context, cluster clusterv1alpha1.Cluster, workspaceTemplate *tenantv1beta1.WorkspaceTemplate) error {
-	clusterClient, err := r.clusterClient.GetRuntimeClient(cluster.Name)
+	clusterClient, err := r.clusterClientSet.GetRuntimeClient(cluster.Name)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get cluster client for %s: %s", cluster.Name, err)
 	}
 	if utils.WorkspaceTemplateMatchTargetCluster(workspaceTemplate, &cluster) {
 		target := &tenantv1beta1.Workspace{ObjectMeta: metav1.ObjectMeta{Name: workspaceTemplate.Name}}
@@ -200,11 +202,9 @@ func (r *Reconciler) syncWorkspaceTemplate(ctx context.Context, cluster clusterv
 		if err != nil {
 			return err
 		}
-		klog.FromContext(ctx).V(4).Info("workspace successfully synced", "operation", op)
+		klog.FromContext(ctx).V(4).Info("workspace successfully synced", "cluster", cluster.Name, "operation", op)
 	} else {
-		orphan := metav1.DeletePropagationBackground
-		err = clusterClient.Delete(ctx, &tenantv1beta1.Workspace{ObjectMeta: metav1.ObjectMeta{Name: workspaceTemplate.Name}},
-			&client.DeleteOptions{PropagationPolicy: &orphan})
+		err = clusterClient.Delete(ctx, &tenantv1beta1.Workspace{ObjectMeta: metav1.ObjectMeta{Name: workspaceTemplate.Name}})
 		return client.IgnoreNotFound(err)
 	}
 	return nil
@@ -289,10 +289,17 @@ func (r *Reconciler) initManagerRoleBinding(ctx context.Context, workspaceTempla
 	return nil
 }
 
-func (r *Reconciler) reconcileDelete(ctx context.Context, workspaceTemplate *tenantv1beta1.WorkspaceTemplate) error {
-	clusters, err := r.clusterClient.ListClusters(ctx)
+func (r *Reconciler) workspaceTemplateCascadingDeletion(ctx context.Context, workspaceTemplate *tenantv1beta1.WorkspaceTemplate) (bool, error) {
+	switch workspaceTemplate.Annotations[constants.DeletionPropagationAnnotation] {
+	case string(metav1.DeletePropagationOrphan), string(metav1.DeletePropagationForeground), string(metav1.DeletePropagationBackground):
+	default:
+		klog.FromContext(ctx).V(4).Info(fmt.Sprintf("waiting for deletion propagation update, invalid deletion propagation policy found: %s", workspaceTemplate.Annotations[constants.DeletionPropagationAnnotation]))
+		return false, nil
+	}
+
+	clusters, err := r.clusterClientSet.ListClusters(ctx)
 	if err != nil {
-		return err
+		return false, fmt.Errorf("failed to list clusters: %s", err)
 	}
 	var notReadyClusters []string
 	for _, cluster := range clusters {
@@ -301,28 +308,42 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, workspaceTemplate *ten
 			notReadyClusters = append(notReadyClusters, cluster.Name)
 			continue
 		}
-		clusterClient, err := r.clusterClient.GetRuntimeClient(cluster.Name)
+		clusterClient, err := r.clusterClientSet.GetRuntimeClient(cluster.Name)
 		if err != nil {
 			notReadyClusters = append(notReadyClusters, cluster.Name)
 			continue
 		}
-
-		if controllerutil.ContainsFinalizer(workspaceTemplate, orphanFinalizer) {
-			orphan := metav1.DeletePropagationOrphan
-			err = clusterClient.Delete(ctx, &tenantv1beta1.Workspace{ObjectMeta: metav1.ObjectMeta{Name: workspaceTemplate.Name}}, &client.DeleteOptions{PropagationPolicy: &orphan})
-		} else {
-			err = clusterClient.Delete(ctx, &tenantv1beta1.Workspace{ObjectMeta: metav1.ObjectMeta{Name: workspaceTemplate.Name}}, &client.DeleteOptions{})
-		}
-
-		if !errors.IsNotFound(err) {
-			notReadyClusters = append(notReadyClusters, cluster.Name)
-			continue
+		if err := r.workspaceCascadingDeletion(ctx, cluster.Name, clusterClient, workspaceTemplate); err != nil {
+			return false, fmt.Errorf("failed to delete workspace %s in cluster %s: %s", workspaceTemplate.Name, cluster.Name, err)
 		}
 	}
 	if len(notReadyClusters) > 0 {
 		klog.FromContext(ctx).V(4).Info("cluster not ready", "clusters", strings.Join(notReadyClusters, ","))
 		r.recorder.Event(workspaceTemplate, corev1.EventTypeWarning, kscontroller.SyncFailed, fmt.Sprintf("cluster not ready: %s", strings.Join(notReadyClusters, ",")))
-		return err
+		return false, fmt.Errorf("cluster not ready: %s", strings.Join(notReadyClusters, ","))
+	}
+	return true, nil
+}
+
+func (r *Reconciler) workspaceCascadingDeletion(ctx context.Context, clusterName string, clusterClient client.Client, workspaceTemplate *tenantv1beta1.WorkspaceTemplate) error {
+	workspace := &tenantv1beta1.Workspace{}
+	if err := clusterClient.Get(ctx, types.NamespacedName{Name: workspaceTemplate.Name}, workspace); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	if workspace.DeletionTimestamp.IsZero() {
+		if err := clusterClient.Delete(ctx, workspace); err != nil {
+			return fmt.Errorf("failed to delete workspace %s in cluster %s: %s", workspace.Name, clusterName, err)
+		}
+	}
+	if workspace.Annotations[constants.DeletionPropagationAnnotation] == workspaceTemplate.Annotations[constants.DeletionPropagationAnnotation] {
+		return nil
+	}
+	if workspace.Annotations == nil {
+		workspace.Annotations = make(map[string]string)
+	}
+	workspace.Annotations[constants.DeletionPropagationAnnotation] = workspaceTemplate.Annotations[constants.DeletionPropagationAnnotation]
+	if err := clusterClient.Update(ctx, workspace); err != nil {
+		return fmt.Errorf("failed to update workspace %s in cluster %s: %s", workspace.Name, clusterName, err)
 	}
 	return nil
 }
