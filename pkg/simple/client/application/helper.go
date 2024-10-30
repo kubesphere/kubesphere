@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/sha1"
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
@@ -13,7 +14,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -198,7 +198,8 @@ func CreateOrUpdateAppVersion(ctx context.Context, client runtimeclient.Client, 
 
 	//1. create or update app version
 	appVersion := appv2.ApplicationVersion{}
-	appVersion.Name = fmt.Sprintf("%s-%s", app.Name, vRequest.VersionName)
+	legalVersion := FormatVersion(vRequest.VersionName)
+	appVersion.Name = fmt.Sprintf("%s-%s", app.Name, legalVersion)
 
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(&app, &appVersion, scheme.Scheme); err != nil {
@@ -570,16 +571,12 @@ func GenerateShortNameMD5Hash(input string) string {
 }
 
 func FormatVersion(input string) string {
-	re := regexp.MustCompile(`[^a-z0-9-.]`)
 	if len(validation.IsDNS1123Subdomain(input)) == 0 {
 		return input
 	}
-	invalidCharsStr := strings.Join(re.FindAllString(input, -1), "")
-	hash := md5.Sum([]byte(invalidCharsStr))
-	md5Str := hex.EncodeToString(hash[:])[:8]
-	validPart := re.ReplaceAllString(input, "")
-	formattedVersion := fmt.Sprintf("%s%s", validPart, md5Str)
-	klog.Warningf("Version %s does not meet the Kubernetes naming standard, replacing invalid characters with MD5 hash: %s", input, formattedVersion)
+	hash := sha1.Sum([]byte(input))
+	formattedVersion := hex.EncodeToString(hash[:])[:12]
+	klog.Warningf("Version: %s does not meet the Kubernetes naming standard, replacing with SHA-1 hash: %s", input, formattedVersion)
 	return formattedVersion
 }
 
