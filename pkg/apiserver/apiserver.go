@@ -234,7 +234,6 @@ func (s *APIServer) buildHandlerChain(handler http.Handler, stopCh <-chan struct
 			iamv1beta1.Resource(iamv1beta1.ResourcesPluralGlobalRole),
 			iamv1beta1.Resource(iamv1beta1.ResourcesPluralGlobalRoleBinding),
 			tenantv1beta1.Resource(tenantv1beta1.ResourcePluralWorkspace),
-			tenantv1beta1.Resource(tenantv1beta1.ResourcePluralWorkspace),
 			tenantv1beta1.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster),
 			clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralLabel),
