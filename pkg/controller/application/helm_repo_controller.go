@@ -1,7 +1,18 @@
 /*
- * Please refer to the LICENSE file in the root directory of the project.
- * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
- */
+Copyright 2023 The KubeSphere Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package application
 
@@ -12,6 +23,13 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"kubesphere.io/api/constants"
+	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	"kubesphere.io/utils/s3"
 
@@ -53,6 +71,22 @@ func (r *RepoReconciler) Enabled(clusterRole string) bool {
 	return strings.EqualFold(clusterRole, string(clusterv1alpha1.ClusterRoleHost))
 }
 
+func (r *RepoReconciler) mapper(ctx context.Context, o client.Object) (requests []reconcile.Request) {
+	workspace := o.(*tenantv1beta1.WorkspaceTemplate)
+
+	klog.Infof("workspace %s has been deleted", workspace.Name)
+	repoList := &appv2.RepoList{}
+	opts := &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: workspace.Name})}
+	if err := r.List(ctx, repoList, opts); err != nil {
+		klog.Errorf("failed to list repo: %v", err)
+		return requests
+	}
+	for _, repo := range repoList.Items {
+		requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: repo.Name}})
+	}
+	return requests
+}
+
 func (r *RepoReconciler) SetupWithManager(mgr *kscontroller.Manager) (err error) {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(helmRepoController)
@@ -64,6 +98,11 @@ func (r *RepoReconciler) SetupWithManager(mgr *kscontroller.Manager) (err error)
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
+		Watches(
+			&tenantv1beta1.WorkspaceTemplate{},
+			handler.EnqueueRequestsFromMapFunc(r.mapper),
+			builder.WithPredicates(DeletePredicate{}),
+		).
 		For(&appv2.Repo{}).
 		Complete(r)
 }
@@ -133,8 +172,23 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 		klog.Errorf("get helm repo failed, error: %s", err)
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
-	requeueAfter := time.Duration(helmRepo.Spec.SyncPeriod) * time.Second
 
+	workspaceTemplate := &tenantv1beta1.WorkspaceTemplate{}
+	workspaceName := helmRepo.Labels[constants.WorkspaceLabelKey]
+	if workspaceName != "" {
+		err := r.Get(ctx, types.NamespacedName{Name: workspaceName}, workspaceTemplate)
+		if apierrors.IsNotFound(err) || (err == nil && !workspaceTemplate.DeletionTimestamp.IsZero()) {
+			klog.Infof("workspace not found or deleting %s %s", workspaceName, err)
+			err = r.Delete(ctx, helmRepo)
+			if err != nil {
+				klog.Errorf("delete helm repo failed, error: %s", err)
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		}
+	}
+
+	requeueAfter := time.Duration(helmRepo.Spec.SyncPeriod) * time.Second
 	noSync, err := r.noNeedSync(ctx, helmRepo)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -156,6 +210,33 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 		klog.Errorf("load index failed, repo: %s, url: %s, err: %s", helmRepo.GetName(), helmRepo.Spec.Url, err)
 		return reconcile.Result{}, err
 	}
+
+	appList := &appv2.ApplicationList{}
+	opts := client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{appv2.RepoIDLabelKey: helmRepo.Name}),
+	}
+	err = r.Client.List(ctx, appList, &opts)
+	if err != nil {
+		klog.Errorf("list appversion failed, error: %s", err)
+		return reconcile.Result{}, err
+	}
+	indexMap := make(map[string]struct{})
+	for appName := range index.Entries {
+		shortName := application.GenerateShortNameMD5Hash(appName)
+		key := fmt.Sprintf("%s-%s", helmRepo.Name, shortName)
+		indexMap[key] = struct{}{}
+	}
+	for _, i := range appList.Items {
+		if _, exists := indexMap[i.Name]; !exists {
+			klog.Infof("app %s has been removed from the repo", i.Name)
+			err = r.Client.Delete(ctx, &i)
+			if err != nil {
+				klog.Errorf("delete app %s failed, error: %s", i.Name, err)
+				return reconcile.Result{}, err
+			}
+		}
+	}
+
 	for appName, versions := range index.Entries {
 		if len(versions) == 0 {
 			klog.Infof("no version found for %s", appName)
@@ -163,19 +244,17 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 		}
 
 		versions = filterVersions(versions)
-		if len(versions) > appv2.MaxNumOfVersions {
-			versions = versions[:appv2.MaxNumOfVersions]
-		}
 
 		vRequests, err := repoParseRequest(r.Client, versions, helmRepo, appName)
 		if err != nil {
 			klog.Errorf("parse request failed, error: %s", err)
 			return reconcile.Result{}, err
 		}
-		klog.Infof("found %d/%d versions for %s need to upgrade", len(vRequests), len(versions), appName)
 		if len(vRequests) == 0 {
 			continue
 		}
+
+		klog.Infof("found %d/%d versions for %s need to upgrade", len(vRequests), len(versions), appName)
 
 		own := metav1.OwnerReference{
 			APIVersion: appv2.SchemeGroupVersion.String(),
@@ -204,8 +283,12 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRepo *appv2.Repo, appName string) (result []application.AppRequest, err error) {
 	appVersionList := &appv2.ApplicationVersionList{}
 
+	appID := fmt.Sprintf("%s-%s", helmRepo.Name, application.GenerateShortNameMD5Hash(appName))
 	opts := client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{appv2.RepoIDLabelKey: helmRepo.Name}),
+		LabelSelector: labels.SelectorFromSet(labels.Set{
+			appv2.RepoIDLabelKey: helmRepo.Name,
+			appv2.AppIDLabelKey:  appID,
+		}),
 	}
 	err = cli.List(context.Background(), appVersionList, &opts)
 	if err != nil {
@@ -214,21 +297,43 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 	}
 
 	appVersionDigestMap := make(map[string]string)
+	versionMap := make(map[string]struct{})
+	for _, ver := range versions {
+		v := application.FormatVersion(ver.Version)
+		shortName := application.GenerateShortNameMD5Hash(ver.Name)
+		key := fmt.Sprintf("%s-%s-%s", helmRepo.Name, shortName, v)
+		versionMap[key] = struct{}{}
+	}
+
 	for _, i := range appVersionList.Items {
 		LegalVersion := application.FormatVersion(i.Spec.VersionName)
 		key := fmt.Sprintf("%s-%s", i.GetLabels()[appv2.AppIDLabelKey], LegalVersion)
-		appVersionDigestMap[key] = i.Spec.Digest
+		_, exists := versionMap[key]
+		if !exists {
+			klog.Infof("delete appversion %s", i.GetName())
+			err = cli.Delete(context.Background(), &i)
+			if err != nil {
+				klog.Errorf("delete appversion failed, error: %s", err)
+				return nil, err
+			}
+		} else {
+			appVersionDigestMap[key] = i.Spec.Digest
+		}
 	}
+
 	for _, ver := range versions {
+
 		legalVersion := application.FormatVersion(ver.Version)
 		shortName := application.GenerateShortNameMD5Hash(ver.Name)
 		key := fmt.Sprintf("%s-%s-%s", helmRepo.Name, shortName, legalVersion)
 		dig := appVersionDigestMap[key]
 		if dig == ver.Digest {
 			continue
-		} else {
+		}
+		if dig != "" {
 			klog.Infof("digest not match, key: %s, digest: %s, ver.Digest: %s", key, dig, ver.Digest)
 		}
+
 		vRequest := application.AppRequest{
 			RepoName:     helmRepo.Name,
 			VersionName:  ver.Version,
