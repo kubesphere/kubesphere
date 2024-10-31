@@ -94,7 +94,7 @@ func (r *AppReleaseReconciler) SetupWithManager(mgr *controller.Manager) error {
 		Watches(
 			&clusterv1alpha1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.mapper),
-			builder.WithPredicates(ClusterDeletePredicate{}),
+			builder.WithPredicates(DeletePredicate{}),
 		).
 		WithEventFilter(IgnoreAnnotationChangePredicate{AnnotationKey: appv2.TimeoutRecheck}).
 		For(&appv2.ApplicationRelease{}).Complete(r)
