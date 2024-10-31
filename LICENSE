@@ -18,7 +18,7 @@ KubeSphere is licensed under the Apache License 2.0, with the following addition
 
    b. Your contributed code may be utilized for commercial purposes.
 
-3. These additional conditions apply to all versions of KubeSphere, including those without a LICENSE file prior to KubeSphere's open-sourcing.
+3. These additional conditions apply exclusively to KubeSphere version 4.x and all future versions. Versions 3.4.x and earlier are not included under these terms and continue to be governed by their previous licenses.
 
 Apart from these additional conditions, all other rights and restrictions are governed by the Apache License 2.0, available at http://www.apache.org/licenses/LICENSE-2.0.
 
