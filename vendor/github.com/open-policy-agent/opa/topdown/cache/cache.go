@@ -18,14 +18,22 @@ import (
 )
 
 const (
+	defaultInterQueryBuiltinValueCacheSize   = int(0)     // unlimited
 	defaultMaxSizeBytes                      = int64(0)   // unlimited
 	defaultForcedEvictionThresholdPercentage = int64(100) // trigger at max_size_bytes
 	defaultStaleEntryEvictionPeriodSeconds   = int64(0)   // never
 )
 
-// Config represents the configuration of the inter-query cache.
+// Config represents the configuration for the inter-query builtin cache.
 type Config struct {
-	InterQueryBuiltinCache InterQueryBuiltinCacheConfig `json:"inter_query_builtin_cache"`
+	InterQueryBuiltinCache      InterQueryBuiltinCacheConfig      `json:"inter_query_builtin_cache"`
+	InterQueryBuiltinValueCache InterQueryBuiltinValueCacheConfig `json:"inter_query_builtin_value_cache"`
+}
+
+// InterQueryBuiltinValueCacheConfig represents the configuration of the inter-query value cache that built-in functions can utilize.
+// MaxNumEntries - max number of cache entries
+type InterQueryBuiltinValueCacheConfig struct {
+	MaxNumEntries *int `json:"max_num_entries,omitempty"`
 }
 
 // InterQueryBuiltinCacheConfig represents the configuration of the inter-query cache that built-in functions can utilize.
@@ -47,7 +55,12 @@ func ParseCachingConfig(raw []byte) (*Config, error) {
 		*threshold = defaultForcedEvictionThresholdPercentage
 		period := new(int64)
 		*period = defaultStaleEntryEvictionPeriodSeconds
-		return &Config{InterQueryBuiltinCache: InterQueryBuiltinCacheConfig{MaxSizeBytes: maxSize, ForcedEvictionThresholdPercentage: threshold, StaleEntryEvictionPeriodSeconds: period}}, nil
+
+		maxInterQueryBuiltinValueCacheSize := new(int)
+		*maxInterQueryBuiltinValueCacheSize = defaultInterQueryBuiltinValueCacheSize
+
+		return &Config{InterQueryBuiltinCache: InterQueryBuiltinCacheConfig{MaxSizeBytes: maxSize, ForcedEvictionThresholdPercentage: threshold, StaleEntryEvictionPeriodSeconds: period},
+			InterQueryBuiltinValueCache: InterQueryBuiltinValueCacheConfig{MaxNumEntries: maxInterQueryBuiltinValueCacheSize}}, nil
 	}
 
 	var config Config
@@ -89,6 +102,18 @@ func (c *Config) validateAndInjectDefaults() error {
 			return fmt.Errorf("invalid stale_entry_eviction_period_seconds %v", period)
 		}
 	}
+
+	if c.InterQueryBuiltinValueCache.MaxNumEntries == nil {
+		maxSize := new(int)
+		*maxSize = defaultInterQueryBuiltinValueCacheSize
+		c.InterQueryBuiltinValueCache.MaxNumEntries = maxSize
+	} else {
+		numEntries := *c.InterQueryBuiltinValueCache.MaxNumEntries
+		if numEntries < 0 {
+			return fmt.Errorf("invalid max_num_entries %v", numEntries)
+		}
+	}
+
 	return nil
 }
 
@@ -300,4 +325,82 @@ func (c *cache) cleanStaleValues() (dropped int) {
 		key = nextKey
 	}
 	return dropped
+}
+
+type InterQueryValueCache interface {
+	Get(key ast.Value) (value any, found bool)
+	Insert(key ast.Value, value any) int
+	Delete(key ast.Value)
+	UpdateConfig(config *Config)
+}
+
+type interQueryValueCache struct {
+	items  map[string]any
+	config *Config
+	mtx    sync.RWMutex
+}
+
+// Get returns the value in the cache for k.
+func (c *interQueryValueCache) Get(k ast.Value) (any, bool) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	value, ok := c.items[k.String()]
+	return value, ok
+}
+
+// Insert inserts a key k into the cache with value v.
+func (c *interQueryValueCache) Insert(k ast.Value, v any) (dropped int) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
+	maxEntries := c.maxNumEntries()
+	if maxEntries > 0 {
+		if len(c.items) >= maxEntries {
+			itemsToRemove := len(c.items) - maxEntries + 1
+
+			// Delete a (semi-)random key to make room for the new one.
+			for k := range c.items {
+				delete(c.items, k)
+				dropped++
+
+				if itemsToRemove == dropped {
+					break
+				}
+			}
+		}
+	}
+
+	c.items[k.String()] = v
+	return dropped
+}
+
+// Delete deletes the value in the cache for k.
+func (c *interQueryValueCache) Delete(k ast.Value) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	delete(c.items, k.String())
+}
+
+// UpdateConfig updates the cache config.
+func (c *interQueryValueCache) UpdateConfig(config *Config) {
+	if config == nil {
+		return
+	}
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	c.config = config
+}
+
+func (c *interQueryValueCache) maxNumEntries() int {
+	if c.config == nil {
+		return defaultInterQueryBuiltinValueCacheSize
+	}
+	return *c.config.InterQueryBuiltinValueCache.MaxNumEntries
+}
+
+func NewInterQueryValueCache(_ context.Context, config *Config) InterQueryValueCache {
+	return &interQueryValueCache{
+		items:  map[string]any{},
+		config: config,
+	}
 }

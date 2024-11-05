@@ -35,6 +35,92 @@ func builtinJSONMarshal(_ BuiltinContext, operands []*ast.Term, iter func(*ast.T
 	return iter(ast.StringTerm(string(bs)))
 }
 
+func builtinJSONMarshalWithOpts(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+
+	asJSON, err := ast.JSON(operands[0].Value)
+	if err != nil {
+		return err
+	}
+
+	indentWith := "\t"
+	prefixWith := ""
+	implicitPrettyPrint := false
+	userDeclaredExplicitPrettyPrint := false
+	shouldPrettyPrint := false
+
+	marshalOpts, err := builtins.ObjectOperand(operands[1].Value, 2)
+	if err != nil {
+		return err
+	}
+
+	for idx, k := range marshalOpts.Keys() {
+
+		val := marshalOpts.Get(k)
+
+		key, err := builtins.StringOperand(k.Value, idx)
+		if err != nil {
+			return builtins.NewOperandErr(2, "failed to stringify key %v at index %d: %v", k, idx, err)
+		}
+
+		switch key {
+
+		case "prefix":
+			prefixOpt, err := builtins.StringOperand(val.Value, idx)
+			if err != nil {
+				return builtins.NewOperandErr(2, "key %s failed cast to string: %v", key, err)
+			}
+			prefixWith = string(prefixOpt)
+			implicitPrettyPrint = true
+
+		case "indent":
+			indentOpt, err := builtins.StringOperand(val.Value, idx)
+			if err != nil {
+				return builtins.NewOperandErr(2, "key %s failed cast to string: %v", key, err)
+
+			}
+			indentWith = string(indentOpt)
+			implicitPrettyPrint = true
+
+		case "pretty":
+			userDeclaredExplicitPrettyPrint = true
+			explicitPrettyPrint, ok := val.Value.(ast.Boolean)
+			if !ok {
+				return builtins.NewOperandErr(2, "key %s failed cast to bool", key)
+			}
+
+			shouldPrettyPrint = bool(explicitPrettyPrint)
+
+		default:
+			return builtins.NewOperandErr(2, "object contained unknown key %s", key)
+		}
+
+	}
+
+	if !userDeclaredExplicitPrettyPrint {
+		shouldPrettyPrint = implicitPrettyPrint
+	}
+
+	var bs []byte
+
+	if shouldPrettyPrint {
+		bs, err = json.MarshalIndent(asJSON, prefixWith, indentWith)
+	} else {
+		bs, err = json.Marshal(asJSON)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if shouldPrettyPrint {
+		// json.MarshalIndent() function will not prefix the first line of emitted JSON
+		return iter(ast.StringTerm(prefixWith + string(bs)))
+	}
+
+	return iter(ast.StringTerm(string(bs)))
+
+}
+
 func builtinJSONUnmarshal(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 
 	str, err := builtins.StringOperand(operands[0].Value, 1)
@@ -299,6 +385,7 @@ func builtinHexDecode(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Ter
 
 func init() {
 	RegisterBuiltinFunc(ast.JSONMarshal.Name, builtinJSONMarshal)
+	RegisterBuiltinFunc(ast.JSONMarshalWithOptions.Name, builtinJSONMarshalWithOpts)
 	RegisterBuiltinFunc(ast.JSONUnmarshal.Name, builtinJSONUnmarshal)
 	RegisterBuiltinFunc(ast.JSONIsValid.Name, builtinJSONIsValid)
 	RegisterBuiltinFunc(ast.Base64Encode.Name, builtinBase64Encode)

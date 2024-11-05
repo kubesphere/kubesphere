@@ -9,7 +9,7 @@ import (
 
 func init() {
 	AddRule("VariablesAreInputTypes", func(observers *Events, addError AddErrFunc) {
-		observers.OnOperation(func(walker *Walker, operation *ast.OperationDefinition) {
+		observers.OnOperation(func(_ *Walker, operation *ast.OperationDefinition) {
 			for _, def := range operation.VariableDefinitions {
 				if def.Definition == nil {
 					continue

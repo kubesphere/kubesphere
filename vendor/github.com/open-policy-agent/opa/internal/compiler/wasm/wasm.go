@@ -1139,6 +1139,17 @@ func (c *Compiler) compileBlock(block *ir.Block) ([]instruction.Instruction, err
 				instrs = append(instrs, instruction.Br{Index: 0})
 				break
 			}
+		case *ir.IsSetStmt:
+			if loc, ok := stmt.Source.Value.(ir.Local); ok {
+				instrs = append(instrs, instruction.GetLocal{Index: c.local(loc)})
+				instrs = append(instrs, instruction.Call{Index: c.function(opaValueType)})
+				instrs = append(instrs, instruction.I32Const{Value: opaTypeSet})
+				instrs = append(instrs, instruction.I32Ne{})
+				instrs = append(instrs, instruction.BrIf{Index: 0})
+			} else {
+				instrs = append(instrs, instruction.Br{Index: 0})
+				break
+			}
 		case *ir.IsUndefinedStmt:
 			instrs = append(instrs, instruction.GetLocal{Index: c.local(stmt.Source)})
 			instrs = append(instrs, instruction.I32Const{Value: 0})
@@ -1321,7 +1332,7 @@ func (c *Compiler) compileWithStmt(with *ir.WithStmt, result *[]instruction.Inst
 	return nil
 }
 
-func (c *Compiler) compileUpsert(local ir.Local, path []int, value ir.Operand, loc ir.Location, instrs []instruction.Instruction) []instruction.Instruction {
+func (c *Compiler) compileUpsert(local ir.Local, path []int, value ir.Operand, _ ir.Location, instrs []instruction.Instruction) []instruction.Instruction {
 
 	lcopy := c.genLocal() // holds copy of local
 	instrs = append(instrs, instruction.GetLocal{Index: c.local(local)})

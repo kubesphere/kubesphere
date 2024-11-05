@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	controllerName = "rolebinding-controller"
+	controllerName = "rolebinding"
 	roleBindingRef = "iam.kubesphere.io/rolebinding-ref"
 )
 

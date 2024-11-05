@@ -119,7 +119,9 @@ func (l ListType) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	return nil
 }
 
-func (l ListType) ApplyFirst() {}
+func (l ListType) ApplyPriority() ApplyPriority {
+	return ApplyPriorityDefault - 1
+}
 
 func (l ListMapKey) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	if schema.Type != "array" {

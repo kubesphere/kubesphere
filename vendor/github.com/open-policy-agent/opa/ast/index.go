@@ -164,7 +164,7 @@ func (i *baseDocEqIndex) Lookup(resolver ValueResolver) (*IndexResult, error) {
 	return result, nil
 }
 
-func (i *baseDocEqIndex) AllRules(resolver ValueResolver) (*IndexResult, error) {
+func (i *baseDocEqIndex) AllRules(_ ValueResolver) (*IndexResult, error) {
 	tr := newTrieTraversalResult()
 
 	// Walk over the rule trie and accumulate _all_ rules
@@ -494,7 +494,7 @@ func (node *trieNode) String() string {
 func (node *trieNode) append(prio [2]int, rule *Rule) {
 	node.rules = append(node.rules, &ruleNode{prio, rule})
 
-	if node.values != nil {
+	if node.values != nil && rule.Head.Value != nil {
 		node.values.Add(rule.Head.Value)
 		return
 	}

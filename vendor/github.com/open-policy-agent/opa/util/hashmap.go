@@ -72,7 +72,7 @@ func (h *HashMap) Get(k T) (T, bool) {
 	return nil, false
 }
 
-// Delete removes the the key k.
+// Delete removes the key k.
 func (h *HashMap) Delete(k T) {
 	hash := h.hash(k)
 	var prev *hashEntry

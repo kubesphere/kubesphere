@@ -13,7 +13,7 @@
 // for their specific task. If you are required to interoperate with OpenPGP
 // systems and need a maintained package, consider a community fork.
 // See https://golang.org/issue/44226.
-package clearsign // import "golang.org/x/crypto/openpgp/clearsign"
+package clearsign
 
 import (
 	"bufio"

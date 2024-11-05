@@ -67,7 +67,17 @@ func builtinJSONSchemaVerify(_ BuiltinContext, operands []*ast.Term, iter func(*
 // builtinJSONMatchSchema accepts 2 arguments both can be string or object and verifies if the document matches the JSON schema.
 // Returns an array where first element is a boolean indicating a successful match, and the second is an array of errors that is empty on success and populated on failure.
 // In case of internal error returns empty array.
-func builtinJSONMatchSchema(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinJSONMatchSchema(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+	var schema *gojsonschema.Schema
+
+	if bctx.InterQueryBuiltinValueCache != nil {
+		if val, ok := bctx.InterQueryBuiltinValueCache.Get(operands[1].Value); ok {
+			if s, isSchema := val.(*gojsonschema.Schema); isSchema {
+				schema = s
+			}
+		}
+	}
+
 	// Take first argument and make JSON Loader from it.
 	// This is a JSON document made from Rego JSON string or object.
 	documentLoader, err := astValueToJSONSchemaLoader(operands[0].Value)
@@ -75,15 +85,26 @@ func builtinJSONMatchSchema(_ BuiltinContext, operands []*ast.Term, iter func(*a
 		return err
 	}
 
-	// Take second argument and make JSON Loader from it.
-	// This is a JSON schema made from Rego JSON string or object.
-	schemaLoader, err := astValueToJSONSchemaLoader(operands[1].Value)
-	if err != nil {
-		return err
+	if schema == nil {
+		// Take second argument and make JSON Loader from it.
+		// This is a JSON schema made from Rego JSON string or object.
+		schemaLoader, err := astValueToJSONSchemaLoader(operands[1].Value)
+		if err != nil {
+			return err
+		}
+
+		schema, err = gojsonschema.NewSchema(schemaLoader)
+		if err != nil {
+			return err
+		}
+
+		if bctx.InterQueryBuiltinValueCache != nil {
+			bctx.InterQueryBuiltinValueCache.Insert(operands[1].Value, schema)
+		}
 	}
 
 	// Use schema to validate document.
-	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+	result, err := schema.Validate(documentLoader)
 	if err != nil {
 		return err
 	}

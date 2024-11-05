@@ -9,6 +9,9 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
@@ -28,9 +31,7 @@ import (
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -42,7 +43,7 @@ const controllerName = "k8sapplication"
 var _ kscontroller.Controller = &Reconciler{}
 var _ reconcile.Reconciler = &Reconciler{}
 
-// Reconciler reconciles a Application object
+// Reconciler reconciles an Application object
 type Reconciler struct {
 	client.Client
 	Mapper              meta.RESTMapper
@@ -81,16 +82,14 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 	}
 
 	for _, s := range sources {
-		// Watch for changes to Application
-		err = c.Watch(
-			source.Kind(mgr.GetCache(), s),
-			handler.EnqueueRequestsFromMapFunc(
-				func(ctx context.Context, obj client.Object) []reconcile.Request {
-					return []reconcile.Request{{NamespacedName: types.NamespacedName{
-						Name:      GetApplictionName(obj.GetLabels()),
-						Namespace: obj.GetNamespace()}}}
-				}),
-			predicate.Funcs{
+		h := handler.EnqueueRequestsFromMapFunc(
+			func(ctx context.Context, obj client.Object) []reconcile.Request {
+				return []reconcile.Request{{NamespacedName: types.NamespacedName{
+					Name:      GetApplictionName(obj.GetLabels()),
+					Namespace: obj.GetNamespace()}}}
+			})
+		p := predicate.GenerationChangedPredicate{
+			TypedFuncs: predicate.Funcs{
 				UpdateFunc: func(e event.UpdateEvent) bool {
 					return isApp(e.ObjectOld, e.ObjectOld)
 				},
@@ -100,7 +99,10 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 				DeleteFunc: func(e event.DeleteEvent) bool {
 					return isApp(e.Object)
 				},
-			})
+			},
+		}
+		// Watch for changes to Application
+		err = c.Watch(source.Kind(mgr.GetCache(), s, h, p))
 		if err != nil {
 			return err
 		}
@@ -249,7 +251,7 @@ func (r *Reconciler) setOwnerRefForResources(ctx context.Context, ownerRef metav
 	return nil
 }
 
-func (r *Reconciler) objectStatuses(ctx context.Context, resources []*unstructured.Unstructured, errs *[]error) []appv1beta1.ObjectStatus {
+func (r *Reconciler) objectStatuses(_ context.Context, resources []*unstructured.Unstructured, errs *[]error) []appv1beta1.ObjectStatus {
 	var objectStatuses []appv1beta1.ObjectStatus
 	for _, resource := range resources {
 		os := appv1beta1.ObjectStatus{

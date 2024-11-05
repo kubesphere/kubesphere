@@ -15,7 +15,7 @@ func init() {
 			Column int
 		}
 		var seen = map[mayNotBeUsedDirective]bool{}
-		observers.OnDirective(func(walker *Walker, directive *ast.Directive) {
+		observers.OnDirective(func(_ *Walker, directive *ast.Directive) {
 			if directive.Definition == nil {
 				addError(
 					Message(`Unknown directive "@%s".`, directive.Name),

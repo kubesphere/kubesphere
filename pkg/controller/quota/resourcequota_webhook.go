@@ -40,7 +40,7 @@ const (
 type ResourceQuotaAdmission struct {
 	client client.Client
 
-	decoder *webhook.AdmissionDecoder
+	decoder webhook.AdmissionDecoder
 
 	lockFactory LockFactory
 
@@ -117,8 +117,8 @@ func (r *ResourceQuotaAdmission) lockAquisition(quotas []corev1.ResourceQuota) f
 
 	// acquire the locks in alphabetical order because I'm too lazy to think of something clever
 	sort.Sort(ByName(quotas))
-	for _, quota := range quotas {
-		lock := r.lockFactory.GetLock(string(quota.UID))
+	for _, q := range quotas {
+		lock := r.lockFactory.GetLock(string(q.UID))
 		lock.Lock()
 		locks = append(locks, lock)
 	}

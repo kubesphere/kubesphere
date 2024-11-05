@@ -28,8 +28,8 @@ func (Generator) Help() *markers.DefinitionHelp {
 	return &markers.DefinitionHelp{
 		Category: "",
 		DetailedHelp: markers.DetailedHelp{
-			Summary: "generates code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.",
-			Details: "",
+			Summary: "generates code containing DeepCopy, DeepCopyInto, and",
+			Details: "DeepCopyObject method implementations.",
 		},
 		FieldHelp: map[string]markers.DetailedHelp{
 			"HeaderFile": {

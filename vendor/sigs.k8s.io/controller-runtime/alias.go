@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	cfg "sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -96,13 +95,6 @@ var (
 	// * $HOME/.kube/config if exists.
 	GetConfig = config.GetConfig
 
-	// ConfigFile returns the cfg.File function for deferred config file loading,
-	// this is passed into Options{}.From() to populate the Options fields for
-	// the manager.
-	//
-	// Deprecated: This is deprecated in favor of using Options directly.
-	ConfigFile = cfg.File
-
 	// NewControllerManagedBy returns a new controller builder that will be started by the provided Manager.
 	NewControllerManagedBy = builder.ControllerManagedBy
 
@@ -130,8 +122,8 @@ var (
 	// there is another OwnerReference with Controller flag set.
 	SetControllerReference = controllerutil.SetControllerReference
 
-	// SetupSignalHandler registered for SIGTERM and SIGINT. A stop channel is returned
-	// which is closed on one of these signals. If a second signal is caught, the program
+	// SetupSignalHandler registers for SIGTERM and SIGINT. A context is returned
+	// which is canceled on one of these signals. If a second signal is caught, the program
 	// is terminated with exit code 1.
 	SetupSignalHandler = signals.SetupSignalHandler
 

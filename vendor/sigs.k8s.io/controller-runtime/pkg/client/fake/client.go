@@ -30,7 +30,9 @@ import (
 	"time"
 
 	// Using v4 to match upstream
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "gopkg.in/evanphx/json-patch.v4"
+	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
@@ -50,6 +52,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/testing"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -65,16 +68,21 @@ type versionedTracker struct {
 }
 
 type fakeClient struct {
-	tracker               versionedTracker
-	scheme                *runtime.Scheme
+	// trackerWriteLock must be acquired before writing to
+	// the tracker or performing reads that affect a following
+	// write.
+	trackerWriteLock sync.Mutex
+	tracker          versionedTracker
+
+	schemeWriteLock sync.Mutex
+	scheme          *runtime.Scheme
+
 	restMapper            meta.RESTMapper
 	withStatusSubresource sets.Set[schema.GroupVersionKind]
 
 	// indexes maps each GroupVersionKind (GVK) to the indexes registered for that GVK.
 	// The inner map maps from index name to IndexerFunc.
 	indexes map[schema.GroupVersionKind]map[string]client.IndexerFunc
-
-	schemeWriteLock sync.Mutex
 }
 
 var _ client.WithWatch = &fakeClient{}
@@ -83,6 +91,8 @@ const (
 	maxNameLength          = 63
 	randomLength           = 5
 	maxGeneratedNameLength = maxNameLength - randomLength
+
+	subResourceScale = "scale"
 )
 
 // NewFakeClient creates a new fake client for testing.
@@ -301,7 +311,7 @@ func (t versionedTracker) Add(obj runtime.Object) error {
 	return nil
 }
 
-func (t versionedTracker) Create(gvr schema.GroupVersionResource, obj runtime.Object, ns string) error {
+func (t versionedTracker) Create(gvr schema.GroupVersionResource, obj runtime.Object, ns string, opts ...metav1.CreateOptions) error {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return fmt.Errorf("failed to get accessor for object: %w", err)
@@ -320,7 +330,7 @@ func (t versionedTracker) Create(gvr schema.GroupVersionResource, obj runtime.Ob
 	if err != nil {
 		return err
 	}
-	if err := t.ObjectTracker.Create(gvr, obj, ns); err != nil {
+	if err := t.ObjectTracker.Create(gvr, obj, ns, opts...); err != nil {
 		accessor.SetResourceVersion("")
 		return err
 	}
@@ -359,24 +369,59 @@ func convertFromUnstructuredIfNecessary(s *runtime.Scheme, o runtime.Object) (ru
 	return typed, nil
 }
 
-func (t versionedTracker) Update(gvr schema.GroupVersionResource, obj runtime.Object, ns string) error {
+func (t versionedTracker) Update(gvr schema.GroupVersionResource, obj runtime.Object, ns string, opts ...metav1.UpdateOptions) error {
+	updateOpts, err := getSingleOrZeroOptions(opts)
+	if err != nil {
+		return err
+	}
+
+	return t.update(gvr, obj, ns, false, false, updateOpts)
+}
+
+func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Object, ns string, isStatus, deleting bool, opts metav1.UpdateOptions) error {
+	obj, err := t.updateObject(gvr, obj, ns, isStatus, deleting, opts.DryRun)
+	if err != nil {
+		return err
+	}
+	if obj == nil {
+		return nil
+	}
+
+	return t.ObjectTracker.Update(gvr, obj, ns, opts)
+}
+
+func (t versionedTracker) Patch(gvr schema.GroupVersionResource, obj runtime.Object, ns string, opts ...metav1.PatchOptions) error {
+	patchOptions, err := getSingleOrZeroOptions(opts)
+	if err != nil {
+		return err
+	}
+
 	isStatus := false
-	// We apply patches using a client-go reaction that ends up calling the trackers Update. As we can't change
+	// We apply patches using a client-go reaction that ends up calling the trackers Patch. As we can't change
 	// that reaction, we use the callstack to figure out if this originated from the status client.
 	if bytes.Contains(debug.Stack(), []byte("sigs.k8s.io/controller-runtime/pkg/client/fake.(*fakeSubResourceClient).statusPatch")) {
 		isStatus = true
 	}
-	return t.update(gvr, obj, ns, isStatus, false)
+
+	obj, err = t.updateObject(gvr, obj, ns, isStatus, false, patchOptions.DryRun)
+	if err != nil {
+		return err
+	}
+	if obj == nil {
+		return nil
+	}
+
+	return t.ObjectTracker.Patch(gvr, obj, ns, patchOptions)
 }
 
-func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Object, ns string, isStatus bool, deleting bool) error {
+func (t versionedTracker) updateObject(gvr schema.GroupVersionResource, obj runtime.Object, ns string, isStatus, deleting bool, dryRun []string) (runtime.Object, error) {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
-		return fmt.Errorf("failed to get accessor for object: %w", err)
+		return nil, fmt.Errorf("failed to get accessor for object: %w", err)
 	}
 
 	if accessor.GetName() == "" {
-		return apierrors.NewInvalid(
+		return nil, apierrors.NewInvalid(
 			obj.GetObjectKind().GroupVersionKind().GroupKind(),
 			accessor.GetName(),
 			field.ErrorList{field.Required(field.NewPath("metadata.name"), "name is required")})
@@ -384,7 +429,7 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 
 	gvk, err := apiutil.GVKForObject(obj, t.scheme)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	oldObject, err := t.ObjectTracker.Get(gvr, ns, accessor.GetName())
@@ -392,65 +437,75 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 		// If the resource is not found and the resource allows create on update, issue a
 		// create instead.
 		if apierrors.IsNotFound(err) && allowsCreateOnUpdate(gvk) {
-			return t.Create(gvr, obj, ns)
+			return nil, t.Create(gvr, obj, ns)
 		}
-		return err
+		return nil, err
 	}
 
 	if t.withStatusSubresource.Has(gvk) {
 		if isStatus { // copy everything but status and metadata.ResourceVersion from original object
 			if err := copyStatusFrom(obj, oldObject); err != nil {
-				return fmt.Errorf("failed to copy non-status field for object with status subresouce: %w", err)
+				return nil, fmt.Errorf("failed to copy non-status field for object with status subresouce: %w", err)
 			}
 			passedRV := accessor.GetResourceVersion()
 			if err := copyFrom(oldObject, obj); err != nil {
-				return fmt.Errorf("failed to restore non-status fields: %w", err)
+				return nil, fmt.Errorf("failed to restore non-status fields: %w", err)
 			}
 			accessor.SetResourceVersion(passedRV)
 		} else { // copy status from original object
 			if err := copyStatusFrom(oldObject, obj); err != nil {
-				return fmt.Errorf("failed to copy the status for object with status subresource: %w", err)
+				return nil, fmt.Errorf("failed to copy the status for object with status subresource: %w", err)
 			}
 		}
 	} else if isStatus {
-		return apierrors.NewNotFound(gvr.GroupResource(), accessor.GetName())
+		return nil, apierrors.NewNotFound(gvr.GroupResource(), accessor.GetName())
 	}
 
 	oldAccessor, err := meta.Accessor(oldObject)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If the new object does not have the resource version set and it allows unconditional update,
 	// default it to the resource version of the existing resource
-	if accessor.GetResourceVersion() == "" && allowsUnconditionalUpdate(gvk) {
-		accessor.SetResourceVersion(oldAccessor.GetResourceVersion())
+	if accessor.GetResourceVersion() == "" {
+		switch {
+		case allowsUnconditionalUpdate(gvk):
+			accessor.SetResourceVersion(oldAccessor.GetResourceVersion())
+			// This is needed because if the patch explicitly sets the RV to null, the client-go reaction we use
+			// to apply it and whose output we process here will have it unset. It is not clear why the Kubernetes
+			// apiserver accepts such a patch, but it does so we just copy that behavior.
+			// Kubernetes apiserver behavior can be checked like this:
+			// `kubectl patch configmap foo --patch '{"metadata":{"annotations":{"foo":"bar"},"resourceVersion":null}}' -v=9`
+		case bytes.
+			Contains(debug.Stack(), []byte("sigs.k8s.io/controller-runtime/pkg/client/fake.(*fakeClient).Patch")):
+			// We apply patches using a client-go reaction that ends up calling the trackers Update. As we can't change
+			// that reaction, we use the callstack to figure out if this originated from the "fakeClient.Patch" func.
+			accessor.SetResourceVersion(oldAccessor.GetResourceVersion())
+		}
 	}
+
 	if accessor.GetResourceVersion() != oldAccessor.GetResourceVersion() {
-		return apierrors.NewConflict(gvr.GroupResource(), accessor.GetName(), errors.New("object was modified"))
+		return nil, apierrors.NewConflict(gvr.GroupResource(), accessor.GetName(), errors.New("object was modified"))
 	}
 	if oldAccessor.GetResourceVersion() == "" {
 		oldAccessor.SetResourceVersion("0")
 	}
 	intResourceVersion, err := strconv.ParseUint(oldAccessor.GetResourceVersion(), 10, 64)
 	if err != nil {
-		return fmt.Errorf("can not convert resourceVersion %q to int: %w", oldAccessor.GetResourceVersion(), err)
+		return nil, fmt.Errorf("can not convert resourceVersion %q to int: %w", oldAccessor.GetResourceVersion(), err)
 	}
 	intResourceVersion++
 	accessor.SetResourceVersion(strconv.FormatUint(intResourceVersion, 10))
 
 	if !deleting && !deletionTimestampEqual(accessor, oldAccessor) {
-		return fmt.Errorf("error: Unable to edit %s: metadata.deletionTimestamp field is immutable", accessor.GetName())
+		return nil, fmt.Errorf("error: Unable to edit %s: metadata.deletionTimestamp field is immutable", accessor.GetName())
 	}
 
 	if !accessor.GetDeletionTimestamp().IsZero() && len(accessor.GetFinalizers()) == 0 {
-		return t.ObjectTracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+		return nil, t.ObjectTracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName(), metav1.DeleteOptions{DryRun: dryRun})
 	}
-	obj, err = convertFromUnstructuredIfNecessary(t.scheme, obj)
-	if err != nil {
-		return err
-	}
-	return t.ObjectTracker.Update(gvr, obj, ns)
+	return convertFromUnstructuredIfNecessary(t.scheme, obj)
 }
 
 func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
@@ -463,7 +518,10 @@ func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.O
 		return err
 	}
 
-	if _, isUnstructured := obj.(runtime.Unstructured); isUnstructured {
+	_, isUnstructured := obj.(runtime.Unstructured)
+	_, isPartialObject := obj.(*metav1.PartialObjectMetadata)
+
+	if isUnstructured || isPartialObject {
 		gvk, err := apiutil.GVKForObject(obj, c.scheme)
 		if err != nil {
 			return err
@@ -684,6 +742,8 @@ func (c *fakeClient) Create(ctx context.Context, obj client.Object, opts ...clie
 		accessor.SetDeletionTimestamp(nil)
 	}
 
+	c.trackerWriteLock.Lock()
+	defer c.trackerWriteLock.Unlock()
 	return c.tracker.Create(gvr, obj, accessor.GetNamespace())
 }
 
@@ -705,6 +765,8 @@ func (c *fakeClient) Delete(ctx context.Context, obj client.Object, opts ...clie
 		}
 	}
 
+	c.trackerWriteLock.Lock()
+	defer c.trackerWriteLock.Unlock()
 	// Check the ResourceVersion if that Precondition was specified.
 	if delOptions.Preconditions != nil && delOptions.Preconditions.ResourceVersion != nil {
 		name := accessor.GetName()
@@ -727,7 +789,7 @@ func (c *fakeClient) Delete(ctx context.Context, obj client.Object, opts ...clie
 		}
 	}
 
-	return c.deleteObject(gvr, accessor)
+	return c.deleteObjectLocked(gvr, accessor)
 }
 
 func (c *fakeClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
@@ -744,6 +806,9 @@ func (c *fakeClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ..
 			return nil
 		}
 	}
+
+	c.trackerWriteLock.Lock()
+	defer c.trackerWriteLock.Unlock()
 
 	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
 	o, err := c.tracker.List(gvr, gvk, dcOptions.Namespace)
@@ -764,7 +829,7 @@ func (c *fakeClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ..
 		if err != nil {
 			return err
 		}
-		err = c.deleteObject(gvr, accessor)
+		err = c.deleteObjectLocked(gvr, accessor)
 		if err != nil {
 			return err
 		}
@@ -794,7 +859,10 @@ func (c *fakeClient) update(obj client.Object, isStatus bool, opts ...client.Upd
 	if err != nil {
 		return err
 	}
-	return c.tracker.update(gvr, obj, accessor.GetNamespace(), isStatus, false)
+
+	c.trackerWriteLock.Lock()
+	defer c.trackerWriteLock.Unlock()
+	return c.tracker.update(gvr, obj, accessor.GetNamespace(), isStatus, false, *updateOptions.AsUpdateOptions())
 }
 
 func (c *fakeClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
@@ -829,6 +897,8 @@ func (c *fakeClient) patch(obj client.Object, patch client.Patch, opts ...client
 		return err
 	}
 
+	c.trackerWriteLock.Lock()
+	defer c.trackerWriteLock.Unlock()
 	oldObj, err := c.tracker.Get(gvr, accessor.GetNamespace(), accessor.GetName())
 	if err != nil {
 		return err
@@ -1037,7 +1107,7 @@ func (c *fakeClient) SubResource(subResource string) client.SubResourceClient {
 	return &fakeSubResourceClient{client: c, subResource: subResource}
 }
 
-func (c *fakeClient) deleteObject(gvr schema.GroupVersionResource, accessor metav1.Object) error {
+func (c *fakeClient) deleteObjectLocked(gvr schema.GroupVersionResource, accessor metav1.Object) error {
 	old, err := c.tracker.Get(gvr, accessor.GetNamespace(), accessor.GetName())
 	if err == nil {
 		oldAccessor, err := meta.Accessor(old)
@@ -1047,7 +1117,7 @@ func (c *fakeClient) deleteObject(gvr schema.GroupVersionResource, accessor meta
 				oldAccessor.SetDeletionTimestamp(&now)
 				// Call update directly with mutability parameter set to true to allow
 				// changes to deletionTimestamp
-				return c.tracker.update(gvr, old, accessor.GetNamespace(), false, true)
+				return c.tracker.update(gvr, old, accessor.GetNamespace(), false, true, metav1.UpdateOptions{})
 			}
 		}
 	}
@@ -1071,7 +1141,26 @@ type fakeSubResourceClient struct {
 }
 
 func (sw *fakeSubResourceClient) Get(ctx context.Context, obj, subResource client.Object, opts ...client.SubResourceGetOption) error {
-	panic("fakeSubResourceClient does not support get")
+	switch sw.subResource {
+	case subResourceScale:
+		// Actual client looks up resource, then extracts the scale sub-resource:
+		// https://github.com/kubernetes/kubernetes/blob/fb6bbc9781d11a87688c398778525c4e1dcb0f08/pkg/registry/apps/deployment/storage/storage.go#L307
+		if err := sw.client.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+			return err
+		}
+		scale, isScale := subResource.(*autoscalingv1.Scale)
+		if !isScale {
+			return apierrors.NewBadRequest(fmt.Sprintf("expected Scale, got %t", subResource))
+		}
+		scaleOut, err := extractScale(obj)
+		if err != nil {
+			return err
+		}
+		*scale = *scaleOut
+		return nil
+	default:
+		return fmt.Errorf("fakeSubResourceClient does not support get for %s", sw.subResource)
+	}
 }
 
 func (sw *fakeSubResourceClient) Create(ctx context.Context, obj client.Object, subResource client.Object, opts ...client.SubResourceCreateOption) error {
@@ -1098,11 +1187,30 @@ func (sw *fakeSubResourceClient) Update(ctx context.Context, obj client.Object, 
 	updateOptions := client.SubResourceUpdateOptions{}
 	updateOptions.ApplyOptions(opts)
 
-	body := obj
-	if updateOptions.SubResourceBody != nil {
-		body = updateOptions.SubResourceBody
+	switch sw.subResource {
+	case subResourceScale:
+		if err := sw.client.Get(ctx, client.ObjectKeyFromObject(obj), obj.DeepCopyObject().(client.Object)); err != nil {
+			return err
+		}
+		if updateOptions.SubResourceBody == nil {
+			return apierrors.NewBadRequest("missing SubResourceBody")
+		}
+
+		scale, isScale := updateOptions.SubResourceBody.(*autoscalingv1.Scale)
+		if !isScale {
+			return apierrors.NewBadRequest(fmt.Sprintf("expected Scale, got %t", updateOptions.SubResourceBody))
+		}
+		if err := applyScale(obj, scale); err != nil {
+			return err
+		}
+		return sw.client.update(obj, false, &updateOptions.UpdateOptions)
+	default:
+		body := obj
+		if updateOptions.SubResourceBody != nil {
+			body = updateOptions.SubResourceBody
+		}
+		return sw.client.update(body, true, &updateOptions.UpdateOptions)
 	}
-	return sw.client.update(body, true, &updateOptions.UpdateOptions)
 }
 
 func (sw *fakeSubResourceClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
@@ -1268,4 +1376,139 @@ func zero(x interface{}) {
 	}
 	res := reflect.ValueOf(x).Elem()
 	res.Set(reflect.Zero(res.Type()))
+}
+
+// getSingleOrZeroOptions returns the single options value in the slice, its
+// zero value if the slice is empty, or an error if the slice contains more than
+// one option value.
+func getSingleOrZeroOptions[T any](opts []T) (opt T, err error) {
+	switch len(opts) {
+	case 0:
+	case 1:
+		opt = opts[0]
+	default:
+		err = fmt.Errorf("expected single or no options value, got %d values", len(opts))
+	}
+	return
+}
+
+func extractScale(obj client.Object) (*autoscalingv1.Scale, error) {
+	switch obj := obj.(type) {
+	case *appsv1.Deployment:
+		var replicas int32 = 1
+		if obj.Spec.Replicas != nil {
+			replicas = *obj.Spec.Replicas
+		}
+		var selector string
+		if obj.Spec.Selector != nil {
+			selector = obj.Spec.Selector.String()
+		}
+		return &autoscalingv1.Scale{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:         obj.Namespace,
+				Name:              obj.Name,
+				UID:               obj.UID,
+				ResourceVersion:   obj.ResourceVersion,
+				CreationTimestamp: obj.CreationTimestamp,
+			},
+			Spec: autoscalingv1.ScaleSpec{
+				Replicas: replicas,
+			},
+			Status: autoscalingv1.ScaleStatus{
+				Replicas: obj.Status.Replicas,
+				Selector: selector,
+			},
+		}, nil
+	case *appsv1.ReplicaSet:
+		var replicas int32 = 1
+		if obj.Spec.Replicas != nil {
+			replicas = *obj.Spec.Replicas
+		}
+		var selector string
+		if obj.Spec.Selector != nil {
+			selector = obj.Spec.Selector.String()
+		}
+		return &autoscalingv1.Scale{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:         obj.Namespace,
+				Name:              obj.Name,
+				UID:               obj.UID,
+				ResourceVersion:   obj.ResourceVersion,
+				CreationTimestamp: obj.CreationTimestamp,
+			},
+			Spec: autoscalingv1.ScaleSpec{
+				Replicas: replicas,
+			},
+			Status: autoscalingv1.ScaleStatus{
+				Replicas: obj.Status.Replicas,
+				Selector: selector,
+			},
+		}, nil
+	case *corev1.ReplicationController:
+		var replicas int32 = 1
+		if obj.Spec.Replicas != nil {
+			replicas = *obj.Spec.Replicas
+		}
+		return &autoscalingv1.Scale{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:         obj.Namespace,
+				Name:              obj.Name,
+				UID:               obj.UID,
+				ResourceVersion:   obj.ResourceVersion,
+				CreationTimestamp: obj.CreationTimestamp,
+			},
+			Spec: autoscalingv1.ScaleSpec{
+				Replicas: replicas,
+			},
+			Status: autoscalingv1.ScaleStatus{
+				Replicas: obj.Status.Replicas,
+				Selector: labels.Set(obj.Spec.Selector).String(),
+			},
+		}, nil
+	case *appsv1.StatefulSet:
+		var replicas int32 = 1
+		if obj.Spec.Replicas != nil {
+			replicas = *obj.Spec.Replicas
+		}
+		var selector string
+		if obj.Spec.Selector != nil {
+			selector = obj.Spec.Selector.String()
+		}
+		return &autoscalingv1.Scale{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:         obj.Namespace,
+				Name:              obj.Name,
+				UID:               obj.UID,
+				ResourceVersion:   obj.ResourceVersion,
+				CreationTimestamp: obj.CreationTimestamp,
+			},
+			Spec: autoscalingv1.ScaleSpec{
+				Replicas: replicas,
+			},
+			Status: autoscalingv1.ScaleStatus{
+				Replicas: obj.Status.Replicas,
+				Selector: selector,
+			},
+		}, nil
+	default:
+		// TODO: CRDs https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource
+		return nil, fmt.Errorf("unimplemented scale subresource for resource %T", obj)
+	}
+}
+
+func applyScale(obj client.Object, scale *autoscalingv1.Scale) error {
+	switch obj := obj.(type) {
+	case *appsv1.Deployment:
+		obj.Spec.Replicas = ptr.To(scale.Spec.Replicas)
+	case *appsv1.ReplicaSet:
+		obj.Spec.Replicas = ptr.To(scale.Spec.Replicas)
+	case *corev1.ReplicationController:
+		obj.Spec.Replicas = ptr.To(scale.Spec.Replicas)
+	case *appsv1.StatefulSet:
+		obj.Spec.Replicas = ptr.To(scale.Spec.Replicas)
+	default:
+		// TODO: CRDs https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource
+		return fmt.Errorf("unimplemented scale subresource for resource %T", obj)
+	}
+	return nil
 }

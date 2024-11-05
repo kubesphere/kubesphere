@@ -19,6 +19,7 @@ package cel
 import (
 	"context"
 	"fmt"
+	"time"
 
 	celgo "github.com/google/cel-go/cel"
 
@@ -28,13 +29,36 @@ import (
 
 type CELMatcher struct {
 	CompilationResults []CompilationResult
+
+	// These track if any expressions use fieldSelector and labelSelector,
+	// so construction of data passed to the CEL expression can be optimized if those fields are unused.
+	UsesLabelSelector bool
+	UsesFieldSelector bool
+
+	// These are optional fields which can be populated if metrics reporting is desired
+	Metrics        MatcherMetrics
+	AuthorizerType string
+	AuthorizerName string
 }
 
 // eval evaluates the given SubjectAccessReview against all cel matchCondition expression
 func (c *CELMatcher) Eval(ctx context.Context, r *authorizationv1.SubjectAccessReview) (bool, error) {
 	var evalErrors []error
+
+	metrics := c.Metrics
+	if metrics == nil {
+		metrics = NoopMatcherMetrics{}
+	}
+	start := time.Now()
+	defer func() {
+		metrics.RecordAuthorizationMatchConditionEvaluation(ctx, c.AuthorizerType, c.AuthorizerName, time.Since(start))
+		if len(evalErrors) > 0 {
+			metrics.RecordAuthorizationMatchConditionEvaluationFailure(ctx, c.AuthorizerType, c.AuthorizerName)
+		}
+	}()
+
 	va := map[string]interface{}{
-		"request": convertObjectToUnstructured(&r.Spec),
+		"request": convertObjectToUnstructured(&r.Spec, c.UsesFieldSelector, c.UsesLabelSelector),
 	}
 	for _, compilationResult := range c.CompilationResults {
 		evalResult, _, err := compilationResult.Program.ContextEval(ctx, va)
@@ -54,6 +78,7 @@ func (c *CELMatcher) Eval(ctx context.Context, r *authorizationv1.SubjectAccessR
 		// If at least one matchCondition successfully evaluates to FALSE,
 		// return early
 		if !match {
+			metrics.RecordAuthorizationMatchConditionExclusion(ctx, c.AuthorizerType, c.AuthorizerName)
 			return false, nil
 		}
 	}

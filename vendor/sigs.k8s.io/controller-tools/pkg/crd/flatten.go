@@ -147,6 +147,8 @@ func flattenAllOfInto(dst *apiext.JSONSchemaProps, src apiext.JSONSchemaProps, e
 			dstField.Set(srcField)
 		case "XMapType":
 			dstField.Set(srcField)
+		case "XValidations":
+			dstField.Set(reflect.AppendSlice(srcField, dstField))
 		// NB(directxman12): no need to explicitly handle nullable -- false is considered to be the zero value
 		// TODO(directxman12): src isn't necessarily the field value -- it's just the most recent allOf entry
 		default:

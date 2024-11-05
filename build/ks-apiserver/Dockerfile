@@ -1,5 +1,5 @@
 # Build
-FROM golang:1.21.5 AS build_context
+FROM golang:1.22.8 AS build_context
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin/
@@ -14,7 +14,7 @@ RUN mv /workspace/bin/cmd/ks-apiserver ${OUTDIR}/usr/local/bin/
 # Final image
 #############
 
-FROM alpine:3.18.3
+FROM alpine:3.20.3
 
 COPY --from=build_context /out/ /
 

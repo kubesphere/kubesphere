@@ -364,6 +364,13 @@ type IsObjectStmt struct {
 	Location
 }
 
+// IsSetStmt represents a dynamic type check on a local variable.
+type IsSetStmt struct {
+	Source Operand `json:"source"`
+
+	Location
+}
+
 // IsDefinedStmt represents a check of whether a local variable is defined.
 type IsDefinedStmt struct {
 	Source Local `json:"source"`

@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"io"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
 )
@@ -126,21 +127,37 @@ func (l *StandardLogger) GetLevel() Level {
 
 // Debug logs at debug level
 func (l *StandardLogger) Debug(fmt string, a ...interface{}) {
+	if len(a) == 0 {
+		l.logger.WithFields(l.getFields()).Debug(fmt)
+		return
+	}
 	l.logger.WithFields(l.getFields()).Debugf(fmt, a...)
 }
 
 // Info logs at info level
 func (l *StandardLogger) Info(fmt string, a ...interface{}) {
+	if len(a) == 0 {
+		l.logger.WithFields(l.getFields()).Info(fmt)
+		return
+	}
 	l.logger.WithFields(l.getFields()).Infof(fmt, a...)
 }
 
 // Error logs at error level
 func (l *StandardLogger) Error(fmt string, a ...interface{}) {
+	if len(a) == 0 {
+		l.logger.WithFields(l.getFields()).Error(fmt)
+		return
+	}
 	l.logger.WithFields(l.getFields()).Errorf(fmt, a...)
 }
 
 // Warn logs at warn level
 func (l *StandardLogger) Warn(fmt string, a ...interface{}) {
+	if len(a) == 0 {
+		l.logger.WithFields(l.getFields()).Warn(fmt)
+		return
+	}
 	l.logger.WithFields(l.getFields()).Warnf(fmt, a...)
 }
 
@@ -194,10 +211,15 @@ const reqCtxKey = requestContextKey("request-context-key")
 // RequestContext represents the request context used to store data
 // related to the request that could be used on logs.
 type RequestContext struct {
-	ClientAddr string
-	ReqID      uint64
-	ReqMethod  string
-	ReqPath    string
+	ClientAddr         string
+	ReqID              uint64
+	ReqMethod          string
+	ReqPath            string
+	HTTPRequestContext HTTPRequestContext
+}
+
+type HTTPRequestContext struct {
+	Header http.Header
 }
 
 // Fields adapts the RequestContext fields to logrus.Fields.
@@ -218,6 +240,17 @@ func NewContext(parent context.Context, val *RequestContext) context.Context {
 // FromContext returns the RequestContext associated with ctx, if any.
 func FromContext(ctx context.Context) (*RequestContext, bool) {
 	requestContext, ok := ctx.Value(reqCtxKey).(*RequestContext)
+	return requestContext, ok
+}
+
+const httpReqCtxKey = requestContextKey("http-request-context-key")
+
+func WithHTTPRequestContext(parent context.Context, val *HTTPRequestContext) context.Context {
+	return context.WithValue(parent, httpReqCtxKey, val)
+}
+
+func HTTPRequestContextFromContext(ctx context.Context) (*HTTPRequestContext, bool) {
+	requestContext, ok := ctx.Value(httpReqCtxKey).(*HTTPRequestContext)
 	return requestContext, ok
 }
 

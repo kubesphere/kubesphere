@@ -388,7 +388,6 @@ func (v markerSubVisitor) Visit(node ast.Node) ast.Visitor {
 	v.commentInd = lastCommentInd + 1
 
 	return resVisitor
-
 }
 
 // associatedCommentsFor returns the doc comment group (if relevant and present) and end-of-line comment

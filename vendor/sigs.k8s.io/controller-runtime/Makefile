@@ -24,6 +24,11 @@
 SHELL:=/usr/bin/env bash
 .DEFAULT_GOAL:=help
 
+#
+# Go.
+#
+GO_VERSION ?= 1.22.5
+
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
 ifeq ($(GOPROXY),)
@@ -34,14 +39,22 @@ export GOPROXY
 # Active module mode, as we use go modules to manage dependencies
 export GO111MODULE=on
 
+# Hosts running SELinux need :z added to volume mounts
+SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
+
+ifeq ($(SELINUX_ENABLED),1)
+  DOCKER_VOL_OPTS?=:z
+endif
+
 # Tools.
 TOOLS_DIR := hack/tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 ENVTEST_DIR := $(abspath tools/setup-envtest)
 SCRATCH_ENV_DIR := $(abspath examples/scratch-env)
+GO_INSTALL := ./hack/go-install.sh
 
 # The help will print out all targets with their descriptions organized bellow their categories. The categories are represented by `##@` and the target descriptions by `##`.
 # The awk commands is responsible to read the entire set of makefiles included in this invocation, looking for lines of the file as xyz: ## something, and then pretty-format the target and help. Then, if there's a line with ##@ something, that gets pretty-printed as a category.
@@ -67,16 +80,36 @@ test-tools: ## tests the tools codebase (setup-envtest)
 ## Binaries
 ## --------------------------------------
 
-$(GO_APIDIFF): $(TOOLS_DIR)/go.mod # Build go-apidiff from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o bin/go-apidiff github.com/joelanford/go-apidiff
+GO_APIDIFF_VER := v0.8.2
+GO_APIDIFF_BIN := go-apidiff
+GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
+GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
-$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o bin/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+$(GO_APIDIFF): # Build go-apidiff from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GO_APIDIFF_PKG) $(GO_APIDIFF_BIN) $(GO_APIDIFF_VER)
 
-$(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golanci-lint using hack script into tools folder.
-	hack/ensure-golangci-lint.sh \
-		-b $(TOOLS_BIN_DIR) \
-		$(shell cat .github/workflows/golangci-lint.yml | grep "version: v" | sed 's/.*version: //')
+CONTROLLER_GEN_VER := v0.14.0
+CONTROLLER_GEN_BIN := controller-gen
+CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
+CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
+
+$(CONTROLLER_GEN): # Build controller-gen from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT_VER := $(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version: | sed 's/.*version: //')
+GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
+GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+
+$(GOLANGCI_LINT): # Build golangci-lint from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
+
+GO_MOD_CHECK_DIR := $(abspath ./hack/tools/cmd/gomodcheck)
+GO_MOD_CHECK := $(abspath $(TOOLS_BIN_DIR)/gomodcheck)
+GO_MOD_CHECK_IGNORE := $(abspath .gomodcheck.yaml)
+.PHONY: $(GO_MOD_CHECK)
+$(GO_MOD_CHECK): # Build gomodcheck
+	go build -C $(GO_MOD_CHECK_DIR) -o $(GO_MOD_CHECK)
 
 ## --------------------------------------
 ## Linting
@@ -102,9 +135,47 @@ modules: ## Runs go mod to ensure modules are up to date.
 	cd $(ENVTEST_DIR); go mod tidy
 	cd $(SCRATCH_ENV_DIR); go mod tidy
 
-.PHONY: generate
-generate: $(CONTROLLER_GEN) ## Runs controller-gen for internal types for config file
-	$(CONTROLLER_GEN) object paths="./pkg/config/v1alpha1/...;./examples/configfile/custom/v1alpha1/..."
+## --------------------------------------
+## Release
+## --------------------------------------
+
+RELEASE_DIR := tools/setup-envtest/out
+
+.PHONY: $(RELEASE_DIR)
+$(RELEASE_DIR):
+	mkdir -p $(RELEASE_DIR)/
+
+.PHONY: release
+release: clean-release $(RELEASE_DIR) ## Build release.
+	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
+
+	# Build binaries first.
+	$(MAKE) release-binaries
+
+.PHONY: release-binaries
+release-binaries: ## Build release binaries.
+	RELEASE_BINARY=setup-envtest-linux-amd64       GOOS=linux   GOARCH=amd64   $(MAKE) release-binary
+	RELEASE_BINARY=setup-envtest-linux-arm64       GOOS=linux   GOARCH=arm64   $(MAKE) release-binary
+	RELEASE_BINARY=setup-envtest-linux-ppc64le     GOOS=linux   GOARCH=ppc64le $(MAKE) release-binary
+	RELEASE_BINARY=setup-envtest-linux-s390x       GOOS=linux   GOARCH=s390x   $(MAKE) release-binary
+	RELEASE_BINARY=setup-envtest-darwin-amd64      GOOS=darwin  GOARCH=amd64   $(MAKE) release-binary
+	RELEASE_BINARY=setup-envtest-darwin-arm64      GOOS=darwin  GOARCH=arm64   $(MAKE) release-binary
+	RELEASE_BINARY=setup-envtest-windows-amd64.exe GOOS=windows GOARCH=amd64   $(MAKE) release-binary
+
+.PHONY: release-binary
+release-binary: $(RELEASE_DIR)
+	docker run \
+		--rm \
+		-e CGO_ENABLED=0 \
+		-e GOOS=$(GOOS) \
+		-e GOARCH=$(GOARCH) \
+		-e GOCACHE=/tmp/ \
+		--user $$(id -u):$$(id -g) \
+		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
+		-w /workspace/tools/setup-envtest \
+		golang:$(GO_VERSION) \
+		go build -a -trimpath -ldflags "-extldflags '-static'" \
+		-o ./out/$(RELEASE_BINARY) ./
 
 ## --------------------------------------
 ## Cleanup / Verification
@@ -119,16 +190,29 @@ clean: ## Cleanup.
 clean-bin: ## Remove all generated binaries.
 	rm -rf hack/tools/bin
 
+.PHONY: clean-release
+clean-release: ## Remove the release folder
+	rm -rf $(RELEASE_DIR)
+
 .PHONY: verify-modules
-verify-modules: modules ## Verify go modules are up to date
+verify-modules: modules $(GO_MOD_CHECK) ## Verify go modules are up to date
 	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(ENVTEST_DIR)/go.mod $(ENVTEST_DIR)/go.sum $(SCRATCH_ENV_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date, please run 'make modules'"; exit 1; \
 	fi
+	$(GO_MOD_CHECK) $(GO_MOD_CHECK_IGNORE)
 
-.PHONY: verify-generate
-verify-generate: generate ## Verify generated files are up to date
-	@if !(git diff --quiet HEAD); then \
-		git diff; \
-		echo "generated files are out of date, run make generate"; exit 1; \
-	fi
+APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
+
+.PHONY: apidiff
+verify-apidiff: $(GO_APIDIFF) ## Check for API differences
+	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
+
+## --------------------------------------
+## Helpers
+## --------------------------------------
+
+##@ helpers:
+
+go-version: ## Print the go version we use to compile our binaries and images
+	@echo $(GO_VERSION)

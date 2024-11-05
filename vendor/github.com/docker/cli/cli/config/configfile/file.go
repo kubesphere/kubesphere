@@ -41,6 +41,7 @@ type ConfigFile struct {
 	CLIPluginsExtraDirs  []string                     `json:"cliPluginsExtraDirs,omitempty"`
 	Plugins              map[string]map[string]string `json:"plugins,omitempty"`
 	Aliases              map[string]string            `json:"aliases,omitempty"`
+	Features             map[string]string            `json:"features,omitempty"`
 }
 
 // ProxyConfig contains proxy configuration settings
@@ -302,6 +303,7 @@ func (configFile *ConfigFile) GetAllCredentials() (map[string]types.AuthConfig, 
 	for registryHostname := range configFile.CredentialHelpers {
 		newAuth, err := configFile.GetAuthConfig(registryHostname)
 		if err != nil {
+			// TODO(thaJeztah): use context-logger, so that this output can be suppressed (in tests).
 			logrus.WithError(err).Warnf("Failed to get credentials for registry: %s", registryHostname)
 			continue
 		}

@@ -7,14 +7,16 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
 var (
-	azureIMDSEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
-	defaultAPIVersion = "2018-02-01"
-	defaultResource   = "https://storage.azure.com/"
-	timeout           = 5 * time.Second
+	azureIMDSEndpoint                 = "http://169.254.169.254/metadata/identity/oauth2/token"
+	defaultAPIVersion                 = "2018-02-01"
+	defaultResource                   = "https://storage.azure.com/"
+	timeout                           = 5 * time.Second
+	defaultAPIVersionForAppServiceMsi = "2019-08-01"
 )
 
 // azureManagedIdentitiesToken holds a token for managed identities for Azure resources
@@ -41,12 +43,13 @@ func (e *azureManagedIdentitiesError) Error() string {
 
 // azureManagedIdentitiesAuthPlugin uses an azureManagedIdentitiesToken.AccessToken for bearer authorization
 type azureManagedIdentitiesAuthPlugin struct {
-	Endpoint   string `json:"endpoint"`
-	APIVersion string `json:"api_version"`
-	Resource   string `json:"resource"`
-	ObjectID   string `json:"object_id"`
-	ClientID   string `json:"client_id"`
-	MiResID    string `json:"mi_res_id"`
+	Endpoint         string `json:"endpoint"`
+	APIVersion       string `json:"api_version"`
+	Resource         string `json:"resource"`
+	ObjectID         string `json:"object_id"`
+	ClientID         string `json:"client_id"`
+	MiResID          string `json:"mi_res_id"`
+	UseAppServiceMsi bool   `json:"use_app_service_msi,omitempty"`
 }
 
 func (ap *azureManagedIdentitiesAuthPlugin) NewClient(c Config) (*http.Client, error) {
@@ -55,7 +58,13 @@ func (ap *azureManagedIdentitiesAuthPlugin) NewClient(c Config) (*http.Client, e
 	}
 
 	if ap.Endpoint == "" {
-		ap.Endpoint = azureIMDSEndpoint
+		identityEndpoint := os.Getenv("IDENTITY_ENDPOINT")
+		if identityEndpoint != "" {
+			ap.UseAppServiceMsi = true
+			ap.Endpoint = identityEndpoint
+		} else {
+			ap.Endpoint = azureIMDSEndpoint
+		}
 	}
 
 	if ap.Resource == "" {
@@ -63,7 +72,11 @@ func (ap *azureManagedIdentitiesAuthPlugin) NewClient(c Config) (*http.Client, e
 	}
 
 	if ap.APIVersion == "" {
-		ap.APIVersion = defaultAPIVersion
+		if ap.UseAppServiceMsi {
+			ap.APIVersion = defaultAPIVersionForAppServiceMsi
+		} else {
+			ap.APIVersion = defaultAPIVersion
+		}
 	}
 
 	t, err := DefaultTLSConfig(c)
@@ -78,6 +91,7 @@ func (ap *azureManagedIdentitiesAuthPlugin) Prepare(req *http.Request) error {
 	token, err := azureManagedIdentitiesTokenRequest(
 		ap.Endpoint, ap.APIVersion, ap.Resource,
 		ap.ObjectID, ap.ClientID, ap.MiResID,
+		ap.UseAppServiceMsi,
 	)
 	if err != nil {
 		return err
@@ -90,6 +104,7 @@ func (ap *azureManagedIdentitiesAuthPlugin) Prepare(req *http.Request) error {
 // azureManagedIdentitiesTokenRequest fetches an azureManagedIdentitiesToken
 func azureManagedIdentitiesTokenRequest(
 	endpoint, apiVersion, resource, objectID, clientID, miResID string,
+	useAppServiceMsi bool,
 ) (azureManagedIdentitiesToken, error) {
 	var token azureManagedIdentitiesToken
 	e := buildAzureManagedIdentitiesRequestPath(endpoint, apiVersion, resource, objectID, clientID, miResID)
@@ -98,7 +113,15 @@ func azureManagedIdentitiesTokenRequest(
 	if err != nil {
 		return token, err
 	}
-	request.Header.Add("Metadata", "true")
+	if useAppServiceMsi {
+		identityHeader := os.Getenv("IDENTITY_HEADER")
+		if identityHeader == "" {
+			return token, errors.New("azure managed identities auth: IDENTITY_HEADER env var not found")
+		}
+		request.Header.Add("x-identity-header", identityHeader)
+	} else {
+		request.Header.Add("Metadata", "true")
+	}
 
 	httpClient := http.Client{Timeout: timeout}
 	response, err := httpClient.Do(request)
