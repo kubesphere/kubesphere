@@ -59,9 +59,25 @@ func metadataPath(name string) storage.Path {
 	return append(BundlesBasePath, name, "manifest", "metadata")
 }
 
+func read(ctx context.Context, store storage.Store, txn storage.Transaction, path storage.Path) (interface{}, error) {
+	value, err := store.Read(ctx, txn, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if astValue, ok := value.(ast.Value); ok {
+		value, err = ast.JSON(astValue)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return value, nil
+}
+
 // ReadBundleNamesFromStore will return a list of bundle names which have had their metadata stored.
 func ReadBundleNamesFromStore(ctx context.Context, store storage.Store, txn storage.Transaction) ([]string, error) {
-	value, err := store.Read(ctx, txn, BundlesBasePath)
+	value, err := read(ctx, store, txn, BundlesBasePath)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +169,7 @@ func eraseWasmModulesFromStore(ctx context.Context, store storage.Store, txn sto
 // ReadWasmMetadataFromStore will read Wasm module resolver metadata from the store.
 func ReadWasmMetadataFromStore(ctx context.Context, store storage.Store, txn storage.Transaction, name string) ([]WasmResolver, error) {
 	path := wasmEntrypointsPath(name)
-	value, err := store.Read(ctx, txn, path)
+	value, err := read(ctx, store, txn, path)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +192,7 @@ func ReadWasmMetadataFromStore(ctx context.Context, store storage.Store, txn sto
 // ReadWasmModulesFromStore will write Wasm module resolver metadata from the store.
 func ReadWasmModulesFromStore(ctx context.Context, store storage.Store, txn storage.Transaction, name string) (map[string][]byte, error) {
 	path := wasmModulePath(name)
-	value, err := store.Read(ctx, txn, path)
+	value, err := read(ctx, store, txn, path)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +221,7 @@ func ReadWasmModulesFromStore(ctx context.Context, store storage.Store, txn stor
 // If the bundle is not activated, this function will return
 // storage NotFound error.
 func ReadBundleRootsFromStore(ctx context.Context, store storage.Store, txn storage.Transaction, name string) ([]string, error) {
-	value, err := store.Read(ctx, txn, rootsPath(name))
+	value, err := read(ctx, store, txn, rootsPath(name))
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +251,7 @@ func ReadBundleRevisionFromStore(ctx context.Context, store storage.Store, txn s
 }
 
 func readRevisionFromStore(ctx context.Context, store storage.Store, txn storage.Transaction, path storage.Path) (string, error) {
-	value, err := store.Read(ctx, txn, path)
+	value, err := read(ctx, store, txn, path)
 	if err != nil {
 		return "", err
 	}
@@ -256,7 +272,7 @@ func ReadBundleMetadataFromStore(ctx context.Context, store storage.Store, txn s
 }
 
 func readMetadataFromStore(ctx context.Context, store storage.Store, txn storage.Transaction, path storage.Path) (map[string]interface{}, error) {
-	value, err := store.Read(ctx, txn, path)
+	value, err := read(ctx, store, txn, path)
 	if err != nil {
 		return nil, suppressNotFound(err)
 	}
@@ -277,7 +293,7 @@ func ReadBundleEtagFromStore(ctx context.Context, store storage.Store, txn stora
 }
 
 func readEtagFromStore(ctx context.Context, store storage.Store, txn storage.Transaction, path storage.Path) (string, error) {
-	value, err := store.Read(ctx, txn, path)
+	value, err := read(ctx, store, txn, path)
 	if err != nil {
 		return "", err
 	}
@@ -544,14 +560,7 @@ func activateDeltaBundles(opts *ActivateOpts, bundles map[string]*Bundle) error 
 			return err
 		}
 
-		bs, err := json.Marshal(value)
-		if err != nil {
-			return fmt.Errorf("corrupt manifest data: %w", err)
-		}
-
-		var manifest Manifest
-
-		err = util.UnmarshalJSON(bs, &manifest)
+		manifest, err := valueToManifest(value)
 		if err != nil {
 			return fmt.Errorf("corrupt manifest data: %w", err)
 		}
@@ -583,6 +592,30 @@ func activateDeltaBundles(opts *ActivateOpts, bundles map[string]*Bundle) error 
 	}
 
 	return nil
+}
+
+func valueToManifest(v interface{}) (Manifest, error) {
+	if astV, ok := v.(ast.Value); ok {
+		var err error
+		v, err = ast.JSON(astV)
+		if err != nil {
+			return Manifest{}, err
+		}
+	}
+
+	var manifest Manifest
+
+	bs, err := json.Marshal(v)
+	if err != nil {
+		return Manifest{}, err
+	}
+
+	err = util.UnmarshalJSON(bs, &manifest)
+	if err != nil {
+		return Manifest{}, err
+	}
+
+	return manifest, nil
 }
 
 // erase bundles by name and roots. This will clear all policies and data at its roots and remove its

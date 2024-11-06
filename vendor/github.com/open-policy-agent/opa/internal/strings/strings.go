@@ -63,6 +63,14 @@ func TruncateFilePaths(maxIdealWidth, maxWidth int, path ...string) (map[string]
 	return result, longestLocation
 }
 
+func Truncate(str string, maxWidth int) string {
+	if len(str) <= maxWidth {
+		return str
+	}
+
+	return str[:maxWidth-3] + "..."
+}
+
 func getPathFromFirstSeparator(path string) string {
 	s := filepath.Dir(path)
 	s = strings.TrimPrefix(s, string(filepath.Separator))

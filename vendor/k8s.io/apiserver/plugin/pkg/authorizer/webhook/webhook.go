@@ -20,25 +20,31 @@ package webhook
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	authorizationv1beta1 "k8s.io/api/authorization/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/cache"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	apiservervalidation "k8s.io/apiserver/pkg/apis/apiserver/validation"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	authorizationcel "k8s.io/apiserver/pkg/authorization/cel"
-	"k8s.io/apiserver/pkg/features"
+	genericfeatures "k8s.io/apiserver/pkg/features"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/webhook"
+	"k8s.io/apiserver/plugin/pkg/authorizer/webhook/metrics"
 	"k8s.io/client-go/kubernetes/scheme"
 	authorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/rest"
@@ -70,13 +76,14 @@ type WebhookAuthorizer struct {
 	unauthorizedTTL     time.Duration
 	retryBackoff        wait.Backoff
 	decisionOnError     authorizer.Decision
-	metrics             AuthorizerMetrics
+	metrics             metrics.AuthorizerMetrics
 	celMatcher          *authorizationcel.CELMatcher
+	name                string
 }
 
 // NewFromInterface creates a WebhookAuthorizer using the given subjectAccessReview client
-func NewFromInterface(subjectAccessReview authorizationv1client.AuthorizationV1Interface, authorizedTTL, unauthorizedTTL time.Duration, retryBackoff wait.Backoff, decisionOnError authorizer.Decision, metrics AuthorizerMetrics) (*WebhookAuthorizer, error) {
-	return newWithBackoff(&subjectAccessReviewV1Client{subjectAccessReview.RESTClient()}, authorizedTTL, unauthorizedTTL, retryBackoff, decisionOnError, nil, metrics)
+func NewFromInterface(subjectAccessReview authorizationv1client.AuthorizationV1Interface, authorizedTTL, unauthorizedTTL time.Duration, retryBackoff wait.Backoff, decisionOnError authorizer.Decision, metrics metrics.AuthorizerMetrics) (*WebhookAuthorizer, error) {
+	return newWithBackoff(&subjectAccessReviewV1Client{subjectAccessReview.RESTClient()}, authorizedTTL, unauthorizedTTL, retryBackoff, decisionOnError, nil, metrics, "")
 }
 
 // New creates a new WebhookAuthorizer from the provided kubeconfig file.
@@ -98,23 +105,25 @@ func NewFromInterface(subjectAccessReview authorizationv1client.AuthorizationV1I
 //
 // For additional HTTP configuration, refer to the kubeconfig documentation
 // https://kubernetes.io/docs/user-guide/kubeconfig-file/.
-func New(config *rest.Config, version string, authorizedTTL, unauthorizedTTL time.Duration, retryBackoff wait.Backoff, decisionOnError authorizer.Decision, matchConditions []apiserver.WebhookMatchCondition) (*WebhookAuthorizer, error) {
+func New(config *rest.Config, version string, authorizedTTL, unauthorizedTTL time.Duration, retryBackoff wait.Backoff, decisionOnError authorizer.Decision, matchConditions []apiserver.WebhookMatchCondition, name string, metrics metrics.AuthorizerMetrics) (*WebhookAuthorizer, error) {
 	subjectAccessReview, err := subjectAccessReviewInterfaceFromConfig(config, version, retryBackoff)
 	if err != nil {
 		return nil, err
 	}
-	return newWithBackoff(subjectAccessReview, authorizedTTL, unauthorizedTTL, retryBackoff, decisionOnError, matchConditions, AuthorizerMetrics{
-		RecordRequestTotal:   noopMetrics{}.RecordRequestTotal,
-		RecordRequestLatency: noopMetrics{}.RecordRequestLatency,
-	})
+	return newWithBackoff(subjectAccessReview, authorizedTTL, unauthorizedTTL, retryBackoff, decisionOnError, matchConditions, metrics, name)
 }
 
 // newWithBackoff allows tests to skip the sleep.
-func newWithBackoff(subjectAccessReview subjectAccessReviewer, authorizedTTL, unauthorizedTTL time.Duration, retryBackoff wait.Backoff, decisionOnError authorizer.Decision, matchConditions []apiserver.WebhookMatchCondition, metrics AuthorizerMetrics) (*WebhookAuthorizer, error) {
+func newWithBackoff(subjectAccessReview subjectAccessReviewer, authorizedTTL, unauthorizedTTL time.Duration, retryBackoff wait.Backoff, decisionOnError authorizer.Decision, matchConditions []apiserver.WebhookMatchCondition, am metrics.AuthorizerMetrics, name string) (*WebhookAuthorizer, error) {
 	// compile all expressions once in validation and save the results to be used for eval later
 	cm, fieldErr := apiservervalidation.ValidateAndCompileMatchConditions(matchConditions)
 	if err := fieldErr.ToAggregate(); err != nil {
 		return nil, err
+	}
+	if cm != nil {
+		cm.AuthorizerType = "Webhook"
+		cm.AuthorizerName = name
+		cm.Metrics = am
 	}
 	return &WebhookAuthorizer{
 		subjectAccessReview: subjectAccessReview,
@@ -123,8 +132,9 @@ func newWithBackoff(subjectAccessReview subjectAccessReviewer, authorizedTTL, un
 		unauthorizedTTL:     unauthorizedTTL,
 		retryBackoff:        retryBackoff,
 		decisionOnError:     decisionOnError,
-		metrics:             metrics,
+		metrics:             am,
 		celMatcher:          cm,
+		name:                name,
 	}, nil
 }
 
@@ -187,15 +197,7 @@ func (w *WebhookAuthorizer) Authorize(ctx context.Context, attr authorizer.Attri
 	}
 
 	if attr.IsResourceRequest() {
-		r.Spec.ResourceAttributes = &authorizationv1.ResourceAttributes{
-			Namespace:   attr.GetNamespace(),
-			Verb:        attr.GetVerb(),
-			Group:       attr.GetAPIGroup(),
-			Version:     attr.GetAPIVersion(),
-			Resource:    attr.GetResource(),
-			Subresource: attr.GetSubresource(),
-			Name:        attr.GetName(),
-		}
+		r.Spec.ResourceAttributes = resourceAttributesFrom(attr)
 	} else {
 		r.Spec.NonResourceAttributes = &authorizationv1.NonResourceAttributes{
 			Path: attr.GetPath(),
@@ -203,7 +205,7 @@ func (w *WebhookAuthorizer) Authorize(ctx context.Context, attr authorizer.Attri
 		}
 	}
 	// skipping match when feature is not enabled
-	if utilfeature.DefaultFeatureGate.Enabled(features.StructuredAuthorizationConfiguration) {
+	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.StructuredAuthorizationConfiguration) {
 		// Process Match Conditions before calling the webhook
 		matches, err := w.match(ctx, r)
 		// If at least one matchCondition evaluates to an error (but none are FALSE):
@@ -228,6 +230,7 @@ func (w *WebhookAuthorizer) Authorize(ctx context.Context, attr authorizer.Attri
 		r.Status = entry.(authorizationv1.SubjectAccessReviewStatus)
 	} else {
 		var result *authorizationv1.SubjectAccessReview
+		var metricsResult string
 		// WithExponentialBackoff will return SAR create error (sarErr) if any.
 		if err := webhook.WithExponentialBackoff(ctx, w.retryBackoff, func() error {
 			var sarErr error
@@ -236,6 +239,19 @@ func (w *WebhookAuthorizer) Authorize(ctx context.Context, attr authorizer.Attri
 			start := time.Now()
 			result, statusCode, sarErr = w.subjectAccessReview.Create(ctx, r, metav1.CreateOptions{})
 			latency := time.Since(start)
+
+			switch {
+			case sarErr == nil:
+				metricsResult = "success"
+			case ctx.Err() != nil:
+				metricsResult = "canceled"
+			case utilnet.IsTimeout(sarErr) || errors.Is(sarErr, context.DeadlineExceeded) || apierrors.IsTimeout(sarErr) || statusCode == http.StatusGatewayTimeout:
+				metricsResult = "timeout"
+			default:
+				metricsResult = "error"
+			}
+			w.metrics.RecordWebhookEvaluation(ctx, w.name, metricsResult)
+			w.metrics.RecordWebhookDuration(ctx, w.name, metricsResult, latency.Seconds())
 
 			if statusCode != 0 {
 				w.metrics.RecordRequestTotal(ctx, strconv.Itoa(statusCode))
@@ -251,6 +267,12 @@ func (w *WebhookAuthorizer) Authorize(ctx context.Context, attr authorizer.Attri
 			return sarErr
 		}, webhook.DefaultShouldRetry); err != nil {
 			klog.Errorf("Failed to make webhook authorizer request: %v", err)
+
+			// we're returning NoOpinion, and the parent context has not timed out or been canceled
+			if w.decisionOnError == authorizer.DecisionNoOpinion && ctx.Err() == nil {
+				w.metrics.RecordWebhookFailOpen(ctx, w.name, metricsResult)
+			}
+
 			return w.decisionOnError, "", err
 		}
 
@@ -274,6 +296,109 @@ func (w *WebhookAuthorizer) Authorize(ctx context.Context, attr authorizer.Attri
 		return authorizer.DecisionNoOpinion, r.Status.Reason, nil
 	}
 
+}
+
+func resourceAttributesFrom(attr authorizer.Attributes) *authorizationv1.ResourceAttributes {
+	ret := &authorizationv1.ResourceAttributes{
+		Namespace:   attr.GetNamespace(),
+		Verb:        attr.GetVerb(),
+		Group:       attr.GetAPIGroup(),
+		Version:     attr.GetAPIVersion(),
+		Resource:    attr.GetResource(),
+		Subresource: attr.GetSubresource(),
+		Name:        attr.GetName(),
+	}
+
+	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.AuthorizeWithSelectors) {
+		// If we are able to get any requirements while parsing selectors, use them, even if there's an error.
+		// This is because selectors only narrow, so if a subset of selector requirements are available, the request can be allowed.
+		if selectorRequirements, _ := fieldSelectorToAuthorizationAPI(attr); len(selectorRequirements) > 0 {
+			ret.FieldSelector = &authorizationv1.FieldSelectorAttributes{
+				Requirements: selectorRequirements,
+			}
+		}
+
+		if selectorRequirements, _ := labelSelectorToAuthorizationAPI(attr); len(selectorRequirements) > 0 {
+			ret.LabelSelector = &authorizationv1.LabelSelectorAttributes{
+				Requirements: selectorRequirements,
+			}
+		}
+	}
+
+	return ret
+}
+
+func fieldSelectorToAuthorizationAPI(attr authorizer.Attributes) ([]metav1.FieldSelectorRequirement, error) {
+	requirements, getFieldSelectorErr := attr.GetFieldSelector()
+	if len(requirements) == 0 {
+		return nil, getFieldSelectorErr
+	}
+
+	retRequirements := []metav1.FieldSelectorRequirement{}
+	for _, requirement := range requirements {
+		retRequirement := metav1.FieldSelectorRequirement{}
+		switch {
+		case requirement.Operator == selection.Equals || requirement.Operator == selection.DoubleEquals || requirement.Operator == selection.In:
+			retRequirement.Operator = metav1.FieldSelectorOpIn
+			retRequirement.Key = requirement.Field
+			retRequirement.Values = []string{requirement.Value}
+		case requirement.Operator == selection.NotEquals || requirement.Operator == selection.NotIn:
+			retRequirement.Operator = metav1.FieldSelectorOpNotIn
+			retRequirement.Key = requirement.Field
+			retRequirement.Values = []string{requirement.Value}
+		default:
+			// ignore this particular requirement. since requirements are AND'd, it is safe to ignore unknown requirements
+			// for authorization since the resulting check will only be as broad or broader than the intended.
+			continue
+		}
+		retRequirements = append(retRequirements, retRequirement)
+	}
+
+	if len(retRequirements) == 0 {
+		// this means that all requirements were dropped (likely due to unknown operators), so we are checking the broader
+		// unrestricted action.
+		return nil, getFieldSelectorErr
+	}
+	return retRequirements, getFieldSelectorErr
+}
+
+func labelSelectorToAuthorizationAPI(attr authorizer.Attributes) ([]metav1.LabelSelectorRequirement, error) {
+	requirements, getLabelSelectorErr := attr.GetLabelSelector()
+	if len(requirements) == 0 {
+		return nil, getLabelSelectorErr
+	}
+
+	retRequirements := []metav1.LabelSelectorRequirement{}
+	for _, requirement := range requirements {
+		retRequirement := metav1.LabelSelectorRequirement{
+			Key: requirement.Key(),
+		}
+		if values := requirement.ValuesUnsorted(); len(values) > 0 {
+			retRequirement.Values = values
+		}
+		switch requirement.Operator() {
+		case selection.Equals, selection.DoubleEquals, selection.In:
+			retRequirement.Operator = metav1.LabelSelectorOpIn
+		case selection.NotEquals, selection.NotIn:
+			retRequirement.Operator = metav1.LabelSelectorOpNotIn
+		case selection.Exists:
+			retRequirement.Operator = metav1.LabelSelectorOpExists
+		case selection.DoesNotExist:
+			retRequirement.Operator = metav1.LabelSelectorOpDoesNotExist
+		default:
+			// ignore this particular requirement. since requirements are AND'd, it is safe to ignore unknown requirements
+			// for authorization since the resulting check will only be as broad or broader than the intended.
+			continue
+		}
+		retRequirements = append(retRequirements, retRequirement)
+	}
+
+	if len(retRequirements) == 0 {
+		// this means that all requirements were dropped (likely due to unknown operators), so we are checking the broader
+		// unrestricted action.
+		return nil, getLabelSelectorErr
+	}
+	return retRequirements, getLabelSelectorErr
 }
 
 // TODO: need to finish the method to get the rules when using webhook mode
@@ -446,13 +571,15 @@ func v1ResourceAttributesToV1beta1ResourceAttributes(in *authorizationv1.Resourc
 		return nil
 	}
 	return &authorizationv1beta1.ResourceAttributes{
-		Namespace:   in.Namespace,
-		Verb:        in.Verb,
-		Group:       in.Group,
-		Version:     in.Version,
-		Resource:    in.Resource,
-		Subresource: in.Subresource,
-		Name:        in.Name,
+		Namespace:     in.Namespace,
+		Verb:          in.Verb,
+		Group:         in.Group,
+		Version:       in.Version,
+		Resource:      in.Resource,
+		Subresource:   in.Subresource,
+		Name:          in.Name,
+		FieldSelector: in.FieldSelector,
+		LabelSelector: in.LabelSelector,
 	}
 }
 

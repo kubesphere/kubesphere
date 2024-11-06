@@ -46,6 +46,9 @@ var DefaultBindAddress = ":8080"
 
 // Server is a server that serves metrics.
 type Server interface {
+	// AddExtraHandler adds extra handler served on path to the http server that serves metrics.
+	AddExtraHandler(path string, handler http.Handler) error
+
 	// NeedLeaderElection implements the LeaderElectionRunnable interface, which indicates
 	// the metrics server doesn't need leader election.
 	NeedLeaderElection() bool
@@ -101,6 +104,9 @@ type Options struct {
 	// TLSOpts is used to allow configuring the TLS config used for the server.
 	// This also allows providing a certificate via GetCertificate.
 	TLSOpts []func(*tls.Config)
+
+	// ListenConfig contains options for listening to an address on the metric server.
+	ListenConfig net.ListenConfig
 }
 
 // Filter is a func that is added around metrics and extra handlers on the metrics server.
@@ -179,6 +185,23 @@ func (*defaultServer) NeedLeaderElection() bool {
 	return false
 }
 
+// AddExtraHandler adds extra handler served on path to the http server that serves metrics.
+func (s *defaultServer) AddExtraHandler(path string, handler http.Handler) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.options.ExtraHandlers == nil {
+		s.options.ExtraHandlers = make(map[string]http.Handler)
+	}
+	if path == defaultMetricsEndpoint {
+		return fmt.Errorf("overriding builtin %s endpoint is not allowed", defaultMetricsEndpoint)
+	}
+	if _, found := s.options.ExtraHandlers[path]; found {
+		return fmt.Errorf("can't register extra handler by duplicate path %q on metrics http server", path)
+	}
+	s.options.ExtraHandlers[path] = handler
+	return nil
+}
+
 // Start runs the server.
 // It will install the metrics related resources depend on the server configuration.
 func (s *defaultServer) Start(ctx context.Context) error {
@@ -249,7 +272,7 @@ func (s *defaultServer) Start(ctx context.Context) error {
 
 func (s *defaultServer) createListener(ctx context.Context, log logr.Logger) (net.Listener, error) {
 	if !s.options.SecureServing {
-		return net.Listen("tcp", s.options.BindAddress)
+		return s.options.ListenConfig.Listen(ctx, "tcp", s.options.BindAddress)
 	}
 
 	cfg := &tls.Config{ //nolint:gosec
@@ -302,7 +325,12 @@ func (s *defaultServer) createListener(ctx context.Context, log logr.Logger) (ne
 		cfg.Certificates = []tls.Certificate{keyPair}
 	}
 
-	return tls.Listen("tcp", s.options.BindAddress, cfg)
+	l, err := s.options.ListenConfig.Listen(ctx, "tcp", s.options.BindAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	return tls.NewListener(l, cfg), nil
 }
 
 func (s *defaultServer) GetBindAddr() string {

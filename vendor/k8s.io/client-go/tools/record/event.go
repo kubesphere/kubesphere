@@ -198,16 +198,29 @@ func NewBroadcaster(opts ...BroadcasterOption) EventBroadcaster {
 	ctx := c.Context
 	if ctx == nil {
 		ctx = context.Background()
-	} else {
+	}
+	// The are two scenarios where it makes no sense to wait for context cancelation:
+	// - The context was nil.
+	// - The context was context.Background() to begin with.
+	//
+	// Both cases get checked here: we have cancelation if (and only if) there is a channel.
+	haveCtxCancelation := ctx.Done() != nil
+
+	eventBroadcaster.cancelationCtx, eventBroadcaster.cancel = context.WithCancel(ctx)
+
+	if haveCtxCancelation {
 		// Calling Shutdown is not required when a context was provided:
 		// when the context is canceled, this goroutine will shut down
 		// the broadcaster.
+		//
+		// If Shutdown is called first, then this goroutine will
+		// also stop.
 		go func() {
-			<-ctx.Done()
+			<-eventBroadcaster.cancelationCtx.Done()
 			eventBroadcaster.Broadcaster.Shutdown()
 		}()
 	}
-	eventBroadcaster.cancelationCtx, eventBroadcaster.cancel = context.WithCancel(ctx)
+
 	return eventBroadcaster
 }
 
@@ -382,7 +395,11 @@ func (e *eventBroadcasterImpl) StartStructuredLogging(verbosity klog.Level) watc
 func (e *eventBroadcasterImpl) StartEventWatcher(eventHandler func(*v1.Event)) watch.Interface {
 	watcher, err := e.Watch()
 	if err != nil {
+		// This function traditionally returns no error even though it can fail.
+		// Instead, it logs the error and returns an empty watch. The empty
+		// watch ensures that callers don't crash when calling Stop.
 		klog.FromContext(e.cancelationCtx).Error(err, "Unable start event watcher (will not retry!)")
+		return watch.NewEmptyWatch()
 	}
 	go func() {
 		defer utilruntime.HandleCrash()

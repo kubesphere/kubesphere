@@ -69,13 +69,15 @@ func extractDoc(node ast.Node, decl *ast.GenDecl) string {
 	// split lines, and re-join together as a single
 	// paragraph, respecting double-newlines as
 	// paragraph markers.
-	outLines := strings.Split(outGroup.Text(), "\n")
-	if outLines[len(outLines)-1] == "" {
+	lines := strings.Split(outGroup.Text(), "\n")
+	if lines[len(lines)-1] == "" {
 		// chop off the extraneous last part
-		outLines = outLines[:len(outLines)-1]
+		lines = lines[:len(lines)-1]
 	}
 
-	for i, line := range outLines {
+	var outLines []string
+	var insideCodeBlock bool
+	for i, line := range lines {
 		if isAsteriskComment {
 			// Trim any extranous whitespace,
 			// for handling /*…*/-style comments,
@@ -86,10 +88,33 @@ func extractDoc(node ast.Node, decl *ast.GenDecl) string {
 		// Respect that double-newline means
 		// actual newline:
 		if line == "" {
-			outLines[i] = "\n"
+			lines[i] = "\n"
 		} else {
-			outLines[i] = line
+			lines[i] = line
 		}
+
+		// Recognize markdown code blocks (``` or ~~~)
+		// https://spec.commonmark.org/0.27/#fenced-code-blocks
+		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
+			insideCodeBlock = !insideCodeBlock
+		}
+
+		if !insideCodeBlock {
+			// If we are not inside markdown code block, follow the Kubernetes formatting conventions:
+			// - Lines after --- are comments and should be ignored.
+			// - Lines starting with TODO are comments and should be ignored.
+			// See function fmtRawDoc() in https://github.com/kubernetes/apimachinery/blob/master/pkg/runtime/swagger_doc_generator.go
+
+			if strings.HasPrefix(line, "TODO") {
+				continue
+			}
+
+			if strings.HasPrefix(line, "---") {
+				break
+			}
+		}
+
+		outLines = append(outLines, line)
 	}
 	return strings.Join(outLines, "\n")
 }

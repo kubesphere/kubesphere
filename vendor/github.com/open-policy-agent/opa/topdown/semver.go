@@ -12,7 +12,7 @@ import (
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
 
-func builtinSemVerCompare(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinSemVerCompare(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	versionStringA, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func builtinSemVerCompare(bctx BuiltinContext, operands []*ast.Term, iter func(*
 	return iter(ast.IntNumberTerm(result))
 }
 
-func builtinSemVerIsValid(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinSemVerIsValid(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	versionString, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return iter(ast.BooleanTerm(false))

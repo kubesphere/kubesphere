@@ -6,7 +6,7 @@
 package josnpatchutil
 
 import (
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/mitchellh/mapstructure"
 )
 

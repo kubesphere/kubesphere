@@ -9,7 +9,7 @@ import (
 
 func init() {
 	AddRule("UniqueDirectivesPerLocation", func(observers *Events, addError AddErrFunc) {
-		observers.OnDirectiveList(func(walker *Walker, directives []*ast.Directive) {
+		observers.OnDirectiveList(func(_ *Walker, directives []*ast.Directive) {
 			seen := map[string]bool{}
 
 			for _, dir := range directives {

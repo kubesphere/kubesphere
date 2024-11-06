@@ -58,6 +58,7 @@ func (r *ServiceAccountSecretReconciler) SetupWithManager(mgr *kscontroller.Mana
 		ControllerManagedBy(mgr).
 		For(&v1.Secret{}).
 		WithEventFilter(predicate.ResourceVersionChangedPredicate{}).
+		Named(r.Name()).
 		Complete(r)
 }
 

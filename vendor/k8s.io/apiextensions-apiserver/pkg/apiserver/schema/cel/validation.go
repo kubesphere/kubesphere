@@ -31,9 +31,6 @@ import (
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/interpreter"
 
-	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
-
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel/model"
@@ -45,6 +42,8 @@ import (
 	"k8s.io/apiserver/pkg/cel/metrics"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/warning"
+	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 
 	celconfig "k8s.io/apiserver/pkg/apis/cel"
 )
@@ -52,12 +51,15 @@ import (
 // Validator parallels the structure of schema.Structural and includes the compiled CEL programs
 // for the x-kubernetes-validations of each schema node.
 type Validator struct {
-	Items      *Validator
-	Properties map[string]Validator
-
+	Items                *Validator
+	Properties           map[string]Validator
+	AllOfValidators      []*Validator
 	AdditionalProperties *Validator
 
-	compiledRules []CompilationResult
+	Schema *schema.Structural
+
+	uncompiledRules []apiextensions.ValidationRule
+	compiledRules   []CompilationResult
 
 	// Program compilation is pre-checked at CRD creation/update time, so we don't expect compilation to fail
 	// they are recompiled and added to this type, and it does, it is an internal bug.
@@ -83,26 +85,47 @@ func NewValidator(s *schema.Structural, isResourceRoot bool, perCallLimit uint64
 	if !hasXValidations(s) {
 		return nil
 	}
-	return validator(s, isResourceRoot, model.SchemaDeclType(s, isResourceRoot), perCallLimit)
+	return validator(s, s, isResourceRoot, model.SchemaDeclType(s, isResourceRoot), perCallLimit)
 }
 
 // validator creates a Validator for all x-kubernetes-validations at the level of the provided schema and lower and
 // returns the Validator if any x-kubernetes-validations exist in the schema, or nil if no x-kubernetes-validations
 // exist. declType is expected to be a CEL DeclType corresponding to the structural schema.
 // perCallLimit was added for testing purpose only. Callers should always use const PerCallLimit from k8s.io/apiserver/pkg/apis/cel/config.go as input.
-func validator(s *schema.Structural, isResourceRoot bool, declType *cel.DeclType, perCallLimit uint64) *Validator {
-	compiledRules, err := Compile(s, declType, perCallLimit, environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()), StoredExpressionsEnvLoader())
+func validator(validationSchema, nodeSchema *schema.Structural, isResourceRoot bool, declType *cel.DeclType, perCallLimit uint64) *Validator {
+	compilationSchema := *nodeSchema
+	compilationSchema.XValidations = validationSchema.XValidations
+	compiledRules, err := Compile(&compilationSchema, declType, perCallLimit, environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion(), true), StoredExpressionsEnvLoader())
+
 	var itemsValidator, additionalPropertiesValidator *Validator
 	var propertiesValidators map[string]Validator
-	if s.Items != nil {
-		itemsValidator = validator(s.Items, s.Items.XEmbeddedResource, declType.ElemType, perCallLimit)
+	var allOfValidators []*Validator
+	var elemType *cel.DeclType
+	if declType != nil {
+		elemType = declType.ElemType
+	} else {
+		elemType = declType
 	}
-	if len(s.Properties) > 0 {
-		propertiesValidators = make(map[string]Validator, len(s.Properties))
-		for k, p := range s.Properties {
-			prop := p
+
+	if validationSchema.Items != nil && nodeSchema.Items != nil {
+		itemsValidator = validator(validationSchema.Items, nodeSchema.Items, nodeSchema.Items.XEmbeddedResource, elemType, perCallLimit)
+	}
+
+	if len(validationSchema.Properties) > 0 {
+		propertiesValidators = make(map[string]Validator, len(validationSchema.Properties))
+		for k, validationProperty := range validationSchema.Properties {
+			nodeProperty, ok := nodeSchema.Properties[k]
+			if !ok {
+				// Can only add value validations for fields that are on the
+				// structural spine of the schema.
+				continue
+			}
+
 			var fieldType *cel.DeclType
 			if escapedPropName, ok := cel.Escape(k); ok {
+				if declType == nil {
+					continue
+				}
 				if f, ok := declType.Fields[escapedPropName]; ok {
 					fieldType = f.Type
 				} else {
@@ -112,20 +135,32 @@ func validator(s *schema.Structural, isResourceRoot bool, declType *cel.DeclType
 			} else {
 				// field may be absent from declType if the property name is unescapable, in which case we should convert
 				// the field value type to a DeclType.
-				fieldType = model.SchemaDeclType(&prop, prop.XEmbeddedResource)
+				fieldType = model.SchemaDeclType(&nodeProperty, nodeProperty.XEmbeddedResource)
 				if fieldType == nil {
 					continue
 				}
 			}
-			if p := validator(&prop, prop.XEmbeddedResource, fieldType, perCallLimit); p != nil {
+			if p := validator(&validationProperty, &nodeProperty, nodeProperty.XEmbeddedResource, fieldType, perCallLimit); p != nil {
 				propertiesValidators[k] = *p
 			}
 		}
 	}
-	if s.AdditionalProperties != nil && s.AdditionalProperties.Structural != nil {
-		additionalPropertiesValidator = validator(s.AdditionalProperties.Structural, s.AdditionalProperties.Structural.XEmbeddedResource, declType.ElemType, perCallLimit)
+	if validationSchema.AdditionalProperties != nil && validationSchema.AdditionalProperties.Structural != nil &&
+		nodeSchema.AdditionalProperties != nil && nodeSchema.AdditionalProperties.Structural != nil {
+		additionalPropertiesValidator = validator(validationSchema.AdditionalProperties.Structural, nodeSchema.AdditionalProperties.Structural, nodeSchema.AdditionalProperties.Structural.XEmbeddedResource, elemType, perCallLimit)
 	}
-	if len(compiledRules) > 0 || err != nil || itemsValidator != nil || additionalPropertiesValidator != nil || len(propertiesValidators) > 0 {
+
+	if validationSchema.ValueValidation != nil && len(validationSchema.ValueValidation.AllOf) > 0 {
+		allOfValidators = make([]*Validator, 0, len(validationSchema.ValueValidation.AllOf))
+		for _, allOf := range validationSchema.ValueValidation.AllOf {
+			allOfValidator := validator(nestedToStructural(&allOf), nodeSchema, isResourceRoot, declType, perCallLimit)
+			if allOfValidator != nil {
+				allOfValidators = append(allOfValidators, allOfValidator)
+			}
+		}
+	}
+
+	if len(compiledRules) > 0 || err != nil || itemsValidator != nil || additionalPropertiesValidator != nil || len(propertiesValidators) > 0 || len(allOfValidators) > 0 {
 		activationFactory := validationActivationWithoutOldSelf
 		for _, rule := range compiledRules {
 			if rule.UsesOldSelf {
@@ -136,12 +171,15 @@ func validator(s *schema.Structural, isResourceRoot bool, declType *cel.DeclType
 
 		return &Validator{
 			compiledRules:        compiledRules,
+			uncompiledRules:      validationSchema.XValidations,
 			compilationErr:       err,
 			isResourceRoot:       isResourceRoot,
 			Items:                itemsValidator,
 			AdditionalProperties: additionalPropertiesValidator,
 			Properties:           propertiesValidators,
+			AllOfValidators:      allOfValidators,
 			celActivationFactory: activationFactory,
+			Schema:               nodeSchema,
 		}
 	}
 
@@ -164,13 +202,13 @@ func WithRatcheting(correlation *common.CorrelatedObject) Option {
 // If the validation rules exceed the costBudget, subsequent evaluations will be skipped, the list of errs returned will not be empty, and a negative remainingBudget will be returned.
 // Most callers can ignore the returned remainingBudget value unless another validate call is going to be made
 // context is passed for supporting context cancellation during cel validation
-func (s *Validator) Validate(ctx context.Context, fldPath *field.Path, sts *schema.Structural, obj, oldObj interface{}, costBudget int64, opts ...Option) (errs field.ErrorList, remainingBudget int64) {
+func (s *Validator) Validate(ctx context.Context, fldPath *field.Path, _ *schema.Structural, obj, oldObj interface{}, costBudget int64, opts ...Option) (errs field.ErrorList, remainingBudget int64) {
 	opt := options{}
 	for _, o := range opts {
 		o(&opt)
 	}
 
-	return s.validate(ctx, fldPath, sts, obj, oldObj, opt.ratchetingOptions, costBudget)
+	return s.validate(ctx, fldPath, obj, oldObj, opt.ratchetingOptions, costBudget)
 }
 
 // ratchetingOptions stores the current correlation object and the nearest
@@ -210,8 +248,16 @@ func (r ratchetingOptions) shouldRatchetError() bool {
 func (r ratchetingOptions) key(field string) ratchetingOptions {
 	if r.currentCorrelation == nil {
 		return r
+	} else if r.nearestParentCorrelation == nil && (field == "apiVersion" || field == "kind") {
+		// We cannot ratchet changes to the APIVersion and kind fields field since
+		// they aren't visible. (both old and new are converted to the same type)
+		//
+		return ratchetingOptions{}
 	}
 
+	// nearestParentCorrelation is always non-nil except for the root node.
+	// The below line ensures that the next nearestParentCorrelation is set
+	// to a non-nil r.currentCorrelation
 	return ratchetingOptions{currentCorrelation: r.currentCorrelation.Key(field), nearestParentCorrelation: r.currentCorrelation}
 }
 
@@ -226,7 +272,36 @@ func (r ratchetingOptions) index(idx int) ratchetingOptions {
 	return ratchetingOptions{currentCorrelation: r.currentCorrelation.Index(idx), nearestParentCorrelation: r.currentCorrelation}
 }
 
-func (s *Validator) validate(ctx context.Context, fldPath *field.Path, sts *schema.Structural, obj, oldObj interface{}, correlation ratchetingOptions, costBudget int64) (errs field.ErrorList, remainingBudget int64) {
+func nestedToStructural(nested *schema.NestedValueValidation) *schema.Structural {
+	if nested == nil {
+		return nil
+	}
+
+	structuralConversion := &schema.Structural{
+		ValueValidation:      &nested.ValueValidation,
+		ValidationExtensions: nested.ValidationExtensions,
+		Generic:              nested.ForbiddenGenerics,
+		Extensions:           nested.ForbiddenExtensions,
+		Items:                nestedToStructural(nested.Items),
+	}
+
+	if len(nested.Properties) > 0 {
+		structuralConversion.Properties = make(map[string]schema.Structural, len(nested.Properties))
+		for k, v := range nested.Properties {
+			structuralConversion.Properties[k] = *nestedToStructural(&v)
+		}
+	}
+
+	if nested.AdditionalProperties != nil {
+		structuralConversion.AdditionalProperties = &schema.StructuralOrBool{
+			Structural: nestedToStructural(nested.AdditionalProperties),
+		}
+	}
+
+	return structuralConversion
+}
+
+func (s *Validator) validate(ctx context.Context, fldPath *field.Path, obj, oldObj interface{}, correlation ratchetingOptions, costBudget int64) (errs field.ErrorList, remainingBudget int64) {
 	t := time.Now()
 	defer func() {
 		metrics.Metrics.ObserveEvaluation(time.Since(t))
@@ -236,23 +311,37 @@ func (s *Validator) validate(ctx context.Context, fldPath *field.Path, sts *sche
 		return nil, remainingBudget
 	}
 
-	errs, remainingBudget = s.validateExpressions(ctx, fldPath, sts, obj, oldObj, correlation, remainingBudget)
+	errs, remainingBudget = s.validateExpressions(ctx, fldPath, obj, oldObj, correlation, remainingBudget)
 
 	if remainingBudget < 0 {
 		return errs, remainingBudget
+	}
+
+	// If the schema has allOf, recurse through those elements to see if there
+	// are any validation rules that need to be evaluated.
+	for _, allOfValidator := range s.AllOfValidators {
+		var allOfErrs field.ErrorList
+		// Pass options with nil currentCorrelation to mirror schema ratcheting
+		// behavior which does not ratchet allOf errors. This may change in the
+		// future for allOf.
+		allOfErrs, remainingBudget = allOfValidator.validate(ctx, fldPath, obj, oldObj, ratchetingOptions{nearestParentCorrelation: correlation.nearestParentCorrelation}, remainingBudget)
+		errs = append(errs, allOfErrs...)
+		if remainingBudget < 0 {
+			return errs, remainingBudget
+		}
 	}
 
 	switch obj := obj.(type) {
 	case []interface{}:
 		oldArray, _ := oldObj.([]interface{})
 		var arrayErrs field.ErrorList
-		arrayErrs, remainingBudget = s.validateArray(ctx, fldPath, sts, obj, oldArray, correlation, remainingBudget)
+		arrayErrs, remainingBudget = s.validateArray(ctx, fldPath, obj, oldArray, correlation, remainingBudget)
 		errs = append(errs, arrayErrs...)
 		return errs, remainingBudget
 	case map[string]interface{}:
 		oldMap, _ := oldObj.(map[string]interface{})
 		var mapErrs field.ErrorList
-		mapErrs, remainingBudget = s.validateMap(ctx, fldPath, sts, obj, oldMap, correlation, remainingBudget)
+		mapErrs, remainingBudget = s.validateMap(ctx, fldPath, obj, oldMap, correlation, remainingBudget)
 		errs = append(errs, mapErrs...)
 		return errs, remainingBudget
 	}
@@ -260,7 +349,9 @@ func (s *Validator) validate(ctx context.Context, fldPath *field.Path, sts *sche
 	return errs, remainingBudget
 }
 
-func (s *Validator) validateExpressions(ctx context.Context, fldPath *field.Path, sts *schema.Structural, obj, oldObj interface{}, correlation ratchetingOptions, costBudget int64) (errs field.ErrorList, remainingBudget int64) {
+func (s *Validator) validateExpressions(ctx context.Context, fldPath *field.Path, obj, oldObj interface{}, correlation ratchetingOptions, costBudget int64) (errs field.ErrorList, remainingBudget int64) {
+	sts := s.Schema
+
 	// guard against oldObj being a non-nil interface with a nil value
 	if oldObj != nil {
 		v := reflect.ValueOf(oldObj)
@@ -295,7 +386,7 @@ func (s *Validator) validateExpressions(ctx context.Context, fldPath *field.Path
 	}
 	activation, optionalOldSelfActivation := s.celActivationFactory(sts, obj, oldObj)
 	for i, compiled := range s.compiledRules {
-		rule := sts.XValidations[i]
+		rule := s.uncompiledRules[i]
 		if compiled.Error != nil {
 			errs = append(errs, field.Invalid(fldPath, sts.Type, fmt.Sprintf("rule compile error: %v", compiled.Error)))
 			continue
@@ -361,8 +452,9 @@ func (s *Validator) validateExpressions(ctx context.Context, fldPath *field.Path
 			continue
 		}
 		if evalResult != types.True {
+			currentFldPath := fldPath
 			if len(compiled.NormalizedRuleFieldPath) > 0 {
-				fldPath = fldPath.Child(compiled.NormalizedRuleFieldPath)
+				currentFldPath = currentFldPath.Child(compiled.NormalizedRuleFieldPath)
 			}
 
 			addErr := func(e *field.Error) {
@@ -377,22 +469,22 @@ func (s *Validator) validateExpressions(ctx context.Context, fldPath *field.Path
 				messageExpression, newRemainingBudget, msgErr := evalMessageExpression(ctx, compiled.MessageExpression, rule.MessageExpression, activation, remainingBudget)
 				if msgErr != nil {
 					if msgErr.Type == cel.ErrorTypeInternal {
-						addErr(field.InternalError(fldPath, msgErr))
+						addErr(field.InternalError(currentFldPath, msgErr))
 						return errs, -1
 					} else if msgErr.Type == cel.ErrorTypeInvalid {
-						addErr(field.Invalid(fldPath, sts.Type, msgErr.Error()))
+						addErr(field.Invalid(currentFldPath, sts.Type, msgErr.Error()))
 						return errs, -1
 					} else {
 						klog.V(2).ErrorS(msgErr, "messageExpression evaluation failed")
-						addErr(fieldErrorForReason(fldPath, sts.Type, ruleMessageOrDefault(rule), rule.Reason))
+						addErr(fieldErrorForReason(currentFldPath, sts.Type, ruleMessageOrDefault(rule), rule.Reason))
 						remainingBudget = newRemainingBudget
 					}
 				} else {
-					addErr(fieldErrorForReason(fldPath, sts.Type, messageExpression, rule.Reason))
+					addErr(fieldErrorForReason(currentFldPath, sts.Type, messageExpression, rule.Reason))
 					remainingBudget = newRemainingBudget
 				}
 			} else {
-				addErr(fieldErrorForReason(fldPath, sts.Type, ruleMessageOrDefault(rule), rule.Reason))
+				addErr(fieldErrorForReason(currentFldPath, sts.Type, ruleMessageOrDefault(rule), rule.Reason))
 			}
 		}
 	}
@@ -432,9 +524,30 @@ func unescapeSingleQuote(s string) (string, error) {
 	return unescaped, err
 }
 
+type validFieldPathOptions struct {
+	allowArrayNotation bool
+}
+
+// ValidFieldPathOption provides vararg options for ValidFieldPath.
+type ValidFieldPathOption func(*validFieldPathOptions)
+
+// WithFieldPathAllowArrayNotation sets of array annotation ('[<index or map key>]') is allowed
+// in field paths.
+// Defaults to true
+func WithFieldPathAllowArrayNotation(allow bool) ValidFieldPathOption {
+	return func(options *validFieldPathOptions) {
+		options.allowArrayNotation = allow
+	}
+}
+
 // ValidFieldPath validates that jsonPath is a valid JSON Path containing only field and map accessors
 // that are valid for the given schema, and returns a field.Path representation of the validated jsonPath or an error.
-func ValidFieldPath(jsonPath string, schema *schema.Structural) (validFieldPath *field.Path, err error) {
+func ValidFieldPath(jsonPath string, schema *schema.Structural, options ...ValidFieldPathOption) (validFieldPath *field.Path, foundSchema *schema.Structural, err error) {
+	opts := &validFieldPathOptions{allowArrayNotation: true}
+	for _, opt := range options {
+		opt(opts)
+	}
+
 	appendToPath := func(name string, isNamed bool) error {
 		if !isNamed {
 			validFieldPath = validFieldPath.Key(name)
@@ -495,16 +608,19 @@ func ValidFieldPath(jsonPath string, schema *schema.Structural) (validFieldPath 
 		tok = scanner.Text()
 		switch tok {
 		case "[":
+			if !opts.allowArrayNotation {
+				return nil, nil, fmt.Errorf("array notation is not allowed")
+			}
 			if !scanner.Scan() {
-				return nil, fmt.Errorf("unexpected end of JSON path")
+				return nil, nil, fmt.Errorf("unexpected end of JSON path")
 			}
 			tok = scanner.Text()
 			if len(tok) < 2 || tok[0] != '\'' || tok[len(tok)-1] != '\'' {
-				return nil, fmt.Errorf("expected single quoted string but got %s", tok)
+				return nil, nil, fmt.Errorf("expected single quoted string but got %s", tok)
 			}
 			unescaped, err := unescapeSingleQuote(tok[1 : len(tok)-1])
 			if err != nil {
-				return nil, fmt.Errorf("invalid string literal: %v", err)
+				return nil, nil, fmt.Errorf("invalid string literal: %w", err)
 			}
 
 			if schema.Properties != nil {
@@ -512,21 +628,21 @@ func ValidFieldPath(jsonPath string, schema *schema.Structural) (validFieldPath 
 			} else if schema.AdditionalProperties != nil {
 				isNamed = false
 			} else {
-				return nil, fmt.Errorf("does not refer to a valid field")
+				return nil, nil, fmt.Errorf("does not refer to a valid field")
 			}
 			if err := appendToPath(unescaped, isNamed); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if !scanner.Scan() {
-				return nil, fmt.Errorf("unexpected end of JSON path")
+				return nil, nil, fmt.Errorf("unexpected end of JSON path")
 			}
 			tok = scanner.Text()
 			if tok != "]" {
-				return nil, fmt.Errorf("expected ] but got %s", tok)
+				return nil, nil, fmt.Errorf("expected ] but got %s", tok)
 			}
 		case ".":
 			if !scanner.Scan() {
-				return nil, fmt.Errorf("unexpected end of JSON path")
+				return nil, nil, fmt.Errorf("unexpected end of JSON path")
 			}
 			tok = scanner.Text()
 			if schema.Properties != nil {
@@ -534,16 +650,17 @@ func ValidFieldPath(jsonPath string, schema *schema.Structural) (validFieldPath 
 			} else if schema.AdditionalProperties != nil {
 				isNamed = false
 			} else {
-				return nil, fmt.Errorf("does not refer to a valid field")
+				return nil, nil, fmt.Errorf("does not refer to a valid field")
 			}
 			if err := appendToPath(tok, isNamed); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		default:
-			return nil, fmt.Errorf("expected [ or . but got: %s", tok)
+			return nil, nil, fmt.Errorf("expected [ or . but got: %s", tok)
 		}
 	}
-	return validFieldPath, nil
+
+	return validFieldPath, schema, nil
 }
 
 func fieldErrorForReason(fldPath *field.Path, value interface{}, detail string, reason *apiextensions.FieldValueErrorReason) *field.Error {
@@ -686,7 +803,7 @@ func (a *validationActivation) Parent() interpreter.Activation {
 	return nil
 }
 
-func (s *Validator) validateMap(ctx context.Context, fldPath *field.Path, sts *schema.Structural, obj, oldObj map[string]interface{}, correlation ratchetingOptions, costBudget int64) (errs field.ErrorList, remainingBudget int64) {
+func (s *Validator) validateMap(ctx context.Context, fldPath *field.Path, obj, oldObj map[string]interface{}, correlation ratchetingOptions, costBudget int64) (errs field.ErrorList, remainingBudget int64) {
 	remainingBudget = costBudget
 	if remainingBudget < 0 {
 		return errs, remainingBudget
@@ -695,9 +812,9 @@ func (s *Validator) validateMap(ctx context.Context, fldPath *field.Path, sts *s
 		return nil, remainingBudget
 	}
 
-	correlatable := MapIsCorrelatable(sts.XMapType)
+	correlatable := MapIsCorrelatable(s.Schema.XMapType)
 
-	if s.AdditionalProperties != nil && sts.AdditionalProperties != nil && sts.AdditionalProperties.Structural != nil {
+	if s.AdditionalProperties != nil {
 		for k, v := range obj {
 			var oldV interface{}
 			if correlatable {
@@ -705,25 +822,24 @@ func (s *Validator) validateMap(ctx context.Context, fldPath *field.Path, sts *s
 			}
 
 			var err field.ErrorList
-			err, remainingBudget = s.AdditionalProperties.validate(ctx, fldPath.Key(k), sts.AdditionalProperties.Structural, v, oldV, correlation.key(k), remainingBudget)
+			err, remainingBudget = s.AdditionalProperties.validate(ctx, fldPath.Key(k), v, oldV, correlation.key(k), remainingBudget)
 			errs = append(errs, err...)
 			if remainingBudget < 0 {
 				return errs, remainingBudget
 			}
 		}
 	}
-	if s.Properties != nil && sts.Properties != nil {
+	if s.Properties != nil {
 		for k, v := range obj {
-			stsProp, stsOk := sts.Properties[k]
 			sub, ok := s.Properties[k]
-			if ok && stsOk {
+			if ok {
 				var oldV interface{}
 				if correlatable {
 					oldV = oldObj[k] // +k8s:verify-mutation:reason=clone
 				}
 
 				var err field.ErrorList
-				err, remainingBudget = sub.validate(ctx, fldPath.Child(k), &stsProp, v, oldV, correlation.key(k), remainingBudget)
+				err, remainingBudget = sub.validate(ctx, fldPath.Child(k), v, oldV, correlation.key(k), remainingBudget)
 				errs = append(errs, err...)
 				if remainingBudget < 0 {
 					return errs, remainingBudget
@@ -735,19 +851,19 @@ func (s *Validator) validateMap(ctx context.Context, fldPath *field.Path, sts *s
 	return errs, remainingBudget
 }
 
-func (s *Validator) validateArray(ctx context.Context, fldPath *field.Path, sts *schema.Structural, obj, oldObj []interface{}, correlation ratchetingOptions, costBudget int64) (errs field.ErrorList, remainingBudget int64) {
+func (s *Validator) validateArray(ctx context.Context, fldPath *field.Path, obj, oldObj []interface{}, correlation ratchetingOptions, costBudget int64) (errs field.ErrorList, remainingBudget int64) {
 	remainingBudget = costBudget
 	if remainingBudget < 0 {
 		return errs, remainingBudget
 	}
 
-	if s.Items != nil && sts.Items != nil {
+	if s.Items != nil {
 		// only map-type lists support self-oldSelf correlation for cel rules. if this isn't a
 		// map-type list, then makeMapList returns an implementation that always returns nil
-		correlatableOldItems := makeMapList(sts, oldObj)
+		correlatableOldItems := makeMapList(s.Schema, oldObj)
 		for i := range obj {
 			var err field.ErrorList
-			err, remainingBudget = s.Items.validate(ctx, fldPath.Index(i), sts.Items, obj[i], correlatableOldItems.Get(obj[i]), correlation.index(i), remainingBudget)
+			err, remainingBudget = s.Items.validate(ctx, fldPath.Index(i), obj[i], correlatableOldItems.Get(obj[i]), correlation.index(i), remainingBudget)
 			errs = append(errs, err...)
 			if remainingBudget < 0 {
 				return errs, remainingBudget

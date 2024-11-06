@@ -21,9 +21,9 @@ import (
 	"path"
 
 	clientgentypes "k8s.io/code-generator/cmd/client-gen/types"
-	"k8s.io/gengo/generator"
-	"k8s.io/gengo/namer"
-	"k8s.io/gengo/types"
+	"k8s.io/gengo/v2/generator"
+	"k8s.io/gengo/v2/namer"
+	"k8s.io/gengo/v2/types"
 
 	"k8s.io/klog/v2"
 )
@@ -31,7 +31,7 @@ import (
 // factoryGenerator produces a file of listers for a given GroupVersion and
 // type.
 type factoryGenerator struct {
-	generator.DefaultGen
+	generator.GoGenerator
 	outputPackage             string
 	imports                   namer.ImportTracker
 	groupVersions             map[string]clientgentypes.GroupVersions
@@ -299,7 +299,8 @@ type SharedInformerFactory interface {
 
 	// Start initializes all requested informers. They are handled in goroutines
 	// which run until the stop channel gets closed.
-        Start(stopCh <-chan struct{})
+	// Warning: Start does not block. When run in a go-routine, it will race with a later WaitForCacheSync.
+	Start(stopCh <-chan struct{})
 
 	// Shutdown marks a factory as shutting down. At that point no new
 	// informers can be started anymore and Start will return without

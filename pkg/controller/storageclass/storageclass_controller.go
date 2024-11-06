@@ -107,7 +107,8 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
-		Named(controllerName).Complete(r)
+		Named(controllerName).
+		Complete(r)
 }
 
 // When creating a new storage class, the controller will create a new storage capability object.

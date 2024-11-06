@@ -191,7 +191,6 @@ import (
 	if err != nil {
 		pkg.AddError(err)
 	}
-
 }
 
 // generateForPackage generates DeepCopy and runtime.Object implementations for

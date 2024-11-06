@@ -6,6 +6,8 @@ package storage
 
 import (
 	"context"
+
+	"github.com/open-policy-agent/opa/ast"
 )
 
 // NewTransactionOrDie is a helper function to create a new transaction. If the
@@ -78,6 +80,11 @@ func MakeDir(ctx context.Context, store Store, txn Transaction, path Path) error
 	if _, ok := node.(map[string]interface{}); ok {
 		return nil
 	}
+
+	if _, ok := node.(ast.Object); ok {
+		return nil
+	}
+
 	return writeConflictError(path)
 }
 
@@ -116,6 +123,9 @@ func NonEmpty(ctx context.Context, store Store, txn Transaction) func([]string) 
 				return false, err
 			} else if err == nil {
 				if _, ok := val.(map[string]interface{}); ok {
+					return false, nil
+				}
+				if _, ok := val.(ast.Object); ok {
 					return false, nil
 				}
 				return true, nil

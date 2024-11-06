@@ -25,11 +25,11 @@ type prettyPrinter struct {
 	w     io.Writer
 }
 
-func (pp *prettyPrinter) Before(x interface{}) {
+func (pp *prettyPrinter) Before(_ interface{}) {
 	pp.depth++
 }
 
-func (pp *prettyPrinter) After(x interface{}) {
+func (pp *prettyPrinter) After(_ interface{}) {
 	pp.depth--
 }
 

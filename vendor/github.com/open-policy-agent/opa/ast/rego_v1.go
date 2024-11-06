@@ -50,9 +50,12 @@ func checkRootDocumentOverrides(node interface{}) Errors {
 
 	WalkExprs(node, func(expr *Expr) bool {
 		if expr.IsAssignment() {
-			name := expr.Operand(0).String()
-			if RootDocumentRefs.Contains(RefTerm(VarTerm(name))) {
-				errors = append(errors, NewError(CompileErr, expr.Location, "variables must not shadow %v (use a different variable name)", name))
+			// assign() can be called directly, so we need to assert its given first operand exists before checking its name.
+			if nameOp := expr.Operand(0); nameOp != nil {
+				name := nameOp.String()
+				if RootDocumentRefs.Contains(RefTerm(VarTerm(name))) {
+					errors = append(errors, NewError(CompileErr, expr.Location, "variables must not shadow %v (use a different variable name)", name))
+				}
 			}
 		}
 		return false
@@ -122,27 +125,65 @@ func checkDeprecatedBuiltinsForCurrentVersion(node interface{}) Errors {
 	return checkDeprecatedBuiltins(deprecatedBuiltins, node)
 }
 
+type RegoCheckOptions struct {
+	NoDuplicateImports      bool
+	NoRootDocumentOverrides bool
+	NoDeprecatedBuiltins    bool
+	NoKeywordsAsRuleNames   bool
+	RequireIfKeyword        bool
+	RequireContainsKeyword  bool
+	RequireRuleBodyOrValue  bool
+}
+
+func NewRegoCheckOptions() RegoCheckOptions {
+	// all options are enabled by default
+	return RegoCheckOptions{
+		NoDuplicateImports:      true,
+		NoRootDocumentOverrides: true,
+		NoDeprecatedBuiltins:    true,
+		NoKeywordsAsRuleNames:   true,
+		RequireIfKeyword:        true,
+		RequireContainsKeyword:  true,
+		RequireRuleBodyOrValue:  true,
+	}
+}
+
 // CheckRegoV1 checks the given module or rule for errors that are specific to Rego v1.
 // Passing something other than an *ast.Rule or *ast.Module is considered a programming error, and will cause a panic.
 func CheckRegoV1(x interface{}) Errors {
+	return CheckRegoV1WithOptions(x, NewRegoCheckOptions())
+}
+
+func CheckRegoV1WithOptions(x interface{}, opts RegoCheckOptions) Errors {
 	switch x := x.(type) {
 	case *Module:
-		return checkRegoV1Module(x)
+		return checkRegoV1Module(x, opts)
 	case *Rule:
-		return checkRegoV1Rule(x)
+		return checkRegoV1Rule(x, opts)
 	}
 	panic(fmt.Sprintf("cannot check rego-v1 compatibility on type %T", x))
 }
 
-func checkRegoV1Module(module *Module) Errors {
+func checkRegoV1Module(module *Module, opts RegoCheckOptions) Errors {
 	var errors Errors
-	errors = append(errors, checkDuplicateImports([]*Module{module})...)
-	errors = append(errors, checkRootDocumentOverrides(module)...)
-	errors = append(errors, checkDeprecatedBuiltinsForCurrentVersion(module)...)
+	if opts.NoDuplicateImports {
+		errors = append(errors, checkDuplicateImports([]*Module{module})...)
+	}
+	if opts.NoRootDocumentOverrides {
+		errors = append(errors, checkRootDocumentOverrides(module)...)
+	}
+	if opts.NoDeprecatedBuiltins {
+		errors = append(errors, checkDeprecatedBuiltinsForCurrentVersion(module)...)
+	}
+
+	for _, rule := range module.Rules {
+		errors = append(errors, checkRegoV1Rule(rule, opts)...)
+	}
+
 	return errors
 }
 
-func checkRegoV1Rule(rule *Rule) Errors {
+func checkRegoV1Rule(rule *Rule, opts RegoCheckOptions) Errors {
 	t := "rule"
 	if rule.isFunction() {
 		t = "function"
@@ -150,13 +191,16 @@ func checkRegoV1Rule(rule *Rule) Errors {
 
 	var errs Errors
 
-	if rule.generatedBody && rule.Head.generatedValue {
+	if opts.NoKeywordsAsRuleNames && IsKeywordInRegoVersion(rule.Head.Name.String(), RegoV1) {
+		errs = append(errs, NewError(ParseErr, rule.Location, fmt.Sprintf("%s keyword cannot be used for rule name", rule.Head.Name.String())))
+	}
+	if opts.RequireRuleBodyOrValue && rule.generatedBody && rule.Head.generatedValue {
 		errs = append(errs, NewError(ParseErr, rule.Location, "%s must have value assignment and/or body declaration", t))
 	}
-	if rule.Body != nil && !rule.generatedBody && !ruleDeclarationHasKeyword(rule, tokens.If) && !rule.Default {
+	if opts.RequireIfKeyword && rule.Body != nil && !rule.generatedBody && !ruleDeclarationHasKeyword(rule, tokens.If) && !rule.Default {
 		errs = append(errs, NewError(ParseErr, rule.Location, "`if` keyword is required before %s body", t))
 	}
-	if rule.Head.RuleKind() == MultiValue && !ruleDeclarationHasKeyword(rule, tokens.Contains) {
+	if opts.RequireContainsKeyword && rule.Head.RuleKind() == MultiValue && !ruleDeclarationHasKeyword(rule, tokens.Contains) {
 		errs = append(errs, NewError(ParseErr, rule.Location, "`contains` keyword is required for partial set rules"))
 	}
 

@@ -22,7 +22,7 @@ import (
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
-// CustomResourceDefinitionSpecApplyConfiguration represents an declarative configuration of the CustomResourceDefinitionSpec type for use
+// CustomResourceDefinitionSpecApplyConfiguration represents a declarative configuration of the CustomResourceDefinitionSpec type for use
 // with apply.
 type CustomResourceDefinitionSpecApplyConfiguration struct {
 	Group                    *string                                             `json:"group,omitempty"`
@@ -33,11 +33,12 @@ type CustomResourceDefinitionSpecApplyConfiguration struct {
 	Subresources             *CustomResourceSubresourcesApplyConfiguration       `json:"subresources,omitempty"`
 	Versions                 []CustomResourceDefinitionVersionApplyConfiguration `json:"versions,omitempty"`
 	AdditionalPrinterColumns []CustomResourceColumnDefinitionApplyConfiguration  `json:"additionalPrinterColumns,omitempty"`
+	SelectableFields         []SelectableFieldApplyConfiguration                 `json:"selectableFields,omitempty"`
 	Conversion               *CustomResourceConversionApplyConfiguration         `json:"conversion,omitempty"`
 	PreserveUnknownFields    *bool                                               `json:"preserveUnknownFields,omitempty"`
 }
 
-// CustomResourceDefinitionSpecApplyConfiguration constructs an declarative configuration of the CustomResourceDefinitionSpec type for use with
+// CustomResourceDefinitionSpecApplyConfiguration constructs a declarative configuration of the CustomResourceDefinitionSpec type for use with
 // apply.
 func CustomResourceDefinitionSpec() *CustomResourceDefinitionSpecApplyConfiguration {
 	return &CustomResourceDefinitionSpecApplyConfiguration{}
@@ -113,6 +114,19 @@ func (b *CustomResourceDefinitionSpecApplyConfiguration) WithAdditionalPrinterCo
 			panic("nil value passed to WithAdditionalPrinterColumns")
 		}
 		b.AdditionalPrinterColumns = append(b.AdditionalPrinterColumns, *values[i])
+	}
+	return b
+}
+
+// WithSelectableFields adds the given value to the SelectableFields field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the SelectableFields field.
+func (b *CustomResourceDefinitionSpecApplyConfiguration) WithSelectableFields(values ...*SelectableFieldApplyConfiguration) *CustomResourceDefinitionSpecApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithSelectableFields")
+		}
+		b.SelectableFields = append(b.SelectableFields, *values[i])
 	}
 	return b
 }

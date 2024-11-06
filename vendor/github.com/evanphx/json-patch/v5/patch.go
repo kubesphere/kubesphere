@@ -38,6 +38,8 @@ var (
 	ErrInvalid      = errors.New("invalid state detected")
 	ErrInvalidIndex = errors.New("invalid index referenced")
 
+	ErrExpectedObject = errors.New("invalid value, expected object")
+
 	rawJSONArray  = []byte("[]")
 	rawJSONObject = []byte("{}")
 	rawJSONNull   = []byte("null")
@@ -60,6 +62,8 @@ type partialDoc struct {
 	self *lazyNode
 	keys []string
 	obj  map[string]*lazyNode
+
+	opts *ApplyOptions
 }
 
 type partialArray struct {
@@ -90,6 +94,8 @@ type ApplyOptions struct {
 	// EnsurePathExistsOnAdd instructs json-patch to recursively create the missing parts of path on "add" operation.
 	// Default to false.
 	EnsurePathExistsOnAdd bool
+
+	EscapeHTML bool
 }
 
 // NewApplyOptions creates a default set of options for calls to ApplyWithOptions.
@@ -99,6 +105,7 @@ func NewApplyOptions() *ApplyOptions {
 		AccumulatedCopySizeLimit: AccumulatedCopySizeLimit,
 		AllowMissingPathOnRemove: false,
 		EnsurePathExistsOnAdd:    false,
+		EscapeHTML:               true,
 	}
 }
 
@@ -134,16 +141,28 @@ func (n *lazyNode) UnmarshalJSON(data []byte) error {
 }
 
 func (n *partialDoc) TrustMarshalJSON(buf *bytes.Buffer) error {
+	if n.obj == nil {
+		return ErrExpectedObject
+	}
+
 	if err := buf.WriteByte('{'); err != nil {
 		return err
 	}
+	escaped := true
+
+	// n.opts should always be set, but in case we missed a case,
+	// guard.
+	if n.opts != nil {
+		escaped = n.opts.EscapeHTML
+	}
+
 	for i, k := range n.keys {
 		if i > 0 {
 			if err := buf.WriteByte(','); err != nil {
 				return err
 			}
 		}
-		key, err := json.Marshal(k)
+		key, err := json.MarshalEscaped(k, escaped)
 		if err != nil {
 			return err
 		}
@@ -153,7 +172,7 @@ func (n *partialDoc) TrustMarshalJSON(buf *bytes.Buffer) error {
 		if err := buf.WriteByte(':'); err != nil {
 			return err
 		}
-		value, err := json.Marshal(n.obj[k])
+		value, err := json.MarshalEscaped(n.obj[k], escaped)
 		if err != nil {
 			return err
 		}
@@ -194,11 +213,11 @@ func (n *partialArray) RedirectMarshalJSON() (interface{}, error) {
 	return n.nodes, nil
 }
 
-func deepCopy(src *lazyNode) (*lazyNode, int, error) {
+func deepCopy(src *lazyNode, options *ApplyOptions) (*lazyNode, int, error) {
 	if src == nil {
 		return nil, 0, nil
 	}
-	a, err := json.Marshal(src)
+	a, err := json.MarshalEscaped(src, options.EscapeHTML)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -216,7 +235,7 @@ func (n *lazyNode) nextByte() byte {
 	return s[0]
 }
 
-func (n *lazyNode) intoDoc() (*partialDoc, error) {
+func (n *lazyNode) intoDoc(options *ApplyOptions) (*partialDoc, error) {
 	if n.which == eDoc {
 		return n.doc, nil
 	}
@@ -235,6 +254,7 @@ func (n *lazyNode) intoDoc() (*partialDoc, error) {
 		return nil, ErrInvalid
 	}
 
+	n.doc.opts = options
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +565,7 @@ func findObject(pd *container, path string, options *ApplyOptions) (container, s
 				return nil, ""
 			}
 		} else {
-			doc, err = next.intoDoc()
+			doc, err = next.intoDoc(options)
 
 			if err != nil {
 				return nil, ""
@@ -557,6 +577,10 @@ func findObject(pd *container, path string, options *ApplyOptions) (container, s
 }
 
 func (d *partialDoc) set(key string, val *lazyNode, options *ApplyOptions) error {
+	if d.obj == nil {
+		return ErrExpectedObject
+	}
+
 	found := false
 	for _, k := range d.keys {
 		if k == key {
@@ -579,6 +603,11 @@ func (d *partialDoc) get(key string, options *ApplyOptions) (*lazyNode, error) {
 	if key == "" {
 		return d.self, nil
 	}
+
+	if d.obj == nil {
+		return nil, ErrExpectedObject
+	}
+
 	v, ok := d.obj[key]
 	if !ok {
 		return v, errors.Wrapf(ErrMissing, "unable to get nonexistent key: %s", key)
@@ -587,6 +616,10 @@ func (d *partialDoc) get(key string, options *ApplyOptions) (*lazyNode, error) {
 }
 
 func (d *partialDoc) remove(key string, options *ApplyOptions) error {
+	if d.obj == nil {
+		return ErrExpectedObject
+	}
+
 	_, ok := d.obj[key]
 	if !ok {
 		if options.AllowMissingPathOnRemove {
@@ -750,6 +783,7 @@ func (p Patch) add(doc *container, op Operation, options *ApplyOptions) error {
 		} else {
 			pd = &partialDoc{
 				self: val,
+				opts: options,
 			}
 		}
 
@@ -855,7 +889,7 @@ func ensurePathExists(pd *container, path string, options *ApplyOptions) error {
 				newNode := newLazyNode(newRawMessage(rawJSONObject))
 
 				doc.add(part, newNode, options)
-				doc, err = newNode.intoDoc()
+				doc, err = newNode.intoDoc(options)
 				if err != nil {
 					return err
 				}
@@ -868,7 +902,7 @@ func ensurePathExists(pd *container, path string, options *ApplyOptions) error {
 					return err
 				}
 			} else {
-				doc, err = target.intoDoc()
+				doc, err = target.intoDoc(options)
 
 				if err != nil {
 					return err
@@ -954,6 +988,8 @@ func (p Patch) replace(doc *container, op Operation, options *ApplyOptions) erro
 				if !val.tryAry() {
 					return errors.Wrapf(err, "replace operation value must be object or array")
 				}
+			} else {
+				val.doc.opts = options
 			}
 		}
 
@@ -1115,7 +1151,7 @@ func (p Patch) copy(doc *container, op Operation, accumulatedCopySize *int64, op
 		return errors.Wrapf(ErrMissing, "copy operation does not apply: doc is missing destination path: %s", path)
 	}
 
-	valCopy, sz, err := deepCopy(val)
+	valCopy, sz, err := deepCopy(val, options)
 	if err != nil {
 		return errors.Wrapf(err, "error while performing deep copy")
 	}
@@ -1202,6 +1238,7 @@ func (p Patch) ApplyIndentWithOptions(doc []byte, indent string, options *ApplyO
 	} else {
 		pd = &partialDoc{
 			self: self,
+			opts: options,
 		}
 	}
 
@@ -1238,11 +1275,18 @@ func (p Patch) ApplyIndentWithOptions(doc []byte, indent string, options *ApplyO
 		}
 	}
 
-	if indent != "" {
-		return json.MarshalIndent(pd, "", indent)
+	data, err := json.MarshalEscaped(pd, options.EscapeHTML)
+	if err != nil {
+		return nil, err
 	}
 
-	return json.Marshal(pd)
+	if indent == "" {
+		return data, nil
+	}
+
+	var buf bytes.Buffer
+	json.Indent(&buf, data, "", indent)
+	return buf.Bytes(), nil
 }
 
 // From http://tools.ietf.org/html/rfc6901#section-4 :

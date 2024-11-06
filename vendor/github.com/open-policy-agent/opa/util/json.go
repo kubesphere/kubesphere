@@ -114,6 +114,10 @@ func Reference(x interface{}) *interface{} {
 
 // Unmarshal decodes a YAML, JSON or JSON extension value into the specified type.
 func Unmarshal(bs []byte, v interface{}) error {
+	if len(bs) > 2 && bs[0] == 0xef && bs[1] == 0xbb && bs[2] == 0xbf {
+		bs = bs[3:] // Strip UTF-8 BOM, see https://www.rfc-editor.org/rfc/rfc8259#section-8.1
+	}
+
 	if json.Valid(bs) {
 		return unmarshalJSON(bs, v, false)
 	}

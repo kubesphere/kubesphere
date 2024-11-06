@@ -22,6 +22,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"sort"
 	"strings"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -124,39 +125,73 @@ func infoToSchema(ctx *schemaContext) *apiext.JSONSchemaProps {
 	return typeToSchema(ctx, ctx.info.RawSpec.Type)
 }
 
-// applyMarkers applies schema markers to the given schema, respecting "apply first" markers.
+type schemaMarkerWithName struct {
+	SchemaMarker SchemaMarker
+	Name         string
+}
+
+// applyMarkers applies schema markers given their priority to the given schema
 func applyMarkers(ctx *schemaContext, markerSet markers.MarkerValues, props *apiext.JSONSchemaProps, node ast.Node) {
-	// apply "apply first" markers first...
-	for _, markerValues := range markerSet {
+	markers := make([]schemaMarkerWithName, 0, len(markerSet))
+	itemsMarkers := make([]schemaMarkerWithName, 0, len(markerSet))
+
+	for markerName, markerValues := range markerSet {
 		for _, markerValue := range markerValues {
-			if _, isApplyFirst := markerValue.(applyFirstMarker); !isApplyFirst {
-				continue
-			}
-
-			schemaMarker, isSchemaMarker := markerValue.(SchemaMarker)
-			if !isSchemaMarker {
-				continue
-			}
-
-			if err := schemaMarker.ApplyToSchema(props); err != nil {
-				ctx.pkg.AddError(loader.ErrFromNode(err /* an okay guess */, node))
+			if schemaMarker, isSchemaMarker := markerValue.(SchemaMarker); isSchemaMarker {
+				if strings.HasPrefix(markerName, crdmarkers.ValidationItemsPrefix) {
+					itemsMarkers = append(itemsMarkers, schemaMarkerWithName{
+						SchemaMarker: schemaMarker,
+						Name:         markerName,
+					})
+				} else {
+					markers = append(markers, schemaMarkerWithName{
+						SchemaMarker: schemaMarker,
+						Name:         markerName,
+					})
+				}
 			}
 		}
 	}
 
-	// ...then the rest of the markers
-	for _, markerValues := range markerSet {
-		for _, markerValue := range markerValues {
-			if _, isApplyFirst := markerValue.(applyFirstMarker); isApplyFirst {
-				// skip apply-first markers, which were already applied
-				continue
-			}
+	cmpPriority := func(markers []schemaMarkerWithName, i, j int) bool {
+		var iPriority, jPriority crdmarkers.ApplyPriority
 
-			schemaMarker, isSchemaMarker := markerValue.(SchemaMarker)
-			if !isSchemaMarker {
-				continue
-			}
-			if err := schemaMarker.ApplyToSchema(props); err != nil {
+		switch m := markers[i].SchemaMarker.(type) {
+		case crdmarkers.ApplyPriorityMarker:
+			iPriority = m.ApplyPriority()
+		case applyFirstMarker:
+			iPriority = crdmarkers.ApplyPriorityFirst
+		default:
+			iPriority = crdmarkers.ApplyPriorityDefault
+		}
+
+		switch m := markers[j].SchemaMarker.(type) {
+		case crdmarkers.ApplyPriorityMarker:
+			jPriority = m.ApplyPriority()
+		case applyFirstMarker:
+			jPriority = crdmarkers.ApplyPriorityFirst
+		default:
+			jPriority = crdmarkers.ApplyPriorityDefault
+		}
+
+		return iPriority < jPriority
+	}
+	sort.Slice(markers, func(i, j int) bool { return cmpPriority(markers, i, j) })
+	sort.Slice(itemsMarkers, func(i, j int) bool { return cmpPriority(itemsMarkers, i, j) })
+
+	for _, schemaMarker := range markers {
+		if err := schemaMarker.SchemaMarker.ApplyToSchema(props); err != nil {
+			ctx.pkg.AddError(loader.ErrFromNode(err /* an okay guess */, node))
+		}
+	}
+
+	for _, schemaMarker := range itemsMarkers {
+		if props.Type != "array" || props.Items == nil || props.Items.Schema == nil {
+			err := fmt.Errorf("must apply %s to an array value, found %s", schemaMarker.Name, props.Type)
+			ctx.pkg.AddError(loader.ErrFromNode(err, node))
+		} else {
+			itemsSchema := props.Items.Schema
+			if err := schemaMarker.SchemaMarker.ApplyToSchema(itemsSchema); err != nil {
 				ctx.pkg.AddError(loader.ErrFromNode(err /* an okay guess */, node))
 			}
 		}
@@ -216,10 +251,29 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiext.JSONSchema
 		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("unknown type %s", ident.Name), ident))
 		return &apiext.JSONSchemaProps{}
 	}
+	// This reproduces the behavior we had pre gotypesalias=1 (needed if this
+	// project is compiled with default settings and Go >= 1.23).
+	if aliasInfo, isAlias := typeInfo.(*types.Alias); isAlias {
+		typeInfo = aliasInfo.Underlying()
+	}
 	if basicInfo, isBasic := typeInfo.(*types.Basic); isBasic {
 		typ, fmt, err := builtinToType(basicInfo, ctx.allowDangerousTypes)
 		if err != nil {
 			ctx.pkg.AddError(loader.ErrFromNode(err, ident))
+		}
+		// Check for type aliasing to a basic type for gotypesalias=0. See more
+		// in documentation https://pkg.go.dev/go/types#Alias:
+		// > For gotypesalias=1, alias declarations produce an Alias type.
+		// > Otherwise, the alias information is only in the type name, which
+		// > points directly to the actual (aliased) type.
+		if basicInfo.Name() != ident.Name {
+			ctx.requestSchema("", ident.Name)
+			link := TypeRefLink("", ident.Name)
+			return &apiext.JSONSchemaProps{
+				Type:   typ,
+				Format: fmt,
+				Ref:    &link,
+			}
 		}
 		return &apiext.JSONSchemaProps{
 			Type:   typ,
@@ -228,7 +282,7 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiext.JSONSchema
 	}
 	// NB(directxman12): if there are dot imports, this might be an external reference,
 	// so use typechecking info to get the actual object
-	typeNameInfo := typeInfo.(*types.Named).Obj()
+	typeNameInfo := typeInfo.(interface{ Obj() *types.TypeName }).Obj()
 	pkg := typeNameInfo.Pkg()
 	pkgPath := loader.NonVendorPath(pkg.Path())
 	if pkg == ctx.pkg.Types {
@@ -248,7 +302,7 @@ func namedToSchema(ctx *schemaContext, named *ast.SelectorExpr) *apiext.JSONSche
 		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("unknown type %v.%s", named.X, named.Sel.Name), named))
 		return &apiext.JSONSchemaProps{}
 	}
-	typeInfo := typeInfoRaw.(*types.Named)
+	typeInfo := typeInfoRaw.(interface{ Obj() *types.TypeName })
 	typeNameInfo := typeInfo.Obj()
 	nonVendorPath := loader.NonVendorPath(typeNameInfo.Pkg().Path())
 	ctx.requestSchema(nonVendorPath, typeNameInfo.Name())
@@ -378,20 +432,28 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 			defaultMode = "optional"
 		}
 
-		switch defaultMode {
+		switch {
+		case field.Markers.Get("kubebuilder:validation:Optional") != nil:
+			// explicity optional - kubebuilder
+		case field.Markers.Get("kubebuilder:validation:Required") != nil:
+			// explicitly required - kubebuilder
+			props.Required = append(props.Required, fieldName)
+		case field.Markers.Get("optional") != nil:
+			// explicity optional - kubernetes
+		case field.Markers.Get("required") != nil:
+			// explicitly required - kubernetes
+			props.Required = append(props.Required, fieldName)
+
 		// if this package isn't set to optional default...
-		case "required":
-			// ...everything that's not inline, omitempty, or explicitly optional is required
-			if !inline && !omitEmpty && field.Markers.Get("kubebuilder:validation:Optional") == nil && field.Markers.Get("optional") == nil {
+		case defaultMode == "required":
+			// ...everything that's not inline / omitempty is required
+			if !inline && !omitEmpty {
 				props.Required = append(props.Required, fieldName)
 			}
 
 		// if this package isn't set to required default...
-		case "optional":
-			// ...everything that isn't explicitly required is optional
-			if field.Markers.Get("kubebuilder:validation:Required") != nil {
-				props.Required = append(props.Required, fieldName)
-			}
+		case defaultMode == "optional":
+			// implicitly optional
 		}
 
 		var propSchema *apiext.JSONSchemaProps
@@ -453,7 +515,7 @@ func builtinToType(basic *types.Basic, allowDangerousTypes bool) (typ string, fo
 // Open coded go/types representation of encoding/json.Marshaller
 var jsonMarshaler = types.NewInterfaceType([]*types.Func{
 	types.NewFunc(token.NoPos, nil, "MarshalJSON",
-		types.NewSignature(nil, nil,
+		types.NewSignatureType(nil, nil, nil, nil,
 			types.NewTuple(
 				types.NewVar(token.NoPos, nil, "", types.NewSlice(types.Universe.Lookup("byte").Type())),
 				types.NewVar(token.NoPos, nil, "", types.Universe.Lookup("error").Type())), false)),

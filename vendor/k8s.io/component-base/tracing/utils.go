@@ -27,6 +27,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
+	noopoteltrace "go.opentelemetry.io/otel/trace/noop"
 
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/tracing/api/v1"
@@ -47,7 +48,7 @@ func (n *noopTracerProvider) Shutdown(context.Context) error {
 }
 
 func NewNoopTracerProvider() TracerProvider {
-	return &noopTracerProvider{TracerProvider: oteltrace.NewNoopTracerProvider()}
+	return &noopTracerProvider{TracerProvider: noopoteltrace.NewTracerProvider()}
 }
 
 // NewProvider creates a TracerProvider in a component, and enforces recommended tracing behavior
@@ -91,7 +92,7 @@ func NewProvider(ctx context.Context,
 }
 
 // WithTracing adds tracing to requests if the incoming request is sampled
-func WithTracing(handler http.Handler, tp oteltrace.TracerProvider, serviceName string) http.Handler {
+func WithTracing(handler http.Handler, tp oteltrace.TracerProvider, spanName string) http.Handler {
 	opts := []otelhttp.Option{
 		otelhttp.WithPropagators(Propagators()),
 		otelhttp.WithTracerProvider(tp),
@@ -106,7 +107,7 @@ func WithTracing(handler http.Handler, tp oteltrace.TracerProvider, serviceName 
 	})
 	// With Noop TracerProvider, the otelhttp still handles context propagation.
 	// See https://github.com/open-telemetry/opentelemetry-go/tree/main/example/passthrough
-	return otelhttp.NewHandler(wrappedHandler, serviceName, opts...)
+	return otelhttp.NewHandler(wrappedHandler, spanName, opts...)
 }
 
 // WrapperFor can be used to add tracing to a *rest.Config.

@@ -83,7 +83,7 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 		}).
 		For(&quotav1alpha2.ResourceQuota{}).
 		WithEventFilter(predicate.GenerationChangedPredicate{
-			Funcs: predicate.Funcs{
+			TypedFuncs: predicate.Funcs{
 				UpdateFunc: func(e event.UpdateEvent) bool {
 					oldQuota := e.ObjectOld.(*quotav1alpha2.ResourceQuota)
 					newQuota := e.ObjectNew.(*quotav1alpha2.ResourceQuota)
@@ -101,12 +101,11 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 		&corev1.Service{},
 		&corev1.PersistentVolumeClaim{},
 	}
+
 	realClock := clock.RealClock{}
 	for _, resource := range resources {
-		if err = c.Watch(
-			source.Kind(mgr.GetCache(), resource),
-			handler.EnqueueRequestsFromMapFunc(r.mapper),
-			predicate.Funcs{
+		p := predicate.GenerationChangedPredicate{
+			TypedFuncs: predicate.Funcs{
 				GenericFunc: func(e event.GenericEvent) bool {
 					return false
 				},
@@ -133,7 +132,9 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 				DeleteFunc: func(e event.DeleteEvent) bool {
 					return true
 				},
-			}); err != nil {
+			},
+		}
+		if err = c.Watch(source.Kind(mgr.GetCache(), resource, handler.EnqueueRequestsFromMapFunc(r.mapper), p)); err != nil {
 			return err
 		}
 	}
@@ -171,7 +172,7 @@ func (r *Reconciler) mapper(ctx context.Context, h client.Object) []reconcile.Re
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.logger.WithValues("resourcequota", req.NamespacedName)
-	rootCtx := context.TODO()
+	rootCtx := klog.NewContext(ctx, logger)
 	resourceQuota := &quotav1alpha2.ResourceQuota{}
 	if err := r.Get(rootCtx, req.NamespacedName, resourceQuota); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
