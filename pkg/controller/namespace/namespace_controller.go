@@ -71,40 +71,37 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Skip the namespace that is not created in workspace
-	if _, ok := namespace.Labels[constants.WorkspaceLabelKey]; !ok {
-		return ctrl.Result{}, nil
-	}
-
-	if namespace.ObjectMeta.DeletionTimestamp.IsZero() {
-		// The object is not being deleted, so if it does not have our finalizer,
-		// then lets add the finalizer and update the object.
-		if !controllerutil.ContainsFinalizer(namespace, constants.CascadingDeletionFinalizer) {
-			if err := r.initCreatorRoleBinding(ctx, namespace); err != nil {
-				return ctrl.Result{}, err
-			}
-			updated := namespace.DeepCopy()
-			// Remove legacy finalizer
-			controllerutil.RemoveFinalizer(updated, "finalizers.kubesphere.io/namespaces")
-			// Remove legacy ownerReferences
-			updated.OwnerReferences = make([]metav1.OwnerReference, 0)
-			controllerutil.AddFinalizer(updated, constants.CascadingDeletionFinalizer)
-			return ctrl.Result{}, r.Patch(ctx, updated, client.MergeFrom(namespace))
-		}
-	} else {
+	if !namespace.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(namespace, constants.CascadingDeletionFinalizer) {
 			controllerutil.RemoveFinalizer(namespace, constants.CascadingDeletionFinalizer)
 			if err := r.Update(ctx, namespace); err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %v", err)
 			}
 		}
 		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
 	}
 
+	_, workspaceLabelExists := namespace.Labels[constants.WorkspaceLabelKey]
+
+	// The object is not being deleted, so if it does not have our finalizer,
+	// then lets add the finalizer and update the object.
+	if workspaceLabelExists && !controllerutil.ContainsFinalizer(namespace, constants.CascadingDeletionFinalizer) {
+		if err := r.initCreatorRoleBinding(ctx, namespace); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to init creator role binding: %v", err)
+		}
+		updated := namespace.DeepCopy()
+		// Remove legacy finalizer
+		controllerutil.RemoveFinalizer(updated, "finalizers.kubesphere.io/namespaces")
+		// Remove legacy ownerReferences
+		updated.OwnerReferences = make([]metav1.OwnerReference, 0)
+		controllerutil.AddFinalizer(updated, constants.CascadingDeletionFinalizer)
+		return ctrl.Result{}, r.Patch(ctx, updated, client.MergeFrom(namespace))
+	}
+
 	if err := r.initRoles(ctx, namespace); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to init builtin roles: %v", err)
 	}
 
 	r.recorder.Event(namespace, corev1.EventTypeNormal, kscontroller.Synced, kscontroller.MessageResourceSynced)
