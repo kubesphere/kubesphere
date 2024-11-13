@@ -24,7 +24,6 @@ type Options struct {
 	KubernetesOptions     *k8s.Options
 	AuthenticationOptions *authentication.Options
 	MultiClusterOptions   *multicluster.Options
-	TelemetryOptions      *TelemetryOptions
 	TerminalOptions       *terminal.Options
 	ComposedAppOptions    *composedapp.Options
 	HelmExecutorOptions   *HelmExecutorOptions
@@ -80,17 +79,4 @@ func NewKubeSphereOptions() *KubeSphereOptions {
 	return &KubeSphereOptions{
 		TLS: false,
 	}
-}
-
-// TelemetryOptions is the config data for telemetry.
-type TelemetryOptions struct {
-	// KSCloudURL for kubesphere cloud
-	KSCloudURL string `json:"ksCloudURL,omitempty" yaml:"ksCloudURL,omitempty" mapstructure:"ksCloudURL"`
-
-	// collect period
-	Period *time.Duration `json:"period,omitempty" yaml:"period,omitempty" mapstructure:"period"`
-}
-
-func NewTelemetryOptions() *TelemetryOptions {
-	return &TelemetryOptions{}
 }

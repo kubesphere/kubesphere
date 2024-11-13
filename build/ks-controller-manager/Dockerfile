@@ -1,16 +1,15 @@
 # Download dependencies
 FROM alpine:3.20.3 AS base_os_context
 
-ENV OUTDIR=/out
-RUN mkdir -p ${OUTDIR}/usr/local/bin/
 RUN apk add --no-cache ca-certificates curl
 
+ENV OUTDIR=/out
+RUN mkdir -p ${OUTDIR}/usr/local/bin/
+
+ARG TELEMETRY_VERSION=1.0.1
 ARG TARGETARCH
-
-ENV ARCH=$TARGETARCH
-
-RUN curl -LO https://github.com/kubesphere/telemetry/releases/download/v1.0.0/telemetry_1.0.0_linux_${ARCH}.tar.gz && \
-    tar -zxvf telemetry_1.0.0_linux_${ARCH}.tar.gz -C ${OUTDIR}/usr/local/bin/ telemetry
+RUN curl -LO https://github.com/kubesphere/telemetry/releases/download/v${TELEMETRY_VERSION}/telemetry_${TELEMETRY_VERSION}_linux_${TARGETARCH}.tar.gz && \
+    tar -zxvf telemetry_${TELEMETRY_VERSION}_linux_${TARGETARCH}.tar.gz -C ${OUTDIR}/usr/local/bin/ telemetry
 
 # Add KS Core Helm Chart
 COPY config/ks-core ${OUTDIR}/var/helm-charts/ks-core
@@ -36,4 +35,5 @@ COPY --from=build_context /out/ /
 WORKDIR /
 
 EXPOSE 8443
+
 CMD ["sh"]

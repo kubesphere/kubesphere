@@ -69,10 +69,6 @@ data:
       appSelector: {{ .Values.composedApp.appSelector | quote }}
     kubesphere:
       tls: {{ .Values.internalTLS }}
-    {{- if and .Values.telemetry.enabled (eq (include "role" .) "host") }}
-    telemetry:
-      ksCloudURL: "https://kubesphere.cloud"
-    {{- end }}
     {{- if and (eq (include "role" .) "host") .Values.ha.enabled -}}
     {{- if .Values.ha.cache }}
     cache: {{- toYaml .Values.ha.cache | nindent 6}}
