@@ -62,14 +62,15 @@ func (r *AppReleaseReconciler) createOrUpgradeAppRelease(ctx context.Context, rl
 		helm.SetKubeconfig(kubeconfig),
 	}
 
+	state := appv2.StatusCreated
 	if rls.Spec.AppType == appv2.AppTypeHelm {
 		_, err := executor.Get(ctx, rls.Name, options...)
 		if err != nil && err.Error() == "release: not found" {
 			klog.Infof("release %s not found, begin to create", rls.Name)
 		}
 		if err == nil {
-			klog.Infof("release %s found, begin to upgrade status", rls.Name)
-			return r.updateStatus(ctx, rls, appv2.StatusCreated)
+			klog.Infof("release %s found, begin to upgrade", rls.Name)
+			state = appv2.StatusUpgraded
 		}
 	}
 
@@ -85,7 +86,7 @@ func (r *AppReleaseReconciler) createOrUpgradeAppRelease(ctx context.Context, rl
 		return r.updateStatus(ctx, rls, appv2.StatusFailed, err.Error())
 	}
 
-	return r.updateStatus(ctx, rls, appv2.StatusCreated)
+	return r.updateStatus(ctx, rls, state, "Deploying")
 }
 
 func (r *AppReleaseReconciler) getExecutor(apprls *appv2.ApplicationRelease, kubeConfig []byte, runClient client.Client) (executor helm.Executor, err error) {
