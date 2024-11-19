@@ -1794,6 +1794,7 @@ metadata:
     kubesphere.io/managed: "true"
     iam.kubesphere.io/aggregate-to-self-provisioner: ""
     iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/aggregate-to-regular: ""
   name: workspace-view-app-repos
 spec:
   description:

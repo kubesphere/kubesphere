@@ -91,6 +91,7 @@ type AppRequest struct {
 	Abstraction  string                       `json:"abstraction,omitempty"`
 	Attachments  []string                     `json:"attachments,omitempty"`
 	FromRepo     bool                         `json:"fromRepo,omitempty"`
+	HasCrd       string                       `json:"hasCrd,omitempty"`
 	Resources    []appv2.GroupVersionResource `json:"resources,omitempty"`
 }
 
@@ -123,6 +124,7 @@ func CreateOrUpdateApp(client runtimeclient.Client, vRequests []AppRequest, cmSt
 			AppType:     request.AppType,
 			Abstraction: request.Abstraction,
 			Attachments: request.Attachments,
+			Resources:   request.Resources,
 		}
 		if len(owns) > 0 {
 			app.OwnerReferences = owns
@@ -134,6 +136,7 @@ func CreateOrUpdateApp(client runtimeclient.Client, vRequests []AppRequest, cmSt
 		}
 		labels[appv2.RepoIDLabelKey] = request.RepoName
 		labels[appv2.AppTypeLabelKey] = request.AppType
+		labels[appv2.HasCrdLabelKey] = request.HasCrd
 
 		if request.CategoryName != "" {
 			labels[appv2.AppCategoryNameKey] = request.CategoryName

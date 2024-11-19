@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/utils/ptr"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"kubesphere.io/api/constants"
@@ -129,7 +131,7 @@ func (r *RepoReconciler) skipSync(helmRepo *appv2.Repo) (bool, error) {
 		return false, nil
 	}
 
-	if *helmRepo.Spec.SyncPeriod == 0 {
+	if helmRepo.Spec.SyncPeriod == nil || *helmRepo.Spec.SyncPeriod == 0 {
 		klog.Infof("repo: %s no sync SyncPeriod=0", helmRepo.GetName())
 		return true, nil
 	}
@@ -178,8 +180,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 	}
 
 	if helmRepo.Spec.SyncPeriod == nil {
-		dft := 0
-		helmRepo.Spec.SyncPeriod = &dft
+		helmRepo.Spec.SyncPeriod = ptr.To(0)
 	}
 
 	workspaceTemplate := &tenantv1beta1.WorkspaceTemplate{}

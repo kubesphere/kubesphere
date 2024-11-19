@@ -7,6 +7,7 @@ const (
 	AppOriginalNameLabelKey     = "application.kubesphere.io/app-originalName"
 	AppVersionIDLabelKey        = "application.kubesphere.io/appversion-id"
 	AppTypeLabelKey             = "application.kubesphere.io/app-type"
+	HasCrdLabelKey              = "application.kubesphere.io/hascrd"
 	AppStoreLabelKey            = "application.kubesphere.io/app-store"
 	TimeoutRecheck              = "application.kubesphere.io/timeout-recheck"
 	AppCategoryNameKey          = "application.kubesphere.io/app-category-name"

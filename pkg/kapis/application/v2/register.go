@@ -99,10 +99,10 @@ func (h *appHandler) AddToContainer(c *restful.Container) (err error) {
 		{Route: "/attachments/{attachment}", Func: h.DescribeAttachment, Method: ws.GET, Workspace: true},
 		{Route: "/attachments/{attachment}", Func: h.DeleteAttachments, Method: ws.DELETE, Workspace: true},
 		{Route: "/apps/{app}/examplecr/{name}", Func: h.exampleCr, Method: ws.GET, Workspace: true},
-		{Route: "/apps/{app}/cr", Func: h.AppCrList, Method: ws.GET, Workspace: true, Namespace: true},
-		{Route: "/cr", Func: h.CreateOrUpdateCR, Method: ws.POST, Workspace: true, Namespace: true},
-		{Route: "/cr/{crname}", Func: h.DescribeAppCr, Method: ws.GET, Workspace: true, Namespace: true},
-		{Route: "/cr/{crname}", Func: h.DeleteAppCr, Method: ws.DELETE, Workspace: true, Namespace: true},
+		{Route: "/applications/{application}/cr", Func: h.AppCrList, Method: ws.GET, Workspace: true, Namespace: true},
+		{Route: "/applications/{application}/cr", Func: h.CreateOrUpdateCR, Method: ws.POST, Workspace: true, Namespace: true},
+		{Route: "/applications/{application}/cr/{crname}", Func: h.DescribeAppCr, Method: ws.GET, Workspace: true, Namespace: true},
+		{Route: "/applications/{application}/cr/{crname}", Func: h.DeleteAppCr, Method: ws.DELETE, Workspace: true, Namespace: true},
 	}
 	for _, info := range funcInfoList {
 		builder := info.Method(info.Route).To(info.Func).Doc(info.Doc)
