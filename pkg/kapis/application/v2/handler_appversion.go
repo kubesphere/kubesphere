@@ -45,8 +45,9 @@ func (h *appHandler) CreateOrUpdateAppVersion(req *restful.Request, resp *restfu
 	if workspace == "" {
 		workspace = appv2.SystemWorkspace
 	}
+	createAppVersionRequest.Workspace = workspace
 	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
-	vRequest, err := parseRequest(createAppVersionRequest)
+	vRequest, err := parseRequest(createAppVersionRequest, validate)
 	if requestDone(err, resp) {
 		return
 	}

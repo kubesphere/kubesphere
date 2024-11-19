@@ -48,11 +48,12 @@ func (h *appHandler) CreateOrUpdateApp(req *restful.Request, resp *restful.Respo
 		api.HandleBadRequest(resp, nil, fmt.Errorf("System has no OSS store, the maximum file size is %d", maxFileSize))
 		return
 	}
-
-	newReq, err := parseRequest(createAppRequest)
+	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
+	newReq, err := parseRequest(createAppRequest, validate)
 	if requestDone(err, resp) {
 		return
 	}
+
 	data := map[string]any{
 		"icon":        newReq.Icon,
 		"appName":     newReq.AppName,
@@ -63,7 +64,6 @@ func (h *appHandler) CreateOrUpdateApp(req *restful.Request, resp *restful.Respo
 		"resources":   newReq.Resources,
 	}
 
-	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
 	if validate {
 		resp.WriteAsJson(data)
 		return
