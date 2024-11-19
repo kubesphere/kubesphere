@@ -9,6 +9,8 @@ import (
 	"context"
 	"fmt"
 
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
+
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/emicklei/go-restful/v3"
@@ -47,7 +49,7 @@ func (h *appHandler) AppCrList(req *restful.Request, resp *restful.Response) {
 		api.HandleInternalError(resp, nil, err)
 		return
 	}
-	resp.WriteEntity(convertToListResult(list, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(list, req))
 }
 func checkPermissions(gvr schema.GroupVersionResource, app appv2.Application) (allow bool) {
 	for _, i := range app.Spec.Resources {

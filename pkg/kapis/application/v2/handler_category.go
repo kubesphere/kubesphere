@@ -8,6 +8,8 @@ package v2
 import (
 	"fmt"
 
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
+
 	"github.com/emicklei/go-restful/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -99,5 +101,5 @@ func (h *appHandler) ListCategories(req *restful.Request, resp *restful.Response
 	if requestDone(err, resp) {
 		return
 	}
-	resp.WriteEntity(convertToListResult(cList, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(cList, req))
 }

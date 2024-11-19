@@ -66,6 +66,7 @@ func (h *appHandler) AddToContainer(c *restful.Container) (err error) {
 		{Route: "/repos", Func: h.CreateOrUpdateRepo, Method: ws.POST, Workspace: true},
 		{Route: "/repos/{repo}", Func: h.CreateOrUpdateRepo, Method: ws.PATCH, Workspace: true},
 		{Route: "/repos/{repo}", Func: h.DeleteRepo, Method: ws.DELETE, Workspace: true},
+		{Route: "/repos/{repo}/action", Func: h.ManualSync, Method: ws.POST, Workspace: true},
 		{Route: "/repos/{repo}", Func: h.DescribeRepo, Method: ws.GET, Workspace: true},
 		{Route: "/repos/{repo}/events", Func: h.ListRepoEvents, Method: ws.GET, Workspace: true},
 		{Route: "/apps/{app}/action", Func: h.DoAppAction, Method: ws.POST},
