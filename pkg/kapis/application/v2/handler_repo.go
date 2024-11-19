@@ -1,13 +1,23 @@
 /*
- * Please refer to the LICENSE file in the root directory of the project.
- * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
- */
+Copyright 2020 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package v2
 
 import (
 	"fmt"
 	"net/url"
+
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/application"
 
@@ -115,6 +125,24 @@ func (h *appHandler) DeleteRepo(req *restful.Request, resp *restful.Response) {
 	resp.WriteEntity(errors.None)
 }
 
+func (h *appHandler) ManualSync(req *restful.Request, resp *restful.Response) {
+	repoId := req.PathParameter("repo")
+
+	key := runtimeclient.ObjectKey{Name: repoId}
+	repo := &appv2.Repo{}
+	err := h.client.Get(req.Request.Context(), key, repo)
+	if requestDone(err, resp) {
+		return
+	}
+	repo.Status.State = appv2.StatusManualTrigger
+	err = h.client.Status().Update(req.Request.Context(), repo)
+	if err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+	resp.WriteEntity(errors.None)
+}
+
 func (h *appHandler) DescribeRepo(req *restful.Request, resp *restful.Response) {
 	repoId := req.PathParameter("repo")
 
@@ -146,7 +174,7 @@ func (h *appHandler) ListRepos(req *restful.Request, resp *restful.Response) {
 		filteredList.Items = append(filteredList.Items, repo)
 	}
 
-	resp.WriteEntity(convertToListResult(filteredList, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(filteredList, req))
 }
 
 func (h *appHandler) ListRepoEvents(req *restful.Request, resp *restful.Response) {
@@ -163,5 +191,5 @@ func (h *appHandler) ListRepoEvents(req *restful.Request, resp *restful.Response
 		return
 	}
 
-	resp.WriteEntity(convertToListResult(&list, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(&list, req))
 }
