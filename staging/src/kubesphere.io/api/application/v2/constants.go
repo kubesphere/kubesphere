@@ -18,6 +18,7 @@ const (
 	StatusSuccessful            = "successful"
 	StatusCreating              = "creating"
 	StatusSyncing               = "syncing"
+	StatusManualTrigger         = "manualTrigger"
 	StatusDeleting              = "deleting"
 	StatusUpgrading             = "upgrading"
 	StatusClusterDeleted        = "clusterDeleted"
