@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"encoding/json"
 
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -292,5 +294,5 @@ func (h *appHandler) ListAppRls(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.WriteEntity(convertToListResult(&appList, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(&appList, req))
 }
