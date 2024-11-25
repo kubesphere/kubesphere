@@ -29,6 +29,9 @@ type RepositorySpec struct {
 	CABundle string `json:"caBundle,omitempty"`
 	// --insecure-skip-tls-verify. default false
 	Insecure bool `json:"insecure,omitempty"`
+	// The number of synchronized versions of each extension. 0 means synchronized all versions, default is 3.
+	// +optional
+	Depth *int `json:"depth,omitempty"`
 }
 
 type RepositoryStatus struct {
