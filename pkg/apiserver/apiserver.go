@@ -187,7 +187,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		packagev1alpha1.NewHandler(s.RuntimeCache),
 		gatewayv1alpha2.NewHandler(s.RuntimeCache),
 		appv2.NewHandler(s.RuntimeClient, s.ClusterClient, s.S3Options),
-		workloadtemplatev1alpha1.NewHandler(s.RuntimeClient),
+		workloadtemplatev1alpha1.NewHandler(s.RuntimeClient, s.K8sVersion, rbacAuthorizer),
 		static.NewHandler(s.CacheClient),
 	}
 
