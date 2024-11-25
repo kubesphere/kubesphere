@@ -1,7 +1,9 @@
 package v1alpha1
 
 import (
-	"fmt"
+	"net/http"
+
+	"kubesphere.io/kubesphere/pkg/api"
 
 	"github.com/emicklei/go-restful/v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,40 +28,56 @@ func NewHandler(cacheClient runtimeclient.Client) rest.Handler {
 	return handler
 }
 
-type funcInfo struct {
-	Route     string
-	Func      func(req *restful.Request, resp *restful.Response)
-	Method    func(subPath string) *restful.RouteBuilder
-	Doc       string
-	Workspace bool
-	Params    []*restful.Parameter
-}
-
 func (h *templateHandler) AddToContainer(c *restful.Container) (err error) {
 	ws := runtime.NewWebService(SchemeGroupVersion)
 
-	funcInfoList := []funcInfo{
-		{Route: "/workloadtemplates", Func: h.list, Method: ws.GET, Workspace: true},
-		{Route: "/workloadtemplates", Func: h.apply, Method: ws.POST, Workspace: true},
-		{Route: "/workloadtemplates/{workloadtemplate}", Func: h.delete, Method: ws.DELETE, Workspace: true},
-		{Route: "/workloadtemplates/{workloadtemplate}", Func: h.get, Method: ws.GET, Workspace: true},
-	}
-	for _, info := range funcInfoList {
-		builder := info.Method(info.Route).To(info.Func).Doc(info.Doc)
-		for _, param := range info.Params {
-			builder = builder.Param(param)
-		}
-		ws.Route(builder)
-		if info.Workspace {
-			workspaceRoute := fmt.Sprintf("/workspaces/{workspace}%s", info.Route)
-			builder = info.Method(workspaceRoute).To(info.Func).Doc(info.Doc)
-			for _, param := range info.Params {
-				builder = builder.Param(param)
-			}
-			builder.Param(ws.PathParameter("workspace", "workspace"))
-			ws.Route(builder)
-		}
-	}
+	ws.Route(ws.GET("/workloadtemplates").
+		To(h.list).
+		Doc("List workload templates"))
+
+	ws.Route(ws.POST("/workloadtemplates").
+		To(h.apply).
+		Doc("Apply a workload template").
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.DELETE("/workloadtemplates/{workloadtemplate}").
+		To(h.delete).
+		Doc("Delete a workload template").
+		Param(ws.PathParameter("workloadtemplate", "The specified workload template").Required(true)).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.GET("/workloadtemplates/{workloadtemplate}").
+		To(h.get).
+		Doc("Get a specific workload template").
+		Param(ws.PathParameter("workloadtemplate", "The specified workload template").Required(true)).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.GET("/workspaces/{workspace}/workloadtemplates").
+		To(h.list).
+		Doc("List workload templates in a workspace").
+		Param(ws.PathParameter("workspace", "The specified workspace").Required(true)).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.POST("/workspaces/{workspace}/workloadtemplates").
+		To(h.apply).
+		Doc("Apply a workload template in a workspace").
+		Param(ws.PathParameter("workspace", "The specified workspace").Required(true)).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.DELETE("/workspaces/{workspace}/workloadtemplates/{workloadtemplate}").
+		To(h.delete).
+		Doc("Delete a workload template in a workspace").
+		Param(ws.PathParameter("workspace", "The specified workspace").Required(true)).
+		Param(ws.PathParameter("workloadtemplate", "The specified workload template").Required(true)).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.GET("/workspaces/{workspace}/workloadtemplates/{workloadtemplate}").
+		To(h.get).
+		Doc("Get a specific workload template in a workspace").
+		Param(ws.PathParameter("workspace", "The specified workspace").Required(true)).
+		Param(ws.PathParameter("workloadtemplate", "The specified workload template").Required(true)).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
 	c.Add(ws)
 	return nil
 }
