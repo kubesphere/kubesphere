@@ -29,7 +29,7 @@ import (
 	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
 )
 
-func (h *templateHandler) list(req *restful.Request, resp *restful.Response) {
+func (h *templateHandler) listWorkloadTemplate(req *restful.Request, resp *restful.Response) {
 	secretList := corev1.SecretList{}
 	requirements, _ := labels.SelectorFromSet(map[string]string{SchemeGroupVersion.Group: "true"}).Requirements()
 	userSelector := query.ParseQueryParameter(req).Selector()
@@ -133,7 +133,7 @@ func (h *templateHandler) FilterByPermissions(workspace string, user user.Info, 
 	return filteredList, nil
 }
 
-func (h *templateHandler) apply(req *restful.Request, resp *restful.Response) {
+func (h *templateHandler) applyWorkloadTemplate(req *restful.Request, resp *restful.Response) {
 	secret := &corev1.Secret{}
 	err := req.ReadEntity(secret)
 	if err != nil {
@@ -177,7 +177,7 @@ func (h *templateHandler) apply(req *restful.Request, resp *restful.Response) {
 	resp.WriteAsJson(newSecret)
 }
 
-func (h *templateHandler) delete(req *restful.Request, resp *restful.Response) {
+func (h *templateHandler) deleteWorkloadTemplate(req *restful.Request, resp *restful.Response) {
 	name := req.PathParameter("workloadtemplate")
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	secret.Namespace = req.PathParameter("namespace")
@@ -189,7 +189,7 @@ func (h *templateHandler) delete(req *restful.Request, resp *restful.Response) {
 	resp.WriteEntity(errors.None)
 }
 
-func (h *templateHandler) get(req *restful.Request, resp *restful.Response) {
+func (h *templateHandler) getWorkloadTemplate(req *restful.Request, resp *restful.Response) {
 	name := req.PathParameter("workloadtemplate")
 	secret := &corev1.Secret{}
 	ns := req.PathParameter("namespace")

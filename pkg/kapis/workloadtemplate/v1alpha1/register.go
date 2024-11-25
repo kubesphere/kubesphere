@@ -36,37 +36,51 @@ func (h *templateHandler) AddToContainer(c *restful.Container) (err error) {
 	ws := runtime.NewWebService(SchemeGroupVersion)
 
 	ws.Route(ws.GET("/workloadtemplates").
-		To(h.list).
-		Doc("List workload templates"))
+		To(h.listWorkloadTemplate).
+		Doc("List workload templates").
+		Notes("List workload templates.").
+		Operation("listWorkloadTemplate"))
 	ws.Route(ws.GET("/workspaces/{workspace}/workloadtemplates").
-		To(h.list).
+		To(h.listWorkloadTemplate).
 		Doc("List workload templates in a workspace").
+		Notes("List workload templates in a workspace.").
+		Operation("listWorkloadTemplate").
 		Param(ws.PathParameter("workspace", "workspace")))
 	ws.Route(ws.GET("/namespaces/{namespace}/workloadtemplates").
-		To(h.list).
+		To(h.listWorkloadTemplate).
 		Doc("List workload templates in a namespace").
+		Notes("List workload templates in a namespace.").
+		Operation("listWorkloadTemplate").
 		Param(ws.PathParameter("namespace", "namespace")))
 
 	ws.Route(ws.POST("/namespaces/{namespace}/workloadtemplates").
-		To(h.apply).
-		Doc("Apply a workload template").
+		To(h.applyWorkloadTemplate).
+		Doc("Apply a workload template in a namespace").
+		Notes("Apply a workload template in a namespace.").
+		Operation("applyWorkloadTemplate").
 		Param(ws.PathParameter("namespace", "namespace")))
 
 	ws.Route(ws.PUT("/namespaces/{namespace}/workloadtemplates/{workloadtemplate}").
-		To(h.apply).
+		To(h.applyWorkloadTemplate).
 		Doc("Update a workload template").
+		Notes("Update a workload template in a namespace.").
+		Operation("applyWorkloadTemplate").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("workloadtemplate", "workloadtemplate")))
 
 	ws.Route(ws.DELETE("/namespaces/{namespace}/workloadtemplates/{workloadtemplate}").
-		To(h.delete).
-		Doc("Delete a workload template").
+		To(h.deleteWorkloadTemplate).
+		Doc("Delete a workload template in a namespace").
+		Notes("List workload templates in a namespace.").
+		Operation("deleteWorkloadTemplate").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("workloadtemplate", "workloadtemplate")))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloadtemplates/{workloadtemplate}").
-		To(h.get).
-		Doc("Get a workload template").
+		To(h.getWorkloadTemplate).
+		Doc("Get a workload template in a namespace").
+		Notes("Get a workload template in a namespace.").
+		Operation("getWorkloadTemplate").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("workloadtemplate", "workloadtemplate")))
 
