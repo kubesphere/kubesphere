@@ -88,11 +88,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - operator
                           - scopeName
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                     type: object
                     x-kubernetes-map-type: atomic
                   scopes:
@@ -104,6 +106,7 @@ spec:
                         match each object tracked by a quota
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                 type: object
               selector:
                 additionalProperties:

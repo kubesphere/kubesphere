@@ -7,7 +7,8 @@ package v2
 
 import (
 	"context"
-	"fmt"
+
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -17,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	appv2 "kubesphere.io/api/application/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
 )
@@ -37,7 +37,7 @@ func (h *appHandler) AppCrList(req *restful.Request, resp *restful.Response) {
 		return
 	}
 	opts.LabelSelector = labelSelector.String()
-	_, dynamicClient, _, err := h.getCluster(clusterName)
+	_, dynamicClient, _, err := h.getCluster(req, clusterName)
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
 		return
@@ -47,41 +47,27 @@ func (h *appHandler) AppCrList(req *restful.Request, resp *restful.Response) {
 		api.HandleInternalError(resp, nil, err)
 		return
 	}
-	resp.WriteEntity(convertToListResult(list, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(list, req))
 }
-func checkPermissions(gvr schema.GroupVersionResource, app appv2.Application) (allow bool) {
-	for _, i := range app.Spec.Resources {
-		if gvr.Resource == i.Resource {
-			allow = true
-			break
-		}
-	}
-	return allow
-}
+
 func (h *appHandler) CreateOrUpdateCR(req *restful.Request, resp *restful.Response) {
 	gvr := schema.GroupVersionResource{
 		Group:    req.QueryParameter("group"),
 		Version:  req.QueryParameter("version"),
 		Resource: req.QueryParameter("resource"),
 	}
-	appID := req.QueryParameter("app")
-	app := appv2.Application{}
-	err := h.client.Get(req.Request.Context(), client.ObjectKey{Name: appID}, &app)
-	if err != nil {
-		api.HandleInternalError(resp, nil, err)
-		return
-	}
-	allow := checkPermissions(gvr, app)
-	if !allow {
-		api.HandleForbidden(resp, nil, fmt.Errorf("resource %s not allow", gvr.Resource))
-		return
-	}
 	obj := unstructured.Unstructured{}
-	err = req.ReadEntity(&obj)
+	err := req.ReadEntity(&obj)
 	if err != nil {
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
+	lbs := obj.GetLabels()
+	if lbs == nil {
+		lbs = make(map[string]string)
+	}
+	lbs[appv2.AppReleaseReferenceLabelKey] = req.PathParameter("application")
+	obj.SetLabels(lbs)
 
 	js, err := obj.MarshalJSON()
 	if err != nil {
@@ -89,7 +75,7 @@ func (h *appHandler) CreateOrUpdateCR(req *restful.Request, resp *restful.Respon
 		return
 	}
 	clusterName := req.QueryParameter("cluster")
-	_, dynamicClient, _, err := h.getCluster(clusterName)
+	_, dynamicClient, _, err := h.getCluster(req, clusterName)
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
 		return
@@ -115,7 +101,7 @@ func (h *appHandler) DescribeAppCr(req *restful.Request, resp *restful.Response)
 		Resource: req.QueryParameter("resource"),
 	}
 	clusterName := req.QueryParameter("cluster")
-	_, dynamicClient, _, err := h.getCluster(clusterName)
+	_, dynamicClient, _, err := h.getCluster(req, clusterName)
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
 		return
@@ -138,7 +124,7 @@ func (h *appHandler) DeleteAppCr(req *restful.Request, resp *restful.Response) {
 		Resource: req.QueryParameter("resource"),
 	}
 	clusterName := req.QueryParameter("cluster")
-	_, dynamicClient, _, err := h.getCluster(clusterName)
+	_, dynamicClient, _, err := h.getCluster(req, clusterName)
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
 		return

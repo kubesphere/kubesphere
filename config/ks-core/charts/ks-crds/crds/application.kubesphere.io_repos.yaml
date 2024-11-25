@@ -85,6 +85,7 @@ spec:
               url:
                 type: string
             required:
+            - syncPeriod
             - url
             type: object
           status:

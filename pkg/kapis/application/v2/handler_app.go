@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 
 	"github.com/emicklei/go-restful/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,11 +48,12 @@ func (h *appHandler) CreateOrUpdateApp(req *restful.Request, resp *restful.Respo
 		api.HandleBadRequest(resp, nil, fmt.Errorf("System has no OSS store, the maximum file size is %d", maxFileSize))
 		return
 	}
-
-	newReq, err := parseRequest(createAppRequest)
+	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
+	newReq, err := parseRequest(createAppRequest, validate)
 	if requestDone(err, resp) {
 		return
 	}
+
 	data := map[string]any{
 		"icon":        newReq.Icon,
 		"appName":     newReq.AppName,
@@ -63,7 +64,6 @@ func (h *appHandler) CreateOrUpdateApp(req *restful.Request, resp *restful.Respo
 		"resources":   newReq.Resources,
 	}
 
-	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
 	if validate {
 		resp.WriteAsJson(data)
 		return
@@ -163,7 +163,7 @@ func (h *appHandler) ListApps(req *restful.Request, resp *restful.Response) {
 		filtered.Items = append(filtered.Items, curApp)
 	}
 
-	resp.WriteEntity(convertToListResult(&filtered, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(&filtered, req))
 }
 
 func (h *appHandler) DescribeApp(req *restful.Request, resp *restful.Response) {

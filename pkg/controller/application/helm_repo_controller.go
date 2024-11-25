@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/utils/ptr"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"kubesphere.io/api/constants"
@@ -120,25 +122,22 @@ func (r *RepoReconciler) UpdateStatus(ctx context.Context, helmRepo *appv2.Repo)
 		klog.Errorf("update status failed, error: %s", err)
 		return err
 	}
-	klog.Infof("update status successfully, repo: %s", helmRepo.GetName())
+	klog.Infof("update repo %s status: %s", helmRepo.GetName(), helmRepo.Status.State)
 	return nil
 }
 
-func (r *RepoReconciler) noNeedSync(ctx context.Context, helmRepo *appv2.Repo) (bool, error) {
-	if helmRepo.Spec.SyncPeriod == 0 {
-		if helmRepo.Status.State != appv2.StatusNosync {
-			helmRepo.Status.State = appv2.StatusNosync
-			klog.Infof("no sync when SyncPeriod=0, repo: %s", helmRepo.GetName())
-			if err := r.UpdateStatus(ctx, helmRepo); err != nil {
-				klog.Errorf("update status failed, error: %s", err)
-				return false, err
-			}
-		}
-		klog.Infof("no sync when SyncPeriod=0, repo: %s", helmRepo.GetName())
+func (r *RepoReconciler) skipSync(helmRepo *appv2.Repo) (bool, error) {
+	if helmRepo.Status.State == appv2.StatusManualTrigger || helmRepo.Status.State == appv2.StatusSyncing {
+		klog.Infof("repo: %s state: %s", helmRepo.GetName(), helmRepo.Status.State)
+		return false, nil
+	}
+
+	if helmRepo.Spec.SyncPeriod == nil || *helmRepo.Spec.SyncPeriod == 0 {
+		klog.Infof("repo: %s no sync SyncPeriod=0", helmRepo.GetName())
 		return true, nil
 	}
 	passed := time.Since(helmRepo.Status.LastUpdateTime.Time).Seconds()
-	if helmRepo.Status.State == appv2.StatusSuccessful && passed < float64(helmRepo.Spec.SyncPeriod) {
+	if helmRepo.Status.State == appv2.StatusSuccessful && passed < float64(*helmRepo.Spec.SyncPeriod) {
 		klog.Infof("last sync time is %s, passed %f, no need to sync, repo: %s", helmRepo.Status.LastUpdateTime, passed, helmRepo.GetName())
 		return true, nil
 	}
@@ -173,6 +172,17 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 		klog.Errorf("get helm repo failed, error: %s", err)
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+	if helmRepo.Status.State == "" {
+		helmRepo.Status.State = appv2.StatusCreated
+		err := r.UpdateStatus(ctx, helmRepo)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	if helmRepo.Spec.SyncPeriod == nil {
+		helmRepo.Spec.SyncPeriod = ptr.To(0)
+	}
 
 	workspaceTemplate := &tenantv1beta1.WorkspaceTemplate{}
 	workspaceName := helmRepo.Labels[constants.WorkspaceLabelKey]
@@ -189,8 +199,8 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 		}
 	}
 
-	requeueAfter := time.Duration(helmRepo.Spec.SyncPeriod) * time.Second
-	noSync, err := r.noNeedSync(ctx, helmRepo)
+	requeueAfter := time.Duration(*helmRepo.Spec.SyncPeriod) * time.Second
+	noSync, err := r.skipSync(helmRepo)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -246,7 +256,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 
 		versions = filterVersions(versions)
 
-		vRequests, err := repoParseRequest(r.Client, versions, helmRepo, appName)
+		vRequests, err := repoParseRequest(r.Client, versions, helmRepo, appName, appList)
 		if err != nil {
 			klog.Errorf("parse request failed, error: %s", err)
 			return reconcile.Result{}, err
@@ -255,7 +265,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 			continue
 		}
 
-		klog.Infof("found %d/%d versions for %s need to upgrade", len(vRequests), len(versions), appName)
+		klog.Infof("found %d/%d versions for %s need to upgrade or create", len(vRequests), len(versions), appName)
 
 		own := metav1.OwnerReference{
 			APIVersion: appv2.SchemeGroupVersion.String(),
@@ -281,7 +291,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 	return reconcile.Result{RequeueAfter: requeueAfter}, nil
 }
 
-func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRepo *appv2.Repo, appName string) (result []application.AppRequest, err error) {
+func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRepo *appv2.Repo, appName string, appList *appv2.ApplicationList) (createOrUpdateList []application.AppRequest, err error) {
 	appVersionList := &appv2.ApplicationVersionList{}
 
 	appID := fmt.Sprintf("%s-%s", helmRepo.Name, application.GenerateShortNameMD5Hash(appName))
@@ -321,11 +331,10 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 			appVersionDigestMap[key] = i.Spec.Digest
 		}
 	}
-
+	var legalVersion, shortName string
 	for _, ver := range versions {
-
-		legalVersion := application.FormatVersion(ver.Version)
-		shortName := application.GenerateShortNameMD5Hash(ver.Name)
+		legalVersion = application.FormatVersion(ver.Version)
+		shortName = application.GenerateShortNameMD5Hash(ver.Name)
 		key := fmt.Sprintf("%s-%s-%s", helmRepo.Name, shortName, legalVersion)
 		dig := appVersionDigestMap[key]
 		if dig == ver.Digest {
@@ -334,39 +343,59 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 		if dig != "" {
 			klog.Infof("digest not match, key: %s, digest: %s, ver.Digest: %s", key, dig, ver.Digest)
 		}
-
-		vRequest := application.AppRequest{
-			RepoName:     helmRepo.Name,
-			VersionName:  ver.Version,
-			AppName:      fmt.Sprintf("%s-%s", helmRepo.Name, shortName),
-			AliasName:    appName,
-			OriginalName: appName,
-			AppHome:      ver.Home,
-			Icon:         ver.Icon,
-			Digest:       ver.Digest,
-			Description:  ver.Description,
-			Abstraction:  ver.Description,
-			Maintainers:  application.GetMaintainers(ver.Maintainers),
-			AppType:      appv2.AppTypeHelm,
-			Workspace:    helmRepo.GetWorkspace(),
-			Credential:   helmRepo.Spec.Credential,
-			FromRepo:     true,
-		}
-		url := ver.URLs[0]
-		methodList := []string{"https://", "http://", "s3://", "oci://"}
-		needContact := true
-		for _, method := range methodList {
-			if strings.HasPrefix(url, method) {
-				needContact = false
-				break
-			}
-		}
-
-		if needContact {
-			url = strings.TrimSuffix(helmRepo.Spec.Url, "/") + "/" + url
-		}
-		vRequest.PullUrl = url
-		result = append(result, vRequest)
+		vRequest := generateVRequest(helmRepo, ver, shortName, appName)
+		createOrUpdateList = append(createOrUpdateList, vRequest)
 	}
-	return result, nil
+
+	appNotFound := true
+	for _, i := range appList.Items {
+		if i.Name == appID {
+			appNotFound = false
+			break
+		}
+	}
+
+	if len(createOrUpdateList) == 0 && len(versions) > 0 && appNotFound {
+		//The repo source has been deleted, but the appversion has not been deleted due to the existence of the instance,
+		//and the appversion that is scheduled to be updated is empty
+		//so you need to ensure that at least one version is used to create the app
+		ver := versions[0]
+		v := generateVRequest(helmRepo, ver, shortName, appName)
+		createOrUpdateList = append(createOrUpdateList, v)
+	}
+	return createOrUpdateList, nil
+}
+
+func generateVRequest(helmRepo *appv2.Repo, ver *helmrepo.ChartVersion, shortName string, appName string) application.AppRequest {
+	vRequest := application.AppRequest{
+		RepoName:     helmRepo.Name,
+		VersionName:  ver.Version,
+		AppName:      fmt.Sprintf("%s-%s", helmRepo.Name, shortName),
+		AliasName:    appName,
+		OriginalName: appName,
+		AppHome:      ver.Home,
+		Icon:         ver.Icon,
+		Digest:       ver.Digest,
+		Description:  ver.Description,
+		Abstraction:  ver.Description,
+		Maintainers:  application.GetMaintainers(ver.Maintainers),
+		AppType:      appv2.AppTypeHelm,
+		Workspace:    helmRepo.GetWorkspace(),
+		Credential:   helmRepo.Spec.Credential,
+		FromRepo:     true,
+	}
+	url := ver.URLs[0]
+	methodList := []string{"https://", "http://", "s3://", "oci://"}
+	needContact := true
+	for _, method := range methodList {
+		if strings.HasPrefix(url, method) {
+			needContact = false
+			break
+		}
+	}
+	if needContact {
+		url = strings.TrimSuffix(helmRepo.Spec.Url, "/") + "/" + url
+	}
+	vRequest.PullUrl = url
+	return vRequest
 }

@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net/url"
 
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/application"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -115,6 +117,24 @@ func (h *appHandler) DeleteRepo(req *restful.Request, resp *restful.Response) {
 	resp.WriteEntity(errors.None)
 }
 
+func (h *appHandler) ManualSync(req *restful.Request, resp *restful.Response) {
+	repoId := req.PathParameter("repo")
+
+	key := runtimeclient.ObjectKey{Name: repoId}
+	repo := &appv2.Repo{}
+	err := h.client.Get(req.Request.Context(), key, repo)
+	if requestDone(err, resp) {
+		return
+	}
+	repo.Status.State = appv2.StatusManualTrigger
+	err = h.client.Status().Update(req.Request.Context(), repo)
+	if err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+	resp.WriteEntity(errors.None)
+}
+
 func (h *appHandler) DescribeRepo(req *restful.Request, resp *restful.Response) {
 	repoId := req.PathParameter("repo")
 
@@ -146,7 +166,7 @@ func (h *appHandler) ListRepos(req *restful.Request, resp *restful.Response) {
 		filteredList.Items = append(filteredList.Items, repo)
 	}
 
-	resp.WriteEntity(convertToListResult(filteredList, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(filteredList, req))
 }
 
 func (h *appHandler) ListRepoEvents(req *restful.Request, resp *restful.Response) {
@@ -163,5 +183,5 @@ func (h *appHandler) ListRepoEvents(req *restful.Request, resp *restful.Response
 		return
 	}
 
-	resp.WriteEntity(convertToListResult(&list, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(&list, req))
 }

@@ -1567,6 +1567,63 @@ apiVersion: iam.kubesphere.io/v1beta1
 kind: RoleTemplate
 metadata:
   annotations:
+    iam.kubesphere.io/role-template-rules: '{"workloadtemplates": "view"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/category: namespace-configuration-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-view-workloadtemplates
+spec:
+  description:
+    en: 'View workloadtemplates in the project.'
+    zh: '查看项目中的工作负载模板。'
+  displayName:
+    en: workloadtemplate Viewing
+    zh: '工作负载模板查看'
+  rules:
+    - apiGroups:
+        - 'workloadtemplate.kubesphere.io'
+      resources:
+        - "*"
+      verbs:
+        - get
+        - list
+        - watch
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
+    iam.kubesphere.io/dependencies: '["namespace-view-workloadtemplates"]'
+    iam.kubesphere.io/role-template-rules: '{"workloadtemplates": "manage"}'
+  labels:
+    iam.kubesphere.io/aggregate-to-operator: ""
+    iam.kubesphere.io/category: namespace-configuration-management
+    iam.kubesphere.io/scope: "namespace"
+    kubesphere.io/managed: "true"
+  name: namespace-manage-workloadtemplates
+spec:
+  description:
+    en: 'Create, edit, and delete workloadtemplates in the project.'
+    zh: '创建、编辑和删除项目中的工作负载模板。'
+  displayName:
+    en: workloadtemplate Management
+    zh: '工作负载模板管理'
+  rules:
+    - apiGroups:
+        - 'workloadtemplate.kubesphere.io'
+      resources:
+        - "*"
+      verbs:
+        - '*'
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: RoleTemplate
+metadata:
+  annotations:
     iam.kubesphere.io/role-template-rules: '{"secrets": "view"}'
   labels:
     iam.kubesphere.io/aggregate-to-operator: ""
@@ -1789,6 +1846,7 @@ metadata:
     iam.kubesphere.io/scope: workspace
     kubesphere.io/managed: "true"
     iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/aggregate-to-regular: ""
   name: workspace-view-app-repos
 spec:
   description:

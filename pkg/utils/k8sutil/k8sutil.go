@@ -6,10 +6,17 @@
 package k8sutil
 
 import (
+	"github.com/emicklei/go-restful/v3"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
+
+	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	resv1beta1 "kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
 )
 
 // IsControlledBy returns whether the ownerReferences contains the specified resource kind
@@ -77,4 +84,24 @@ func GetObjectMeta(obj metav1.Object) metav1.ObjectMeta {
 		Finalizers:                 obj.GetFinalizers(),
 		ManagedFields:              obj.GetManagedFields(),
 	}
+}
+
+func ConvertToListResult(obj runtime.Object, req *restful.Request) (listResult api.ListResult) {
+	_ = meta.EachListItem(obj, omitManagedFields)
+	queryParams := query.ParseQueryParameter(req)
+	list, _ := meta.ExtractList(obj)
+	items, _, totalCount := resv1beta1.DefaultList(list, queryParams, resv1beta1.DefaultCompare, resv1beta1.DefaultFilter)
+
+	listResult.Items = items
+	listResult.TotalItems = totalCount
+
+	return listResult
+}
+func omitManagedFields(o runtime.Object) error {
+	a, err := meta.Accessor(o)
+	if err != nil {
+		return err
+	}
+	a.SetManagedFields(nil)
+	return nil
 }

@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"encoding/json"
 
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
+
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -55,7 +57,7 @@ func (h *appHandler) CreateOrUpdateAppRls(req *restful.Request, resp *restful.Re
 	}
 
 	if createRlsRequest.Spec.AppType != appv2.AppTypeHelm {
-		runtimeClient, _, _, err := h.getCluster(createRlsRequest.GetRlsCluster())
+		runtimeClient, _, _, err := h.getCluster(req, createRlsRequest.GetRlsCluster())
 		if requestDone(err, resp) {
 			return
 		}
@@ -111,7 +113,7 @@ func (h *appHandler) DescribeAppRls(req *restful.Request, resp *restful.Response
 	}
 	app.SetManagedFields(nil)
 	if app.Spec.AppType == appv2.AppTypeYaml || app.Spec.AppType == appv2.AppTypeEdge {
-		data, err := h.getRealTimeYaml(ctx, app)
+		data, err := h.getRealTimeYaml(ctx, req, app)
 		if err != nil {
 			klog.Errorf("getRealTimeYaml: %s", err.Error())
 			app.Status.RealTimeResources = nil
@@ -123,7 +125,7 @@ func (h *appHandler) DescribeAppRls(req *restful.Request, resp *restful.Response
 		return
 	}
 
-	data, err := h.getRealTimeHelm(ctx, app)
+	data, err := h.getRealTimeHelm(ctx, req, app)
 	if err != nil {
 		klog.Errorf("getRealTimeHelm: %s", err.Error())
 		app.Status.RealTimeResources = nil
@@ -135,8 +137,8 @@ func (h *appHandler) DescribeAppRls(req *restful.Request, resp *restful.Response
 	resp.WriteEntity(app)
 }
 
-func (h *appHandler) getRealTimeYaml(ctx context.Context, app *appv2.ApplicationRelease) (data []json.RawMessage, err error) {
-	runtimeClient, dynamicClient, cluster, err := h.getCluster(app.GetRlsCluster())
+func (h *appHandler) getRealTimeYaml(ctx context.Context, req *restful.Request, app *appv2.ApplicationRelease) (data []json.RawMessage, err error) {
+	runtimeClient, dynamicClient, cluster, err := h.getCluster(req, app.GetRlsCluster())
 	if err != nil {
 		klog.Errorf("cluster: %s url: %s: %s", cluster.Name, cluster.Spec.Connection.KubernetesAPIEndpoint, err)
 		return nil, err
@@ -175,8 +177,8 @@ func (h *appHandler) getRealTimeYaml(ctx context.Context, app *appv2.Application
 	return data, err
 }
 
-func (h *appHandler) getRealTimeHelm(ctx context.Context, app *appv2.ApplicationRelease) (data []json.RawMessage, err error) {
-	runtimeClient, dynamicClient, cluster, err := h.getCluster(app.GetRlsCluster())
+func (h *appHandler) getRealTimeHelm(ctx context.Context, req *restful.Request, app *appv2.ApplicationRelease) (data []json.RawMessage, err error) {
+	runtimeClient, dynamicClient, cluster, err := h.getCluster(req, app.GetRlsCluster())
 	if err != nil {
 		klog.Errorf("cluster: %s url: %s: %s", cluster.Name, cluster.Spec.Connection.KubernetesAPIEndpoint, err)
 		return nil, err
@@ -292,5 +294,5 @@ func (h *appHandler) ListAppRls(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.WriteEntity(convertToListResult(&appList, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(&appList, req))
 }
