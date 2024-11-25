@@ -1571,6 +1571,7 @@ metadata:
   labels:
     iam.kubesphere.io/aggregate-to-operator: ""
     iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/aggregate-to-regular: ""
     iam.kubesphere.io/category: namespace-configuration-management
     iam.kubesphere.io/scope: "namespace"
     kubesphere.io/managed: "true"
@@ -1580,7 +1581,7 @@ spec:
     en: 'View workloadtemplates in the project.'
     zh: '查看项目中的工作负载模板。'
   displayName:
-    en: workloadtemplate Viewing
+    en: WorkloadTemplate Viewing
     zh: '工作负载模板查看'
   rules:
     - apiGroups:
@@ -1610,7 +1611,7 @@ spec:
     en: 'Create, edit, and delete workloadtemplates in the project.'
     zh: '创建、编辑和删除项目中的工作负载模板。'
   displayName:
-    en: workloadtemplate Management
+    en: WorkloadTemplate Management
     zh: '工作负载模板管理'
   rules:
     - apiGroups:
