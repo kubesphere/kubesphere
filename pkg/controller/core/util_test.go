@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
-
+	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 
 	"kubesphere.io/kubesphere/pkg/version"
@@ -112,6 +114,106 @@ func TestGetRecommendedExtensionVersion(t *testing.T) {
 			if got, _ := getRecommendedExtensionVersion(tt.versions, tt.k8sVersion); got != tt.wanted {
 				t.Errorf("getRecommendedExtensionVersion() = %v, want %v", got, tt.wanted)
 			}
+		})
+	}
+}
+
+func TestFilterExtensionVersions(t *testing.T) {
+	var getExtensionVersion = func(version string) corev1alpha1.ExtensionVersion {
+		return corev1alpha1.ExtensionVersion{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-" + version,
+			},
+			Spec: corev1alpha1.ExtensionVersionSpec{
+				Version: version,
+			},
+		}
+	}
+
+	tests := []struct {
+		name           string
+		versions       []corev1alpha1.ExtensionVersion
+		depth          *int
+		exceptVersions []corev1alpha1.ExtensionVersion
+	}{
+		{
+			name: "invalid versions",
+			versions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("abc"),
+				getExtensionVersion("v1.1.1"),
+				getExtensionVersion("v1.1.2"),
+			},
+			exceptVersions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.2"),
+				getExtensionVersion("v1.1.1"),
+			},
+		},
+		{
+			name: "depth is null", // default value
+			versions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.1"),
+				getExtensionVersion("v1.1.2"),
+				getExtensionVersion("v1.1.3"),
+				getExtensionVersion("v1.1.4"),
+			},
+			exceptVersions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.4"),
+				getExtensionVersion("v1.1.3"),
+				getExtensionVersion("v1.1.2"),
+			},
+		},
+		{
+			name: "depth is 0", // all value
+			versions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.1"),
+				getExtensionVersion("v1.1.2"),
+				getExtensionVersion("v1.1.3"),
+				getExtensionVersion("v1.1.4"),
+			},
+			depth: ptr.To(0),
+			exceptVersions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.4"),
+				getExtensionVersion("v1.1.3"),
+				getExtensionVersion("v1.1.2"),
+				getExtensionVersion("v1.1.1"),
+			},
+		},
+		{
+			name: "depth over length range", // all value
+			versions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.1"),
+				getExtensionVersion("v1.1.2"),
+				getExtensionVersion("v1.1.3"),
+				getExtensionVersion("v1.1.4"),
+			},
+			depth: ptr.To(10),
+			exceptVersions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.4"),
+				getExtensionVersion("v1.1.3"),
+				getExtensionVersion("v1.1.2"),
+				getExtensionVersion("v1.1.1"),
+			},
+		},
+		{
+			name: "depth in length range", // specific value
+			versions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.1"),
+				getExtensionVersion("v1.1.2"),
+				getExtensionVersion("v1.1.3"),
+				getExtensionVersion("v1.1.4"),
+			},
+			depth: ptr.To(2),
+			exceptVersions: []corev1alpha1.ExtensionVersion{
+				getExtensionVersion("v1.1.4"),
+				getExtensionVersion("v1.1.3"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			versions := filterExtensionVersions(tt.versions, tt.depth)
+			assert.Equal(t, versions, tt.exceptVersions)
 		})
 	}
 }
