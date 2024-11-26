@@ -20,7 +20,7 @@ then
 
     # Install skywalking-eyes
     echo 'installing skywalking-eyes '
-    go install -mod=mod github.com/apache/skywalking-eyes/cmd/license-eye@v0.4.0
+    go install -mod=mod github.com/apache/skywalking-eyes/cmd/license-eye@v0.6.0
 fi
 
 cd "${KUBE_ROOT}"
