@@ -1127,7 +1127,6 @@ golang.org/x/crypto/chacha20
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
-golang.org/x/crypto/ed25519
 golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
@@ -1390,11 +1389,6 @@ gopkg.in/ini.v1
 # gopkg.in/natefinch/lumberjack.v2 v2.2.1
 ## explicit; go 1.13
 gopkg.in/natefinch/lumberjack.v2
-# gopkg.in/square/go-jose.v2 v2.6.0 => gopkg.in/square/go-jose.v2 v2.6.0
-## explicit
-gopkg.in/square/go-jose.v2
-gopkg.in/square/go-jose.v2/cipher
-gopkg.in/square/go-jose.v2/json
 # gopkg.in/warnings.v0 v0.1.2 => gopkg.in/warnings.v0 v0.1.2
 ## explicit
 gopkg.in/warnings.v0

@@ -26,6 +26,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.11.0
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/go-git/go-git/v5 v5.11.0
+	github.com/go-jose/go-jose/v4 v4.0.2
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/loads v0.21.2
@@ -64,7 +65,6 @@ require (
 	golang.org/x/oauth2 v0.22.0
 	gopkg.in/cas.v2 v2.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.16.2
 	k8s.io/api v0.31.2
@@ -132,7 +132,6 @@ require (
 	github.com/go-git/go-billy/v5 v5.5.0 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.2 // indirect

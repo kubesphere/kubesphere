@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/square/go-jose.v2"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
