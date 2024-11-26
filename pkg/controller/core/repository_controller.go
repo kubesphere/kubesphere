@@ -255,20 +255,20 @@ func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *
 			extensionVersions = append(extensionVersions, extensionVersion)
 		}
 
-		filterVersions := filterExtensionVersions(extensionVersions, repo.Spec.Depth)
-		if len(filterVersions) == 0 {
+		filteredVersions := filterExtensionVersions(extensionVersions, repo.Spec.Depth)
+		if len(filteredVersions) == 0 {
 			continue
 		}
 		// update extension of latest extensionVersion
-		extension, err := r.createOrUpdateExtension(ctx, repo, extensionName, ptr.To(filterVersions[0]))
+		extension, err := r.createOrUpdateExtension(ctx, repo, extensionName, ptr.To(filteredVersions[0]))
 		if err != nil {
 			if errors.Is(err, extensionRepoConflict) {
 				continue
 			}
 			return fmt.Errorf("failed to create or update extension: %s", err)
 		}
-		// create extensionVersions of filterVersions
-		for _, extensionVersion := range filterVersions {
+		// create extensionVersions of filteredVersions
+		for _, extensionVersion := range filteredVersions {
 			if err := r.createOrUpdateExtensionVersion(ctx, extension, &extensionVersion); err != nil {
 				return fmt.Errorf("failed to create or update extension version: %s", err)
 			}
