@@ -26,10 +26,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	"kubesphere.io/utils/helm"
@@ -188,6 +190,12 @@ func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *
 	}
 
 	for extensionName, versions := range index.Entries {
+		// check extensionName
+		if errs := validation.IsDNS1123Subdomain(extensionName); len(errs) > 0 {
+			logger.Info("invalid extension name", "extension", extensionName, "error", errs)
+			continue
+		}
+
 		extensionVersions := make([]corev1alpha1.ExtensionVersion, 0, len(versions))
 		for _, version := range versions {
 			if version.Metadata == nil {
@@ -247,25 +255,25 @@ func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *
 			extensionVersions = append(extensionVersions, extensionVersion)
 		}
 
-		latestExtensionVersion := getLatestExtensionVersion(extensionVersions)
-		if latestExtensionVersion == nil {
+		filteredVersions := filterExtensionVersions(extensionVersions, repo.Spec.Depth)
+		if len(filteredVersions) == 0 {
 			continue
 		}
-
-		extension, err := r.createOrUpdateExtension(ctx, repo, extensionName, latestExtensionVersion)
+		// update extension of latest extensionVersion
+		extension, err := r.createOrUpdateExtension(ctx, repo, extensionName, ptr.To(filteredVersions[0]))
 		if err != nil {
 			if errors.Is(err, extensionRepoConflict) {
 				continue
 			}
 			return fmt.Errorf("failed to create or update extension: %s", err)
 		}
-
-		for _, extensionVersion := range extensionVersions {
+		// create extensionVersions of filteredVersions
+		for _, extensionVersion := range filteredVersions {
 			if err := r.createOrUpdateExtensionVersion(ctx, extension, &extensionVersion); err != nil {
 				return fmt.Errorf("failed to create or update extension version: %s", err)
 			}
 		}
-
+		// remove extensionVersions of existVersions
 		if err := r.removeSuspendedExtensionVersion(ctx, repo, extension, extensionVersions); err != nil {
 			return fmt.Errorf("failed to remove suspended extension version: %s", err)
 		}

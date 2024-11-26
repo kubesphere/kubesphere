@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -82,26 +83,58 @@ func checkVersionConstraint(constraint string, version *semver.Version) bool {
 	return targetVersion.Check(version)
 }
 
-func getLatestExtensionVersion(versions []corev1alpha1.ExtensionVersion) *corev1alpha1.ExtensionVersion {
-	if len(versions) == 0 {
-		return nil
-	}
+// filterExtensionVersions filters and sorts a slice of ExtensionVersion objects based on semantic versioning.
+// It first validates and removes entries with invalid versions (non-semver format) and logs warnings for them.
+// The remaining entries are sorted in descending order by version (latest first).
+// Finally, the slice is truncated to the specified depth:
+//   - If depth is nil, it defaults to a pre-configured depth (DefaultRepositoryDepth).
+//   - If depth is 0, all valid entries are kept.
+//
+// The function returns the filtered and truncated list of ExtensionVersion objects.
+func filterExtensionVersions(versions []corev1alpha1.ExtensionVersion, depth *int) []corev1alpha1.ExtensionVersion {
+	// Filter and parse valid versions.
+	parsedVersions := make([]struct {
+		semver   *semver.Version
+		original corev1alpha1.ExtensionVersion
+	}, 0, len(versions))
 
-	var latestVersion *corev1alpha1.ExtensionVersion
-	var latestSemver *semver.Version
-
-	for i := range versions {
-		currSemver, err := semver.NewVersion(versions[i].Spec.Version)
+	for _, v := range versions {
+		parsed, err := semver.NewVersion(v.Spec.Version)
 		if err != nil {
-			klog.Warningf("parse version failed, extension version: %s, err: %s", versions[i].Name, err)
+			klog.Warningf("failed to parse version, extension %s version: %s, err: %s", v.Name, v.Spec.Version, err)
 			continue
 		}
-		if latestSemver == nil || latestSemver.LessThan(currSemver) {
-			latestSemver = currSemver
-			latestVersion = &versions[i]
-		}
+		parsedVersions = append(parsedVersions, struct {
+			semver   *semver.Version
+			original corev1alpha1.ExtensionVersion
+		}{semver: parsed, original: v})
 	}
-	return latestVersion
+
+	// Sort by descending semantic version.
+	slices.SortFunc(parsedVersions, func(a, b struct {
+		semver   *semver.Version
+		original corev1alpha1.ExtensionVersion
+	}) int {
+		return b.semver.Compare(a.semver)
+	})
+
+	// Determine truncation length.
+	end := len(parsedVersions)
+	if depth == nil {
+		end = corev1alpha1.DefaultRepositoryDepth
+	} else if *depth > 0 && *depth < len(parsedVersions) {
+		end = *depth
+	}
+	if end > len(parsedVersions) {
+		end = len(parsedVersions)
+	}
+
+	// Extract the truncated versions.
+	filteredVersions := make([]corev1alpha1.ExtensionVersion, end)
+	for i := 0; i < end; i++ {
+		filteredVersions[i] = parsedVersions[i].original
+	}
+	return filteredVersions
 }
 
 func isReleaseNotFoundError(err error) bool {

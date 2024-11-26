@@ -53,6 +53,10 @@ spec:
                 description: The caBundle (base64 string) is used in helmExecutor
                   to verify the helm server.
                 type: string
+              depth:
+                description: The number of synchronized versions of each extension.
+                  0 means synchronized all versions, default is 3.
+                type: integer
               description:
                 type: string
               image:
