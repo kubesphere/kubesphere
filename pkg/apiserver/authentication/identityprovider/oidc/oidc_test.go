@@ -22,11 +22,11 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/server/options"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/golang-jwt/jwt/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"gopkg.in/square/go-jose.v2"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 )
