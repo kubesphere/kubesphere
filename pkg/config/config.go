@@ -113,7 +113,6 @@ type Config struct {
 	AuditingOptions       *auditing.Options            `json:"auditing,omitempty" yaml:"auditing,omitempty" mapstructure:"auditing"`
 	TerminalOptions       *terminal.Options            `json:"terminal,omitempty" yaml:"terminal,omitempty" mapstructure:"terminal"`
 	HelmExecutorOptions   *options.HelmExecutorOptions `json:"helmExecutor,omitempty" yaml:"helmExecutor,omitempty" mapstructure:"helmExecutor"`
-	TelemetryOptions      *options.TelemetryOptions    `json:"telemetry,omitempty" yaml:"telemetry,omitempty" mapstructure:"telemetry"`
 	ExtensionOptions      *options.ExtensionOptions    `json:"extension,omitempty" yaml:"extension,omitempty" mapstructure:"extension"`
 	S3Options             *s3.Options                  `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
 	KubeSphereOptions     *options.KubeSphereOptions   `json:"kubesphere,omitempty" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
@@ -131,7 +130,6 @@ func New() *Config {
 		MultiClusterOptions:   multicluster.NewOptions(),
 		TerminalOptions:       terminal.NewOptions(),
 		AuditingOptions:       auditing.NewAuditingOptions(),
-		TelemetryOptions:      options.NewTelemetryOptions(),
 		HelmExecutorOptions:   options.NewHelmExecutorOptions(),
 		ExtensionOptions:      options.NewExtensionOptions(),
 		S3Options:             s3.NewS3Options(),
