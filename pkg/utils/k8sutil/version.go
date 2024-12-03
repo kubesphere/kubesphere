@@ -10,11 +10,13 @@ import (
 )
 
 func ServeBatchV1beta1(k8sVersion *semver.Version) bool {
-	c, _ := semver.NewConstraint("< 1.21")
+	// add "-0" to make the prerelease version compatible.
+	c, _ := semver.NewConstraint("< 1.21.0-0")
 	return c.Check(k8sVersion)
 }
 
 func ServeAutoscalingV2beta2(k8sVersion *semver.Version) bool {
-	c, _ := semver.NewConstraint("< 1.23")
+	// add "-0" to make the prerelease version compatible.
+	c, _ := semver.NewConstraint("< 1.23.0-0")
 	return c.Check(k8sVersion)
 }
