@@ -7,51 +7,74 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"net/mail"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type UserMapper interface {
+	Find(ctx context.Context, username string) (iamv1beta1.User, error)
+	FindMappedUser(ctx context.Context, idp, uid string) (iamv1beta1.User, error)
+}
+
 type userMapper struct {
 	cache runtimeclient.Reader
 }
 
-// Find returns the user associated with the username or email
-func (u *userMapper) Find(ctx context.Context, username string) (*iamv1beta1.User, error) {
-	user := &iamv1beta1.User{}
-	if _, err := mail.ParseAddress(username); err != nil {
-		return user, u.cache.Get(ctx, types.NamespacedName{Name: username}, user)
+func (u *userMapper) Find(ctx context.Context, username string) (iamv1beta1.User, error) {
+	user, err := u.getUserByUsernameOrEmail(ctx, username)
+	if err != nil {
+		return iamv1beta1.User{}, err
 	}
-
-	// TODO cache with index
-	userList := &iamv1beta1.UserList{}
-	if err := u.cache.List(ctx, userList); err != nil {
-		return nil, err
-	}
-
-	for _, user := range userList.Items {
-		if user.Spec.Email == username {
-			return &user, nil
-		}
-	}
-
-	return nil, errors.NewNotFound(iamv1beta1.Resource("user"), username)
+	return user, nil
 }
 
-// FindMappedUser returns the user which mapped to the identity
-func (u *userMapper) FindMappedUser(ctx context.Context, idp, uid string) (*iamv1beta1.User, error) {
-	userList := &iamv1beta1.UserList{}
-	if err := u.cache.List(ctx, userList, runtimeclient.MatchingLabels{
-		iamv1beta1.IdentifyProviderLabel: idp,
-		iamv1beta1.OriginUIDLabel:        uid,
-	}); err != nil {
-		return nil, err
+func (u *userMapper) FindMappedUser(ctx context.Context, idp, uid string) (iamv1beta1.User, error) {
+	user, err := u.getUserByAnnotation(ctx, fmt.Sprintf("%s.%s", iamv1beta1.IdentityProviderAnnotation, idp), uid)
+	if err != nil {
+		return iamv1beta1.User{}, err
 	}
-	if len(userList.Items) != 1 {
-		return nil, nil
+	return user, nil
+}
+
+func (u *userMapper) getUserByUsernameOrEmail(ctx context.Context, username string) (iamv1beta1.User, error) {
+	if _, err := mail.ParseAddress(username); err == nil {
+		return u.getUserByEmail(ctx, username)
 	}
-	return &userList.Items[0], nil
+	return u.getUserByName(ctx, username)
+}
+
+func (u *userMapper) getUserByName(ctx context.Context, username string) (iamv1beta1.User, error) {
+	user := iamv1beta1.User{}
+	err := u.cache.Get(ctx, types.NamespacedName{Name: username}, &user)
+	return user, runtimeclient.IgnoreNotFound(err)
+}
+
+func (u *userMapper) getUserByEmail(ctx context.Context, email string) (iamv1beta1.User, error) {
+	users := &iamv1beta1.UserList{}
+	if err := u.cache.List(ctx, users); err != nil {
+		return iamv1beta1.User{}, err
+	}
+	for _, user := range users.Items {
+		if user.Spec.Email == email {
+			return user, nil
+		}
+	}
+	return iamv1beta1.User{}, nil
+}
+
+func (u *userMapper) getUserByAnnotation(ctx context.Context, annotation, value string) (iamv1beta1.User, error) {
+	users := &iamv1beta1.UserList{}
+	if err := u.cache.List(ctx, users); err != nil {
+		return iamv1beta1.User{}, err
+	}
+	for _, user := range users.Items {
+		if user.Annotations[annotation] == value {
+			return user, nil
+		}
+	}
+	return iamv1beta1.User{}, nil
 }
