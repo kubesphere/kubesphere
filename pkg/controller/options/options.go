@@ -38,6 +38,7 @@ type HelmExecutorOptions struct {
 	HistoryMax          uint                  `json:"historyMax,omitempty" yaml:"historyMax,omitempty" mapstructure:"historyMax,omitempty"`
 	JobTTLAfterFinished time.Duration         `json:"jobTTLAfterFinished,omitempty" yaml:"jobTTLAfterFinished,omitempty" mapstructure:"jobTTLAfterFinished,omitempty"`
 	Resources           *ResourceRequirements `json:"resources,omitempty" yaml:"resources,omitempty" mapstructure:"resources,omitempty"`
+	Affinity            *corev1.Affinity      `json:"affinity,omitempty" yaml:"affinity,omitempty" mapstructure:"affinity,omitempty"`
 }
 
 type ResourceRequirements struct {

@@ -711,12 +711,15 @@ func initTargetNamespace(ctx context.Context, client client.Client, namespace, e
 	if err := createNamespaceIfNotExists(ctx, client, namespace, extensionName); err != nil {
 		return fmt.Errorf("failed to create namespace: %v", err)
 	}
-	sa := rbacv1.Subject{
-		Kind:      rbacv1.ServiceAccountKind,
-		Name:      fmt.Sprintf("helm-executor.%s", extensionName),
-		Namespace: namespace,
-	}
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		sa := rbacv1.Subject{
+			Kind:      rbacv1.ServiceAccountKind,
+			Name:      fmt.Sprintf("helm-executor.%s", extensionName),
+			Namespace: namespace,
+		}
+		if err := createOrUpdateServiceAccount(ctx, client, extensionName, sa); err != nil {
+			return err
+		}
 		if err := createOrUpdateRole(ctx, client, namespace, extensionName, role.Rules); err != nil {
 			return err
 		}
@@ -731,6 +734,21 @@ func initTargetNamespace(ctx context.Context, client client.Client, namespace, e
 		}
 		return nil
 	})
+}
+
+func createOrUpdateServiceAccount(ctx context.Context, client client.Client, extensionName string, sa rbacv1.Subject) error {
+	serviceAccount := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: sa.Name, Namespace: sa.Namespace}}
+	op, err := controllerutil.CreateOrUpdate(ctx, client, serviceAccount, func() error {
+		serviceAccount.Labels = map[string]string{corev1alpha1.ExtensionReferenceLabel: extensionName}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	klog.V(4).Infof("service account %s in namespace %s %s", serviceAccount.Name, serviceAccount.Namespace, op)
+	return nil
 }
 
 func createOrUpdateClusterRole(ctx context.Context, client client.Client, extensionName string, rules []rbacv1.PolicyRule) error {
@@ -1556,6 +1574,7 @@ func (r *InstallPlanReconciler) newExecutor(plan *corev1alpha1.InstallPlan) (hel
 		helm.SetExecutorNamespace(plan.Status.TargetNamespace),
 		helm.SetExecutorBackoffLimit(0),
 		helm.SetTTLSecondsAfterFinished(r.HelmExecutorOptions.JobTTLAfterFinished),
+		helm.SetExecutorAffinity(r.HelmExecutorOptions.Affinity),
 	}
 	if r.HelmExecutorOptions.Resources != nil {
 		executorOptions = append(executorOptions, helm.SetExecutorResources(corev1.ResourceRequirements{
