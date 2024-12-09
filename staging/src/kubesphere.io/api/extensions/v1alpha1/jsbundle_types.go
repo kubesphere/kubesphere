@@ -10,6 +10,27 @@ type JSBundleSpec struct {
 	Raw []byte `json:"raw,omitempty"`
 	// +optional
 	RawFrom RawFrom `json:"rawFrom,omitempty"`
+	// +optional
+	Assets Assets `json:"assets,omitempty"`
+}
+
+type Assets struct {
+	Style *AuxiliaryStyle `json:"style,omitempty"`
+	Files []FileLocation  `json:"files,omitempty"`
+}
+
+type AuxiliaryStyle struct {
+	Link     string `json:"link,omitempty"`
+	Endpoint `json:",inline"`
+}
+
+type FileLocation struct {
+	Name string `json:"name,omitempty"`
+	Link string `json:"link,omitempty"`
+	// Set the MIME Type of the file, if not specified, it will be provided by the content-type response header in the upstream service by default.
+	// +optional
+	MIMEType *string `json:"mimeType,omitempty"`
+	Endpoint `json:",inline"`
 }
 
 type RawFrom struct {

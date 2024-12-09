@@ -77,7 +77,19 @@ func (r *JSBundleWebhook) validateJSBundle(ctx context.Context, jsBundle *extens
 	}
 	extensionName := jsBundle.Labels[v1alpha1.ExtensionReferenceLabel]
 	if extensionName != "" && !strings.HasPrefix(jsBundle.Status.Link, fmt.Sprintf("/dist/%s", extensionName)) {
-		return nil, fmt.Errorf("the prefix of status.link must be in the format /dist/%s/", extensionName)
+		return nil, fmt.Errorf("the prefix of status.link must be in the format /dist/%s", extensionName)
+	}
+
+	if jsBundle.Spec.Assets.Style != nil && extensionName != "" &&
+		!strings.HasPrefix(jsBundle.Spec.Assets.Style.Link, fmt.Sprintf("/dist/%s", extensionName)) {
+		return nil, fmt.Errorf("the prefix of assets style.link with %s must be in the format /dist/%s", jsBundle.Spec.Assets.Style.Link, extensionName)
+	}
+	if jsBundle.Spec.Assets.Files != nil && extensionName != "" {
+		for _, file := range jsBundle.Spec.Assets.Files {
+			if !strings.HasPrefix(file.Link, fmt.Sprintf("/dist/%s", extensionName)) {
+				return nil, fmt.Errorf("the prefix of assets file.link with %s must be in the format /dist/%s", file.Link, extensionName)
+			}
+		}
 	}
 	jsBundles := &extensionsv1alpha1.JSBundleList{}
 	if err := r.Client.List(ctx, jsBundles, &client.ListOptions{}); err != nil {
@@ -87,6 +99,21 @@ func (r *JSBundleWebhook) validateJSBundle(ctx context.Context, jsBundle *extens
 		if item.Name != jsBundle.Name &&
 			item.Status.Link == jsBundle.Status.Link {
 			return nil, fmt.Errorf("JSBundle %s is already exists", jsBundle.Status.Link)
+		}
+
+		if jsBundle.Spec.Assets.Style != nil && item.Spec.Assets.Style != nil && item.Name != jsBundle.Name &&
+			item.Spec.Assets.Style.Link == jsBundle.Spec.Assets.Style.Link {
+			return nil, fmt.Errorf("JSBundle asstes style %s is already exists", jsBundle.Spec.Assets.Style.Link)
+		}
+
+		if jsBundle.Spec.Assets.Files != nil && item.Spec.Assets.Files != nil && item.Name != jsBundle.Name {
+			for _, assetsFile := range jsBundle.Spec.Assets.Files {
+				for _, itemFile := range item.Spec.Assets.Files {
+					if assetsFile.Link == itemFile.Link {
+						return nil, fmt.Errorf("JSBundle asstes file %s is already exists", assetsFile.Link)
+					}
+				}
+			}
 		}
 	}
 	return nil, nil
