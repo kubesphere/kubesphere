@@ -11,19 +11,18 @@ import (
 	"testing"
 	"time"
 
-	"kubesphere.io/kubesphere/pkg/controller/controllertest"
-
-	kscontroller "kubesphere.io/kubesphere/pkg/controller"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
+	"kubesphere.io/kubesphere/pkg/controller/controllertest"
 	"kubesphere.io/kubesphere/pkg/scheme"
 )
 
@@ -45,10 +44,9 @@ var _ = BeforeSuite(func() {
 	logf.SetLogger(klog.NewKlogr())
 
 	By("bootstrapping test environment")
-	t := true
 	if os.Getenv("TEST_USE_EXISTING_CLUSTER") == "true" {
 		testEnv = &envtest.Environment{
-			UseExistingCluster: &t,
+			UseExistingCluster: ptr.To(true),
 		}
 	} else {
 		crdDirPaths, err := controllertest.LoadCrdPath()

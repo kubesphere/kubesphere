@@ -48,7 +48,7 @@ func (h *handler) ListWorkspaces(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.WriteEntity(result)
+	_ = resp.WriteEntity(result)
 }
 
 func (h *handler) GetWorkspace(request *restful.Request, response *restful.Response) {
@@ -63,7 +63,7 @@ func (h *handler) GetWorkspace(request *restful.Request, response *restful.Respo
 		return
 	}
 
-	response.WriteEntity(workspace)
+	_ = response.WriteEntity(workspace)
 }
 
 func (h *handler) CreateWorkspaceTemplate(req *restful.Request, resp *restful.Response) {
@@ -99,23 +99,18 @@ func (h *handler) CreateWorkspaceTemplate(req *restful.Request, resp *restful.Re
 		return
 	}
 
-	resp.WriteEntity(created)
+	_ = resp.WriteEntity(created)
 }
 
 func (h *handler) DeleteWorkspaceTemplate(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
-
 	opts := metav1.DeleteOptions{}
-
-	err := request.ReadEntity(&opts)
-	if err != nil {
-		opts = *metav1.NewDeleteOptions(0)
+	if err := request.ReadEntity(&opts); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
 	}
 
-	err = h.tenant.DeleteWorkspaceTemplate(workspace, opts)
-
-	if err != nil {
-		klog.Error(err)
+	if err := h.tenant.DeleteWorkspaceTemplate(workspace, opts); err != nil {
 		if errors.IsNotFound(err) {
 			api.HandleNotFound(response, request, err)
 			return
@@ -124,7 +119,7 @@ func (h *handler) DeleteWorkspaceTemplate(request *restful.Request, response *re
 		return
 	}
 
-	response.WriteEntity(servererr.None)
+	_ = response.WriteEntity(servererr.None)
 }
 
 func (h *handler) UpdateWorkspaceTemplate(req *restful.Request, resp *restful.Response) {
@@ -173,7 +168,7 @@ func (h *handler) UpdateWorkspaceTemplate(req *restful.Request, resp *restful.Re
 		return
 	}
 
-	resp.WriteEntity(updated)
+	_ = resp.WriteEntity(updated)
 }
 
 func (h *handler) DescribeWorkspaceTemplate(request *restful.Request, response *restful.Response) {
@@ -187,7 +182,7 @@ func (h *handler) DescribeWorkspaceTemplate(request *restful.Request, response *
 		api.HandleInternalError(response, request, err)
 		return
 	}
-	response.WriteEntity(workspace)
+	_ = response.WriteEntity(workspace)
 }
 
 func (h *handler) PatchWorkspaceTemplate(req *restful.Request, resp *restful.Response) {
@@ -227,7 +222,7 @@ func (h *handler) PatchWorkspaceTemplate(req *restful.Request, resp *restful.Res
 		return
 	}
 
-	resp.WriteEntity(patched)
+	_ = resp.WriteEntity(patched)
 }
 
 func (h *handler) ListWorkspaceTemplates(req *restful.Request, resp *restful.Response) {
@@ -248,5 +243,5 @@ func (h *handler) ListWorkspaceTemplates(req *restful.Request, resp *restful.Res
 		return
 	}
 
-	resp.WriteEntity(result)
+	_ = resp.WriteEntity(result)
 }
