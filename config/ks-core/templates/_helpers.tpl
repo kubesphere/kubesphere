@@ -103,6 +103,19 @@ Create the name of the secret of sa token.
 {{- end }}
 {{- end }}
 
+{{- define "telemetry.enabled" -}}
+{{- $config := lookup "v1" "Secret" (printf "%s" .Release.Namespace) "io.kubesphere.config.platformconfig.telemetry" }}
+{{- if $config }}
+{{- with $config }}
+{{- with (fromYaml ((index .data "configuration.yaml") | b64dec)) }}
+{{- .enabled }}
+{{- end }}
+{{- end }}
+{{- else }}
+{{- true }}
+{{- end }}
+{{- end }}
+
 {{- define "role" -}}
 {{- if eq .Values.role "" }}
 {{- with lookup "v1" "ConfigMap" (printf "%s" .Release.Namespace) "kubesphere-config" }}
