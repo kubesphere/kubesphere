@@ -7,16 +7,14 @@ package workspace
 
 import (
 	"context"
-	"fmt"
-
-	"kubesphere.io/kubesphere/pkg/constants"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -25,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"kubesphere.io/kubesphere/pkg/constants"
 	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 )
 
@@ -76,7 +75,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			controllerutil.RemoveFinalizer(expected, "finalizers.tenant.kubesphere.io")
 			controllerutil.AddFinalizer(expected, constants.CascadingDeletionFinalizer)
 			if err := r.Patch(ctx, expected, client.MergeFrom(workspace)); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to add finalizer: %s", err)
+				return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer to workspace %s", workspace.Name)
 			}
 			workspaceOperation.WithLabelValues("create", workspace.Name).Inc()
 		}
@@ -84,12 +83,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if controllerutil.ContainsFinalizer(workspace, constants.CascadingDeletionFinalizer) {
 			ok, err := r.workspaceCascadingDeletion(ctx, workspace)
 			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to delete workspace: %s", err)
+				return ctrl.Result{}, errors.Wrapf(err, "failed to delete workspace %s", workspace.Name)
 			}
 			if ok {
 				controllerutil.RemoveFinalizer(workspace, constants.CascadingDeletionFinalizer)
 				if err := r.Update(ctx, workspace); err != nil {
-					return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %s", err)
+					return ctrl.Result{}, errors.Wrapf(err, "failed to remove finalizer from workspace %s", workspace.Name)
 				}
 				workspaceOperation.WithLabelValues("delete", workspace.Name).Inc()
 			}
@@ -106,19 +105,42 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 // It returns a boolean indicating whether the deletion was successful and an error if any occurred.
 func (r *Reconciler) workspaceCascadingDeletion(ctx context.Context, workspace *tenantv1beta1.Workspace) (bool, error) {
 	switch workspace.Annotations[constants.DeletionPropagationAnnotation] {
-	case string(metav1.DeletePropagationOrphan):
-		// If the deletion propagation policy is "Orphan", return true without deleting namespaces.
-		return true, nil
-	case string(metav1.DeletePropagationForeground), string(metav1.DeletePropagationBackground):
-		// If the deletion propagation policy is "Foreground" or "Background", delete the namespaces.
-		if err := r.deleteNamespaces(ctx, workspace); err != nil {
-			return false, fmt.Errorf("failed to delete namespaces in workspace %s: %s", workspace.Name, err)
+	case string(metav1.DeletePropagationOrphan), "":
+		if err := r.cleanUpNamespaces(ctx, workspace); err != nil {
+			return false, errors.Wrapf(err, "failed to clean up namespaces in workspace %s", workspace.Name)
 		}
-		return true, nil
-	default:
-		// If the deletion propagation policy is invalid, return an error.
-		return false, fmt.Errorf("invalid deletion propagation policy: %s", workspace.Annotations[constants.DeletionPropagationAnnotation])
+	case string(metav1.DeletePropagationForeground), string(metav1.DeletePropagationBackground):
+		if err := r.deleteNamespaces(ctx, workspace); err != nil {
+			return false, errors.Wrapf(err, "failed to delete namespaces in workspace %s", workspace.Name)
+		}
 	}
+	return true, nil
+}
+
+func (r *Reconciler) cleanUpNamespaces(ctx context.Context, workspace *tenantv1beta1.Workspace) error {
+	namespaces := &corev1.NamespaceList{}
+	if err := r.List(ctx, namespaces, client.MatchingLabels{tenantv1beta1.WorkspaceLabel: workspace.Name}); err != nil {
+		return errors.Wrapf(err, "failed to list namespaces in workspace %s", workspace.Name)
+	}
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		for _, ns := range namespaces.Items {
+			if err := r.Get(ctx, client.ObjectKeyFromObject(&ns), &ns); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				return err
+			}
+			delete(ns.Labels, tenantv1beta1.WorkspaceLabel)
+			if err := r.Update(ctx, &ns); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to clean up namespaces in workspace %s", workspace.Name)
+	}
+	return nil
 }
 
 // deleteNamespaces deletes all namespaces associated with the given workspace.
@@ -126,14 +148,14 @@ func (r *Reconciler) workspaceCascadingDeletion(ctx context.Context, workspace *
 func (r *Reconciler) deleteNamespaces(ctx context.Context, workspace *tenantv1beta1.Workspace) error {
 	namespaces := &corev1.NamespaceList{}
 	if err := r.List(ctx, namespaces, client.MatchingLabels{tenantv1beta1.WorkspaceLabel: workspace.Name}); err != nil {
-		return fmt.Errorf("failed to list namespaces in workspace %s: %s", workspace.Name, err)
+		return errors.Wrapf(err, "failed to list namespaces in workspace %s", workspace.Name)
 	}
 	for _, ns := range namespaces.Items {
 		if err := r.Delete(ctx, &ns); err != nil {
 			if apierrors.IsNotFound(err) {
 				continue
 			}
-			return fmt.Errorf("failed to delete namespace %s: %s", ns.Name, err)
+			return errors.Wrapf(err, "failed to delete namespace %s in workspace %s", ns.Name, workspace.Name)
 		}
 	}
 	return nil
