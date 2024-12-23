@@ -10,6 +10,8 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"time"
 
@@ -163,16 +165,23 @@ func (l ldapProvider) Authenticate(username string, password string) (identitypr
 }
 
 func (l *ldapProvider) newConn() (*ldap.Conn, error) {
-	if !l.StartTLS {
-		return ldap.Dial("tcp", l.Host)
+	lurl, err := url.Parse(l.Host)
+	if err != nil {
+		return nil, ldap.NewError(ldap.ErrorNetwork, err)
 	}
+
+	host, port, err := net.SplitHostPort(lurl.Host)
+	if err != nil {
+		host = lurl.Host
+		port = ""
+	}
+
 	tlsConfig := tls.Config{}
 	if l.InsecureSkipVerify {
 		tlsConfig.InsecureSkipVerify = true
 	}
 	tlsConfig.RootCAs = x509.NewCertPool()
 	var caCert []byte
-	var err error
 	// Load CA cert
 	if l.RootCA != "" {
 		if caCert, err = os.ReadFile(l.RootCA); err != nil {
@@ -189,5 +198,36 @@ func (l *ldapProvider) newConn() (*ldap.Conn, error) {
 	if caCert != nil {
 		tlsConfig.RootCAs.AppendCertsFromPEM(caCert)
 	}
-	return ldap.DialTLS("tcp", l.Host, &tlsConfig)
+
+	var conn *ldap.Conn
+	switch lurl.Scheme {
+	case "ldap":
+		if port == "" {
+			port = ldap.DefaultLdapPort
+		}
+		conn, err = ldap.Dial("tcp", net.JoinHostPort(host, port))
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+	case "ldaps":
+		if port == "" {
+			port = ldap.DefaultLdapsPort
+		}
+		conn, err = ldap.DialTLS("tcp", net.JoinHostPort(host, port), &tlsConfig)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+	default:
+		return nil, ldap.NewError(ldap.ErrorNetwork, fmt.Errorf("unknown scheme '%s'", lurl.Scheme))
+	}
+
+	if l.StartTLS {
+		if err = conn.StartTLS(&tlsConfig); err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+	}
+	return conn, err
 }
