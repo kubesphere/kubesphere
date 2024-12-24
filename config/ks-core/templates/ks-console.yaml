@@ -1,4 +1,29 @@
 {{ if eq (include "multicluster.role" .) "host" }}
+apiVersion: kubesphere.io/v1alpha1
+kind: ServiceAccount
+metadata:
+  name: ks-console
+  namespace: kubesphere-system
+secrets: []
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: GlobalRoleBinding
+metadata:
+  labels:
+    iam.kubesphere.io/role-ref: ks-console
+  name: ks-console
+roleRef:
+  apiGroup: iam.kubesphere.io
+  kind: GlobalRole
+  name: ks-console
+subjects:
+  - apiGroup: kubesphere.io
+    kind: ServiceAccount
+    name: ks-console
+    namespace: kubesphere-system
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,6 +50,7 @@ spec:
       annotations:
         # force restart ks-console after the upgrade is complete if ks-console-config changes
         checksum/config: {{ include (print $.Template.BasePath "/ks-console-config.yaml") . | sha256sum }}
+        kubesphere.io/serviceaccount-name: ks-console
     spec:
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
