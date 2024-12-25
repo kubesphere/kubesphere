@@ -63,30 +63,24 @@ import (
 )
 
 const (
-	installPlanController           = "installplan"
-	installPlanProtection           = "kubesphere.io/installplan-protection"
-	systemWorkspace                 = "system-workspace"
-	agentReleaseFormat              = "%s-agent"
-	defaultRoleFormat               = "kubesphere:%s:helm-executor"
-	defaultRoleBindingFormat        = defaultRoleFormat
-	defaultClusterRoleFormat        = "kubesphere:%s:helm-executor"
-	permissionDefinitionFile        = "permissions.yaml"
-	defaultClusterRoleBindingFormat = defaultClusterRoleFormat
-	tagAgent                        = "agent"
-	tagExtension                    = "extension"
-
-	upgradeSuccessful       = "UpgradeSuccessful"
-	upgradeFailed           = "UpgradeFailed"
-	installSuccessful       = "InstallSuccessful"
-	installFailed           = "InstallFailed"
-	initialized             = "Initialized"
-	uninstallSuccessful     = "UninstallSuccessful"
-	uninstallFailed         = "UninstallFailed"
-	relatedResourceNotReady = "RelatedResourceNotReady"
-	relatedResourceReady    = "RelatedResourceReady"
-
-	typeHelmRelease = "helm.sh/release.v1"
-
+	installPlanController              = "installplan"
+	installPlanProtection              = "kubesphere.io/installplan-protection"
+	systemWorkspace                    = "system-workspace"
+	agentReleaseFormat                 = "%s-agent"
+	defaultRoleFormat                  = "kubesphere:%s:helm-executor"
+	defaultRoleBindingFormat           = defaultRoleFormat
+	defaultClusterRoleFormat           = "kubesphere:%s:helm-executor"
+	permissionDefinitionFile           = "permissions.yaml"
+	defaultClusterRoleBindingFormat    = defaultClusterRoleFormat
+	tagAgent                           = "agent"
+	tagExtension                       = "extension"
+	upgradeSuccessful                  = "UpgradeSuccessful"
+	upgradeFailed                      = "UpgradeFailed"
+	installSuccessful                  = "InstallSuccessful"
+	installFailed                      = "InstallFailed"
+	initialized                        = "Initialized"
+	uninstallFailed                    = "UninstallFailed"
+	typeHelmRelease                    = "helm.sh/release.v1"
 	globalExtensionIngressClassName    = "global.extension.ingress.ingressClassName"
 	globalExtensionIngressDomainSuffix = "global.extension.ingress.domainSuffix"
 	globalExtensionIngressHTTPPort     = "global.extension.ingress.httpPort"
@@ -274,7 +268,7 @@ func (r *InstallPlanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if !controllerutil.ContainsFinalizer(plan, installPlanProtection) {
 		expected := plan.DeepCopy()
 		controllerutil.AddFinalizer(expected, installPlanProtection)
-		return ctrl.Result{Requeue: true}, r.Patch(ctx, expected, client.MergeFrom(plan))
+		return ctrl.Result{}, r.Patch(ctx, expected, client.MergeFrom(plan))
 	}
 
 	targetNamespace := extensionVersion.Spec.Namespace
@@ -284,7 +278,7 @@ func (r *InstallPlanReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if plan.Status.TargetNamespace != targetNamespace {
 		plan.Status.TargetNamespace = targetNamespace
-		return ctrl.Result{Requeue: true}, r.updateInstallPlan(ctx, plan)
+		return ctrl.Result{}, r.updateInstallPlan(ctx, plan)
 	}
 
 	if err := r.syncInstallPlanStatus(ctx, plan); err != nil {
