@@ -115,6 +115,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object.
 		if !controllerutil.ContainsFinalizer(workspaceTemplate, constants.CascadingDeletionFinalizer) {
+			if err := r.initWorkspaceRoles(ctx, workspaceTemplate); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.initManagerRoleBinding(ctx, workspaceTemplate); err != nil {
+				return ctrl.Result{}, err
+			}
 			updated := workspaceTemplate.DeepCopy()
 			// Remove legacy finalizer
 			controllerutil.RemoveFinalizer(updated, "finalizers.workspacetemplate.kubesphere.io")
@@ -140,12 +146,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.initWorkspaceRoles(ctx, workspaceTemplate); err != nil {
-		return ctrl.Result{}, err
-	}
-	if err := r.initManagerRoleBinding(ctx, workspaceTemplate); err != nil {
-		return ctrl.Result{}, err
-	}
 	if err := r.multiClusterSync(ctx, workspaceTemplate); err != nil {
 		return ctrl.Result{}, err
 	}
