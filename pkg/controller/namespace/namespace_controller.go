@@ -89,6 +89,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// The object is not being deleted, so if it does not have our finalizer,
 	// then lets add the finalizer and update the object.
 	if workspaceLabelExists && !controllerutil.ContainsFinalizer(namespace, constants.CascadingDeletionFinalizer) {
+		if err := r.initRoles(ctx, namespace); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to init roles in namespace %s", namespace.Name)
+		}
 		if err := r.initCreatorRoleBinding(ctx, namespace); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to init creator role binding")
 		}
@@ -104,11 +107,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	if workspaceLabelExists {
-		if err := r.initRoles(ctx, namespace); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to init roles in namespace %s", namespace.Name)
-		}
-	} else {
+	if !workspaceLabelExists {
 		if err := r.cleanUp(ctx, namespace); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to clean up namespace %s", namespace.Name)
 		}
