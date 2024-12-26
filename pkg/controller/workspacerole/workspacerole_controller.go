@@ -8,7 +8,6 @@ package workspacerole
 import (
 	"context"
 	"fmt"
-
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -19,9 +18,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
-	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
-	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,11 +26,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
+
 	rbachelper "kubesphere.io/kubesphere/pkg/componenthelper/auth/rbac"
 	"kubesphere.io/kubesphere/pkg/constants"
 	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 	"kubesphere.io/kubesphere/pkg/controller/cluster/predicate"
 	clusterutils "kubesphere.io/kubesphere/pkg/controller/cluster/utils"
+	workspacetemplatepredicate "kubesphere.io/kubesphere/pkg/controller/workspacetemplate/predicate"
 	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate/utils"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
@@ -77,13 +78,16 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 		For(&iamv1beta1.WorkspaceRole{}).
 		Watches(
 			&clusterv1alpha1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(r.mapper),
+			handler.EnqueueRequestsFromMapFunc(r.clusterSync),
 			builder.WithPredicates(predicate.ClusterStatusChangedPredicate{}),
 		).
+		Watches(&tenantv1beta1.WorkspaceTemplate{},
+			handler.EnqueueRequestsFromMapFunc(r.workspaceSync),
+			builder.WithPredicates(workspacetemplatepredicate.WorkspaceStatusChangedPredicate{})).
 		Complete(r)
 }
 
-func (r *Reconciler) mapper(ctx context.Context, o client.Object) []reconcile.Request {
+func (r *Reconciler) clusterSync(ctx context.Context, o client.Object) []reconcile.Request {
 	cluster := o.(*clusterv1alpha1.Cluster)
 	if !clusterutils.IsClusterReady(cluster) {
 		return []reconcile.Request{}
@@ -104,6 +108,22 @@ func (r *Reconciler) mapper(ctx context.Context, o client.Object) []reconcile.Re
 		if utils.WorkspaceTemplateMatchTargetCluster(workspaceTemplate, cluster) {
 			result = append(result, reconcile.Request{NamespacedName: types.NamespacedName{Name: workspaceRole.Name}})
 		}
+	}
+	return result
+}
+
+func (r *Reconciler) workspaceSync(ctx context.Context, object client.Object) []reconcile.Request {
+	workspaceTemplate := object.(*tenantv1beta1.WorkspaceTemplate)
+	workspaceRoles := &iamv1beta1.WorkspaceRoleList{}
+	if err := r.List(ctx, workspaceRoles, client.MatchingLabels{
+		tenantv1beta1.WorkspaceLabel: workspaceTemplate.Name,
+	}); err != nil {
+		r.logger.Error(err, "failed to list workspace roles")
+		return []reconcile.Request{}
+	}
+	var result []reconcile.Request
+	for _, workspaceRole := range workspaceRoles.Items {
+		result = append(result, reconcile.Request{NamespacedName: types.NamespacedName{Name: workspaceRole.Name}})
 	}
 	return result
 }

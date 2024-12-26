@@ -12,8 +12,6 @@ import (
 	"sort"
 	"strings"
 
-	kscontroller "kubesphere.io/kubesphere/pkg/controller"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
@@ -24,18 +22,24 @@ import (
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
-	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
-	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
+
 	"kubesphere.io/kubesphere/pkg/constants"
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
+	"kubesphere.io/kubesphere/pkg/controller/cluster/predicate"
 	clusterutils "kubesphere.io/kubesphere/pkg/controller/cluster/utils"
+	workspacetemplatepredicate "kubesphere.io/kubesphere/pkg/controller/workspacetemplate/predicate"
 	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate/utils"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
@@ -117,7 +121,48 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 		Named(controllerName).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
 		For(&iamv1beta1.WorkspaceRoleBinding{}).
+		Watches(
+			&clusterv1alpha1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.clusterSync),
+			builder.WithPredicates(predicate.ClusterStatusChangedPredicate{}),
+		).
+		Watches(&tenantv1beta1.WorkspaceTemplate{},
+			handler.EnqueueRequestsFromMapFunc(r.workspaceSync),
+			builder.WithPredicates(workspacetemplatepredicate.WorkspaceStatusChangedPredicate{})).
 		Complete(r)
+}
+
+func (r *Reconciler) clusterSync(ctx context.Context, object client.Object) []reconcile.Request {
+	cluster := object.(*clusterv1alpha1.Cluster)
+	if !clusterutils.IsClusterReady(cluster) {
+		return []reconcile.Request{}
+	}
+	workspaceRoleBindings := &iamv1beta1.WorkspaceRoleBindingList{}
+	if err := r.List(ctx, workspaceRoleBindings); err != nil {
+		r.logger.Error(err, "failed to list workspace roles")
+		return []reconcile.Request{}
+	}
+	var result []reconcile.Request
+	for _, workspaceRoleBinding := range workspaceRoleBindings.Items {
+		result = append(result, reconcile.Request{NamespacedName: types.NamespacedName{Name: workspaceRoleBinding.Name}})
+	}
+	return result
+}
+
+func (r *Reconciler) workspaceSync(ctx context.Context, object client.Object) []reconcile.Request {
+	workspaceTemplate := object.(*tenantv1beta1.WorkspaceTemplate)
+	workspaceRoleBindings := &iamv1beta1.WorkspaceRoleBindingList{}
+	if err := r.List(ctx, workspaceRoleBindings, client.MatchingLabels{
+		tenantv1beta1.WorkspaceLabel: workspaceTemplate.Name,
+	}); err != nil {
+		r.logger.Error(err, "failed to list workspace roles")
+		return []reconcile.Request{}
+	}
+	var result []reconcile.Request
+	for _, workspaceRoleBinding := range workspaceRoleBindings.Items {
+		result = append(result, reconcile.Request{NamespacedName: types.NamespacedName{Name: workspaceRoleBinding.Name}})
+	}
+	return result
 }
 
 // +kubebuilder:rbac:groups=iam.kubesphere.io,resources=workspacerolebindings,verbs=get;list;watch;create;update;patch;delete
