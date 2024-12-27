@@ -437,6 +437,12 @@ func (t *tenantOperator) CreateWorkspaceTemplate(user user.Info, workspace *tena
 		}
 
 	}
+
+	if workspace.Spec.Template.Spec.Manager != user.GetName() {
+		if err := t.checkWorkspaceTemplatePermission(user, workspace.Name); err != nil {
+			return nil, err
+		}
+	}
 	return workspace, t.client.Create(context.Background(), workspace)
 }
 
