@@ -11,14 +11,13 @@ import (
 	"fmt"
 	"strings"
 
-	"kubesphere.io/kubesphere/pkg/constants"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -33,11 +32,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"kubesphere.io/kubesphere/pkg/constants"
 	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 	"kubesphere.io/kubesphere/pkg/controller/cluster/predicate"
 	clusterutils "kubesphere.io/kubesphere/pkg/controller/cluster/utils"
 	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate/utils"
 	"kubesphere.io/kubesphere/pkg/utils/clusterclient"
+	"kubesphere.io/kubesphere/pkg/utils/hashutil"
 )
 
 const (
@@ -114,6 +115,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object.
 		if !controllerutil.ContainsFinalizer(workspaceTemplate, constants.CascadingDeletionFinalizer) {
+			if err := r.initWorkspaceRoles(ctx, workspaceTemplate); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.initManagerRoleBinding(ctx, workspaceTemplate); err != nil {
+				return ctrl.Result{}, err
+			}
 			updated := workspaceTemplate.DeepCopy()
 			// Remove legacy finalizer
 			controllerutil.RemoveFinalizer(updated, "finalizers.workspacetemplate.kubesphere.io")
@@ -139,12 +146,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.initWorkspaceRoles(ctx, workspaceTemplate); err != nil {
-		return ctrl.Result{}, err
-	}
-	if err := r.initManagerRoleBinding(ctx, workspaceTemplate); err != nil {
-		return ctrl.Result{}, err
-	}
 	if err := r.multiClusterSync(ctx, workspaceTemplate); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -231,7 +232,7 @@ func (r *Reconciler) initWorkspaceRoles(ctx context.Context, workspaceTemplate *
 			builtinWorkspaceRole.Kind == iamv1beta1.ResourceKindWorkspaceRole {
 			target := &iamv1beta1.WorkspaceRole{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("%s-%s", workspaceTemplate.Name, builtinWorkspaceRole.Name),
+					Name: ensureWorkspaceRoleName(workspaceTemplate.Name, builtinWorkspaceRole.Name),
 				},
 			}
 			op, err := controllerutil.CreateOrUpdate(ctx, r.Client, target, func() error {
@@ -256,12 +257,21 @@ func (r *Reconciler) initWorkspaceRoles(ctx context.Context, workspaceTemplate *
 	return nil
 }
 
+func ensureWorkspaceRoleName(workspace, role string) string {
+	workspaceRoleName := fmt.Sprintf("%s-%s", workspace, role)
+	if len(workspaceRoleName) <= validation.LabelValueMaxLength {
+		return workspaceRoleName
+	}
+	hashedWorkspaceName := hashutil.FNVString([]byte(workspace))
+	return fmt.Sprintf("%s.%s", role, hashedWorkspaceName)
+}
+
 func (r *Reconciler) initManagerRoleBinding(ctx context.Context, workspaceTemplate *tenantv1beta1.WorkspaceTemplate) error {
 	manager := workspaceTemplate.Spec.Template.Spec.Manager
 	if manager == "" {
 		return nil
 	}
-	workspaceAdminRoleName := fmt.Sprintf("%s-admin", workspaceTemplate.Name)
+	workspaceAdminRoleName := ensureWorkspaceRoleName(workspaceTemplate.Name, "admin")
 	existWorkspaceRoleBinding := &iamv1beta1.WorkspaceRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: workspaceAdminRoleName}}
 	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, existWorkspaceRoleBinding, func() error {
 		existWorkspaceRoleBinding.Labels = map[string]string{
@@ -269,7 +279,6 @@ func (r *Reconciler) initManagerRoleBinding(ctx context.Context, workspaceTempla
 			iamv1beta1.UserReferenceLabel: manager,
 			iamv1beta1.RoleReferenceLabel: workspaceAdminRoleName,
 		}
-
 		existWorkspaceRoleBinding.RoleRef = rbacv1.RoleRef{
 			APIGroup: iamv1beta1.SchemeGroupVersion.Group,
 			Kind:     iamv1beta1.ResourceKindWorkspaceRole,
@@ -290,13 +299,6 @@ func (r *Reconciler) initManagerRoleBinding(ctx context.Context, workspaceTempla
 }
 
 func (r *Reconciler) workspaceTemplateCascadingDeletion(ctx context.Context, workspaceTemplate *tenantv1beta1.WorkspaceTemplate) (bool, error) {
-	switch workspaceTemplate.Annotations[constants.DeletionPropagationAnnotation] {
-	case string(metav1.DeletePropagationOrphan), string(metav1.DeletePropagationForeground), string(metav1.DeletePropagationBackground):
-	default:
-		klog.FromContext(ctx).V(4).Info(fmt.Sprintf("waiting for deletion propagation update, invalid deletion propagation policy found: %s", workspaceTemplate.Annotations[constants.DeletionPropagationAnnotation]))
-		return false, nil
-	}
-
 	clusters, err := r.clusterClientSet.ListClusters(ctx)
 	if err != nil {
 		return false, fmt.Errorf("failed to list clusters: %s", err)
@@ -330,12 +332,7 @@ func (r *Reconciler) workspaceCascadingDeletion(ctx context.Context, clusterName
 	if err := clusterClient.Get(ctx, types.NamespacedName{Name: workspaceTemplate.Name}, workspace); err != nil {
 		return client.IgnoreNotFound(err)
 	}
-	if workspace.DeletionTimestamp.IsZero() {
-		if err := clusterClient.Delete(ctx, workspace); err != nil {
-			return fmt.Errorf("failed to delete workspace %s in cluster %s: %s", workspace.Name, clusterName, err)
-		}
-	}
-	if workspace.Annotations[constants.DeletionPropagationAnnotation] == workspaceTemplate.Annotations[constants.DeletionPropagationAnnotation] {
+	if !workspace.DeletionTimestamp.IsZero() {
 		return nil
 	}
 	if workspace.Annotations == nil {
@@ -344,6 +341,9 @@ func (r *Reconciler) workspaceCascadingDeletion(ctx context.Context, clusterName
 	workspace.Annotations[constants.DeletionPropagationAnnotation] = workspaceTemplate.Annotations[constants.DeletionPropagationAnnotation]
 	if err := clusterClient.Update(ctx, workspace); err != nil {
 		return fmt.Errorf("failed to update workspace %s in cluster %s: %s", workspace.Name, clusterName, err)
+	}
+	if err := clusterClient.Delete(ctx, workspace); err != nil {
+		return fmt.Errorf("failed to delete workspace %s in cluster %s: %s", workspace.Name, clusterName, err)
 	}
 	return nil
 }
