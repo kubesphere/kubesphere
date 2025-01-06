@@ -1103,6 +1103,8 @@ metadata:
     iam.kubesphere.io/category: workspace-access-control
     iam.kubesphere.io/scope: "workspace"
     iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/aggregate-to-self-provisioner: ""
+    iam.kubesphere.io/aggregate-to-regular: ""
     kubesphere.io/managed: 'true'
   name: workspace-view-members
 spec:
@@ -1168,6 +1170,8 @@ metadata:
     iam.kubesphere.io/category: workspace-access-control
     iam.kubesphere.io/scope: "workspace"
     iam.kubesphere.io/aggregate-to-viewer: ""
+    iam.kubesphere.io/aggregate-to-regular: ""
+    iam.kubesphere.io/aggregate-to-self-provisioner: ""
     kubesphere.io/managed: 'true'
   name: workspace-view-roles
 spec:
@@ -1846,6 +1850,7 @@ metadata:
     iam.kubesphere.io/category: workspace-app
     iam.kubesphere.io/scope: workspace
     kubesphere.io/managed: "true"
+    iam.kubesphere.io/aggregate-to-self-provisioner: ""
     iam.kubesphere.io/aggregate-to-viewer: ""
     iam.kubesphere.io/aggregate-to-regular: ""
   name: workspace-view-app-repos
@@ -1877,7 +1882,6 @@ metadata:
     iam.kubesphere.io/category: workspace-app
     iam.kubesphere.io/scope: workspace
     kubesphere.io/managed: "true"
-    iam.kubesphere.io/aggregate-to-self-provisioner: ""
     iam.kubesphere.io/aggregate-to-admin: ""
   name: workspace-manage-app-repos
 spec:
@@ -2002,7 +2006,6 @@ metadata:
     iam.kubesphere.io/category: workspace-app
     iam.kubesphere.io/scope: workspace
     kubesphere.io/managed: "true"
-    iam.kubesphere.io/aggregate-to-self-provisioner: ""
     iam.kubesphere.io/aggregate-to-admin: ""
   name: workspace-manage-app-templates
 spec:
