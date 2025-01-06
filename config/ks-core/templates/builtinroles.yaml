@@ -173,6 +173,8 @@ role:
         iam.kubesphere.io/scope: "workspace"
     templateNames:
       - workspace-view-workspace-settings
+      - workspace-view-members
+      - workspace-view-roles
   apiVersion: iam.kubesphere.io/v1beta1
   kind: WorkspaceRole
   metadata:
@@ -181,16 +183,7 @@ role:
       kubesphere.io/description: '{"zh": "查看企业空间设置。", "en": "View workspace settings."}'
       iam.kubesphere.io/auto-aggregate: "true"
     name: regular
-  rules:
-    - apiGroups:
-        - '*'
-      resources:
-        - workspaces
-        - workspacemembers
-      verbs:
-        - get
-        - list
-        - watch
+  rules: []
 
 ---
 apiVersion: iam.kubesphere.io/v1beta1
@@ -208,6 +201,9 @@ role:
     templateNames:
       - workspace-create-projects
       - workspace-view-workspace-settings
+      - workspace-view-members
+      - workspace-view-roles
+      - workspace-view-app-repos
   apiVersion: iam.kubesphere.io/v1beta1
   kind: WorkspaceRole
   metadata:
