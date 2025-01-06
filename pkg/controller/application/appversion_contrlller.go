@@ -66,6 +66,11 @@ func (r *AppVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := r.Client.Get(ctx, req.NamespacedName, appVersion); err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+	if !controllerutil.ContainsFinalizer(appVersion, appv2.CleanupFinalizer) {
+		controllerutil.RemoveFinalizer(appVersion, appv2.StoreCleanFinalizer)
+		controllerutil.AddFinalizer(appVersion, appv2.CleanupFinalizer)
+		return ctrl.Result{}, r.Update(ctx, appVersion)
+	}
 
 	//Delete app files, non-important logic, errors will not affect the main process
 	if !appVersion.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -80,7 +85,7 @@ func (r *AppVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func (r *AppVersionReconciler) deleteFile(ctx context.Context, appVersion *appv2.ApplicationVersion) error {
 	defer func() {
-		controllerutil.RemoveFinalizer(appVersion, appv2.StoreCleanFinalizer)
+		controllerutil.RemoveFinalizer(appVersion, appv2.CleanupFinalizer)
 		err := r.Update(ctx, appVersion)
 		if err != nil {
 			klog.Errorf("Failed to remove finalizer from appversion %s: %v", appVersion.Name, err)
