@@ -219,7 +219,7 @@ func CreateOrUpdateAppVersion(ctx context.Context, client runtimeclient.Client, 
 			Maintainer:  vRequest.Maintainers,
 			PullUrl:     vRequest.PullUrl,
 		}
-		appVersion.Finalizers = []string{appv2.StoreCleanFinalizer}
+		appVersion.Finalizers = []string{appv2.CleanupFinalizer}
 
 		labels := appVersion.GetLabels()
 		if labels == nil {
