@@ -427,3 +427,39 @@ webhooks:
         scope: '*'
     sideEffects: None
     timeoutSeconds: 30
+
+---
+{{- if eq (include "multicluster.role" .) "host" }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: applications.kubesphere.io
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: {{ b64enc $ca.Cert | quote }}
+      service:
+        name: ks-controller-manager
+        namespace: {{ .Release.Namespace }}
+        path: /validate-application-kubesphere-io-v2-applicationrelease
+        port: 443
+    failurePolicy: Fail
+    matchPolicy: Exact
+    name: applicationrelease.extensions.kubesphere.io
+    namespaceSelector: {}
+    objectSelector: {}
+    rules:
+      - apiGroups:
+          - application.kubesphere.io
+        apiVersions:
+          - v2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - applicationreleases
+        scope: '*'
+    sideEffects: None
+    timeoutSeconds: 30
+{{- end }}
