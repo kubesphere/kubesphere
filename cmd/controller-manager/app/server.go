@@ -115,6 +115,7 @@ func init() {
 	runtime.Must(controller.Register(&application.AppVersionReconciler{}))
 	// k8s application
 	runtime.Must(controller.Register(&k8sapplication.Reconciler{}))
+	runtime.Must(controller.Register(&application.ReleaseWebhook{}))
 	// kubectl
 	runtime.Must(controller.Register(&kubectl.Reconciler{}))
 }
