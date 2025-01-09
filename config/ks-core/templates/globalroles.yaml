@@ -68,6 +68,7 @@ rules:
       - config.kubesphere.io
     resources:
       - configs
+      - platformconfigs
     verbs:
       - get
       - list
