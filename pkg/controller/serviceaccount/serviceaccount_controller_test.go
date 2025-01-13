@@ -37,6 +37,7 @@ var _ = Describe("ServiceAccount", func() {
 		saName      = "test-serviceaccount"
 		saNamespace = "default"
 		saRole      = "test-role"
+		refRole     = "kubesphere:iam:test-role"
 	)
 	var role *rbacv1.Role
 	var sa *corev1.ServiceAccount
@@ -45,8 +46,11 @@ var _ = Describe("ServiceAccount", func() {
 	BeforeEach(func() {
 		role = &rbacv1.Role{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      saRole,
+				Name:      refRole,
 				Namespace: saNamespace,
+				Labels: map[string]string{
+					iamv1beta1.RoleReferenceLabel: saRole,
+				},
 			},
 		}
 

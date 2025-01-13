@@ -9,11 +9,10 @@ import (
 	"context"
 	"fmt"
 
-	kscontroller "kubesphere.io/kubesphere/pkg/controller"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -22,6 +21,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
+	rbacutils "kubesphere.io/kubesphere/pkg/utils/rbac"
 )
 
 const (
@@ -73,13 +75,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
+func (r *Reconciler) getReferenceRole(ctx context.Context, roleName, namespace string) (*rbacv1.Role, error) {
+	refRole := &rbacv1.Role{}
+	refRoleName := rbacutils.RelatedK8sResourceName(roleName)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: refRoleName, Namespace: namespace}, refRole)
+	if err != nil {
+		return nil, err
+	}
+	if v := refRole.Labels[iamv1beta1.RoleReferenceLabel]; v != roleName {
+		return nil, errors.NewNotFound(rbacv1.Resource("roles"), refRoleName)
+	}
+	return refRole, nil
+}
+
 func (r *Reconciler) CreateOrUpdateRoleBinding(ctx context.Context, logger logr.Logger, sa *corev1.ServiceAccount) error {
 	roleName := sa.Annotations[iamv1beta1.RoleAnnotation]
 	if roleName == "" {
 		return nil
 	}
-	var role rbacv1.Role
-	if err := r.Get(ctx, types.NamespacedName{Name: roleName, Namespace: sa.Namespace}, &role); err != nil {
+	var role *rbacv1.Role
+	role, err := r.getReferenceRole(ctx, roleName, sa.Namespace)
+	if err != nil {
+		logger.Error(err, "cannot get reference role", "roleName", roleName)
 		return err
 	}
 
@@ -95,8 +112,8 @@ func (r *Reconciler) CreateOrUpdateRoleBinding(ctx context.Context, logger logr.
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
-			Kind:     iamv1beta1.ResourceKindRole,
-			Name:     roleName,
+			Kind:     "Role",
+			Name:     role.Name,
 		},
 		Subjects: []rbacv1.Subject{
 			{
