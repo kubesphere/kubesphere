@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	tenantv1alpha1 "kubesphere.io/api/tenant/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -199,6 +200,23 @@ func (r *Reconciler) cleanUp(ctx context.Context, namespace *corev1.Namespace) e
 	roleBinding := &iamv1beta1.RoleBinding{}
 	if err := r.DeleteAllOf(ctx, roleBinding, client.InNamespace(namespace.Name)); err != nil {
 		return errors.Wrapf(err, "failed to delete role bindings")
+	}
+	updated := namespace.DeepCopy()
+	modified := false
+	newOwnerReferences := make([]metav1.OwnerReference, 0, len(updated.OwnerReferences))
+	for _, owner := range updated.OwnerReferences {
+		if owner.Kind != tenantv1alpha1.ResourceKindWorkspace {
+			newOwnerReferences = append(newOwnerReferences, owner)
+		} else {
+			modified = true
+		}
+	}
+
+	if modified {
+		updated.OwnerReferences = newOwnerReferences
+		if err := r.Patch(ctx, updated, client.MergeFrom(namespace)); err != nil {
+			return errors.Wrapf(err, "failed to cleanup ownerReferences for namespace %s", namespace.Name)
+		}
 	}
 	return nil
 }
