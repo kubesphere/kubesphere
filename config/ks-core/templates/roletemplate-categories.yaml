@@ -235,8 +235,6 @@ spec:
     zh: '项目设置'
 
 ---
-  # category
----
 apiVersion: iam.kubesphere.io/v1beta1
 kind: Category
 metadata:
