@@ -244,6 +244,9 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 		}
 
 		versions = filterVersions(versions)
+		if len(versions) > appv2.MaxNumOfVersions {
+			versions = versions[:appv2.MaxNumOfVersions]
+		}
 
 		vRequests, err := repoParseRequest(r.Client, versions, helmRepo, appName, appList)
 		if err != nil {
@@ -306,8 +309,8 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 	}
 
 	for _, i := range appVersionList.Items {
-		LegalVersion := application.FormatVersion(i.Spec.VersionName)
-		key := fmt.Sprintf("%s-%s", i.GetLabels()[appv2.AppIDLabelKey], LegalVersion)
+		legalVersion := application.FormatVersion(i.Spec.VersionName)
+		key := fmt.Sprintf("%s-%s", i.GetLabels()[appv2.AppIDLabelKey], legalVersion)
 		_, exists := versionMap[key]
 		if !exists {
 			klog.Infof("delete appversion %s", i.GetName())
