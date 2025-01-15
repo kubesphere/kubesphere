@@ -10,30 +10,24 @@ import (
 	"reflect"
 	"testing"
 
-	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
-
-	"kubesphere.io/kubesphere/pkg/constants"
-
-	"gopkg.in/yaml.v3"
-
-	runtimefakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"kubesphere.io/kubesphere/pkg/scheme"
-
-	"kubesphere.io/kubesphere/pkg/server/options"
-
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	authuser "k8s.io/apiserver/pkg/authentication/user"
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
+	runtimefakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/scheme"
+	"kubesphere.io/kubesphere/pkg/server/options"
 )
 
 func TestEncryptPassword(t *testing.T) {
@@ -112,10 +106,7 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 		},
 	}
 
-	marshal1, err := yaml.Marshal(fakepwd1)
-	if err != nil {
-		return
-	}
+	marshal1, _ := yaml.Marshal(fakepwd1)
 
 	fakepwd1Secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -131,10 +122,8 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 		Type: identityprovider.SecretTypeIdentityProvider,
 	}
 
-	marshal2, err := yaml.Marshal(fakepwd2)
-	if err != nil {
-		return
-	}
+	marshal2, _ := yaml.Marshal(fakepwd2)
+
 	fakepwd2Secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-fake-idp2",
@@ -149,10 +138,8 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 		Type: identityprovider.SecretTypeIdentityProvider,
 	}
 
-	marshal3, err := yaml.Marshal(fakepwd3)
-	if err != nil {
-		return
-	}
+	marshal3, _ := yaml.Marshal(fakepwd3)
+
 	fakepwd3Secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-fake-idp3",
@@ -180,8 +167,8 @@ func Test_passwordAuthenticator_Authenticate(t *testing.T) {
 		Build()
 
 	fakeCache := informertest.FakeInformers{Scheme: scheme.Scheme}
-	err = fakeCache.Start(context.Background())
-	if err != nil {
+
+	if err := fakeCache.Start(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	fakeSecretInformer, err := fakeCache.FakeInformerFor(context.Background(), &v1.Secret{})

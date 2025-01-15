@@ -144,11 +144,10 @@ func (h *handler) CreateUser(req *restful.Request, resp *restful.Response) {
 			api.HandleBadRequest(resp, req, err)
 			return
 		}
-		if user.Labels == nil {
+		if user.Annotations == nil {
 			user.Labels = make(map[string]string)
 		}
-		user.Labels[iamv1beta1.IdentifyProviderLabel] = extra[iamv1beta1.ExtraIdentityProvider][0]
-		user.Labels[iamv1beta1.OriginUIDLabel] = extra[iamv1beta1.ExtraUID][0]
+		user.Annotations[fmt.Sprintf("%s.%s", iamv1beta1.IdentityProviderAnnotation, extra[iamv1beta1.ExtraIdentityProvider][0])] = extra[iamv1beta1.ExtraUID][0]
 		delete(user.Annotations, iamv1beta1.GlobalRoleAnnotation)
 	}
 
