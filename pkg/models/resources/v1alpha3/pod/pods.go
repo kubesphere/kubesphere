@@ -52,7 +52,7 @@ func (p *podsGetter) Get(namespace, name string) (runtime.Object, error) {
 	if err := p.cache.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, pod); err != nil {
 		return nil, err
 	}
-	return p.setPodStatus(pod.DeepCopy()), nil
+	return pod, nil
 }
 
 func (p *podsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
@@ -63,7 +63,7 @@ func (p *podsGetter) List(namespace string, query *query.Query) (*api.ListResult
 	}
 	var result []runtime.Object
 	for _, item := range pods.Items {
-		result = append(result, p.setPodStatus(item.DeepCopy()))
+		result = append(result, &item)
 	}
 	return v1alpha3.DefaultList(result, query, p.compare, p.filter), nil
 }
