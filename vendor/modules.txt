@@ -2218,7 +2218,7 @@ k8s.io/utils/ptr
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
 # kubesphere.io/api v0.0.0 => ./staging/src/kubesphere.io/api
-## explicit; go 1.22.4
+## explicit; go 1.22.11
 kubesphere.io/api/application/v2
 kubesphere.io/api/cluster/v1alpha1
 kubesphere.io/api/constants
@@ -2232,11 +2232,11 @@ kubesphere.io/api/tenant/v1alpha1
 kubesphere.io/api/tenant/v1alpha2
 kubesphere.io/api/tenant/v1beta1
 # kubesphere.io/client-go v0.0.0 => ./staging/src/kubesphere.io/client-go
-## explicit; go 1.22.4
+## explicit; go 1.22.11
 kubesphere.io/client-go/kubesphere/scheme
 kubesphere.io/client-go/rest
 # kubesphere.io/utils v0.0.0 => ./staging/src/kubesphere.io/utils
-## explicit; go 1.22.4
+## explicit; go 1.22.11
 kubesphere.io/utils/helm
 kubesphere.io/utils/s3
 # oras.land/oras-go v1.2.6 => oras.land/oras-go v1.2.6
