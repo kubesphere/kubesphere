@@ -175,7 +175,7 @@ var _ = Describe("OIDC", func() {
 					"tokenURL":      fmt.Sprintf("%s/token", oidcServer.URL),
 					"userInfoURL":   fmt.Sprintf("%s/userinfo", oidcServer.URL),
 					"jwksURL":       fmt.Sprintf("%s/keys", oidcServer.URL),
-					"endSessionURL": fmt.Sprintf("%s/endsession", oidcServer.URL),
+					"endSessionURL": fmt.Sprintf("%s/endsession?client_id=kubesphere&post_logout_redirect_uri=", oidcServer.URL),
 				},
 			}
 			Expect(config).Should(Equal(expected))
