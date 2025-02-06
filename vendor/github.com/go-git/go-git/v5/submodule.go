@@ -214,10 +214,10 @@ func (s *Submodule) update(ctx context.Context, o *SubmoduleUpdateOptions, force
 		return err
 	}
 
-	return s.doRecursiveUpdate(r, o)
+	return s.doRecursiveUpdate(ctx, r, o)
 }
 
-func (s *Submodule) doRecursiveUpdate(r *Repository, o *SubmoduleUpdateOptions) error {
+func (s *Submodule) doRecursiveUpdate(ctx context.Context, r *Repository, o *SubmoduleUpdateOptions) error {
 	if o.RecurseSubmodules == NoRecurseSubmodules {
 		return nil
 	}
@@ -236,7 +236,7 @@ func (s *Submodule) doRecursiveUpdate(r *Repository, o *SubmoduleUpdateOptions) 
 	*new = *o
 
 	new.RecurseSubmodules--
-	return l.Update(new)
+	return l.UpdateContext(ctx, new)
 }
 
 func (s *Submodule) fetchAndCheckout(

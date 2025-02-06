@@ -11,7 +11,7 @@ package merkletrie
 // corresponding changes and move the iterators further over both
 // trees.
 //
-// The table bellow show all the possible comparison results, along
+// The table below shows all the possible comparison results, along
 // with what changes should we produce and how to advance the
 // iterators.
 //

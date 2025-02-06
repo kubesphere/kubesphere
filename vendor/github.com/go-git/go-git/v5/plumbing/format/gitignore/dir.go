@@ -64,6 +64,10 @@ func ReadPatterns(fs billy.Filesystem, path []string) (ps []Pattern, err error) 
 
 	for _, fi := range fis {
 		if fi.IsDir() && fi.Name() != gitDir {
+			if NewMatcher(ps).Match(append(path, fi.Name()), true) {
+				continue
+			}
+
 			var subps []Pattern
 			subps, err = ReadPatterns(fs, append(path, fi.Name()))
 			if err != nil {
@@ -116,7 +120,7 @@ func loadPatterns(fs billy.Filesystem, path string) (ps []Pattern, err error) {
 	return
 }
 
-// LoadGlobalPatterns loads gitignore patterns from from the gitignore file
+// LoadGlobalPatterns loads gitignore patterns from the gitignore file
 // declared in a user's ~/.gitconfig file.  If the ~/.gitconfig file does not
 // exist the function will return nil.  If the core.excludesfile property
 // is not declared, the function will return nil.  If the file pointed to by
@@ -132,7 +136,7 @@ func LoadGlobalPatterns(fs billy.Filesystem) (ps []Pattern, err error) {
 	return loadPatterns(fs, fs.Join(home, gitconfigFile))
 }
 
-// LoadSystemPatterns loads gitignore patterns from from the gitignore file
+// LoadSystemPatterns loads gitignore patterns from the gitignore file
 // declared in a system's /etc/gitconfig file.  If the /etc/gitconfig file does
 // not exist the function will return nil.  If the core.excludesfile property
 // is not declared, the function will return nil.  If the file pointed to by

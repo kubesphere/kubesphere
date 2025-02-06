@@ -27,7 +27,7 @@ const (
 	// the commit with the "mergetag" header.
 	headermergetag string = "mergetag"
 
-	defaultUtf8CommitMesageEncoding MessageEncoding = "UTF-8"
+	defaultUtf8CommitMessageEncoding MessageEncoding = "UTF-8"
 )
 
 // Hash represents the hash of an object
@@ -189,7 +189,7 @@ func (c *Commit) Decode(o plumbing.EncodedObject) (err error) {
 	}
 
 	c.Hash = o.Hash()
-	c.Encoding = defaultUtf8CommitMesageEncoding
+	c.Encoding = defaultUtf8CommitMessageEncoding
 
 	reader, err := o.Reader()
 	if err != nil {
@@ -335,7 +335,7 @@ func (c *Commit) encode(o plumbing.EncodedObject, includeSig bool) (err error) {
 		}
 	}
 
-	if string(c.Encoding) != "" && c.Encoding != defaultUtf8CommitMesageEncoding {
+	if string(c.Encoding) != "" && c.Encoding != defaultUtf8CommitMessageEncoding {
 		if _, err = fmt.Fprintf(w, "\n%s %s", headerencoding, c.Encoding); err != nil {
 			return err
 		}

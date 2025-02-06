@@ -51,24 +51,14 @@ func (sk CipherFunction) Id() uint8 {
 	return uint8(sk)
 }
 
-var keySizeByID = map[uint8]int{
-	TripleDES.Id(): 24,
-	CAST5.Id():     cast5.KeySize,
-	AES128.Id():    16,
-	AES192.Id():    24,
-	AES256.Id():    32,
-}
-
 // KeySize returns the key size, in bytes, of cipher.
 func (cipher CipherFunction) KeySize() int {
 	switch cipher {
-	case TripleDES:
-		return 24
 	case CAST5:
 		return cast5.KeySize
 	case AES128:
 		return 16
-	case AES192:
+	case AES192, TripleDES:
 		return 24
 	case AES256:
 		return 32

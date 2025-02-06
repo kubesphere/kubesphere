@@ -431,12 +431,12 @@ func (s *ObjectStorage) getFromUnpacked(h plumbing.Hash) (obj plumbing.EncodedOb
 
 	defer ioutil.CheckClose(w, &err)
 
-	s.objectCache.Put(obj)
-
 	bufp := copyBufferPool.Get().(*[]byte)
 	buf := *bufp
 	_, err = io.CopyBuffer(w, r, buf)
 	copyBufferPool.Put(bufp)
+
+	s.objectCache.Put(obj)
 
 	return obj, err
 }

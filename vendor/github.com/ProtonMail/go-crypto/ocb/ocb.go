@@ -18,8 +18,9 @@ import (
 	"crypto/cipher"
 	"crypto/subtle"
 	"errors"
-	"github.com/ProtonMail/go-crypto/internal/byteutil"
 	"math/bits"
+
+	"github.com/ProtonMail/go-crypto/internal/byteutil"
 )
 
 type ocb struct {
@@ -153,7 +154,7 @@ func (o *ocb) crypt(instruction int, Y, nonce, adata, X []byte) []byte {
 	truncatedNonce := make([]byte, len(nonce))
 	copy(truncatedNonce, nonce)
 	truncatedNonce[len(truncatedNonce)-1] &= 192
-	Ktop := make([]byte, blockSize)
+	var Ktop []byte
 	if bytes.Equal(truncatedNonce, o.reusableKtop.noncePrefix) {
 		Ktop = o.reusableKtop.Ktop
 	} else {

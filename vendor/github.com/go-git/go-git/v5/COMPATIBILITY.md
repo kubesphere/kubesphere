@@ -11,7 +11,7 @@ compatibility status with go-git.
 | `init`  | `--bare`                                                                                                           | ✅     |       |                                                                                                                                                                                                                     |
 | `init`  | `--template` <br/> `--separate-git-dir` <br/> `--shared`                                                           | ❌     |       |                                                                                                                                                                                                                     |
 | `clone` |                                                                                                                    | ✅     |       | - [PlainClone](_examples/clone/main.go)                                                                                                                                                                             |
-| `clone` | Authentication: <br/> - none <br/> - access token <br/> - username + password <br/> - ssh                          | ✅     |       | - [clone ssh](_examples/clone/auth/ssh/main.go) <br/> - [clone access token](_examples/clone/auth/basic/access_token/main.go) <br/> - [clone user + password](_examples/clone/auth/basic/username_password/main.go) |
+| `clone` | Authentication: <br/> - none <br/> - access token <br/> - username + password <br/> - ssh                          | ✅     |       | - [clone ssh (private_key)](_examples/clone/auth/ssh/private_key/main.go) <br/> - [clone ssh (ssh_agent)](_examples/clone/auth/ssh/ssh_agent/main.go) <br/> - [clone access token](_examples/clone/auth/basic/access_token/main.go) <br/> - [clone user + password](_examples/clone/auth/basic/username_password/main.go) |
 | `clone` | `--progress` <br/> `--single-branch` <br/> `--depth` <br/> `--origin` <br/> `--recurse-submodules` <br/>`--shared` | ✅     |       | - [recurse submodules](_examples/clone/main.go) <br/> - [progress](_examples/progress/main.go)                                                                                                                      |
 
 ## Basic snapshotting
@@ -27,14 +27,15 @@ compatibility status with go-git.
 
 ## Branching and merging
 
-| Feature     | Sub-feature | Status | Notes                                   | Examples                                                                                        |
-| ----------- | ----------- | ------ | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `branch`    |             | ✅     |                                         | - [branch](_examples/branch/main.go)                                                            |
-| `checkout`  |             | ✅     | Basic usages of checkout are supported. | - [checkout](_examples/checkout/main.go)                                                        |
-| `merge`     |             | ❌     |                                         |                                                                                                 |
-| `mergetool` |             | ❌     |                                         |                                                                                                 |
-| `stash`     |             | ❌     |                                         |                                                                                                 |
-| `tag`       |             | ✅     |                                         | - [tag](_examples/tag/main.go) <br/> - [tag create and push](_examples/tag-create-push/main.go) |
+| Feature     | Sub-feature | Status       | Notes                                   | Examples                                                                                        |
+| ----------- | ----------- | ------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `branch`    |             | ✅           |                                         | - [branch](_examples/branch/main.go)                                                            |
+| `checkout`  |             | ✅           | Basic usages of checkout are supported. | - [checkout](_examples/checkout/main.go)                                                        |
+| `merge`     |             | ⚠️ (partial) | Fast-forward only                       |                                                                                                 |
+| `mergetool` |             | ❌           |                                         |                                                                                                 |
+| `stash`     |             | ❌           |                                         |                                                                                                 |
+| `sparse-checkout`     |             | ✅           |                                         | - [sparse-checkout](_examples/sparse-checkout/main.go)                                                                                               |
+| `tag`       |             | ✅           |                                         | - [tag](_examples/tag/main.go) <br/> - [tag create and push](_examples/tag-create-push/main.go) |
 
 ## Sharing and updating projects
 

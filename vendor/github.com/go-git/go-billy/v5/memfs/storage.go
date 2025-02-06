@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -112,7 +113,7 @@ func (s *storage) Rename(from, to string) error {
 	move := [][2]string{{from, to}}
 
 	for pathFrom := range s.files {
-		if pathFrom == from || !filepath.HasPrefix(pathFrom, from) {
+		if pathFrom == from || !strings.HasPrefix(pathFrom, from) {
 			continue
 		}
 

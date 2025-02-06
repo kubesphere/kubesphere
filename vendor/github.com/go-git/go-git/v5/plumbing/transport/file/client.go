@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
@@ -95,7 +96,23 @@ func (r *runner) Command(cmd string, ep *transport.Endpoint, auth transport.Auth
 		}
 	}
 
-	return &command{cmd: execabs.Command(cmd, ep.Path)}, nil
+	return &command{cmd: execabs.Command(cmd, adjustPathForWindows(ep.Path))}, nil
+}
+
+func isDriveLetter(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+// On Windows, the path that results from a file: URL has a leading slash. This
+// has to be removed if there's a drive letter
+func adjustPathForWindows(p string) string {
+	if runtime.GOOS != "windows" {
+		return p
+	}
+	if len(p) >= 3 && p[0] == '/' && isDriveLetter(p[1]) && p[2] == ':' {
+		return p[1:]
+	}
+	return p
 }
 
 type command struct {
