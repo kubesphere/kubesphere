@@ -61,7 +61,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.31.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-	golang.org/x/net v0.30.0
+	golang.org/x/net v0.33.0
 	golang.org/x/oauth2 v0.22.0
 	gopkg.in/cas.v2 v2.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -344,7 +344,7 @@ replace (
 	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.28.0
 	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.28.0
 	golang.org/x/crypto => golang.org/x/crypto v0.31.0
-	golang.org/x/net => golang.org/x/net v0.30.0
+	golang.org/x/net => golang.org/x/net v0.33.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync => golang.org/x/sync v0.1.0
 	golang.org/x/sys => golang.org/x/sys v0.26.0

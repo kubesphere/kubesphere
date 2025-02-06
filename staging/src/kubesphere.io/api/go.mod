@@ -8,7 +8,7 @@ toolchain go1.22.8
 
 require (
 	github.com/onsi/gomega v1.34.2
-	golang.org/x/net v0.30.0
+	golang.org/x/net v0.33.0
 	k8s.io/api v0.31.2
 	k8s.io/apimachinery v0.31.2
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
