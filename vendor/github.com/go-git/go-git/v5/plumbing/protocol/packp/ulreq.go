@@ -17,6 +17,7 @@ type UploadRequest struct {
 	Wants        []plumbing.Hash
 	Shallows     []plumbing.Hash
 	Depth        Depth
+	Filter       Filter
 }
 
 // Depth values stores the desired depth of the requested packfile: see

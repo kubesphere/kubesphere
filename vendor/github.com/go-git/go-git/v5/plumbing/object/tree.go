@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -27,6 +28,7 @@ var (
 	ErrFileNotFound      = errors.New("file not found")
 	ErrDirectoryNotFound = errors.New("directory not found")
 	ErrEntryNotFound     = errors.New("entry not found")
+	ErrEntriesNotSorted  = errors.New("entries in tree are not sorted")
 )
 
 // Tree is basically like a directory - it references a bunch of other trees
@@ -270,7 +272,30 @@ func (t *Tree) Decode(o plumbing.EncodedObject) (err error) {
 	return nil
 }
 
+type TreeEntrySorter []TreeEntry
+
+func (s TreeEntrySorter) Len() int {
+	return len(s)
+}
+
+func (s TreeEntrySorter) Less(i, j int) bool {
+	name1 := s[i].Name
+	name2 := s[j].Name
+	if s[i].Mode == filemode.Dir {
+		name1 += "/"
+	}
+	if s[j].Mode == filemode.Dir {
+		name2 += "/"
+	}
+	return name1 < name2
+}
+
+func (s TreeEntrySorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
 // Encode transforms a Tree into a plumbing.EncodedObject.
+// The tree entries must be sorted by name.
 func (t *Tree) Encode(o plumbing.EncodedObject) (err error) {
 	o.SetType(plumbing.TreeObject)
 	w, err := o.Writer()
@@ -279,7 +304,15 @@ func (t *Tree) Encode(o plumbing.EncodedObject) (err error) {
 	}
 
 	defer ioutil.CheckClose(w, &err)
+
+	if !sort.IsSorted(TreeEntrySorter(t.Entries)) {
+		return ErrEntriesNotSorted
+	}
+
 	for _, entry := range t.Entries {
+		if strings.IndexByte(entry.Name, 0) != -1 {
+			return fmt.Errorf("malformed filename %q", entry.Name)
+		}
 		if _, err = fmt.Fprintf(w, "%o %s", entry.Mode, entry.Name); err != nil {
 			return err
 		}

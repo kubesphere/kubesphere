@@ -51,19 +51,21 @@ var (
 	// ErrFetching is returned when the packfile could not be downloaded
 	ErrFetching = errors.New("unable to fetch packfile")
 
-	ErrInvalidReference          = errors.New("invalid reference, should be a tag or a branch")
-	ErrRepositoryNotExists       = errors.New("repository does not exist")
-	ErrRepositoryIncomplete      = errors.New("repository's commondir path does not exist")
-	ErrRepositoryAlreadyExists   = errors.New("repository already exists")
-	ErrRemoteNotFound            = errors.New("remote not found")
-	ErrRemoteExists              = errors.New("remote already exists")
-	ErrAnonymousRemoteName       = errors.New("anonymous remote name must be 'anonymous'")
-	ErrWorktreeNotProvided       = errors.New("worktree should be provided")
-	ErrIsBareRepository          = errors.New("worktree not available in a bare repository")
-	ErrUnableToResolveCommit     = errors.New("unable to resolve commit")
-	ErrPackedObjectsNotSupported = errors.New("packed objects not supported")
-	ErrSHA256NotSupported        = errors.New("go-git was not compiled with SHA256 support")
-	ErrAlternatePathNotSupported = errors.New("alternate path must use the file scheme")
+	ErrInvalidReference            = errors.New("invalid reference, should be a tag or a branch")
+	ErrRepositoryNotExists         = errors.New("repository does not exist")
+	ErrRepositoryIncomplete        = errors.New("repository's commondir path does not exist")
+	ErrRepositoryAlreadyExists     = errors.New("repository already exists")
+	ErrRemoteNotFound              = errors.New("remote not found")
+	ErrRemoteExists                = errors.New("remote already exists")
+	ErrAnonymousRemoteName         = errors.New("anonymous remote name must be 'anonymous'")
+	ErrWorktreeNotProvided         = errors.New("worktree should be provided")
+	ErrIsBareRepository            = errors.New("worktree not available in a bare repository")
+	ErrUnableToResolveCommit       = errors.New("unable to resolve commit")
+	ErrPackedObjectsNotSupported   = errors.New("packed objects not supported")
+	ErrSHA256NotSupported          = errors.New("go-git was not compiled with SHA256 support")
+	ErrAlternatePathNotSupported   = errors.New("alternate path must use the file scheme")
+	ErrUnsupportedMergeStrategy    = errors.New("unsupported merge strategy")
+	ErrFastForwardMergeNotPossible = errors.New("not possible to fast-forward merge changes")
 )
 
 // Repository represents a git repository
@@ -954,7 +956,7 @@ func (r *Repository) clone(ctx context.Context, o *CloneOptions) error {
 		}
 
 		if o.RecurseSubmodules != NoRecurseSubmodules {
-			if err := w.updateSubmodules(&SubmoduleUpdateOptions{
+			if err := w.updateSubmodules(ctx, &SubmoduleUpdateOptions{
 				RecurseSubmodules: o.RecurseSubmodules,
 				Depth: func() int {
 					if o.ShallowSubmodules {
@@ -1035,7 +1037,7 @@ func (r *Repository) setIsBare(isBare bool) error {
 	return r.Storer.SetConfig(cfg)
 }
 
-func (r *Repository) updateRemoteConfigIfNeeded(o *CloneOptions, c *config.RemoteConfig, head *plumbing.Reference) error {
+func (r *Repository) updateRemoteConfigIfNeeded(o *CloneOptions, c *config.RemoteConfig, _ *plumbing.Reference) error {
 	if !o.SingleBranch {
 		return nil
 	}
@@ -1769,8 +1771,43 @@ func (r *Repository) RepackObjects(cfg *RepackConfig) (err error) {
 	return nil
 }
 
+// Merge merges the reference branch into the current branch.
+//
+// If the merge is not possible (or supported) returns an error without changing
+// the HEAD for the current branch. Possible errors include:
+//   - The merge strategy is not supported.
+//   - The specific strategy cannot be used (e.g. using FastForwardMerge when one is not possible).
+func (r *Repository) Merge(ref plumbing.Reference, opts MergeOptions) error {
+	if opts.Strategy != FastForwardMerge {
+		return ErrUnsupportedMergeStrategy
+	}
+
+	// Ignore error as not having a shallow list is optional here.
+	shallowList, _ := r.Storer.Shallow()
+	var earliestShallow *plumbing.Hash
+	if len(shallowList) > 0 {
+		earliestShallow = &shallowList[0]
+	}
+
+	head, err := r.Head()
+	if err != nil {
+		return err
+	}
+
+	ff, err := isFastForward(r.Storer, head.Hash(), ref.Hash(), earliestShallow)
+	if err != nil {
+		return err
+	}
+
+	if !ff {
+		return ErrFastForwardMergeNotPossible
+	}
+
+	return r.Storer.SetReference(plumbing.NewHashReference(head.Name(), ref.Hash()))
+}
+
 // createNewObjectPack is a helper for RepackObjects taking care
-// of creating a new pack. It is used so the the PackfileWriter
+// of creating a new pack. It is used so the PackfileWriter
 // deferred close has the right scope.
 func (r *Repository) createNewObjectPack(cfg *RepackConfig) (h plumbing.Hash, err error) {
 	ow := newObjectWalker(r.Storer)

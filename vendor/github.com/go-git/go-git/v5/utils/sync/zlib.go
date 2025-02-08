@@ -35,7 +35,7 @@ type ZLibReader struct {
 }
 
 // GetZlibReader returns a ZLibReader that is managed by a sync.Pool.
-// Returns a ZLibReader that is resetted using a dictionary that is
+// Returns a ZLibReader that is reset using a dictionary that is
 // also managed by a sync.Pool.
 //
 // After use, the ZLibReader should be put back into the sync.Pool
@@ -58,7 +58,7 @@ func PutZlibReader(z ZLibReader) {
 }
 
 // GetZlibWriter returns a *zlib.Writer that is managed by a sync.Pool.
-// Returns a writer that is resetted with w and ready for use.
+// Returns a writer that is reset with w and ready for use.
 //
 // After use, the *zlib.Writer should be put back into the sync.Pool
 // by calling PutZlibWriter.

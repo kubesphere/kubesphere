@@ -76,7 +76,7 @@
 //			-log_backtrace_at=gopherflakes.go:234
 //		A stack trace will be written to the Info log whenever execution
 //		hits one of these statements. (Unlike with -vmodule, the ".go"
-//		must bepresent.)
+//		must be present.)
 //	-v=0
 //		Enable V-leveled logging at the specified level.
 //	-vmodule=""

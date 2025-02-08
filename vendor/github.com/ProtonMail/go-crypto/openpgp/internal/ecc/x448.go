@@ -73,7 +73,9 @@ func (c *x448) GenerateECDH(rand io.Reader) (point []byte, secret []byte, err er
 func (c *x448) Encaps(rand io.Reader, point []byte) (ephemeral, sharedSecret []byte, err error) {
 	var pk, ss x448lib.Key
 	seed, e, err := c.generateKeyPairBytes(rand)
-
+	if err != nil {
+		return nil, nil, err
+	}
 	copy(pk[:], point)
 	x448lib.Shared(&ss, &seed, &pk)
 

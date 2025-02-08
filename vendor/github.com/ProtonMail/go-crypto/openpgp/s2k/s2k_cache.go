@@ -5,7 +5,7 @@ package s2k
 // the same parameters.
 type Cache map[Params][]byte
 
-// GetOrComputeDerivedKey tries to retrieve the key 
+// GetOrComputeDerivedKey tries to retrieve the key
 // for the given s2k parameters from the cache.
 // If there is no hit, it derives the key with the s2k function from the passphrase,
 // updates the cache, and returns the key.

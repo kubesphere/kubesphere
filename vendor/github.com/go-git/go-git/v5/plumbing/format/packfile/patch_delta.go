@@ -26,6 +26,13 @@ var (
 const (
 	payload      = 0x7f // 0111 1111
 	continuation = 0x80 // 1000 0000
+
+	// maxPatchPreemptionSize defines what is the max size of bytes to be
+	// premptively made available for a patch operation.
+	maxPatchPreemptionSize uint = 65536
+
+	// minDeltaSize defines the smallest size for a delta.
+	minDeltaSize = 4
 )
 
 type offset struct {
@@ -86,9 +93,13 @@ func ApplyDelta(target, base plumbing.EncodedObject, delta []byte) (err error) {
 }
 
 // PatchDelta returns the result of applying the modification deltas in delta to src.
-// An error will be returned if delta is corrupted (ErrDeltaLen) or an action command
+// An error will be returned if delta is corrupted (ErrInvalidDelta) or an action command
 // is not copy from source or copy from delta (ErrDeltaCmd).
 func PatchDelta(src, delta []byte) ([]byte, error) {
+	if len(src) == 0 || len(delta) < minDeltaSize {
+		return nil, ErrInvalidDelta
+	}
+
 	b := &bytes.Buffer{}
 	if err := patchDelta(b, src, delta); err != nil {
 		return nil, err
@@ -239,7 +250,9 @@ func patchDelta(dst *bytes.Buffer, src, delta []byte) error {
 	remainingTargetSz := targetSz
 
 	var cmd byte
-	dst.Grow(int(targetSz))
+
+	growSz := min(targetSz, maxPatchPreemptionSize)
+	dst.Grow(int(growSz))
 	for {
 		if len(delta) == 0 {
 			return ErrInvalidDelta
@@ -403,6 +416,10 @@ func patchDeltaWriter(dst io.Writer, base io.ReaderAt, delta io.Reader,
 // This must be called twice on the delta data buffer, first to get the
 // expected source buffer size, and again to get the target buffer size.
 func decodeLEB128(input []byte) (uint, []byte) {
+	if len(input) == 0 {
+		return 0, input
+	}
+
 	var num, sz uint
 	var b byte
 	for {
