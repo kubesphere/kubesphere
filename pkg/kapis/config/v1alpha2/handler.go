@@ -6,15 +6,22 @@
 package v1alpha2
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/emicklei/go-restful/v3"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
@@ -22,11 +29,20 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/rest"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 const (
-	themeConfigurationName = "platform-configuration-theme"
+	themeConfigurationName           = "platform-configuration-theme"
+	GenericPlatformConfigurationKind = "GenericPlatformConfiguration"
 )
+
+type GenericPlatformConfiguration struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Data runtime.RawExtension `json:"data,omitempty"`
+}
 
 func NewHandler(config *options.Options, client client.Client) rest.Handler {
 	return &handler{
@@ -105,4 +121,201 @@ func (h *handler) getOAuthConfiguration(req *restful.Request, resp *restful.Resp
 		Clients:           clients,
 	}
 	_ = resp.WriteEntity(configuration)
+}
+
+func (h *handler) getConfigz(_ *restful.Request, response *restful.Response) {
+	_ = response.WriteAsJson(h.config)
+}
+
+func (h *handler) getPlatformConfiguration(request *restful.Request, response *restful.Response) {
+	configName := request.PathParameter("config")
+	if len(validation.IsDNS1123Label(configName)) > 0 {
+		api.HandleNotFound(response, request, fmt.Errorf("platform config %s not found", configName))
+		return
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSphereNamespace,
+			Name:      fmt.Sprintf(constants.GenericPlatformConfigNameFmt, configName),
+		},
+	}
+	if err := h.client.Get(request.Request.Context(), client.ObjectKeyFromObject(secret), secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			api.HandleNotFound(response, request, fmt.Errorf("platform config %s not found", configName))
+			return
+		}
+		api.HandleError(response, request, err)
+		return
+	}
+
+	config := &GenericPlatformConfiguration{}
+	config.ConvertFromSecret(secret)
+
+	_ = response.WriteEntity(config)
+}
+
+func (h *handler) createPlatformConfiguration(request *restful.Request, response *restful.Response) {
+	config := &GenericPlatformConfiguration{}
+	if err := request.ReadEntity(config); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	if config.Kind != GenericPlatformConfigurationKind {
+		api.HandleBadRequest(response, request, fmt.Errorf("invalid kind: %s", config.Kind))
+		return
+	}
+
+	if config.APIVersion != APIVersion {
+		api.HandleBadRequest(response, request, fmt.Errorf("invalid apiVersion: %s", config.APIVersion))
+		return
+	}
+
+	if len(validation.IsDNS1123Label(config.Name)) > 0 {
+		api.HandleBadRequest(response, request, fmt.Errorf("invalid config name: %s", config.Name))
+		return
+	}
+	secret := config.ConvertToSecret()
+	if err := h.client.Create(request.Request.Context(), secret); err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+
+	config.ConvertFromSecret(secret)
+
+	_ = response.WriteEntity(config)
+}
+
+func (h *handler) patchPlatformConfiguration(request *restful.Request, response *restful.Response) {
+	var raw map[string]json.RawMessage
+	if err := request.ReadEntity(&raw); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	configName := request.PathParameter("config")
+	if len(validation.IsDNS1123Label(configName)) > 0 {
+		api.HandleNotFound(response, request, fmt.Errorf("platform config %s not found", configName))
+		return
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSphereNamespace,
+			Name:      fmt.Sprintf(constants.GenericPlatformConfigNameFmt, configName),
+		},
+	}
+
+	if err := h.client.Get(request.Request.Context(), client.ObjectKeyFromObject(secret), secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			api.HandleNotFound(response, request, fmt.Errorf("platform config %s not found", configName))
+			return
+		}
+		api.HandleError(response, request, err)
+		return
+	}
+
+	config := &GenericPlatformConfiguration{}
+	config.ConvertFromSecret(secret)
+
+	original, err := config.Data.MarshalJSON()
+	if err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+
+	patchData := raw["data"]
+	if len(patchData) > 0 {
+		var modifiedData []byte
+		modifiedData, err = jsonpatch.MergePatch(original, patchData)
+		if err != nil {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+
+		if err = json.Unmarshal(modifiedData, &config.Data); err != nil {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+
+		secret = config.ConvertToSecret()
+		if err := h.client.Update(request.Request.Context(), secret); err != nil {
+			api.HandleError(response, request, err)
+			return
+		}
+	}
+
+	config.ConvertFromSecret(secret)
+	_ = response.WriteEntity(config)
+}
+
+func (h *handler) updatePlatformConfiguration(request *restful.Request, response *restful.Response) {
+	config := &GenericPlatformConfiguration{}
+	if err := request.ReadEntity(config); err != nil {
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	secret := config.ConvertToSecret()
+
+	if err := h.client.Update(request.Request.Context(), secret); err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+
+	config.ConvertFromSecret(secret)
+
+	_ = response.WriteEntity(config)
+}
+
+func (h *handler) deletePlatformConfiguration(request *restful.Request, response *restful.Response) {
+	configName := request.PathParameter("config")
+	if len(validation.IsDNS1123Label(configName)) > 0 {
+		api.HandleNotFound(response, request, fmt.Errorf("platform config %s not found", configName))
+		return
+	}
+
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSphereNamespace,
+			Name:      fmt.Sprintf(constants.GenericPlatformConfigNameFmt, configName),
+		},
+	}
+
+	if err := h.client.Delete(request.Request.Context(), &secret); err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+
+	_ = response.WriteEntity(errors.None)
+}
+
+func (c *GenericPlatformConfiguration) ConvertToSecret() *corev1.Secret {
+	yamlData, err := yaml.Marshal(c.Data)
+	if err != nil {
+		klog.Warningf("Failed to marshal platform configuration: %v", err)
+		return nil
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSphereNamespace,
+			Name:      fmt.Sprintf(constants.GenericPlatformConfigNameFmt, c.Name),
+		},
+		Type: constants.SecretTypeGenericPlatformConfig,
+		Data: map[string][]byte{
+			constants.GenericPlatformConfigFileName: yamlData,
+		},
+	}
+	return secret
+}
+
+func (c *GenericPlatformConfiguration) ConvertFromSecret(secret *corev1.Secret) {
+	c.Name = strings.TrimPrefix(secret.Name, fmt.Sprintf(constants.GenericPlatformConfigNameFmt, ""))
+	c.CreationTimestamp = secret.CreationTimestamp
+	c.ResourceVersion = secret.ResourceVersion
+	c.UID = secret.UID
+	c.Kind = GenericPlatformConfigurationKind
+	c.APIVersion = APIVersion
+	_ = yaml.Unmarshal(secret.Data[constants.GenericPlatformConfigFileName], &c.Data)
 }
