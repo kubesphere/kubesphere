@@ -20,7 +20,7 @@ import (
 )
 
 type passwordAuthenticator struct {
-	userGetter                          *userMapper
+	userMapper                          UserMapper
 	client                              runtimeclient.Client
 	authOptions                         *authentication.Options
 	identityProviderConfigurationGetter identityprovider.ConfigurationGetter
@@ -29,7 +29,7 @@ type passwordAuthenticator struct {
 func NewPasswordAuthenticator(cacheClient runtimeclient.Client, options *authentication.Options) PasswordAuthenticator {
 	passwordAuthenticator := &passwordAuthenticator{
 		client:                              cacheClient,
-		userGetter:                          &userMapper{cache: cacheClient},
+		userMapper:                          &userMapper{cache: cacheClient},
 		identityProviderConfigurationGetter: identityprovider.NewConfigurationGetter(cacheClient),
 		authOptions:                         options,
 	}
@@ -49,34 +49,26 @@ func (p *passwordAuthenticator) Authenticate(ctx context.Context, provider, user
 
 // authByKubeSphere authenticate by the kubesphere user
 func (p *passwordAuthenticator) authByKubeSphere(ctx context.Context, username, password string) (authuser.Info, error) {
-	user, err := p.userGetter.Find(ctx, username)
+	user, err := p.userMapper.Find(ctx, username)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, IncorrectPasswordError
-		}
 		return nil, fmt.Errorf("failed to find user: %s", err)
 	}
 
-	if user == nil {
+	if user.Name == "" {
 		return nil, IncorrectPasswordError
 	}
 
-	// check user status
-	if user.Status.State != iamv1beta1.UserActive {
-		if user.Status.State == iamv1beta1.UserAuthLimitExceeded {
-			return nil, RateLimitExceededError
-		} else {
-			return nil, AccountIsNotActiveError
-		}
+	switch user.Status.State {
+	case iamv1beta1.UserAuthLimitExceeded:
+		return nil, RateLimitExceededError
+	case iamv1beta1.UserActive:
+		break
+	default:
+		return nil, AccountIsNotActiveError
 	}
 
-	// if the password is not empty, means that the password has been reset, even if the user was mapping from IDP
-	if user.Spec.EncryptedPassword == "" {
+	if user.Spec.EncryptedPassword == "" || PasswordVerify(user.Spec.EncryptedPassword, password) != nil {
 		return nil, IncorrectPasswordError
-	}
-
-	if err = PasswordVerify(user.Spec.EncryptedPassword, password); err != nil {
-		return nil, err
 	}
 
 	info := &authuser.DefaultInfo{
@@ -111,41 +103,10 @@ func (p *passwordAuthenticator) authByProvider(ctx context.Context, provider, us
 		if errors.IsUnauthorized(err) {
 			return nil, IncorrectPasswordError
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to authenticate by identity provider %s: %s", provider, err)
 	}
 
-	mappedUser, err := p.userGetter.FindMappedUser(ctx, provider, identity.GetUserID())
-	if err != nil {
-		return nil, fmt.Errorf("failed to find mapped user: %s", err)
-	}
-
-	if mappedUser == nil {
-		if providerConfig.MappingMethod == identityprovider.MappingMethodLookup {
-			return nil, fmt.Errorf("failed to find mapped user: %s", identity.GetUserID())
-		}
-
-		if providerConfig.MappingMethod == identityprovider.MappingMethodManual {
-			return newRreRegistrationUser(providerConfig.Name, identity), nil
-		}
-
-		if providerConfig.MappingMethod == identityprovider.MappingMethodAuto {
-			mappedUser = newMappedUser(providerConfig.Name, identity)
-
-			if err = p.client.Create(ctx, mappedUser); err != nil {
-				return nil, err
-			}
-
-			return &authuser.DefaultInfo{Name: mappedUser.GetName()}, nil
-		}
-
-		return nil, fmt.Errorf("invalid mapping method found %s", providerConfig.MappingMethod)
-	}
-
-	if mappedUser.Status.State == iamv1beta1.UserDisabled {
-		return nil, AccountIsNotActiveError
-	}
-
-	return &authuser.DefaultInfo{Name: mappedUser.GetName()}, nil
+	return authByIdentityProvider(ctx, p.client, p.userMapper, providerConfig, identity)
 }
 
 func PasswordVerify(encryptedPassword, password string) error {

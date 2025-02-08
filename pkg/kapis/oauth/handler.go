@@ -17,7 +17,6 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	"github.com/golang-jwt/jwt/v4"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog/v2"
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
@@ -530,7 +529,7 @@ func (h *handler) refreshTokenGrant(req *restful.Request, response *restful.Resp
 		idp := authenticated.GetExtra()[iamv1beta1.ExtraIdentityProvider][0]
 		uid := authenticated.GetExtra()[iamv1beta1.ExtraUID][0]
 		queryParam := query.New()
-		queryParam.LabelSelector = labels.SelectorFromSet(labels.Set{iamv1beta1.IdentifyProviderLabel: idp, iamv1beta1.OriginUIDLabel: uid}).String()
+		queryParam.Filters = map[query.Field]query.Value{query.FieldAnnotation: query.Value(fmt.Sprintf("%s.%s=%s", iamv1beta1.IdentityProviderAnnotation, idp, uid))}
 		users, err := h.im.ListUsers(queryParam)
 		if err != nil {
 			klog.Errorf("failed to list users: %s", err)

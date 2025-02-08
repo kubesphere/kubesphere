@@ -54,8 +54,7 @@ const (
 	ScopeLabel                            = "iam.kubesphere.io/scope"
 	UserReferenceLabel                    = "iam.kubesphere.io/user-ref"
 	RoleReferenceLabel                    = "iam.kubesphere.io/role-ref"
-	IdentifyProviderLabel                 = "iam.kubesphere.io/identify-provider"
-	OriginUIDLabel                        = "iam.kubesphere.io/origin-uid"
+	IdentityProviderAnnotation            = "iam.kubesphere.io/identity-provider"
 	ServiceAccountReferenceLabel          = "iam.kubesphere.io/serviceaccount-ref"
 	FieldEmail                            = "email"
 	ExtraEmail                            = FieldEmail
@@ -71,7 +70,6 @@ const (
 	NamespaceAdmin                        = "admin"
 	ClusterAdmin                          = "cluster-admin"
 	PreRegistrationUser                   = "system:pre-registration"
-	OTPAuthRequiredUser                   = "system:otp-auth-required"
 	ResourcePluralGroup                   = "groups"
 	GroupReferenceLabel                   = "iam.kubesphere.io/group-ref"
 	GroupParent                           = "iam.kubesphere.io/group-parent"

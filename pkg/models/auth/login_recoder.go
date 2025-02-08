@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
@@ -37,12 +36,10 @@ func (l *loginRecorder) RecordLogin(ctx context.Context, username string, loginT
 	// only for existing accounts, solve the problem of huge entries
 	user, err := l.userMapper.Find(ctx, username)
 	if err != nil {
-		// ignore not found error
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		klog.Error(err)
-		return err
+		return fmt.Errorf("failed to find user %s", username)
+	}
+	if user.Name == "" {
+		return nil
 	}
 	record := &iamv1beta1.LoginRecord{
 		ObjectMeta: metav1.ObjectMeta{
