@@ -28,6 +28,7 @@ build-git:
 test:
 	@echo "running against `git version`"; \
 	$(GOTEST) -race ./...
+	$(GOTEST) -v _examples/common_test.go _examples/common.go --examples
 
 TEMP_REPO := $(shell mktemp)
 test-sha256:

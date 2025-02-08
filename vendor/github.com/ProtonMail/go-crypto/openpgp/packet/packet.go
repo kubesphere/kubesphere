@@ -311,12 +311,15 @@ const (
 	packetTypePrivateSubkey                            packetType = 7
 	packetTypeCompressed                               packetType = 8
 	packetTypeSymmetricallyEncrypted                   packetType = 9
+	packetTypeMarker                                   packetType = 10
 	packetTypeLiteralData                              packetType = 11
+	packetTypeTrust                                    packetType = 12
 	packetTypeUserId                                   packetType = 13
 	packetTypePublicSubkey                             packetType = 14
 	packetTypeUserAttribute                            packetType = 17
 	packetTypeSymmetricallyEncryptedIntegrityProtected packetType = 18
 	packetTypeAEADEncrypted                            packetType = 20
+	packetPadding                                      packetType = 21
 )
 
 // EncryptedDataPacket holds encrypted data. It is currently implemented by
@@ -328,7 +331,7 @@ type EncryptedDataPacket interface {
 // Read reads a single OpenPGP packet from the given io.Reader. If there is an
 // error parsing a packet, the whole packet is consumed from the input.
 func Read(r io.Reader) (p Packet, err error) {
-	tag, _, contents, err := readHeader(r)
+	tag, len, contents, err := readHeader(r)
 	if err != nil {
 		return
 	}
@@ -367,8 +370,93 @@ func Read(r io.Reader) (p Packet, err error) {
 		p = se
 	case packetTypeAEADEncrypted:
 		p = new(AEADEncrypted)
-	default:
+	case packetPadding:
+		p = Padding(len)
+	case packetTypeMarker:
+		p = new(Marker)
+	case packetTypeTrust:
+		// Not implemented, just consume
 		err = errors.UnknownPacketTypeError(tag)
+	default:
+		// Packet Tags from 0 to 39 are critical.
+		// Packet Tags from 40 to 63 are non-critical.
+		if tag < 40 {
+			err = errors.CriticalUnknownPacketTypeError(tag)
+		} else {
+			err = errors.UnknownPacketTypeError(tag)
+		}
+	}
+	if p != nil {
+		err = p.parse(contents)
+	}
+	if err != nil {
+		consumeAll(contents)
+	}
+	return
+}
+
+// ReadWithCheck reads a single OpenPGP message packet from the given io.Reader. If there is an
+// error parsing a packet, the whole packet is consumed from the input.
+// ReadWithCheck additionally checks if the OpenPGP message packet sequence adheres
+// to the packet composition rules in rfc4880, if not throws an error.
+func ReadWithCheck(r io.Reader, sequence *SequenceVerifier) (p Packet, msgErr error, err error) {
+	tag, len, contents, err := readHeader(r)
+	if err != nil {
+		return
+	}
+	switch tag {
+	case packetTypeEncryptedKey:
+		msgErr = sequence.Next(ESKSymbol)
+		p = new(EncryptedKey)
+	case packetTypeSignature:
+		msgErr = sequence.Next(SigSymbol)
+		p = new(Signature)
+	case packetTypeSymmetricKeyEncrypted:
+		msgErr = sequence.Next(ESKSymbol)
+		p = new(SymmetricKeyEncrypted)
+	case packetTypeOnePassSignature:
+		msgErr = sequence.Next(OPSSymbol)
+		p = new(OnePassSignature)
+	case packetTypeCompressed:
+		msgErr = sequence.Next(CompSymbol)
+		p = new(Compressed)
+	case packetTypeSymmetricallyEncrypted:
+		msgErr = sequence.Next(EncSymbol)
+		p = new(SymmetricallyEncrypted)
+	case packetTypeLiteralData:
+		msgErr = sequence.Next(LDSymbol)
+		p = new(LiteralData)
+	case packetTypeSymmetricallyEncryptedIntegrityProtected:
+		msgErr = sequence.Next(EncSymbol)
+		se := new(SymmetricallyEncrypted)
+		se.IntegrityProtected = true
+		p = se
+	case packetTypeAEADEncrypted:
+		msgErr = sequence.Next(EncSymbol)
+		p = new(AEADEncrypted)
+	case packetPadding:
+		p = Padding(len)
+	case packetTypeMarker:
+		p = new(Marker)
+	case packetTypeTrust:
+		// Not implemented, just consume
+		err = errors.UnknownPacketTypeError(tag)
+	case packetTypePrivateKey,
+		packetTypePrivateSubkey,
+		packetTypePublicKey,
+		packetTypePublicSubkey,
+		packetTypeUserId,
+		packetTypeUserAttribute:
+		msgErr = sequence.Next(UnknownSymbol)
+		consumeAll(contents)
+	default:
+		// Packet Tags from 0 to 39 are critical.
+		// Packet Tags from 40 to 63 are non-critical.
+		if tag < 40 {
+			err = errors.CriticalUnknownPacketTypeError(tag)
+		} else {
+			err = errors.UnknownPacketTypeError(tag)
+		}
 	}
 	if p != nil {
 		err = p.parse(contents)
@@ -385,17 +473,17 @@ type SignatureType uint8
 
 const (
 	SigTypeBinary                  SignatureType = 0x00
-	SigTypeText                                  = 0x01
-	SigTypeGenericCert                           = 0x10
-	SigTypePersonaCert                           = 0x11
-	SigTypeCasualCert                            = 0x12
-	SigTypePositiveCert                          = 0x13
-	SigTypeSubkeyBinding                         = 0x18
-	SigTypePrimaryKeyBinding                     = 0x19
-	SigTypeDirectSignature                       = 0x1F
-	SigTypeKeyRevocation                         = 0x20
-	SigTypeSubkeyRevocation                      = 0x28
-	SigTypeCertificationRevocation               = 0x30
+	SigTypeText                    SignatureType = 0x01
+	SigTypeGenericCert             SignatureType = 0x10
+	SigTypePersonaCert             SignatureType = 0x11
+	SigTypeCasualCert              SignatureType = 0x12
+	SigTypePositiveCert            SignatureType = 0x13
+	SigTypeSubkeyBinding           SignatureType = 0x18
+	SigTypePrimaryKeyBinding       SignatureType = 0x19
+	SigTypeDirectSignature         SignatureType = 0x1F
+	SigTypeKeyRevocation           SignatureType = 0x20
+	SigTypeSubkeyRevocation        SignatureType = 0x28
+	SigTypeCertificationRevocation SignatureType = 0x30
 )
 
 // PublicKeyAlgorithm represents the different public key system specified for
@@ -412,6 +500,11 @@ const (
 	PubKeyAlgoECDSA PublicKeyAlgorithm = 19
 	// https://www.ietf.org/archive/id/draft-koch-eddsa-for-openpgp-04.txt
 	PubKeyAlgoEdDSA PublicKeyAlgorithm = 22
+	// https://datatracker.ietf.org/doc/html/draft-ietf-openpgp-crypto-refresh
+	PubKeyAlgoX25519  PublicKeyAlgorithm = 25
+	PubKeyAlgoX448    PublicKeyAlgorithm = 26
+	PubKeyAlgoEd25519 PublicKeyAlgorithm = 27
+	PubKeyAlgoEd448   PublicKeyAlgorithm = 28
 
 	// Deprecated in RFC 4880, Section 13.5. Use key flags instead.
 	PubKeyAlgoRSAEncryptOnly PublicKeyAlgorithm = 2
@@ -422,7 +515,7 @@ const (
 // key of the given type.
 func (pka PublicKeyAlgorithm) CanEncrypt() bool {
 	switch pka {
-	case PubKeyAlgoRSA, PubKeyAlgoRSAEncryptOnly, PubKeyAlgoElGamal, PubKeyAlgoECDH:
+	case PubKeyAlgoRSA, PubKeyAlgoRSAEncryptOnly, PubKeyAlgoElGamal, PubKeyAlgoECDH, PubKeyAlgoX25519, PubKeyAlgoX448:
 		return true
 	}
 	return false
@@ -432,7 +525,7 @@ func (pka PublicKeyAlgorithm) CanEncrypt() bool {
 // sign a message.
 func (pka PublicKeyAlgorithm) CanSign() bool {
 	switch pka {
-	case PubKeyAlgoRSA, PubKeyAlgoRSASignOnly, PubKeyAlgoDSA, PubKeyAlgoECDSA, PubKeyAlgoEdDSA:
+	case PubKeyAlgoRSA, PubKeyAlgoRSASignOnly, PubKeyAlgoDSA, PubKeyAlgoECDSA, PubKeyAlgoEdDSA, PubKeyAlgoEd25519, PubKeyAlgoEd448:
 		return true
 	}
 	return false
@@ -512,6 +605,11 @@ func (mode AEADMode) TagLength() int {
 	return algorithm.AEADMode(mode).TagLength()
 }
 
+// IsSupported returns true if the aead mode is supported from the library
+func (mode AEADMode) IsSupported() bool {
+	return algorithm.AEADMode(mode).TagLength() > 0
+}
+
 // new returns a fresh instance of the given mode.
 func (mode AEADMode) new(block cipher.Block) cipher.AEAD {
 	return algorithm.AEADMode(mode).New(block)
@@ -526,7 +624,16 @@ const (
 	KeySuperseded  ReasonForRevocation = 1
 	KeyCompromised ReasonForRevocation = 2
 	KeyRetired     ReasonForRevocation = 3
+	UserIDNotValid ReasonForRevocation = 32
+	Unknown        ReasonForRevocation = 200
 )
+
+func NewReasonForRevocation(value byte) ReasonForRevocation {
+	if value < 4 || value == 32 {
+		return ReasonForRevocation(value)
+	}
+	return Unknown
+}
 
 // Curve is a mapping to supported ECC curves for key generation.
 // See https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-06.html#name-curve-specific-wire-formats
@@ -549,3 +656,20 @@ type TrustLevel uint8
 
 // TrustAmount represents a trust amount per RFC4880 5.2.3.13
 type TrustAmount uint8
+
+const (
+	// versionSize is the length in bytes of the version value.
+	versionSize = 1
+	// algorithmSize is the length in bytes of the key algorithm value.
+	algorithmSize = 1
+	// keyVersionSize is the length in bytes of the key version value
+	keyVersionSize = 1
+	// keyIdSize is the length in bytes of the key identifier value.
+	keyIdSize = 8
+	// timestampSize is the length in bytes of encoded timestamps.
+	timestampSize = 4
+	// fingerprintSizeV6 is the length in bytes of the key fingerprint in v6.
+	fingerprintSizeV6 = 32
+	// fingerprintSize is the length in bytes of the key fingerprint.
+	fingerprintSize = 20
+)

@@ -88,7 +88,9 @@ func (t *treeNoder) Children() ([]noder.Noder, error) {
 		}
 	}
 
-	return transformChildren(parent)
+	var err error
+	t.children, err = transformChildren(parent)
+	return t.children, err
 }
 
 // Returns the children of a tree as treenoders.

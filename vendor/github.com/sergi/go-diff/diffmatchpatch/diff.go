@@ -34,8 +34,6 @@ const (
 	DiffInsert Operation = 1
 	// DiffEqual item represents an equal diff.
 	DiffEqual Operation = 0
-	//IndexSeparator is used to seperate the array indexes in an index string
-	IndexSeparator = ","
 )
 
 // Diff represents one diff operation
@@ -406,14 +404,11 @@ func (dmp *DiffMatchPatch) DiffLinesToRunes(text1, text2 string) ([]rune, []rune
 func (dmp *DiffMatchPatch) DiffCharsToLines(diffs []Diff, lineArray []string) []Diff {
 	hydrated := make([]Diff, 0, len(diffs))
 	for _, aDiff := range diffs {
-		chars := strings.Split(aDiff.Text, IndexSeparator)
-		text := make([]string, len(chars))
+		runes := []rune(aDiff.Text)
+		text := make([]string, len(runes))
 
-		for i, r := range chars {
-			i1, err := strconv.Atoi(r)
-			if err == nil {
-				text[i] = lineArray[i1]
-			}
+		for i, r := range runes {
+			text[i] = lineArray[runeToInt(r)]
 		}
 
 		aDiff.Text = strings.Join(text, "")

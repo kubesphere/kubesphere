@@ -7,11 +7,13 @@ package packet
 import (
 	"bytes"
 	"crypto/cipher"
+	"crypto/sha256"
 	"io"
 	"strconv"
 
 	"github.com/ProtonMail/go-crypto/openpgp/errors"
 	"github.com/ProtonMail/go-crypto/openpgp/s2k"
+	"golang.org/x/crypto/hkdf"
 )
 
 // This is the largest session key that we'll support. Since at most 256-bit cipher
@@ -39,8 +41,19 @@ func (ske *SymmetricKeyEncrypted) parse(r io.Reader) error {
 		return err
 	}
 	ske.Version = int(buf[0])
-	if ske.Version != 4 && ske.Version != 5 {
+	if ske.Version != 4 && ske.Version != 5 && ske.Version != 6 {
 		return errors.UnsupportedError("unknown SymmetricKeyEncrypted version")
+	}
+
+	if V5Disabled && ske.Version == 5 {
+		return errors.UnsupportedError("support for parsing v5 entities is disabled; build with `-tags v5` if needed")
+	}
+
+	if ske.Version > 5 {
+		// Scalar octet count
+		if _, err := readFull(r, buf[:]); err != nil {
+			return err
+		}
 	}
 
 	// Cipher function
@@ -52,12 +65,19 @@ func (ske *SymmetricKeyEncrypted) parse(r io.Reader) error {
 		return errors.UnsupportedError("unknown cipher: " + strconv.Itoa(int(buf[0])))
 	}
 
-	if ske.Version == 5 {
+	if ske.Version >= 5 {
 		// AEAD mode
 		if _, err := readFull(r, buf[:]); err != nil {
 			return errors.StructuralError("cannot read AEAD octet from packet")
 		}
 		ske.Mode = AEADMode(buf[0])
+	}
+
+	if ske.Version > 5 {
+		// Scalar octet count
+		if _, err := readFull(r, buf[:]); err != nil {
+			return err
+		}
 	}
 
 	var err error
@@ -68,7 +88,7 @@ func (ske *SymmetricKeyEncrypted) parse(r io.Reader) error {
 		return err
 	}
 
-	if ske.Version == 5 {
+	if ske.Version >= 5 {
 		// AEAD IV
 		iv := make([]byte, ske.Mode.IvLength())
 		_, err := readFull(r, iv)
@@ -109,8 +129,8 @@ func (ske *SymmetricKeyEncrypted) Decrypt(passphrase []byte) ([]byte, CipherFunc
 	case 4:
 		plaintextKey, cipherFunc, err := ske.decryptV4(key)
 		return plaintextKey, cipherFunc, err
-	case 5:
-		plaintextKey, err := ske.decryptV5(key)
+	case 5, 6:
+		plaintextKey, err := ske.aeadDecrypt(ske.Version, key)
 		return plaintextKey, CipherFunction(0), err
 	}
 	err := errors.UnsupportedError("unknown SymmetricKeyEncrypted version")
@@ -136,9 +156,9 @@ func (ske *SymmetricKeyEncrypted) decryptV4(key []byte) ([]byte, CipherFunction,
 	return plaintextKey, cipherFunc, nil
 }
 
-func (ske *SymmetricKeyEncrypted) decryptV5(key []byte) ([]byte, error) {
-	adata := []byte{0xc3, byte(5), byte(ske.CipherFunc), byte(ske.Mode)}
-	aead := getEncryptedKeyAeadInstance(ske.CipherFunc, ske.Mode, key, adata)
+func (ske *SymmetricKeyEncrypted) aeadDecrypt(version int, key []byte) ([]byte, error) {
+	adata := []byte{0xc3, byte(version), byte(ske.CipherFunc), byte(ske.Mode)}
+	aead := getEncryptedKeyAeadInstance(ske.CipherFunc, ske.Mode, key, adata, version)
 
 	plaintextKey, err := aead.Open(nil, ske.iv, ske.encryptedKey, adata)
 	if err != nil {
@@ -175,10 +195,22 @@ func SerializeSymmetricKeyEncrypted(w io.Writer, passphrase []byte, config *Conf
 // the given passphrase. The returned session key must be passed to
 // SerializeSymmetricallyEncrypted.
 // If config is nil, sensible defaults will be used.
+// Deprecated: Use SerializeSymmetricKeyEncryptedAEADReuseKey instead.
 func SerializeSymmetricKeyEncryptedReuseKey(w io.Writer, sessionKey []byte, passphrase []byte, config *Config) (err error) {
+	return SerializeSymmetricKeyEncryptedAEADReuseKey(w, sessionKey, passphrase, config.AEAD() != nil, config)
+}
+
+// SerializeSymmetricKeyEncryptedAEADReuseKey serializes a symmetric key packet to w.
+// The packet contains the given session key, encrypted by a key derived from
+// the given passphrase. The returned session key must be passed to
+// SerializeSymmetricallyEncrypted.
+// If aeadSupported is set, SKESK v6 is used, otherwise v4.
+// Note: aeadSupported MUST match the value passed to SerializeSymmetricallyEncrypted.
+// If config is nil, sensible defaults will be used.
+func SerializeSymmetricKeyEncryptedAEADReuseKey(w io.Writer, sessionKey []byte, passphrase []byte, aeadSupported bool, config *Config) (err error) {
 	var version int
-	if config.AEAD() != nil {
-		version = 5
+	if aeadSupported {
+		version = 6
 	} else {
 		version = 4
 	}
@@ -203,11 +235,15 @@ func SerializeSymmetricKeyEncryptedReuseKey(w io.Writer, sessionKey []byte, pass
 	switch version {
 	case 4:
 		packetLength = 2 /* header */ + len(s2kBytes) + 1 /* cipher type */ + keySize
-	case 5:
+	case 5, 6:
 		ivLen := config.AEAD().Mode().IvLength()
 		tagLen := config.AEAD().Mode().TagLength()
 		packetLength = 3 + len(s2kBytes) + ivLen + keySize + tagLen
 	}
+	if version > 5 {
+		packetLength += 2 // additional octet count fields
+	}
+
 	err = serializeHeader(w, packetTypeSymmetricKeyEncrypted, packetLength)
 	if err != nil {
 		return
@@ -216,12 +252,21 @@ func SerializeSymmetricKeyEncryptedReuseKey(w io.Writer, sessionKey []byte, pass
 	// Symmetric Key Encrypted Version
 	buf := []byte{byte(version)}
 
+	if version > 5 {
+		// Scalar octet count
+		buf = append(buf, byte(3+len(s2kBytes)+config.AEAD().Mode().IvLength()))
+	}
+
 	// Cipher function
 	buf = append(buf, byte(cipherFunc))
 
-	if version == 5 {
+	if version >= 5 {
 		// AEAD mode
 		buf = append(buf, byte(config.AEAD().Mode()))
+	}
+	if version > 5 {
+		// Scalar octet count
+		buf = append(buf, byte(len(s2kBytes)))
 	}
 	_, err = w.Write(buf)
 	if err != nil {
@@ -243,10 +288,10 @@ func SerializeSymmetricKeyEncryptedReuseKey(w io.Writer, sessionKey []byte, pass
 		if err != nil {
 			return
 		}
-	case 5:
+	case 5, 6:
 		mode := config.AEAD().Mode()
-		adata := []byte{0xc3, byte(5), byte(cipherFunc), byte(mode)}
-		aead := getEncryptedKeyAeadInstance(cipherFunc, mode, keyEncryptingKey, adata)
+		adata := []byte{0xc3, byte(version), byte(cipherFunc), byte(mode)}
+		aead := getEncryptedKeyAeadInstance(cipherFunc, mode, keyEncryptingKey, adata, version)
 
 		// Sample iv using random reader
 		iv := make([]byte, config.AEAD().Mode().IvLength())
@@ -270,7 +315,17 @@ func SerializeSymmetricKeyEncryptedReuseKey(w io.Writer, sessionKey []byte, pass
 	return
 }
 
-func getEncryptedKeyAeadInstance(c CipherFunction, mode AEADMode, inputKey, associatedData []byte) (aead cipher.AEAD) {
-	blockCipher := c.new(inputKey)
+func getEncryptedKeyAeadInstance(c CipherFunction, mode AEADMode, inputKey, associatedData []byte, version int) (aead cipher.AEAD) {
+	var blockCipher cipher.Block
+	if version > 5 {
+		hkdfReader := hkdf.New(sha256.New, inputKey, []byte{}, associatedData)
+
+		encryptionKey := make([]byte, c.KeySize())
+		_, _ = readFull(hkdfReader, encryptionKey)
+
+		blockCipher = c.new(encryptionKey)
+	} else {
+		blockCipher = c.new(inputKey)
+	}
 	return mode.new(blockCipher)
 }

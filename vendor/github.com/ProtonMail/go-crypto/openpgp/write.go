@@ -76,7 +76,11 @@ func detachSign(w io.Writer, signer *Entity, message io.Reader, sigType packet.S
 
 	sig := createSignaturePacket(signingKey.PublicKey, sigType, config)
 
-	h, wrappedHash, err := hashForSignature(sig.Hash, sig.SigType)
+	h, err := sig.PrepareSign(config)
+	if err != nil {
+		return
+	}
+	wrappedHash, err := wrapHashForSignature(h, sig.SigType)
 	if err != nil {
 		return
 	}
@@ -275,13 +279,27 @@ func writeAndSign(payload io.WriteCloser, candidateHashes []uint8, signed *Entit
 		return nil, errors.InvalidArgumentError("cannot encrypt because no candidate hash functions are compiled in. (Wanted " + name + " in this case.)")
 	}
 
+	var salt []byte
 	if signer != nil {
+		var opsVersion = 3
+		if signer.Version == 6 {
+			opsVersion = signer.Version
+		}
 		ops := &packet.OnePassSignature{
+			Version:    opsVersion,
 			SigType:    sigType,
 			Hash:       hash,
 			PubKeyAlgo: signer.PubKeyAlgo,
 			KeyId:      signer.KeyId,
 			IsLast:     true,
+		}
+		if opsVersion == 6 {
+			ops.KeyFingerprint = signer.Fingerprint
+			salt, err = packet.SignatureSaltForHash(hash, config.Random())
+			if err != nil {
+				return nil, err
+			}
+			ops.Salt = salt
 		}
 		if err := ops.Serialize(payload); err != nil {
 			return nil, err
@@ -310,19 +328,19 @@ func writeAndSign(payload io.WriteCloser, candidateHashes []uint8, signed *Entit
 	}
 
 	if signer != nil {
-		h, wrappedHash, err := hashForSignature(hash, sigType)
+		h, wrappedHash, err := hashForSignature(hash, sigType, salt)
 		if err != nil {
 			return nil, err
 		}
 		metadata := &packet.LiteralData{
-			Format:   't',
+			Format:   'u',
 			FileName: hints.FileName,
 			Time:     epochSeconds,
 		}
 		if hints.IsBinary {
 			metadata.Format = 'b'
 		}
-		return signatureWriter{payload, literalData, hash, wrappedHash, h, signer, sigType, config, metadata}, nil
+		return signatureWriter{payload, literalData, hash, wrappedHash, h, salt, signer, sigType, config, metadata}, nil
 	}
 	return literalData, nil
 }
@@ -380,15 +398,19 @@ func encrypt(keyWriter io.Writer, dataWriter io.Writer, to []*Entity, signed *En
 			return nil, errors.InvalidArgumentError("cannot encrypt a message to key id " + strconv.FormatUint(to[i].PrimaryKey.KeyId, 16) + " because it has no valid encryption keys")
 		}
 
-		sig := to[i].PrimaryIdentity().SelfSignature
-		if !sig.SEIPDv2 {
+		primarySelfSignature, _ := to[i].PrimarySelfSignature()
+		if primarySelfSignature == nil {
+			return nil, errors.InvalidArgumentError("entity without a self-signature")
+		}
+
+		if !primarySelfSignature.SEIPDv2 {
 			aeadSupported = false
 		}
 
-		candidateCiphers = intersectPreferences(candidateCiphers, sig.PreferredSymmetric)
-		candidateHashes = intersectPreferences(candidateHashes, sig.PreferredHash)
-		candidateCipherSuites = intersectCipherSuites(candidateCipherSuites, sig.PreferredCipherSuites)
-		candidateCompression = intersectPreferences(candidateCompression, sig.PreferredCompression)
+		candidateCiphers = intersectPreferences(candidateCiphers, primarySelfSignature.PreferredSymmetric)
+		candidateHashes = intersectPreferences(candidateHashes, primarySelfSignature.PreferredHash)
+		candidateCipherSuites = intersectCipherSuites(candidateCipherSuites, primarySelfSignature.PreferredCipherSuites)
+		candidateCompression = intersectPreferences(candidateCompression, primarySelfSignature.PreferredCompression)
 	}
 
 	// In the event that the intersection of supported algorithms is empty we use the ones
@@ -422,13 +444,19 @@ func encrypt(keyWriter io.Writer, dataWriter io.Writer, to []*Entity, signed *En
 		}
 	}
 
-	symKey := make([]byte, cipher.KeySize())
+	var symKey []byte
+	if aeadSupported {
+		symKey = make([]byte, aeadCipherSuite.Cipher.KeySize())
+	} else {
+		symKey = make([]byte, cipher.KeySize())
+	}
+
 	if _, err := io.ReadFull(config.Random(), symKey); err != nil {
 		return nil, err
 	}
 
 	for _, key := range encryptKeys {
-		if err := packet.SerializeEncryptedKey(keyWriter, key.PublicKey, cipher, symKey, config); err != nil {
+		if err := packet.SerializeEncryptedKeyAEAD(keyWriter, key.PublicKey, cipher, aeadSupported, symKey, config); err != nil {
 			return nil, err
 		}
 	}
@@ -465,13 +493,17 @@ func Sign(output io.Writer, signed *Entity, hints *FileHints, config *packet.Con
 		hashToHashId(crypto.SHA3_512),
 	}
 	defaultHashes := candidateHashes[0:1]
-	preferredHashes := signed.PrimaryIdentity().SelfSignature.PreferredHash
+	primarySelfSignature, _ := signed.PrimarySelfSignature()
+	if primarySelfSignature == nil {
+		return nil, errors.StructuralError("signed entity has no self-signature")
+	}
+	preferredHashes := primarySelfSignature.PreferredHash
 	if len(preferredHashes) == 0 {
 		preferredHashes = defaultHashes
 	}
 	candidateHashes = intersectPreferences(candidateHashes, preferredHashes)
 	if len(candidateHashes) == 0 {
-		return nil, errors.InvalidArgumentError("cannot sign because signing key shares no common algorithms with candidate hashes")
+		return nil, errors.StructuralError("cannot sign because signing key shares no common algorithms with candidate hashes")
 	}
 
 	return writeAndSign(noOpCloser{output}, candidateHashes, signed, hints, packet.SigTypeBinary, config)
@@ -486,6 +518,7 @@ type signatureWriter struct {
 	hashType      crypto.Hash
 	wrappedHash   hash.Hash
 	h             hash.Hash
+	salt          []byte // v6 only
 	signer        *packet.PrivateKey
 	sigType       packet.SignatureType
 	config        *packet.Config
@@ -508,6 +541,10 @@ func (s signatureWriter) Close() error {
 	sig := createSignaturePacket(&s.signer.PublicKey, s.sigType, s.config)
 	sig.Hash = s.hashType
 	sig.Metadata = s.metadata
+
+	if err := sig.SetSalt(s.salt); err != nil {
+		return err
+	}
 
 	if err := sig.Sign(s.h, s.signer, s.config); err != nil {
 		return err

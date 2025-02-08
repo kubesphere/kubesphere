@@ -3,8 +3,11 @@ package index
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
+	"path"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/hash"
@@ -13,7 +16,7 @@ import (
 
 var (
 	// EncodeVersionSupported is the range of supported index versions
-	EncodeVersionSupported uint32 = 3
+	EncodeVersionSupported uint32 = 4
 
 	// ErrInvalidTimestamp is returned by Encode if a Index with a Entry with
 	// negative timestamp values
@@ -22,20 +25,25 @@ var (
 
 // An Encoder writes an Index to an output stream.
 type Encoder struct {
-	w    io.Writer
-	hash hash.Hash
+	w         io.Writer
+	hash      hash.Hash
+	lastEntry *Entry
 }
 
 // NewEncoder returns a new encoder that writes to w.
 func NewEncoder(w io.Writer) *Encoder {
 	h := hash.New(hash.CryptoType)
 	mw := io.MultiWriter(w, h)
-	return &Encoder{mw, h}
+	return &Encoder{mw, h, nil}
 }
 
 // Encode writes the Index to the stream of the encoder.
 func (e *Encoder) Encode(idx *Index) error {
-	// TODO: support v4
+	return e.encode(idx, true)
+}
+
+func (e *Encoder) encode(idx *Index, footer bool) error {
+
 	// TODO: support extensions
 	if idx.Version > EncodeVersionSupported {
 		return ErrUnsupportedVersion
@@ -49,7 +57,10 @@ func (e *Encoder) Encode(idx *Index) error {
 		return err
 	}
 
-	return e.encodeFooter()
+	if footer {
+		return e.encodeFooter()
+	}
+	return nil
 }
 
 func (e *Encoder) encodeHeader(idx *Index) error {
@@ -64,7 +75,7 @@ func (e *Encoder) encodeEntries(idx *Index) error {
 	sort.Sort(byName(idx.Entries))
 
 	for _, entry := range idx.Entries {
-		if err := e.encodeEntry(entry); err != nil {
+		if err := e.encodeEntry(idx, entry); err != nil {
 			return err
 		}
 		entryLength := entryHeaderLength
@@ -73,7 +84,7 @@ func (e *Encoder) encodeEntries(idx *Index) error {
 		}
 
 		wrote := entryLength + len(entry.Name)
-		if err := e.padEntry(wrote); err != nil {
+		if err := e.padEntry(idx, wrote); err != nil {
 			return err
 		}
 	}
@@ -81,7 +92,7 @@ func (e *Encoder) encodeEntries(idx *Index) error {
 	return nil
 }
 
-func (e *Encoder) encodeEntry(entry *Entry) error {
+func (e *Encoder) encodeEntry(idx *Index, entry *Entry) error {
 	sec, nsec, err := e.timeToUint32(&entry.CreatedAt)
 	if err != nil {
 		return err
@@ -132,7 +143,66 @@ func (e *Encoder) encodeEntry(entry *Entry) error {
 		return err
 	}
 
+	switch idx.Version {
+	case 2, 3:
+		err = e.encodeEntryName(entry)
+	case 4:
+		err = e.encodeEntryNameV4(entry)
+	default:
+		err = ErrUnsupportedVersion
+	}
+
+	return err
+}
+
+func (e *Encoder) encodeEntryName(entry *Entry) error {
 	return binary.Write(e.w, []byte(entry.Name))
+}
+
+func (e *Encoder) encodeEntryNameV4(entry *Entry) error {
+	name := entry.Name
+	l := 0
+	if e.lastEntry != nil {
+		dir := path.Dir(e.lastEntry.Name) + "/"
+		if strings.HasPrefix(entry.Name, dir) {
+			l = len(e.lastEntry.Name) - len(dir)
+			name = strings.TrimPrefix(entry.Name, dir)
+		} else {
+			l = len(e.lastEntry.Name)
+		}
+	}
+
+	e.lastEntry = entry
+
+	err := binary.WriteVariableWidthInt(e.w, int64(l))
+	if err != nil {
+		return err
+	}
+
+	return binary.Write(e.w, []byte(name+string('\x00')))
+}
+
+func (e *Encoder) encodeRawExtension(signature string, data []byte) error {
+	if len(signature) != 4 {
+		return fmt.Errorf("invalid signature length")
+	}
+
+	_, err := e.w.Write([]byte(signature))
+	if err != nil {
+		return err
+	}
+
+	err = binary.WriteUint32(e.w, uint32(len(data)))
+	if err != nil {
+		return err
+	}
+
+	_, err = e.w.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (e *Encoder) timeToUint32(t *time.Time) (uint32, uint32, error) {
@@ -147,7 +217,11 @@ func (e *Encoder) timeToUint32(t *time.Time) (uint32, uint32, error) {
 	return uint32(t.Unix()), uint32(t.Nanosecond()), nil
 }
 
-func (e *Encoder) padEntry(wrote int) error {
+func (e *Encoder) padEntry(idx *Index, wrote int) error {
+	if idx.Version == 4 {
+		return nil
+	}
+
 	padLen := 8 - wrote%8
 
 	_, err := e.w.Write(bytes.Repeat([]byte{'\x00'}, padLen))

@@ -50,9 +50,9 @@ type Config struct {
 type Argon2Config struct {
 	NumberOfPasses      uint8
 	DegreeOfParallelism uint8
-	// The memory parameter for Argon2 specifies desired memory usage in kibibytes. 
+	// Memory specifies the desired Argon2 memory usage in kibibytes.
 	// For example memory=64*1024 sets the memory cost to ~64 MB.
-	Memory      	    uint32 
+	Memory uint32
 }
 
 func (c *Config) Mode() Mode {
@@ -115,7 +115,7 @@ func (c *Argon2Config) EncodedMemory() uint8 {
 	}
 
 	memory := c.Memory
-	lowerBound := uint32(c.Parallelism())*8
+	lowerBound := uint32(c.Parallelism()) * 8
 	upperBound := uint32(2147483648)
 
 	switch {
