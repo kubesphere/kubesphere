@@ -2,7 +2,7 @@
 
 module kubesphere.io/api
 
-go 1.21
+go 1.22.11
 
 require (
 	github.com/onsi/gomega v1.30.0

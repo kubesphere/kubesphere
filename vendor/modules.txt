@@ -215,7 +215,6 @@ github.com/docker/distribution
 github.com/docker/distribution/manifest
 github.com/docker/distribution/manifest/schema2
 github.com/docker/distribution/metrics
-github.com/docker/distribution/reference
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
 github.com/docker/distribution/registry/client
@@ -845,7 +844,6 @@ github.com/open-policy-agent/opa/version
 # github.com/opencontainers/go-digest v1.0.0 => github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
-github.com/opencontainers/go-digest/digestset
 # github.com/opencontainers/image-spec v1.1.0-rc6 => github.com/opencontainers/image-spec v1.1.0-rc5
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
@@ -2198,7 +2196,7 @@ k8s.io/utils/ptr
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
 # kubesphere.io/api v0.0.0 => ./staging/src/kubesphere.io/api
-## explicit; go 1.21
+## explicit; go 1.22.11
 kubesphere.io/api/application/v2
 kubesphere.io/api/cluster/v1alpha1
 kubesphere.io/api/constants
@@ -2212,11 +2210,11 @@ kubesphere.io/api/tenant/v1alpha1
 kubesphere.io/api/tenant/v1alpha2
 kubesphere.io/api/tenant/v1beta1
 # kubesphere.io/client-go v0.0.0 => ./staging/src/kubesphere.io/client-go
-## explicit; go 1.21
+## explicit; go 1.22.11
 kubesphere.io/client-go/kubesphere/scheme
 kubesphere.io/client-go/rest
 # kubesphere.io/utils v0.0.0 => ./staging/src/kubesphere.io/utils
-## explicit; go 1.21
+## explicit; go 1.22.11
 kubesphere.io/utils/helm
 kubesphere.io/utils/s3
 # oras.land/oras-go v1.2.5 => oras.land/oras-go v1.2.5

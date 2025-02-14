@@ -2,7 +2,7 @@
 
 module kubesphere.io/utils
 
-go 1.21
+go 1.22.11
 
 require (
 	github.com/aws/aws-sdk-go v1.44.187

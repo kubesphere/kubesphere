@@ -6,7 +6,7 @@
 
 module kubesphere.io/kubesphere
 
-go 1.21
+go 1.22.11
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
@@ -16,6 +16,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.187
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coreos/go-oidc v2.2.1+incompatible
+	github.com/distribution/reference v0.5.0
 	github.com/docker/cli v25.0.1+incompatible
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/docker v26.1.5+incompatible
@@ -81,6 +82,7 @@ require (
 	kubesphere.io/api v0.0.0
 	kubesphere.io/client-go v0.0.0
 	kubesphere.io/utils v0.0.0
+	oras.land/oras-go v1.2.5
 	sigs.k8s.io/application v0.8.3
 	sigs.k8s.io/controller-runtime v0.17.2
 	sigs.k8s.io/controller-tools v0.14.0
@@ -113,7 +115,6 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -254,7 +255,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/kms v0.29.2 // indirect
-	oras.land/oras-go v1.2.5 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.28.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.13.5-0.20230601165947-6ce0bf390ce3 // indirect
