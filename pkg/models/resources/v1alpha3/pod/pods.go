@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"strings"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,12 +25,13 @@ import (
 )
 
 const (
-	fieldNodeName    = "nodeName"
-	fieldPVCName     = "pvcName"
-	fieldServiceName = "serviceName"
-	fieldPhase       = "phase"
-	fieldStatus      = "status"
-	fieldPodIP       = "podIP"
+	fieldNodeName       = "nodeName"
+	fieldPVCName        = "pvcName"
+	fieldServiceName    = "serviceName"
+	fieldPhase          = "phase"
+	fieldStatus         = "status"
+	fieldPodIP          = "podIP"
+	fieldOwnerReference = "ownerReference"
 
 	statusTypeWaitting  = "Waiting"
 	statusTypeRunning   = "Running"
@@ -98,6 +101,8 @@ func (p *podsGetter) filter(object runtime.Object, filter query.Filter) bool {
 		return string(pod.Status.Phase) == string(filter.Value)
 	case fieldPodIP:
 		return p.podWithIP(pod, string(filter.Value))
+	case fieldOwnerReference:
+		return p.podWithOwnerReference(pod, string(filter.Value))
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(pod.ObjectMeta, filter)
 	}
@@ -249,6 +254,34 @@ func (p *podsGetter) getPodStatus(pod *corev1.Pod) string {
 		}
 	}
 	return statusType
+}
+
+func (p *podsGetter) podWithOwnerReference(pod *corev1.Pod, uid string) bool {
+	var replicaSetOwner *metav1.OwnerReference
+	for _, ownerReference := range pod.OwnerReferences {
+		if ownerReference.Kind == "ReplicaSet" {
+			replicaSetOwner = ownerReference.DeepCopy()
+		}
+		if strings.Compare(string(ownerReference.UID), uid) == 0 {
+			return true
+		}
+	}
+	if replicaSetOwner == nil {
+		return false
+	}
+	replicaSet := &appsv1.ReplicaSet{}
+	if err := p.cache.Get(context.Background(), types.NamespacedName{
+		Namespace: pod.Namespace,
+		Name:      replicaSetOwner.Name,
+	}, replicaSet); err != nil {
+		return false
+	}
+	for _, ownerReference := range replicaSet.OwnerReferences {
+		if strings.Compare(string(ownerReference.UID), uid) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func hasPodReadyCondition(conditions []corev1.PodCondition) bool {
