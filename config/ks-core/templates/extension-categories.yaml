@@ -6,9 +6,18 @@ metadata:
   name: ai-machine-learning
 spec:
   displayName:
-    en: AI / Machine learning
-    zh: AI / 机器学习
+    en: AI / LLM
+    zh: 人工智能 / 大模型
 
+---
+apiVersion: kubesphere.io/v1alpha1
+kind: Category
+metadata:
+  name: deepseek
+spec:
+  displayName:
+    en: DeepSeek
+    zh: DeepSeek
 ---
 apiVersion: kubesphere.io/v1alpha1
 kind: Category
