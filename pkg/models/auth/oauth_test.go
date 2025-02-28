@@ -51,10 +51,7 @@ func Test_oauthAuthenticator_Authenticate(t *testing.T) {
 		},
 	}
 
-	marshal, err := yaml.Marshal(fakeIDP)
-	if err != nil {
-		return
-	}
+	marshal, _ := yaml.Marshal(fakeIDP)
 
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -71,8 +68,8 @@ func Test_oauthAuthenticator_Authenticate(t *testing.T) {
 	}
 
 	fakeCache := informertest.FakeInformers{Scheme: scheme.Scheme}
-	err = fakeCache.Start(context.Background())
-	if err != nil {
+
+	if err := fakeCache.Start(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	fakeSecretInformer, err := fakeCache.FakeInformerFor(context.Background(), &v1.Secret{})
@@ -177,9 +174,8 @@ func newUser(username string, uid string, idp string) *iamv1beta1.User {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: username,
-			Labels: map[string]string{
-				iamv1beta1.IdentifyProviderLabel: idp,
-				iamv1beta1.OriginUIDLabel:        uid,
+			Annotations: map[string]string{
+				fmt.Sprintf("%s.%s", iamv1beta1.IdentityProviderAnnotation, idp): uid,
 			},
 		},
 	}
