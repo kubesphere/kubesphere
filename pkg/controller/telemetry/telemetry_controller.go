@@ -60,12 +60,12 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 			}
 			return secret.Namespace == constants.KubeSphereNamespace &&
 				secret.Name == ConfigName &&
-				secret.Type == constants.SecretTypePlatformConfig
+				secret.Type == constants.SecretTypeGenericPlatformConfig
 		}))).
 		Complete(r)
 }
 
-func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, _ reconcile.Request) (reconcile.Result, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ConfigName,
@@ -73,7 +73,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 		},
 	}
 	if err := r.Client.Get(ctx, runtimeclient.ObjectKeyFromObject(secret), secret); err != nil {
-		if errors.IsNotFound(err) { // not found. telemetry is disabled.
+		if errors.IsNotFound(err) {
+			// not found. telemetry is disabled.
 			if r.telemetryRunnable != nil {
 				r.telemetryRunnable.Close()
 			}
@@ -95,9 +96,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 	}
 
 	// check value when telemetry is enabled.
-	if conf.Enabled &&
-		(conf.KSCloudURL == "" || conf.Schedule == "") {
-		klog.V(9).ErrorS(nil, "ksCloudURL and schedule should not be empty when telemetry enabled is true.")
+	if conf.Enabled && (conf.Endpoint == "" || conf.Schedule == "") {
+		klog.V(9).ErrorS(nil, "endpoint and schedule should not be empty when telemetry enabled is true.")
 		return reconcile.Result{}, nil
 	}
 
