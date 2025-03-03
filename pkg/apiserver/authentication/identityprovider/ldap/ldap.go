@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-ldap/ldap"
@@ -165,7 +166,11 @@ func (l ldapProvider) Authenticate(username string, password string) (identitypr
 }
 
 func (l *ldapProvider) newConn() (*ldap.Conn, error) {
-	lurl, err := url.Parse(l.Host)
+	host := l.Host
+	if !strings.HasPrefix(l.Host, "ldap://") && !strings.HasPrefix(l.Host, "ldaps://") {
+		host = "ldap://" + l.Host
+	}
+	lurl, err := url.Parse(host)
 	if err != nil {
 		return nil, ldap.NewError(ldap.ErrorNetwork, err)
 	}
