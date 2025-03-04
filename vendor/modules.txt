@@ -898,6 +898,9 @@ github.com/prometheus/procfs/internal/util
 # github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 ## explicit
 github.com/rcrowley/go-metrics
+# github.com/robfig/cron/v3 v3.0.1
+## explicit; go 1.12
+github.com/robfig/cron/v3
 # github.com/rubenv/sql-migrate v1.5.2
 ## explicit; go 1.17
 github.com/rubenv/sql-migrate

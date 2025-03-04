@@ -152,9 +152,6 @@ func (s *ControllerManagerOptions) Merge(conf *config.Config) {
 	if conf.TerminalOptions != nil {
 		s.TerminalOptions = conf.TerminalOptions
 	}
-	if conf.TelemetryOptions != nil {
-		s.TelemetryOptions = conf.TelemetryOptions
-	}
 	if conf.HelmExecutorOptions != nil {
 		s.HelmExecutorOptions = conf.HelmExecutorOptions
 	}

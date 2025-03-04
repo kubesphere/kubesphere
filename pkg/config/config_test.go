@@ -34,7 +34,6 @@ func newTestConfig() (*Config, error) {
 		MultiClusterOptions:   multicluster.NewOptions(),
 		AuditingOptions:       auditing.NewAuditingOptions(),
 		TerminalOptions:       terminal.NewOptions(),
-		TelemetryOptions:      options.NewTelemetryOptions(),
 		HelmExecutorOptions:   options.NewHelmExecutorOptions(),
 		ExtensionOptions:      options.NewExtensionOptions(),
 		S3Options:             s3.NewS3Options(),

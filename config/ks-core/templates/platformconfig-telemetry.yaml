@@ -1,0 +1,12 @@
+{{ if eq (include "role" .) "host" }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: io.kubesphere.config.platformconfig.telemetry
+  namespace: {{ .Release.Namespace | quote }}
+type: config.kubesphere.io/platformconfig
+stringData:
+  configuration.yaml: |
+    enabled: true
+    ksCloudURL: "https://kubesphere.cloud"
+{{- end }}
