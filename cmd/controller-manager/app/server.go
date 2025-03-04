@@ -98,7 +98,7 @@ func init() {
 	runtime.Must(controller.Register(&serviceaccount.Reconciler{}))
 	runtime.Must(controller.Register(&job.Reconciler{}))
 	runtime.Must(controller.Register(&storageclass.Reconciler{}))
-	runtime.Must(controller.Register(&telemetry.Runnable{}))
+	runtime.Must(controller.Register(&telemetry.Reconciler{}))
 	runtime.Must(controller.Register(&ksconfig.Webhook{}))
 	runtime.Must(controller.Register(&conversion.Webhook{}))
 	// kubeconfig

@@ -5,6 +5,8 @@
 
 package constants
 
+import corev1 "k8s.io/api/core/v1"
+
 const (
 	KubeSystemNamespace        = "kube-system"
 	KubeSphereNamespace        = "kubesphere-system"
@@ -24,6 +26,10 @@ const (
 	KubeSphereManagedLabel        = "kubesphere.io/managed"
 	DeletionPropagationAnnotation = "kubesphere.io/deletion-propagation"
 	CascadingDeletionFinalizer    = "kubesphere.io/cascading-deletion"
+)
+
+const (
+	SecretTypePlatformConfig corev1.SecretType = "config.kubesphere.io/platformconfig"
 )
 
 var (
