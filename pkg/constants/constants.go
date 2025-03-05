@@ -26,6 +26,11 @@ const (
 	KubeSphereManagedLabel        = "kubesphere.io/managed"
 	DeletionPropagationAnnotation = "kubesphere.io/deletion-propagation"
 	CascadingDeletionFinalizer    = "kubesphere.io/cascading-deletion"
+
+	KubeSphereConfigGroup                             = "config.kubesphere.io"
+	SecretTypeGenericPlatformConfig corev1.SecretType = KubeSphereConfigGroup + "/generic-platform-config"
+	GenericPlatformConfigNameFmt                      = "io.kubesphere.config.platformconfig.%s"
+	GenericPlatformConfigFileName                     = "configuration.yaml"
 )
 
 const (
