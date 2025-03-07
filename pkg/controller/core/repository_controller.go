@@ -6,28 +6,18 @@
 package core
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
-	"errors"
 	"fmt"
-	"mime"
-	"net/http"
 	"net/url"
-	"path"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	appsv1 "k8s.io/api/apps/v1"
+	"github.com/pkg/errors"
+	helmrepo "helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/validation"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
@@ -40,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"kubesphere.io/kubesphere/pkg/constants"
 	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 )
 
@@ -48,14 +37,11 @@ const (
 	repositoryProtection        = "kubesphere.io/repository-protection"
 	repositoryController        = "repository"
 	minimumRegistryPollInterval = 15 * time.Minute
-	defaultRequeueInterval      = 15 * time.Second
-	generateNameFormat          = "repository-%s"
+	defaultRegistryPollTimeout  = 2 * time.Minute
 	extensionFileName           = "extension.yaml"
-	// caTemplate store repository.spec.caBound in local dir.
-	caTemplate = "{{ .TempDIR }}/repository/{{ .RepositoryName }}/ssl/ca.crt"
 )
 
-var extensionRepoConflict = fmt.Errorf("extension repo mismatch")
+var extensionRepoConflict = errors.New("extension repo mismatch")
 
 var _ kscontroller.Controller = &RepositoryReconciler{}
 var _ reconcile.Reconciler = &RepositoryReconciler{}
@@ -86,7 +72,7 @@ func (r *RepositoryReconciler) SetupWithManager(mgr *kscontroller.Manager) error
 
 func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.logger.WithValues("repository", req.String())
-	logger.V(4).Info("sync repository")
+	logger.V(4).Info("reconciling extension repository")
 	ctx = klog.NewContext(ctx, logger)
 
 	repo := &corev1alpha1.Repository{}
@@ -103,6 +89,7 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		controllerutil.AddFinalizer(expected, repositoryProtection)
 		return ctrl.Result{}, r.Patch(ctx, expected, client.MergeFrom(repo))
 	}
+
 	return r.reconcileRepository(ctx, repo)
 }
 
@@ -124,10 +111,9 @@ func (r *RepositoryReconciler) createOrUpdateExtension(ctx context.Context, repo
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, extension, func() error {
 		originRepoName := extension.Labels[corev1alpha1.RepositoryReferenceLabel]
 		if originRepoName != "" && originRepoName != repo.Name {
-			logger.Error(extensionRepoConflict, "conflict", "extension", extensionName, "want", originRepoName, "got", repo.Name)
+			logger.Error(extensionRepoConflict, "extension repo mismatch", "name", extension.Name, "origin", originRepoName, "current", repo.Name)
 			return extensionRepoConflict
 		}
-
 		if extension.Labels == nil {
 			extension.Labels = make(map[string]string)
 		}
@@ -137,13 +123,13 @@ func (r *RepositoryReconciler) createOrUpdateExtension(ctx context.Context, repo
 		extension.Labels[corev1alpha1.RepositoryReferenceLabel] = repo.Name
 		extension.Spec.ExtensionInfo = extensionVersion.Spec.ExtensionInfo
 		if err := controllerutil.SetOwnerReference(repo, extension, r.Scheme()); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to set owner reference")
 		}
 		return nil
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to update extension: %s", err)
+		return nil, errors.Wrapf(err, "failed to update extension")
 	}
 
 	logger.V(4).Info("extension successfully updated", "operation", op, "name", extension.Name)
@@ -160,6 +146,12 @@ func (r *RepositoryReconciler) createOrUpdateExtensionVersion(ctx context.Contex
 		for k, v := range extensionVersion.Labels {
 			version.Labels[k] = v
 		}
+		if version.Annotations == nil {
+			version.Annotations = make(map[string]string)
+		}
+		for k, v := range extensionVersion.Annotations {
+			version.Annotations[k] = v
+		}
 		version.Spec = extensionVersion.Spec
 		if err := controllerutil.SetOwnerReference(extension, version, r.Scheme()); err != nil {
 			return err
@@ -168,90 +160,87 @@ func (r *RepositoryReconciler) createOrUpdateExtensionVersion(ctx context.Contex
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to update extension version: %s", err)
+		return errors.Wrapf(err, "failed to update extension version")
 	}
 
 	logger.V(4).Info("extension version successfully updated", "operation", op, "name", extensionVersion.Name)
 	return nil
 }
 
-func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *corev1alpha1.Repository, repoURL string) error {
+func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *corev1alpha1.Repository, timeout time.Duration) error {
 	logger := klog.FromContext(ctx)
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	cred, err := newHelmCred(repo)
+	cred, err := createHelmCredential(repo)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create helm credential")
 	}
-	index, err := helm.LoadRepoIndex(ctx, repoURL, cred)
+
+	repoURL, err := url.Parse(repo.Spec.URL)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to parse repo URL")
+	}
+
+	index, err := helm.LoadRepoIndex(ctx, repo.Spec.URL, cred)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load repo index")
 	}
 
 	for extensionName, versions := range index.Entries {
 		// check extensionName
-		if errs := validation.IsDNS1123Subdomain(extensionName); len(errs) > 0 {
+		if errs := isValidExtensionName(extensionName); len(errs) > 0 {
 			logger.Info("invalid extension name", "extension", extensionName, "error", errs)
 			continue
 		}
 
 		extensionVersions := make([]corev1alpha1.ExtensionVersion, 0, len(versions))
 		for _, version := range versions {
-			if version.Metadata == nil {
-				logger.Info("version metadata is empty", "repo", repo.Name)
-				continue
-			}
-
 			if version.Name != extensionName {
-				logger.Info("invalid extension version found", "want", extensionName, "got", version.Name)
+				logger.V(4).Info("extension name mismatch", "extension", extensionName, "version", version.Version)
 				continue
 			}
 
-			var chartURL string
-			if len(version.URLs) > 0 {
-				versionURL := version.URLs[0]
-				u, err := url.Parse(versionURL)
-				if err != nil {
-					logger.Error(err, "failed to parse chart URL", "url", versionURL)
-					continue
-				}
-				if u.Host == "" {
-					chartURL = fmt.Sprintf("%s/%s", repoURL, versionURL)
-				} else {
-					chartURL = u.String()
-				}
-			}
-
-			extensionVersionSpec, err := r.loadExtensionVersionSpecFrom(ctx, chartURL, repo, cred)
-			if err != nil {
-				return fmt.Errorf("failed to load extension version spec: %s", err)
-			}
-
-			if extensionVersionSpec == nil {
-				logger.V(4).Info("extension version spec not found: %s", chartURL)
+			chartURL := resolveChartURL(version, repoURL)
+			if chartURL == nil {
+				logger.V(4).Info("failed to resolve chart URL", "extension", extensionName, "version", version.Version)
 				continue
 			}
-			extensionVersionSpec.Created = metav1.NewTime(version.Created)
-			extensionVersionSpec.Digest = version.Digest
-			extensionVersionSpec.Repository = repo.Name
-			extensionVersionSpec.ChartDataRef = nil
-			extensionVersionSpec.ChartURL = chartURL
 
 			extensionVersion := corev1alpha1.ExtensionVersion{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("%s-%s", extensionName, extensionVersionSpec.Version),
+					Name: fmt.Sprintf("%s-%s", extensionName, version.Version),
 					Labels: map[string]string{
 						corev1alpha1.RepositoryReferenceLabel: repo.Name,
 						corev1alpha1.ExtensionReferenceLabel:  extensionName,
 					},
 					Annotations: version.Metadata.Annotations,
 				},
-				Spec: *extensionVersionSpec,
+				Spec: corev1alpha1.ExtensionVersionSpec{
+					ChartURL:   chartURL.String(),
+					Repository: repo.Name,
+				},
 			}
+
+			extensionVersionSpec, err := r.fetchExtensionVersionSpec(ctx, &extensionVersion)
+			if err != nil {
+				return errors.Wrapf(err, "failed to load extension version spec")
+			}
+
+			if extensionVersionSpec.Name != extensionName {
+				logger.V(4).Info("extension version name mismatch", "extension", extensionName, "version", version.Version)
+				continue
+			}
+
+			extensionVersionSpec.ChartURL = chartURL.String()
+			extensionVersionSpec.Created = metav1.NewTime(version.Created)
+			extensionVersionSpec.Digest = version.Digest
+			extensionVersionSpec.Repository = repo.Name
 			if extensionVersionSpec.Category != "" {
 				extensionVersion.Labels[corev1alpha1.CategoryLabel] = extensionVersionSpec.Category
 			}
+
+			extensionVersion.Spec = extensionVersionSpec
 			extensionVersions = append(extensionVersions, extensionVersion)
 		}
 
@@ -265,34 +254,53 @@ func (r *RepositoryReconciler) syncExtensionsFromURL(ctx context.Context, repo *
 			if errors.Is(err, extensionRepoConflict) {
 				continue
 			}
-			return fmt.Errorf("failed to create or update extension: %s", err)
+			return errors.Wrapf(err, "failed to create or update extension")
 		}
 		// create extensionVersions of filteredVersions
 		for _, extensionVersion := range filteredVersions {
 			if err := r.createOrUpdateExtensionVersion(ctx, extension, &extensionVersion); err != nil {
-				return fmt.Errorf("failed to create or update extension version: %s", err)
+				return errors.Wrapf(err, "failed to create or update extension version")
 			}
 		}
 		// remove extensionVersions of existVersions
-		if err := r.removeSuspendedExtensionVersion(ctx, repo, extension, extensionVersions); err != nil {
-			return fmt.Errorf("failed to remove suspended extension version: %s", err)
+		if err := r.removeSuspendedExtensionVersion(ctx, repo.Name, extension.Name, extensionVersions); err != nil {
+			return errors.Wrapf(err, "failed to remove suspended extension version")
 		}
 	}
 
 	extensions := &corev1alpha1.ExtensionList{}
 	if err := r.List(ctx, extensions, client.MatchingLabels{corev1alpha1.RepositoryReferenceLabel: repo.Name}); err != nil {
-		return fmt.Errorf("failed to list extensions: %s", err)
+		return errors.Wrapf(err, "failed to list extensions")
 	}
 
 	for _, extension := range extensions.Items {
 		if _, ok := index.Entries[extension.Name]; !ok {
-			if err := r.removeSuspendedExtensionVersion(ctx, repo, &extension, []corev1alpha1.ExtensionVersion{}); err != nil {
-				return fmt.Errorf("failed to remove suspended extension version: %s", err)
+			// remove all the extensionVersions if the extension is not in the index
+			if err := r.removeSuspendedExtensionVersion(ctx, repo.Name, extension.Name, []corev1alpha1.ExtensionVersion{}); err != nil {
+				return errors.Wrapf(err, "failed to remove suspended extension version")
 			}
 		}
 	}
 
 	return nil
+}
+
+func resolveChartURL(version *helmrepo.ChartVersion, repoURL *url.URL) *url.URL {
+	if len(version.URLs) == 0 {
+		return nil
+	}
+
+	chartURL, err := url.Parse(version.URLs[0])
+	if err != nil {
+		return nil
+	}
+
+	if chartURL.Host == "" {
+		chartURL.Scheme = repoURL.Scheme
+		chartURL.Host = repoURL.Host
+	}
+
+	return chartURL
 }
 
 func (r *RepositoryReconciler) reconcileRepository(ctx context.Context, repo *corev1alpha1.Repository) (ctrl.Result, error) {
@@ -300,223 +308,58 @@ func (r *RepositoryReconciler) reconcileRepository(ctx context.Context, repo *co
 	if repo.Spec.UpdateStrategy != nil && repo.Spec.UpdateStrategy.Interval.Duration > minimumRegistryPollInterval {
 		registryPollInterval = repo.Spec.UpdateStrategy.Interval.Duration
 	}
-
-	var repoURL string
-	// URL and Image are immutable after creation
-	if repo.Spec.URL != "" {
-		repoURL = repo.Spec.URL
-	} else if repo.Spec.Image != "" {
-		var deployment appsv1.Deployment
-		if err := r.Get(ctx, types.NamespacedName{Namespace: constants.KubeSphereNamespace, Name: fmt.Sprintf(generateNameFormat, repo.Name)}, &deployment); err != nil {
-			if apierrors.IsNotFound(err) {
-				if err := r.deployRepository(ctx, repo); err != nil {
-					r.recorder.Event(repo, corev1.EventTypeWarning, "RepositoryDeployFailed", err.Error())
-					return ctrl.Result{}, fmt.Errorf("failed to deploy repository: %s", err)
-				}
-				r.recorder.Event(repo, corev1.EventTypeNormal, "RepositoryDeployed", "")
-				return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueInterval}, nil
-			}
-			return ctrl.Result{}, fmt.Errorf("failed to fetch deployment: %s", err)
-		}
-
-		restartAt, _ := time.Parse(time.RFC3339, deployment.Spec.Template.Annotations["kubesphere.io/restartedAt"])
-		if restartAt.IsZero() {
-			restartAt = deployment.ObjectMeta.CreationTimestamp.Time
-		}
-		// restart and pull the latest docker image
-		if time.Now().After(repo.Status.LastSyncTime.Add(registryPollInterval)) && time.Now().After(restartAt.Add(registryPollInterval)) {
-			rawData := []byte(fmt.Sprintf("{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubesphere.io/restartedAt\":\"%s\"}}}}}", time.Now().Format(time.RFC3339)))
-			if err := r.Patch(ctx, &deployment, client.RawPatch(types.StrategicMergePatchType, rawData)); err != nil {
-				return ctrl.Result{}, err
-			}
-			r.recorder.Event(repo, corev1.EventTypeNormal, "RepositoryRestarted", "")
-			return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueInterval}, nil
-		}
-
-		if deployment.Status.AvailableReplicas != deployment.Status.Replicas {
-			return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueInterval}, nil
-		}
-
-		// ready to sync
-		repoURL = fmt.Sprintf("http://%s.%s.svc", deployment.Name, constants.KubeSphereNamespace)
+	registryPollTimeout := defaultRegistryPollTimeout
+	if repo.Spec.UpdateStrategy != nil && repo.Spec.UpdateStrategy.Timeout.Duration > 0 {
+		registryPollTimeout = repo.Spec.UpdateStrategy.Timeout.Duration
 	}
 
+	repoURL := repo.Spec.URL
+	if repoURL == "" {
+		return ctrl.Result{}, nil
+	}
+
+	logger := klog.FromContext(ctx)
+
 	outOfSync := repo.Status.LastSyncTime == nil || time.Now().After(repo.Status.LastSyncTime.Add(registryPollInterval))
-	if repoURL != "" && outOfSync {
-		if err := r.syncExtensionsFromURL(ctx, repo, repoURL); err != nil {
+	if outOfSync {
+		if err := r.syncExtensionsFromURL(ctx, repo, registryPollTimeout); err != nil {
 			r.recorder.Eventf(repo, corev1.EventTypeWarning, kscontroller.SyncFailed, "failed to sync extensions from %s: %s", repoURL, err)
-			return ctrl.Result{}, fmt.Errorf("failed to sync extensions: %s", err)
+			return ctrl.Result{}, errors.Wrapf(err, "failed to sync extensions from %s", repoURL)
 		}
 		r.recorder.Eventf(repo, corev1.EventTypeNormal, kscontroller.Synced, "sync extensions from %s successfully", repoURL)
 		repo = repo.DeepCopy()
 		repo.Status.LastSyncTime = &metav1.Time{Time: time.Now()}
 		if err := r.Update(ctx, repo); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to update repository: %s", err)
+			return ctrl.Result{}, errors.Wrapf(err, "failed to update repository status")
 		}
+		logger.V(4).Info("repository successfully synced", "name", repo.Name)
 	}
 
+	logger.V(4).Info("repository successfully reconciled", "name", repo.Name)
 	return ctrl.Result{Requeue: true, RequeueAfter: registryPollInterval}, nil
 }
 
-func (r *RepositoryReconciler) deployRepository(ctx context.Context, repo *corev1alpha1.Repository) error {
-	generateName := fmt.Sprintf(generateNameFormat, repo.Name)
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      generateName,
-			Namespace: constants.KubeSphereNamespace,
-			Labels:    map[string]string{corev1alpha1.RepositoryReferenceLabel: repo.Name},
-		},
-
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{corev1alpha1.RepositoryReferenceLabel: repo.Name},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{corev1alpha1.RepositoryReferenceLabel: repo.Name},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:            "repository",
-							Image:           repo.Spec.Image,
-							ImagePullPolicy: corev1.PullAlways,
-							Env: []corev1.EnvVar{
-								{
-									Name:  "CHART_URL",
-									Value: fmt.Sprintf("http://%s.%s.svc", generateName, constants.KubeSphereNamespace),
-								},
-							},
-							LivenessProbe: &corev1.Probe{
-								ProbeHandler: corev1.ProbeHandler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/health",
-										Port: intstr.FromInt32(8080),
-									},
-								},
-								PeriodSeconds:       10,
-								InitialDelaySeconds: 5,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if err := controllerutil.SetOwnerReference(repo, deployment, r.Scheme()); err != nil {
-		return err
-	}
-	if err := r.Create(ctx, deployment); err != nil {
-		return err
-	}
-
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      generateName,
-			Namespace: constants.KubeSphereNamespace,
-		},
-		Spec: corev1.ServiceSpec{
-			Ports: []corev1.ServicePort{
-				{
-					Port:       80,
-					Protocol:   corev1.ProtocolTCP,
-					TargetPort: intstr.FromInt32(8080),
-				},
-			},
-			Selector: map[string]string{
-				corev1alpha1.RepositoryReferenceLabel: repo.Name,
-			},
-			Type: corev1.ServiceTypeClusterIP,
-		},
-	}
-
-	if err := controllerutil.SetOwnerReference(repo, service, r.Scheme()); err != nil {
-		return err
-	}
-
-	if err := r.Create(ctx, service); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *RepositoryReconciler) loadExtensionVersionSpecFrom(ctx context.Context, chartURL string, repo *corev1alpha1.Repository, cred helm.RepoCredential) (*corev1alpha1.ExtensionVersionSpec, error) {
-	logger := klog.FromContext(ctx)
-	var result *corev1alpha1.ExtensionVersionSpec
-
-	err := retry.OnError(retry.DefaultRetry, func(err error) bool {
+func (r *RepositoryReconciler) fetchExtensionVersionSpec(ctx context.Context, extensionVersion *corev1alpha1.ExtensionVersion) (corev1alpha1.ExtensionVersionSpec, error) {
+	var extensionVersionSpec corev1alpha1.ExtensionVersionSpec
+	var err error
+	err = retry.OnError(retry.DefaultRetry, func(err error) bool {
 		return true
 	}, func() error {
-		data, err := helm.LoadData(ctx, chartURL, cred)
-		if err != nil {
-			return err
-		}
+		extensionVersionSpec, err = fetchExtensionVersionSpec(ctx, r.Client, extensionVersion)
 
-		files, err := loader.LoadArchiveFiles(data)
-		if err != nil {
-			return err
-		}
-
-		for _, file := range files {
-			if file.Name == extensionFileName {
-				extensionVersionSpec := &corev1alpha1.ExtensionVersionSpec{}
-				if err := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(file.Data), 1024).Decode(extensionVersionSpec); err != nil {
-					logger.V(4).Info("invalid extension version spec: %s", string(file.Data))
-					return nil
-				}
-				result = extensionVersionSpec
-				break
-			}
-		}
-
-		if result == nil {
-			logger.V(6).Info("extension.yaml not found", "chart", chartURL)
-			return nil
-		}
-
-		if strings.HasPrefix(result.Icon, "http://") ||
-			strings.HasPrefix(result.Icon, "https://") ||
-			strings.HasPrefix(result.Icon, "data:image") {
-			return nil
-		}
-
-		absPath := strings.TrimPrefix(result.Icon, "./")
-		var iconData []byte
-		for _, file := range files {
-			if file.Name == absPath {
-				iconData = file.Data
-				break
-			}
-		}
-
-		if iconData == nil {
-			logger.V(4).Info("invalid extension icon path: %s", absPath)
-			return nil
-		}
-
-		mimeType := mime.TypeByExtension(path.Ext(result.Icon))
-		if mimeType == "" {
-			mimeType = http.DetectContentType(iconData)
-		}
-
-		base64EncodedData := base64.StdEncoding.EncodeToString(iconData)
-		result.Icon = fmt.Sprintf("data:%s;base64,%s", mimeType, base64EncodedData)
 		return nil
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch chart data from %s: %s", chartURL, err)
+		return extensionVersionSpec, errors.Wrapf(err, "failed to fetch extension version spec")
 	}
 
-	return result, nil
+	return extensionVersionSpec, nil
 }
 
-func (r *RepositoryReconciler) removeSuspendedExtensionVersion(ctx context.Context, repo *corev1alpha1.Repository, extension *corev1alpha1.Extension, versions []corev1alpha1.ExtensionVersion) error {
+func (r *RepositoryReconciler) removeSuspendedExtensionVersion(ctx context.Context, repoName, extensionName string, versions []corev1alpha1.ExtensionVersion) error {
 	extensionVersions := &corev1alpha1.ExtensionVersionList{}
-	if err := r.List(ctx, extensionVersions, client.MatchingLabels{corev1alpha1.ExtensionReferenceLabel: extension.Name, corev1alpha1.RepositoryReferenceLabel: repo.Name}); err != nil {
-		return fmt.Errorf("failed to list extension versions: %s", err)
+	if err := r.List(ctx, extensionVersions, client.MatchingLabels{corev1alpha1.ExtensionReferenceLabel: extensionName, corev1alpha1.RepositoryReferenceLabel: repoName}); err != nil {
+		return errors.Wrapf(err, "failed to list extension versions")
 	}
 	for _, version := range extensionVersions.Items {
 		if checkIfSuspended(versions, version) {
@@ -525,7 +368,7 @@ func (r *RepositoryReconciler) removeSuspendedExtensionVersion(ctx context.Conte
 				if apierrors.IsNotFound(err) {
 					return nil
 				}
-				return fmt.Errorf("failed to delete extension version: %s", err)
+				return errors.Wrapf(err, "failed to delete extension version %s", version.Name)
 			}
 		}
 	}

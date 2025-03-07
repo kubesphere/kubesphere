@@ -54,14 +54,11 @@ spec:
                   to verify the helm server.
                 type: string
               depth:
-                description: The number of synchronized versions of each extension.
-                  0 means synchronized all versions, default is 3.
+                description: The maximum number of synchronized versions for each
+                  extension. A value of 0 indicates that all versions will be synchronized.
+                  The default is 3.
                 type: integer
               description:
-                type: string
-              image:
-                description: 'DEPRECATED: the field will remove in future versions,
-                  please use url.'
                 type: string
               insecure:
                 description: --insecure-skip-tls-verify. default false
@@ -75,6 +72,10 @@ spec:
                     required:
                     - interval
                     type: object
+                  timeout:
+                    type: string
+                required:
+                - timeout
                 type: object
               url:
                 type: string
