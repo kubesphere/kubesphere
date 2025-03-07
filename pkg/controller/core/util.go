@@ -7,31 +7,45 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
-	goerrors "errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
+	"mime"
+	"net"
+	"net/http"
+	"net/url"
+	"path"
 	"slices"
 	"sort"
 	"strings"
-	"text/template"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/pkg/errors"
 	yaml3 "gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	"kubesphere.io/utils/helm"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/utils/hashutil"
 	"kubesphere.io/kubesphere/pkg/version"
 )
+
+const ExtensionVersionMaxLength = validation.LabelValueMaxLength
+const ExtensionNameMaxLength = validation.LabelValueMaxLength
 
 func getRecommendedExtensionVersion(versions []corev1alpha1.ExtensionVersion, k8sVersion *semver.Version) (string, error) {
 	if len(versions) == 0 {
@@ -40,11 +54,10 @@ func getRecommendedExtensionVersion(versions []corev1alpha1.ExtensionVersion, k8
 
 	ksVersion, err := semver.NewVersion(version.Get().GitVersion)
 	if err != nil {
-		return "", fmt.Errorf("parse KubeSphere version failed: %v", err)
+		return "", errors.Wrapf(err, "failed to parse KS version: %s", version.Get().GitVersion)
 	}
 
 	var matchedVersions []*semver.Version
-
 	for _, v := range versions {
 		kubeVersionMatched, ksVersionMatched := matchVersionConstraints(v, k8sVersion, ksVersion)
 		if kubeVersionMatched && ksVersionMatched {
@@ -231,7 +244,7 @@ func usesPermissions(mainChart *chart.Chart) (rbacv1.ClusterRole, rbacv1.Role) {
 					continue
 				}
 				// break the loop in case of EOF
-				if goerrors.Is(err, io.EOF) {
+				if errors.Is(err, io.EOF) {
 					break
 				}
 				if err != nil {
@@ -286,17 +299,10 @@ func configChanged(sub *corev1alpha1.InstallPlan, cluster string) bool {
 	return newConfigHash != oldConfigHash
 }
 
-// newHelmCred from Repository
-func newHelmCred(repo *corev1alpha1.Repository) (helm.RepoCredential, error) {
+// createHelmCredential from Repository
+func createHelmCredential(repo *corev1alpha1.Repository) (helm.RepoCredential, error) {
 	cred := helm.RepoCredential{
 		InsecureSkipTLSVerify: repo.Spec.Insecure,
-	}
-	if repo.Spec.CABundle != "" {
-		caFile, err := storeCAFile(repo.Spec.CABundle, repo.Name)
-		if err != nil {
-			return cred, err
-		}
-		cred.CAFile = caFile
 	}
 	if repo.Spec.BasicAuth != nil {
 		cred.Username = repo.Spec.BasicAuth.Username
@@ -305,38 +311,191 @@ func newHelmCred(repo *corev1alpha1.Repository) (helm.RepoCredential, error) {
 	return cred, nil
 }
 
-// storeCAFile in local file from caTemplate.
-func storeCAFile(caBundle string, repoName string) (string, error) {
-	var buff = &bytes.Buffer{}
-	tmpl, err := template.New("repositoryCABundle").Parse(caTemplate)
+func fetchExtensionVersionSpec(ctx context.Context, client client.Reader, extensionVersion *corev1alpha1.ExtensionVersion) (corev1alpha1.ExtensionVersionSpec, error) {
+	extensionVersionSpec := extensionVersion.Spec
+	logger := klog.FromContext(ctx)
+	data, err := fetchChartData(ctx, client, extensionVersion)
 	if err != nil {
-		return "", err
+		return extensionVersionSpec, errors.Wrapf(err, "failed to fetch chart data")
 	}
-	if err := tmpl.Execute(buff, map[string]string{
-		"TempDIR":        os.TempDir(),
-		"RepositoryName": repoName,
-	}); err != nil {
-		return "", err
-	}
-	caFile := buff.String()
-	if _, err := os.Stat(filepath.Dir(caFile)); err != nil {
-		if !os.IsNotExist(err) {
-			return "", err
-		}
-
-		if err := os.MkdirAll(filepath.Dir(caFile), os.ModePerm); err != nil {
-			return "", err
-		}
-	}
-
-	data, err := base64.StdEncoding.DecodeString(caBundle)
+	helmChart, err := loader.LoadArchive(bytes.NewReader(data))
 	if err != nil {
-		return "", err
+		return extensionVersionSpec, errors.Wrapf(err, "failed to load chart archive")
+	}
+	errs := isValidExtensionVersion(helmChart.Metadata.Version)
+	if len(errs) > 0 {
+		logger.V(4).Info("invalid extension version", "errors", errs)
+		return extensionVersionSpec, nil
+	}
+	for _, file := range helmChart.Files {
+		if file.Name == extensionFileName {
+			if err := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(file.Data), 1024).Decode(&extensionVersionSpec); err != nil {
+				logger.V(4).Info("failed to decode extension.yaml", "error", err)
+				return extensionVersionSpec, nil
+			}
+			break
+		}
+	}
+	extensionVersionSpec.Name = helmChart.Name()
+	absPath := strings.TrimPrefix(extensionVersionSpec.Icon, "./")
+	var iconData []byte
+	for _, file := range helmChart.Files {
+		if file.Name == absPath {
+			iconData = file.Data
+			break
+		}
 	}
 
-	if err := os.WriteFile(caFile, data, os.ModePerm); err != nil {
-		return "", err
+	if iconData != nil {
+		mimeType := mime.TypeByExtension(path.Ext(extensionVersionSpec.Icon))
+		if mimeType == "" {
+			mimeType = http.DetectContentType(iconData)
+		}
+		base64EncodedData := base64.StdEncoding.EncodeToString(iconData)
+		extensionVersionSpec.Icon = fmt.Sprintf("data:%s;base64,%s", mimeType, base64EncodedData)
 	}
 
-	return caFile, nil
+	return extensionVersionSpec, nil
+}
+
+func fetchChartData(ctx context.Context, client client.Reader, extensionVersion *corev1alpha1.ExtensionVersion) ([]byte, error) {
+	if extensionVersion.Spec.ChartDataRef != nil {
+		return fetchChartDataFromConfigMap(ctx, client, extensionVersion.Spec.ChartDataRef)
+	}
+
+	chartURL, err := url.Parse(extensionVersion.Spec.ChartURL)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse chart URL: %s", extensionVersion.Spec.ChartURL)
+	}
+
+	repo, err := fetchRepository(ctx, client, extensionVersion.Spec.Repository)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to fetch repository: %s", extensionVersion.Spec.Repository)
+	}
+
+	repoURL, err := url.Parse(repo.Spec.URL)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse repo URL: %s", extensionVersion.Spec.ChartURL)
+	}
+
+	if chartURL.Host == "" {
+		chartURL.Scheme = repoURL.Scheme
+		chartURL.Host = repoURL.Host
+	}
+
+	transport, err := createTransport(repo, chartURL.Hostname())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create transport")
+	}
+
+	opts := createGetterOptions(repo, transport)
+	chartGetter, err := createChartGetter(chartURL.Scheme, opts)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create chart getter")
+	}
+
+	return getChartData(chartGetter, chartURL.String())
+}
+
+func fetchChartDataFromConfigMap(ctx context.Context, client client.Reader, ref *corev1alpha1.ConfigMapKeyRef) ([]byte, error) {
+	configMap := &corev1.ConfigMap{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: ref.Namespace, Name: ref.Name}, configMap); err != nil {
+		return nil, errors.Wrapf(err, "failed to get config map: %s", ref.Name)
+	}
+	data := configMap.BinaryData[ref.Key]
+	if data != nil {
+		return data, nil
+	}
+	return nil, errors.New("chart data not found in config map")
+}
+
+func fetchRepository(ctx context.Context, client client.Reader, repoName string) (*corev1alpha1.Repository, error) {
+	if repoName == "" {
+		return &corev1alpha1.Repository{}, nil
+	}
+	repo := &corev1alpha1.Repository{}
+	if err := client.Get(ctx, types.NamespacedName{Name: repoName}, repo); err != nil {
+		return nil, errors.Wrapf(err, "failed to get repository: %s", repoName)
+	}
+	return repo, nil
+}
+
+func createTransport(repo *corev1alpha1.Repository, serverName string) (*http.Transport, error) {
+	tlsConf, err := helm.NewTLSConfig(repo.Spec.CABundle, repo.Spec.Insecure)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create tls config")
+	}
+	tlsConf.ServerName = serverName
+
+	return &http.Transport{
+		DisableCompression:    true,
+		DialContext:           (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		Proxy:                 http.ProxyFromEnvironment,
+		TLSClientConfig:       tlsConf,
+	}, nil
+}
+
+func createGetterOptions(repo *corev1alpha1.Repository, transport *http.Transport) []getter.Option {
+	opts := []getter.Option{getter.WithTransport(transport)}
+	if repo.Spec.BasicAuth != nil {
+		opts = append(opts, getter.WithBasicAuth(repo.Spec.BasicAuth.Username, repo.Spec.BasicAuth.Password))
+	}
+	return opts
+}
+
+func createChartGetter(scheme string, opts []getter.Option) (getter.Getter, error) {
+	switch scheme {
+	case registry.OCIScheme:
+		return getter.NewOCIGetter(opts...)
+	case "http", "https":
+		return getter.NewHTTPGetter(opts...)
+	default:
+		return nil, errors.Errorf("unsupported scheme: %s", scheme)
+	}
+}
+
+func getChartData(chartGetter getter.Getter, url string) ([]byte, error) {
+	buffer, err := chartGetter.Get(url)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to fetch chart data: %s", url)
+	}
+
+	data, err := io.ReadAll(buffer)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read chart data: %s", url)
+	}
+	return data, nil
+}
+
+func isValidExtensionVersion(version string) []string {
+	var errs []string
+	if len(version) > ExtensionVersionMaxLength {
+		errs = append(errs, fmt.Sprintf("extension version length exceeds %d", ExtensionVersionMaxLength))
+	}
+	if _, err := semver.NewVersion(version); err != nil {
+		errs = append(errs, fmt.Sprintf("invalid semver format: %s", err))
+	}
+	if len(validation.IsDNS1123Subdomain(version)) > 0 {
+		errs = append(errs, "invalid DNS-1123 subdomain")
+	}
+	return errs
+}
+
+func isValidExtensionName(name string) []string {
+	var errs []string
+	if name == "" {
+		errs = append(errs, "extension name should not be empty")
+	}
+	if len(name) > ExtensionNameMaxLength {
+		errs = append(errs, fmt.Sprintf("extension name length exceeds %d", ExtensionNameMaxLength))
+	}
+	if len(validation.IsDNS1123Subdomain(name)) > 0 {
+		errs = append(errs, "invalid DNS-1123 subdomain")
+	}
+	return errs
 }

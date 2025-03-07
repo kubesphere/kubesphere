@@ -44,6 +44,7 @@ type ExtensionSpec struct {
 // ExtensionVersionSpec contains the details of a specific version extension.
 type ExtensionVersionSpec struct {
 	ExtensionInfo `json:",inline"`
+	Name          string   `json:"-"`
 	Version       string   `json:"version,omitempty"`
 	Keywords      []string `json:"keywords,omitempty"`
 	Sources       []string `json:"sources,omitempty"`

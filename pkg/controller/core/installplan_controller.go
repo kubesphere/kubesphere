@@ -9,8 +9,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"net/url"
 	"path"
 	"reflect"
 	"sort"
@@ -21,8 +19,6 @@ import (
 	"golang.org/x/exp/slices"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/registry"
 	helmrelease "helm.sh/helm/v3/pkg/release"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -413,90 +409,25 @@ func latestJobCondition(job *batchv1.Job) batchv1.JobCondition {
 	return condition
 }
 
-func (r *InstallPlanReconciler) loadChartData(ctx context.Context) ([]byte, string, error) {
+func (r *InstallPlanReconciler) loadChartDataAndCABundle(ctx context.Context) ([]byte, string, error) {
 	extensionVersion, ok := ctx.Value(contextKeyExtensionVersion{}).(*corev1alpha1.ExtensionVersion)
 	if !ok {
 		return nil, "", fmt.Errorf("failed to get extension version from context")
 	}
 
-	// load chart data from
-	if extensionVersion.Spec.ChartDataRef != nil {
-		configMap := &corev1.ConfigMap{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: extensionVersion.Spec.ChartDataRef.Namespace, Name: extensionVersion.Spec.ChartDataRef.Name}, configMap); err != nil {
-			return nil, "", err
-		}
-		data := configMap.BinaryData[extensionVersion.Spec.ChartDataRef.Key]
-		if data != nil {
-			return data, "", nil
-		}
-		return nil, "", fmt.Errorf("binary data not found")
-	}
-
-	chartURL, err := url.Parse(extensionVersion.Spec.ChartURL)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to parse chart url: %v", err)
-	}
-
-	var caBundle string
 	repo := &corev1alpha1.Repository{}
 	if extensionVersion.Spec.Repository != "" {
 		if err := r.Get(ctx, types.NamespacedName{Name: extensionVersion.Spec.Repository}, repo); err != nil {
 			return nil, "", fmt.Errorf("failed to get repository: %v", err)
 		}
-		caBundle = repo.Spec.CABundle
 	}
 
-	var chartGetter getter.Getter
-	switch chartURL.Scheme {
-	case registry.OCIScheme:
-		opts := make([]getter.Option, 0)
-		if extensionVersion.Spec.Repository != "" {
-			opts = append(opts, getter.WithInsecureSkipVerifyTLS(repo.Spec.Insecure))
-		}
-		if repo.Spec.BasicAuth != nil {
-			opts = append(opts, getter.WithBasicAuth(repo.Spec.BasicAuth.Username, repo.Spec.BasicAuth.Password))
-		}
-		chartGetter, err = getter.NewOCIGetter(opts...)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create chart getter: %v", err)
-		}
-	case "http", "https":
-		opts := make([]getter.Option, 0)
-		if chartURL.Scheme == "https" && extensionVersion.Spec.Repository != "" {
-			opts = append(opts, getter.WithInsecureSkipVerifyTLS(repo.Spec.Insecure))
-		}
-		if repo.Spec.CABundle != "" {
-			caFile, err := storeCAFile(repo.Spec.CABundle, repo.Name)
-			if err != nil {
-				return nil, "", fmt.Errorf("failed to store CABundle to local file: %s", err)
-			}
-			opts = append(opts, getter.WithTLSClientConfig("", "", caFile))
-		}
-		if chartURL.Scheme == "https" {
-			opts = append(opts, getter.WithInsecureSkipVerifyTLS(repo.Spec.Insecure))
-		}
-		if repo.Spec.BasicAuth != nil {
-			opts = append(opts, getter.WithBasicAuth(repo.Spec.BasicAuth.Username, repo.Spec.BasicAuth.Password))
-		}
-		chartGetter, err = getter.NewHTTPGetter(opts...)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create chart getter: %v", err)
-		}
-	default:
-		return nil, "", fmt.Errorf("unsupported scheme: %s", chartURL.Scheme)
-	}
-
-	buffer, err := chartGetter.Get(chartURL.String())
+	data, err := fetchChartData(ctx, r.Client, extensionVersion)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get chart data: %v", err)
+		return nil, "", fmt.Errorf("failed to load chart data: %v", err)
 	}
 
-	data, err := io.ReadAll(buffer)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read chart data: %v", err)
-	}
-
-	return data, caBundle, nil
+	return data, repo.Spec.CABundle, nil
 }
 
 func updateState(status *corev1alpha1.InstallationStatus, state string, time time.Time) bool {
@@ -1174,7 +1105,7 @@ func (r *InstallPlanReconciler) installOrUpgradeExtension(ctx context.Context, p
 		return r.updateInstallPlan(ctx, plan)
 	}
 
-	chartData, caBundle, err := r.loadChartData(ctx)
+	chartData, caBundle, err := r.loadChartDataAndCABundle(ctx)
 	if err != nil {
 		return onFailed(err)
 	}
@@ -1366,7 +1297,7 @@ func (r *InstallPlanReconciler) installOrUpgradeClusterAgent(ctx context.Context
 		return r.updateInstallPlan(ctx, plan)
 	}
 
-	chartData, caBundle, err := r.loadChartData(ctx)
+	chartData, caBundle, err := r.loadChartDataAndCABundle(ctx)
 	if err != nil {
 		return onFailed(fmt.Errorf("failed to load chart data: %v", err))
 	}
