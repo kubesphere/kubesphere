@@ -1,4 +1,4 @@
-{{ if eq (include "role" .) "host" }}
+{{ if eq (include "multicluster.role" .) "host" }}
 ---
 apiVersion: kubesphere.io/v1alpha1
 kind: Category

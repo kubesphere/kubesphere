@@ -8,7 +8,7 @@ Please be patient and wait for several seconds for the KubeSphere deployment to 
 
     kubectl get pods -n {{ .Release.Namespace }}
 
-{{- if or (eq .Values.role "") (eq .Values.role "host") }}
+{{- if or (eq .Values.multicluster.role "") (eq .Values.multicluster.role "host") }}
 2. Access the KubeSphere Console
 
     Once the deployment is complete, you can access the KubeSphere console using the following URL:  {{"\n"}}

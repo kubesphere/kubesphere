@@ -21,10 +21,10 @@ commonAnnotations: {}
 ## Role represents the role of the current cluster,
 ## and it can have one of two values: "host" or "member".
 ## Priority: specified in values > get from kubesphere-config > default role (host)
-role: ""
-
-## Priority: specified in values > get from kubesphere-config > default name (host)
-hostClusterName: ""
+multicluster:
+  role: ""
+  ## Priority: specified in values > get from kubesphere-config > default name (host)
+  hostClusterName: ""
 
 portal:
   ## The IP address or hostname to access ks-console service.

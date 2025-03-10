@@ -18,7 +18,7 @@ data:
         url: {{ include "portal.url" . | quote }}
         jwtSecret: {{ include "jwtSecret" . | quote }}
         maximumClockSkew: {{ .Values.authentication.issuer.maximumClockSkew | default "10s" }}
-        {{- if eq (include "role" .) "member" }}
+        {{- if eq (include "multicluster.role" .) "member" }}
         accessTokenMaxAge: 0s
         {{- else }}
         accessTokenMaxAge: {{ .Values.authentication.issuer.accessTokenMaxAge }}
@@ -35,8 +35,8 @@ data:
       bucket: {{ .Values.s3.bucket | default "uploads"  }}
       {{- end }}
     multicluster:
-      clusterRole: {{ include "role" . | quote }}
-      hostClusterName: {{ include "hostClusterName" . | include "validateHostClusterName" | quote }}
+      clusterRole: {{ include "multicluster.role" . | quote }}
+      hostClusterName: {{ include "multicluster.hostClusterName" . | include "validateHostClusterName" | quote }}
     terminal:
       kubectl:
         image: {{ template "kubectl.image" . }}
@@ -77,7 +77,7 @@ data:
       appSelector: {{ .Values.composedApp.appSelector | quote }}
     kubesphere:
       tls: {{ .Values.internalTLS }}
-    {{- if and (eq (include "role" .) "host") .Values.ha.enabled -}}
+    {{- if and (eq (include "multicluster.role" .) "host") .Values.ha.enabled -}}
     {{- if .Values.ha.cache }}
     cache: {{- toYaml .Values.ha.cache | nindent 6}}
     {{- else }}
