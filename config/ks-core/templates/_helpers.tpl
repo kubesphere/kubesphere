@@ -116,8 +116,8 @@ Create the name of the secret of sa token.
 {{- end }}
 {{- end }}
 
-{{- define "role" -}}
-{{- if eq .Values.role "" }}
+{{- define "multicluster.role" -}}
+{{- if eq $.Values.multicluster.role "" }}
 {{- with lookup "v1" "ConfigMap" (printf "%s" .Release.Namespace) "kubesphere-config" }}
 {{- with (fromYaml (index .data "kubesphere.yaml")) }}
 {{- if and .multicluster (.multicluster).clusterRole }}
@@ -127,36 +127,36 @@ Create the name of the secret of sa token.
 {{- .multicluster.clusterRole }}
 {{- end }}
 {{- else }}
-{{- $.Values.role | default "host" }}
+{{- $.Values.multicluster.role | default "host" }}
 {{- end }}
 {{- else }}
-{{- $.Values.role | default "host" }}
+{{- $.Values.multicluster.role | default "host" }}
 {{- end }}
 {{- else }}
-{{- $.Values.role | default "host" }}
+{{- $.Values.multicluster.role | default "host" }}
 {{- end }}
 {{- else }}
-{{- .Values.role }}
+{{- $.Values.multicluster.role }}
 {{- end }}
 {{- end }}
 
-{{- define "hostClusterName" -}}
-{{- if eq .Values.hostClusterName "" }}
+{{- define "multicluster.hostClusterName" -}}
+{{- if eq $.Values.multicluster.hostClusterName "" }}
 {{- with lookup "v1" "ConfigMap" (printf "%s" .Release.Namespace) "kubesphere-config" }}
 {{- with (fromYaml (index .data "kubesphere.yaml")) }}
 {{- if and .multicluster (.multicluster).hostClusterName }}
 {{- .multicluster.hostClusterName }}
 {{- else }}
-{{- $.Values.hostClusterName | default "host" }}
+{{- $.Values.multicluster.hostClusterName | default "host" }}
 {{- end }}
 {{- else }}
-{{- $.Values.hostClusterName | default "host" }}
+{{- $.Values.multicluster.hostClusterName | default "host" }}
 {{- end }}
 {{- else }}
-{{- $.Values.hostClusterName | default "host" }}
+{{- $.Values.multicluster.hostClusterName | default "host" }}
 {{- end }}
 {{- else }}
-{{- .Values.hostClusterName }}
+{{- $.Values.multicluster.hostClusterName }}
 {{- end }}
 {{- end }}
 

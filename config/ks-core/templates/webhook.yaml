@@ -14,7 +14,7 @@ metadata:
   name: ks-controller-manager-webhook-cert
 type: Opaque
 
-{{ if eq (include "role" .) "host" }}
+{{ if eq (include "multicluster.role" .) "host" }}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -173,7 +173,7 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: extensions.kubesphere.io
 webhooks:
-  {{- if eq (include "role" .) "host" }}
+  {{- if eq (include "multicluster.role" .) "host" }}
   - admissionReviewVersions:
       - v1
     clientConfig:
@@ -321,7 +321,7 @@ webhooks:
     sideEffects: None
     timeoutSeconds: 30
 
-{{- if eq (include "role" .) "host" }}
+{{- if eq (include "multicluster.role" .) "host" }}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
