@@ -820,13 +820,23 @@ func parserScanner(raw string, err func(*sc.Scanner, string)) *sc.Scanner {
 	return scanner
 }
 
+type markerParser interface {
+	ParseMarker(name string, anonymousName string, restFields string) error
+}
+
 // Parse uses the type information in this Definition to parse the given
 // raw marker in the form `+a:b:c=arg,d=arg` into an output object of the
 // type specified in the definition.
 func (d *Definition) Parse(rawMarker string) (interface{}, error) {
 	name, anonName, fields := splitMarker(rawMarker)
 
-	out := reflect.Indirect(reflect.New(d.Output))
+	outPointer := reflect.New(d.Output)
+	out := reflect.Indirect(outPointer)
+
+	if parser, ok := outPointer.Interface().(markerParser); ok {
+		err := parser.ParseMarker(name, anonName, fields)
+		return out.Interface(), err
+	}
 
 	// if we're a not a struct or have no arguments, treat the full `a:b:c` as the name,
 	// otherwise, treat `c` as a field name, and `a:b` as the marker name.

@@ -938,8 +938,8 @@ func Compare(a, b Type) int {
 
 // Contains returns true if a is a superset or equal to b.
 func Contains(a, b Type) bool {
-	if any, ok := unwrap(a).(Any); ok {
-		return any.Contains(b)
+	if x, ok := unwrap(a).(Any); ok {
+		return x.Contains(b)
 	}
 	return Compare(a, b) == 0
 }
@@ -994,8 +994,8 @@ func Select(a Type, x interface{}) Type {
 		if Compare(a.of, tpe) == 0 {
 			return a.of
 		}
-		if any, ok := a.of.(Any); ok {
-			if any.Contains(tpe) {
+		if x, ok := a.of.(Any); ok {
+			if x.Contains(tpe) {
 				return tpe
 			}
 		}

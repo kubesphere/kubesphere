@@ -17,8 +17,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/golang-jwt/jwt/v4"
-	"gopkg.in/square/go-jose.v2"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog/v2"
 

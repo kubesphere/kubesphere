@@ -24,6 +24,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/internal/merge"
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/util"
@@ -37,14 +38,20 @@ func New() storage.Store {
 // NewWithOpts returns an empty in-memory store, with extra options passed.
 func NewWithOpts(opts ...Opt) storage.Store {
 	s := &store{
-		data:             map[string]interface{}{},
-		triggers:         map[*handle]storage.TriggerConfig{},
-		policies:         map[string][]byte{},
-		roundTripOnWrite: true,
+		triggers:              map[*handle]storage.TriggerConfig{},
+		policies:              map[string][]byte{},
+		roundTripOnWrite:      true,
+		returnASTValuesOnRead: false,
 	}
 
 	for _, opt := range opts {
 		opt(s)
+	}
+
+	if s.returnASTValuesOnRead {
+		s.data = ast.NewObject()
+	} else {
+		s.data = map[string]interface{}{}
 	}
 
 	return s
@@ -55,7 +62,7 @@ func NewFromObject(data map[string]interface{}) storage.Store {
 	return NewFromObjectWithOpts(data)
 }
 
-// NewFromObject returns a new in-memory store from the supplied data object, with the
+// NewFromObjectWithOpts returns a new in-memory store from the supplied data object, with the
 // options passed.
 func NewFromObjectWithOpts(data map[string]interface{}, opts ...Opt) storage.Store {
 	db := NewWithOpts(opts...)
@@ -94,13 +101,18 @@ type store struct {
 	rmu      sync.RWMutex                      // reader-writer lock
 	wmu      sync.Mutex                        // writer lock
 	xid      uint64                            // last generated transaction id
-	data     map[string]interface{}            // raw data
+	data     interface{}                       // raw or AST data
 	policies map[string][]byte                 // raw policies
 	triggers map[*handle]storage.TriggerConfig // registered triggers
 
 	// roundTripOnWrite, if true, means that every call to Write round trips the
 	// data through JSON before adding the data to the store. Defaults to true.
 	roundTripOnWrite bool
+
+	// returnASTValuesOnRead, if true, means that the store will eagerly convert data to AST values,
+	// and return them on Read.
+	// FIXME: naming(?)
+	returnASTValuesOnRead bool
 }
 
 type handle struct {
@@ -295,7 +307,13 @@ func (db *store) Read(_ context.Context, txn storage.Transaction, path storage.P
 	if err != nil {
 		return nil, err
 	}
-	return underlying.Read(path)
+
+	v, err := underlying.Read(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
 func (db *store) Write(_ context.Context, txn storage.Transaction, op storage.PatchOp, path storage.Path, value interface{}) error {
@@ -327,9 +345,43 @@ func (h *handle) Unregister(_ context.Context, txn storage.Transaction) {
 }
 
 func (db *store) runOnCommitTriggers(ctx context.Context, txn storage.Transaction, event storage.TriggerEvent) {
+	if db.returnASTValuesOnRead && len(db.triggers) > 0 {
+		// FIXME: Not very performant for large data.
+
+		dataEvents := make([]storage.DataEvent, 0, len(event.Data))
+
+		for _, dataEvent := range event.Data {
+			if astData, ok := dataEvent.Data.(ast.Value); ok {
+				jsn, err := ast.ValueToInterface(astData, illegalResolver{})
+				if err != nil {
+					panic(err)
+				}
+				dataEvents = append(dataEvents, storage.DataEvent{
+					Path:    dataEvent.Path,
+					Data:    jsn,
+					Removed: dataEvent.Removed,
+				})
+			} else {
+				dataEvents = append(dataEvents, dataEvent)
+			}
+		}
+
+		event = storage.TriggerEvent{
+			Policy:  event.Policy,
+			Data:    dataEvents,
+			Context: event.Context,
+		}
+	}
+
 	for _, t := range db.triggers {
 		t.OnCommit(ctx, txn, event)
 	}
+}
+
+type illegalResolver struct{}
+
+func (illegalResolver) Resolve(ref ast.Ref) (interface{}, error) {
+	return nil, fmt.Errorf("illegal value: %v", ref)
 }
 
 func (db *store) underlying(txn storage.Transaction) (*transaction, error) {

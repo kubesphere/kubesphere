@@ -10,26 +10,26 @@ import (
 	"github.com/evanphx/json-patch/v5/internal/json"
 )
 
-func merge(cur, patch *lazyNode, mergeMerge bool) *lazyNode {
-	curDoc, err := cur.intoDoc()
+func merge(cur, patch *lazyNode, mergeMerge bool, options *ApplyOptions) *lazyNode {
+	curDoc, err := cur.intoDoc(options)
 
 	if err != nil {
-		pruneNulls(patch)
+		pruneNulls(patch, options)
 		return patch
 	}
 
-	patchDoc, err := patch.intoDoc()
+	patchDoc, err := patch.intoDoc(options)
 
 	if err != nil {
 		return patch
 	}
 
-	mergeDocs(curDoc, patchDoc, mergeMerge)
+	mergeDocs(curDoc, patchDoc, mergeMerge, options)
 
 	return cur
 }
 
-func mergeDocs(doc, patch *partialDoc, mergeMerge bool) {
+func mergeDocs(doc, patch *partialDoc, mergeMerge bool, options *ApplyOptions) {
 	for k, v := range patch.obj {
 		if v == nil {
 			if mergeMerge {
@@ -45,55 +45,55 @@ func mergeDocs(doc, patch *partialDoc, mergeMerge bool) {
 				}
 				doc.obj[k] = nil
 			} else {
-				_ = doc.remove(k, &ApplyOptions{})
+				_ = doc.remove(k, options)
 			}
 		} else {
 			cur, ok := doc.obj[k]
 
 			if !ok || cur == nil {
 				if !mergeMerge {
-					pruneNulls(v)
+					pruneNulls(v, options)
 				}
-				_ = doc.set(k, v, &ApplyOptions{})
+				_ = doc.set(k, v, options)
 			} else {
-				_ = doc.set(k, merge(cur, v, mergeMerge), &ApplyOptions{})
+				_ = doc.set(k, merge(cur, v, mergeMerge, options), options)
 			}
 		}
 	}
 }
 
-func pruneNulls(n *lazyNode) {
-	sub, err := n.intoDoc()
+func pruneNulls(n *lazyNode, options *ApplyOptions) {
+	sub, err := n.intoDoc(options)
 
 	if err == nil {
-		pruneDocNulls(sub)
+		pruneDocNulls(sub, options)
 	} else {
 		ary, err := n.intoAry()
 
 		if err == nil {
-			pruneAryNulls(ary)
+			pruneAryNulls(ary, options)
 		}
 	}
 }
 
-func pruneDocNulls(doc *partialDoc) *partialDoc {
+func pruneDocNulls(doc *partialDoc, options *ApplyOptions) *partialDoc {
 	for k, v := range doc.obj {
 		if v == nil {
 			_ = doc.remove(k, &ApplyOptions{})
 		} else {
-			pruneNulls(v)
+			pruneNulls(v, options)
 		}
 	}
 
 	return doc
 }
 
-func pruneAryNulls(ary *partialArray) *partialArray {
+func pruneAryNulls(ary *partialArray, options *ApplyOptions) *partialArray {
 	newAry := []*lazyNode{}
 
 	for _, v := range ary.nodes {
 		if v != nil {
-			pruneNulls(v)
+			pruneNulls(v, options)
 		}
 		newAry = append(newAry, v)
 	}
@@ -128,11 +128,17 @@ func doMergePatch(docData, patchData []byte, mergeMerge bool) ([]byte, error) {
 		return nil, errBadJSONPatch
 	}
 
-	doc := &partialDoc{}
+	options := NewApplyOptions()
+
+	doc := &partialDoc{
+		opts: options,
+	}
 
 	docErr := doc.UnmarshalJSON(docData)
 
-	patch := &partialDoc{}
+	patch := &partialDoc{
+		opts: options,
+	}
 
 	patchErr := patch.UnmarshalJSON(patchData)
 
@@ -158,7 +164,7 @@ func doMergePatch(docData, patchData []byte, mergeMerge bool) ([]byte, error) {
 			if mergeMerge {
 				doc = patch
 			} else {
-				doc = pruneDocNulls(patch)
+				doc = pruneDocNulls(patch, options)
 			}
 		} else {
 			patchAry := &partialArray{}
@@ -172,7 +178,7 @@ func doMergePatch(docData, patchData []byte, mergeMerge bool) ([]byte, error) {
 				return nil, errBadJSONPatch
 			}
 
-			pruneAryNulls(patchAry)
+			pruneAryNulls(patchAry, options)
 
 			out, patchErr := json.Marshal(patchAry.nodes)
 
@@ -183,7 +189,7 @@ func doMergePatch(docData, patchData []byte, mergeMerge bool) ([]byte, error) {
 			return out, nil
 		}
 	} else {
-		mergeDocs(doc, patch, mergeMerge)
+		mergeDocs(doc, patch, mergeMerge, options)
 	}
 
 	return json.Marshal(doc)

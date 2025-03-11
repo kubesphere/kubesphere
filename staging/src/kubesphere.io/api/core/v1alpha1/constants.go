@@ -40,3 +40,7 @@ const (
 	ExecutorUpgradeHookImageAnnotation   = "executor-hook-image.kubesphere.io/upgrade"
 	ExecutorUninstallHookImageAnnotation = "executor-hook-image.kubesphere.io/uninstall"
 )
+
+const (
+	DefaultRepositoryDepth = 3
+)

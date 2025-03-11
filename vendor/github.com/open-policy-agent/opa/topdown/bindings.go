@@ -43,7 +43,7 @@ func (u *bindings) Iter(caller *bindings, iter func(*ast.Term, *ast.Term) error)
 
 	var err error
 
-	u.values.Iter(func(k *ast.Term, v value) bool {
+	u.values.Iter(func(k *ast.Term, _ value) bool {
 		if err != nil {
 			return true
 		}

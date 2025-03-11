@@ -269,13 +269,15 @@ func (r *Reconciler) reconcileUserStatus(ctx context.Context, user *iamv1beta1.U
 	}
 
 	// becomes active after password encrypted
-	if user.Status.State == "" && isEncrypted(user.Spec.EncryptedPassword) {
-		user.Status = iamv1beta1.UserStatus{
-			State:              iamv1beta1.UserActive,
-			LastTransitionTime: &metav1.Time{Time: time.Now()},
-		}
-		if err := r.Update(ctx, user, &client.UpdateOptions{}); err != nil {
-			return err
+	if user.Status.State == "" {
+		if user.Spec.EncryptedPassword == "" || isEncrypted(user.Spec.EncryptedPassword) {
+			user.Status = iamv1beta1.UserStatus{
+				State:              iamv1beta1.UserActive,
+				LastTransitionTime: &metav1.Time{Time: time.Now()},
+			}
+			if err := r.Update(ctx, user, &client.UpdateOptions{}); err != nil {
+				return err
+			}
 		}
 	}
 

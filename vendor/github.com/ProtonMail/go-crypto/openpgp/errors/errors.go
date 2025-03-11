@@ -9,12 +9,52 @@ import (
 	"strconv"
 )
 
+var (
+	// ErrDecryptSessionKeyParsing is a generic error message for parsing errors in decrypted data
+	// to reduce the risk of oracle attacks.
+	ErrDecryptSessionKeyParsing = DecryptWithSessionKeyError("parsing error")
+	// ErrAEADTagVerification is returned if one of the tag verifications in SEIPDv2 fails
+	ErrAEADTagVerification error = DecryptWithSessionKeyError("AEAD tag verification failed")
+	// ErrMDCHashMismatch
+	ErrMDCHashMismatch error = SignatureError("MDC hash mismatch")
+	// ErrMDCMissing
+	ErrMDCMissing error = SignatureError("MDC packet not found")
+)
+
 // A StructuralError is returned when OpenPGP data is found to be syntactically
 // invalid.
 type StructuralError string
 
 func (s StructuralError) Error() string {
 	return "openpgp: invalid data: " + string(s)
+}
+
+// A DecryptWithSessionKeyError is returned when a failure occurs when reading from symmetrically decrypted data or
+// an authentication tag verification fails.
+// Such an error indicates that the supplied session key is likely wrong or the data got corrupted.
+type DecryptWithSessionKeyError string
+
+func (s DecryptWithSessionKeyError) Error() string {
+	return "openpgp: decryption with session key failed: " + string(s)
+}
+
+// HandleSensitiveParsingError handles parsing errors when reading data from potentially decrypted data.
+// The function makes parsing errors generic to reduce the risk of oracle attacks in SEIPDv1.
+func HandleSensitiveParsingError(err error, decrypted bool) error {
+	if !decrypted {
+		// Data was not encrypted so we return the inner error.
+		return err
+	}
+	// The data is read from a stream that decrypts using a session key;
+	// therefore, we need to handle parsing errors appropriately.
+	// This is essential to mitigate the risk of oracle attacks.
+	if decError, ok := err.(*DecryptWithSessionKeyError); ok {
+		return decError
+	}
+	if decError, ok := err.(DecryptWithSessionKeyError); ok {
+		return decError
+	}
+	return ErrDecryptSessionKeyParsing
 }
 
 // UnsupportedError indicates that, although the OpenPGP data is valid, it
@@ -41,9 +81,6 @@ func (b SignatureError) Error() string {
 	return "openpgp: invalid signature: " + string(b)
 }
 
-var ErrMDCHashMismatch error = SignatureError("MDC hash mismatch")
-var ErrMDCMissing error = SignatureError("MDC packet not found")
-
 type signatureExpiredError int
 
 func (se signatureExpiredError) Error() string {
@@ -56,6 +93,14 @@ type keyExpiredError int
 
 func (ke keyExpiredError) Error() string {
 	return "openpgp: key expired"
+}
+
+var ErrSignatureOlderThanKey error = signatureOlderThanKeyError(0)
+
+type signatureOlderThanKeyError int
+
+func (ske signatureOlderThanKeyError) Error() string {
+	return "openpgp: signature is older than the key"
 }
 
 var ErrKeyExpired error = keyExpiredError(0)
@@ -92,10 +137,22 @@ func (keyRevokedError) Error() string {
 
 var ErrKeyRevoked error = keyRevokedError(0)
 
+type WeakAlgorithmError string
+
+func (e WeakAlgorithmError) Error() string {
+	return "openpgp: weak algorithms are rejected: " + string(e)
+}
+
 type UnknownPacketTypeError uint8
 
 func (upte UnknownPacketTypeError) Error() string {
 	return "openpgp: unknown packet type: " + strconv.Itoa(int(upte))
+}
+
+type CriticalUnknownPacketTypeError uint8
+
+func (upte CriticalUnknownPacketTypeError) Error() string {
+	return "openpgp: unknown critical packet type: " + strconv.Itoa(int(upte))
 }
 
 // AEADError indicates that there is a problem when initializing or using a
@@ -113,4 +170,11 @@ type ErrDummyPrivateKey string
 
 func (dke ErrDummyPrivateKey) Error() string {
 	return "openpgp: s2k GNU dummy key: " + string(dke)
+}
+
+// ErrMalformedMessage results when the packet sequence is incorrect
+type ErrMalformedMessage string
+
+func (dke ErrMalformedMessage) Error() string {
+	return "openpgp: malformed message " + string(dke)
 }

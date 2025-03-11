@@ -29,7 +29,7 @@ import (
 	systemd "github.com/coreos/go-systemd/v22/daemon"
 
 	"golang.org/x/time/rate"
-	apidiscoveryv2beta1 "k8s.io/api/apidiscovery/v2beta1"
+	apidiscoveryv2 "k8s.io/api/apidiscovery/v2"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,8 +38,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/managedfields"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	utilwaitgroup "k8s.io/apimachinery/pkg/util/waitgroup"
-	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/audit"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -51,8 +51,9 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/apiserver/pkg/server/routes"
 	"k8s.io/apiserver/pkg/storageversion"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	utilversion "k8s.io/apiserver/pkg/util/version"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/component-base/featuregate"
 	"k8s.io/klog/v2"
 	openapibuilder3 "k8s.io/kube-openapi/pkg/builder3"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
@@ -60,7 +61,6 @@ import (
 	"k8s.io/kube-openapi/pkg/handler3"
 	openapiutil "k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kube-openapi/pkg/validation/spec"
-	"k8s.io/utils/clock"
 )
 
 // Info about an API group.
@@ -191,19 +191,11 @@ type GenericAPIServer struct {
 	preShutdownHooksCalled bool
 
 	// healthz checks
-	healthzLock            sync.Mutex
-	healthzChecks          []healthz.HealthChecker
-	healthzChecksInstalled bool
-	// livez checks
-	livezLock            sync.Mutex
-	livezChecks          []healthz.HealthChecker
-	livezChecksInstalled bool
-	// readyz checks
-	readyzLock            sync.Mutex
-	readyzChecks          []healthz.HealthChecker
-	readyzChecksInstalled bool
-	livezGracePeriod      time.Duration
-	livezClock            clock.Clock
+	healthzRegistry healthCheckRegistry
+	readyzRegistry  healthCheckRegistry
+	livezRegistry   healthCheckRegistry
+
+	livezGracePeriod time.Duration
 
 	// auditing. The backend is started before the server starts listening.
 	AuditBackend audit.Backend
@@ -241,11 +233,18 @@ type GenericAPIServer struct {
 	// APIServerID is the ID of this API server
 	APIServerID string
 
+	// StorageReadinessHook implements post-start-hook functionality for checking readiness
+	// of underlying storage for registered resources.
+	StorageReadinessHook *StorageReadinessHook
+
 	// StorageVersionManager holds the storage versions of the API resources installed by this server.
 	StorageVersionManager storageversion.Manager
 
-	// Version will enable the /version endpoint if non-nil
-	Version *version.Info
+	// EffectiveVersion determines which apis and features are available
+	// based on when the api/feature lifecyle.
+	EffectiveVersion utilversion.EffectiveVersion
+	// FeatureGate is a way to plumb feature gate through if you have them.
+	FeatureGate featuregate.FeatureGate
 
 	// lifecycleSignals provides access to the various signals that happen during the life cycle of the apiserver.
 	lifecycleSignals lifecycleSignals
@@ -330,7 +329,7 @@ func (s *GenericAPIServer) PreShutdownHooks() map[string]preShutdownHookEntry {
 	return s.preShutdownHooks
 }
 func (s *GenericAPIServer) HealthzChecks() []healthz.HealthChecker {
-	return s.healthzChecks
+	return s.healthzRegistry.checks
 }
 func (s *GenericAPIServer) ListedPaths() []string {
 	return s.listedPathProvider.ListedPaths()
@@ -451,9 +450,19 @@ func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 
 // Run spawns the secure http server. It only returns if stopCh is closed
 // or the secure port cannot be listened on initially.
-// This is the diagram of what channels/signals are dependent on each other:
 //
-// |                                  stopCh
+// Deprecated: use RunWithContext instead. Run will not get removed to avoid
+// breaking consumers, but should not be used in new code.
+func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
+	ctx := wait.ContextForChannel(stopCh)
+	return s.RunWithContext(ctx)
+}
+
+// RunWithContext spawns the secure http server. It only returns if ctx is canceled
+// or the secure port cannot be listened on initially.
+// This is the diagram of what contexts/channels/signals are dependent on each other:
+//
+// |                                   ctx
 // |                                    |
 // |           ---------------------------------------------------------
 // |           |                                                       |
@@ -486,12 +495,13 @@ func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 // |           |                                         |                                        |
 // |           |-------------------|---------------------|----------------------------------------|
 // |                               |                     |
-// |                       stopHttpServerCh     (AuditBackend::Shutdown())
+// |                       stopHttpServerCtx     (AuditBackend::Shutdown())
 // |                               |
 // |                       listenerStoppedCh
 // |                               |
 // |      HTTPServerStoppedListening (httpServerStoppedListeningCh)
-func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
+func (s preparedGenericAPIServer) RunWithContext(ctx context.Context) error {
+	stopCh := ctx.Done()
 	delayedStopCh := s.lifecycleSignals.AfterShutdownDelayDuration
 	shutdownInitiatedCh := s.lifecycleSignals.ShutdownInitiated
 
@@ -553,9 +563,11 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 
 	notAcceptingNewRequestCh := s.lifecycleSignals.NotAcceptingNewRequest
 	drainedCh := s.lifecycleSignals.InFlightRequestsDrained
-	stopHttpServerCh := make(chan struct{})
+	// Canceling the parent context does not immediately cancel the HTTP server.
+	// We only inherit context values here and deal with cancellation ourselves.
+	stopHTTPServerCtx, stopHTTPServer := context.WithCancelCause(context.WithoutCancel(ctx))
 	go func() {
-		defer close(stopHttpServerCh)
+		defer stopHTTPServer(errors.New("time to stop HTTP server"))
 
 		timeToStopHttpServerCh := notAcceptingNewRequestCh.Signaled()
 		if s.ShutdownSendRetryAfter {
@@ -574,7 +586,7 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 		}
 	}
 
-	stoppedCh, listenerStoppedCh, err := s.NonBlockingRun(stopHttpServerCh, shutdownTimeout)
+	stoppedCh, listenerStoppedCh, err := s.NonBlockingRunWithContext(stopHTTPServerCtx, shutdownTimeout)
 	if err != nil {
 		return err
 	}
@@ -703,7 +715,18 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 // NonBlockingRun spawns the secure http server. An error is
 // returned if the secure port cannot be listened on.
 // The returned channel is closed when the (asynchronous) termination is finished.
+//
+// Deprecated: use RunWithContext instead. Run will not get removed to avoid
+// breaking consumers, but should not be used in new code.
 func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}, shutdownTimeout time.Duration) (<-chan struct{}, <-chan struct{}, error) {
+	ctx := wait.ContextForChannel(stopCh)
+	return s.NonBlockingRunWithContext(ctx, shutdownTimeout)
+}
+
+// NonBlockingRunWithContext spawns the secure http server. An error is
+// returned if the secure port cannot be listened on.
+// The returned channel is closed when the (asynchronous) termination is finished.
+func (s preparedGenericAPIServer) NonBlockingRunWithContext(ctx context.Context, shutdownTimeout time.Duration) (<-chan struct{}, <-chan struct{}, error) {
 	// Use an internal stop channel to allow cleanup of the listeners on error.
 	internalStopCh := make(chan struct{})
 	var stoppedCh <-chan struct{}
@@ -721,11 +744,11 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}, shutdow
 	// responsibility of the caller to close the provided channel to
 	// ensure cleanup.
 	go func() {
-		<-stopCh
+		<-ctx.Done()
 		close(internalStopCh)
 	}()
 
-	s.RunPostStartHooks(stopCh)
+	s.RunPostStartHooks(ctx)
 
 	if _, err := systemd.SdNotify(true, "READY=1\n"); err != nil {
 		klog.Errorf("Unable to send systemd daemon successful start message: %v\n", err)
@@ -760,13 +783,13 @@ func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *A
 		}
 		resourceInfos = append(resourceInfos, r...)
 
-		if utilfeature.DefaultFeatureGate.Enabled(features.AggregatedDiscoveryEndpoint) {
+		if s.FeatureGate.Enabled(features.AggregatedDiscoveryEndpoint) {
 			// Aggregated discovery only aggregates resources under /apis
 			if apiPrefix == APIGroupPrefix {
 				s.AggregatedDiscoveryGroupManager.AddGroupVersion(
 					groupVersion.Group,
-					apidiscoveryv2beta1.APIVersionDiscovery{
-						Freshness: apidiscoveryv2beta1.DiscoveryFreshnessCurrent,
+					apidiscoveryv2.APIVersionDiscovery{
+						Freshness: apidiscoveryv2.DiscoveryFreshnessCurrent,
 						Version:   groupVersion.Version,
 						Resources: discoveryAPIResources,
 					},
@@ -775,8 +798,8 @@ func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *A
 				// There is only one group version for legacy resources, priority can be defaulted to 0.
 				s.AggregatedLegacyDiscoveryGroupManager.AddGroupVersion(
 					groupVersion.Group,
-					apidiscoveryv2beta1.APIVersionDiscovery{
-						Freshness: apidiscoveryv2beta1.DiscoveryFreshnessCurrent,
+					apidiscoveryv2.APIVersionDiscovery{
+						Freshness: apidiscoveryv2.DiscoveryFreshnessCurrent,
 						Version:   groupVersion.Version,
 						Resources: discoveryAPIResources,
 					},
@@ -788,8 +811,8 @@ func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *A
 
 	s.RegisterDestroyFunc(apiGroupInfo.destroyStorage)
 
-	if utilfeature.DefaultFeatureGate.Enabled(features.StorageVersionAPI) &&
-		utilfeature.DefaultFeatureGate.Enabled(features.APIServerIdentity) {
+	if s.FeatureGate.Enabled(features.StorageVersionAPI) &&
+		s.FeatureGate.Enabled(features.APIServerIdentity) {
 		// API installation happens before we start listening on the handlers,
 		// therefore it is safe to register ResourceInfos here. The handler will block
 		// write requests until the storage versions of the targeting resources are updated.
@@ -819,12 +842,13 @@ func (s *GenericAPIServer) InstallLegacyAPIGroup(apiPrefix string, apiGroupInfo 
 	// Install the version handler.
 	// Add a handler at /<apiPrefix> to enumerate the supported api versions.
 	legacyRootAPIHandler := discovery.NewLegacyRootAPIHandler(s.discoveryAddresses, s.Serializer, apiPrefix)
-	if utilfeature.DefaultFeatureGate.Enabled(features.AggregatedDiscoveryEndpoint) {
+	if s.FeatureGate.Enabled(features.AggregatedDiscoveryEndpoint) {
 		wrapped := discoveryendpoint.WrapAggregatedDiscoveryToHandler(legacyRootAPIHandler, s.AggregatedLegacyDiscoveryGroupManager)
 		s.Handler.GoRestfulContainer.Add(wrapped.GenerateWebService("/api", metav1.APIVersions{}))
 	} else {
 		s.Handler.GoRestfulContainer.Add(legacyRootAPIHandler.WebService())
 	}
+	s.registerStorageReadinessCheck("", apiGroupInfo)
 
 	return nil
 }
@@ -883,8 +907,26 @@ func (s *GenericAPIServer) InstallAPIGroups(apiGroupInfos ...*APIGroupInfo) erro
 
 		s.DiscoveryGroupManager.AddGroup(apiGroup)
 		s.Handler.GoRestfulContainer.Add(discovery.NewAPIGroupHandler(s.Serializer, apiGroup).WebService())
+		s.registerStorageReadinessCheck(apiGroupInfo.PrioritizedVersions[0].Group, apiGroupInfo)
 	}
 	return nil
+}
+
+// registerStorageReadinessCheck registers the readiness checks for all underlying storages
+// for a given APIGroup.
+func (s *GenericAPIServer) registerStorageReadinessCheck(groupName string, apiGroupInfo *APIGroupInfo) {
+	for version, storageMap := range apiGroupInfo.VersionedResourcesStorageMap {
+		for resource, storage := range storageMap {
+			if withReadiness, ok := storage.(rest.StorageWithReadiness); ok {
+				gvr := metav1.GroupVersionResource{
+					Group:    groupName,
+					Version:  version,
+					Resource: resource,
+				}
+				s.StorageReadinessHook.RegisterStorage(gvr, withReadiness)
+			}
+		}
+	}
 }
 
 // InstallAPIGroup exposes the given api group in the API.

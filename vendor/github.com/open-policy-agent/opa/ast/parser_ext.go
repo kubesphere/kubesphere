@@ -103,6 +103,14 @@ func MustParseStatement(input string) Statement {
 	return parsed
 }
 
+func MustParseStatementWithOpts(input string, popts ParserOptions) Statement {
+	parsed, err := ParseStatementWithOpts(input, popts)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
 // MustParseRef returns a parsed reference.
 // If an error occurs during parsing, panic.
 func MustParseRef(input string) Ref {
@@ -117,6 +125,16 @@ func MustParseRef(input string) Ref {
 // If an error occurs during parsing, panic.
 func MustParseRule(input string) *Rule {
 	parsed, err := ParseRule(input)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
+// MustParseRuleWithOpts returns a parsed rule.
+// If an error occurs during parsing, panic.
+func MustParseRuleWithOpts(input string, opts ParserOptions) *Rule {
+	parsed, err := ParseRuleWithOpts(input, opts)
 	if err != nil {
 		panic(err)
 	}
@@ -269,11 +287,12 @@ func ParseCompleteDocRuleFromEqExpr(module *Module, lhs, rhs *Term) (*Rule, erro
 	setJSONOptions(body, &rhs.jsonOptions)
 
 	return &Rule{
-		Location:    lhs.Location,
-		Head:        head,
-		Body:        body,
-		Module:      module,
-		jsonOptions: lhs.jsonOptions,
+		Location:      lhs.Location,
+		Head:          head,
+		Body:          body,
+		Module:        module,
+		jsonOptions:   lhs.jsonOptions,
+		generatedBody: true,
 	}, nil
 }
 
@@ -608,6 +627,17 @@ func ParseStatement(input string) (Statement, error) {
 	return stmts[0], nil
 }
 
+func ParseStatementWithOpts(input string, popts ParserOptions) (Statement, error) {
+	stmts, _, err := ParseStatementsWithOpts("", input, popts)
+	if err != nil {
+		return nil, err
+	}
+	if len(stmts) != 1 {
+		return nil, fmt.Errorf("expected exactly one statement")
+	}
+	return stmts[0], nil
+}
+
 // ParseStatements is deprecated. Use ParseStatementWithOpts instead.
 func ParseStatements(filename, input string) ([]Statement, []*Comment, error) {
 	return ParseStatementsWithOpts(filename, input, ParserOptions{})
@@ -712,6 +742,8 @@ func parseModule(filename string, stmts []Statement, comments []*Comment, regoCo
 	if len(errs) > 0 {
 		return nil, errs
 	}
+
+	attachRuleAnnotations(mod)
 
 	return mod, nil
 }

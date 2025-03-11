@@ -62,7 +62,7 @@ type PodInjector struct {
 	client.Client
 
 	Log     logr.Logger
-	Decoder *admission.Decoder
+	Decoder admission.Decoder
 	tls     bool
 }
 

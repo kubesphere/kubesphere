@@ -2,6 +2,7 @@
 package ecc
 
 import (
+	"bytes"
 	"crypto/subtle"
 	"io"
 
@@ -84,7 +85,14 @@ func (c *ed448) GenerateEdDSA(rand io.Reader) (pub, priv []byte, err error) {
 }
 
 func getEd448Sk(publicKey, privateKey []byte) ed448lib.PrivateKey {
-	return append(privateKey, publicKey...)
+	privateKeyCap, privateKeyLen, publicKeyLen := cap(privateKey), len(privateKey), len(publicKey)
+
+	if privateKeyCap >= privateKeyLen+publicKeyLen &&
+		bytes.Equal(privateKey[privateKeyLen:privateKeyLen+publicKeyLen], publicKey) {
+		return privateKey[:privateKeyLen+publicKeyLen]
+	}
+
+	return append(privateKey[:privateKeyLen:privateKeyLen], publicKey...)
 }
 
 func (c *ed448) Sign(publicKey, privateKey, message []byte) (sig []byte, err error) {

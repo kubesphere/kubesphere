@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -68,9 +67,8 @@ func init() {
 		host = shortHostname(h)
 	}
 
-	current, err := user.Current()
-	if err == nil {
-		userName = current.Username
+	if u := lookupUser(); u != "" {
+		userName = u
 	}
 	// Sanitize userName since it is used to construct file paths.
 	userName = strings.Map(func(r rune) rune {
@@ -118,30 +116,51 @@ var onceLogDirs sync.Once
 // contains tag ("INFO", "FATAL", etc.) and t.  If the file is created
 // successfully, create also attempts to update the symlink for that tag, ignoring
 // errors.
-func create(tag string, t time.Time) (f *os.File, filename string, err error) {
+func create(tag string, t time.Time, dir string) (f *os.File, filename string, err error) {
+	if dir != "" {
+		f, name, err := createInDir(dir, tag, t)
+		if err == nil {
+			return f, name, err
+		}
+		return nil, "", fmt.Errorf("log: cannot create log: %v", err)
+	}
+
 	onceLogDirs.Do(createLogDirs)
 	if len(logDirs) == 0 {
 		return nil, "", errors.New("log: no log dirs")
 	}
-	name, link := logName(tag, t)
 	var lastErr error
 	for _, dir := range logDirs {
-		fname := filepath.Join(dir, name)
-		f, err := os.Create(fname)
+		f, name, err := createInDir(dir, tag, t)
 		if err == nil {
-			symlink := filepath.Join(dir, link)
-			os.Remove(symlink)        // ignore err
-			os.Symlink(name, symlink) // ignore err
-			if *logLink != "" {
-				lsymlink := filepath.Join(*logLink, link)
-				os.Remove(lsymlink)         // ignore err
-				os.Symlink(fname, lsymlink) // ignore err
-			}
-			return f, fname, nil
+			return f, name, err
 		}
 		lastErr = err
 	}
 	return nil, "", fmt.Errorf("log: cannot create log: %v", lastErr)
+}
+
+func createInDir(dir, tag string, t time.Time) (f *os.File, name string, err error) {
+	name, link := logName(tag, t)
+	fname := filepath.Join(dir, name)
+	// O_EXCL is important here, as it prevents a vulnerability. The general idea is that logs often
+	// live in an insecure directory (like /tmp), so an unprivileged attacker could create fname in
+	// advance as a symlink to a file the logging process can access, but the attacker cannot. O_EXCL
+	// fails the open if it already exists, thus prevent our this code from opening the existing file
+	// the attacker points us to.
+	f, err = os.OpenFile(fname, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	if err == nil {
+		symlink := filepath.Join(dir, link)
+		os.Remove(symlink)        // ignore err
+		os.Symlink(name, symlink) // ignore err
+		if *logLink != "" {
+			lsymlink := filepath.Join(*logLink, link)
+			os.Remove(lsymlink)         // ignore err
+			os.Symlink(fname, lsymlink) // ignore err
+		}
+		return f, fname, nil
+	}
+	return nil, "", err
 }
 
 // flushSyncWriter is the interface satisfied by logging destinations.
@@ -160,7 +179,10 @@ var sinks struct {
 func init() {
 	// Register stderr first: that way if we crash during file-writing at least
 	// the log will have gone somewhere.
-	logsink.TextSinks = append(logsink.TextSinks, &sinks.stderr, &sinks.file)
+	if shouldRegisterStderrSink() {
+		logsink.TextSinks = append(logsink.TextSinks, &sinks.stderr)
+	}
+	logsink.TextSinks = append(logsink.TextSinks, &sinks.file)
 
 	sinks.file.flushChan = make(chan logsink.Severity, 1)
 	go sinks.file.flushDaemon()
@@ -247,6 +269,7 @@ type syncBuffer struct {
 	names  []string
 	sev    logsink.Severity
 	nbytes uint64 // The number of bytes written to this file
+	madeAt time.Time
 }
 
 func (sb *syncBuffer) Sync() error {
@@ -254,9 +277,14 @@ func (sb *syncBuffer) Sync() error {
 }
 
 func (sb *syncBuffer) Write(p []byte) (n int, err error) {
+	// Rotate the file if it is too large, but ensure we only do so,
+	// if rotate doesn't create a conflicting filename.
 	if sb.nbytes+uint64(len(p)) >= MaxSize {
-		if err := sb.rotateFile(time.Now()); err != nil {
-			return 0, err
+		now := timeNow()
+		if now.After(sb.madeAt.Add(1*time.Second)) || now.Second() != sb.madeAt.Second() {
+			if err := sb.rotateFile(now); err != nil {
+				return 0, err
+			}
 		}
 	}
 	n, err = sb.Writer.Write(p)
@@ -274,7 +302,8 @@ const footer = "\nCONTINUED IN NEXT FILE\n"
 func (sb *syncBuffer) rotateFile(now time.Time) error {
 	var err error
 	pn := "<none>"
-	file, name, err := create(sb.sev.String(), now)
+	file, name, err := create(sb.sev.String(), now, "")
+	sb.madeAt = now
 
 	if sb.file != nil {
 		// The current log file becomes the previous log at the end of
@@ -369,9 +398,6 @@ func (s *fileSink) Flush() error {
 
 // flush flushes all logs of severity threshold or greater.
 func (s *fileSink) flush(threshold logsink.Severity) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var firstErr error
 	updateErr := func(err error) {
 		if err != nil && firstErr == nil {
@@ -379,13 +405,23 @@ func (s *fileSink) flush(threshold logsink.Severity) error {
 		}
 	}
 
-	// Flush from fatal down, in case there's trouble flushing.
-	for sev := logsink.Fatal; sev >= threshold; sev-- {
-		file := s.file[sev]
-		if file != nil {
-			updateErr(file.Flush())
-			updateErr(file.Sync())
+	// Remember where we flushed, so we can call sync without holding
+	// the lock.
+	var files []flushSyncWriter
+	func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		// Flush from fatal down, in case there's trouble flushing.
+		for sev := logsink.Fatal; sev >= threshold; sev-- {
+			if file := s.file[sev]; file != nil {
+				updateErr(file.Flush())
+				files = append(files, file)
+			}
 		}
+	}()
+
+	for _, file := range files {
+		updateErr(file.Sync())
 	}
 
 	return firstErr

@@ -18,13 +18,14 @@ type Result struct {
 
 // EvalOpts define options for performing an evaluation.
 type EvalOpts struct {
-	Input                  *interface{}
-	Metrics                metrics.Metrics
-	Entrypoint             int32
-	Time                   time.Time
-	Seed                   io.Reader
-	InterQueryBuiltinCache cache.InterQueryCache
-	NDBuiltinCache         builtins.NDBCache
-	PrintHook              print.Hook
-	Capabilities           *ast.Capabilities
+	Input                       *interface{}
+	Metrics                     metrics.Metrics
+	Entrypoint                  int32
+	Time                        time.Time
+	Seed                        io.Reader
+	InterQueryBuiltinCache      cache.InterQueryCache
+	InterQueryBuiltinValueCache cache.InterQueryValueCache
+	NDBuiltinCache              builtins.NDBCache
+	PrintHook                   print.Hook
+	Capabilities                *ast.Capabilities
 }

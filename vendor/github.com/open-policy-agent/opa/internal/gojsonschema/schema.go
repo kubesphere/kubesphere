@@ -788,7 +788,7 @@ func (d *Schema) parseSchema(documentNode interface{}, currentSchema *SubSchema)
 	return nil
 }
 
-func (d *Schema) parseReference(documentNode interface{}, currentSchema *SubSchema) error {
+func (d *Schema) parseReference(_ interface{}, currentSchema *SubSchema) error {
 	var (
 		refdDocumentNode interface{}
 		dsp              *schemaPoolDocument

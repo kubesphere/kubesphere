@@ -8,6 +8,7 @@ package ptr
 import (
 	"strconv"
 
+	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/storage/internal/errors"
 )
@@ -36,7 +37,41 @@ func Ptr(data interface{}, path storage.Path) (interface{}, error) {
 	return node, nil
 }
 
+func ValuePtr(data ast.Value, path storage.Path) (ast.Value, error) {
+	node := data
+	for i := range path {
+		key := path[i]
+		switch curr := node.(type) {
+		case ast.Object:
+			keyTerm := ast.StringTerm(key)
+			val := curr.Get(keyTerm)
+			if val == nil {
+				return nil, errors.NewNotFoundError(path)
+			}
+			node = val.Value
+		case *ast.Array:
+			pos, err := ValidateASTArrayIndex(curr, key, path)
+			if err != nil {
+				return nil, err
+			}
+			node = curr.Elem(pos).Value
+		default:
+			return nil, errors.NewNotFoundError(path)
+		}
+	}
+
+	return node, nil
+}
+
 func ValidateArrayIndex(arr []interface{}, s string, path storage.Path) (int, error) {
+	idx, ok := isInt(s)
+	if !ok {
+		return 0, errors.NewNotFoundErrorWithHint(path, errors.ArrayIndexTypeMsg)
+	}
+	return inRange(idx, arr, path)
+}
+
+func ValidateASTArrayIndex(arr *ast.Array, s string, path storage.Path) (int, error) {
 	idx, ok := isInt(s)
 	if !ok {
 		return 0, errors.NewNotFoundErrorWithHint(path, errors.ArrayIndexTypeMsg)
@@ -60,8 +95,18 @@ func isInt(s string) (int, bool) {
 	return idx, err == nil
 }
 
-func inRange(i int, arr []interface{}, path storage.Path) (int, error) {
-	if i < 0 || i >= len(arr) {
+func inRange(i int, arr interface{}, path storage.Path) (int, error) {
+
+	var arrLen int
+
+	switch v := arr.(type) {
+	case []interface{}:
+		arrLen = len(v)
+	case *ast.Array:
+		arrLen = v.Len()
+	}
+
+	if i < 0 || i >= arrLen {
 		return 0, errors.NewNotFoundErrorWithHint(path, errors.OutOfRangeMsg)
 	}
 	return i, nil

@@ -35,7 +35,7 @@ func PutByteSlice(buf *[]byte) {
 }
 
 // GetBytesBuffer returns a *bytes.Buffer that is managed by a sync.Pool.
-// Returns a buffer that is resetted and ready for use.
+// Returns a buffer that is reset and ready for use.
 //
 // After use, the *bytes.Buffer should be put back into the sync.Pool
 // by calling PutBytesBuffer.

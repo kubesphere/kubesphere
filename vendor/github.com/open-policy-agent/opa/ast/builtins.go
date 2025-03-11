@@ -120,6 +120,7 @@ var DefaultBuiltins = [...]*Builtin{
 	Lower,
 	Upper,
 	Contains,
+	StringCount,
 	StartsWith,
 	EndsWith,
 	Split,
@@ -142,6 +143,7 @@ var DefaultBuiltins = [...]*Builtin{
 
 	// Encoding
 	JSONMarshal,
+	JSONMarshalWithOptions,
 	JSONUnmarshal,
 	JSONIsValid,
 	Base64Encode,
@@ -207,6 +209,7 @@ var DefaultBuiltins = [...]*Builtin{
 	// Crypto
 	CryptoX509ParseCertificates,
 	CryptoX509ParseAndVerifyCertificates,
+	CryptoX509ParseAndVerifyCertificatesWithOptions,
 	CryptoMd5,
 	CryptoSha1,
 	CryptoSha256,
@@ -1107,6 +1110,19 @@ var Contains = &Builtin{
 	Categories: stringsCat,
 }
 
+var StringCount = &Builtin{
+	Name:        "strings.count",
+	Description: "Returns the number of non-overlapping instances of a substring in a string.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("search", types.S).Description("string to search in"),
+			types.Named("substring", types.S).Description("substring to look for"),
+		),
+		types.Named("output", types.N).Description("count of occurrences, `0` if not found"),
+	),
+	Categories: stringsCat,
+}
+
 var StartsWith = &Builtin{
 	Name:        "startswith",
 	Description: "Returns true if the search string begins with the base string.",
@@ -1165,7 +1181,7 @@ var Split = &Builtin{
 			types.Named("x", types.S).Description("string that is split"),
 			types.Named("delimiter", types.S).Description("delimiter used for splitting"),
 		),
-		types.Named("ys", types.NewArray(nil, types.S)).Description("splitted parts"),
+		types.Named("ys", types.NewArray(nil, types.S)).Description("split parts"),
 	),
 	Categories: stringsCat,
 }
@@ -1231,7 +1247,7 @@ var Trim = &Builtin{
 
 var TrimLeft = &Builtin{
 	Name:        "trim_left",
-	Description: "Returns `value` with all leading instances of the `cutset` chartacters removed.",
+	Description: "Returns `value` with all leading instances of the `cutset` characters removed.",
 	Decl: types.NewFunction(
 		types.Args(
 			types.Named("value", types.S).Description("string to trim"),
@@ -1257,7 +1273,7 @@ var TrimPrefix = &Builtin{
 
 var TrimRight = &Builtin{
 	Name:        "trim_right",
-	Description: "Returns `value` with all trailing instances of the `cutset` chartacters removed.",
+	Description: "Returns `value` with all trailing instances of the `cutset` characters removed.",
 	Decl: types.NewFunction(
 		types.Args(
 			types.Named("value", types.S).Description("string to trim"),
@@ -1340,7 +1356,7 @@ var RenderTemplate = &Builtin{
 // Marked non-deterministic because it relies on RNG internally.
 var RandIntn = &Builtin{
 	Name:        "rand.intn",
-	Description: "Returns a random integer between `0` and `n` (`n` exlusive). If `n` is `0`, then `y` is always `0`. For any given argument pair (`str`, `n`), the output will be consistent throughout a query evaluation.",
+	Description: "Returns a random integer between `0` and `n` (`n` exclusive). If `n` is `0`, then `y` is always `0`. For any given argument pair (`str`, `n`), the output will be consistent throughout a query evaluation.",
 	Decl: types.NewFunction(
 		types.Args(
 			types.Named("str", types.S),
@@ -1706,6 +1722,27 @@ var JSONMarshal = &Builtin{
 	Categories: encoding,
 }
 
+var JSONMarshalWithOptions = &Builtin{
+	Name: "json.marshal_with_options",
+	Description: "Serializes the input term JSON, with additional formatting options via the `opts` parameter. " +
+		"`opts` accepts keys `pretty` (enable multi-line/formatted JSON), `prefix` (string to prefix lines with, default empty string) and `indent` (string to indent with, default `\\t`).",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("x", types.A).Description("the term to serialize"),
+			types.Named("opts", types.NewObject(
+				[]*types.StaticProperty{
+					types.NewStaticProperty("pretty", types.B),
+					types.NewStaticProperty("indent", types.S),
+					types.NewStaticProperty("prefix", types.S),
+				},
+				types.NewDynamicProperty(types.S, types.A),
+			)).Description("encoding options"),
+		),
+		types.Named("y", types.S).Description("the JSON string representation of `x`, with configured prefix/indent string(s) as appropriate"),
+	),
+	Categories: encoding,
+}
+
 var JSONUnmarshal = &Builtin{
 	Name:        "json.unmarshal",
 	Description: "Deserializes the input string.",
@@ -1713,7 +1750,7 @@ var JSONUnmarshal = &Builtin{
 		types.Args(
 			types.Named("x", types.S).Description("a JSON string"),
 		),
-		types.Named("y", types.A).Description("the term deseralized from `x`"),
+		types.Named("y", types.A).Description("the term deserialized from `x`"),
 	),
 	Categories: encoding,
 }
@@ -1877,7 +1914,7 @@ var YAMLUnmarshal = &Builtin{
 		types.Args(
 			types.Named("x", types.S).Description("a YAML string"),
 		),
-		types.Named("y", types.A).Description("the term deseralized from `x`"),
+		types.Named("y", types.A).Description("the term deserialized from `x`"),
 	),
 	Categories: encoding,
 }
@@ -1914,7 +1951,7 @@ var HexDecode = &Builtin{
 		types.Args(
 			types.Named("x", types.S).Description("a hex-encoded string"),
 		),
-		types.Named("y", types.S).Description("deseralized from `x`"),
+		types.Named("y", types.S).Description("deserialized from `x`"),
 	),
 	Categories: encoding,
 }
@@ -2319,6 +2356,31 @@ with all others being treated as intermediates.`,
 	Decl: types.NewFunction(
 		types.Args(
 			types.Named("certs", types.S).Description("base64 encoded DER or PEM data containing two or more certificates where the first is a root CA, the last is a leaf certificate, and all others are intermediate CAs"),
+		),
+		types.Named("output", types.NewArray([]types.Type{
+			types.B,
+			types.NewArray(nil, types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
+		}, nil)).Description("array of `[valid, certs]`: if the input certificate chain could be verified then `valid` is `true` and `certs` is an array of X.509 certificates represented as objects; if the input certificate chain could not be verified then `valid` is `false` and `certs` is `[]`"),
+	),
+}
+
+var CryptoX509ParseAndVerifyCertificatesWithOptions = &Builtin{
+	Name: "crypto.x509.parse_and_verify_certificates_with_options",
+	Description: `Returns one or more certificates from the given string containing PEM
+or base64 encoded DER certificates after verifying the supplied certificates form a complete
+certificate chain back to a trusted root. A config option passed as the second argument can
+be used to configure the validation options used.
+
+The first certificate is treated as the root and the last is treated as the leaf,
+with all others being treated as intermediates.`,
+
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("certs", types.S).Description("base64 encoded DER or PEM data containing two or more certificates where the first is a root CA, the last is a leaf certificate, and all others are intermediate CAs"),
+			types.Named("options", types.NewObject(
+				nil,
+				types.NewDynamicProperty(types.S, types.A),
+			)).Description("object containing extra configs to verify the validity of certificates. `options` object supports four fields which maps to same fields in [x509.VerifyOptions struct](https://pkg.go.dev/crypto/x509#VerifyOptions). `DNSName`, `CurrentTime`: Nanoseconds since the Unix Epoch as a number, `MaxConstraintComparisons` and `KeyUsages`. `KeyUsages` is list and can have possible values as in: `\"KeyUsageAny\"`, `\"KeyUsageServerAuth\"`, `\"KeyUsageClientAuth\"`, `\"KeyUsageCodeSigning\"`, `\"KeyUsageEmailProtection\"`, `\"KeyUsageIPSECEndSystem\"`, `\"KeyUsageIPSECTunnel\"`, `\"KeyUsageIPSECUser\"`, `\"KeyUsageTimeStamping\"`, `\"KeyUsageOCSPSigning\"`, `\"KeyUsageMicrosoftServerGatedCrypto\"`, `\"KeyUsageNetscapeServerGatedCrypto\"`, `\"KeyUsageMicrosoftCommercialCodeSigning\"`, `\"KeyUsageMicrosoftKernelCodeSigning\"` "),
 		),
 		types.Named("output", types.NewArray([]types.Type{
 			types.B,

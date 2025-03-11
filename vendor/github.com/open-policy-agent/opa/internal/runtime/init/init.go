@@ -124,7 +124,7 @@ func LoadPaths(paths []string,
 	processAnnotations bool,
 	caps *ast.Capabilities,
 	fsys fs.FS) (*LoadPathsResult, error) {
-	return LoadPathsForRegoVersion(ast.RegoV0, paths, filter, asBundle, bvc, skipVerify, processAnnotations, caps, fsys)
+	return LoadPathsForRegoVersion(ast.RegoV0, paths, filter, asBundle, bvc, skipVerify, processAnnotations, false, caps, fsys)
 }
 
 func LoadPathsForRegoVersion(regoVersion ast.RegoVersion,
@@ -134,6 +134,7 @@ func LoadPathsForRegoVersion(regoVersion ast.RegoVersion,
 	bvc *bundle.VerificationConfig,
 	skipVerify bool,
 	processAnnotations bool,
+	followSymlinks bool,
 	caps *ast.Capabilities,
 	fsys fs.FS) (*LoadPathsResult, error) {
 
@@ -161,6 +162,7 @@ func LoadPathsForRegoVersion(regoVersion ast.RegoVersion,
 				WithProcessAnnotation(processAnnotations).
 				WithCapabilities(caps).
 				WithRegoVersion(regoVersion).
+				WithFollowSymlinks(followSymlinks).
 				AsBundle(path)
 			if err != nil {
 				return nil, err

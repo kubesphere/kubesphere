@@ -375,9 +375,9 @@ func readTableSection(r io.Reader, s *module.TableSection) error {
 			return err
 		} else if elem != constant.ElementTypeAnyFunc {
 			return fmt.Errorf("illegal element type")
-		} else {
-			table.Type = types.Anyfunc
 		}
+
+		table.Type = types.Anyfunc
 
 		if err := readLimits(r, &table.Lim); err != nil {
 			return err

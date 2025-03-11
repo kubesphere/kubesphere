@@ -74,7 +74,6 @@ func RegistryFromOptions(optionsRegistry *markers.Registry, options []string) (*
 // further modified.  Not default generators are used if none are specified -- you can check
 // the output and rerun for that.
 func FromOptions(optionsRegistry *markers.Registry, options []string) (*Runtime, error) {
-
 	protoRt, err := protoFromOptions(optionsRegistry, options)
 	if err != nil {
 		return nil, err

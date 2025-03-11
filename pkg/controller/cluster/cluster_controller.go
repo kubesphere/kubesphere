@@ -137,6 +137,7 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 2,
 		}).
+		Named(controllerName).
 		Complete(r)
 }
 

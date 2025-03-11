@@ -6,6 +6,7 @@ import (
 
 type UpdateStrategy struct {
 	RegistryPoll `json:"registryPoll,omitempty"`
+	Timeout      metav1.Duration `json:"timeout"`
 }
 
 type RegistryPoll struct {
@@ -18,8 +19,6 @@ type BasicAuth struct {
 }
 
 type RepositorySpec struct {
-	// DEPRECATED: the field will remove in future versions, please use url.
-	Image          string          `json:"image,omitempty"`
 	URL            string          `json:"url,omitempty"`
 	Description    string          `json:"description,omitempty"`
 	BasicAuth      *BasicAuth      `json:"basicAuth,omitempty"`
@@ -29,6 +28,9 @@ type RepositorySpec struct {
 	CABundle string `json:"caBundle,omitempty"`
 	// --insecure-skip-tls-verify. default false
 	Insecure bool `json:"insecure,omitempty"`
+	// The maximum number of synchronized versions for each extension. A value of 0 indicates that all versions will be synchronized. The default is 3.
+	// +optional
+	Depth *int `json:"depth,omitempty"`
 }
 
 type RepositoryStatus struct {

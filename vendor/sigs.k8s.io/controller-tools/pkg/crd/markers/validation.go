@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -27,7 +28,10 @@ import (
 )
 
 const (
-	SchemalessName = "kubebuilder:validation:Schemaless"
+	validationPrefix = "kubebuilder:validation:"
+
+	SchemalessName        = "kubebuilder:validation:Schemaless"
+	ValidationItemsPrefix = validationPrefix + "items:"
 )
 
 // ValidationMarkers lists all available markers that affect CRD schema generation,
@@ -35,7 +39,9 @@ const (
 // All markers start with `+kubebuilder:validation:`, and continue with their type name.
 // A copy is produced of all markers that describes types as well, for making types
 // reusable and writing complex validations on slice items.
-var ValidationMarkers = mustMakeAllWithPrefix("kubebuilder:validation", markers.DescribesField,
+// At last a copy of all markers with the prefix `+kubebuilder:validation:items:` is
+// produced for marking slice fields and types.
+var ValidationMarkers = mustMakeAllWithPrefix(validationPrefix, markers.DescribesField,
 
 	// numeric markers
 
@@ -74,17 +80,21 @@ var ValidationMarkers = mustMakeAllWithPrefix("kubebuilder:validation", markers.
 // sense on a type, and thus aren't in ValidationMarkers).
 var FieldOnlyMarkers = []*definitionWithHelp{
 	must(markers.MakeDefinition("kubebuilder:validation:Required", markers.DescribesField, struct{}{})).
-		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is required, if fields are optional by default.")),
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is required.")),
 	must(markers.MakeDefinition("kubebuilder:validation:Optional", markers.DescribesField, struct{}{})).
-		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional, if fields are required by default.")),
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional.")),
+	must(markers.MakeDefinition("required", markers.DescribesField, struct{}{})).
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is required.")),
 	must(markers.MakeDefinition("optional", markers.DescribesField, struct{}{})).
-		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional, if fields are required by default.")),
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional.")),
 
 	must(markers.MakeDefinition("nullable", markers.DescribesField, Nullable{})).
 		WithHelp(Nullable{}.Help()),
 
 	must(markers.MakeAnyTypeDefinition("kubebuilder:default", markers.DescribesField, Default{})).
 		WithHelp(Default{}.Help()),
+	must(markers.MakeDefinition("default", markers.DescribesField, KubernetesDefault{})).
+		WithHelp(KubernetesDefault{}.Help()),
 
 	must(markers.MakeAnyTypeDefinition("kubebuilder:example", markers.DescribesField, Example{})).
 		WithHelp(Example{}.Help()),
@@ -110,14 +120,22 @@ func init() {
 	AllDefinitions = append(AllDefinitions, ValidationMarkers...)
 
 	for _, def := range ValidationMarkers {
-		newDef := *def.Definition
-		// copy both parts so we don't change the definition
-		typDef := definitionWithHelp{
-			Definition: &newDef,
-			Help:       def.Help,
-		}
+		typDef := def.clone()
 		typDef.Target = markers.DescribesType
-		AllDefinitions = append(AllDefinitions, &typDef)
+		AllDefinitions = append(AllDefinitions, typDef)
+
+		itemsName := ValidationItemsPrefix + strings.TrimPrefix(def.Name, validationPrefix)
+
+		itemsFieldDef := def.clone()
+		itemsFieldDef.Name = itemsName
+		itemsFieldDef.Help.Summary = "for array items " + itemsFieldDef.Help.Summary
+		AllDefinitions = append(AllDefinitions, itemsFieldDef)
+
+		itemsTypDef := def.clone()
+		itemsTypDef.Name = itemsName
+		itemsTypDef.Help.Summary = "for array items " + itemsTypDef.Help.Summary
+		itemsTypDef.Target = markers.DescribesType
+		AllDefinitions = append(AllDefinitions, itemsTypDef)
 	}
 
 	AllDefinitions = append(AllDefinitions, FieldOnlyMarkers...)
@@ -226,6 +244,20 @@ type Default struct {
 }
 
 // +controllertools:marker:generateHelp:category="CRD validation"
+// Default sets the default value for this field.
+//
+// A default value will be accepted as any value valid for the field.
+// Only JSON-formatted values are accepted. `ref(...)` values are ignored.
+// Formatting for common types include: boolean: `true`, string:
+// `"Cluster"`, numerical: `1.24`, array: `[1,2]`, object: `{"policy":
+// "delete"}`). Defaults should be defined in pruned form, and only best-effort
+// validation will be performed. Full validation of a default requires
+// submission of the containing CRD to an apiserver.
+type KubernetesDefault struct {
+	Value interface{}
+}
+
+// +controllertools:marker:generateHelp:category="CRD validation"
 // Example sets the example value for this field.
 //
 // An example value will be accepted as any value valid for the
@@ -266,7 +298,7 @@ type XEmbeddedResource struct{}
 // IntOrString marks a fields as an IntOrString.
 //
 // This is required when applying patterns or other validations to an IntOrString
-// field. Knwon information about the type is applied during the collapse phase
+// field. Known information about the type is applied during the collapse phase
 // and as such is not normally available during marker application.
 type XIntOrString struct{}
 
@@ -295,8 +327,11 @@ func isIntegral(value float64) bool {
 // This marker may be repeated to specify multiple expressions, all of
 // which must evaluate to true.
 type XValidation struct {
-	Rule    string
-	Message string `marker:",optional"`
+	Rule              string
+	Message           string `marker:",optional"`
+	MessageExpression string `marker:"messageExpression,optional"`
+	Reason            string `marker:"reason,optional"`
+	FieldPath         string `marker:"fieldPath,optional"`
 }
 
 func (m Maximum) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
@@ -464,7 +499,9 @@ func (m Type) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	return nil
 }
 
-func (m Type) ApplyFirst() {}
+func (m Type) ApplyPriority() ApplyPriority {
+	return ApplyPriorityDefault - 1
+}
 
 func (m Nullable) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	schema.Nullable = true
@@ -482,6 +519,39 @@ func (m Default) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	}
 	schema.Default = &apiext.JSON{Raw: marshalledDefault}
 	return nil
+}
+
+func (m Default) ApplyPriority() ApplyPriority {
+	// explicitly go after +default markers, so kubebuilder-specific defaults get applied last and stomp
+	return 10
+}
+
+func (m *KubernetesDefault) ParseMarker(_ string, _ string, restFields string) error {
+	if strings.HasPrefix(strings.TrimSpace(restFields), "ref(") {
+		// Skip +default=ref(...) values for now, since we don't have a good way to evaluate go constant values via AST.
+		// See https://github.com/kubernetes-sigs/controller-tools/pull/938#issuecomment-2096790018
+		return nil
+	}
+	return json.Unmarshal([]byte(restFields), &m.Value)
+}
+
+// Defaults are only valid CRDs created with the v1 API
+func (m KubernetesDefault) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
+	if m.Value == nil {
+		// only apply to the schema if we have a non-nil default value
+		return nil
+	}
+	marshalledDefault, err := json.Marshal(m.Value)
+	if err != nil {
+		return err
+	}
+	schema.Default = &apiext.JSON{Raw: marshalledDefault}
+	return nil
+}
+
+func (m KubernetesDefault) ApplyPriority() ApplyPriority {
+	// explicitly go before +kubebuilder:default markers, so kubebuilder-specific defaults get applied last and stomp
+	return 9
 }
 
 func (m Example) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
@@ -512,12 +582,27 @@ func (m XIntOrString) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	return nil
 }
 
-func (m XIntOrString) ApplyFirst() {}
+func (m XIntOrString) ApplyPriority() ApplyPriority {
+	return ApplyPriorityDefault - 1
+}
 
 func (m XValidation) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
+	var reason *apiext.FieldValueErrorReason
+	if m.Reason != "" {
+		switch m.Reason {
+		case string(apiext.FieldValueRequired), string(apiext.FieldValueInvalid), string(apiext.FieldValueForbidden), string(apiext.FieldValueDuplicate):
+			reason = (*apiext.FieldValueErrorReason)(&m.Reason)
+		default:
+			return fmt.Errorf("invalid reason %s, valid values are %s, %s, %s and %s", m.Reason, apiext.FieldValueRequired, apiext.FieldValueInvalid, apiext.FieldValueForbidden, apiext.FieldValueDuplicate)
+		}
+	}
+
 	schema.XValidations = append(schema.XValidations, apiext.ValidationRule{
-		Rule:    m.Rule,
-		Message: m.Message,
+		Rule:              m.Rule,
+		Message:           m.Message,
+		MessageExpression: m.MessageExpression,
+		Reason:            reason,
+		FieldPath:         m.FieldPath,
 	})
 	return nil
 }

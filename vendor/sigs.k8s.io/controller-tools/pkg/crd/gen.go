@@ -85,6 +85,20 @@ type Generator struct {
 
 	// Year specifies the year to substitute for " YEAR" in the header file.
 	Year string `marker:",optional"`
+
+	// DeprecatedV1beta1CompatibilityPreserveUnknownFields indicates whether
+	// or not we should turn off field pruning for this resource.
+	//
+	// Specifies spec.preserveUnknownFields value that is false and omitted by default.
+	// This value can only be specified for CustomResourceDefinitions that were created with
+	// `apiextensions.k8s.io/v1beta1`.
+	//
+	// The field can be set for compatiblity reasons, although strongly discouraged, resource
+	// authors should move to a structural OpenAPI schema instead.
+	//
+	// See https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#field-pruning
+	// for more information about field pruning and v1beta1 resources compatibility.
+	DeprecatedV1beta1CompatibilityPreserveUnknownFields *bool `marker:",optional"`
 }
 
 func (Generator) CheckFilter() loader.NodeFilter {
@@ -100,15 +114,25 @@ func transformRemoveCRDStatus(obj map[string]interface{}) error {
 	return nil
 }
 
+// transformPreserveUnknownFields adds spec.preserveUnknownFields=value.
+func transformPreserveUnknownFields(value bool) func(map[string]interface{}) error {
+	return func(obj map[string]interface{}) error {
+		if spec, ok := obj["spec"].(map[interface{}]interface{}); ok {
+			spec["preserveUnknownFields"] = value
+		}
+		return nil
+	}
+}
+
 func (g Generator) Generate(ctx *genall.GenerationContext) error {
 	parser := &Parser{
 		Collector: ctx.Collector,
 		Checker:   ctx.Checker,
 		// Perform defaulting here to avoid ambiguity later
-		IgnoreUnexportedFields: g.IgnoreUnexportedFields != nil && *g.IgnoreUnexportedFields == true,
-		AllowDangerousTypes:    g.AllowDangerousTypes != nil && *g.AllowDangerousTypes == true,
+		IgnoreUnexportedFields: g.IgnoreUnexportedFields != nil && *g.IgnoreUnexportedFields,
+		AllowDangerousTypes:    g.AllowDangerousTypes != nil && *g.AllowDangerousTypes,
 		// Indicates the parser on whether to register the ObjectMeta type or not
-		GenerateEmbeddedObjectMeta: g.GenerateEmbeddedObjectMeta != nil && *g.GenerateEmbeddedObjectMeta == true,
+		GenerateEmbeddedObjectMeta: g.GenerateEmbeddedObjectMeta != nil && *g.GenerateEmbeddedObjectMeta,
 	}
 
 	AddKnownTypes(parser)
@@ -146,6 +170,14 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 	}
 	headerText = strings.ReplaceAll(headerText, " YEAR", " "+g.Year)
 
+	yamlOpts := []*genall.WriteYAMLOptions{
+		genall.WithTransform(transformRemoveCRDStatus),
+		genall.WithTransform(genall.TransformRemoveCreationTimestamp),
+	}
+	if g.DeprecatedV1beta1CompatibilityPreserveUnknownFields != nil {
+		yamlOpts = append(yamlOpts, genall.WithTransform(transformPreserveUnknownFields(*g.DeprecatedV1beta1CompatibilityPreserveUnknownFields)))
+	}
+
 	for _, groupKind := range kubeKinds {
 		parser.NeedCRDFor(groupKind, g.MaxDescLen)
 		crdRaw := parser.CustomResourceDefinitions[groupKind]
@@ -171,7 +203,7 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 			} else {
 				fileName = fmt.Sprintf("%s_%s.%s.yaml", crdRaw.Spec.Group, crdRaw.Spec.Names.Plural, crdVersions[i])
 			}
-			if err := ctx.WriteYAML(fileName, headerText, []interface{}{crd}, genall.WithTransform(transformRemoveCRDStatus), genall.WithTransform(genall.TransformRemoveCreationTimestamp)); err != nil {
+			if err := ctx.WriteYAML(fileName, headerText, []interface{}{crd}, yamlOpts...); err != nil {
 				return err
 			}
 		}
@@ -194,7 +226,6 @@ func removeDescriptionFromMetadataProps(v *apiext.JSONSchemaProps) {
 		if meta.Description != "" {
 			meta.Description = ""
 			v.Properties["metadata"] = m
-
 		}
 	}
 }

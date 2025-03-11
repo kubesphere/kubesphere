@@ -63,7 +63,7 @@ func ValidatingWebhookFor(scheme *runtime.Scheme, validator Validator) *Webhook 
 
 type validatingHandler struct {
 	validator Validator
-	decoder   *Decoder
+	decoder   Decoder
 }
 
 // Handle handles admission requests.

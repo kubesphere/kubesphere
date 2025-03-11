@@ -1,3 +1,8 @@
+{{- if ne .Release.Namespace "kubesphere-system" }}
+{{- fail "This Helm release must be installed in the 'kubesphere-system' namespace." }}
+{{- end }}
+
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -46,6 +51,9 @@ data:
       {{- if .Values.helmExecutor.resources }}
       resources: {{- toYaml .Values.helmExecutor.resources | nindent 8 }}
       {{- end }}
+      {{- if .Values.helmExecutor.affinity }}
+      affinity: {{- toYaml .Values.helmExecutor.affinity | nindent 8 }}
+      {{- end }}
     extension:
       imageRegistry: {{ default .Values.extension.imageRegistry "" | quote }}
       {{- if .Values.extension.nodeSelector }}
@@ -69,6 +77,11 @@ data:
       appSelector: {{ .Values.composedApp.appSelector | quote }}
     kubesphere:
       tls: {{ .Values.internalTLS }}
+    {{- if and (eq (include "multicluster.role" .) "host") .Values.ha.enabled -}}
+    {{- if and .Values.telemetry.enabled (eq (include "multicluster.role" .) "host") }}
+    telemetry:
+      ksCloudURL: "https://kubesphere.cloud"
+    {{- end }}
     {{- if and (eq (include "multicluster.role" .) "host") .Values.ha.enabled -}}
     {{- if .Values.ha.cache }}
     cache: {{- toYaml .Values.ha.cache | nindent 6}}

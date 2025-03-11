@@ -419,7 +419,7 @@ func (d *Decimal) ConvertFloat(r RoundingContext, x float64, size int) {
 		}
 	} else {
 		// TODO: At this point strconv's rounding is imprecise to the point that
-		// it is not useable for this purpose.
+		// it is not usable for this purpose.
 		// See https://github.com/golang/go/issues/21714
 		// If rounding is requested, we ask for a large number of digits and
 		// round from there to simulate rounding only once.

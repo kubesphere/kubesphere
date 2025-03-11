@@ -125,9 +125,6 @@ func (c *clusterClients) addCluster(obj interface{}) (*ClusterClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
 	client, err := runtimeclient.New(restConfig, runtimeclient.Options{
 		HTTPClient: httpClient,
 		Scheme:     scheme.Scheme,

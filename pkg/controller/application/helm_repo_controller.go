@@ -42,7 +42,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/application"
 )
 
-const helmRepoController = "helmrepo-controller"
+const helmRepoController = "helmrepo"
 
 var _ reconcile.Reconciler = &RepoReconciler{}
 var _ kscontroller.Controller = &RepoReconciler{}
@@ -95,6 +95,7 @@ func (r *RepoReconciler) SetupWithManager(mgr *kscontroller.Manager) (err error)
 			builder.WithPredicates(DeletePredicate{}),
 		).
 		For(&appv2.Repo{}).
+		Named(helmRepoController).
 		Complete(r)
 }
 

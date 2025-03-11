@@ -140,6 +140,8 @@ func asciiHexToByte(b byte) (byte, error) {
 		return b - '0', nil
 	case b >= 'a' && b <= 'f':
 		return b - 'a' + 10, nil
+	case b >= 'A' && b <= 'F':
+		return b - 'A' + 10, nil
 	default:
 		return 0, ErrInvalidPktLen
 	}

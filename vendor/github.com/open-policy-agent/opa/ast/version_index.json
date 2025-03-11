@@ -280,6 +280,13 @@
       "PreRelease": "",
       "Metadata": ""
     },
+    "crypto.x509.parse_and_verify_certificates_with_options": {
+      "Major": 0,
+      "Minor": 63,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
     "crypto.x509.parse_certificate_request": {
       "Major": 0,
       "Minor": 21,
@@ -675,6 +682,13 @@
     "json.marshal": {
       "Major": 0,
       "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.marshal_with_options": {
+      "Major": 0,
+      "Minor": 64,
       "Patch": 0,
       "PreRelease": "",
       "Metadata": ""
@@ -1102,6 +1116,13 @@
     "strings.any_suffix_match": {
       "Major": 0,
       "Minor": 44,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "strings.count": {
+      "Major": 0,
+      "Minor": 67,
       "Patch": 0,
       "PreRelease": "",
       "Metadata": ""

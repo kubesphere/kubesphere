@@ -21,6 +21,8 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc/metadata"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -34,19 +36,20 @@ const (
 	progressRequestPeriod = 100 * time.Millisecond
 )
 
-func newConditionalProgressRequester(requestWatchProgress WatchProgressRequester, clock TickerFactory) *conditionalProgressRequester {
+func newConditionalProgressRequester(requestWatchProgress WatchProgressRequester, clock TickerFactory, contextMetadata metadata.MD) *conditionalProgressRequester {
 	pr := &conditionalProgressRequester{
 		clock:                clock,
 		requestWatchProgress: requestWatchProgress,
+		contextMetadata:      contextMetadata,
 	}
-	pr.cond = sync.NewCond(pr.mux.RLocker())
+	pr.cond = sync.NewCond(&pr.mux)
 	return pr
 }
 
 type WatchProgressRequester func(ctx context.Context) error
 
 type TickerFactory interface {
-	NewTicker(time.Duration) clock.Ticker
+	NewTimer(time.Duration) clock.Timer
 }
 
 // conditionalProgressRequester will request progress notification if there
@@ -54,8 +57,9 @@ type TickerFactory interface {
 type conditionalProgressRequester struct {
 	clock                TickerFactory
 	requestWatchProgress WatchProgressRequester
+	contextMetadata      metadata.MD
 
-	mux     sync.RWMutex
+	mux     sync.Mutex
 	cond    *sync.Cond
 	waiting int
 	stopped bool
@@ -63,6 +67,9 @@ type conditionalProgressRequester struct {
 
 func (pr *conditionalProgressRequester) Run(stopCh <-chan struct{}) {
 	ctx := wait.ContextForChannel(stopCh)
+	if pr.contextMetadata != nil {
+		ctx = metadata.NewOutgoingContext(ctx, pr.contextMetadata)
+	}
 	go func() {
 		defer utilruntime.HandleCrash()
 		<-stopCh
@@ -71,12 +78,12 @@ func (pr *conditionalProgressRequester) Run(stopCh <-chan struct{}) {
 		pr.stopped = true
 		pr.cond.Signal()
 	}()
-	ticker := pr.clock.NewTicker(progressRequestPeriod)
-	defer ticker.Stop()
+	timer := pr.clock.NewTimer(progressRequestPeriod)
+	defer timer.Stop()
 	for {
 		stopped := func() bool {
-			pr.mux.RLock()
-			defer pr.mux.RUnlock()
+			pr.mux.Lock()
+			defer pr.mux.Unlock()
 			for pr.waiting == 0 && !pr.stopped {
 				pr.cond.Wait()
 			}
@@ -87,15 +94,17 @@ func (pr *conditionalProgressRequester) Run(stopCh <-chan struct{}) {
 		}
 
 		select {
-		case <-ticker.C():
+		case <-timer.C():
 			shouldRequest := func() bool {
-				pr.mux.RLock()
-				defer pr.mux.RUnlock()
+				pr.mux.Lock()
+				defer pr.mux.Unlock()
 				return pr.waiting > 0 && !pr.stopped
 			}()
 			if !shouldRequest {
+				timer.Reset(0)
 				continue
 			}
+			timer.Reset(progressRequestPeriod)
 			err := pr.requestWatchProgress(ctx)
 			if err != nil {
 				klog.V(4).InfoS("Error requesting bookmark", "err", err)
@@ -117,5 +126,4 @@ func (pr *conditionalProgressRequester) Remove() {
 	pr.mux.Lock()
 	defer pr.mux.Unlock()
 	pr.waiting -= 1
-	pr.cond.Signal()
 }

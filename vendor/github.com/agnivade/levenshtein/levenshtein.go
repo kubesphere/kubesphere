@@ -41,6 +41,25 @@ func ComputeDistance(a, b string) int {
 	if len(s1) > len(s2) {
 		s1, s2 = s2, s1
 	}
+
+	// remove trailing identical runes.
+	for i := 0; i < len(s1); i++ {
+		if s1[len(s1)-1-i] != s2[len(s2)-1-i] {
+			s1 = s1[:len(s1)-i]
+			s2 = s2[:len(s2)-i]
+			break
+		}
+	}
+
+	// Remove leading identical runes.
+	for i := 0; i < len(s1); i++ {
+		if s1[i] != s2[i] {
+			s1 = s1[i:]
+			s2 = s2[i:]
+			break
+		}
+	}
+
 	lenS1 := len(s1)
 	lenS2 := len(s2)
 
@@ -71,7 +90,7 @@ func ComputeDistance(a, b string) int {
 		for j := 1; j <= lenS1; j++ {
 			current := x[j-1] // match
 			if s2[i-1] != s1[j-1] {
-				current = min(min(x[j-1]+1, prev+1), x[j]+1)
+				current = min(x[j-1]+1, prev+1, x[j]+1)
 			}
 			x[j-1] = prev
 			prev = current
@@ -79,11 +98,4 @@ func ComputeDistance(a, b string) int {
 		x[lenS1] = prev
 	}
 	return int(x[lenS1])
-}
-
-func min(a, b uint16) uint16 {
-	if a < b {
-		return a
-	}
-	return b
 }

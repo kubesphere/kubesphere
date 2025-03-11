@@ -123,5 +123,6 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 				predicate.ResourceVersionChangedPredicate{},
 			),
 		).
+		Named(r.Name()).
 		Complete(r)
 }

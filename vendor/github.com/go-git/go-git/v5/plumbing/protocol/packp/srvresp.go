@@ -120,6 +120,9 @@ func (r *ServerResponse) decodeACKLine(line []byte) error {
 	}
 
 	sp := bytes.Index(line, []byte(" "))
+	if sp+41 > len(line) {
+		return fmt.Errorf("malformed ACK %q", line)
+	}
 	h := plumbing.NewHash(string(line[sp+1 : sp+41]))
 	r.ACKs = append(r.ACKs, h)
 	return nil

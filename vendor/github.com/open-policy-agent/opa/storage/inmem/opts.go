@@ -23,3 +23,15 @@ func OptRoundTripOnWrite(enabled bool) Opt {
 		s.roundTripOnWrite = enabled
 	}
 }
+
+// OptReturnASTValuesOnRead sets whether data values added to the store should be
+// eagerly converted to AST values, which are then returned on read.
+//
+// When enabled, this feature does not sanity check data before converting it to AST values,
+// which may result in panics if the data is not valid. Callers should ensure that passed data
+// can be serialized to AST values; otherwise, it's recommended to also enable OptRoundTripOnWrite.
+func OptReturnASTValuesOnRead(enabled bool) Opt {
+	return func(s *store) {
+		s.returnASTValuesOnRead = enabled
+	}
+}

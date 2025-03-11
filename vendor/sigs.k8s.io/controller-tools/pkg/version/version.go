@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package version provides the version of the main module.
 package version
 
 import (
@@ -20,8 +22,16 @@ import (
 	"runtime/debug"
 )
 
+// version to be set using ldflags:
+// -ldflags "-X sigs.k8s.io/controller-tools/pkg/version.version=v1.0.0"
+// falls back to module information is unset
+var version = ""
+
 // Version returns the version of the main module
 func Version() string {
+	if version != "" {
+		return version
+	}
 	info, ok := debug.ReadBuildInfo()
 	if !ok || info == nil || info.Main.Version == "" {
 		// binary has not been built with module support or doesn't contain a version.

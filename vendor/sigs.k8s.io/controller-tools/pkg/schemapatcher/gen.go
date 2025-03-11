@@ -92,7 +92,7 @@ func (g Generator) Generate(ctx *genall.GenerationContext) (result error) {
 		Collector: ctx.Collector,
 		Checker:   ctx.Checker,
 		// Indicates the parser on whether to register the ObjectMeta type or not
-		GenerateEmbeddedObjectMeta: g.GenerateEmbeddedObjectMeta != nil && *g.GenerateEmbeddedObjectMeta == true,
+		GenerateEmbeddedObjectMeta: g.GenerateEmbeddedObjectMeta != nil && *g.GenerateEmbeddedObjectMeta,
 	}
 
 	crdgen.AddKnownTypes(parser)

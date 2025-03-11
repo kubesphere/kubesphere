@@ -56,7 +56,7 @@ func WithCustomValidator(scheme *runtime.Scheme, obj runtime.Object, validator C
 type validatorForType struct {
 	validator CustomValidator
 	object    runtime.Object
-	decoder   *Decoder
+	decoder   Decoder
 }
 
 // Handle handles admission requests.

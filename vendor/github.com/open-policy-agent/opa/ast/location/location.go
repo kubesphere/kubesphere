@@ -20,6 +20,8 @@ type Location struct {
 
 	// JSONOptions specifies options for marshaling and unmarshalling of locations
 	JSONOptions astJSON.Options
+
+	Tabs []int `json:"-"` // The column offsets of tabs in the source.
 }
 
 // NewLocation returns a new Location object.

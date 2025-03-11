@@ -6,7 +6,7 @@ RUN apk add --no-cache ca-certificates curl
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin/
 
-ARG TELEMETRY_VERSION=1.0.1
+ARG TELEMETRY_VERSION=1.0.2
 ARG TARGETARCH
 RUN curl -LO https://github.com/kubesphere/telemetry/releases/download/v${TELEMETRY_VERSION}/telemetry_${TELEMETRY_VERSION}_linux_${TARGETARCH}.tar.gz && \
     tar -zxvf telemetry_${TELEMETRY_VERSION}_linux_${TARGETARCH}.tar.gz -C ${OUTDIR}/usr/local/bin/ telemetry
@@ -35,5 +35,4 @@ COPY --from=build_context /out/ /
 WORKDIR /
 
 EXPOSE 8443
-
 CMD ["sh"]

@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -126,6 +127,7 @@ type DirectoryLoader interface {
 	WithFilter(filter filter.LoaderFilter) DirectoryLoader
 	WithPathFormat(PathFormat) DirectoryLoader
 	WithSizeLimitBytes(sizeLimitBytes int64) DirectoryLoader
+	WithFollowSymlinks(followSymlinks bool) DirectoryLoader
 }
 
 type dirLoader struct {
@@ -135,6 +137,7 @@ type dirLoader struct {
 	filter            filter.LoaderFilter
 	pathFormat        PathFormat
 	maxSizeLimitBytes int64
+	followSymlinks    bool
 }
 
 // Normalize root directory, ex "./src/bundle" -> "src/bundle"
@@ -181,6 +184,12 @@ func (d *dirLoader) WithSizeLimitBytes(sizeLimitBytes int64) DirectoryLoader {
 	return d
 }
 
+// WithFollowSymlinks specifies whether to follow symlinks when loading files from the directory
+func (d *dirLoader) WithFollowSymlinks(followSymlinks bool) DirectoryLoader {
+	d.followSymlinks = followSymlinks
+	return d
+}
+
 func formatPath(fileName string, root string, pathFormat PathFormat) string {
 	switch pathFormat {
 	case SlashRooted:
@@ -211,8 +220,12 @@ func (d *dirLoader) NextFile() (*Descriptor, error) {
 	// build a list of all files we will iterate over and read, but only one time
 	if d.files == nil {
 		d.files = []string{}
-		err := filepath.Walk(d.root, func(path string, info os.FileInfo, err error) error {
-			if info != nil && info.Mode().IsRegular() {
+		err := filepath.Walk(d.root, func(path string, info os.FileInfo, _ error) error {
+			if info == nil {
+				return nil
+			}
+
+			if info.Mode().IsRegular() {
 				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, false)) {
 					return nil
 				}
@@ -220,7 +233,15 @@ func (d *dirLoader) NextFile() (*Descriptor, error) {
 					return fmt.Errorf(maxSizeLimitBytesErrMsg, strings.TrimPrefix(path, "/"), info.Size(), d.maxSizeLimitBytes)
 				}
 				d.files = append(d.files, path)
-			} else if info != nil && info.Mode().IsDir() {
+			} else if d.followSymlinks && info.Mode().Type()&fs.ModeSymlink == fs.ModeSymlink {
+				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, false)) {
+					return nil
+				}
+				if d.maxSizeLimitBytes > 0 && info.Size() > d.maxSizeLimitBytes {
+					return fmt.Errorf(maxSizeLimitBytesErrMsg, strings.TrimPrefix(path, "/"), info.Size(), d.maxSizeLimitBytes)
+				}
+				d.files = append(d.files, path)
+			} else if info.Mode().IsDir() {
 				if d.filter != nil && d.filter(filepath.ToSlash(path), info, getdepth(path, true)) {
 					return filepath.SkipDir
 				}
@@ -305,6 +326,11 @@ func (t *tarballLoader) WithSizeLimitBytes(sizeLimitBytes int64) DirectoryLoader
 	return t
 }
 
+// WithFollowSymlinks is a no-op for tarballLoader
+func (t *tarballLoader) WithFollowSymlinks(_ bool) DirectoryLoader {
+	return t
+}
+
 // NextFile iterates to the next file in the directory tree
 // and returns a file Descriptor for the file.
 func (t *tarballLoader) NextFile() (*Descriptor, error) {
@@ -370,12 +396,13 @@ func (t *tarballLoader) NextFile() (*Descriptor, error) {
 
 				f := file{name: header.Name}
 
-				var buf bytes.Buffer
-				if _, err := io.Copy(&buf, t.tr); err != nil {
+				// Note(philipc): We rely on the previous size check in this loop for safety.
+				buf := bytes.NewBuffer(make([]byte, 0, header.Size))
+				if _, err := io.Copy(buf, t.tr); err != nil {
 					return nil, fmt.Errorf("failed to copy file %s: %w", header.Name, err)
 				}
 
-				f.reader = &buf
+				f.reader = buf
 
 				t.files = append(t.files, f)
 			} else if header.Typeflag == tar.TypeDir {

@@ -28,7 +28,6 @@ import (
 	"unicode/utf8"
 
 	celgo "github.com/google/cel-go/cel"
-
 	"k8s.io/apiextensions-apiserver/pkg/apihelpers"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -59,6 +58,8 @@ const (
 	StaticEstimatedCostLimit = 10000000
 	// StaticEstimatedCRDCostLimit represents the largest-allowed total cost for the x-kubernetes-validations rules of a CRD.
 	StaticEstimatedCRDCostLimit = 100000000
+
+	MaxSelectableFields = 8
 )
 
 var supportedValidationReason = sets.NewString(
@@ -90,7 +91,10 @@ func ValidateCustomResourceDefinition(ctx context.Context, obj *apiextensions.Cu
 		requirePrunedDefaults:                    true,
 		requireAtomicSetType:                     true,
 		requireMapListKeysMapSetValidation:       true,
-		celEnvironmentSet:                        environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()),
+		// strictCost is always true to enforce cost limits.
+		celEnvironmentSet: environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion(), true),
+		// allowInvalidCABundle is set to true since the CRD is not established yet.
+		allowInvalidCABundle: true,
 	}
 
 	allErrs := genericvalidation.ValidateObjectMeta(&obj.ObjectMeta, false, nameValidationFn, field.NewPath("metadata"))
@@ -137,6 +141,9 @@ type validationOptions struct {
 	suppressPerExpressionCost bool
 
 	celEnvironmentSet *environment.EnvSet
+	// allowInvalidCABundle allows an invalid conversion webhook CABundle on update only if the existing CABundle is invalid.
+	// An invalid CABundle is also permitted on create and before a CRD is in an Established=True condition.
+	allowInvalidCABundle bool
 }
 
 type preexistingExpressions struct {
@@ -176,7 +183,7 @@ func findPreexistingExpressionsInSchema(schema *apiextensions.JSONSchemaProps, e
 		for _, v := range s.XValidations {
 			expressions.rules.Insert(v.Rule)
 			if len(v.MessageExpression) > 0 {
-				expressions.messageExpressions.Insert(v.Rule)
+				expressions.messageExpressions.Insert(v.MessageExpression)
 			}
 		}
 		return false
@@ -229,7 +236,9 @@ func ValidateCustomResourceDefinitionUpdate(ctx context.Context, obj, oldObj *ap
 		requireMapListKeysMapSetValidation:       requireMapListKeysMapSetValidation(&oldObj.Spec),
 		preexistingExpressions:                   findPreexistingExpressions(&oldObj.Spec),
 		versionsWithUnchangedSchemas:             findVersionsWithUnchangedSchemas(obj, oldObj),
-		celEnvironmentSet:                        environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()),
+		// strictCost is always true to enforce cost limits.
+		celEnvironmentSet:    environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion(), true),
+		allowInvalidCABundle: allowInvalidCABundle(oldObj),
 	}
 	return validateCustomResourceDefinitionUpdate(ctx, obj, oldObj, opts)
 }
@@ -290,6 +299,18 @@ func validateCustomResourceDefinitionVersion(ctx context.Context, version *apiex
 	allErrs = append(allErrs, ValidateCustomResourceDefinitionSubresources(version.Subresources, fldPath.Child("subresources"))...)
 	for i := range version.AdditionalPrinterColumns {
 		allErrs = append(allErrs, ValidateCustomResourceColumnDefinition(&version.AdditionalPrinterColumns[i], fldPath.Child("additionalPrinterColumns").Index(i))...)
+	}
+
+	if len(version.SelectableFields) > 0 {
+		if version.Schema == nil || version.Schema.OpenAPIV3Schema == nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("selectableFields"), "", "selectableFields may only be set when version.schema.openAPIV3Schema is not included"))
+		} else {
+			schema, err := structuralschema.NewStructural(version.Schema.OpenAPIV3Schema)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("schema.openAPIV3Schema"), "", err.Error()))
+			}
+			allErrs = append(allErrs, ValidateCustomResourceSelectableFields(version.SelectableFields, schema, fldPath.Child("selectableFields"))...)
+		}
 	}
 	return allErrs
 }
@@ -453,10 +474,23 @@ func validateCustomResourceDefinitionSpec(ctx context.Context, spec *apiextensio
 		}
 	}
 
+	if len(spec.SelectableFields) > 0 {
+		if spec.Validation == nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("selectableFields"), "", "selectableFields may only be set when validations.schema is included"))
+		} else {
+			schema, err := structuralschema.NewStructural(spec.Validation.OpenAPIV3Schema)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("schema.openAPIV3Schema"), "", err.Error()))
+			}
+
+			allErrs = append(allErrs, ValidateCustomResourceSelectableFields(spec.SelectableFields, schema, fldPath.Child("selectableFields"))...)
+		}
+	}
+
 	if (spec.Conversion != nil && spec.Conversion.Strategy != apiextensions.NoneConverter) && (spec.PreserveUnknownFields == nil || *spec.PreserveUnknownFields) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("conversion").Child("strategy"), spec.Conversion.Strategy, "must be None if spec.preserveUnknownFields is true"))
 	}
-	allErrs = append(allErrs, validateCustomResourceConversion(spec.Conversion, opts.requireRecognizedConversionReviewVersion, fldPath.Child("conversion"))...)
+	allErrs = append(allErrs, validateCustomResourceConversion(spec.Conversion, opts.requireRecognizedConversionReviewVersion, fldPath.Child("conversion"), opts)...)
 
 	return allErrs
 }
@@ -516,6 +550,20 @@ func validateConversionReviewVersions(versions []string, requireRecognizedVersio
 	return allErrs
 }
 
+// Allows invalid CA Bundle to be specified only if the existing CABundle is invalid
+// or if the CRD is not established yet.
+func allowInvalidCABundle(oldCRD *apiextensions.CustomResourceDefinition) bool {
+	if !apiextensions.IsCRDConditionTrue(oldCRD, apiextensions.Established) {
+		return true
+	}
+	oldConversion := oldCRD.Spec.Conversion
+	if oldConversion == nil || oldConversion.WebhookClientConfig == nil ||
+		len(oldConversion.WebhookClientConfig.CABundle) == 0 {
+		return false
+	}
+	return len(webhook.ValidateCABundle(field.NewPath("caBundle"), oldConversion.WebhookClientConfig.CABundle)) > 0
+}
+
 // hasValidConversionReviewVersion return true if there is a valid version or if the list is empty.
 func hasValidConversionReviewVersionOrEmpty(versions []string) bool {
 	if len(versions) < 1 {
@@ -529,12 +577,7 @@ func hasValidConversionReviewVersionOrEmpty(versions []string) bool {
 	return false
 }
 
-// ValidateCustomResourceConversion statically validates
-func ValidateCustomResourceConversion(conversion *apiextensions.CustomResourceConversion, fldPath *field.Path) field.ErrorList {
-	return validateCustomResourceConversion(conversion, true, fldPath)
-}
-
-func validateCustomResourceConversion(conversion *apiextensions.CustomResourceConversion, requireRecognizedVersion bool, fldPath *field.Path) field.ErrorList {
+func validateCustomResourceConversion(conversion *apiextensions.CustomResourceConversion, requireRecognizedVersion bool, fldPath *field.Path, opts validationOptions) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if conversion == nil {
 		return allErrs
@@ -552,6 +595,9 @@ func validateCustomResourceConversion(conversion *apiextensions.CustomResourceCo
 				allErrs = append(allErrs, webhook.ValidateWebhookURL(fldPath.Child("webhookClientConfig").Child("url"), *cc.URL, true)...)
 			case cc.Service != nil:
 				allErrs = append(allErrs, webhook.ValidateWebhookService(fldPath.Child("webhookClientConfig").Child("service"), cc.Service.Name, cc.Service.Namespace, cc.Service.Path, cc.Service.Port)...)
+			}
+			if len(cc.CABundle) > 0 && !opts.allowInvalidCABundle {
+				allErrs = append(allErrs, webhook.ValidateCABundle(fldPath.Child("webhookClientConfig").Child("caBundle"), cc.CABundle)...)
 			}
 		}
 		allErrs = append(allErrs, validateConversionReviewVersions(conversion.ConversionReviewVersions, requireRecognizedVersion, fldPath.Child("conversionReviewVersions"))...)
@@ -764,6 +810,51 @@ func ValidateCustomResourceColumnDefinition(col *apiextensions.CustomResourceCol
 	}
 
 	return allErrs
+}
+
+func ValidateCustomResourceSelectableFields(selectableFields []apiextensions.SelectableField, schema *structuralschema.Structural, fldPath *field.Path) (allErrs field.ErrorList) {
+	uniqueSelectableFields := sets.New[string]()
+	for i, selectableField := range selectableFields {
+		indexFldPath := fldPath.Index(i)
+		if len(selectableField.JSONPath) == 0 {
+			allErrs = append(allErrs, field.Required(indexFldPath.Child("jsonPath"), ""))
+			continue
+		}
+		// Leverage the field path validation originally built for use with CEL features
+		path, foundSchema, err := cel.ValidFieldPath(selectableField.JSONPath, schema, cel.WithFieldPathAllowArrayNotation(false))
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(indexFldPath.Child("jsonPath"), selectableField.JSONPath, fmt.Sprintf("is an invalid path: %v", err)))
+			continue
+		}
+		if path.Root().String() == "metadata" {
+			allErrs = append(allErrs, field.Invalid(indexFldPath.Child("jsonPath"), selectableField.JSONPath, "must not point to fields in metadata"))
+		}
+		if !allowedSelectableFieldSchema(foundSchema) {
+			allErrs = append(allErrs, field.Invalid(indexFldPath.Child("jsonPath"), selectableField.JSONPath, "must point to a field of type string, boolean or integer. Enum string fields and strings with formats are allowed."))
+		}
+		if uniqueSelectableFields.Has(path.String()) {
+			allErrs = append(allErrs, field.Duplicate(indexFldPath.Child("jsonPath"), selectableField.JSONPath))
+		} else {
+			uniqueSelectableFields.Insert(path.String())
+		}
+	}
+	uniqueSelectableFieldCount := uniqueSelectableFields.Len()
+	if uniqueSelectableFieldCount > MaxSelectableFields {
+		allErrs = append(allErrs, field.TooMany(fldPath, uniqueSelectableFieldCount, MaxSelectableFields))
+	}
+	return allErrs
+}
+
+func allowedSelectableFieldSchema(schema *structuralschema.Structural) bool {
+	if schema == nil {
+		return false
+	}
+	switch schema.Type {
+	case "string", "boolean", "integer":
+		return true
+	default:
+		return false
+	}
 }
 
 // specStandardValidator applies validations for different OpenAPI specification versions.
@@ -1201,7 +1292,7 @@ func ValidateCustomResourceDefinitionOpenAPISchema(schema *apiextensions.JSONSch
 func pathValid(schema *apiextensions.JSONSchemaProps, path string) bool {
 	// To avoid duplicated code and better maintain, using ValidaFieldPath func to check if the path is valid
 	if ss, err := structuralschema.NewStructural(schema); err == nil {
-		_, err := cel.ValidFieldPath(path, ss)
+		_, _, err := cel.ValidFieldPath(path, ss)
 		return err == nil
 	}
 	return true

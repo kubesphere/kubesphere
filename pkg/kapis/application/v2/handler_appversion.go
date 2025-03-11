@@ -11,7 +11,12 @@ import (
 	"strconv"
 	"strings"
 
-	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
+	"github.com/Masterminds/semver/v3"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	resv1beta1 "kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
 
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -26,12 +31,18 @@ import (
 	appv2 "kubesphere.io/api/application/v2"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+
+	"kubesphere.io/kubesphere/pkg/server/params"
+
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/application"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+)
+
+const (
+	appVersionQueryParameterVersionName query.Field = "versionName"
 )
 
 func (h *appHandler) CreateOrUpdateAppVersion(req *restful.Request, resp *restful.Response) {
@@ -50,6 +61,7 @@ func (h *appHandler) CreateOrUpdateAppVersion(req *restful.Request, resp *restfu
 	if workspace == "" {
 		workspace = appv2.SystemWorkspace
 	}
+
 	createAppVersionRequest.Workspace = workspace
 	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
 	vRequest, err := parseRequest(createAppVersionRequest, validate)
@@ -163,7 +175,7 @@ func (h *appHandler) ListAppVersions(req *restful.Request, resp *restful.Respons
 		filtered.Items = append(filtered.Items, appv)
 	}
 
-	resp.WriteEntity(k8suitl.ConvertToListResult(&filtered, req))
+	resp.WriteEntity(ListAppVersions(&filtered, req))
 }
 
 func (h *appHandler) GetAppVersionPackage(req *restful.Request, resp *restful.Response) {
@@ -331,7 +343,7 @@ func (h *appHandler) ListReviews(req *restful.Request, resp *restful.Response) {
 	}
 
 	if conditions == nil || len(conditions.Match) == 0 {
-		resp.WriteEntity(k8suitl.ConvertToListResult(&appVersions, req))
+		resp.WriteEntity(ListAppVersions(&appVersions, req))
 		return
 	}
 
@@ -344,5 +356,58 @@ func (h *appHandler) ListReviews(req *restful.Request, resp *restful.Response) {
 		filteredAppVersions.Items = append(filteredAppVersions.Items, version)
 	}
 
-	resp.WriteEntity(k8suitl.ConvertToListResult(&filteredAppVersions, req))
+	resp.WriteEntity(ListAppVersions(&filteredAppVersions, req))
+}
+
+func ListAppVersions(obj runtime.Object, req *restful.Request) (listResult api.ListResult) {
+	_ = meta.EachListItem(obj, omitManagedFields)
+	queryParams := query.ParseQueryParameter(req)
+	list, _ := meta.ExtractList(obj)
+
+	items, _, totalCount := resv1beta1.DefaultList(list, queryParams, compareAppVersion, resv1beta1.DefaultFilter)
+
+	listResult.Items = items
+	listResult.TotalItems = totalCount
+
+	return listResult
+}
+
+func omitManagedFields(o runtime.Object) error {
+	a, err := meta.Accessor(o)
+	if err != nil {
+		return err
+	}
+	a.SetManagedFields(nil)
+	return nil
+}
+
+func compareAppVersion(left runtime.Object, right runtime.Object, query query.Field) bool {
+	if query == appVersionQueryParameterVersionName {
+		rAppVersion := right.(*appv2.ApplicationVersion)
+		lAppVersion := left.(*appv2.ApplicationVersion)
+		var (
+			lVer, rVer *semver.Version
+			err        error
+		)
+
+		if lAppVersion.Spec.VersionName != "" {
+			lVer, err = semver.NewVersion(lAppVersion.Spec.VersionName)
+			if err != nil {
+				klog.Errorf("failed to parse version %s of ApplicationVersion %s", lAppVersion.Spec.VersionName, lAppVersion.Name)
+				return false
+			}
+			if rAppVersion.Spec.VersionName != "" {
+				rVer, err = semver.NewVersion(rAppVersion.Spec.VersionName)
+				if err != nil {
+					klog.Errorf("failed to parse version %s of ApplicationVersion %s", rAppVersion.Spec.VersionName, rAppVersion.Name)
+					return false
+				}
+			}
+			if lVer.Compare(rVer) > 0 {
+				return true
+			}
+		}
+		return false
+	}
+	return resv1beta1.DefaultCompare(left, right, query)
 }

@@ -92,6 +92,7 @@ type executor struct {
 	client    kubernetes.Interface
 	helmImage string
 	resources corev1.ResourceRequirements
+	affinity  *corev1.Affinity
 	labels    map[string]string
 	owner     *metav1.OwnerReference
 
@@ -113,6 +114,12 @@ func SetExecutorImage(helmImage string) ExecutorOption {
 func SetExecutorResources(resources corev1.ResourceRequirements) ExecutorOption {
 	return func(e *executor) {
 		e.resources = resources
+	}
+}
+
+func SetExecutorAffinity(affinity *corev1.Affinity) ExecutorOption {
+	return func(e *executor) {
+		e.affinity = affinity
 	}
 }
 
@@ -659,6 +666,9 @@ func (e *executor) createInstallJob(ctx context.Context, release, chart string, 
 	if e.ttlSecondsAfterFinished > 0 {
 		job.Spec.TTLSecondsAfterFinished = pointer.Int32(e.ttlSecondsAfterFinished)
 	}
+	if e.affinity != nil {
+		job.Spec.Template.Spec.Affinity = e.affinity
+	}
 	if helmOptions.serviceAccount != "" {
 		job.Spec.Template.Spec.ServiceAccountName = helmOptions.serviceAccount
 	}
@@ -855,6 +865,9 @@ func (e *executor) Uninstall(ctx context.Context, release string, options ...Hel
 	}
 	if e.ttlSecondsAfterFinished > 0 {
 		job.Spec.TTLSecondsAfterFinished = pointer.Int32(e.ttlSecondsAfterFinished)
+	}
+	if e.affinity != nil {
+		job.Spec.Template.Spec.Affinity = e.affinity
 	}
 	if helmOptions.hookImage != "" {
 		job.Spec.Template.Spec.InitContainers = []corev1.Container{

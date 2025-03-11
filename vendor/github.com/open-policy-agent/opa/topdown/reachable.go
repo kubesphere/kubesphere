@@ -31,7 +31,7 @@ func numberOfEdges(collection *ast.Term) int {
 	return 0
 }
 
-func builtinReachable(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinReachable(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	// Error on wrong types for args.
 	graph, err := builtins.ObjectOperand(operands[0].Value, 1)
 	if err != nil {
@@ -109,7 +109,7 @@ func pathBuilder(graph ast.Object, root *ast.Term, path []*ast.Term, edgeRslt as
 
 }
 
-func builtinReachablePaths(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinReachablePaths(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	var traceResult = ast.NewSet()
 	// Error on wrong types for args.
 	graph, err := builtins.ObjectOperand(operands[0].Value, 1)

@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,7 +77,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if controllerutil.ContainsFinalizer(namespace, constants.CascadingDeletionFinalizer) {
 			controllerutil.RemoveFinalizer(namespace, constants.CascadingDeletionFinalizer)
 			if err := r.Update(ctx, namespace); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %v", err)
+				return ctrl.Result{}, errors.Wrapf(err, "failed to remove finalizer")
 			}
 		}
 		// Our finalizer has finished, so the reconciler can do nothing.
@@ -88,8 +89,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// The object is not being deleted, so if it does not have our finalizer,
 	// then lets add the finalizer and update the object.
 	if workspaceLabelExists && !controllerutil.ContainsFinalizer(namespace, constants.CascadingDeletionFinalizer) {
+		if err := r.initRoles(ctx, namespace); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to init roles in namespace %s", namespace.Name)
+		}
 		if err := r.initCreatorRoleBinding(ctx, namespace); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to init creator role binding: %v", err)
+			return ctrl.Result{}, errors.Wrapf(err, "failed to init creator role binding")
 		}
 		updated := namespace.DeepCopy()
 		// Remove legacy finalizer
@@ -97,11 +101,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// Remove legacy ownerReferences
 		updated.OwnerReferences = make([]metav1.OwnerReference, 0)
 		controllerutil.AddFinalizer(updated, constants.CascadingDeletionFinalizer)
-		return ctrl.Result{}, r.Patch(ctx, updated, client.MergeFrom(namespace))
+		if err := r.Patch(ctx, updated, client.MergeFrom(namespace)); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer")
+		}
+		return ctrl.Result{}, nil
 	}
 
-	if err := r.initRoles(ctx, namespace); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to init builtin roles: %v", err)
+	if !workspaceLabelExists {
+		if err := r.cleanUp(ctx, namespace); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to clean up namespace %s", namespace.Name)
+		}
 	}
 
 	r.recorder.Event(namespace, corev1.EventTypeNormal, kscontroller.Synced, kscontroller.MessageResourceSynced)
@@ -112,7 +121,7 @@ func (r *Reconciler) initRoles(ctx context.Context, namespace *corev1.Namespace)
 	logger := klog.FromContext(ctx)
 	var templates iamv1beta1.BuiltinRoleList
 	if err := r.List(ctx, &templates, client.MatchingLabels{iamv1beta1.ScopeLabel: iamv1beta1.ScopeNamespace}); err != nil {
-		return fmt.Errorf("failed to list builtin roles: %v", err)
+		return errors.Wrapf(err, "failed to list builtin role templates")
 	}
 	for _, template := range templates.Items {
 		selector, err := metav1.LabelSelectorAsSelector(&template.TargetSelector)
@@ -135,7 +144,7 @@ func (r *Reconciler) initRoles(ctx context.Context, namespace *corev1.Namespace)
 				return nil
 			})
 			if err != nil {
-				return fmt.Errorf("failed to create or update builtin role: %v", err)
+				return errors.Wrapf(err, "failed to create or update builtin role")
 			}
 			logger.V(4).Info("builtin role initialized", "operation", op)
 		} else if err != nil {
@@ -176,8 +185,20 @@ func (r *Reconciler) initCreatorRoleBinding(ctx context.Context, namespace *core
 		return nil
 	})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to create or update creator role binding")
 	}
 	klog.FromContext(ctx).V(4).Info("creator role binding initialized", "operation", op)
+	return nil
+}
+
+func (r *Reconciler) cleanUp(ctx context.Context, namespace *corev1.Namespace) error {
+	role := &iamv1beta1.Role{}
+	if err := r.DeleteAllOf(ctx, role, client.InNamespace(namespace.Name)); err != nil {
+		return errors.Wrapf(err, "failed to delete roles")
+	}
+	roleBinding := &iamv1beta1.RoleBinding{}
+	if err := r.DeleteAllOf(ctx, roleBinding, client.InNamespace(namespace.Name)); err != nil {
+		return errors.Wrapf(err, "failed to delete role bindings")
+	}
 	return nil
 }

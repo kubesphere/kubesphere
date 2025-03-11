@@ -45,7 +45,7 @@ var (
 	errBytesValueIncludesSpaces = parseNumBytesError("spaces not allowed in resource strings")
 )
 
-func builtinNumBytes(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinNumBytes(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	var m big.Float
 
 	raw, err := builtins.StringOperand(operands[0].Value, 1)
