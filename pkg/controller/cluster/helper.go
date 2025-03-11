@@ -72,7 +72,8 @@ func installKSCoreInMemberCluster(kubeConfig []byte, jwtSecret, chartPath string
 
 	// Override some necessary values
 	values["role"] = "member"
-	// disable upgrade to prevent execution of ks-upgrade
+	values["multicluster"] = map[string]string{"role": "member"}
+	// disable upgrade to prevent execution of kse-upgrade
 	values["upgrade"] = map[string]interface{}{
 		"enabled": false,
 	}

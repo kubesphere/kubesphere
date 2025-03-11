@@ -10,6 +10,14 @@ rules:
     verbs:
       - get
       - list
+  - apiGroups:
+      - extensions.kubesphere.io
+    resources:
+      - '*'
+    verbs:
+      - get
+      - list
+      - watch
   - nonResourceURLs:
       - '/static/images/*'
     verbs:

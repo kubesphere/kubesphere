@@ -23,7 +23,7 @@ spec:
       {{- toYaml . | nindent 8 }}
     {{- end }}
   selector:
-    {{- if eq (include "role" .) "host" }}
+    {{- if eq (include "multicluster.role" .) "host" }}
     app: ks-apiserver
     {{- else }}
     app: ks-agent
@@ -52,7 +52,7 @@ spec:
       protocol: TCP
       targetPort: 8443
   selector:
-    {{- if eq (include "role" .) "host" }}
+    {{- if eq (include "multicluster.role" .) "host" }}
     app: ks-controller-manager
     {{- else }}
     app: ks-agent

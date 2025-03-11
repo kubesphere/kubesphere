@@ -1,4 +1,4 @@
-{{ if eq (include "role" .) "member" }}
+{{ if eq (include "multicluster.role" .) "member" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
