@@ -1,0 +1,39 @@
+# KubeSphere Open Source License
+
+KubeSphere is licensed under the Apache License 2.0, with the following additional conditions:
+
+1. You are permitted to use KubeSphere for your own applications or projects as backend services, and you have the freedom to modify or extend the source code. However, explicit permission or a commercial license from the producer is required for the following scenarios:
+
+   a. Commercial use (Offering On-Premises or Cloud-based products or services to third parties) including using KubeSphere as a standalone commercial product, integrating it into your commercial products, or distributing it to third parties.
+
+   b. Offering KubeSphere as a SaaS (Software as a Service)  service.
+
+   c. Removing or altering KubeSphere's logo or name.
+
+   For licensing inquiries, please contact kubesphere@yunify.com .
+
+2. As a contributor, you should agree that:
+
+   a. The project maintainers have the authority to modify the open-source license.
+
+   b. Your contributed code may be utilized for commercial purposes.
+
+3. These additional conditions apply to all versions of KubeSphere, including those without a LICENSE file prior to KubeSphere's open-sourcing.
+
+Apart from these additional conditions, all other rights and restrictions are governed by the Apache License 2.0, available at http://www.apache.org/licenses/LICENSE-2.0.
+
+------
+
+Copyright 2024 the KubeSphere Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
