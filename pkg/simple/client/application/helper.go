@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/sha1"
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
@@ -13,7 +14,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -198,7 +198,8 @@ func CreateOrUpdateAppVersion(ctx context.Context, client runtimeclient.Client, 
 
 	//1. create or update app version
 	appVersion := appv2.ApplicationVersion{}
-	appVersion.Name = fmt.Sprintf("%s-%s", app.Name, vRequest.VersionName)
+	legalVersion := FormatVersion(vRequest.VersionName)
+	appVersion.Name = fmt.Sprintf("%s-%s", app.Name, legalVersion)
 
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(&app, &appVersion, scheme.Scheme); err != nil {
@@ -570,15 +571,13 @@ func GenerateShortNameMD5Hash(input string) string {
 }
 
 func FormatVersion(input string) string {
-	re := regexp.MustCompile(`[^a-z0-9-.]`)
-	errs := validation.IsDNS1123Subdomain(input)
-	if len(errs) != 0 {
-		klog.Warningf("Version %s does not meet the Kubernetes naming standard, replacing invalid characters with '-'", input)
-		input = re.ReplaceAllStringFunc(input, func(s string) string {
-			return "-"
-		})
+	if len(validation.IsDNS1123Subdomain(input)) == 0 {
+		return input
 	}
-	return input
+	hash := sha1.Sum([]byte(input))
+	formattedVersion := hex.EncodeToString(hash[:])[:12]
+	klog.Warningf("Version: %s does not meet the Kubernetes naming standard, replacing with SHA-1 hash: %s", input, formattedVersion)
+	return formattedVersion
 }
 
 func GetHelmKubeConfig(ctx context.Context, cluster *clusterv1alpha1.Cluster, runClient client.Client) (config []byte, err error) {

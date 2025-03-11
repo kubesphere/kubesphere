@@ -61,8 +61,8 @@ func (h *appHandler) CreateOrUpdateAppVersion(req *restful.Request, resp *restfu
 		return
 	}
 	appVersion := &appv2.ApplicationVersion{}
-	vRequest.VersionName = application.FormatVersion(vRequest.VersionName)
-	appVersion.Name = fmt.Sprintf("%s-%s", createAppVersionRequest.AppName, vRequest.VersionName)
+	legalVersion := application.FormatVersion(vRequest.VersionName)
+	appVersion.Name = fmt.Sprintf("%s-%s", createAppVersionRequest.AppName, legalVersion)
 	if h.conflictedDone(req, resp, "version", appVersion) {
 		return
 	}
