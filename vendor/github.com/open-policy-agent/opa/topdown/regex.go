@@ -15,6 +15,9 @@ import (
 	"github.com/open-policy-agent/opa/topdown/builtins"
 )
 
+const regexCacheMaxSize = 100
+const regexInterQueryValueCacheHits = "rego_builtin_regex_interquery_value_cache_hits"
+
 var regexpCacheLock = sync.Mutex{}
 var regexpCache map[string]*regexp.Regexp
 
@@ -33,7 +36,7 @@ func builtinRegexIsValid(_ BuiltinContext, operands []*ast.Term, iter func(*ast.
 	return iter(ast.BooleanTerm(true))
 }
 
-func builtinRegexMatch(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinRegexMatch(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return err
@@ -42,7 +45,7 @@ func builtinRegexMatch(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Te
 	if err != nil {
 		return err
 	}
-	re, err := getRegexp(string(s1))
+	re, err := getRegexp(bctx, string(s1))
 	if err != nil {
 		return err
 	}
@@ -79,7 +82,7 @@ func builtinRegexMatchTemplate(_ BuiltinContext, operands []*ast.Term, iter func
 	return iter(ast.BooleanTerm(re.MatchString(string(match))))
 }
 
-func builtinRegexSplit(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinRegexSplit(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return err
@@ -88,7 +91,7 @@ func builtinRegexSplit(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Te
 	if err != nil {
 		return err
 	}
-	re, err := getRegexp(string(s1))
+	re, err := getRegexp(bctx, string(s1))
 	if err != nil {
 		return err
 	}
@@ -101,7 +104,29 @@ func builtinRegexSplit(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Te
 	return iter(ast.NewTerm(ast.NewArray(arr...)))
 }
 
-func getRegexp(pat string) (*regexp.Regexp, error) {
+func getRegexp(bctx BuiltinContext, pat string) (*regexp.Regexp, error) {
+	if bctx.InterQueryBuiltinValueCache != nil {
+		val, ok := bctx.InterQueryBuiltinValueCache.Get(ast.String(pat))
+		if ok {
+			res, valid := val.(*regexp.Regexp)
+			if !valid {
+				// The cache key may exist for a different value type (eg. glob).
+				// In this case, we calculate the regex and return the result w/o updating the cache.
+				return regexp.Compile(pat)
+			}
+
+			bctx.Metrics.Counter(regexInterQueryValueCacheHits).Incr()
+			return res, nil
+		}
+
+		re, err := regexp.Compile(pat)
+		if err != nil {
+			return nil, err
+		}
+		bctx.InterQueryBuiltinValueCache.Insert(ast.String(pat), re)
+		return re, nil
+	}
+
 	regexpCacheLock.Lock()
 	defer regexpCacheLock.Unlock()
 	re, ok := regexpCache[pat]
@@ -110,6 +135,13 @@ func getRegexp(pat string) (*regexp.Regexp, error) {
 		re, err = regexp.Compile(pat)
 		if err != nil {
 			return nil, err
+		}
+		if len(regexpCache) >= regexCacheMaxSize {
+			// Delete a (semi-)random key to make room for the new one.
+			for k := range regexpCache {
+				delete(regexpCache, k)
+				break
+			}
 		}
 		regexpCache[pat] = re
 	}
@@ -147,7 +179,7 @@ func builtinGlobsMatch(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Te
 	return iter(ast.BooleanTerm(ne))
 }
 
-func builtinRegexFind(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinRegexFind(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return err
@@ -160,7 +192,7 @@ func builtinRegexFind(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Ter
 	if err != nil {
 		return err
 	}
-	re, err := getRegexp(string(s1))
+	re, err := getRegexp(bctx, string(s1))
 	if err != nil {
 		return err
 	}
@@ -173,7 +205,7 @@ func builtinRegexFind(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Ter
 	return iter(ast.NewTerm(ast.NewArray(arr...)))
 }
 
-func builtinRegexFindAllStringSubmatch(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinRegexFindAllStringSubmatch(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	s1, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return err
@@ -187,7 +219,7 @@ func builtinRegexFindAllStringSubmatch(_ BuiltinContext, operands []*ast.Term, i
 		return err
 	}
 
-	re, err := getRegexp(string(s1))
+	re, err := getRegexp(bctx, string(s1))
 	if err != nil {
 		return err
 	}
@@ -205,7 +237,7 @@ func builtinRegexFindAllStringSubmatch(_ BuiltinContext, operands []*ast.Term, i
 	return iter(ast.NewTerm(ast.NewArray(outer...)))
 }
 
-func builtinRegexReplace(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
+func builtinRegexReplace(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
 	base, err := builtins.StringOperand(operands[0].Value, 1)
 	if err != nil {
 		return err
@@ -221,7 +253,7 @@ func builtinRegexReplace(_ BuiltinContext, operands []*ast.Term, iter func(*ast.
 		return err
 	}
 
-	re, err := getRegexp(string(pattern))
+	re, err := getRegexp(bctx, string(pattern))
 	if err != nil {
 		return err
 	}

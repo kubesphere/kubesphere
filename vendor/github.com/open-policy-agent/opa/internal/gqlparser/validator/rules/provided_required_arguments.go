@@ -9,7 +9,7 @@ import (
 
 func init() {
 	AddRule("ProvidedRequiredArguments", func(observers *Events, addError AddErrFunc) {
-		observers.OnField(func(walker *Walker, field *ast.Field) {
+		observers.OnField(func(_ *Walker, field *ast.Field) {
 			if field.Definition == nil {
 				return
 			}
@@ -35,7 +35,7 @@ func init() {
 			}
 		})
 
-		observers.OnDirective(func(walker *Walker, directive *ast.Directive) {
+		observers.OnDirective(func(_ *Walker, directive *ast.Directive) {
 			if directive.Definition == nil {
 				return
 			}

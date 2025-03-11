@@ -35,5 +35,4 @@ COPY --from=build_context /out/ /
 WORKDIR /
 
 EXPOSE 8443
-
 CMD ["sh"]

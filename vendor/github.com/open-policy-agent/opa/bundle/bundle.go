@@ -15,10 +15,13 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
 
+	"github.com/gobwas/glob"
 	"github.com/open-policy-agent/opa/ast"
 	astJSON "github.com/open-policy-agent/opa/ast/json"
 	"github.com/open-policy-agent/opa/format"
@@ -120,10 +123,28 @@ func NewFile(name, hash, alg string) FileInfo {
 // Manifest represents the manifest from a bundle. The manifest may contain
 // metadata such as the bundle revision.
 type Manifest struct {
-	Revision      string                 `json:"revision"`
-	Roots         *[]string              `json:"roots,omitempty"`
-	WasmResolvers []WasmResolver         `json:"wasm,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	Revision      string         `json:"revision"`
+	Roots         *[]string      `json:"roots,omitempty"`
+	WasmResolvers []WasmResolver `json:"wasm,omitempty"`
+	// RegoVersion is the global Rego version for the bundle described by this Manifest.
+	// The Rego version of individual files can be overridden in FileRegoVersions.
+	// We don't use ast.RegoVersion here, as this iota type's order isn't guaranteed to be stable over time.
+	// We use a pointer so that we can support hand-made bundles that don't have an explicit version appropriately.
+	// E.g. in OPA 0.x if --v1-compatible is used when consuming the bundle, and there is no specified version,
+	// we should default to v1; if --v1-compatible isn't used, we should default to v0. In OPA 1.0, no --x-compatible
+	// flag and no explicit bundle version should default to v1.
+	RegoVersion *int `json:"rego_version,omitempty"`
+	// FileRegoVersions is a map from file paths to Rego versions.
+	// This allows individual files to override the global Rego version specified by RegoVersion.
+	FileRegoVersions map[string]int         `json:"file_rego_versions,omitempty"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+
+	compiledFileRegoVersions []fileRegoVersion
+}
+
+type fileRegoVersion struct {
+	path    glob.Glob
+	version int
 }
 
 // WasmResolver maps a wasm module to an entrypoint ref.
@@ -150,6 +171,15 @@ func (m *Manifest) AddRoot(r string) {
 	}
 }
 
+func (m *Manifest) SetRegoVersion(v ast.RegoVersion) {
+	m.Init()
+	regoVersion := 0
+	if v == ast.RegoV1 {
+		regoVersion = 1
+	}
+	m.RegoVersion = &regoVersion
+}
+
 // Equal returns true if m is semantically equivalent to other.
 func (m Manifest) Equal(other Manifest) bool {
 
@@ -158,6 +188,22 @@ func (m Manifest) Equal(other Manifest) bool {
 	other.Init()
 
 	if m.Revision != other.Revision {
+		return false
+	}
+
+	if m.RegoVersion == nil && other.RegoVersion != nil {
+		return false
+	}
+	if m.RegoVersion != nil && other.RegoVersion == nil {
+		return false
+	}
+	if m.RegoVersion != nil && other.RegoVersion != nil && *m.RegoVersion != *other.RegoVersion {
+		return false
+	}
+
+	// If both are nil, or both are empty, we consider them equal.
+	if !(len(m.FileRegoVersions) == 0 && len(other.FileRegoVersions) == 0) &&
+		!reflect.DeepEqual(m.FileRegoVersions, other.FileRegoVersions) {
 		return false
 	}
 
@@ -197,7 +243,12 @@ func (m Manifest) Copy() Manifest {
 
 func (m Manifest) String() string {
 	m.Init()
-	return fmt.Sprintf("<revision: %q, roots: %v, wasm: %+v, metadata: %+v>", m.Revision, *m.Roots, m.WasmResolvers, m.Metadata)
+	if m.RegoVersion != nil {
+		return fmt.Sprintf("<revision: %q, rego_version: %d, roots: %v, wasm: %+v, metadata: %+v>",
+			m.Revision, *m.RegoVersion, *m.Roots, m.WasmResolvers, m.Metadata)
+	}
+	return fmt.Sprintf("<revision: %q, roots: %v, wasm: %+v, metadata: %+v>",
+		m.Revision, *m.Roots, m.WasmResolvers, m.Metadata)
 }
 
 func (m Manifest) rootSet() stringSet {
@@ -358,10 +409,11 @@ func (m *Manifest) validateAndInjectDefaults(b Bundle) error {
 
 // ModuleFile represents a single module contained in a bundle.
 type ModuleFile struct {
-	URL    string
-	Path   string
-	Raw    []byte
-	Parsed *ast.Module
+	URL          string
+	Path         string
+	RelativePath string
+	Raw          []byte
+	Parsed       *ast.Module
 }
 
 // WasmModuleFile represents a single wasm module contained in a bundle.
@@ -401,6 +453,7 @@ type Reader struct {
 	name                  string
 	persist               bool
 	regoVersion           ast.RegoVersion
+	followSymlinks        bool
 }
 
 // NewReader is deprecated. Use NewCustomReader instead.
@@ -489,6 +542,11 @@ func (r *Reader) WithBundleName(name string) *Reader {
 	return r
 }
 
+func (r *Reader) WithFollowSymlinks(yes bool) *Reader {
+	r.followSymlinks = yes
+	return r
+}
+
 // WithLazyLoadingMode sets the bundle loading mode. If true,
 // bundles will be read in lazy mode. In this mode, data files in the bundle will not be
 // deserialized and the check to validate that the bundle data does not contain paths
@@ -543,6 +601,7 @@ func (r *Reader) Read() (Bundle, error) {
 		bundle.Data = map[string]interface{}{}
 	}
 
+	var modules []ModuleFile
 	for _, f := range descriptors {
 		buf, err := readFile(f, r.sizeLimitBytes)
 		if err != nil {
@@ -583,20 +642,14 @@ func (r *Reader) Read() (Bundle, error) {
 				raw = append(raw, Raw{Path: p, Value: bs})
 			}
 
-			r.metrics.Timer(metrics.RegoModuleParse).Start()
-			module, err := ast.ParseModuleWithOpts(fullPath, buf.String(), r.ParserOptions())
-			r.metrics.Timer(metrics.RegoModuleParse).Stop()
-			if err != nil {
-				return bundle, err
-			}
-
+			// Modules are parsed after we've had a chance to read the manifest
 			mf := ModuleFile{
-				URL:    f.URL(),
-				Path:   fullPath,
-				Raw:    bs,
-				Parsed: module,
+				URL:          f.URL(),
+				Path:         fullPath,
+				RelativePath: path,
+				Raw:          bs,
 			}
-			bundle.Modules = append(bundle.Modules, mf)
+			modules = append(modules, mf)
 		} else if filepath.Base(path) == WasmFile {
 			bundle.WasmModules = append(bundle.WasmModules, WasmModuleFile{
 				URL:  f.URL(),
@@ -654,6 +707,23 @@ func (r *Reader) Read() (Bundle, error) {
 				return bundle, fmt.Errorf("bundle load failed on manifest decode: %w", err)
 			}
 		}
+	}
+
+	// Parse modules
+	popts := r.ParserOptions()
+	popts.RegoVersion = bundle.RegoVersion(popts.RegoVersion)
+	for _, mf := range modules {
+		modulePopts := popts
+		if modulePopts.RegoVersion, err = bundle.RegoVersionForFile(mf.RelativePath, popts.RegoVersion); err != nil {
+			return bundle, err
+		}
+		r.metrics.Timer(metrics.RegoModuleParse).Start()
+		mf.Parsed, err = ast.ParseModuleWithOpts(mf.Path, string(mf.Raw), modulePopts)
+		r.metrics.Timer(metrics.RegoModuleParse).Stop()
+		if err != nil {
+			return bundle, err
+		}
+		bundle.Modules = append(bundle.Modules, mf)
 	}
 
 	if bundle.Type() == DeltaBundleType {
@@ -1012,7 +1082,7 @@ func hashBundleFiles(hash SignatureHasher, b *Bundle) ([]FileInfo, error) {
 }
 
 // FormatModules formats Rego modules
-// Modules will be formatted to comply with rego-v1, but Rego compatibility of individual parsed modules will be respected (e.g. if 'rego.v1' is imported).
+// Modules will be formatted to comply with rego-v0, but Rego compatibility of individual parsed modules will be respected (e.g. if 'rego.v1' is imported).
 func (b *Bundle) FormatModules(useModulePath bool) error {
 	return b.FormatModulesForRegoVersion(ast.RegoV0, true, useModulePath)
 }
@@ -1022,8 +1092,18 @@ func (b *Bundle) FormatModulesForRegoVersion(version ast.RegoVersion, preserveMo
 	var err error
 
 	for i, module := range b.Modules {
+		opts := format.Opts{}
+		if preserveModuleRegoVersion {
+			opts.RegoVersion = module.Parsed.RegoVersion()
+			opts.ParserOptions = &ast.ParserOptions{
+				RegoVersion: opts.RegoVersion,
+			}
+		} else {
+			opts.RegoVersion = version
+		}
+
 		if module.Raw == nil {
-			module.Raw, err = format.AstWithOpts(module.Parsed, format.Opts{RegoVersion: version})
+			module.Raw, err = format.AstWithOpts(module.Parsed, opts)
 			if err != nil {
 				return err
 			}
@@ -1031,13 +1111,6 @@ func (b *Bundle) FormatModulesForRegoVersion(version ast.RegoVersion, preserveMo
 			path := module.URL
 			if useModulePath {
 				path = module.Path
-			}
-
-			opts := format.Opts{}
-			if preserveModuleRegoVersion {
-				opts.RegoVersion = module.Parsed.RegoVersion()
-			} else {
-				opts.RegoVersion = version
 			}
 
 			module.Raw, err = format.SourceWithOpts(path, module.Raw, opts)
@@ -1109,6 +1182,65 @@ func (b *Bundle) ParsedModules(bundleName string) map[string]*ast.Module {
 	}
 
 	return mods
+}
+
+func (b *Bundle) RegoVersion(def ast.RegoVersion) ast.RegoVersion {
+	if v := b.Manifest.RegoVersion; v != nil {
+		if *v == 0 {
+			return ast.RegoV0
+		} else if *v == 1 {
+			return ast.RegoV1
+		}
+	}
+	return def
+}
+
+func (b *Bundle) SetRegoVersion(v ast.RegoVersion) {
+	b.Manifest.SetRegoVersion(v)
+}
+
+// RegoVersionForFile returns the rego-version for the specified file path.
+// If there is no defined version for the given path, the default version def is returned.
+// If the version does not correspond to ast.RegoV0 or ast.RegoV1, an error is returned.
+func (b *Bundle) RegoVersionForFile(path string, def ast.RegoVersion) (ast.RegoVersion, error) {
+	version, err := b.Manifest.numericRegoVersionForFile(path)
+	if err != nil {
+		return def, err
+	} else if version == nil {
+		return def, nil
+	} else if *version == 0 {
+		return ast.RegoV0, nil
+	} else if *version == 1 {
+		return ast.RegoV1, nil
+	}
+	return def, fmt.Errorf("unknown bundle rego-version %d for file '%s'", *version, path)
+}
+
+func (m *Manifest) numericRegoVersionForFile(path string) (*int, error) {
+	var version *int
+
+	if len(m.FileRegoVersions) != len(m.compiledFileRegoVersions) {
+		m.compiledFileRegoVersions = make([]fileRegoVersion, 0, len(m.FileRegoVersions))
+		for pattern, v := range m.FileRegoVersions {
+			compiled, err := glob.Compile(pattern)
+			if err != nil {
+				return nil, fmt.Errorf("failed to compile glob pattern %s: %s", pattern, err)
+			}
+			m.compiledFileRegoVersions = append(m.compiledFileRegoVersions, fileRegoVersion{compiled, v})
+		}
+	}
+
+	for _, fv := range m.compiledFileRegoVersions {
+		if fv.path.Match(path) {
+			version = &fv.version
+			break
+		}
+	}
+
+	if version == nil {
+		version = m.RegoVersion
+	}
+	return version, nil
 }
 
 // Equal returns true if this bundle's contents equal the other bundle's
@@ -1261,13 +1393,33 @@ func mktree(path []string, value interface{}) (map[string]interface{}, error) {
 // will have an empty revision except in the special case where a single bundle is provided
 // (and in that case the bundle is just returned unmodified.)
 func Merge(bundles []*Bundle) (*Bundle, error) {
+	return MergeWithRegoVersion(bundles, ast.RegoV0, false)
+}
+
+// MergeWithRegoVersion creates a merged bundle from the provided bundles, similar to Merge.
+// If more than one bundle is provided, the rego version of the result bundle is set to the provided regoVersion.
+// Any Rego files in a bundle of conflicting rego version will be marked in the result's manifest with the rego version
+// of its original bundle. If the Rego file already had an overriding rego version, it will be preserved.
+// If a single bundle is provided, it will retain any rego version information it already had. If it has none, the
+// provided regoVersion will be applied to it.
+// If usePath is true, per-file rego-versions will be calculated using the file's ModuleFile.Path; otherwise, the file's
+// ModuleFile.URL will be used.
+func MergeWithRegoVersion(bundles []*Bundle, regoVersion ast.RegoVersion, usePath bool) (*Bundle, error) {
 
 	if len(bundles) == 0 {
 		return nil, errors.New("expected at least one bundle")
 	}
 
 	if len(bundles) == 1 {
-		return bundles[0], nil
+		result := bundles[0]
+		// We respect the bundle rego-version, defaulting to the provided rego version if not set.
+		result.SetRegoVersion(result.RegoVersion(regoVersion))
+		fileRegoVersions, err := bundleRegoVersions(result, result.RegoVersion(regoVersion), usePath)
+		if err != nil {
+			return nil, err
+		}
+		result.Manifest.FileRegoVersions = fileRegoVersions
+		return result, nil
 	}
 
 	var roots []string
@@ -1296,7 +1448,23 @@ func Merge(bundles []*Bundle) (*Bundle, error) {
 		result.WasmModules = append(result.WasmModules, b.WasmModules...)
 		result.PlanModules = append(result.PlanModules, b.PlanModules...)
 
+		if b.Manifest.RegoVersion != nil || len(b.Manifest.FileRegoVersions) > 0 {
+			if result.Manifest.FileRegoVersions == nil {
+				result.Manifest.FileRegoVersions = map[string]int{}
+			}
+
+			fileRegoVersions, err := bundleRegoVersions(b, regoVersion, usePath)
+			if err != nil {
+				return nil, err
+			}
+			for k, v := range fileRegoVersions {
+				result.Manifest.FileRegoVersions[k] = v
+			}
+		}
 	}
+
+	// We respect the bundle rego-version, defaulting to the provided rego version if not set.
+	result.SetRegoVersion(result.RegoVersion(regoVersion))
 
 	if result.Data == nil {
 		result.Data = map[string]interface{}{}
@@ -1309,6 +1477,53 @@ func Merge(bundles []*Bundle) (*Bundle, error) {
 	}
 
 	return &result, nil
+}
+
+func bundleRegoVersions(bundle *Bundle, regoVersion ast.RegoVersion, usePath bool) (map[string]int, error) {
+	fileRegoVersions := map[string]int{}
+
+	// we drop the bundle-global rego versions and record individual rego versions for each module.
+	for _, m := range bundle.Modules {
+		// We fetch rego-version by the path relative to the bundle root, as the complete path of the module might
+		// contain the path between OPA working directory and the bundle root.
+		v, err := bundle.RegoVersionForFile(bundleRelativePath(m, usePath), bundle.RegoVersion(regoVersion))
+		if err != nil {
+			return nil, err
+		}
+		// only record the rego version if it's different from one applied globally to the result bundle
+		if v != regoVersion {
+			// We store the rego version by the absolute path to the bundle root, as this will be the - possibly new - path
+			// to the module inside the merged bundle.
+			fileRegoVersions[bundleAbsolutePath(m, usePath)] = v.Int()
+		}
+	}
+
+	return fileRegoVersions, nil
+}
+
+func bundleRelativePath(m ModuleFile, usePath bool) string {
+	p := m.RelativePath
+	if p == "" {
+		if usePath {
+			p = m.Path
+		} else {
+			p = m.URL
+		}
+	}
+	return p
+}
+
+func bundleAbsolutePath(m ModuleFile, usePath bool) string {
+	var p string
+	if usePath {
+		p = m.Path
+	} else {
+		p = m.URL
+	}
+	if !path.IsAbs(p) {
+		p = "/" + p
+	}
+	return path.Clean(p)
 }
 
 // RootPathsOverlap takes in two bundle root paths and returns true if they overlap.
@@ -1465,6 +1680,7 @@ func preProcessBundle(loader DirectoryLoader, skipVerify bool, sizeLimitBytes in
 }
 
 func readFile(f *Descriptor, sizeLimitBytes int64) (bytes.Buffer, error) {
+	// Case for pre-loaded byte buffers, like those from the tarballLoader.
 	if bb, ok := f.reader.(*bytes.Buffer); ok {
 		_ = f.Close() // always close, even on error
 
@@ -1476,6 +1692,37 @@ func readFile(f *Descriptor, sizeLimitBytes int64) (bytes.Buffer, error) {
 		return *bb, nil
 	}
 
+	// Case for *lazyFile readers:
+	if lf, ok := f.reader.(*lazyFile); ok {
+		var buf bytes.Buffer
+		if lf.file == nil {
+			var err error
+			if lf.file, err = os.Open(lf.path); err != nil {
+				return buf, fmt.Errorf("failed to open file %s: %w", f.path, err)
+			}
+		}
+		// Bail out if we can't read the whole file-- there's nothing useful we can do at that point!
+		fileSize, _ := fstatFileSize(lf.file)
+		if fileSize > sizeLimitBytes {
+			return buf, fmt.Errorf(maxSizeLimitBytesErrMsg, strings.TrimPrefix(f.Path(), "/"), fileSize, sizeLimitBytes-1)
+		}
+		// Prealloc the buffer for the file read.
+		buffer := make([]byte, fileSize)
+		_, err := io.ReadFull(lf.file, buffer)
+		if err != nil {
+			return buf, err
+		}
+		_ = lf.file.Close() // always close, even on error
+
+		// Note(philipc): Replace the lazyFile reader in the *Descriptor with a
+		// pointer to the wrapping bytes.Buffer, so that we don't re-read the
+		// file on disk again by accident.
+		buf = *bytes.NewBuffer(buffer)
+		f.reader = &buf
+		return buf, nil
+	}
+
+	// Fallback case:
 	var buf bytes.Buffer
 	n, err := f.Read(&buf, sizeLimitBytes)
 	_ = f.Close() // always close, even on error
@@ -1487,6 +1734,17 @@ func readFile(f *Descriptor, sizeLimitBytes int64) (bytes.Buffer, error) {
 	}
 
 	return buf, nil
+}
+
+// Takes an already open file handle and invokes the os.Stat system call on it
+// to determine the file's size. Passes any errors from *File.Stat on up to the
+// caller.
+func fstatFileSize(f *os.File) (int64, error) {
+	fileInfo, err := f.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return fileInfo.Size(), nil
 }
 
 func normalizePath(p string) string {

@@ -370,7 +370,7 @@ func LoadRootsWithConfig(cfg *packages.Config, roots ...string) ([]*Package, err
 		cfg:      cfg,
 		packages: make(map[*packages.Package]*Package),
 	}
-	l.cfg.Mode |= packages.LoadImports | packages.NeedTypesSizes
+	l.cfg.Mode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedImports | packages.NeedTypesSizes
 	if l.cfg.Fset == nil {
 		l.cfg.Fset = token.NewFileSet()
 	}
@@ -393,7 +393,7 @@ func LoadRootsWithConfig(cfg *packages.Config, roots ...string) ([]*Package, err
 	// and try and prevent packages from showing up twice when nested module
 	// support is enabled. there is not harm that comes from this per se, but
 	// it makes testing easier when a known number of modules can be asserted
-	uniquePkgIDs := sets.String{}
+	uniquePkgIDs := sets.Set[string]{}
 
 	// loadPackages returns the Go packages for the provided roots
 	//
@@ -489,7 +489,6 @@ func LoadRootsWithConfig(cfg *packages.Config, roots ...string) ([]*Package, err
 		p string,
 		d os.DirEntry,
 		e error) error {
-
 		if e != nil {
 			return e
 		}
@@ -518,7 +517,6 @@ func LoadRootsWithConfig(cfg *packages.Config, roots ...string) ([]*Package, err
 
 		// get the absolute path of the root
 		if !filepath.IsAbs(r) {
-
 			// if the initial value of cfg.Dir was non-empty then use it when
 			// building the absolute path to this root. otherwise use the
 			// filepath.Abs function to get the absolute path of the root based
@@ -548,7 +546,6 @@ func LoadRootsWithConfig(cfg *packages.Config, roots ...string) ([]*Package, err
 			if err := filepath.WalkDir(
 				d,
 				addNestedGoModulesToRoots); err != nil {
-
 				return nil, err
 			}
 		}
@@ -604,9 +601,9 @@ func LoadRootsWithConfig(cfg *packages.Config, roots ...string) ([]*Package, err
 // references with those from the rootPkgs list. This ensures the
 // kubebuilder marker generation is handled correctly. For more info,
 // please see issue 680.
-func visitImports(rootPkgs []*Package, pkg *Package, seen sets.String) {
+func visitImports(rootPkgs []*Package, pkg *Package, seen sets.Set[string]) {
 	if seen == nil {
-		seen = sets.String{}
+		seen = sets.Set[string]{}
 	}
 	for importedPkgID, importedPkg := range pkg.Imports() {
 		for i := range rootPkgs {

@@ -352,12 +352,12 @@ func (vis *GenericVisitor) Walk(x interface{}) {
 			vis.Walk(x[i])
 		}
 	case *object:
-		x.Foreach(func(k, v *Term) {
+		x.Foreach(func(k, _ *Term) {
 			vis.Walk(k)
 			vis.Walk(x.Get(k))
 		})
 	case Object:
-		x.Foreach(func(k, v *Term) {
+		x.Foreach(func(k, _ *Term) {
 			vis.Walk(k)
 			vis.Walk(x.Get(k))
 		})
@@ -492,12 +492,12 @@ func (vis *BeforeAfterVisitor) Walk(x interface{}) {
 			vis.Walk(x[i])
 		}
 	case *object:
-		x.Foreach(func(k, v *Term) {
+		x.Foreach(func(k, _ *Term) {
 			vis.Walk(k)
 			vis.Walk(x.Get(k))
 		})
 	case Object:
-		x.Foreach(func(k, v *Term) {
+		x.Foreach(func(k, _ *Term) {
 			vis.Walk(k)
 			vis.Walk(x.Get(k))
 		})
@@ -579,7 +579,7 @@ func (vis *VarVisitor) Vars() VarSet {
 func (vis *VarVisitor) visit(v interface{}) bool {
 	if vis.params.SkipObjectKeys {
 		if o, ok := v.(Object); ok {
-			o.Foreach(func(k, v *Term) {
+			o.Foreach(func(_, v *Term) {
 				vis.Walk(v)
 			})
 			return true
@@ -741,7 +741,7 @@ func (vis *VarVisitor) Walk(x interface{}) {
 			vis.Walk(x[i])
 		}
 	case *object:
-		x.Foreach(func(k, v *Term) {
+		x.Foreach(func(k, _ *Term) {
 			vis.Walk(k)
 			vis.Walk(x.Get(k))
 		})

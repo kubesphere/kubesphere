@@ -13,13 +13,13 @@ func init() {
 		inFragmentDefinition := false
 		fragmentNameUsed := make(map[string]bool)
 
-		observers.OnFragmentSpread(func(walker *Walker, fragmentSpread *ast.FragmentSpread) {
+		observers.OnFragmentSpread(func(_ *Walker, fragmentSpread *ast.FragmentSpread) {
 			if !inFragmentDefinition {
 				fragmentNameUsed[fragmentSpread.Name] = true
 			}
 		})
 
-		observers.OnFragment(func(walker *Walker, fragment *ast.FragmentDefinition) {
+		observers.OnFragment(func(_ *Walker, fragment *ast.FragmentDefinition) {
 			inFragmentDefinition = true
 			if !fragmentNameUsed[fragment.Name] {
 				addError(

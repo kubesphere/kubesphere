@@ -28,6 +28,9 @@ type Opts struct {
 
 	// RegoVersion is the version of Rego to format code for.
 	RegoVersion ast.RegoVersion
+
+	// ParserOptions is the parser options used when parsing the module to be formatted.
+	ParserOptions *ast.ParserOptions
 }
 
 // defaultLocationFile is the file name used in `Ast()` for terms
@@ -43,11 +46,15 @@ func Source(filename string, src []byte) ([]byte, error) {
 }
 
 func SourceWithOpts(filename string, src []byte, opts Opts) ([]byte, error) {
-	parserOpts := ast.ParserOptions{}
-	if opts.RegoVersion == ast.RegoV1 {
-		// If the rego version is V1, wee need to parse it as such, to allow for future keywords not being imported.
-		// Otherwise, we'll default to RegoV0
-		parserOpts.RegoVersion = ast.RegoV1
+	var parserOpts ast.ParserOptions
+	if opts.ParserOptions != nil {
+		parserOpts = *opts.ParserOptions
+	} else {
+		if opts.RegoVersion == ast.RegoV1 {
+			// If the rego version is V1, we need to parse it as such, to allow for future keywords not being imported.
+			// Otherwise, we'll default to the default rego-version.
+			parserOpts.RegoVersion = ast.RegoV1
+		}
 	}
 
 	module, err := ast.ParseModuleWithOpts(filename, string(src), parserOpts)
@@ -56,7 +63,12 @@ func SourceWithOpts(filename string, src []byte, opts Opts) ([]byte, error) {
 	}
 
 	if opts.RegoVersion == ast.RegoV0CompatV1 || opts.RegoVersion == ast.RegoV1 {
-		errors := ast.CheckRegoV1(module)
+		checkOpts := ast.NewRegoCheckOptions()
+		// The module is parsed as v0, so we need to disable checks that will be automatically amended by the AstWithOpts call anyways.
+		checkOpts.RequireIfKeyword = false
+		checkOpts.RequireContainsKeyword = false
+		checkOpts.RequireRuleBodyOrValue = false
+		errors := ast.CheckRegoV1WithOptions(module, checkOpts)
 		if len(errors) > 0 {
 			return nil, errors
 		}
@@ -74,6 +86,16 @@ func SourceWithOpts(filename string, src []byte, opts Opts) ([]byte, error) {
 // occurs this function will panic. This is mostly used for test
 func MustAst(x interface{}) []byte {
 	bs, err := Ast(x)
+	if err != nil {
+		panic(err)
+	}
+	return bs
+}
+
+// MustAstWithOpts is a helper function to format a Rego AST element. If any errors
+// occurs this function will panic. This is mostly used for test
+func MustAstWithOpts(x interface{}, opts Opts) []byte {
+	bs, err := AstWithOpts(x, opts)
 	if err != nil {
 		panic(err)
 	}
@@ -104,7 +126,16 @@ type fmtOpts struct {
 	// than if they don't.
 	refHeads bool
 
-	regoV1 bool
+	regoV1         bool
+	futureKeywords []string
+}
+
+func (o fmtOpts) keywords() []string {
+	if o.regoV1 {
+		return ast.KeywordsV1[:]
+	}
+	kws := ast.KeywordsV0[:]
+	return append(kws, o.futureKeywords...)
 }
 
 func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
@@ -149,6 +180,10 @@ func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 			}
 
 		case *ast.Import:
+			if kw, ok := future.WhichFutureKeyword(n); ok {
+				o.futureKeywords = append(o.futureKeywords, kw)
+			}
+
 			switch {
 			case isRegoV1Compatible(n):
 				o.contains = true
@@ -178,8 +213,9 @@ func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 	})
 
 	w := &writer{
-		indent: "\t",
-		errs:   make([]*ast.Error, 0),
+		indent:  "\t",
+		errs:    make([]*ast.Error, 0),
+		fmtOpts: o,
 	}
 
 	switch x := x.(type) {
@@ -197,18 +233,17 @@ func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 				x.Imports = ensureFutureKeywordImport(x.Imports, kw)
 			}
 		}
-		w.writeModule(x, o)
+		w.writeModule(x)
 	case *ast.Package:
 		w.writePackage(x, nil)
 	case *ast.Import:
 		w.writeImports([]*ast.Import{x}, nil)
 	case *ast.Rule:
-		w.writeRule(x, false /* isElse */, o, nil)
+		w.writeRule(x, false /* isElse */, nil)
 	case *ast.Head:
 		w.writeHead(x,
 			false, // isDefault
 			false, // isExpandedConst
-			o,
 			nil)
 	case ast.Body:
 		w.writeBody(x, nil)
@@ -280,9 +315,10 @@ type writer struct {
 	beforeEnd *ast.Comment
 	delay     bool
 	errs      ast.Errors
+	fmtOpts   fmtOpts
 }
 
-func (w *writer) writeModule(module *ast.Module, o fmtOpts) {
+func (w *writer) writeModule(module *ast.Module) {
 	var pkg *ast.Package
 	var others []interface{}
 	var comments []*ast.Comment
@@ -320,7 +356,7 @@ func (w *writer) writeModule(module *ast.Module, o fmtOpts) {
 		imports, others = gatherImports(others)
 		comments = w.writeImports(imports, comments)
 		rules, others = gatherRules(others)
-		comments = w.writeRules(rules, o, comments)
+		comments = w.writeRules(rules, comments)
 	}
 
 	for i, c := range comments {
@@ -343,7 +379,15 @@ func (w *writer) writePackage(pkg *ast.Package, comments []*ast.Comment) []*ast.
 	comments = w.insertComments(comments, pkg.Location)
 
 	w.startLine()
-	w.write(pkg.String())
+
+	// Omit head as all packages have the DefaultRootDocument prepended at parse time.
+	path := make(ast.Ref, len(pkg.Path)-1)
+	path[0] = ast.VarTerm(string(pkg.Path[1].Value.(ast.String)))
+	copy(path[1:], pkg.Path[2:])
+
+	w.write("package ")
+	w.writeRef(path)
+
 	w.blankLine()
 
 	return comments
@@ -358,16 +402,16 @@ func (w *writer) writeComments(comments []*ast.Comment) {
 	}
 }
 
-func (w *writer) writeRules(rules []*ast.Rule, o fmtOpts, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeRules(rules []*ast.Rule, comments []*ast.Comment) []*ast.Comment {
 	for _, rule := range rules {
 		comments = w.insertComments(comments, rule.Location)
-		comments = w.writeRule(rule, false, o, comments)
+		comments = w.writeRule(rule, false, comments)
 		w.blankLine()
 	}
 	return comments
 }
 
-func (w *writer) writeRule(rule *ast.Rule, isElse bool, o fmtOpts, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeRule(rule *ast.Rule, isElse bool, comments []*ast.Comment) []*ast.Comment {
 	if rule == nil {
 		return comments
 	}
@@ -386,17 +430,17 @@ func (w *writer) writeRule(rule *ast.Rule, isElse bool, o fmtOpts, comments []*a
 	// pretend that the rule has no body in this case.
 	isExpandedConst := rule.Body.Equal(ast.NewBody(ast.NewExpr(ast.BooleanTerm(true)))) && rule.Else == nil
 
-	comments = w.writeHead(rule.Head, rule.Default, isExpandedConst, o, comments)
+	comments = w.writeHead(rule.Head, rule.Default, isExpandedConst, comments)
 
 	// this excludes partial sets UNLESS `contains` is used
-	partialSetException := o.contains || rule.Head.Value != nil
+	partialSetException := w.fmtOpts.contains || rule.Head.Value != nil
 
 	if len(rule.Body) == 0 || isExpandedConst {
 		w.endLine()
 		return comments
 	}
 
-	if (o.regoV1 || o.ifs) && partialSetException {
+	if (w.fmtOpts.regoV1 || w.fmtOpts.ifs) && partialSetException {
 		w.write(" if")
 		if len(rule.Body) == 1 {
 			if rule.Body[0].Location.Row == rule.Head.Location.Row {
@@ -404,7 +448,7 @@ func (w *writer) writeRule(rule *ast.Rule, isElse bool, o fmtOpts, comments []*a
 				comments = w.writeExpr(rule.Body[0], comments)
 				w.endLine()
 				if rule.Else != nil {
-					comments = w.writeElse(rule, o, comments)
+					comments = w.writeElse(rule, comments)
 				}
 				return comments
 			}
@@ -432,12 +476,12 @@ func (w *writer) writeRule(rule *ast.Rule, isElse bool, o fmtOpts, comments []*a
 	w.startLine()
 	w.write("}")
 	if rule.Else != nil {
-		comments = w.writeElse(rule, o, comments)
+		comments = w.writeElse(rule, comments)
 	}
 	return comments
 }
 
-func (w *writer) writeElse(rule *ast.Rule, o fmtOpts, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeElse(rule *ast.Rule, comments []*ast.Comment) []*ast.Comment {
 	// If there was nothing else on the line before the "else" starts
 	// then preserve this style of else block, otherwise it will be
 	// started as an "inline" else eg:
@@ -499,16 +543,16 @@ func (w *writer) writeElse(rule *ast.Rule, o fmtOpts, comments []*ast.Comment) [
 		rule.Else.Head.Value.Location = rule.Else.Head.Location
 	}
 
-	return w.writeRule(rule.Else, true, o, comments)
+	return w.writeRule(rule.Else, true, comments)
 }
 
-func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst bool, o fmtOpts, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst bool, comments []*ast.Comment) []*ast.Comment {
 	ref := head.Ref()
 	if head.Key != nil && head.Value == nil && !head.HasDynamicRef() {
 		ref = ref.GroundPrefix()
 	}
-	if o.refHeads || len(ref) == 1 {
-		w.write(ref.String())
+	if w.fmtOpts.refHeads || len(ref) == 1 {
+		w.writeRef(ref)
 	} else {
 		w.write(ref[0].String())
 		w.write("[")
@@ -526,7 +570,7 @@ func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst bool, o fm
 		w.write(")")
 	}
 	if head.Key != nil {
-		if o.contains && head.Value == nil {
+		if w.fmtOpts.contains && head.Value == nil {
 			w.write(" contains ")
 			comments = w.writeTerm(head.Key, comments)
 		} else if head.Value == nil { // no `if` for p[x] notation
@@ -544,10 +588,9 @@ func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst bool, o fm
 		// * a.b -> a contains "b"
 		// * a.b.c -> a.b.c := true
 		// * a.b.c.d -> a.b.c.d := true
-		isRegoV1RefConst := o.regoV1 && isExpandedConst && head.Key == nil && len(head.Args) == 0
+		isRegoV1RefConst := w.fmtOpts.regoV1 && isExpandedConst && head.Key == nil && len(head.Args) == 0
 
-		if len(head.Args) > 0 &&
-			head.Location == head.Value.Location &&
+		if head.Location == head.Value.Location &&
 			head.Name != "else" &&
 			ast.Compare(head.Value, ast.BooleanTerm(true)) == 0 &&
 			!isRegoV1RefConst {
@@ -557,7 +600,7 @@ func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst bool, o fm
 			return comments
 		}
 
-		if head.Assign || o.regoV1 {
+		if head.Assign || w.fmtOpts.regoV1 {
 			// preserve assignment operator, and enforce it if formatting for Rego v1
 			w.write(" := ")
 		} else {
@@ -835,7 +878,7 @@ var varRegexp = regexp.MustCompile("^[[:alpha:]_][[:alpha:][:digit:]_]*$")
 
 func (w *writer) writeRefStringPath(s ast.String) {
 	str := string(s)
-	if varRegexp.MatchString(str) && !ast.IsKeyword(str) {
+	if varRegexp.MatchString(str) && !ast.IsInKeywords(str, w.fmtOpts.keywords()) {
 		w.write("." + str)
 	} else {
 		w.writeBracketed(s.String())
@@ -1046,7 +1089,7 @@ func (w *writer) writeImports(imports []*ast.Import, comments []*ast.Comment) []
 		})
 		for _, i := range group {
 			w.startLine()
-			w.write(i.String())
+			w.writeImport(i)
 			if c, ok := m[i]; ok {
 				w.write(" " + c.String())
 			}
@@ -1056,6 +1099,28 @@ func (w *writer) writeImports(imports []*ast.Import, comments []*ast.Comment) []
 	}
 
 	return comments
+}
+
+func (w *writer) writeImport(imp *ast.Import) {
+	path := imp.Path.Value.(ast.Ref)
+
+	buf := []string{"import"}
+
+	if _, ok := future.WhichFutureKeyword(imp); ok {
+		// We don't want to wrap future.keywords imports in parens, so we create a new writer that doesn't
+		w2 := writer{
+			buf: bytes.Buffer{},
+		}
+		w2.writeRef(path)
+		buf = append(buf, w2.buf.String())
+	} else {
+		buf = append(buf, path.String())
+	}
+
+	if len(imp.Alias) > 0 {
+		buf = append(buf, "as "+imp.Alias.String())
+	}
+	w.write(strings.Join(buf, " "))
 }
 
 type entryWriter func(interface{}, []*ast.Comment) []*ast.Comment
@@ -1106,15 +1171,44 @@ func (w *writer) writeIterableLine(elements []interface{}, comments []*ast.Comme
 func (w *writer) objectWriter() entryWriter {
 	return func(x interface{}, comments []*ast.Comment) []*ast.Comment {
 		entry := x.([2]*ast.Term)
+
+		call, isCall := entry[0].Value.(ast.Call)
+
+		paren := false
+		if isCall && ast.Or.Ref().Equal(call[0].Value) && entry[0].Location.Text[0] == 40 { // Starts with "("
+			paren = true
+			w.write("(")
+		}
+
 		comments = w.writeTerm(entry[0], comments)
+		if paren {
+			w.write(")")
+		}
+
 		w.write(": ")
+
+		call, isCall = entry[1].Value.(ast.Call)
+		if isCall && ast.Or.Ref().Equal(call[0].Value) && entry[1].Location.Text[0] == 40 { // Starts with "("
+			w.write("(")
+			defer w.write(")")
+		}
+
 		return w.writeTerm(entry[1], comments)
 	}
 }
 
 func (w *writer) listWriter() entryWriter {
 	return func(x interface{}, comments []*ast.Comment) []*ast.Comment {
-		return w.writeTerm(x.(*ast.Term), comments)
+		t, ok := x.(*ast.Term)
+		if ok {
+			call, isCall := t.Value.(ast.Call)
+			if isCall && ast.Or.Ref().Equal(call[0].Value) && t.Location.Text[0] == 40 { // Starts with "("
+				w.write("(")
+				defer w.write(")")
+			}
+		}
+
+		return w.writeTerm(t, comments)
 	}
 }
 
@@ -1311,7 +1405,10 @@ func closingLoc(skipOpen, skipClose, open, close byte, loc *ast.Location) *ast.L
 		i, offset = skipPast(skipOpen, skipClose, loc)
 	}
 
-	for ; i < len(loc.Text) && loc.Text[i] != open; i++ {
+	for ; i < len(loc.Text); i++ {
+		if loc.Text[i] == open {
+			break
+		}
 	}
 
 	if i >= len(loc.Text) {
@@ -1340,7 +1437,10 @@ func closingLoc(skipOpen, skipClose, open, close byte, loc *ast.Location) *ast.L
 
 func skipPast(open, close byte, loc *ast.Location) (int, int) {
 	i := 0
-	for ; i < len(loc.Text) && loc.Text[i] != open; i++ {
+	for ; i < len(loc.Text); i++ {
+		if loc.Text[i] == open {
+			break
+		}
 	}
 
 	state := 1
@@ -1449,7 +1549,12 @@ func ensureFutureKeywordImport(imps []*ast.Import, kw string) []*ast.Import {
 		}
 	}
 	imp := &ast.Import{
-		Path: ast.MustParseTerm("future.keywords." + kw),
+		// NOTE: This is a hack to not error on the ref containing a keyword already present in v1.
+		// A cleaner solution would be to instead allow refs to contain keyword terms.
+		// E.g. in v1, `import future.keywords["in"]` is valid, but `import future.keywords.in` is not
+		// as it contains a reserved keyword.
+		Path: ast.MustParseTerm("future.keywords[\"" + kw + "\"]"),
+		//Path: ast.MustParseTerm("future.keywords." + kw),
 	}
 	imp.Location = defaultLocation(imp)
 	return append(imps, imp)

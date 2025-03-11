@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/textproto"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -185,42 +184,66 @@ type Transport struct {
 	connPoolOnce  sync.Once
 	connPoolOrDef ClientConnPool // non-nil version of ConnPool
 
-	syncHooks *testSyncHooks
+	*transportTestHooks
+}
+
+// Hook points used for testing.
+// Outside of tests, t.transportTestHooks is nil and these all have minimal implementations.
+// Inside tests, see the testSyncHooks function docs.
+
+type transportTestHooks struct {
+	newclientconn func(*ClientConn)
+	group         synctestGroupInterface
+}
+
+func (t *Transport) markNewGoroutine() {
+	if t != nil && t.transportTestHooks != nil {
+		t.transportTestHooks.group.Join()
+	}
+}
+
+// newTimer creates a new time.Timer, or a synthetic timer in tests.
+func (t *Transport) newTimer(d time.Duration) timer {
+	if t.transportTestHooks != nil {
+		return t.transportTestHooks.group.NewTimer(d)
+	}
+	return timeTimer{time.NewTimer(d)}
+}
+
+// afterFunc creates a new time.AfterFunc timer, or a synthetic timer in tests.
+func (t *Transport) afterFunc(d time.Duration, f func()) timer {
+	if t.transportTestHooks != nil {
+		return t.transportTestHooks.group.AfterFunc(d, f)
+	}
+	return timeTimer{time.AfterFunc(d, f)}
+}
+
+func (t *Transport) contextWithTimeout(ctx context.Context, d time.Duration) (context.Context, context.CancelFunc) {
+	if t.transportTestHooks != nil {
+		return t.transportTestHooks.group.ContextWithTimeout(ctx, d)
+	}
+	return context.WithTimeout(ctx, d)
 }
 
 func (t *Transport) maxHeaderListSize() uint32 {
-	if t.MaxHeaderListSize == 0 {
+	n := int64(t.MaxHeaderListSize)
+	if t.t1 != nil && t.t1.MaxResponseHeaderBytes != 0 {
+		n = t.t1.MaxResponseHeaderBytes
+		if n > 0 {
+			n = adjustHTTP1MaxHeaderSize(n)
+		}
+	}
+	if n <= 0 {
 		return 10 << 20
 	}
-	if t.MaxHeaderListSize == 0xffffffff {
+	if n >= 0xffffffff {
 		return 0
 	}
-	return t.MaxHeaderListSize
-}
-
-func (t *Transport) maxFrameReadSize() uint32 {
-	if t.MaxReadFrameSize == 0 {
-		return 0 // use the default provided by the peer
-	}
-	if t.MaxReadFrameSize < minMaxFrameSize {
-		return minMaxFrameSize
-	}
-	if t.MaxReadFrameSize > maxFrameSize {
-		return maxFrameSize
-	}
-	return t.MaxReadFrameSize
+	return uint32(n)
 }
 
 func (t *Transport) disableCompression() bool {
 	return t.DisableCompression || (t.t1 != nil && t.t1.DisableCompression)
-}
-
-func (t *Transport) pingTimeout() time.Duration {
-	if t.PingTimeout == 0 {
-		return 15 * time.Second
-	}
-	return t.PingTimeout
-
 }
 
 // ConfigureTransport configures a net/http HTTP/1 Transport to use HTTP/2.
@@ -332,11 +355,14 @@ type ClientConn struct {
 	lastActive      time.Time
 	lastIdle        time.Time // time last idle
 	// Settings from peer: (also guarded by wmu)
-	maxFrameSize           uint32
-	maxConcurrentStreams   uint32
-	peerMaxHeaderListSize  uint64
-	peerMaxHeaderTableSize uint32
-	initialWindowSize      uint32
+	maxFrameSize                uint32
+	maxConcurrentStreams        uint32
+	peerMaxHeaderListSize       uint64
+	peerMaxHeaderTableSize      uint32
+	initialWindowSize           uint32
+	initialStreamRecvWindowSize int32
+	readIdleTimeout             time.Duration
+	pingTimeout                 time.Duration
 
 	// reqHeaderMu is a 1-element semaphore channel controlling access to sending new requests.
 	// Write to reqHeaderMu to lock it, read from it to unlock.
@@ -352,60 +378,6 @@ type ClientConn struct {
 	werr error        // first write error that has occurred
 	hbuf bytes.Buffer // HPACK encoder writes into this
 	henc *hpack.Encoder
-
-	syncHooks *testSyncHooks // can be nil
-}
-
-// Hook points used for testing.
-// Outside of tests, cc.syncHooks is nil and these all have minimal implementations.
-// Inside tests, see the testSyncHooks function docs.
-
-// goRun starts a new goroutine.
-func (cc *ClientConn) goRun(f func()) {
-	if cc.syncHooks != nil {
-		cc.syncHooks.goRun(f)
-		return
-	}
-	go f()
-}
-
-// condBroadcast is cc.cond.Broadcast.
-func (cc *ClientConn) condBroadcast() {
-	if cc.syncHooks != nil {
-		cc.syncHooks.condBroadcast(cc.cond)
-	}
-	cc.cond.Broadcast()
-}
-
-// condWait is cc.cond.Wait.
-func (cc *ClientConn) condWait() {
-	if cc.syncHooks != nil {
-		cc.syncHooks.condWait(cc.cond)
-	}
-	cc.cond.Wait()
-}
-
-// newTimer creates a new time.Timer, or a synthetic timer in tests.
-func (cc *ClientConn) newTimer(d time.Duration) timer {
-	if cc.syncHooks != nil {
-		return cc.syncHooks.newTimer(d)
-	}
-	return newTimeTimer(d)
-}
-
-// afterFunc creates a new time.AfterFunc timer, or a synthetic timer in tests.
-func (cc *ClientConn) afterFunc(d time.Duration, f func()) timer {
-	if cc.syncHooks != nil {
-		return cc.syncHooks.afterFunc(d, f)
-	}
-	return newTimeAfterFunc(d, f)
-}
-
-func (cc *ClientConn) contextWithTimeout(ctx context.Context, d time.Duration) (context.Context, context.CancelFunc) {
-	if cc.syncHooks != nil {
-		return cc.syncHooks.contextWithTimeout(ctx, d)
-	}
-	return context.WithTimeout(ctx, d)
 }
 
 // clientStream is the state for a single HTTP/2 stream. One of these
@@ -487,7 +459,7 @@ func (cs *clientStream) abortStreamLocked(err error) {
 	// TODO(dneil): Clean up tests where cs.cc.cond is nil.
 	if cs.cc.cond != nil {
 		// Wake up writeRequestBody if it is waiting on flow control.
-		cs.cc.condBroadcast()
+		cs.cc.cond.Broadcast()
 	}
 }
 
@@ -497,7 +469,7 @@ func (cs *clientStream) abortRequestBodyWrite() {
 	defer cc.mu.Unlock()
 	if cs.reqBody != nil && cs.reqBodyClosed == nil {
 		cs.closeReqBodyLocked()
-		cc.condBroadcast()
+		cc.cond.Broadcast()
 	}
 }
 
@@ -507,13 +479,15 @@ func (cs *clientStream) closeReqBodyLocked() {
 	}
 	cs.reqBodyClosed = make(chan struct{})
 	reqBodyClosed := cs.reqBodyClosed
-	cs.cc.goRun(func() {
+	go func() {
+		cs.cc.t.markNewGoroutine()
 		cs.reqBody.Close()
 		close(reqBodyClosed)
-	})
+	}()
 }
 
 type stickyErrWriter struct {
+	group   synctestGroupInterface
 	conn    net.Conn
 	timeout time.Duration
 	err     *error
@@ -523,22 +497,9 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 	if *sew.err != nil {
 		return 0, *sew.err
 	}
-	for {
-		if sew.timeout != 0 {
-			sew.conn.SetWriteDeadline(time.Now().Add(sew.timeout))
-		}
-		nn, err := sew.conn.Write(p[n:])
-		n += nn
-		if n < len(p) && nn > 0 && errors.Is(err, os.ErrDeadlineExceeded) {
-			// Keep extending the deadline so long as we're making progress.
-			continue
-		}
-		if sew.timeout != 0 {
-			sew.conn.SetWriteDeadline(time.Time{})
-		}
-		*sew.err = err
-		return n, err
-	}
+	n, err = writeWithByteTimeout(sew.group, sew.conn, sew.timeout, p)
+	*sew.err = err
+	return n, err
 }
 
 // noCachedConnError is the concrete type of ErrNoCachedConn, which
@@ -626,21 +587,7 @@ func (t *Transport) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Res
 				backoff := float64(uint(1) << (uint(retry) - 1))
 				backoff += backoff * (0.1 * mathrand.Float64())
 				d := time.Second * time.Duration(backoff)
-				var tm timer
-				if t.syncHooks != nil {
-					tm = t.syncHooks.newTimer(d)
-					t.syncHooks.blockUntil(func() bool {
-						select {
-						case <-tm.C():
-						case <-req.Context().Done():
-						default:
-							return false
-						}
-						return true
-					})
-				} else {
-					tm = newTimeTimer(d)
-				}
+				tm := t.newTimer(d)
 				select {
 				case <-tm.C():
 					t.vlogf("RoundTrip retrying after failure: %v", roundTripErr)
@@ -725,8 +672,8 @@ func canRetryError(err error) bool {
 }
 
 func (t *Transport) dialClientConn(ctx context.Context, addr string, singleUse bool) (*ClientConn, error) {
-	if t.syncHooks != nil {
-		return t.newClientConn(nil, singleUse, t.syncHooks)
+	if t.transportTestHooks != nil {
+		return t.newClientConn(nil, singleUse)
 	}
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -736,7 +683,7 @@ func (t *Transport) dialClientConn(ctx context.Context, addr string, singleUse b
 	if err != nil {
 		return nil, err
 	}
-	return t.newClientConn(tconn, singleUse, nil)
+	return t.newClientConn(tconn, singleUse)
 }
 
 func (t *Transport) newTLSConfig(host string) *tls.Config {
@@ -787,48 +734,36 @@ func (t *Transport) expectContinueTimeout() time.Duration {
 	return t.t1.ExpectContinueTimeout
 }
 
-func (t *Transport) maxDecoderHeaderTableSize() uint32 {
-	if v := t.MaxDecoderHeaderTableSize; v > 0 {
-		return v
-	}
-	return initialHeaderTableSize
-}
-
-func (t *Transport) maxEncoderHeaderTableSize() uint32 {
-	if v := t.MaxEncoderHeaderTableSize; v > 0 {
-		return v
-	}
-	return initialHeaderTableSize
-}
-
 func (t *Transport) NewClientConn(c net.Conn) (*ClientConn, error) {
-	return t.newClientConn(c, t.disableKeepAlives(), nil)
+	return t.newClientConn(c, t.disableKeepAlives())
 }
 
-func (t *Transport) newClientConn(c net.Conn, singleUse bool, hooks *testSyncHooks) (*ClientConn, error) {
+func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, error) {
+	conf := configFromTransport(t)
 	cc := &ClientConn{
-		t:                     t,
-		tconn:                 c,
-		readerDone:            make(chan struct{}),
-		nextStreamID:          1,
-		maxFrameSize:          16 << 10,                    // spec default
-		initialWindowSize:     65535,                       // spec default
-		maxConcurrentStreams:  initialMaxConcurrentStreams, // "infinite", per spec. Use a smaller value until we have received server settings.
-		peerMaxHeaderListSize: 0xffffffffffffffff,          // "infinite", per spec. Use 2^64-1 instead.
-		streams:               make(map[uint32]*clientStream),
-		singleUse:             singleUse,
-		wantSettingsAck:       true,
-		pings:                 make(map[[8]byte]chan struct{}),
-		reqHeaderMu:           make(chan struct{}, 1),
-		syncHooks:             hooks,
+		t:                           t,
+		tconn:                       c,
+		readerDone:                  make(chan struct{}),
+		nextStreamID:                1,
+		maxFrameSize:                16 << 10, // spec default
+		initialWindowSize:           65535,    // spec default
+		initialStreamRecvWindowSize: conf.MaxUploadBufferPerStream,
+		maxConcurrentStreams:        initialMaxConcurrentStreams, // "infinite", per spec. Use a smaller value until we have received server settings.
+		peerMaxHeaderListSize:       0xffffffffffffffff,          // "infinite", per spec. Use 2^64-1 instead.
+		streams:                     make(map[uint32]*clientStream),
+		singleUse:                   singleUse,
+		wantSettingsAck:             true,
+		readIdleTimeout:             conf.SendPingTimeout,
+		pingTimeout:                 conf.PingTimeout,
+		pings:                       make(map[[8]byte]chan struct{}),
+		reqHeaderMu:                 make(chan struct{}, 1),
 	}
-	if hooks != nil {
-		hooks.newclientconn(cc)
+	var group synctestGroupInterface
+	if t.transportTestHooks != nil {
+		t.markNewGoroutine()
+		t.transportTestHooks.newclientconn(cc)
 		c = cc.tconn
-	}
-	if d := t.idleConnTimeout(); d != 0 {
-		cc.idleTimeout = d
-		cc.idleTimer = cc.afterFunc(d, cc.onIdleTimeout)
+		group = t.group
 	}
 	if VerboseLogs {
 		t.vlogf("http2: Transport creating client conn %p to %v", cc, c.RemoteAddr())
@@ -840,29 +775,24 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool, hooks *testSyncHoo
 	// TODO: adjust this writer size to account for frame size +
 	// MTU + crypto/tls record padding.
 	cc.bw = bufio.NewWriter(stickyErrWriter{
+		group:   group,
 		conn:    c,
-		timeout: t.WriteByteTimeout,
+		timeout: conf.WriteByteTimeout,
 		err:     &cc.werr,
 	})
 	cc.br = bufio.NewReader(c)
 	cc.fr = NewFramer(cc.bw, cc.br)
-	if t.maxFrameReadSize() != 0 {
-		cc.fr.SetMaxReadFrameSize(t.maxFrameReadSize())
-	}
+	cc.fr.SetMaxReadFrameSize(conf.MaxReadFrameSize)
 	if t.CountError != nil {
 		cc.fr.countError = t.CountError
 	}
-	maxHeaderTableSize := t.maxDecoderHeaderTableSize()
+	maxHeaderTableSize := conf.MaxDecoderHeaderTableSize
 	cc.fr.ReadMetaHeaders = hpack.NewDecoder(maxHeaderTableSize, nil)
 	cc.fr.MaxHeaderListSize = t.maxHeaderListSize()
 
 	cc.henc = hpack.NewEncoder(&cc.hbuf)
-	cc.henc.SetMaxDynamicTableSizeLimit(t.maxEncoderHeaderTableSize())
+	cc.henc.SetMaxDynamicTableSizeLimit(conf.MaxEncoderHeaderTableSize)
 	cc.peerMaxHeaderTableSize = initialHeaderTableSize
-
-	if t.AllowHTTP {
-		cc.nextStreamID = 3
-	}
 
 	if cs, ok := c.(connectionStater); ok {
 		state := cs.ConnectionState()
@@ -871,11 +801,9 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool, hooks *testSyncHoo
 
 	initialSettings := []Setting{
 		{ID: SettingEnablePush, Val: 0},
-		{ID: SettingInitialWindowSize, Val: transportDefaultStreamFlow},
+		{ID: SettingInitialWindowSize, Val: uint32(cc.initialStreamRecvWindowSize)},
 	}
-	if max := t.maxFrameReadSize(); max != 0 {
-		initialSettings = append(initialSettings, Setting{ID: SettingMaxFrameSize, Val: max})
-	}
+	initialSettings = append(initialSettings, Setting{ID: SettingMaxFrameSize, Val: conf.MaxReadFrameSize})
 	if max := t.maxHeaderListSize(); max != 0 {
 		initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: max})
 	}
@@ -885,23 +813,29 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool, hooks *testSyncHoo
 
 	cc.bw.Write(clientPreface)
 	cc.fr.WriteSettings(initialSettings...)
-	cc.fr.WriteWindowUpdate(0, transportDefaultConnFlow)
-	cc.inflow.init(transportDefaultConnFlow + initialWindowSize)
+	cc.fr.WriteWindowUpdate(0, uint32(conf.MaxUploadBufferPerConnection))
+	cc.inflow.init(conf.MaxUploadBufferPerConnection + initialWindowSize)
 	cc.bw.Flush()
 	if cc.werr != nil {
 		cc.Close()
 		return nil, cc.werr
 	}
 
-	cc.goRun(cc.readLoop)
+	// Start the idle timer after the connection is fully initialized.
+	if d := t.idleConnTimeout(); d != 0 {
+		cc.idleTimeout = d
+		cc.idleTimer = t.afterFunc(d, cc.onIdleTimeout)
+	}
+
+	go cc.readLoop()
 	return cc, nil
 }
 
 func (cc *ClientConn) healthCheck() {
-	pingTimeout := cc.t.pingTimeout()
+	pingTimeout := cc.pingTimeout
 	// We don't need to periodically ping in the health check, because the readLoop of ClientConn will
 	// trigger the healthCheck again if there is no frame received.
-	ctx, cancel := cc.contextWithTimeout(context.Background(), pingTimeout)
+	ctx, cancel := cc.t.contextWithTimeout(context.Background(), pingTimeout)
 	defer cancel()
 	cc.vlogf("http2: Transport sending health check")
 	err := cc.Ping(ctx)
@@ -936,7 +870,20 @@ func (cc *ClientConn) setGoAway(f *GoAwayFrame) {
 	}
 	last := f.LastStreamID
 	for streamID, cs := range cc.streams {
-		if streamID > last {
+		if streamID <= last {
+			// The server's GOAWAY indicates that it received this stream.
+			// It will either finish processing it, or close the connection
+			// without doing so. Either way, leave the stream alone for now.
+			continue
+		}
+		if streamID == 1 && cc.goAway.ErrCode != ErrCodeNo {
+			// Don't retry the first stream on a connection if we get a non-NO error.
+			// If the server is sending an error on a new connection,
+			// retrying the request on a new one probably isn't going to work.
+			cs.abortStreamLocked(fmt.Errorf("http2: Transport received GOAWAY from server ErrCode:%v", cc.goAway.ErrCode))
+		} else {
+			// Aborting the stream with errClentConnGotGoAway indicates that
+			// the request should be retried on a new connection.
 			cs.abortStreamLocked(errClientConnGotGoAway)
 		}
 	}
@@ -1131,7 +1078,8 @@ func (cc *ClientConn) Shutdown(ctx context.Context) error {
 	// Wait for all in-flight streams to complete or connection to close
 	done := make(chan struct{})
 	cancelled := false // guarded by cc.mu
-	cc.goRun(func() {
+	go func() {
+		cc.t.markNewGoroutine()
 		cc.mu.Lock()
 		defer cc.mu.Unlock()
 		for {
@@ -1143,9 +1091,9 @@ func (cc *ClientConn) Shutdown(ctx context.Context) error {
 			if cancelled {
 				break
 			}
-			cc.condWait()
+			cc.cond.Wait()
 		}
-	})
+	}()
 	shutdownEnterWaitStateHook()
 	select {
 	case <-done:
@@ -1155,7 +1103,7 @@ func (cc *ClientConn) Shutdown(ctx context.Context) error {
 		cc.mu.Lock()
 		// Free the goroutine above
 		cancelled = true
-		cc.condBroadcast()
+		cc.cond.Broadcast()
 		cc.mu.Unlock()
 		return ctx.Err()
 	}
@@ -1193,7 +1141,7 @@ func (cc *ClientConn) closeForError(err error) {
 	for _, cs := range cc.streams {
 		cs.abortStreamLocked(err)
 	}
-	cc.condBroadcast()
+	cc.cond.Broadcast()
 	cc.mu.Unlock()
 	cc.closeConn()
 }
@@ -1308,23 +1256,30 @@ func (cc *ClientConn) roundTrip(req *http.Request, streamf func(*clientStream)) 
 		respHeaderRecv:       make(chan struct{}),
 		donec:                make(chan struct{}),
 	}
-	cc.goRun(func() {
-		cs.doRequest(req)
-	})
+
+	// TODO(bradfitz): this is a copy of the logic in net/http. Unify somewhere?
+	if !cc.t.disableCompression() &&
+		req.Header.Get("Accept-Encoding") == "" &&
+		req.Header.Get("Range") == "" &&
+		!cs.isHead {
+		// Request gzip only, not deflate. Deflate is ambiguous and
+		// not as universally supported anyway.
+		// See: https://zlib.net/zlib_faq.html#faq39
+		//
+		// Note that we don't request this for HEAD requests,
+		// due to a bug in nginx:
+		//   http://trac.nginx.org/nginx/ticket/358
+		//   https://golang.org/issue/5522
+		//
+		// We don't request gzip if the request is for a range, since
+		// auto-decoding a portion of a gzipped document will just fail
+		// anyway. See https://golang.org/issue/8923
+		cs.requestedGzip = true
+	}
+
+	go cs.doRequest(req, streamf)
 
 	waitDone := func() error {
-		if cc.syncHooks != nil {
-			cc.syncHooks.blockUntil(func() bool {
-				select {
-				case <-cs.donec:
-				case <-ctx.Done():
-				case <-cs.reqCancel:
-				default:
-					return false
-				}
-				return true
-			})
-		}
 		select {
 		case <-cs.donec:
 			return nil
@@ -1385,24 +1340,7 @@ func (cc *ClientConn) roundTrip(req *http.Request, streamf func(*clientStream)) 
 		return err
 	}
 
-	if streamf != nil {
-		streamf(cs)
-	}
-
 	for {
-		if cc.syncHooks != nil {
-			cc.syncHooks.blockUntil(func() bool {
-				select {
-				case <-cs.respHeaderRecv:
-				case <-cs.abort:
-				case <-ctx.Done():
-				case <-cs.reqCancel:
-				default:
-					return false
-				}
-				return true
-			})
-		}
 		select {
 		case <-cs.respHeaderRecv:
 			return handleResponseHeaders()
@@ -1432,8 +1370,9 @@ func (cc *ClientConn) roundTrip(req *http.Request, streamf func(*clientStream)) 
 // doRequest runs for the duration of the request lifetime.
 //
 // It sends the request and performs post-request cleanup (closing Request.Body, etc.).
-func (cs *clientStream) doRequest(req *http.Request) {
-	err := cs.writeRequest(req)
+func (cs *clientStream) doRequest(req *http.Request, streamf func(*clientStream)) {
+	cs.cc.t.markNewGoroutine()
+	err := cs.writeRequest(req, streamf)
 	cs.cleanupWriteRequest(err)
 }
 
@@ -1444,7 +1383,7 @@ func (cs *clientStream) doRequest(req *http.Request) {
 //
 // It returns non-nil if the request ends otherwise.
 // If the returned error is StreamError, the error Code may be used in resetting the stream.
-func (cs *clientStream) writeRequest(req *http.Request) (err error) {
+func (cs *clientStream) writeRequest(req *http.Request, streamf func(*clientStream)) (err error) {
 	cc := cs.cc
 	ctx := cs.ctx
 
@@ -1457,21 +1396,6 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 	// (requires mu) and creating the stream (requires wmu).
 	if cc.reqHeaderMu == nil {
 		panic("RoundTrip on uninitialized ClientConn") // for tests
-	}
-	var newStreamHook func(*clientStream)
-	if cc.syncHooks != nil {
-		newStreamHook = cc.syncHooks.newstream
-		cc.syncHooks.blockUntil(func() bool {
-			select {
-			case cc.reqHeaderMu <- struct{}{}:
-				<-cc.reqHeaderMu
-			case <-cs.reqCancel:
-			case <-ctx.Done():
-			default:
-				return false
-			}
-			return true
-		})
 	}
 	select {
 	case cc.reqHeaderMu <- struct{}{}:
@@ -1497,28 +1421,8 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 	}
 	cc.mu.Unlock()
 
-	if newStreamHook != nil {
-		newStreamHook(cs)
-	}
-
-	// TODO(bradfitz): this is a copy of the logic in net/http. Unify somewhere?
-	if !cc.t.disableCompression() &&
-		req.Header.Get("Accept-Encoding") == "" &&
-		req.Header.Get("Range") == "" &&
-		!cs.isHead {
-		// Request gzip only, not deflate. Deflate is ambiguous and
-		// not as universally supported anyway.
-		// See: https://zlib.net/zlib_faq.html#faq39
-		//
-		// Note that we don't request this for HEAD requests,
-		// due to a bug in nginx:
-		//   http://trac.nginx.org/nginx/ticket/358
-		//   https://golang.org/issue/5522
-		//
-		// We don't request gzip if the request is for a range, since
-		// auto-decoding a portion of a gzipped document will just fail
-		// anyway. See https://golang.org/issue/8923
-		cs.requestedGzip = true
+	if streamf != nil {
+		streamf(cs)
 	}
 
 	continueTimeout := cc.t.expectContinueTimeout()
@@ -1581,7 +1485,7 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 	var respHeaderTimer <-chan time.Time
 	var respHeaderRecv chan struct{}
 	if d := cc.responseHeaderTimeout(); d != 0 {
-		timer := cc.newTimer(d)
+		timer := cc.t.newTimer(d)
 		defer timer.Stop()
 		respHeaderTimer = timer.C()
 		respHeaderRecv = cs.respHeaderRecv
@@ -1590,21 +1494,6 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 	// or until the request is aborted (via context, error, or otherwise),
 	// whichever comes first.
 	for {
-		if cc.syncHooks != nil {
-			cc.syncHooks.blockUntil(func() bool {
-				select {
-				case <-cs.peerClosed:
-				case <-respHeaderTimer:
-				case <-respHeaderRecv:
-				case <-cs.abort:
-				case <-ctx.Done():
-				case <-cs.reqCancel:
-				default:
-					return false
-				}
-				return true
-			})
-		}
 		select {
 		case <-cs.peerClosed:
 			return nil
@@ -1753,7 +1642,7 @@ func (cc *ClientConn) awaitOpenSlotForStreamLocked(cs *clientStream) error {
 			return nil
 		}
 		cc.pendingRequests++
-		cc.condWait()
+		cc.cond.Wait()
 		cc.pendingRequests--
 		select {
 		case <-cs.abort:
@@ -2015,7 +1904,7 @@ func (cs *clientStream) awaitFlowControl(maxBytes int) (taken int32, err error) 
 			cs.flow.take(take)
 			return take, nil
 		}
-		cc.condWait()
+		cc.cond.Wait()
 	}
 }
 
@@ -2275,7 +2164,7 @@ type resAndError struct {
 func (cc *ClientConn) addStreamLocked(cs *clientStream) {
 	cs.flow.add(int32(cc.initialWindowSize))
 	cs.flow.setConnFlow(&cc.flow)
-	cs.inflow.init(transportDefaultStreamFlow)
+	cs.inflow.init(cc.initialStreamRecvWindowSize)
 	cs.ID = cc.nextStreamID
 	cc.nextStreamID += 2
 	cc.streams[cs.ID] = cs
@@ -2298,7 +2187,7 @@ func (cc *ClientConn) forgetStreamID(id uint32) {
 	}
 	// Wake up writeRequestBody via clientStream.awaitFlowControl and
 	// wake up RoundTrip if there is a pending request.
-	cc.condBroadcast()
+	cc.cond.Broadcast()
 
 	closeOnIdle := cc.singleUse || cc.doNotReuse || cc.t.disableKeepAlives() || cc.goAway != nil
 	if closeOnIdle && cc.streamsReserved == 0 && len(cc.streams) == 0 {
@@ -2320,6 +2209,7 @@ type clientConnReadLoop struct {
 
 // readLoop runs in its own goroutine and reads and dispatches frames.
 func (cc *ClientConn) readLoop() {
+	cc.t.markNewGoroutine()
 	rl := &clientConnReadLoop{cc: cc}
 	defer rl.cleanup()
 	cc.readerErr = rl.run()
@@ -2386,7 +2276,7 @@ func (rl *clientConnReadLoop) cleanup() {
 			cs.abortStreamLocked(err)
 		}
 	}
-	cc.condBroadcast()
+	cc.cond.Broadcast()
 	cc.mu.Unlock()
 }
 
@@ -2420,10 +2310,10 @@ func (cc *ClientConn) countReadFrameError(err error) {
 func (rl *clientConnReadLoop) run() error {
 	cc := rl.cc
 	gotSettings := false
-	readIdleTimeout := cc.t.ReadIdleTimeout
+	readIdleTimeout := cc.readIdleTimeout
 	var t timer
 	if readIdleTimeout != 0 {
-		t = cc.afterFunc(readIdleTimeout, cc.healthCheck)
+		t = cc.t.afterFunc(readIdleTimeout, cc.healthCheck)
 	}
 	for {
 		f, err := cc.fr.ReadFrame()
@@ -3021,7 +2911,7 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 			for _, cs := range cc.streams {
 				cs.flow.add(delta)
 			}
-			cc.condBroadcast()
+			cc.cond.Broadcast()
 
 			cc.initialWindowSize = s.Val
 		case SettingHeaderTableSize:
@@ -3076,7 +2966,7 @@ func (rl *clientConnReadLoop) processWindowUpdate(f *WindowUpdateFrame) error {
 
 		return ConnectionError(ErrCodeFlowControl)
 	}
-	cc.condBroadcast()
+	cc.cond.Broadcast()
 	return nil
 }
 
@@ -3120,7 +3010,8 @@ func (cc *ClientConn) Ping(ctx context.Context) error {
 	}
 	var pingError error
 	errc := make(chan struct{})
-	cc.goRun(func() {
+	go func() {
+		cc.t.markNewGoroutine()
 		cc.wmu.Lock()
 		defer cc.wmu.Unlock()
 		if pingError = cc.fr.WritePing(false, p); pingError != nil {
@@ -3131,20 +3022,7 @@ func (cc *ClientConn) Ping(ctx context.Context) error {
 			close(errc)
 			return
 		}
-	})
-	if cc.syncHooks != nil {
-		cc.syncHooks.blockUntil(func() bool {
-			select {
-			case <-c:
-			case <-errc:
-			case <-ctx.Done():
-			case <-cc.readerDone:
-			default:
-				return false
-			}
-			return true
-		})
-	}
+	}()
 	select {
 	case <-c:
 		return nil

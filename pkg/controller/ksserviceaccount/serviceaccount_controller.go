@@ -61,6 +61,7 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 				predicate.ResourceVersionChangedPredicate{},
 			),
 		).
+		Named(controllerName).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 2,
 		}).

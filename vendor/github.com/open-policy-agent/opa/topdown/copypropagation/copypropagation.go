@@ -222,11 +222,11 @@ func (p *CopyPropagator) plugBindings(pctx *plugContext, expr *ast.Expr) *ast.Ex
 	// errors unreachable.
 	x, err := ast.Transform(xform, expr.Copy())
 
-	if expr, ok := x.(*ast.Expr); !ok || err != nil {
+	expr, ok := x.(*ast.Expr)
+	if !ok || err != nil {
 		panic("unreachable")
-	} else {
-		return expr
 	}
+	return expr
 }
 
 type bindingPlugTransform struct {

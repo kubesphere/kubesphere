@@ -25,7 +25,7 @@ func init() {
 			)
 		})
 
-		observers.OnFragment(func(walker *Walker, fragment *ast.FragmentDefinition) {
+		observers.OnFragment(func(_ *Walker, fragment *ast.FragmentDefinition) {
 			if fragment.Definition == nil || fragment.TypeCondition == "" || fragment.Definition.IsCompositeType() {
 				return
 			}

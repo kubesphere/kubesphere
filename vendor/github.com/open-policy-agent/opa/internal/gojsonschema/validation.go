@@ -556,10 +556,10 @@ func (v *SubSchema) validateArray(currentSubSchema *SubSchema, value []interface
 			if validationResult.Valid() {
 				validatedOne = true
 				break
-			} else {
-				if bestValidationResult == nil || validationResult.score > bestValidationResult.score {
-					bestValidationResult = validationResult
-				}
+			}
+
+			if bestValidationResult == nil || validationResult.score > bestValidationResult.score {
+				bestValidationResult = validationResult
 			}
 		}
 		if !validatedOne {

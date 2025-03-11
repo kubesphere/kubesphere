@@ -43,7 +43,7 @@ func DefaultingWebhookFor(scheme *runtime.Scheme, defaulter Defaulter) *Webhook 
 
 type mutatingHandler struct {
 	defaulter Defaulter
-	decoder   *Decoder
+	decoder   Decoder
 }
 
 // Handle handles admission requests.

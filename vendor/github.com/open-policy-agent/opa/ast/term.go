@@ -1293,6 +1293,11 @@ func (arr *Array) Elem(i int) *Term {
 	return arr.elems[i]
 }
 
+// Set sets the element i of arr.
+func (arr *Array) Set(i int, v *Term) {
+	arr.set(i, v)
+}
+
 // rehash updates the cached hash of arr.
 func (arr *Array) rehash() {
 	arr.hash = 0
@@ -1306,6 +1311,7 @@ func (arr *Array) set(i int, v *Term) {
 	arr.ground = arr.ground && v.IsGround()
 	arr.elems[i] = v
 	arr.hashs[i] = v.Value.Hash()
+	arr.rehash()
 }
 
 // Slice returns a slice of arr starting from i index to j. -1
@@ -2560,6 +2566,8 @@ func (obj *object) insert(k, v *Term) {
 			}
 
 			curr.value = v
+
+			obj.rehash()
 			return
 		}
 	}
@@ -2581,6 +2589,19 @@ func (obj *object) insert(k, v *Term) {
 	}
 	if v.IsGround() {
 		obj.ground++
+	}
+}
+
+func (obj *object) rehash() {
+	// obj.keys is considered truth, from which obj.hash and obj.elems are recalculated.
+
+	obj.hash = 0
+	obj.elems = make(map[int]*objectElem, len(obj.keys))
+
+	for _, elem := range obj.keys {
+		hash := elem.key.Hash()
+		obj.hash += hash + elem.value.Hash()
+		obj.elems[hash] = elem
 	}
 }
 
@@ -2633,7 +2654,7 @@ func filterObject(o Value, filter Value) (Value, error) {
 			other = v
 		}
 
-		err := iterObj.Iter(func(key *Term, value *Term) error {
+		err := iterObj.Iter(func(key *Term, _ *Term) error {
 			if other.Get(key) != nil {
 				filteredValue, err := filterObject(v.Get(key).Value, filteredObj.Get(key).Value)
 				if err != nil {
@@ -3091,12 +3112,12 @@ func unmarshalTermSlice(s []interface{}) ([]*Term, error) {
 	buf := []*Term{}
 	for _, x := range s {
 		if m, ok := x.(map[string]interface{}); ok {
-			if t, err := unmarshalTerm(m); err == nil {
+			t, err := unmarshalTerm(m)
+			if err == nil {
 				buf = append(buf, t)
 				continue
-			} else {
-				return nil, err
 			}
+			return nil, err
 		}
 		return nil, fmt.Errorf("ast: unable to unmarshal term")
 	}

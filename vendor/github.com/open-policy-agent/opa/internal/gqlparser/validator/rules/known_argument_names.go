@@ -10,7 +10,7 @@ import (
 func init() {
 	AddRule("KnownArgumentNames", func(observers *Events, addError AddErrFunc) {
 		// A GraphQL field is only valid if all supplied arguments are defined by that field.
-		observers.OnField(func(walker *Walker, field *ast.Field) {
+		observers.OnField(func(_ *Walker, field *ast.Field) {
 			if field.Definition == nil || field.ObjectDefinition == nil {
 				return
 			}
@@ -33,7 +33,7 @@ func init() {
 			}
 		})
 
-		observers.OnDirective(func(walker *Walker, directive *ast.Directive) {
+		observers.OnDirective(func(_ *Walker, directive *ast.Directive) {
 			if directive.Definition == nil {
 				return
 			}

@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/emicklei/go-restful/v3"
 )

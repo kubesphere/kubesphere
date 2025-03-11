@@ -17,6 +17,7 @@ limitations under the License.
 package cel
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -122,10 +123,13 @@ func Compile(s *schema.Structural, declType *apiservercel.DeclType, perCallLimit
 		metrics.Metrics.ObserveCompilation(time.Since(t))
 	}()
 
-	if len(s.Extensions.XValidations) == 0 {
+	if len(s.XValidations) == 0 {
 		return nil, nil
 	}
-	celRules := s.Extensions.XValidations
+	if declType == nil {
+		return nil, errors.New("failed to convert to declType for CEL validation rules")
+	}
+	celRules := s.XValidations
 
 	oldSelfEnvSet, optionalOldSelfEnvSet, err := prepareEnvSet(baseEnvSet, declType)
 	if err != nil {
@@ -282,7 +286,7 @@ func compileRule(s *schema.Structural, rule apiextensions.ValidationRule, envSet
 		compilationResult.MessageExpressionMaxCost = costEst.Max
 	}
 	if rule.FieldPath != "" {
-		validFieldPath, err := ValidFieldPath(rule.FieldPath, s)
+		validFieldPath, _, err := ValidFieldPath(rule.FieldPath, s)
 		if err == nil {
 			compilationResult.NormalizedRuleFieldPath = validFieldPath.String()
 		}

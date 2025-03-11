@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	appVersionController = "appversion-controller"
+	appVersionController = "appversion"
 )
 
 var _ reconcile.Reconciler = &AppVersionReconciler{}

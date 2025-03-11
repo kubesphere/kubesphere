@@ -472,7 +472,7 @@ func insertIntoObject(o *types.Object, path Ref, tpe types.Type, env *TypeEnv) (
 
 func (n *typeTreeNode) Leafs() map[*Ref]types.Type {
 	leafs := map[*Ref]types.Type{}
-	n.children.Iter(func(k, v util.T) bool {
+	n.children.Iter(func(_, v util.T) bool {
 		collectLeafs(v.(*typeTreeNode), nil, leafs)
 		return false
 	})
@@ -485,7 +485,7 @@ func collectLeafs(n *typeTreeNode, path Ref, leafs map[*Ref]types.Type) {
 		leafs[&nPath] = n.Value()
 		return
 	}
-	n.children.Iter(func(k, v util.T) bool {
+	n.children.Iter(func(_, v util.T) bool {
 		collectLeafs(v.(*typeTreeNode), nPath, leafs)
 		return false
 	})

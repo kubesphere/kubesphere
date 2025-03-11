@@ -26,6 +26,7 @@ type Scanner struct {
 	width            int
 	errors           []Error
 	keywords         map[string]tokens.Token
+	tabs             []int
 	regoV1Compatible bool
 }
 
@@ -37,10 +38,11 @@ type Error struct {
 
 // Position represents a point in the scanned source code.
 type Position struct {
-	Offset int // start offset in bytes
-	End    int // end offset in bytes
-	Row    int // line number computed in bytes
-	Col    int // column number computed in bytes
+	Offset int   // start offset in bytes
+	End    int   // end offset in bytes
+	Row    int   // line number computed in bytes
+	Col    int   // column number computed in bytes
+	Tabs   []int // positions of any tabs preceding Col
 }
 
 // New returns an initialized scanner that will scan
@@ -60,6 +62,7 @@ func New(r io.Reader) (*Scanner, error) {
 		curr:     -1,
 		width:    0,
 		keywords: tokens.Keywords(),
+		tabs:     []int{},
 	}
 
 	s.next()
@@ -156,7 +159,7 @@ func (s *Scanner) WithoutKeywords(kws map[string]tokens.Token) (*Scanner, map[st
 // for any errors before using the other values.
 func (s *Scanner) Scan() (tokens.Token, Position, string, []Error) {
 
-	pos := Position{Offset: s.offset - s.width, Row: s.row, Col: s.col}
+	pos := Position{Offset: s.offset - s.width, Row: s.row, Col: s.col, Tabs: s.tabs}
 	var tok tokens.Token
 	var lit string
 
@@ -410,8 +413,12 @@ func (s *Scanner) next() {
 	if s.curr == '\n' {
 		s.row++
 		s.col = 0
+		s.tabs = []int{}
 	} else {
 		s.col++
+		if s.curr == '\t' {
+			s.tabs = append(s.tabs, s.col)
+		}
 	}
 }
 

@@ -65,8 +65,8 @@ func (Rule) Help() *markers.DefinitionHelp {
 				Details: "",
 			},
 			"ResourceNames": {
-				Summary: "specifies the names of the API resources that this rule encompasses. ",
-				Details: "Create requests cannot be restricted by resourcename, as the object's name is not known at authorization time.",
+				Summary: "specifies the names of the API resources that this rule encompasses.",
+				Details: "Create requests cannot be restricted by resourcename, as the object's name\nis not known at authorization time.",
 			},
 			"Verbs": {
 				Summary: "specifies the (lowercase) kubernetes API verbs that this rule encompasses.",
@@ -77,8 +77,8 @@ func (Rule) Help() *markers.DefinitionHelp {
 				Details: "",
 			},
 			"Namespace": {
-				Summary: "specifies the scope of the Rule. If not set, the Rule belongs to the generated ClusterRole. If set, the Rule belongs to a Role, whose namespace is specified by this field.",
-				Details: "",
+				Summary: "specifies the scope of the Rule.",
+				Details: "If not set, the Rule belongs to the generated ClusterRole.\nIf set, the Rule belongs to a Role, whose namespace is specified by this field.",
 			},
 		},
 	}

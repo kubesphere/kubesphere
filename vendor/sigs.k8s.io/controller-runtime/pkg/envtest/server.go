@@ -17,15 +17,20 @@ limitations under the License.
 package envtest
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
@@ -265,6 +270,12 @@ func (te *Environment) Start() (*rest.Config, error) {
 		te.Scheme = scheme.Scheme
 	}
 
+	// If we are bringing etcd up for the first time, it can take some time for the
+	// default namespace to actually be created and seen as available to the apiserver
+	if err := te.waitForDefaultNamespace(te.Config); err != nil {
+		return nil, fmt.Errorf("default namespace didn't register within deadline: %w", err)
+	}
+
 	// Call PrepWithoutInstalling to setup certificates first
 	// and have them available to patch CRD conversion webhook as well.
 	if err := te.WebhookInstallOptions.PrepWithoutInstalling(); err != nil {
@@ -320,6 +331,20 @@ func (te *Environment) startControlPlane() error {
 		return fmt.Errorf("failed to start the controlplane. retried %d times: %w", numTries, err)
 	}
 	return nil
+}
+
+func (te *Environment) waitForDefaultNamespace(config *rest.Config) error {
+	cs, err := client.New(config, client.Options{})
+	if err != nil {
+		return fmt.Errorf("unable to create client: %w", err)
+	}
+	// It shouldn't take longer than 5s for the default namespace to be brought up in etcd
+	return wait.PollUntilContextTimeout(context.TODO(), time.Millisecond*50, time.Second*5, true, func(ctx context.Context) (bool, error) {
+		if err = cs.Get(ctx, types.NamespacedName{Name: "default"}, &corev1.Namespace{}); err != nil {
+			return false, nil //nolint:nilerr
+		}
+		return true, nil
+	})
 }
 
 func (te *Environment) defaultTimeouts() error {

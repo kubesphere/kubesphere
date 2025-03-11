@@ -11,14 +11,9 @@ const doubleSpace = "  "
 // contain multiple side-by-side spaces.
 func StripExcessSpaces(str string) string {
 	var j, k, l, m, spaces int
-	// Trim trailing spaces
-	for j = len(str) - 1; j >= 0 && str[j] == ' '; j-- {
-	}
 
-	// Trim leading spaces
-	for k = 0; k < j && str[k] == ' '; k++ {
-	}
-	str = str[k : j+1]
+	// Trim leading and trailing spaces
+	str = strings.Trim(str, " ")
 
 	// Strip multiple spaces.
 	j = strings.Index(str, doubleSpace)

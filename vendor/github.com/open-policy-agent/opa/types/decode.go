@@ -77,10 +77,10 @@ func Unmarshal(bs []byte) (result Type, err error) {
 				}
 			}
 		case typeAny:
-			var any rawunion
-			if err = util.UnmarshalJSON(bs, &any); err == nil {
+			var union rawunion
+			if err = util.UnmarshalJSON(bs, &union); err == nil {
 				var of []Type
-				if of, err = unmarshalSlice(any.Of); err == nil {
+				if of, err = unmarshalSlice(union.Of); err == nil {
 					result = NewAny(of...)
 				}
 			}
