@@ -59,6 +59,7 @@ import (
 func init() {
 	// core
 	runtime.Must(controller.Register(&core.ExtensionReconciler{}))
+	runtime.Must(controller.Register(&core.ExtensionVersionReconciler{}))
 	runtime.Must(controller.Register(&core.CategoryReconciler{}))
 	runtime.Must(controller.Register(&core.RepositoryReconciler{}))
 	runtime.Must(controller.Register(&core.InstallPlanReconciler{}))

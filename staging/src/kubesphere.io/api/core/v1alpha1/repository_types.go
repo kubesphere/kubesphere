@@ -6,6 +6,7 @@ import (
 
 type UpdateStrategy struct {
 	RegistryPoll `json:"registryPoll,omitempty"`
+	Timeout      metav1.Duration `json:"timeout"`
 }
 
 type RegistryPoll struct {
@@ -18,8 +19,6 @@ type BasicAuth struct {
 }
 
 type RepositorySpec struct {
-	// DEPRECATED: the field will remove in future versions, please use url.
-	Image          string          `json:"image,omitempty"`
 	URL            string          `json:"url,omitempty"`
 	Description    string          `json:"description,omitempty"`
 	BasicAuth      *BasicAuth      `json:"basicAuth,omitempty"`

@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/getter"
 	helmrepo "helm.sh/helm/v3/pkg/repo"
 	"kubesphere.io/utils/s3"
@@ -17,7 +20,6 @@ import (
 const IndexYaml = "index.yaml"
 
 func LoadRepoIndex(ctx context.Context, u string, cred RepoCredential) (*helmrepo.IndexFile, error) {
-
 	if !strings.HasSuffix(u, "/") {
 		u = fmt.Sprintf("%s/%s", u, IndexYaml)
 	} else {
@@ -26,12 +28,12 @@ func LoadRepoIndex(ctx context.Context, u string, cred RepoCredential) (*helmrep
 
 	resp, err := LoadData(ctx, u, cred)
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("can't load data from %s: %v", u, err)
 	}
 
 	indexFile, err := loadIndex(resp.Bytes())
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("can't load index file: %v", err)
 	}
 
 	return indexFile, nil
@@ -52,10 +54,10 @@ func loadIndex(data []byte) (*helmrepo.IndexFile, error) {
 	return i, nil
 }
 
-func LoadData(ctx context.Context, u string, cred RepoCredential) (*bytes.Buffer, error) {
+func LoadData(_ context.Context, u string, cred RepoCredential) (*bytes.Buffer, error) {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("can't parse url: %v", err)
 	}
 	var resp *bytes.Buffer
 	if strings.HasPrefix(u, "s3://") {
@@ -71,22 +73,38 @@ func LoadData(ctx context.Context, u string, cred RepoCredential) (*bytes.Buffer
 		})
 
 		if err != nil {
-			return nil, err
+			return nil, errors.Errorf("can't create s3 client: %v", err)
 		}
 
 		data, err := client.Read(p)
 		if err != nil {
-			return nil, err
+			return nil, errors.Errorf("can't read data from s3: %v", err)
 		}
 
 		resp = bytes.NewBuffer(data)
 	} else {
+		tlsConf, err := NewTLSConfig(cred.CABundle, cred.InsecureSkipTLSVerify)
+		if err != nil {
+			return nil, errors.Errorf("can't create tls config: %v", err)
+		}
+		tlsConf.ServerName = parsedURL.Hostname()
+		transport := &http.Transport{
+			DisableCompression:    true,
+			DialContext:           (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			Proxy:                 http.ProxyFromEnvironment,
+			TLSClientConfig:       tlsConf,
+		}
+
 		// TODO add user-agent
 		g, _ := getter.NewHTTPGetter()
 		resp, err = g.Get(parsedURL.String(),
 			getter.WithTimeout(5*time.Minute),
-			getter.WithInsecureSkipVerifyTLS(cred.InsecureSkipTLSVerify),
-			getter.WithTLSClientConfig(cred.CertFile, cred.KeyFile, cred.CAFile),
+			getter.WithTransport(transport),
 			getter.WithBasicAuth(cred.Username, cred.Password),
 		)
 		if err != nil {
@@ -121,12 +139,8 @@ type RepoCredential struct {
 	Username string `json:"username,omitempty"`
 	// chart repository password
 	Password string `json:"password,omitempty"`
-	// identify HTTPS client using this SSL certificate file
-	CertFile string `json:"certFile,omitempty"`
-	// identify HTTPS client using this SSL key file
-	KeyFile string `json:"keyFile,omitempty"`
 	// verify certificates of HTTPS-enabled servers using this CA bundle
-	CAFile string `json:"caFile,omitempty"`
+	CABundle string `json:"caBundle,omitempty"`
 	// skip tls certificate checks for the repository, default is ture
 	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
 
