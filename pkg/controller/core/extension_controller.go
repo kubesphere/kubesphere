@@ -7,17 +7,19 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"sort"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog/v2"
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -27,8 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
 	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 )
@@ -90,14 +90,16 @@ func (r *ExtensionReconciler) SetupWithManager(mgr *kscontroller.Manager) error 
 }
 
 func (r *ExtensionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := r.logger.WithValues("extension", req.String())
+	logger.V(4).Info("reconciling extension")
+	ctx = klog.NewContext(ctx, logger)
+
 	extension := &corev1alpha1.Extension{}
 	if err := r.Client.Get(ctx, req.NamespacedName, extension); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	r.logger.V(4).Info("reconcile", "extension", extension.Name)
-
-	if extension.ObjectMeta.DeletionTimestamp != nil {
+	if extension.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, extension)
 	}
 
@@ -108,11 +110,10 @@ func (r *ExtensionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	if err := r.syncExtensionStatus(ctx, extension); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to sync extension status: %s", err)
+		return ctrl.Result{}, errors.Wrap(err, "failed to sync extension status")
 	}
 
-	r.logger.V(4).Info("synced", "extension", extension.Name)
-
+	logger.V(4).Info("extension successfully reconciled")
 	return ctrl.Result{}, nil
 }
 
@@ -125,13 +126,13 @@ func (r *ExtensionReconciler) reconcileDelete(ctx context.Context, extension *co
 		},
 		DeleteOptions: client.DeleteOptions{PropagationPolicy: &deletePolicy},
 	}); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to delete related ExtensionVersion: %s", err)
+		return ctrl.Result{}, errors.Wrap(err, "failed to delete extension versions")
 	}
 
 	// Remove the finalizer from the extension
 	controllerutil.RemoveFinalizer(extension, extensionProtection)
 	if err := r.Update(ctx, extension); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "failed to remove finalizer from extension")
 	}
 	return ctrl.Result{}, nil
 }
@@ -144,28 +145,32 @@ func (r *ExtensionReconciler) syncExtensionStatus(ctx context.Context, extension
 		return err
 	}
 
-	versions := make([]corev1alpha1.ExtensionVersionInfo, 0, len(versionList.Items))
-	for i := range versionList.Items {
-		if versionList.Items[i].DeletionTimestamp.IsZero() {
+	versions := make([]corev1alpha1.ExtensionVersionInfo, 0)
+	for _, version := range versionList.Items {
+		isValidVersion := len(isValidExtensionVersion(version.Spec.Version)) == 0
+		if version.DeletionTimestamp.IsZero() && isValidVersion {
 			versions = append(versions, corev1alpha1.ExtensionVersionInfo{
-				Version:           versionList.Items[i].Spec.Version,
-				CreationTimestamp: versionList.Items[i].CreationTimestamp,
+				Version:           version.Spec.Version,
+				CreationTimestamp: version.CreationTimestamp,
 			})
 		}
 	}
+
 	sort.Slice(versions, func(i, j int) bool {
-		return versions[i].Version < versions[j].Version
+		v1, _ := semver.NewVersion(versions[i].Version)
+		v2, _ := semver.NewVersion(versions[j].Version)
+		return v1.LessThan(v2)
 	})
 
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		if err := r.Get(ctx, types.NamespacedName{Name: extension.Name}, extension); err != nil {
-			return err
+			return errors.Wrap(err, "failed to get extension")
 		}
 		expected := extension.DeepCopy()
 		if recommended, err := getRecommendedExtensionVersion(versionList.Items, r.k8sVersion); err == nil {
 			expected.Status.RecommendedVersion = recommended
 		} else {
-			r.logger.Error(err, "failed to get recommended extension version")
+			klog.FromContext(ctx).Error(err, "failed to get recommended extension version")
 		}
 		expected.Status.Versions = versions
 		if expected.Status.RecommendedVersion != extension.Status.RecommendedVersion ||
@@ -176,7 +181,7 @@ func (r *ExtensionReconciler) syncExtensionStatus(ctx context.Context, extension
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to update extension status: %s", err)
+		return errors.Wrap(err, "failed to update extension status")
 	}
 	return nil
 }
