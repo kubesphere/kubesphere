@@ -7,12 +7,9 @@ package v1alpha1
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
+	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
-	"text/template"
 
 	"github.com/emicklei/go-restful/v3"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -21,6 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	corev1alpha1 "kubesphere.io/api/core/v1alpha1"
+	"kubesphere.io/utils/helm"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
@@ -94,12 +92,12 @@ func (h *handler) ListFiles(request *restful.Request, response *restful.Response
 			opts = append(opts, getter.WithInsecureSkipVerifyTLS(repo.Spec.Insecure))
 		}
 		if repo.Spec.CABundle != "" {
-			caFile, err := storeCAFile(repo.Spec.CABundle, repo.Name)
+			tlsConfig, err := helm.NewTLSConfig(repo.Spec.CABundle, repo.Spec.Insecure)
 			if err != nil {
-				api.HandleInternalError(response, request, fmt.Errorf("failed to store CABundle to local file: %s", err))
+				api.HandleInternalError(response, request, err)
 				return
 			}
-			opts = append(opts, getter.WithTLSClientConfig("", "", caFile))
+			opts = append(opts, getter.WithTransport(&http.Transport{TLSClientConfig: tlsConfig}))
 		}
 		if repo.Spec.BasicAuth != nil {
 			opts = append(opts, getter.WithBasicAuth(repo.Spec.BasicAuth.Username, repo.Spec.BasicAuth.Password))
@@ -127,40 +125,4 @@ func (h *handler) ListFiles(request *restful.Request, response *restful.Response
 	}
 
 	_ = response.WriteEntity(files)
-}
-
-// storeCAFile in local file from caTemplate.
-func storeCAFile(caBundle string, repoName string) (string, error) {
-	var buff = &bytes.Buffer{}
-	tmpl, err := template.New("repositoryCABundle").Parse(caTemplate)
-	if err != nil {
-		return "", err
-	}
-	if err := tmpl.Execute(buff, map[string]string{
-		"TempDIR":        os.TempDir(),
-		"RepositoryName": repoName,
-	}); err != nil {
-		return "", err
-	}
-	caFile := buff.String()
-	if _, err := os.Stat(filepath.Dir(caFile)); err != nil {
-		if !os.IsNotExist(err) {
-			return "", err
-		}
-
-		if err := os.MkdirAll(filepath.Dir(caFile), os.ModePerm); err != nil {
-			return "", err
-		}
-	}
-
-	data, err := base64.StdEncoding.DecodeString(caBundle)
-	if err != nil {
-		return "", err
-	}
-
-	if err := os.WriteFile(caFile, data, os.ModePerm); err != nil {
-		return "", err
-	}
-
-	return caFile, nil
 }
