@@ -576,7 +576,6 @@ func FormatVersion(input string) string {
 	}
 	hash := sha1.Sum([]byte(input))
 	formattedVersion := hex.EncodeToString(hash[:])[:12]
-	klog.Warningf("Version: %s does not meet the Kubernetes naming standard, replacing with SHA-1 hash: %s", input, formattedVersion)
 	return formattedVersion
 }
 
