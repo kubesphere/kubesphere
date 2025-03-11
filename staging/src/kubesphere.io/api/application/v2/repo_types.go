@@ -26,7 +26,7 @@ type RepoSpec struct {
 	Url         string         `json:"url"`
 	Credential  RepoCredential `json:"credential,omitempty"`
 	Description string         `json:"description,omitempty"`
-	SyncPeriod  int            `json:"syncPeriod,omitempty"`
+	SyncPeriod  *int           `json:"syncPeriod"`
 }
 
 // RepoStatus defines the observed state of Repo

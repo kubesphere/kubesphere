@@ -9,19 +9,13 @@ import (
 	"fmt"
 	goruntime "runtime"
 
-	"kubesphere.io/kubesphere/pkg/server/params"
-
 	"github.com/emicklei/go-restful/v3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	resv1beta1 "kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
 )
 
 func (h *appHandler) conflictedDone(req *restful.Request, resp *restful.Response, pathParam string, obj client.Object) bool {
@@ -73,33 +67,4 @@ func requestDone(err error, resp *restful.Response) bool {
 		return true
 	}
 	return false
-}
-func removeQueryArg(req *restful.Request, args ...string) {
-	//The default filter is a whitelist, so delete some of our custom logical parameters
-	for _, i := range args {
-		q := req.Request.URL.Query()
-		q.Del(i)
-		req.Request.URL.RawQuery = q.Encode()
-	}
-}
-
-func convertToListResult(obj runtime.Object, req *restful.Request) (listResult api.ListResult) {
-	removeQueryArg(req, params.ConditionsParam, "global", "create")
-	_ = meta.EachListItem(obj, omitManagedFields)
-	queryParams := query.ParseQueryParameter(req)
-	list, _ := meta.ExtractList(obj)
-	items, _, totalCount := resv1beta1.DefaultList(list, queryParams, resv1beta1.DefaultCompare, resv1beta1.DefaultFilter)
-
-	listResult.Items = items
-	listResult.TotalItems = totalCount
-
-	return listResult
-}
-func omitManagedFields(o runtime.Object) error {
-	a, err := meta.Accessor(o)
-	if err != nil {
-		return err
-	}
-	a.SetManagedFields(nil)
-	return nil
 }

@@ -1,8 +1,3 @@
-/*
- * Please refer to the LICENSE file in the root directory of the project.
- * https://github.com/kubesphere/kubesphere/blob/master/LICENSE
- */
-
 package v2
 
 import (
@@ -11,12 +6,17 @@ import (
 	"strconv"
 	"strings"
 
+	k8suitl "kubesphere.io/kubesphere/pkg/utils/k8sutil"
+
+	"k8s.io/apimachinery/pkg/selection"
+
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
+
 	"github.com/emicklei/go-restful/v3"
 	"golang.org/x/net/context"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog/v2"
 	appv2 "kubesphere.io/api/application/v2"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,7 +27,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/application"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
 func (h *appHandler) CreateOrUpdateAppVersion(req *restful.Request, resp *restful.Response) {
@@ -42,7 +41,13 @@ func (h *appHandler) CreateOrUpdateAppVersion(req *restful.Request, resp *restfu
 
 	createAppVersionRequest.AppName = req.PathParameter("app")
 
-	vRequest, err := parseRequest(createAppVersionRequest)
+	workspace := req.PathParameter("workspace")
+	if workspace == "" {
+		workspace = appv2.SystemWorkspace
+	}
+	createAppVersionRequest.Workspace = workspace
+	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
+	vRequest, err := parseRequest(createAppVersionRequest, validate)
 	if requestDone(err, resp) {
 		return
 	}
@@ -55,7 +60,6 @@ func (h *appHandler) CreateOrUpdateAppVersion(req *restful.Request, resp *restfu
 		"aliasName":   vRequest.AliasName,
 	}
 
-	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
 	if validate {
 		resp.WriteAsJson(data)
 		return
@@ -154,7 +158,7 @@ func (h *appHandler) ListAppVersions(req *restful.Request, resp *restful.Respons
 		filtered.Items = append(filtered.Items, appv)
 	}
 
-	resp.WriteEntity(convertToListResult(&filtered, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(&filtered, req))
 }
 
 func (h *appHandler) GetAppVersionPackage(req *restful.Request, resp *restful.Response) {
@@ -322,7 +326,7 @@ func (h *appHandler) ListReviews(req *restful.Request, resp *restful.Response) {
 	}
 
 	if conditions == nil || len(conditions.Match) == 0 {
-		resp.WriteEntity(convertToListResult(&appVersions, req))
+		resp.WriteEntity(k8suitl.ConvertToListResult(&appVersions, req))
 		return
 	}
 
@@ -335,5 +339,5 @@ func (h *appHandler) ListReviews(req *restful.Request, resp *restful.Response) {
 		filteredAppVersions.Items = append(filteredAppVersions.Items, version)
 	}
 
-	resp.WriteEntity(convertToListResult(&filteredAppVersions, req))
+	resp.WriteEntity(k8suitl.ConvertToListResult(&filteredAppVersions, req))
 }

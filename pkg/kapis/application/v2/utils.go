@@ -12,7 +12,12 @@ import (
 	"io"
 	"strings"
 
+	"github.com/emicklei/go-restful/v3"
+
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
+
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
 
@@ -31,9 +36,9 @@ const (
 	Status = "status"
 )
 
-func parseRequest(createRequest application.AppRequest) (appRequest application.AppRequest, err error) {
+func parseRequest(createRequest application.AppRequest, validate bool) (appRequest application.AppRequest, err error) {
 	if createRequest.AppType == appv2.AppTypeHelm {
-		req, err := parseHelmRequest(createRequest)
+		req, err := parseHelmRequest(createRequest, validate)
 		return req, err
 	}
 	_, err = application.ReadYaml(createRequest.Package)
@@ -41,7 +46,7 @@ func parseRequest(createRequest application.AppRequest) (appRequest application.
 	return createRequest, err
 }
 
-func parseHelmRequest(createRequest application.AppRequest) (req application.AppRequest, err error) {
+func parseHelmRequest(createRequest application.AppRequest, validate bool) (req application.AppRequest, err error) {
 	if createRequest.Package == nil || len(createRequest.Package) == 0 {
 		return req, errors.New("package is empty")
 	}
@@ -49,7 +54,21 @@ func parseHelmRequest(createRequest application.AppRequest) (req application.App
 	if err != nil {
 		return createRequest, err
 	}
+	if validate {
+		createRequest, err = getCrdInfo(createRequest, chartPack)
+		if err != nil {
+			klog.Errorf("failed to get crd info from %s: %v", chartPack.Metadata.Name, err)
+			return createRequest, err
+		}
+	}
 
+	shortName := application.GenerateShortNameMD5Hash(chartPack.Metadata.Name)
+	fillEmptyFields(&createRequest, chartPack, shortName)
+
+	return createRequest, nil
+}
+
+func getCrdInfo(createRequest application.AppRequest, chartPack *chart.Chart) (application.AppRequest, error) {
 	crdFiles := chartPack.CRDObjects()
 	for _, i := range crdFiles {
 		dataList, err := readYaml(i.File.Data)
@@ -83,10 +102,6 @@ func parseHelmRequest(createRequest application.AppRequest) (req application.App
 			createRequest.Resources = append(createRequest.Resources, ins)
 		}
 	}
-
-	shortName := application.GenerateShortNameMD5Hash(chartPack.Metadata.Name)
-	fillEmptyFields(&createRequest, chartPack, shortName)
-
 	return createRequest, nil
 }
 
@@ -144,7 +159,7 @@ func fillEmptyFields(createRequest *application.AppRequest, chartPack *chart.Cha
 	}
 }
 
-func (h *appHandler) getCluster(clusterName string) (runtimeclient.Client, *dynamic.DynamicClient, *clusterv1alpha1.Cluster, error) {
+func (h *appHandler) getCluster(req *restful.Request, clusterName string) (runtimeclient.Client, *dynamic.DynamicClient, *clusterv1alpha1.Cluster, error) {
 	klog.Infof("get cluster %s", clusterName)
 	runtimeClient, err := h.clusterClient.GetRuntimeClient(clusterName)
 	if err != nil {
@@ -154,7 +169,16 @@ func (h *appHandler) getCluster(clusterName string) (runtimeclient.Client, *dyna
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	dynamicClient, err := dynamic.NewForConfig(clusterClient.RestConfig)
+
+	userInfo, _ := request.UserFrom(req.Request.Context())
+	user := ""
+	if userInfo != nil {
+		user = userInfo.GetName()
+	}
+	conf := clusterClient.RestConfig
+	conf.Impersonate.UserName = user
+
+	dynamicClient, err := dynamic.NewForConfig(conf)
 	if err != nil {
 		return nil, nil, nil, err
 	}
