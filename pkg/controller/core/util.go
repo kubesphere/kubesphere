@@ -303,6 +303,7 @@ func configChanged(sub *corev1alpha1.InstallPlan, cluster string) bool {
 func createHelmCredential(repo *corev1alpha1.Repository) (helm.RepoCredential, error) {
 	cred := helm.RepoCredential{
 		InsecureSkipTLSVerify: repo.Spec.Insecure,
+		CABundle:              repo.Spec.CABundle,
 	}
 	if repo.Spec.BasicAuth != nil {
 		cred.Username = repo.Spec.BasicAuth.Username
