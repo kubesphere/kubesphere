@@ -100,7 +100,7 @@
   </details>
 
 <details>
-  <summary><b>🏘 多租户与统一鉴权认证</b></summary>
+  <summary><b>🏢 多租户与统一鉴权认证</b></summary>
   具有基于角色的访问控制的逻辑隔离可确保跨多个租户的安全资源共享。支持细粒度的权限和配额管理，<a href="https://kubesphere.io/docs/v4.1/08-workspace-management/">了解更多</a>。
   </details>
 
@@ -143,13 +143,13 @@ KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kuber
 - [在 DigitalOcean 上部署 KubeSphere](https://marketplace.digitalocean.com/apps/kubesphere)
 - [在青云QingCloud QKE 上部署 KubeSphere](https://www.qingcloud.com/products/kubesphereqke)
 
-您还可以在几分钟内在其他托管的 Kubernetes 服务上安装 KubeSphere，请参阅 [官方文档](https://kubesphere.io/zh/docs/installing-on-kubernetes/) 以开始使用。
+您还可以在几分钟内在其他托管的 Kubernetes 服务上安装 KubeSphere，请参阅 [官方文档](https://kubesphere.io/docs/v4.1/02-quickstart/01-install-kubesphere/) 以开始使用。
 
 > 👨‍💻 不能访问网络？参考[在离线环境中安装 KubeSphere](https://kubesphere.io/docs/v4.1/03-installation-and-upgrade/02-install-kubesphere/04-offline-installation/)。
 
 ## 指引、讨论、贡献与支持
 
-我们 :heart: 您的贡献。[社区](https://github.com/kubesphere/community) 将引导您了解如何开始贡献 KubeSphere。[开发指南](https://github.com/kubesphere/community/tree/master/developer-guide/development) 说明了如何安装开发环境。
+您可以通过以下渠道联系 KubeSphere [社区](https://github.com/kubesphere/community) 和开发者：
 
 - [中文论坛](https://kubesphere.com.cn/forum/)
 - [社区微信群（见官网底部）](https://kubesphere.com.cn/)
@@ -161,11 +161,25 @@ KubeSphere 托管在以下云供应商上，您可以通过在其托管的 Kuber
 
 :heart_decoration: 若您期待官方、高效的技术服务，青云科技也为 KubeSphere 开源版本提供全程可靠、小时响应的工单支持，详情垂询 [KubeSphere 在线技术支持](https://kubesphere.cloud/ticket/)。
 
+## 贡献
+
+- [KubeSphere 开发指南](https://github.com/kubesphere/community/tree/master/developer-guide/development) 介绍了如何进行
+  KubeSphere 的构建和开发。
+- [KubeSphere 扩展组件开发指南](https://dev-guide.kubesphere.io/extension-dev-guide/zh/) 介绍了如何开发 KubeSphere 扩展组件。
+
+## 行为准则
+
+参与 KubeSphere 社区需遵守[行为准则](https://github.com/kubesphere/community/blob/master/code-of-conduct.md)。
+
+## 安全
+
+有关报告漏洞的安全流程，请参阅 [SECURITY.md](./SECURITY.md)。
+
 ## 谁在使用 KubeSphere
 
 [用户案例学习](https://kubesphere.io/zh/case/) 列出了哪些企业在使用 KubeSphere。欢迎 [发表评论](https://github.com/kubesphere/kubesphere/issues/4123) 来分享您的使用案例。
 
-## Landscapes
+---
 
 <p align="center">
 <br/><br/>

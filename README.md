@@ -156,17 +156,15 @@ hosted Kubernetes services.
 - [KubeSphere on QingCloud AppCenter(QKE)](https://www.qingcloud.com/products/kubesphereqke)
 
 You can also install KubeSphere on other hosted Kubernetes services within minutes, see
-the [step-by-step guides](https://kubesphere.io/docs/installing-on-kubernetes/) to get started.
+the [step-by-step guides](https://kubesphere.io/docs/v4.1/02-quickstart/01-install-kubesphere/) to get started.
 
 > 👨‍💻 No internet access? Refer to
 > the [Air-gapped Installation](https://kubesphere.io/docs/v4.1/03-installation-and-upgrade/02-install-kubesphere/04-offline-installation/).
 
 ## Guidance, discussion, contribution, and support
 
-We :heart: your contribution. The [community](https://github.com/kubesphere/community) walks you through how to get
-started contributing KubeSphere.
-The [development guide](https://github.com/kubesphere/community/tree/master/developer-guide/development) explains how to
-set up development environment.
+You can reach the KubeSphere [community](https://github.com/kubesphere/community) and developers via the following
+channels:
 
 - [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/zt-219hq0b5y-el~FMRrJxGM1Egf5vX6QiA)
 - [Youtube](https://www.youtube.com/channel/UCyTdUQUYjf7XLjxECx63Hpw)
@@ -178,12 +176,28 @@ to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues).
 :heart_decoration: The KubeSphere team also provides efficient official ticket support to respond in hours. For more
 information, click [KubeSphere Online Support](https://kubesphere.cloud/en/ticket/).
 
+## Contribution
+
+- [KubeSphere Development Guide](https://github.com/kubesphere/community/tree/master/developer-guide/development)
+  explains how to build and develop KubeSphere.
+- [KubeSphere Extension Development Guide](https://dev-guide.kubesphere.io/extension-dev-guide/en/) explains how to
+  develop KubeSphere extensions.
+
+## Code of conduct
+
+Participation in the KubeSphere community is governed by
+the [Code of Conduct](https://github.com/kubesphere/community/blob/master/code-of-conduct.md).
+
+## Security
+
+The security process for reporting vulnerabilities is described in [SECURITY.md](./SECURITY.md).
+
 ## Who are using KubeSphere
 
 The [user case studies](https://kubesphere.io/case/) page includes the user list of the project. You
 can [leave a comment](https://github.com/kubesphere/kubesphere/issues/4123) to let us know your use case.
 
-## Landscapes
+---
 
 <p align="center">
 <br/><br/>
