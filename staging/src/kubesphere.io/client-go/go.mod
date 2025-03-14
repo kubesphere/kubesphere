@@ -55,7 +55,6 @@ require (
 )
 
 replace (
-	github.com/stretchr/testify => github.com/stretchr/testify v1.9.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync => golang.org/x/sync v0.1.0
 	golang.org/x/sys => golang.org/x/sys v0.26.0
