@@ -24,7 +24,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.11.0
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/go-git/go-git/v5 v5.13.0
-	github.com/go-jose/go-jose/v4 v4.0.2
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/loads v0.21.2
@@ -57,7 +57,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.32.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/net v0.33.0
 	golang.org/x/oauth2 v0.22.0
@@ -237,8 +237,8 @@ require (
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
@@ -282,6 +282,7 @@ replace (
 	github.com/evanphx/json-patch/v5 => github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/fsnotify/fsnotify => github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-git/go-git/v5 => github.com/go-git/go-git/v5 v5.13.0
+	github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-ldap/ldap => github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr => github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/analysis => github.com/go-openapi/analysis v0.21.4
@@ -341,7 +342,7 @@ replace (
 	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.28.0
 	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.28.0
 	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.28.0
-	golang.org/x/crypto => golang.org/x/crypto v0.31.0
+	golang.org/x/crypto => golang.org/x/crypto v0.32.0
 	golang.org/x/net => golang.org/x/net v0.33.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync => golang.org/x/sync v0.1.0
@@ -352,7 +353,6 @@ replace (
 	google.golang.org/protobuf => google.golang.org/protobuf v1.34.2
 	gopkg.in/asn1-ber.v1 => gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 	gopkg.in/cas.v2 => gopkg.in/cas.v2 v2.2.0
-	gopkg.in/square/go-jose.v2 => gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/warnings.v0 => gopkg.in/warnings.v0 v0.1.2
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
