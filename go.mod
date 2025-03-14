@@ -24,7 +24,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.11.0
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/go-git/go-git/v5 v5.13.0
-	github.com/go-jose/go-jose/v4 v4.0.2
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/loads v0.21.2
@@ -57,7 +57,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.32.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/net v0.33.0
 	golang.org/x/oauth2 v0.22.0
@@ -282,6 +282,7 @@ replace (
 	github.com/evanphx/json-patch/v5 => github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/fsnotify/fsnotify => github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-git/go-git/v5 => github.com/go-git/go-git/v5 v5.13.0
+	github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-ldap/ldap => github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr => github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/analysis => github.com/go-openapi/analysis v0.21.4
