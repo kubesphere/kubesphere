@@ -2,18 +2,32 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+We follow an **End-of-Life (EOL)** policy to provide security and bug fix support for KubeSphere versions.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 3.4.x   | :white_check_mark: |
-| 3.3.x   | :white_check_mark: |
-| 3.2.x   | :white_check_mark: |
-| 3.1.x   | :white_check_mark: |
-| 3.0.x   | :x: |
-| 2.1.x   | :x: |
-| < 2.1.x   | :x:                |
+We regularly release patch versions to address security vulnerabilities and critical bugs for supported KubeSphere
+releases. The support period for each version is determined by its **EOL date**, rather than by a fixed number of minor
+versions.
+
+The current support plan is as follows:
+
+| KubeSphere Version            | End of Life (EOL) Date |
+|-------------------------------|------------------------|
+| **KubeSphere v4.2**           | ---                    |
+| **KubeSphere v4.1**           | Sep 12, 2027           |
+| **KubeSphere v3.4**           | Dec 25, 2025           |
+| **KubeSphere v3.3 & earlier** | Oct 31, 2025           |
+
+Once a version reaches its EOL date, it will no longer receive official security updates or bug fixes. Older versions
+may receive **critical security fixes on a best-effort basis**, but we cannot guarantee that all security patches will
+be backported to unsupported versions.
+
+In rare cases, where a security fix requires significant architectural changes or is otherwise highly intrusive, and a
+feasible workaround exists, we may choose to **apply the fix only in a future release**, rather than backporting it to a
+patch version for currently supported releases.
+
+For long-term stability, we recommend users plan their upgrades according to the EOL schedule.
+
+Let me know if you'd like any refinements!
 
 ## Reporting a Vulnerability
 
