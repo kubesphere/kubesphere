@@ -131,7 +131,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
-	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
@@ -160,6 +160,7 @@ require (
 
 replace (
 	github.com/stretchr/testify => github.com/stretchr/testify v1.9.0
+	golang.org/x/crypto => golang.org/x/crypto v0.31.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync => golang.org/x/sync v0.1.0
 	golang.org/x/sys => golang.org/x/sys v0.26.0
