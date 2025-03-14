@@ -99,7 +99,7 @@ func (r *ExtensionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if extension.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !extension.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, extension)
 	}
 
