@@ -3,16 +3,9 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: io.kubesphere.config.platformconfig.telemetry
-  namespace: {{ .Release.Namespace | quote }}
 type: config.kubesphere.io/generic-platform-config
 stringData:
   configuration.yaml: |
     enabled: {{ include "telemetry.enabled" . }}
-    {{- if eq .Values.cloud.env "clouddev.kubesphere.io" }}
-    endpoint: "https://clouddev.kubesphere.io"
-    {{- else if eq .Values.cloud.env "kubesphere.cloud" }}
     endpoint: "https://kubesphere.cloud"
-    {{- else if and .Values.cloud.customEnv .Values.cloud.customEnv.url }}
-    endpoint: {{ $.Values.cloud.customEnv.url | quote }}
-    {{- end }}
 {{- end }}
