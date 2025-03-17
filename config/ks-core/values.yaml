@@ -443,5 +443,5 @@ ksExtensionRepository:
   image:
     registry: ""
     repository: kubesphere/ks-extensions-museum
-    tag: "v1.1.3"
+    tag: "v1.1.5"
     pullPolicy: IfNotPresent
