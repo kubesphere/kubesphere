@@ -41,7 +41,7 @@ If you find a vulnerability or encounter a security incident involving vulnerabi
 
 Please kindly help provide as much vulnerability information as possible in the following format:
 
-- Issue title(Please add 'Security' lable)*:
+- Issue title (Please add `Security` label)*:
 
 - Overview*:
 
