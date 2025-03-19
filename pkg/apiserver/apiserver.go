@@ -120,6 +120,7 @@ func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 	s.installKubeSphereAPIs()
 	s.installMetricsAPI()
 	s.installHealthz()
+	s.installLivez()
 	if err := s.installOpenAPI(); err != nil {
 		return err
 	}
@@ -198,7 +199,12 @@ func (s *APIServer) installKubeSphereAPIs() {
 
 // installHealthz creates the healthz endpoint for this server
 func (s *APIServer) installHealthz() {
-	urlruntime.Must(healthz.InstallHandler(s.container, []healthz.HealthChecker{}...))
+	urlruntime.Must(healthz.InstallHandler(s.container))
+}
+
+// installLivez creates the livez endpoint for this server
+func (s *APIServer) installLivez() {
+	urlruntime.Must(healthz.InstallLivezHandler(s.container))
 }
 
 func (s *APIServer) Run(ctx context.Context) (err error) {
@@ -262,7 +268,7 @@ func (s *APIServer) buildHandlerChain(handler http.Handler, stopCh <-chan struct
 	default:
 		fallthrough
 	case authorization.RBAC:
-		excludedPaths := []string{"/oauth/*", "/dist/*", "/.well-known/openid-configuration", "/kapis/version", "/version", "/metrics", "/healthz", "/openapi/v2", "/openapi/v3"}
+		excludedPaths := []string{"/oauth/*", "/dist/*", "/.well-known/openid-configuration", "/version", "/metrics", "/livez", "/healthz", "/openapi/v2", "/openapi/v3"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.ResourceManager)
 		authorizers = unionauthorizer.New(pathAuthorizer, rbac.NewRBACAuthorizer(amOperator))

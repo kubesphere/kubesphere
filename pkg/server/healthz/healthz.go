@@ -21,29 +21,24 @@ import (
 )
 
 func AddToContainer(container *restful.Container, path string, checks ...HealthChecker) error {
+	if len(checks) == 0 {
+		klog.V(4).Info("No default health checks specified. Installing the ping handler.")
+		checks = []HealthChecker{PingHealthz}
+	}
 	name := strings.Split(strings.TrimPrefix(path, "/"), "/")[0]
 	container.Handle(path, handleRootHealth(name, nil, checks...))
 
 	for _, check := range checks {
 		container.Handle(fmt.Sprintf("%s/%v", path, check.Name()), adaptCheckToHandler(check))
 	}
-
 	return nil
 }
 
 func InstallHandler(container *restful.Container, checks ...HealthChecker) error {
-	if len(checks) == 0 {
-		klog.V(4).Info("No default health checks specified. Installing the ping handler.")
-		checks = []HealthChecker{PingHealthz}
-	}
 	return AddToContainer(container, "/healthz", checks...)
 }
 
 func InstallLivezHandler(container *restful.Container, checks ...HealthChecker) error {
-	if len(checks) == 0 {
-		klog.V(4).Info("No default health checks specified. Installing the ping handler.")
-		checks = []HealthChecker{PingHealthz}
-	}
 	return AddToContainer(container, "/livez", checks...)
 }
 

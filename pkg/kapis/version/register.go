@@ -38,7 +38,7 @@ func (h *handler) AddToContainer(container *restful.Container) error {
 	versionFunc := func(request *restful.Request, response *restful.Response) {
 		ksVersion := version.Get()
 		ksVersion.Kubernetes = h.k8sVersionInfo
-		response.WriteAsJson(ksVersion)
+		_ = response.WriteAsJson(ksVersion)
 	}
 	legacy.Route(legacy.GET("/version").
 		To(versionFunc).
