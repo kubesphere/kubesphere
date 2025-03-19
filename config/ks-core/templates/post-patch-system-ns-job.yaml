@@ -3,7 +3,7 @@ kind: Job
 metadata:
   name: "{{ .Release.Name }}-post-patch-system-ns"
   annotations:
-    "helm.sh/hook": post-install
+    "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "-5"
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded,hook-failed
 spec:
@@ -16,7 +16,7 @@ spec:
       {{- end }}
       containers:
         - name: post-patch-system-ns
-          image:  {{ template "kubectl.image" . }}
+          image: {{ template "kubectl.image" . }}
           command:
             - /bin/bash
             - -c
@@ -28,5 +28,3 @@ spec:
                 kubectl label ns $ns kubesphere.io/managed=true
                 kubectl label ns $ns kubesphere.io/protected-resource=true
               done
-              kubectl get ns -l 'kubesphere.io/workspace,!kubesphere.io/managed' --no-headers -o custom-columns=NAME:.metadata.name | \
-              xargs -I {} kubectl label ns {} kubesphere.io/managed=true
