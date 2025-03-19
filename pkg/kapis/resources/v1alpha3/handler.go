@@ -14,11 +14,15 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/components"
+	"kubesphere.io/kubesphere/pkg/models/registries/imagesearch"
+	"kubesphere.io/kubesphere/pkg/models/registries/imagesearch/dockerhub"
+	"kubesphere.io/kubesphere/pkg/models/registries/imagesearch/harbor"
 	v2 "kubesphere.io/kubesphere/pkg/models/registries/v2"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/simple/client/overview"
@@ -41,10 +45,12 @@ var (
 )
 
 type handler struct {
-	resourceGetterV1alpha3 *resourcev1alpha3.Getter
-	componentsGetter       components.Getter
-	registryHelper         v2.RegistryHelper
-	counter                overview.Counter
+	resourceGetterV1alpha3  *resourcev1alpha3.Getter
+	componentsGetter        components.Getter
+	registryHelper          v2.RegistryHelper
+	counter                 overview.Counter
+	imageSearchController   *imagesearch.Controller
+	imageSearchSecretGetter imagesearch.SecretGetter
 }
 
 func (h *handler) GetResources(request *restful.Request, response *restful.Response) {
@@ -221,6 +227,49 @@ func (h *handler) GetNamespaceOverview(request *restful.Request, response *restf
 	_ = response.WriteEntity(metrics)
 }
 
+func (h *handler) SearchImages(request *restful.Request, response *restful.Response) {
+	imageName := request.QueryParameter("q")
+	namespace := request.PathParameter("namespace")
+	searchSecret := request.QueryParameter("secret")
+
+	var (
+		config   = &imagesearch.SearchConfig{}
+		err      error
+		provider imagesearch.SearchProvider
+	)
+	if searchSecret != "" {
+		config, err = h.imageSearchSecretGetter.GetSecretConfig(request.Request.Context(), searchSecret, namespace)
+		if err != nil {
+			api.HandleError(response, request, err)
+			return
+		}
+
+		if config.ProviderType == "" {
+			config.ProviderType = getProviderTypeByHost(config.Host)
+		}
+
+		var exist bool
+		provider, exist = h.imageSearchController.GetProvider(config.ProviderType)
+		if !exist {
+			api.HandleNotFound(response, request, errors.NewNotFound(schema.GroupResource{
+				Resource: "imageSearchProvider",
+			}, config.ProviderType))
+			return
+		}
+
+	} else {
+		provider = h.imageSearchController.GetDefaultProvider()
+	}
+
+	results, err := provider.Search(imageName, *config)
+	if err != nil {
+		api.HandleError(response, request, err)
+		return
+	}
+
+	_ = response.WriteEntity(results)
+}
+
 func canonicalizeRegistryError(request *restful.Request, response *restful.Response, err error) {
 	if strings.Contains(err.Error(), "Unauthorized") {
 		api.HandleUnauthorized(response, request, err)
@@ -229,4 +278,11 @@ func canonicalizeRegistryError(request *restful.Request, response *restful.Respo
 	} else {
 		api.HandleBadRequest(response, request, err)
 	}
+}
+
+func getProviderTypeByHost(host string) string {
+	if host == imagesearch.HostDockerIo {
+		return dockerhub.DockerHubRegisterProvider
+	}
+	return harbor.HarborRegisterProvider
 }

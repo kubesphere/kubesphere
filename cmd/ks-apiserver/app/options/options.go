@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/options"
 	"kubesphere.io/kubesphere/pkg/config"
 	"kubesphere.io/kubesphere/pkg/models/auth"
+	"kubesphere.io/kubesphere/pkg/models/registries/imagesearch"
 	resourcev1beta1 "kubesphere.io/kubesphere/pkg/models/resources/v1beta1"
 	"kubesphere.io/kubesphere/pkg/scheme"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
@@ -109,6 +110,10 @@ func (s *APIServerOptions) NewAPIServer(ctx context.Context) (*apiserver.APIServ
 
 	if err := identityprovider.SharedIdentityProviderController.WatchConfigurationChanges(ctx, apiServer.RuntimeCache); err != nil {
 		return nil, fmt.Errorf("unable to setup identity provider: %v", err)
+	}
+
+	if err := imagesearch.SharedImageSearchProviderController.WatchConfigurationChanges(ctx, apiServer.RuntimeCache); err != nil {
+		return nil, fmt.Errorf("unable to setup image search provider: %v", err)
 	}
 
 	if apiServer.ClusterClient, err = clusterclient.NewClusterClientSet(apiServer.RuntimeCache); err != nil {
