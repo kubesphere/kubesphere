@@ -12,7 +12,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/klog/v2"
 	appv2 "kubesphere.io/api/application/v2"
 	"kubesphere.io/utils/helm"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,21 +21,21 @@ import (
 )
 
 func (r *AppReleaseReconciler) uninstall(ctx context.Context, rls *appv2.ApplicationRelease, executor helm.Executor, kubeconfig []byte) (jobName string, err error) {
-
-	klog.Infof("uninstall helm release %s", rls.Name)
+	logger := r.logger.WithValues("application release", rls).WithValues("namespace", rls.Namespace)
+	logger.V(4).Info("uninstall helm release")
 
 	creator := rls.Annotations[constants.CreatorAnnotationKey]
-	klog.Infof("helm impersonate kubeAsUser: %s", creator)
+	logger.V(4).Info("helm impersonate kubeAsUser", "creator", creator)
 	options := []helm.HelmOption{
 		helm.SetNamespace(rls.GetRlsNamespace()),
 		helm.SetKubeconfig(kubeconfig),
 	}
 
 	if jobName, err = executor.Uninstall(ctx, rls.Name, options...); err != nil {
-		klog.Error(err, "failed to force delete helm release")
+		logger.Error(err, "failed to force delete helm release")
 		return jobName, err
 	}
-	klog.Infof("uninstall helm release %s success,job name: %s", rls.Name, jobName)
+	logger.Info("uninstall helm release success", "job", jobName)
 
 	return jobName, nil
 }
@@ -49,12 +48,13 @@ func (r *AppReleaseReconciler) jobStatus(job *batchv1.Job) (active, completed, f
 }
 
 func (r *AppReleaseReconciler) createOrUpgradeAppRelease(ctx context.Context, rls *appv2.ApplicationRelease, executor helm.Executor, kubeconfig []byte) error {
+	logger := r.logger.WithValues("application release", rls).WithValues("namespace", rls.Namespace)
 	clusterName := rls.GetRlsCluster()
 	namespace := rls.GetRlsNamespace()
-	klog.Infof("begin to create or upgrade %s app release %s in cluster %s ns: %s", rls.Spec.AppType, rls.Name, clusterName, namespace)
+	logger.V(6).Info("begin to create or upgrade app release", "cluster", clusterName)
 
 	creator := rls.Annotations[constants.CreatorAnnotationKey]
-	klog.Infof("helm impersonate kubeAsUser: %s", creator)
+	logger.V(6).Info("helm impersonate kubeAsUser", "creator", creator)
 	options := []helm.HelmOption{
 		helm.SetInstall(true),
 		helm.SetNamespace(namespace),
@@ -66,23 +66,23 @@ func (r *AppReleaseReconciler) createOrUpgradeAppRelease(ctx context.Context, rl
 	if rls.Spec.AppType == appv2.AppTypeHelm {
 		_, err := executor.Get(ctx, rls.Name, options...)
 		if err != nil && err.Error() == "release: not found" {
-			klog.Infof("release %s not found, begin to create", rls.Name)
+			logger.V(4).Info("release not found, begin to create")
 		}
 		if err == nil {
-			klog.Infof("release %s found, begin to upgrade", rls.Name)
+			logger.V(6).Info("release  found, begin to upgrade")
 			state = appv2.StatusUpgraded
 		}
 	}
 
 	data, err := application.FailOverGet(r.cmStore, r.ossStore, rls.Spec.AppVersionID, r.Client, true)
 	if err != nil {
-		klog.Errorf("failed to get app version data, err: %v", err)
+		logger.Error(err, "failed to get app version data")
 		return err
 	}
 	options = append(options, helm.SetChartData(data))
 
 	if rls.Status.InstallJobName, err = executor.Upgrade(ctx, rls.Name, "", rls.Spec.Values, options...); err != nil {
-		klog.Errorf("failed to create executor job, err: %v", err)
+		logger.Error(err, "failed to create executor job")
 		return r.updateStatus(ctx, rls, appv2.StatusFailed, err.Error())
 	}
 
@@ -99,22 +99,23 @@ func (r *AppReleaseReconciler) getExecutor(apprls *appv2.ApplicationRelease, kub
 }
 
 func (r *AppReleaseReconciler) getYamlInstaller(runClient client.Client, apprls *appv2.ApplicationRelease) (executor helm.Executor, err error) {
+	logger := r.logger.WithValues("application release", apprls).WithValues("namespace", apprls.Namespace)
 	dynamicClient, err := r.getClusterDynamicClient(apprls.GetRlsCluster(), apprls)
 	if err != nil {
-		klog.Errorf("failed to get dynamic client: %v", err)
+		logger.Error(err, "failed to get dynamic client")
 		return nil, err
 	}
 
 	jsonList, err := application.ReadYaml(apprls.Spec.Values)
 	if err != nil {
-		klog.Errorf("failed to read yaml: %v", err)
+		logger.Error(err, "failed to read yaml")
 		return nil, err
 	}
 	var gvrListInfo []application.InsInfo
 	for _, i := range jsonList {
 		gvr, utd, err := application.GetInfoFromBytes(i, runClient.RESTMapper())
 		if err != nil {
-			klog.Errorf("failed to get info from bytes: %v", err)
+			logger.Error(err, "failed to get info from bytes")
 			return nil, err
 		}
 		ins := application.InsInfo{
@@ -134,6 +135,7 @@ func (r *AppReleaseReconciler) getYamlInstaller(runClient client.Client, apprls 
 }
 
 func (r *AppReleaseReconciler) getHelmExecutor(apprls *appv2.ApplicationRelease, kubeconfig []byte) (executor helm.Executor, err error) {
+	logger := r.logger.WithValues("application release", apprls).WithValues("namespace", apprls.Namespace)
 	executorOptions := []helm.ExecutorOption{
 		helm.SetExecutorKubeConfig(kubeconfig),
 		helm.SetExecutorNamespace(apprls.GetRlsNamespace()),
@@ -148,7 +150,7 @@ func (r *AppReleaseReconciler) getHelmExecutor(apprls *appv2.ApplicationRelease,
 
 	executor, err = helm.NewExecutor(executorOptions...)
 	if err != nil {
-		klog.Errorf("failed to create helm executor: %v", err)
+		logger.Error(err, "failed to create helm executor")
 		return nil, err
 	}
 
@@ -156,25 +158,25 @@ func (r *AppReleaseReconciler) getHelmExecutor(apprls *appv2.ApplicationRelease,
 }
 
 func (r *AppReleaseReconciler) cleanJob(ctx context.Context, apprls *appv2.ApplicationRelease, runClient client.Client) (wait bool, err error) {
-
+	logger := r.logger.WithValues("application release", apprls).WithValues("namespace", apprls.Namespace)
 	jobs := &batchv1.JobList{}
 
 	opts := []client.ListOption{client.InNamespace(apprls.GetRlsNamespace()), client.MatchingLabels{appv2.AppReleaseReferenceLabelKey: apprls.Name}}
 	err = runClient.List(ctx, jobs, opts...)
 	if err != nil {
-		klog.Errorf("failed to list job for %s: %v", apprls.Name, err)
+		logger.Error(err, "failed to list job")
 		return false, err
 	}
 	if len(jobs.Items) == 0 {
-		klog.Infof("cluster: %s namespace: %s no job found for %s", apprls.GetRlsCluster(), apprls.GetRlsNamespace(), apprls.Name)
+		logger.V(6).Info("no job found", "cluster", apprls.GetRlsCluster())
 		return false, nil
 	}
-	klog.Infof("found %d jobs for %s", len(jobs.Items), apprls.Name)
+	logger.V(6).Info("found jobs", "job number", len(jobs.Items))
 	for _, job := range jobs.Items {
-		klog.Infof("begin to clean job %s/%s", job.Namespace, job.Name)
+		logger.V(6).Info("begin to clean job", "namespace", job.Namespace, "job", job.Name)
 		jobActive, jobCompleted, failed := r.jobStatus(&job)
 		if jobActive {
-			klog.Infof("job %s is still active", job.Name)
+			logger.V(6).Info("job is still active", "job", job.Name)
 			return true, nil
 		}
 		if jobCompleted || failed {
@@ -182,18 +184,18 @@ func (r *AppReleaseReconciler) cleanJob(ctx context.Context, apprls *appv2.Appli
 			opt := client.DeleteOptions{PropagationPolicy: &deletePolicy}
 			err = runClient.Delete(ctx, &job, &opt)
 			if err != nil {
-				klog.Errorf("failed to delete job %s: %v", job.Name, err)
+				logger.Error(err, "failed to delete job", "job", job.Name)
 				return false, err
 			}
-			klog.Infof("job %s has been deleted", job.Name)
+			logger.V(4).Info("job has been deleted", "job", job.Name)
 		} else {
-			klog.Infof("job:%s status unknown, wait for next reconcile: %v", job.Name, job.Status)
+			logger.V(4).Info("job status unknown, wait for next reconcile", "job", job.Name, "status", job.Status)
 			return true, nil
 		}
 
 	}
 
-	klog.Infof("all job has been deleted")
+	logger.Info("all job has been deleted")
 	return false, nil
 }
 
@@ -202,13 +204,13 @@ func (r *AppReleaseReconciler) cleanStore(ctx context.Context, apprls *appv2.App
 	appVersion := &appv2.ApplicationVersion{}
 	err = r.Get(ctx, client.ObjectKey{Name: name}, appVersion)
 	if apierrors.IsNotFound(err) {
-		klog.Infof("appVersion %s has been deleted, cleanup file in oss", name)
+		r.logger.Info("application version has been deleted, cleanup file in oss", "application version", name)
 		err = application.FailOverDelete(r.cmStore, r.ossStore, []string{appVersion.Name})
 		if err != nil {
-			klog.Warningf("failed to cleanup file in oss: %v", err)
+			r.logger.Error(err, "failed to cleanup file in oss")
 			return nil
 		}
 	}
-	klog.Infof("appVersion %s still exists, no need to cleanup file in oss", name)
+	r.logger.V(6).Info("application version still exists, no need to cleanup file in oss", "application version", name)
 	return nil
 }
