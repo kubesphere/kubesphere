@@ -24,6 +24,8 @@ import (
 	v2 "kubesphere.io/kubesphere/pkg/models/registries/v2"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/simple/client/overview"
+
+	"kubesphere.io/kubesphere/pkg/models/registries/imagesearch"
 )
 
 const (
@@ -39,10 +41,12 @@ func Resource(resource string) schema.GroupResource {
 
 func NewHandler(cacheReader runtimeclient.Reader, counter overview.Counter, k8sVersion *semver.Version) rest.Handler {
 	return &handler{
-		resourceGetterV1alpha3: resourcev1alpha3.NewResourceGetter(cacheReader, k8sVersion),
-		componentsGetter:       components.NewComponentsGetter(cacheReader),
-		registryHelper:         v2.NewRegistryHelper(),
-		counter:                counter,
+		resourceGetterV1alpha3:  resourcev1alpha3.NewResourceGetter(cacheReader, k8sVersion),
+		componentsGetter:        components.NewComponentsGetter(cacheReader),
+		registryHelper:          v2.NewRegistryHelper(),
+		imageSearchController:   imagesearch.SharedImageSearchProviderController,
+		counter:                 counter,
+		imageSearchSecretGetter: imagesearch.NewSecretGetter(cacheReader),
 	}
 }
 
@@ -136,6 +140,15 @@ func (h *handler) AddToContainer(c *restful.Container) error {
 		Param(ws.PathParameter("secret", "Name of the secret.")).
 		Reads(v1.Secret{}).
 		Returns(http.StatusOK, api.StatusOK, v1.Secret{}))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/images").
+		To(h.SearchImages).
+		Doc("Search image from a registry").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagNamespacedResources}).
+		Param(ws.PathParameter("namespace", "The specified namespace.")).
+		Param(ws.QueryParameter("secret", "Secret name of the image repository credential, left empty means anonymous fetch.").Required(false)).
+		Param(ws.QueryParameter("q", "Search parameter for project and repository name.")).
+		Returns(http.StatusOK, api.StatusOK, imagesearch.Results{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/imageconfig").
 		To(h.GetImageConfig).
