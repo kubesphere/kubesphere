@@ -2,6 +2,8 @@
 apiVersion: tenant.kubesphere.io/v1beta1
 kind: WorkspaceTemplate
 metadata:
+  labels:
+    kubesphere.io/protected-resource: 'true'
   annotations:
     kubesphere.io/creator: admin
     kubesphere.io/description: "system-workspace is a built-in workspace automatically created by KubeSphere. It contains all system components to run KubeSphere."
