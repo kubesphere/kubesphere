@@ -75,7 +75,7 @@ spec:
                   timeout:
                     type: string
                 required:
-                  - timeout
+                - timeout
                 type: object
               url:
                 type: string
