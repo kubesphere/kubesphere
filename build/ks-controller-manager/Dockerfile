@@ -1,5 +1,5 @@
 # Download dependencies
-FROM alpine:3.20.3 AS base_os_context
+FROM alpine:3.21.3 AS base_os_context
 
 RUN apk add --no-cache ca-certificates curl
 
@@ -15,7 +15,7 @@ RUN curl -LO https://github.com/kubesphere/telemetry/releases/download/v${TELEME
 COPY config/ks-core ${OUTDIR}/var/helm-charts/ks-core
 
 # Build
-FROM golang:1.22.11 AS build_context
+FROM golang:1.23.7 AS build_context
 
 ENV OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/local/bin/
@@ -27,7 +27,7 @@ RUN make ks-controller-manager
 RUN mv /workspace/bin/cmd/controller-manager ${OUTDIR}/usr/local/bin/
 
 # Final Image
-FROM alpine:3.20.3
+FROM alpine:3.21.3
 
 COPY --from=base_os_context /out/ /
 COPY --from=build_context /out/ /
