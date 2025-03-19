@@ -15,7 +15,6 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: letsencrypt
-  namespace: {{ .Release.Namespace }}
 spec:
   acme:
     email: {{ .Values.letsEncrypt.email }}
@@ -27,7 +26,7 @@ spec:
     privateKeySecretRef:
       name: letsencrypt-{{ .Values.letsEncrypt.environment }}
     {{- if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
-    http01: { }
+    http01: {}
     {{- else }}
     solvers:
       - http01:
@@ -55,7 +54,6 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: self-signed
-  namespace: {{ .Release.Namespace }}
 spec:
   selfSigned: {}
 {{- end }}
@@ -79,7 +77,6 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: ks-apiserver-certificate
-  namespace: {{ .Release.Namespace }}
 spec:
   # Secret names are always required.
   secretName: ks-apiserver-tls-certs
@@ -124,7 +121,6 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: ks-console-certificate
-  namespace: {{ .Release.Namespace }}
 spec:
   # Secret names are always required.
   secretName: ks-console-tls-certs

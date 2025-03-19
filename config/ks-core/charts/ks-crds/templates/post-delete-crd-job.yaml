@@ -20,7 +20,6 @@ data:
 {{ (.Files.Glob "scripts/post-delete.sh").AsConfig | indent 2 }}
 
 ---
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -31,7 +30,6 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -49,14 +47,13 @@ subjects:
     name: "{{ .Release.Name }}-post-delete-crd"
     namespace: {{ .Release.Namespace }}
 
----
-
 {{- $crdNameList := list }}
 {{- range $path, $_ := .Files.Glob "crds/**" }}
 {{- $crd := $.Files.Get $path | fromYaml }}
 {{- $crdNameList = append $crdNameList $crd.metadata.name }}
 {{- end }}
 
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -70,6 +67,9 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: "{{ .Release.Name }}-post-delete-crd"
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       containers:
         - name: post-delete-job
           image: {{ template "kubectl.image" . }}
@@ -81,7 +81,6 @@ spec:
           volumeMounts:
             - mountPath: /scripts
               name: scripts
-          resources: {{- toYaml .Values.kubectl.resources | nindent 12 }}
       volumes:
         - name: scripts
           configMap:

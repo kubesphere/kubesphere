@@ -21,6 +21,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/controller/options"
 	"kubesphere.io/kubesphere/pkg/models/composedapp"
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/models/terminal"
 	"kubesphere.io/kubesphere/pkg/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -111,6 +112,7 @@ type Config struct {
 	AuthorizationOptions  *authorization.Options       `json:"authorization,omitempty" yaml:"authorization,omitempty" mapstructure:"authorization"`
 	MultiClusterOptions   *multicluster.Options        `json:"multicluster,omitempty" yaml:"multicluster,omitempty" mapstructure:"multicluster"`
 	AuditingOptions       *auditing.Options            `json:"auditing,omitempty" yaml:"auditing,omitempty" mapstructure:"auditing"`
+	KubeconfigOptions     *kubeconfig.Options          `json:"kubeconfig,omitempty" yaml:"kubeconfig,omitempty" mapstructure:"kubeconfig"`
 	TerminalOptions       *terminal.Options            `json:"terminal,omitempty" yaml:"terminal,omitempty" mapstructure:"terminal"`
 	HelmExecutorOptions   *options.HelmExecutorOptions `json:"helmExecutor,omitempty" yaml:"helmExecutor,omitempty" mapstructure:"helmExecutor"`
 	ExtensionOptions      *options.ExtensionOptions    `json:"extension,omitempty" yaml:"extension,omitempty" mapstructure:"extension"`
@@ -129,6 +131,7 @@ func New() *Config {
 		AuthorizationOptions:  authorization.NewOptions(),
 		MultiClusterOptions:   multicluster.NewOptions(),
 		TerminalOptions:       terminal.NewOptions(),
+		KubeconfigOptions:     kubeconfig.NewOptions(),
 		AuditingOptions:       auditing.NewAuditingOptions(),
 		HelmExecutorOptions:   options.NewHelmExecutorOptions(),
 		ExtensionOptions:      options.NewExtensionOptions(),

@@ -37,14 +37,17 @@ data:
     multicluster:
       clusterRole: {{ include "multicluster.role" . | quote }}
       hostClusterName: {{ include "multicluster.hostClusterName" . | include "validateHostClusterName" | quote }}
+    kubeconfig:
+      # service-account-token client-certificate oidc-token webhook-token
+      authMode: {{ (.Values.kubeconfig).authMode | default "client-certificate" }}
     terminal:
       kubectl:
-        image: {{ template "kubectl.image" . }}
+        image: {{ include "kubectl.image" . | quote }}
       node:
-        image:  {{ template "nodeShell.image" . }}
+        image: {{ include "nodeShell.image" . | quote }}
       uploadFileLimit: 100Mi
     helmExecutor:
-      image: {{ template "helm.image" . }}
+      image: {{ include "helm.image" . | quote }}
       timeout: {{ .Values.helmExecutor.timeout }}
       historyMax: {{ .Values.helmExecutor.historyMax }}
       jobTTLAfterFinished: {{ .Values.helmExecutor.jobTTLAfterFinished }}

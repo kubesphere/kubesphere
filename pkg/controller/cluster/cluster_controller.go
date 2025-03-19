@@ -459,7 +459,7 @@ func (r *Reconciler) tryFetchKubeSphereVersion(ctx context.Context, cluster *clu
 		port = "443"
 	}
 	response, err := clusterClient.KubernetesClient.CoreV1().Services(constants.KubeSphereNamespace).
-		ProxyGet(scheme, constants.KubeSphereAPIServerName, port, "/kapis/version", nil).
+		ProxyGet(scheme, constants.KubeSphereAPIServerName, port, "/version", nil).
 		DoRaw(ctx)
 	if err != nil {
 		return "", err

@@ -10,14 +10,6 @@ rules:
     verbs:
       - get
       - list
-  - apiGroups:
-      - extensions.kubesphere.io
-    resources:
-      - '*'
-    verbs:
-      - get
-      - list
-      - watch
   - nonResourceURLs:
       - '/static/images/*'
     verbs:
@@ -76,6 +68,7 @@ rules:
       - config.kubesphere.io
     resources:
       - configs
+      - platformconfigs
     verbs:
       - get
       - list
@@ -257,3 +250,19 @@ rules:
     verbs:
       - create
       - list
+
+---
+apiVersion: iam.kubesphere.io/v1beta1
+kind: GlobalRole
+metadata:
+  name: ks-console
+rules:
+  - apiGroups:
+      - extensions.kubesphere.io
+      - config.kubesphere.io
+    resources:
+      - '*'
+    verbs:
+      - get
+      - list
+      - watch

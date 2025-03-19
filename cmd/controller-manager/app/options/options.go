@@ -152,6 +152,9 @@ func (s *ControllerManagerOptions) Merge(conf *config.Config) {
 	if conf.TerminalOptions != nil {
 		s.TerminalOptions = conf.TerminalOptions
 	}
+	if conf.KubeconfigOptions != nil {
+		s.KubeconfigOptions = conf.KubeconfigOptions
+	}
 	if conf.HelmExecutorOptions != nil {
 		s.HelmExecutorOptions = conf.HelmExecutorOptions
 	}

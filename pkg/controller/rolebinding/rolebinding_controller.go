@@ -86,9 +86,11 @@ func (r *Reconciler) syncToKubernetes(ctx context.Context, roleBinding *iamv1bet
 		for _, subject := range roleBinding.Subjects {
 			newSubject := rbacv1.Subject{
 				Kind:      subject.Kind,
-				APIGroup:  rbacv1.GroupName,
 				Name:      subject.Name,
 				Namespace: subject.Namespace,
+			}
+			if subject.APIGroup != "" {
+				newSubject.APIGroup = rbacv1.GroupName
 			}
 			subjects = append(subjects, newSubject)
 		}

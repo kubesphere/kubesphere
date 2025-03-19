@@ -38,6 +38,7 @@ const (
 	MaxImageWidth               = 128
 	ApplicationNamespace        = "extension-openpitrix"
 	StoreCleanFinalizer         = "storeCleanFinalizer.application.kubesphere.io"
+	CleanupFinalizer            = "application.kubesphere.io/cleanup"
 	SystemWorkspace             = "system-workspace"
 	// App review status: draft, submitted, passed, rejected, suspended, active
 	ReviewStatusDraft     = "draft"

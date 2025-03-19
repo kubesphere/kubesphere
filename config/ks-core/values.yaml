@@ -4,6 +4,8 @@ global:
   imageRegistry: docker.io
   tag: v4.1.1
   imagePullSecrets: []
+  # - name: "image-pull-secret"
+
 
 ## @param nameOverride String to partially override common.names.fullname
 ##
@@ -113,14 +115,6 @@ apiserver:
     tag: ""
     digest: ""
     pullPolicy: IfNotPresent
-    ## Optionally, specify an array of imagePullSecrets.
-    ## Secrets must be manually created in the namespace.
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    ## e.g.:
-    ## pullSecrets:
-    ##   - myRegistryKeySecretName
-    ##
-    pullSecrets: []
   ## @param containerPorts [array] List of container ports to enable in the ks-apiserver container
   ##
   containerPorts:
@@ -166,14 +160,6 @@ console:
     tag: ""
     digest: ""
     pullPolicy: IfNotPresent
-    ## Optionally, specify an array of imagePullSecrets.
-    ## Secrets must be manually created in the namespace.
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    ## e.g.:
-    ## pullSecrets:
-    ##   - myRegistryKeySecretName
-    ##
-    pullSecrets: []
   config:
     enableNodeListTerminal: true
   ## @param containerPorts [array] List of container ports to enable in the ks-console container
@@ -213,14 +199,6 @@ controller:
     tag: ""
     digest: ""
     pullPolicy: IfNotPresent
-    ## Optionally, specify an array of imagePullSecrets.
-    ## Secrets must be manually created in the namespace.
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    ## e.g.:
-    ## pullSecrets:
-    ##   - myRegistryKeySecretName
-    ##
-    pullSecrets: []
   ## @param containerPorts [array] List of container ports to enable in the ks-controller-manager container
   ##
   containerPorts:
@@ -348,14 +326,34 @@ extension:
     httpPort: 80
     httpsPort: 443
 
-hook:
-  resources:
-    limits:
-      cpu: 1
-      memory: 1024Mi
-    requests:
-      cpu: 20m
-      memory: 100Mi
+upgrade:
+  enabled: false
+  image:
+    registry: ""
+    repository: kubesphere/ks-upgrade
+    tag: ""
+    pullPolicy: IfNotPresent
+  persistenceVolume:
+    name: ks-upgrade
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi
+  config: {}
+#    storage:
+#      local:
+#        path: /tmp/ks-upgrade
+#    download:
+#      globalRegistryUrl: "https://extensions-museum.kubesphere-system.svc/charts"
+#      file: {}
+#      http:
+#        timeout: 20
+#      oci: {}
+#    skipValidator: false
+#    jobs:
+#      core:
+#        disabled: false
+#        priority: 10000
+
 
 ha:
   enabled: false
@@ -438,13 +436,6 @@ ksCRDs:
       repository: kubesphere/kubectl
       tag: "v1.27.16"
       pullPolicy: IfNotPresent
-    resources:
-      limits:
-        cpu: 1
-        memory: 1024Mi
-      requests:
-        cpu: 20m
-        memory: 100Mi
 
 # add museum for all ks-extensions
 ksExtensionRepository:
@@ -453,4 +444,4 @@ ksExtensionRepository:
     registry: ""
     repository: kubesphere/ks-extensions-museum
     tag: "latest"
-    pullPolicy: Always
+    pullPolicy: IfNotPresent

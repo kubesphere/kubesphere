@@ -8,6 +8,7 @@ package constants
 import corev1 "k8s.io/api/core/v1"
 
 const (
+	SystemWorkspace            = "system-workspace"
 	KubeSystemNamespace        = "kube-system"
 	KubeSphereNamespace        = "kubesphere-system"
 	KubeSphereAPIServerName    = "ks-apiserver"
@@ -15,6 +16,7 @@ const (
 	KubeSphereConfigMapDataKey = "kubesphere.yaml"
 	KubectlPodNamePrefix       = "ks-managed-kubectl"
 
+	ProtectedResourceLabel        = "kubesphere.io/protected-resource"
 	WorkspaceLabelKey             = "kubesphere.io/workspace"
 	DisplayNameAnnotationKey      = "kubesphere.io/alias-name"
 	DescriptionAnnotationKey      = "kubesphere.io/description"
