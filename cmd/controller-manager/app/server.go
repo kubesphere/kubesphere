@@ -45,6 +45,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/roletemplate"
 	"kubesphere.io/kubesphere/pkg/controller/secret"
 	"kubesphere.io/kubesphere/pkg/controller/serviceaccount"
+	"kubesphere.io/kubesphere/pkg/controller/serviceaccounttoken"
 	"kubesphere.io/kubesphere/pkg/controller/storageclass"
 	"kubesphere.io/kubesphere/pkg/controller/telemetry"
 	"kubesphere.io/kubesphere/pkg/controller/user"
@@ -118,6 +119,7 @@ func init() {
 	runtime.Must(controller.Register(&application.ReleaseWebhook{}))
 	// kubectl
 	runtime.Must(controller.Register(&kubectl.Reconciler{}))
+	runtime.Must(controller.Register(&serviceaccounttoken.Reconciler{}))
 }
 
 func NewControllerManagerCommand() *cobra.Command {

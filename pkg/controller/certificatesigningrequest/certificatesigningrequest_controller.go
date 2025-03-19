@@ -27,6 +27,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	kscontroller "kubesphere.io/kubesphere/pkg/controller"
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 )
 
 const (
@@ -49,6 +50,11 @@ func (r *Reconciler) Name() string {
 }
 
 func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
+	if mgr.KubeconfigOptions.AuthMode != kubeconfig.AuthModeClientCertificate {
+		klog.Infof("Skip %s controller as the auth mode is not client certificate", controllerName)
+		return nil
+	}
+
 	r.recorder = mgr.GetEventRecorderFor(controllerName)
 	r.Client = mgr.GetClient()
 	return builder.
