@@ -2,7 +2,7 @@
 ## @param global.tag Global Docker image tag
 global:
   imageRegistry: docker.io
-  tag: v4.1.2
+  tag: v4.1.3-rc.0
   imagePullSecrets: []
   # - name: "image-pull-secret"
 
@@ -443,5 +443,5 @@ ksExtensionRepository:
   image:
     registry: ""
     repository: kubesphere/ks-extensions-museum
-    tag: "latest"
+    tag: "1.1.3-rc.0"
     pullPolicy: IfNotPresent
