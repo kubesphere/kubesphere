@@ -18,14 +18,15 @@ import (
 )
 
 const (
-	ConfigTypeKubeConfig           = "kubeconfig"
-	SecretTypeKubeConfig           = "config.kubesphere.io/" + ConfigTypeKubeConfig
-	FileName                       = "config"
-	DefaultClusterName             = "local"
-	DefaultNamespace               = "default"
-	InClusterCAFilePath            = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-	PrivateKeyAnnotation           = "kubesphere.io/private-key"
-	UserKubeConfigSecretNameFormat = "kubeconfig-%s"
+	ConfigTypeKubeConfig                   = "kubeconfig"
+	SecretTypeKubeConfig                   = "config.kubesphere.io/" + ConfigTypeKubeConfig
+	FileName                               = "config"
+	DefaultClusterName                     = "local"
+	DefaultNamespace                       = "default"
+	InClusterCAFilePath                    = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	PrivateKeyAnnotation                   = "kubesphere.io/private-key"
+	UserKubeConfigSecretNameFormat         = "kubeconfig-%s"
+	UserKubeConfigServiceAccountNameFormat = "kubesphere.users.%s"
 )
 
 type Interface interface {

@@ -37,6 +37,9 @@ data:
     multicluster:
       clusterRole: {{ include "multicluster.role" . | quote }}
       hostClusterName: {{ include "multicluster.hostClusterName" . | include "validateHostClusterName" | quote }}
+    kubeconfig:
+      # service-account-token client-certificate oidc-token webhook-token
+      authMode: {{ .Values.kubeconfig.authMode | default "client-certificate" }}
     terminal:
       kubectl:
         image: {{ template "kubectl.image" . }}
