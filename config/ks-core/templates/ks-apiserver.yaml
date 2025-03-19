@@ -4,10 +4,8 @@ kind: Deployment
 metadata:
   labels:
     app: ks-apiserver
-    tier: backend
     version: {{ .Chart.AppVersion }}
   name: ks-apiserver
-  namespace: kubesphere-system
 spec:
   strategy:
     rollingUpdate:
@@ -29,7 +27,9 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/kubesphere-config.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
-      {{- include "apiserver.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       affinity:
       {{- with .Values.affinity }}
         {{- toYaml . | nindent 8 }}
@@ -62,7 +62,7 @@ spec:
       {{- end }}
       containers:
         - name: ks-apiserver
-          image: {{ template "ks-apiserver.image" . }}
+          image: {{ template "apiserver.image" . }}
           imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
           {{- if .Values.apiserver.containerPorts }}
           ports: {{- include "common.tplvalues.render" (dict "value" .Values.apiserver.containerPorts "context" $) | nindent 12 }}
@@ -85,7 +85,7 @@ spec:
           livenessProbe:
             failureThreshold: 8
             httpGet:
-              path: /version
+              path: /livez
               port: 9090
             {{- if .Values.internalTLS }}
               scheme: HTTPS
@@ -107,14 +107,14 @@ spec:
             - name: tls-cert
               mountPath: /etc/kubesphere/pki/
           {{- end }}
-          {{ if .Values.ha.enabled }}
+          {{- if .Values.ha.enabled }}
           env:
             - name: KUBESPHERE_CACHE_OPTIONS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: redis-secret
                   key: auth
-          {{ end }}
+          {{- end }}
       volumes:
         - configMap:
             defaultMode: 420

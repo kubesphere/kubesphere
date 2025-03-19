@@ -1,0 +1,57 @@
+{{- if .Values.upgrade.enabled }}
+{{- if .Values.upgrade.dynamic }}
+{{- if .Values.upgrade.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ks-upgrade-dynamic-config
+data:
+  config-patch.yaml: |
+    {{- toYaml .Values.upgrade.config | nindent 4 }}
+{{- end }}
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dynamic-upgrade
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: dynamic-upgrade-job
+          image: {{ template "upgrade.image" . }}
+          imagePullPolicy: {{ .Values.upgrade.image.pullPolicy }}
+          command:
+            - ks-upgrade
+            - dynamic-upgrade
+            - --logtostderr=true
+            - --config=/etc/kubesphere/config.yaml
+            {{- if .Values.upgrade.config }}
+            - --config=/etc/kubesphere/config-patch.yaml
+            {{- end }}
+          volumeMounts:
+            - mountPath: /tmp/ks-upgrade
+              name: data
+            {{- if .Values.upgrade.config }}
+            - mountPath: /etc/kubesphere/config-patch.yaml
+              name: config
+              subPath: config-patch.yaml
+            {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.upgrade.persistenceVolume.name }}
+        {{- if .Values.upgrade.config }}
+        - name: config
+          configMap:
+            name: ks-upgrade-dynamic-config
+            defaultMode: 420
+        {{- end }}
+{{- end }}
+{{- end }}

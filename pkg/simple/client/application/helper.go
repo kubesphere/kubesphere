@@ -219,7 +219,7 @@ func CreateOrUpdateAppVersion(ctx context.Context, client runtimeclient.Client, 
 			Maintainer:  vRequest.Maintainers,
 			PullUrl:     vRequest.PullUrl,
 		}
-		appVersion.Finalizers = []string{appv2.StoreCleanFinalizer}
+		appVersion.Finalizers = []string{appv2.CleanupFinalizer}
 
 		labels := appVersion.GetLabels()
 		if labels == nil {
@@ -301,7 +301,12 @@ func UpdateLatestAppVersion(ctx context.Context, client runtimeclient.Client, ap
 			klog.Warningf("failed to parse version: %s, use first version %s", v.Spec.VersionName, latestAppVersion)
 			continue
 		}
-		if parsedVersion.GT(semver.MustParse(strings.TrimPrefix(latestAppVersion, "v"))) {
+		oldLatestAppVersion, err := semver.Parse(strings.TrimPrefix(latestAppVersion, "v"))
+		if err != nil {
+			klog.Warningf("failed to parse oldLatestAppVersion: %s", latestAppVersion)
+			continue
+		}
+		if parsedVersion.GT(oldLatestAppVersion) {
 			latestAppVersion = v.Spec.VersionName
 		}
 	}

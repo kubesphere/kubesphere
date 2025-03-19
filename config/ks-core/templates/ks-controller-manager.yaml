@@ -4,15 +4,13 @@ kind: Deployment
 metadata:
   labels:
     app: ks-controller-manager
-    tier: backend
     version: {{ .Chart.AppVersion }}
   name: ks-controller-manager
-  namespace: kubesphere-system
 spec:
   strategy:
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      maxSurge: 0
+      maxUnavailable: 1
     type: RollingUpdate
   progressDeadlineSeconds: 600
   replicas: {{ if .Values.ha.enabled }}3{{ else }}1{{ end }}
@@ -31,7 +29,9 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/kubesphere-config.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
-      {{- include "controller.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       {{- if .Values.nodeSelector }}
       nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.nodeSelector "context" $) | nindent 8 }}
       {{- end }}
@@ -68,7 +68,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: ks-controller-manager
-          image: {{ template "ks-controller-manager.image" . }}
+          image: {{ template "controller.image" . }}
           imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
           {{- if .Values.controller.containerPorts }}
           ports: {{- include "common.tplvalues.render" (dict "value" .Values.controller.containerPorts "context" $) | nindent 12 }}
@@ -87,7 +87,7 @@ spec:
             - mountPath: /etc/kubesphere/
               name: kubesphere-config
             - mountPath: /tmp/k8s-webhook-server/serving-certs
-              name: webhook-secret
+              name: webhook-cert
             - mountPath: /etc/localtime
               name: host-time
               readOnly: true
@@ -99,7 +99,7 @@ spec:
           configMap:
             name: kubesphere-config
             defaultMode: 420
-        - name: webhook-secret
+        - name: webhook-cert
           secret:
             defaultMode: 420
             secretName: ks-controller-manager-webhook-cert

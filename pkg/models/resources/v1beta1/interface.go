@@ -137,7 +137,7 @@ func DefaultObjectMetaFilter(item metav1.Object, filter query.Filter) bool {
 		}
 		return false
 	// /namespaces?page=1&limit=10&name=default
-	case query.FieldName:
+	case query.FieldName, query.FieldNameAndAlias:
 		displayName := item.GetAnnotations()[constants.DisplayNameAnnotationKey]
 		if displayName != "" && strings.Contains(strings.ToLower(displayName), strings.ToLower(string(filter.Value))) {
 			return true

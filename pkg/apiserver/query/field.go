@@ -10,6 +10,7 @@ type Value string
 
 const (
 	FieldName                = "name"
+	FieldNameAndAlias        = "nameAndAlias"
 	FieldNames               = "names"
 	FieldUID                 = "uid"
 	FieldCreationTimeStamp   = "creationTimestamp"

@@ -10,5 +10,4 @@ stringData:
 kind: Secret
 metadata:
   name: extensions.customresourcefilters
-  namespace: kubesphere-system
 type: config.kubesphere.io/custom-resource-filter

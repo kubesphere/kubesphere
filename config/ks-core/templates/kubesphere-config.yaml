@@ -37,14 +37,17 @@ data:
     multicluster:
       clusterRole: {{ include "multicluster.role" . | quote }}
       hostClusterName: {{ include "multicluster.hostClusterName" . | include "validateHostClusterName" | quote }}
+    kubeconfig:
+      # service-account-token client-certificate oidc-token webhook-token
+      authMode: {{ (.Values.kubeconfig).authMode | default "client-certificate" }}
     terminal:
       kubectl:
-        image: {{ template "kubectl.image" . }}
+        image: {{ include "kubectl.image" . | quote }}
       node:
-        image:  {{ template "nodeShell.image" . }}
+        image: {{ include "nodeShell.image" . | quote }}
       uploadFileLimit: 100Mi
     helmExecutor:
-      image: {{ template "helm.image" . }}
+      image: {{ include "helm.image" . | quote }}
       timeout: {{ .Values.helmExecutor.timeout }}
       historyMax: {{ .Values.helmExecutor.historyMax }}
       jobTTLAfterFinished: {{ .Values.helmExecutor.jobTTLAfterFinished }}
@@ -78,11 +81,6 @@ data:
     kubesphere:
       tls: {{ .Values.internalTLS }}
     {{- if and (eq (include "multicluster.role" .) "host") .Values.ha.enabled -}}
-    {{- if and .Values.telemetry.enabled (eq (include "multicluster.role" .) "host") }}
-    telemetry:
-      ksCloudURL: "https://kubesphere.cloud"
-    {{- end }}
-    {{- if and (eq (include "multicluster.role" .) "host") .Values.ha.enabled -}}
     {{- if .Values.ha.cache }}
     cache: {{- toYaml .Values.ha.cache | nindent 6}}
     {{- else }}
@@ -93,7 +91,6 @@ data:
         port: {{ if .Values.redisHA.enabled }}{{ .Values.redisHA.haproxy.servicePort | default 6379 }}{{ else }}{{ .Values.redis.port | default 6379 }}{{ end }}
         password: KUBESPHERE_CACHE_OPTIONS_PASSWORD
         db: 0
-    {{- end }}
     {{- end }}
     {{- end }}
     auditing: {{- toYaml .Values.auditing | nindent 6}}

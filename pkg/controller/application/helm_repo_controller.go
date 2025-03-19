@@ -13,36 +13,31 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/utils/ptr"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"kubesphere.io/api/constants"
-	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-
-	"kubesphere.io/utils/s3"
-
-	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
-
-	kscontroller "kubesphere.io/kubesphere/pkg/controller"
-
+	"github.com/go-logr/logr"
 	helmrepo "helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	appv2 "kubesphere.io/api/application/v2"
+	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
+	"kubesphere.io/api/constants"
+	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
+	"kubesphere.io/utils/s3"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 	"kubesphere.io/kubesphere/pkg/simple/client/application"
 )
 
-const helmRepoController = "helmrepo"
+const helmRepoController = "helmrepo-controller"
 
 var _ reconcile.Reconciler = &RepoReconciler{}
 var _ kscontroller.Controller = &RepoReconciler{}
@@ -52,6 +47,7 @@ type RepoReconciler struct {
 	client.Client
 	ossStore s3.Interface
 	cmStore  s3.Interface
+	logger   logr.Logger
 }
 
 func (r *RepoReconciler) Name() string {
@@ -65,11 +61,11 @@ func (r *RepoReconciler) Enabled(clusterRole string) bool {
 func (r *RepoReconciler) mapper(ctx context.Context, o client.Object) (requests []reconcile.Request) {
 	workspace := o.(*tenantv1beta1.WorkspaceTemplate)
 
-	klog.Infof("workspace %s has been deleted", workspace.Name)
+	r.logger.V(4).Info("workspace has been deleted", "workspace", workspace.Name)
 	repoList := &appv2.RepoList{}
 	opts := &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: workspace.Name})}
 	if err := r.List(ctx, repoList, opts); err != nil {
-		klog.Errorf("failed to list repo: %v", err)
+		r.logger.Error(err, "failed to list repo")
 		return requests
 	}
 	for _, repo := range repoList.Items {
@@ -81,10 +77,10 @@ func (r *RepoReconciler) mapper(ctx context.Context, o client.Object) (requests 
 func (r *RepoReconciler) SetupWithManager(mgr *kscontroller.Manager) (err error) {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(helmRepoController)
-
+	r.logger = ctrl.Log.WithName("controllers").WithName(helmRepoController)
 	r.cmStore, r.ossStore, err = application.InitStore(mgr.Options.S3Options, r.Client)
 	if err != nil {
-		klog.Errorf("failed to init store: %v", err)
+		r.logger.Error(err, "failed to init store")
 		return err
 	}
 
@@ -104,30 +100,32 @@ func (r *RepoReconciler) UpdateStatus(ctx context.Context, helmRepo *appv2.Repo)
 	newRepo.Name = helmRepo.Name
 	newRepo.Status.State = helmRepo.Status.State
 	newRepo.Status.LastUpdateTime = metav1.Now()
+	logger := r.logger.WithValues("repo", helmRepo.Name)
 
 	patch, _ := json.Marshal(newRepo)
 	err := r.Status().Patch(ctx, newRepo, client.RawPatch(client.Merge.Type(), patch))
 	if err != nil {
-		klog.Errorf("update status failed, error: %s", err)
+		logger.Error(err, "update status failed")
 		return err
 	}
-	klog.Infof("update repo %s status: %s", helmRepo.GetName(), helmRepo.Status.State)
+	logger.V(4).Info("update repo status", "status", helmRepo.Status.State)
 	return nil
 }
 
 func (r *RepoReconciler) skipSync(helmRepo *appv2.Repo) (bool, error) {
+	logger := r.logger.WithValues("repo", helmRepo.Name)
 	if helmRepo.Status.State == appv2.StatusManualTrigger || helmRepo.Status.State == appv2.StatusSyncing {
-		klog.Infof("repo: %s state: %s", helmRepo.GetName(), helmRepo.Status.State)
+		logger.V(4).Info(fmt.Sprintf("repo state: %s", helmRepo.Status.State))
 		return false, nil
 	}
 
 	if helmRepo.Spec.SyncPeriod == nil || *helmRepo.Spec.SyncPeriod == 0 {
-		klog.Infof("repo: %s no sync SyncPeriod=0", helmRepo.GetName())
+		logger.V(4).Info("repo no sync SyncPeriod=0")
 		return true, nil
 	}
 	passed := time.Since(helmRepo.Status.LastUpdateTime.Time).Seconds()
 	if helmRepo.Status.State == appv2.StatusSuccessful && passed < float64(*helmRepo.Spec.SyncPeriod) {
-		klog.Infof("last sync time is %s, passed %f, no need to sync, repo: %s", helmRepo.Status.LastUpdateTime, passed, helmRepo.GetName())
+		logger.V(4).Info(fmt.Sprintf("last sync time is %s, passed %f, no need to sync", helmRepo.Status.LastUpdateTime, passed))
 		return true, nil
 	}
 	return false, nil
@@ -155,10 +153,10 @@ func filterVersions(versions []*helmrepo.ChartVersion) []*helmrepo.ChartVersion 
 }
 
 func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
-
+	logger := r.logger.WithValues("repo", request.Name)
 	helmRepo := &appv2.Repo{}
 	if err := r.Client.Get(ctx, request.NamespacedName, helmRepo); err != nil {
-		klog.Errorf("get helm repo failed, error: %s", err)
+		logger.Error(err, "get helm repo failed")
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 	if helmRepo.Status.State == "" {
@@ -178,10 +176,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 	if workspaceName != "" {
 		err := r.Get(ctx, types.NamespacedName{Name: workspaceName}, workspaceTemplate)
 		if apierrors.IsNotFound(err) || (err == nil && !workspaceTemplate.DeletionTimestamp.IsZero()) {
-			klog.Infof("workspace not found or deleting %s %s", workspaceName, err)
+			logger.V(4).Error(err, "workspace not found or deleting", "workspace", workspaceName)
 			err = r.Delete(ctx, helmRepo)
 			if err != nil {
-				klog.Errorf("delete helm repo failed, error: %s", err)
+				logger.Error(err, "delete helm repo failed")
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
@@ -201,13 +199,13 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 	err = r.UpdateStatus(ctx, helmRepo)
 
 	if err != nil {
-		klog.Errorf("update status failed, error: %s", err)
+		logger.Error(err, "update status failed")
 		return reconcile.Result{}, err
 	}
 
 	index, err := application.LoadRepoIndex(helmRepo.Spec.Url, helmRepo.Spec.Credential)
 	if err != nil {
-		klog.Errorf("load index failed, repo: %s, url: %s, err: %s", helmRepo.GetName(), helmRepo.Spec.Url, err)
+		logger.Error(err, "load index failed", "url", helmRepo.Spec.Url)
 		return reconcile.Result{}, err
 	}
 
@@ -217,7 +215,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 	}
 	err = r.Client.List(ctx, appList, &opts)
 	if err != nil {
-		klog.Errorf("list appversion failed, error: %s", err)
+		logger.Error(err, "list application failed")
 		return reconcile.Result{}, err
 	}
 	indexMap := make(map[string]struct{})
@@ -228,10 +226,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 	}
 	for _, i := range appList.Items {
 		if _, exists := indexMap[i.Name]; !exists {
-			klog.Infof("app %s has been removed from the repo", i.Name)
+			logger.V(4).Info("application has been removed from the repo", "application", i.Name)
 			err = r.Client.Delete(ctx, &i)
 			if err != nil {
-				klog.Errorf("delete app %s failed, error: %s", i.Name, err)
+				logger.Error(err, "delete application failed", "application", i.Name)
 				return reconcile.Result{}, err
 			}
 		}
@@ -239,22 +237,22 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 
 	for appName, versions := range index.Entries {
 		if len(versions) == 0 {
-			klog.Infof("no version found for %s", appName)
+			logger.V(4).Info("no version found for application", "application", appName)
 			continue
 		}
 
 		versions = filterVersions(versions)
 
-		vRequests, err := repoParseRequest(r.Client, versions, helmRepo, appName, appList)
+		vRequests, err := r.repoParseRequest(ctx, versions, helmRepo, appName, appList)
 		if err != nil {
-			klog.Errorf("parse request failed, error: %s", err)
+			logger.Error(err, "parse request failed")
 			return reconcile.Result{}, err
 		}
 		if len(vRequests) == 0 {
 			continue
 		}
 
-		klog.Infof("found %d/%d versions for %s need to upgrade or create", len(vRequests), len(versions), appName)
+		logger.V(6).Info(fmt.Sprintf("found %d/%d versions for application %s need to upgrade or create", len(vRequests), len(versions), appName))
 
 		own := metav1.OwnerReference{
 			APIVersion: appv2.SchemeGroupVersion.String(),
@@ -263,7 +261,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 			UID:        helmRepo.UID,
 		}
 		if err = application.CreateOrUpdateApp(r.Client, vRequests, r.cmStore, r.ossStore, own); err != nil {
-			klog.Errorf("create or update app failed, error: %s", err)
+			logger.Error(err, "create or update app failed")
 			return reconcile.Result{}, err
 		}
 	}
@@ -271,7 +269,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 	helmRepo.Status.State = appv2.StatusSuccessful
 	err = r.UpdateStatus(ctx, helmRepo)
 	if err != nil {
-		klog.Errorf("update status failed, error: %s", err)
+		logger.Error(err, "update status failed")
 		return reconcile.Result{}, err
 	}
 
@@ -280,9 +278,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, request reconcile.Reques
 	return reconcile.Result{RequeueAfter: requeueAfter}, nil
 }
 
-func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRepo *appv2.Repo, appName string, appList *appv2.ApplicationList) (createOrUpdateList []application.AppRequest, err error) {
+func (r *RepoReconciler) repoParseRequest(ctx context.Context, versions helmrepo.ChartVersions, helmRepo *appv2.Repo, appName string, appList *appv2.ApplicationList) (createOrUpdateList []application.AppRequest, err error) {
 	appVersionList := &appv2.ApplicationVersionList{}
 
+	logger := r.logger.WithValues("repo", helmRepo.Name)
 	appID := fmt.Sprintf("%s-%s", helmRepo.Name, application.GenerateShortNameMD5Hash(appName))
 	opts := client.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{
@@ -290,9 +289,9 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 			appv2.AppIDLabelKey:  appID,
 		}),
 	}
-	err = cli.List(context.Background(), appVersionList, &opts)
+	err = r.Client.List(ctx, appVersionList, &opts)
 	if err != nil {
-		klog.Errorf("list appversion failed, error: %s", err)
+		logger.Error(err, "list application version failed")
 		return nil, err
 	}
 
@@ -310,10 +309,10 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 		key := fmt.Sprintf("%s-%s", i.GetLabels()[appv2.AppIDLabelKey], LegalVersion)
 		_, exists := versionMap[key]
 		if !exists {
-			klog.Infof("delete appversion %s", i.GetName())
-			err = cli.Delete(context.Background(), &i)
+			logger.V(4).Info("delete application version", "application version", i.GetName())
+			err = r.Client.Delete(ctx, &i)
 			if err != nil {
-				klog.Errorf("delete appversion failed, error: %s", err)
+				logger.Error(err, "delete application version failed")
 				return nil, err
 			}
 		} else {
@@ -330,7 +329,7 @@ func repoParseRequest(cli client.Client, versions helmrepo.ChartVersions, helmRe
 			continue
 		}
 		if dig != "" {
-			klog.Infof("digest not match, key: %s, digest: %s, ver.Digest: %s", key, dig, ver.Digest)
+			logger.V(4).Info(fmt.Sprintf("digest not match, key: %s, digest: %s, ver.Digest: %s", key, dig, ver.Digest))
 		}
 		vRequest := generateVRequest(helmRepo, ver, shortName, appName)
 		createOrUpdateList = append(createOrUpdateList, vRequest)

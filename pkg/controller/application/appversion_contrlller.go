@@ -9,9 +9,10 @@ import (
 	"context"
 	"strings"
 
+	"github.com/go-logr/logr"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"k8s.io/klog/v2"
 	"kubesphere.io/utils/s3"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/application"
@@ -37,6 +38,7 @@ type AppVersionReconciler struct {
 	client.Client
 	ossStore s3.Interface
 	cmStore  s3.Interface
+	logger   logr.Logger
 }
 
 func (r *AppVersionReconciler) Name() string {
@@ -49,9 +51,10 @@ func (r *AppVersionReconciler) Enabled(clusterRole string) bool {
 
 func (r *AppVersionReconciler) SetupWithManager(mgr *kscontroller.Manager) (err error) {
 	r.Client = mgr.GetClient()
+	r.logger = ctrl.Log.WithName("controllers").WithName(appVersionController)
 	r.cmStore, r.ossStore, err = application.InitStore(mgr.Options.S3Options, r.Client)
 	if err != nil {
-		klog.Errorf("failed to init store: %v", err)
+		r.logger.Error(err, "failed to init store")
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
@@ -66,12 +69,18 @@ func (r *AppVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := r.Client.Get(ctx, req.NamespacedName, appVersion); err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+	logger := r.logger.WithValues("application version", appVersion.Name)
+	if !controllerutil.ContainsFinalizer(appVersion, appv2.CleanupFinalizer) {
+		controllerutil.RemoveFinalizer(appVersion, appv2.StoreCleanFinalizer)
+		controllerutil.AddFinalizer(appVersion, appv2.CleanupFinalizer)
+		return ctrl.Result{}, r.Update(ctx, appVersion)
+	}
 
 	//Delete app files, non-important logic, errors will not affect the main process
 	if !appVersion.ObjectMeta.DeletionTimestamp.IsZero() {
 		err := r.deleteFile(ctx, appVersion)
 		if err != nil {
-			klog.Errorf("Failed to clean file for appversion %s: %v", appVersion.Name, err)
+			logger.Error(err, "Failed to clean file")
 		}
 	}
 
@@ -79,32 +88,33 @@ func (r *AppVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *AppVersionReconciler) deleteFile(ctx context.Context, appVersion *appv2.ApplicationVersion) error {
+	logger := r.logger.WithValues("application version", appVersion.Name)
 	defer func() {
-		controllerutil.RemoveFinalizer(appVersion, appv2.StoreCleanFinalizer)
+		controllerutil.RemoveFinalizer(appVersion, appv2.CleanupFinalizer)
 		err := r.Update(ctx, appVersion)
 		if err != nil {
-			klog.Errorf("Failed to remove finalizer from appversion %s: %v", appVersion.Name, err)
+			logger.Error(err, "Failed to remove finalizer from application version")
 		}
-		klog.Infof("Remove finalizer from appversion %s successfully", appVersion.Name)
+		logger.V(4).Info("Remove finalizer from application version %s successfully")
 	}()
 
-	klog.Infof("ApplicationVersion  %s has been deleted, try to clean file", appVersion.Name)
+	logger.V(4).Info("ApplicationVersion has been deleted, try to clean file")
 	id := []string{appVersion.Name}
 	apprls := &appv2.ApplicationReleaseList{}
 	err := r.Client.List(ctx, apprls, client.MatchingLabels{appv2.AppVersionIDLabelKey: appVersion.Name})
 	if err != nil {
-		klog.Errorf("Failed to list ApplicationRelease: %v", err)
+		logger.Error(err, "Failed to list ApplicationRelease")
 		return err
 	}
 	if len(apprls.Items) > 0 {
-		klog.Infof("ApplicationVersion %s is still in use, keep file in store", appVersion.Name)
+		logger.V(4).Info("ApplicationVersion is still in use, keep file in store")
 		return nil
 	}
 	err = application.FailOverDelete(r.cmStore, r.ossStore, id)
 	if err != nil {
-		klog.Errorf("Fail to delete appversion %s from store: %v", appVersion.Name, err)
+		logger.Error(err, "Fail to delete application version from store")
 		return err
 	}
-	klog.Infof("Delete file %s from store successfully", appVersion.Name)
+	logger.V(4).Info("Delete file from store successfully")
 	return nil
 }

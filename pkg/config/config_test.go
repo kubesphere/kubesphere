@@ -19,6 +19,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization"
 	"kubesphere.io/kubesphere/pkg/controller/options"
 	"kubesphere.io/kubesphere/pkg/models/composedapp"
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/models/terminal"
 	"kubesphere.io/kubesphere/pkg/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -33,6 +34,7 @@ func newTestConfig() (*Config, error) {
 		AuthenticationOptions: authentication.NewOptions(),
 		MultiClusterOptions:   multicluster.NewOptions(),
 		AuditingOptions:       auditing.NewAuditingOptions(),
+		KubeconfigOptions:     kubeconfig.NewOptions(),
 		TerminalOptions:       terminal.NewOptions(),
 		HelmExecutorOptions:   options.NewHelmExecutorOptions(),
 		ExtensionOptions:      options.NewExtensionOptions(),

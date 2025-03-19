@@ -9,6 +9,10 @@ import (
 	"context"
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -117,6 +121,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile
 		return ctrl.Result{}, err
 	}
 
+	if err := r.checkServiceAccountRefPod(ctx, sa); err != nil {
+		logger.Error(err, "failed check service account ref pod")
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -177,6 +186,105 @@ func (r *Reconciler) checkSecretToken(secret *v1.Secret, subjectName string) err
 	}
 	if saName := secret.Annotations[corev1alpha1.ServiceAccountName]; saName != subjectName {
 		return fmt.Errorf("incorrect subject name %s", saName)
+	}
+	return nil
+}
+
+func (r *Reconciler) checkServiceAccountRefPod(ctx context.Context, sa *corev1alpha1.ServiceAccount) error {
+	if len(sa.Secrets) == 0 {
+		klog.Warningf("service account %s has no secrets", sa.Name)
+		return nil
+	}
+	pods := &v1.PodList{}
+	if err := r.Client.List(ctx, pods, client.InNamespace(sa.Namespace)); err != nil {
+		return err
+	}
+
+	saSecrets := sa.Secrets[0].Name
+	for _, pod := range pods.Items {
+		if pod.Annotations[AnnotationServiceAccountName] != sa.Name {
+			continue
+		}
+		for _, volume := range pod.Spec.Volumes {
+			if volume.Name == ServiceAccountVolumeName &&
+				len(volume.Projected.Sources) > 0 &&
+				saSecrets == volume.Projected.Sources[0].Secret.Name {
+				continue
+			}
+		}
+		if err := r.rolloutRestartPod(ctx, &pod); err != nil {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) rolloutRestartPod(ctx context.Context, pod *v1.Pod) error {
+	// check ownerReferences
+	if len(pod.OwnerReferences) == 0 {
+		klog.Infof("Pod has no owner references")
+		return nil
+	}
+
+	owner := pod.OwnerReferences[0]
+	switch owner.Kind {
+	case "ReplicaSet":
+		rs := &appsv1.ReplicaSet{}
+		if err := r.Client.Get(ctx, types.NamespacedName{
+			Namespace: pod.Namespace,
+			Name:      owner.Name,
+		}, rs); err != nil {
+			return err
+		}
+		if len(rs.OwnerReferences) > 0 && rs.OwnerReferences[0].Kind == "Deployment" {
+			deployName := rs.OwnerReferences[0].Name
+			deploy := &appsv1.Deployment{}
+			if err := r.Client.Get(ctx, types.NamespacedName{
+				Namespace: pod.Namespace,
+				Name:      deployName,
+			}, deploy); err != nil {
+				return err
+			}
+			if deploy.Spec.Template.ObjectMeta.Annotations == nil {
+				deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			deploy.Spec.Template.ObjectMeta.Annotations["kubesphere.io/restartedAt"] = metav1.Now().String()
+			if err := r.Client.Update(ctx, deploy); err != nil {
+				return err
+			}
+		}
+	case "StatefulSet":
+		sts := &appsv1.StatefulSet{}
+		if err := r.Client.Get(ctx, types.NamespacedName{
+			Namespace: pod.Namespace,
+			Name:      owner.Name,
+		}, sts); err != nil {
+			return err
+		}
+		if sts.Spec.Template.ObjectMeta.Annotations == nil {
+			sts.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		sts.Spec.Template.ObjectMeta.Annotations["kubesphere.io/restartedAt"] = metav1.Now().String()
+		if err := r.Client.Update(ctx, sts); err != nil {
+			return err
+		}
+	case "DaemonSet":
+		ds := &appsv1.DaemonSet{}
+		if err := r.Client.Get(ctx, types.NamespacedName{
+			Namespace: pod.Namespace,
+			Name:      owner.Name,
+		}, ds); err != nil {
+			return err
+		}
+		if ds.Spec.Template.ObjectMeta.Annotations == nil {
+			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		ds.Spec.Template.ObjectMeta.Annotations["kubesphere.io/restartedAt"] = metav1.Now().String()
+		if err := r.Client.Update(ctx, ds); err != nil {
+			return err
+		}
+	default:
+		klog.Warningf("Unsupported owner kind %s", owner.Kind)
 	}
 	return nil
 }

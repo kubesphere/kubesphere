@@ -9,13 +9,16 @@ import (
 	"context"
 	"strings"
 
+	"github.com/go-logr/logr"
+
 	clusterv1alpha1 "kubesphere.io/api/cluster/v1alpha1"
 
 	kscontroller "kubesphere.io/kubesphere/pkg/controller"
 
+	erro "errors"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
 	appv2 "kubesphere.io/api/application/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -36,6 +39,7 @@ var _ kscontroller.Controller = &AppCategoryReconciler{}
 
 type AppCategoryReconciler struct {
 	client.Client
+	logger logr.Logger
 }
 
 func (r *AppCategoryReconciler) Name() string {
@@ -48,6 +52,7 @@ func (r *AppCategoryReconciler) Enabled(clusterRole string) bool {
 
 func (r *AppCategoryReconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 	r.Client = mgr.GetClient()
+	r.logger = ctrl.Log.WithName("controllers").WithName(categoryController)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(categoryController).
 		For(&appv2.Category{}).
@@ -69,8 +74,8 @@ func (r *AppCategoryReconciler) SetupWithManager(mgr *kscontroller.Manager) erro
 }
 
 func (r *AppCategoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	klog.V(4).Info("reconcile", "app category", req.String())
-
+	r.logger.V(4).Info("reconcile app category", "app category", req.String())
+	logger := r.logger.WithValues("app category", req.String())
 	category := &appv2.Category{}
 	if err := r.Client.Get(ctx, req.NamespacedName, category); err != nil {
 		if errors.IsNotFound(err) {
@@ -78,7 +83,7 @@ func (r *AppCategoryReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				return reconcile.Result{}, r.ensureUncategorizedCategory()
 			}
 			// ignore exceptions caused by incorrectly adding app labels.
-			klog.Errorf("not found %s, check if you added the correct app category", req.String())
+			logger.Error(err, "not found, check if you added the correct app category")
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -93,7 +98,7 @@ func (r *AppCategoryReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// our finalizer is present, so lets handle our external dependency
 		// remove our finalizer from the list and update it.
 		if category.Status.Total > 0 {
-			klog.Errorf("can not delete helm category: %s which owns applications", req.String())
+			logger.Error(erro.New("category is using"), "can not delete helm category, in which owns applications")
 			return reconcile.Result{}, nil
 		}
 
@@ -107,13 +112,13 @@ func (r *AppCategoryReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		appv2.RepoIDLabelKey:     appv2.UploadRepoKey,
 	}
 	if err := r.List(ctx, apps, opts); err != nil {
-		klog.Errorf("failed to list apps: %v", err)
+		r.logger.Error(err, "failed to list apps")
 		return ctrl.Result{}, err
 	}
 	if category.Status.Total != len(apps.Items) {
 		category.Status.Total = len(apps.Items)
 		if err := r.Status().Update(ctx, category); err != nil {
-			klog.Errorf("failed to update category status: %v", err)
+			r.logger.Error(err, "failed to update category status")
 			return ctrl.Result{}, err
 		}
 	}
@@ -125,7 +130,7 @@ func (r *AppCategoryReconciler) ensureUncategorizedCategory() error {
 	ctg := &appv2.Category{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: appv2.UncategorizedCategoryID}, ctg)
 	if err != nil && !errors.IsNotFound(err) {
-		klog.Errorf("failed to get uncategorized category: %v", err)
+		r.logger.Error(err, "failed to get uncategorized category")
 		return err
 	}
 	ctg.Name = appv2.UncategorizedCategoryID

@@ -1,15 +1,15 @@
 {{/*
 Return the proper image name
 */}}
-{{- define "ks-apiserver.image" -}}
+{{- define "apiserver.image" -}}
 {{ include "common.images.image" (dict "imageRoot" .Values.apiserver.image "global" .Values.global) }}
 {{- end -}}
 
-{{- define "ks-console.image" -}}
+{{- define "console.image" -}}
 {{ include "common.images.image" (dict "imageRoot" .Values.console.image "global" .Values.global) }}
 {{- end -}}
 
-{{- define "ks-controller-manager.image" -}}
+{{- define "controller.image" -}}
 {{ include "common.images.image" (dict "imageRoot" .Values.controller.image "global" .Values.global) }}
 {{- end -}}
 
@@ -33,7 +33,7 @@ Return the proper image name
 {{ include "common.images.image" (dict "imageRoot" .Values.redis.image "global" .Values.global) }}
 {{- end -}}
 
-{{- define "extensions_museum.image" -}}
+{{- define "extensionRepo.image" -}}
 {{ include "common.images.image" (dict "imageRoot" .Values.ksExtensionRepository.image "global" .Values.global) }}
 {{- end -}}
 
@@ -53,46 +53,4 @@ Return the proper image name
     {{- $termination = .imageRoot.digest | toString -}}
 {{- end -}}
 {{- printf "%s/%s%s%s" $registryName $repositoryName $separator $termination -}}
-{{- end -}}
-
-{{/*
-Return the proper Docker Image Registry Secret Names
-*/}}
-{{- define "apiserver.imagePullSecrets" -}}
-{{- include "common.images.pullSecrets" (dict "images" (list .Values.apiserver.image) "global" .Values.global) -}}
-{{- end -}}
-
-{{- define "console.imagePullSecrets" -}}
-{{- include "common.images.pullSecrets" (dict "images" (list .Values.console.image) "global" .Values.global) -}}
-{{- end -}}
-
-{{- define "controller.imagePullSecrets" -}}
-{{- include "common.images.pullSecrets" (dict "images" (list .Values.controller.image) "global" .Values.global) -}}
-{{- end -}}
-
-{{- define "extensions_museum.imagePullSecrets" -}}
-{{- include "common.images.pullSecrets" (dict "images" (list .Values.ksExtensionRepository.image) "global" .Values.global) -}}
-{{- end -}}
-
-{{- define "common.images.pullSecrets" -}}
-  {{- $pullSecrets := list }}
-
-  {{- if .global }}
-    {{- range .global.imagePullSecrets -}}
-      {{- $pullSecrets = append $pullSecrets . -}}
-    {{- end -}}
-  {{- end -}}
-
-  {{- range .images -}}
-    {{- range .pullSecrets -}}
-      {{- $pullSecrets = append $pullSecrets . -}}
-    {{- end -}}
-  {{- end -}}
-
-  {{- if (not (empty $pullSecrets)) }}
-imagePullSecrets:
-    {{- range $pullSecrets }}
-  - name: {{ . }}
-    {{- end }}
-  {{- end }}
 {{- end -}}

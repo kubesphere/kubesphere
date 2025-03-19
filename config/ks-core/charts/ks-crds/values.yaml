@@ -1,6 +1,8 @@
-# Default values for ks-crds.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  # - name: "image-pull-secret"
+
 kubectl:
   image:
     registry: ""
