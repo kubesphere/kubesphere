@@ -1,0 +1,52 @@
+{{- if .Values.upgrade.enabled }}
+{{- if .Values.upgrade.prepare }}
+{{- if .Values.upgrade.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ks-upgrade-prepare-config
+data:
+  config-patch.yaml: |
+    {{- toYaml .Values.upgrade.config | nindent 4 }}
+{{- end }}
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prepare-upgrade
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: prepare-upgrade-job
+          image: {{ template "upgrade.image" . }}
+          imagePullPolicy: {{ .Values.upgrade.image.pullPolicy }}
+          command:
+            - ks-upgrade
+            - prepare-upgrade
+            - --logtostderr=true
+            - --config=/etc/kubesphere/config.yaml
+            {{- if .Values.upgrade.config }}
+            - --config=/etc/kubesphere/config-patch.yaml
+            {{- end }}
+          {{- if .Values.upgrade.config }}
+          volumeMounts:
+            - mountPath: /etc/kubesphere/config-patch.yaml
+              name: config
+              subPath: config-patch.yaml
+          {{- end }}
+      {{- if .Values.upgrade.config }}
+      volumes:
+        - name: config
+          configMap:
+            name: ks-upgrade-prepare-config
+            defaultMode: 420
+      {{- end }}
+{{- end }}
+{{- end }}

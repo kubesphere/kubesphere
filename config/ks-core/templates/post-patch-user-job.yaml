@@ -11,6 +11,9 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       containers:
         - name: post-patch-user
           image: {{ template "kubectl.image" . }}
@@ -35,4 +38,3 @@ spec:
                       echo "Updated user ${username} with annotation ${annotation_key}=${uid}"
                   fi
               done
-          resources: {{- toYaml .Values.upgrade.resources | nindent 12 }}

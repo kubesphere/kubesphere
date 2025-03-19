@@ -52,6 +52,9 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: "{{ .Release.Name }}-pre-upgrade-crd"
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       containers:
         - name: crd-install
           image: {{ template "kubectl.image" . }}
@@ -62,7 +65,6 @@ spec:
           volumeMounts:
             - mountPath: /scripts
               name: scripts
-          resources: {{- toYaml .Values.kubectl.resources | nindent 12 }}
       volumes:
         - name: scripts
           configMap:

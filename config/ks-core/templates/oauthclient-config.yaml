@@ -13,7 +13,6 @@ stringData:
 kind: Secret
 metadata:
   name: oauthclient-kubesphere
-  namespace: kubesphere-system
   labels:
     config.kubesphere.io/type: oauthclient
 type: config.kubesphere.io/oauthclient

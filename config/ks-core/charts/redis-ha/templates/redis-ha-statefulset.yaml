@@ -102,8 +102,8 @@ spec:
             release: {{ .Release.Name }}
             {{ template "redis-ha.fullname" . }}: replica
       {{- end }}
-      {{- if .Values.imagePullSecrets }}
-      imagePullSecrets: {{ toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
       {{- end }}
       securityContext: {{ toYaml .Values.securityContext | nindent 8 }}
       serviceAccountName: {{ template "redis-ha.serviceAccountName" . }}

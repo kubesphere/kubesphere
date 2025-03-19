@@ -4,7 +4,6 @@ apiVersion: traefik.containo.us/v1alpha1
 kind: ServersTransport
 metadata:
   name: ks-console-transport
-  namespace: {{ .Release.Namespace }}
 spec:
   serverName: ks-console
   insecureSkipVerify: false

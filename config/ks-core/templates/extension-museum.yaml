@@ -10,7 +10,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: extensions-museum
-  namespace: {{ .Release.Namespace }}
   labels:
     app: extensions-museum
 spec:
@@ -26,10 +25,12 @@ spec:
         # force restart ks-apiserver after the upgrade is complete if kubesphere-config changes
         checksum/cert: {{ sha256sum $cert.Cert }}
     spec:
-{{- include "extensions_museum.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       containers:
         - name: extensions-museum
-          image: {{ template "extensions_museum.image" . }}
+          image: {{ template "extensionRepo.image" . }}
           command:
             - "/chartmuseum"
             - "--storage-local-rootdir"
@@ -55,7 +56,6 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: extensions-museum-certs
-  namespace: {{ .Release.Namespace }}
 type: kubernetes.io/tls
 data:
   ca.crt: {{ b64enc $ca.Cert }}
@@ -67,7 +67,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: extensions-museum
-  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     app: extensions-museum
