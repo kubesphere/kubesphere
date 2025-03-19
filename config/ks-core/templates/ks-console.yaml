@@ -70,7 +70,7 @@ spec:
                   app: ks-console
               topologyKey: kubernetes.io/hostname
               namespaces:
-                - {{ .Release.Namespace | quote }}
+              - {{ .Release.Namespace | quote }}
         {{- else }}
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
@@ -82,24 +82,24 @@ spec:
                 namespaces:
                   - {{ .Release.Namespace | quote }}
         {{- end }}
-        {{- if .Values.tolerations }}
+      {{- if .Values.tolerations }}
       tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.tolerations "context" .) | nindent 8 }}
       {{- end }}
       {{- if .Values.internalTLS }}
       initContainers:
         - name: init-ca
           image: {{ template "kubectl.image" . }}
-          command: [ "/bin/sh", "-c" ]
-          args: [ "cp /tmp/ca.crt /usr/local/share/ca-certificates/ \
+          command: ["/bin/sh", "-c"]
+          args: ["cp /tmp/ca.crt /usr/local/share/ca-certificates/ \
                   && update-ca-certificates && cp /etc/ssl/certs/ca-certificates.crt /certs/"]
           volumeMounts:
-          - name: tls-cert
-            mountPath: /tmp/ca.crt
-            subPath: ca.crt
-            readOnly: false
-          - name: sys-cert
-            mountPath: /certs
-            readOnly: false
+            - name: tls-cert
+              mountPath: /tmp/ca.crt
+              subPath: ca.crt
+              readOnly: false
+            - name: sys-cert
+              mountPath: /certs
+              readOnly: false
       {{- end }}
       containers:
         - name: ks-console
@@ -171,8 +171,8 @@ spec:
         - name: sys-cert
           emptyDir: {}
         {{- end }}
----
 
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -188,18 +188,17 @@ metadata:
   name: ks-console
 spec:
   ports:
-  - name: nginx
-  {{- if .Values.internalTLS }}
-    port: 443
-  {{- else }}
-    port: 80
+    - name: nginx
+{{- if .Values.internalTLS }}
+      port: 443
+{{- else }}
+      port: 80
+{{- end }}
+      protocol: TCP
+      targetPort: 8000
+  {{- with .Values.console.nodePort }}
+      nodePort: {{ . }}
   {{- end }}
-    protocol: TCP
-    targetPort: 8000
-    {{- with .Values.console.nodePort }}
-    nodePort:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
   selector:
     app: ks-console
 {{- if .Values.console.nodePort }}

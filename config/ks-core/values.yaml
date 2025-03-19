@@ -436,13 +436,6 @@ ksCRDs:
       repository: kubesphere/kubectl
       tag: "v1.27.16"
       pullPolicy: IfNotPresent
-    resources:
-      limits:
-        cpu: 1
-        memory: 1024Mi
-      requests:
-        cpu: 20m
-        memory: 100Mi
 
 # add museum for all ks-extensions
 ksExtensionRepository:

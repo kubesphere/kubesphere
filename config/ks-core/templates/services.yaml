@@ -15,8 +15,7 @@ spec:
     {{- end }}
       targetPort: 9090
     {{- with .Values.apiserver.nodePort }}
-      nodePort:
-      {{- toYaml . | nindent 8 }}
+      nodePort: {{ . }}
     {{- end }}
   selector:
     {{- if eq (include "multicluster.role" .) "host" }}

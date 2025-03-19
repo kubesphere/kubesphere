@@ -26,7 +26,7 @@ spec:
     privateKeySecretRef:
       name: letsencrypt-{{ .Values.letsEncrypt.environment }}
     {{- if or (.Capabilities.APIVersions.Has "certmanager.k8s.io/v1alpha1") }}
-    http01: { }
+    http01: {}
     {{- else }}
     solvers:
       - http01:
