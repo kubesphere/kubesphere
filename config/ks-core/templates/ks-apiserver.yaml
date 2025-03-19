@@ -85,7 +85,7 @@ spec:
           livenessProbe:
             failureThreshold: 8
             httpGet:
-              path: /version
+              path: /livez
               port: 9090
             {{- if .Values.internalTLS }}
               scheme: HTTPS

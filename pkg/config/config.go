@@ -22,7 +22,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/options"
 	"kubesphere.io/kubesphere/pkg/models/composedapp"
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
-	"kubesphere.io/kubesphere/pkg/models/ratelimiter"
 	"kubesphere.io/kubesphere/pkg/models/terminal"
 	"kubesphere.io/kubesphere/pkg/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
