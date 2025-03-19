@@ -6,7 +6,9 @@
 
 module kubesphere.io/kubesphere
 
-go 1.22.11
+go 1.23.0
+
+toolchain go1.23.7
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
@@ -40,6 +42,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1
 	github.com/hashicorp/golang-lru v1.0.2
+	github.com/json-iterator/go v1.1.12
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/term v0.5.0
 	github.com/modern-go/reflect2 v1.0.2
@@ -57,9 +60,9 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/crypto v0.32.0
+	golang.org/x/crypto v0.36.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-	golang.org/x/net v0.33.0
+	golang.org/x/net v0.37.0
 	golang.org/x/oauth2 v0.22.0
 	gopkg.in/cas.v2 v2.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -106,7 +109,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
-	github.com/containerd/containerd v1.7.23 // indirect
+	github.com/containerd/containerd v1.7.27 // indirect
 	github.com/containerd/errdefs v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
@@ -164,7 +167,6 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
@@ -237,16 +239,16 @@ require (
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/term v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/grpc v1.67.1 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -269,7 +271,7 @@ replace (
 	github.com/Microsoft/go-winio => github.com/Microsoft/go-winio v0.6.2
 	github.com/asaskevich/govalidator => github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.55.5
-	github.com/containerd/containerd => github.com/containerd/containerd v1.7.23
+	github.com/containerd/containerd => github.com/containerd/containerd v1.7.27
 	github.com/davecgh/go-spew => github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/docker/cli => github.com/docker/cli v27.1.0+incompatible
 	github.com/docker/distribution => github.com/docker/distribution v2.8.3+incompatible
@@ -343,7 +345,7 @@ replace (
 	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.28.0
 	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.28.0
 	golang.org/x/crypto => golang.org/x/crypto v0.32.0
-	golang.org/x/net => golang.org/x/net v0.33.0
+	golang.org/x/net => golang.org/x/net v0.37.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync => golang.org/x/sync v0.1.0
 	golang.org/x/sys => golang.org/x/sys v0.26.0
