@@ -360,6 +360,51 @@ webhooks:
     sideEffects: None
     timeoutSeconds: 30
 
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: protector.kubesphere.io
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: {{ b64enc $ca.Cert | quote }}
+      service:
+        name: ks-controller-manager
+        namespace: {{ .Release.Namespace }}
+        path: /resource-protector
+        port: 443
+    failurePolicy: Ignore
+    matchPolicy: Exact
+    name: protector.kubesphere.io
+    namespaceSelector: {}
+    objectSelector:
+      matchExpressions:
+        - key: kubesphere.io/protected-resource
+          operator: Exists
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - DELETE
+        resources:
+          - namespaces
+        scope: '*'
+      - apiGroups:
+          - "tenant.kubesphere.io"
+        apiVersions:
+          - v1beta1
+        operations:
+          - DELETE
+        resources:
+          - workspacetemplates
+        scope: '*'
+    sideEffects: None
+    timeoutSeconds: 30
+
 {{- if eq (include "multicluster.role" .) "host" }}
 ---
 apiVersion: admissionregistration.k8s.io/v1

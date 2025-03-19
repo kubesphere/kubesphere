@@ -40,6 +40,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/loginrecord"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/quota"
+	"kubesphere.io/kubesphere/pkg/controller/resourceprotection"
 	"kubesphere.io/kubesphere/pkg/controller/role"
 	"kubesphere.io/kubesphere/pkg/controller/rolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/roletemplate"
@@ -120,6 +121,7 @@ func init() {
 	// kubectl
 	runtime.Must(controller.Register(&kubectl.Reconciler{}))
 	runtime.Must(controller.Register(&serviceaccounttoken.Reconciler{}))
+	runtime.Must(controller.Register(&resourceprotection.Webhook{}))
 }
 
 func NewControllerManagerCommand() *cobra.Command {

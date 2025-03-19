@@ -26,6 +26,7 @@ spec:
               do
                 kubectl label ns $ns kubesphere.io/workspace=system-workspace
                 kubectl label ns $ns kubesphere.io/managed=true
+                kubectl label ns $ns kubesphere.io/protected-resource=true
               done
               kubectl get ns -l 'kubesphere.io/workspace,!kubesphere.io/managed' --no-headers -o custom-columns=NAME:.metadata.name | \
               xargs -I {} kubectl label ns {} kubesphere.io/managed=true
