@@ -178,7 +178,7 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 	e := &Event{
 		HostName:  a.hostname,
 		HostIP:    a.hostIP,
-		Workspace: info.Workspace,
+		Workspace: a.getWorkspace(info.Namespace),
 		Cluster:   a.cluster,
 		Event: audit.Event{
 			RequestURI:               info.Path,
@@ -253,33 +253,25 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 		}
 	}
 
-	a.getWorkspace(e)
-
 	return e
 }
 
-func (a *auditing) getWorkspace(e *Event) {
-	if e.Workspace != "" {
-		return
-	}
-
-	ns := e.ObjectRef.Namespace
-	if e.ObjectRef.Resource == "namespaces" {
-		ns = e.ObjectRef.Name
-	}
+func (a *auditing) getWorkspace(ns string) string {
 	if ns == "" {
-		return
+		return ""
 	}
 
 	namespace, err := a.k8sClient.CoreV1().Namespaces().Get(context.Background(), ns, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		klog.Errorf("get %s error: %s", ns, err)
-		return
+		return ""
 	}
 
 	if namespace.Labels != nil {
-		e.Workspace = namespace.Labels[constants.WorkspaceLabelKey]
+		return namespace.Labels[constants.WorkspaceLabelKey]
 	}
+
+	return ""
 }
 
 func (a *auditing) needAnalyzeRequestBody(e *Event, req *http.Request) bool {
