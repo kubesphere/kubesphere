@@ -163,7 +163,7 @@ github.com/cloudflare/circl/math/mlsbset
 github.com/cloudflare/circl/sign
 github.com/cloudflare/circl/sign/ed25519
 github.com/cloudflare/circl/sign/ed448
-# github.com/containerd/containerd v1.7.23 => github.com/containerd/containerd v1.7.23
+# github.com/containerd/containerd v1.7.27 => github.com/containerd/containerd v1.7.27
 ## explicit; go 1.21
 github.com/containerd/containerd/archive/compression
 github.com/containerd/containerd/content
@@ -1121,7 +1121,7 @@ go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
-# golang.org/x/crypto v0.32.0 => golang.org/x/crypto v0.32.0
+# golang.org/x/crypto v0.36.0 => golang.org/x/crypto v0.32.0
 ## explicit; go 1.20
 golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
@@ -1164,8 +1164,8 @@ golang.org/x/exp/slog/internal/buffer
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.33.0 => golang.org/x/net v0.33.0
-## explicit; go 1.18
+# golang.org/x/net v0.37.0 => golang.org/x/net v0.37.0
+## explicit; go 1.23.0
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -1174,6 +1174,7 @@ golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
+golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
@@ -1188,7 +1189,7 @@ golang.org/x/oauth2/internal
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.29.0 => golang.org/x/sys v0.26.0
+# golang.org/x/sys v0.31.0 => golang.org/x/sys v0.26.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1196,10 +1197,10 @@ golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.28.0
-## explicit; go 1.18
+# golang.org/x/term v0.30.0
+## explicit; go 1.23.0
 golang.org/x/term
-# golang.org/x/text v0.21.0 => golang.org/x/text v0.19.0
+# golang.org/x/text v0.23.0 => golang.org/x/text v0.19.0
 ## explicit; go 1.18
 golang.org/x/text/cases
 golang.org/x/text/encoding
@@ -1332,7 +1333,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.34.2 => google.golang.org/protobuf v1.34.2
+# google.golang.org/protobuf v1.35.2 => google.golang.org/protobuf v1.34.2
 ## explicit; go 1.20
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
@@ -2223,7 +2224,7 @@ k8s.io/utils/ptr
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
 # kubesphere.io/api v0.0.0 => ./staging/src/kubesphere.io/api
-## explicit; go 1.22.11
+## explicit; go 1.23.0
 kubesphere.io/api/application/v2
 kubesphere.io/api/cluster/v1alpha1
 kubesphere.io/api/constants
@@ -2237,11 +2238,11 @@ kubesphere.io/api/tenant/v1alpha1
 kubesphere.io/api/tenant/v1alpha2
 kubesphere.io/api/tenant/v1beta1
 # kubesphere.io/client-go v0.0.0 => ./staging/src/kubesphere.io/client-go
-## explicit; go 1.22.11
+## explicit; go 1.23.0
 kubesphere.io/client-go/kubesphere/scheme
 kubesphere.io/client-go/rest
 # kubesphere.io/utils v0.0.0 => ./staging/src/kubesphere.io/utils
-## explicit; go 1.22.11
+## explicit; go 1.23.0
 kubesphere.io/utils/helm
 kubesphere.io/utils/s3
 # oras.land/oras-go v1.2.6 => oras.land/oras-go v1.2.6
@@ -2441,7 +2442,7 @@ sigs.k8s.io/yaml/goyaml.v3
 # github.com/Microsoft/go-winio => github.com/Microsoft/go-winio v0.6.2
 # github.com/asaskevich/govalidator => github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 # github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.55.5
-# github.com/containerd/containerd => github.com/containerd/containerd v1.7.23
+# github.com/containerd/containerd => github.com/containerd/containerd v1.7.27
 # github.com/davecgh/go-spew => github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 # github.com/docker/cli => github.com/docker/cli v27.1.0+incompatible
 # github.com/docker/distribution => github.com/docker/distribution v2.8.3+incompatible
@@ -2515,7 +2516,7 @@ sigs.k8s.io/yaml/goyaml.v3
 # go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.28.0
 # go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.28.0
 # golang.org/x/crypto => golang.org/x/crypto v0.32.0
-# golang.org/x/net => golang.org/x/net v0.33.0
+# golang.org/x/net => golang.org/x/net v0.37.0
 # golang.org/x/oauth2 => golang.org/x/oauth2 v0.21.0
 # golang.org/x/sync => golang.org/x/sync v0.1.0
 # golang.org/x/sys => golang.org/x/sys v0.26.0

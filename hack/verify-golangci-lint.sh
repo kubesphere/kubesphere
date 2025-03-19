@@ -24,7 +24,7 @@ export GO111MODULE=on
 if ! command -v golangci-lint ; then
 # Install golangci-lint
   echo 'installing golangci-lint'
-  GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.2
+  GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 fi
 
 cd "${KUBE_ROOT}"
