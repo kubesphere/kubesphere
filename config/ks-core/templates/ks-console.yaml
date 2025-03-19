@@ -4,10 +4,8 @@ kind: Deployment
 metadata:
   labels:
     app: ks-console
-    tier: frontend
     version: {{ .Chart.AppVersion }}
   name: ks-console
-  namespace: kubesphere-system
 spec:
   strategy:
     rollingUpdate:
@@ -28,9 +26,9 @@ spec:
         # force restart ks-console after the upgrade is complete if ks-console-config changes
         checksum/config: {{ include (print $.Template.BasePath "/ks-console-config.yaml") . | sha256sum }}
     spec:
-      serviceAccount: {{ template "ks-core.serviceAccountName" . }}
-      serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
-      {{- include "console.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       {{- if .Values.nodeSelector }}
       nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.nodeSelector "context" $) | nindent 8 }}
       {{- end }}
@@ -79,7 +77,7 @@ spec:
       {{- end }}
       containers:
         - name: ks-console
-          image: {{ template "ks-console.image" . }}
+          image: {{ template "console.image" . }}
           imagePullPolicy: {{ .Values.console.image.pullPolicy }}
           {{- if .Values.console.containerPorts }}
           ports: {{- include "common.tplvalues.render" (dict "value" .Values.console.containerPorts "context" $) | nindent 12 }}
@@ -154,7 +152,6 @@ kind: Service
 metadata:
   labels:
     app: ks-console
-    tier: frontend
     version: {{ .Chart.AppVersion }}
   annotations:
     {{- if .Values.internalTLS }}
@@ -179,7 +176,6 @@ spec:
     {{- end }}
   selector:
     app: ks-console
-    tier: frontend
 {{- if .Values.console.nodePort }}
   type: NodePort
 {{- else}}

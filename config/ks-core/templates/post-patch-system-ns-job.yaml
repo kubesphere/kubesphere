@@ -11,6 +11,9 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: {{ include "ks-core.serviceAccountName" . }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       containers:
         - name: post-patch-system-ns
           image:  {{ template "kubectl.image" . }}

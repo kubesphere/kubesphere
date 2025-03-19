@@ -3,7 +3,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ks-console
-  namespace: {{ .Release.Namespace }}
   annotations:
     {{- if .Values.internalTLS }}
     {{- if eq .Values.ingress.ingressClassName "nginx" }}

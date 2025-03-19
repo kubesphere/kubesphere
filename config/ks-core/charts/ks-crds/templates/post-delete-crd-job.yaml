@@ -47,7 +47,6 @@ subjects:
     name: "{{ .Release.Name }}-post-delete-crd"
     namespace: {{ .Release.Namespace }}
 
----
 {{- $crdNameList := list }}
 {{- range $path, $_ := .Files.Glob "crds/**" }}
 {{- $crd := $.Files.Get $path | fromYaml }}
@@ -68,6 +67,9 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: "{{ .Release.Name }}-post-delete-crd"
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       containers:
         - name: post-delete-job
           image: {{ template "kubectl.image" . }}
@@ -79,7 +81,6 @@ spec:
           volumeMounts:
             - mountPath: /scripts
               name: scripts
-          resources: {{- toYaml .Values.kubectl.resources | nindent 12 }}
       volumes:
         - name: scripts
           configMap:

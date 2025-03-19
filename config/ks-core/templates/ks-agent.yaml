@@ -4,10 +4,8 @@ kind: Deployment
 metadata:
   labels:
     app: ks-agent
-    tier: backend
     version: {{ .Chart.AppVersion }}
   name: ks-agent
-  namespace: kubesphere-system
 spec:
   strategy:
     rollingUpdate:
@@ -31,7 +29,9 @@ spec:
         tier: backend
     spec:
       serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
-      {{- include "controller.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
       {{- if .Values.nodeSelector }}
       nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.nodeSelector "context" $) | nindent 8 }}
       {{- end }}
@@ -48,7 +48,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: ks-apiserver
-          image: {{ template "ks-apiserver.image" . }}
+          image: {{ template "apiserver.image" . }}
           imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
           {{- if .Values.apiserver.containerPorts }}
           ports: {{- include "common.tplvalues.render" (dict "value" .Values.apiserver.containerPorts "context" $) | nindent 12 }}
@@ -81,7 +81,7 @@ spec:
           {{- include "common.tplvalues.render" (dict "value" .Values.apiserver.extraVolumeMounts "context" $) | nindent 12 }}
           {{- end }}
         - name: ks-controller-manager
-          image: {{ template "ks-controller-manager.image" . }}
+          image: {{ template "controller.image" . }}
           imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
           {{- if .Values.controller.containerPorts }}
           ports: {{- include "common.tplvalues.render" (dict "value" .Values.controller.containerPorts "context" $) | nindent 12 }}
@@ -100,7 +100,7 @@ spec:
             - mountPath: /etc/kubesphere/
               name: kubesphere-config
             - mountPath: /tmp/k8s-webhook-server/serving-certs
-              name: webhook-secret
+              name: webhook-cert
             - mountPath: /etc/localtime
               name: host-time
               readOnly: true
@@ -112,7 +112,7 @@ spec:
           configMap:
             name: kubesphere-config
             defaultMode: 420
-        - name: webhook-secret
+        - name: webhook-cert
           secret:
             defaultMode: 420
             secretName: ks-controller-manager-webhook-cert
