@@ -83,26 +83,4 @@ metadata:
 spec:
   url: https://extensions-museum.{{ .Release.Namespace }}.svc
   caBundle: {{ b64enc $ca.Cert }}
-
----
-apiVersion: {{ if semverCompare ">=1.21.0-0" .Capabilities.KubeVersion.Version }}batch/v1{{ else }}batch/v1beta1{{end}}
-kind: CronJob
-metadata:
-  name: restart-extensions-museum
-  namespace: {{ .Release.Namespace }}
-spec:
-  schedule: "0 0 * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: restart-extensions-museum
-              image: {{ template "kubectl.image" . }}
-              command:
-                - /bin/sh
-                - -c
-                - "kubectl rollout restart deployment/extensions-museum -n {{ .Release.Namespace }}"
-          restartPolicy: OnFailure
-          serviceAccountName: {{ template "ks-core.serviceAccountName" . }}
 {{end}}
