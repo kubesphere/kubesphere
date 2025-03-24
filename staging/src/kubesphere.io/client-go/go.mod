@@ -62,7 +62,6 @@ replace (
 	golang.org/x/sync => golang.org/x/sync v0.1.0
 	golang.org/x/sys => golang.org/x/sys v0.26.0
 	golang.org/x/text => golang.org/x/text v0.19.0
-	google.golang.org/protobuf => google.golang.org/protobuf v1.34.2
 	kubesphere.io/api => ../api
 	kubesphere.io/client-go => ../client-go
 )

@@ -1333,8 +1333,8 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.35.2 => google.golang.org/protobuf v1.34.2
-## explicit; go 1.20
+# google.golang.org/protobuf v1.35.2 => google.golang.org/protobuf v1.35.2
+## explicit; go 1.21
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
@@ -2523,7 +2523,7 @@ sigs.k8s.io/yaml/goyaml.v3
 # golang.org/x/text => golang.org/x/text v0.19.0
 # golang.org/x/tools => golang.org/x/tools v0.26.0
 # google.golang.org/grpc => google.golang.org/grpc v1.67.1
-# google.golang.org/protobuf => google.golang.org/protobuf v1.34.2
+# google.golang.org/protobuf => google.golang.org/protobuf v1.35.2
 # gopkg.in/asn1-ber.v1 => gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 # gopkg.in/cas.v2 => gopkg.in/cas.v2 v2.2.0
 # gopkg.in/warnings.v0 => gopkg.in/warnings.v0 v0.1.2
