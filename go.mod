@@ -41,7 +41,6 @@ require (
 	github.com/google/gops v0.3.23
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1
-	github.com/hashicorp/golang-lru v1.0.2
 	github.com/json-iterator/go v1.1.12
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/term v0.5.0
@@ -308,7 +307,6 @@ replace (
 	github.com/google/gops => github.com/google/gops v0.3.23
 	github.com/google/uuid => github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.1
-	github.com/hashicorp/golang-lru => github.com/hashicorp/golang-lru v1.0.2
 	github.com/inconshreveable/mousetrap => github.com/inconshreveable/mousetrap v1.1.0
 	github.com/jbenet/go-context => github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 	github.com/josharian/intern => github.com/josharian/intern v1.0.0
