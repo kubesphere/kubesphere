@@ -83,4 +83,6 @@ metadata:
 spec:
   url: https://extensions-museum.{{ .Release.Namespace }}.svc
   caBundle: {{ b64enc $ca.Cert }}
+status:
+  lastSyncTime: null
 {{end}}
