@@ -8,6 +8,7 @@ package v1alpha2
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/emicklei/go-restful/v3"
@@ -33,8 +34,9 @@ import (
 )
 
 const (
-	themeConfigurationName           = "platform-configuration-theme"
-	GenericPlatformConfigurationKind = "GenericPlatformConfiguration"
+	themeConfigurationName             = "platform-configuration-theme"
+	GenericPlatformConfigurationKind   = "GenericPlatformConfiguration"
+	ClusterConnectionConfigurationKind = "ClusterConnectionConfiguration"
 )
 
 type GenericPlatformConfiguration struct {
@@ -121,6 +123,85 @@ func (h *handler) getOAuthConfiguration(req *restful.Request, resp *restful.Resp
 		Clients:           clients,
 	}
 	_ = resp.WriteEntity(configuration)
+}
+
+type ClusterConnectionConfiguration struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Data runtime.RawExtension `json:"data,omitempty"`
+}
+
+func (h *handler) listClusterConnectionConfiguration(req *restful.Request, resp *restful.Response) {
+	secretList := &corev1.SecretList{}
+	if err := h.client.List(req.Request.Context(), secretList, client.InNamespace(constants.KubeSphereNamespace)); err != nil {
+		api.HandleError(resp, req, err)
+		return
+	}
+
+	lists := []ClusterConnectionConfiguration{}
+	for _, s := range secretList.Items {
+		if s.Type == constants.SecretTypeClusterConnectionConfig {
+			config := ClusterConnectionConfiguration{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       ClusterConnectionConfigurationKind,
+					APIVersion: APIVersion,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					UID:               s.UID,
+					Name:              s.Name,
+					ResourceVersion:   s.ResourceVersion,
+					CreationTimestamp: s.CreationTimestamp,
+				},
+			}
+			_ = yaml.Unmarshal(s.Data[constants.ClusterConnectionConfigFileName], &config.Data)
+			lists = append(lists, config)
+		}
+	}
+
+	sort.Slice(lists, func(i, j int) bool {
+		return lists[i].Name < lists[j].Name
+	})
+	_ = resp.WriteEntity(lists)
+}
+
+func (h *handler) getClusterConnectionConfiguration(req *restful.Request, resp *restful.Response) {
+	configName := req.PathParameter("config")
+	if len(validation.IsDNS1123Label(configName)) > 0 {
+		api.HandleNotFound(resp, req, fmt.Errorf("platform config %s not found", configName))
+		return
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSphereNamespace,
+			Name:      configName,
+		},
+	}
+	if err := h.client.Get(req.Request.Context(), client.ObjectKeyFromObject(secret), secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			api.HandleNotFound(resp, req, fmt.Errorf("cluster connection config %s not found", configName))
+			return
+		}
+		api.HandleError(resp, req, err)
+		return
+	}
+
+	config := ClusterConnectionConfiguration{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       ClusterConnectionConfigurationKind,
+			APIVersion: APIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			UID:               secret.UID,
+			Name:              secret.Name,
+			ResourceVersion:   secret.ResourceVersion,
+			CreationTimestamp: secret.CreationTimestamp,
+		},
+	}
+	_ = yaml.Unmarshal(secret.Data[constants.ClusterConnectionConfigFileName], &config.Data)
+
+	_ = resp.WriteEntity(config)
 }
 
 func (h *handler) getConfigz(_ *restful.Request, response *restful.Response) {
