@@ -34,7 +34,7 @@ require (
 	github.com/go-openapi/strfmt v0.21.3
 	github.com/go-openapi/validate v0.22.0
 	github.com/go-redis/redis v6.15.2+incompatible
-	github.com/golang-jwt/jwt/v4 v4.5.1
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.14.0
@@ -297,7 +297,7 @@ replace (
 	github.com/go-openapi/validate => github.com/go-openapi/validate v0.22.0
 	github.com/go-redis/redis => github.com/go-redis/redis v6.15.2+incompatible
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
-	github.com/golang-jwt/jwt/v4 => github.com/golang-jwt/jwt/v4 v4.5.1
+	github.com/golang-jwt/jwt/v4 => github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang/example => github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/golang/glog => github.com/golang/glog v1.2.4
 	github.com/golang/protobuf => github.com/golang/protobuf v1.5.4
