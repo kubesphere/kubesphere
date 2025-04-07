@@ -51,6 +51,18 @@ func (h *handler) AddToContainer(c *restful.Container) error {
 			Operation("updateThemeConfiguration").
 			To(h.updateThemeConfiguration))
 
+		webservice.Route(webservice.GET("/clusterconnectionconfigurations").
+			Doc("Retrieve all configurations for cluster connection").
+			Notes("Provides information about all cluster connection plugins").
+			Operation("listClusterConnectionConfiguration").
+			To(h.listClusterConnectionConfiguration))
+
+		webservice.Route(webservice.GET("/clusterconnectionconfigurations/{config}").
+			Doc("Retrieve the configuration for cluster connection").
+			Notes("Provides information about the cluster connection plugin").
+			Operation("getClusterConnectionConfiguration").
+			To(h.getClusterConnectionConfiguration))
+
 		webservice.Route(webservice.POST("/platformconfigs").
 			Doc("Create a new platform configuration").
 			Notes("Allows the user to create a new configuration for the specified platform.").

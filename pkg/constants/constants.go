@@ -33,6 +33,9 @@ const (
 	SecretTypeGenericPlatformConfig corev1.SecretType = KubeSphereConfigGroup + "/generic-platform-config"
 	GenericPlatformConfigNameFmt                      = "io.kubesphere.config.platformconfig.%s"
 	GenericPlatformConfigFileName                     = "configuration.yaml"
+
+	SecretTypeClusterConnectionConfig corev1.SecretType = KubeSphereConfigGroup + "/cluster-connection-config"
+	ClusterConnectionConfigFileName                     = "configuration.yaml"
 )
 
 var (
