@@ -10,6 +10,27 @@ data:
     {{- toYaml .Values.upgrade.config | nindent 4 }}
 {{- end }}
 
+{{- if not (lookup "v1" "PersistentVolumeClaim" .Release.Namespace .Values.upgrade.persistenceVolume.name) }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Values.upgrade.persistenceVolume.name }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-1"
+  labels:
+    app: ks-upgrade
+    version: {{ .Chart.AppVersion }}
+spec:
+  accessModes:
+    - {{ .Values.upgrade.persistenceVolume.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.upgrade.persistenceVolume.size | quote }}
+  storageClassName: {{ .Values.upgrade.persistenceVolume.storageClassName }}
+{{-  end }}
+
 ---
 apiVersion: batch/v1
 kind: Job
@@ -40,6 +61,8 @@ spec:
             - mountPath: /etc/kubesphere/config-patch.yaml
               name: config
               subPath: config-patch.yaml
+            - mountPath: /tmp/ks-upgrade
+              name: data
           {{- end }}
       {{- if .Values.upgrade.config }}
       volumes:
@@ -47,6 +70,9 @@ spec:
           configMap:
             name: ks-upgrade-prepare-config
             defaultMode: 420
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.upgrade.persistenceVolume.name }}
       {{- end }}
 {{- end }}
 {{- end }}

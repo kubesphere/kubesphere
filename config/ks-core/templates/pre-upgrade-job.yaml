@@ -13,27 +13,6 @@ data:
 {{- end }}
 
 ---
-{{- if not (lookup "v1" "PersistentVolumeClaim" .Release.Namespace .Values.upgrade.persistenceVolume.name) }}
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: {{ .Values.upgrade.persistenceVolume.name }}
-  annotations:
-    "helm.sh/hook": pre-upgrade
-    "helm.sh/hook-weight": "-1"
-  labels:
-    app: ks-upgrade
-    version: {{ .Chart.AppVersion }}
-spec:
-  accessModes:
-    - {{ .Values.upgrade.persistenceVolume.accessMode | quote }}
-  resources:
-    requests:
-      storage: {{ .Values.upgrade.persistenceVolume.size | quote }}
-  storageClassName: {{ .Values.upgrade.persistenceVolume.storageClassName }}
-{{-  end }}
-
----
 apiVersion: batch/v1
 kind: Job
 metadata:
