@@ -161,6 +161,7 @@ console:
     digest: ""
     pullPolicy: IfNotPresent
   config:
+    enableKubeConfig: true
     enableNodeListTerminal: true
   ## @param containerPorts [array] List of container ports to enable in the ks-console container
   ##

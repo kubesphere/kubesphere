@@ -22,13 +22,15 @@ data:
     {{- else }}
         url: http://ks-apiserver
         wsUrl: ws://ks-apiserver
-    {{ end }}
+    {{- end }}
     client:
       version:
         kubesphere: {{ .Chart.AppVersion }}
         kubernetes: {{ .Capabilities.KubeVersion.Version }}
-      enableKubeConfig: true
-      enableNodeListTerminal: {{ .Values.console.config.enableNodeListTerminal }}
+      isWarningHeaderNotificationEnabled: {{ not (or (empty .Values.experimental.validationDirective) (eq .Values.experimental.validationDirective "Ignore")) }}
+      {{- with .Values.console.config }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
 kind: ConfigMap
 metadata:
   name: ks-console-config
