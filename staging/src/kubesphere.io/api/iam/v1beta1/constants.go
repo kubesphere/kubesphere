@@ -74,5 +74,4 @@ const (
 	GroupReferenceLabel                   = "iam.kubesphere.io/group-ref"
 	GroupParent                           = "iam.kubesphere.io/group-parent"
 	ResourcePluralGroupBinding            = "groupbindings"
-	GroupName                             = "iam.kubesphere.io"
 )

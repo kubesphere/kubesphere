@@ -10,6 +10,21 @@ type InstallationMode string
 const (
 	InstallationModeHostOnly InstallationMode = "HostOnly"
 	InstallationMulticluster InstallationMode = "Multicluster"
+
+	ResourceKindInstallPlan                 = "InstallPlan"
+	Automatic               UpgradeStrategy = "Automatic"
+	Manual                  UpgradeStrategy = "Manual"
+
+	ServiceAccountName            = "kubesphere.io/service-account.name"
+	ServiceAccountUID             = "kubesphere.io/service-account.uid"
+	ServiceAccountToken           = "token"
+	SecretTypeServiceAccountToken = "kubesphere.io/service-account-token"
+
+	ServiceAccountGroup                     = "kubesphere:serviceaccount"
+	ServiceAccountTokenPrefix               = ServiceAccountGroup + ":"
+	ServiceAccountTokenSubFormat            = ServiceAccountTokenPrefix + "%s:%s"
+	ServiceAccountTokenExtraSecretNamespace = "secret-namespace"
+	ServiceAccountTokenExtraSecretName      = "secret-name"
 )
 
 // Provider describes an extension provider.
@@ -169,4 +184,148 @@ type CategoryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Category `json:"items"`
+}
+
+type Placement struct {
+	// +listType=set
+	// +optional
+	Clusters        []string              `json:"clusters,omitempty"`
+	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty"`
+}
+
+type ClusterScheduling struct {
+	Placement *Placement        `json:"placement,omitempty"`
+	Overrides map[string]string `json:"overrides,omitempty"`
+}
+
+type InstallPlanState struct {
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
+	State              string      `json:"state"`
+}
+
+type InstallationStatus struct {
+	State           string             `json:"state,omitempty"`
+	ConfigHash      string             `json:"configHash,omitempty"`
+	TargetNamespace string             `json:"targetNamespace,omitempty"`
+	ReleaseName     string             `json:"releaseName,omitempty"`
+	Version         string             `json:"version,omitempty"`
+	JobName         string             `json:"jobName,omitempty"`
+	Conditions      []metav1.Condition `json:"conditions,omitempty"`
+	StateHistory    []InstallPlanState `json:"stateHistory,omitempty"`
+}
+
+type ExtensionRef struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+type UpgradeStrategy string
+
+type InstallPlanSpec struct {
+	Extension ExtensionRef `json:"extension"`
+	Enabled   bool         `json:"enabled"`
+	// +kubebuilder:default:=Manual
+	UpgradeStrategy   UpgradeStrategy    `json:"upgradeStrategy,omitempty"`
+	Config            string             `json:"config,omitempty"`
+	ClusterScheduling *ClusterScheduling `json:"clusterScheduling,omitempty"`
+}
+
+type InstallPlanStatus struct {
+	InstallationStatus `json:",inline"`
+	Enabled            bool `json:"enabled,omitempty"`
+	// ClusterSchedulingStatuses describes the subchart installation status of the extension
+	ClusterSchedulingStatuses map[string]InstallationStatus `json:"clusterSchedulingStatuses,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state"
+
+// InstallPlan defines how to install an extension in the cluster.
+type InstallPlan struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              InstallPlanSpec   `json:"spec,omitempty"`
+	Status            InstallPlanStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+type InstallPlanList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []InstallPlan `json:"items"`
+}
+
+type UpdateStrategy struct {
+	RegistryPoll `json:"registryPoll,omitempty"`
+	Timeout      metav1.Duration `json:"timeout"`
+}
+
+type RegistryPoll struct {
+	Interval metav1.Duration `json:"interval"`
+}
+
+type BasicAuth struct {
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+type RepositorySpec struct {
+	URL            string          `json:"url,omitempty"`
+	Description    string          `json:"description,omitempty"`
+	BasicAuth      *BasicAuth      `json:"basicAuth,omitempty"`
+	UpdateStrategy *UpdateStrategy `json:"updateStrategy,omitempty"`
+	// The caBundle (base64 string) is used in helmExecutor to verify the helm server.
+	// +optional
+	CABundle string `json:"caBundle,omitempty"`
+	// --insecure-skip-tls-verify. default false
+	Insecure bool `json:"insecure,omitempty"`
+	// The maximum number of synchronized versions for each extension. A value of 0 indicates that all versions will be synchronized. The default is 3.
+	// +optional
+	Depth *int `json:"depth,omitempty"`
+}
+
+type RepositoryStatus struct {
+	// +optional
+	LastSyncTime *metav1.Time `json:"lastSyncTime,omitempty'"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:categories="extensions",scope="Cluster"
+
+// Repository declared a docker image containing the extension helm chart.
+// The extension manager controller will deploy and synchronizes the extensions from the image repository.
+type Repository struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   RepositorySpec   `json:"spec,omitempty"`
+	Status RepositoryStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+type RepositoryList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Repository `json:"items"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope="Namespaced"
+
+type ServiceAccount struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Secrets []corev1.ObjectReference `json:"secrets,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
+}
+
+// +kubebuilder:object:root=true
+
+type ServiceAccountList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ServiceAccount `json:"items"`
 }

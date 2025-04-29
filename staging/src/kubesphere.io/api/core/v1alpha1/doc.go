@@ -1,5 +1,5 @@
 // +k8s:openapi-gen=true
 // +kubebuilder:object:generate=true
-// +groupName=storage.kubesphere.io
+// +groupName=kubesphere.io
 
 package v1alpha1

@@ -73,7 +73,6 @@ const (
 )
 
 // +kubebuilder:object:root=true
-// +k8s:openapi-gen=true
 // +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Email",type="string",JSONPath=".spec.email"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state"
@@ -89,8 +88,6 @@ type User struct {
 	// +optional
 	Status UserStatus `json:"status,omitempty"`
 }
-
-type FinalizerName string
 
 // UserSpec defines the desired state of User
 type UserSpec struct {

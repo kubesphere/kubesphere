@@ -11,10 +11,6 @@ const (
 	ResourcesPluralCluster   = "resourcequotas"
 )
 
-func init() {
-	SchemeBuilder.Register(&ResourceQuota{}, &ResourceQuotaList{})
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:categories="quota",scope="Cluster",path=resourcequotas
 // +kubebuilder:subresource:status
