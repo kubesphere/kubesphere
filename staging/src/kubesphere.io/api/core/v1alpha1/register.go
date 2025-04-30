@@ -1,6 +1,3 @@
-// +kubebuilder:object:generate=true
-// +groupName=kubesphere.io
-
 package v1alpha1
 
 import (
@@ -14,9 +11,8 @@ const GroupName = "kubesphere.io"
 var (
 	// SchemeGroupVersion is group version used to register these objects
 	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
-
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
+	AddToScheme        = SchemeBuilder.AddToScheme
 )
 
 // Resource takes an unqualified resource and returns a Group qualified GroupResource

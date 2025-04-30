@@ -1,24 +1,27 @@
-// Package v2 contains API Schema definitions for the application v1alpha1 API group
-// +kubebuilder:object:generate=true
-// +groupName=application.kubesphere.io
 package v2
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
+
+const GroupName = "application.kubesphere.io"
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "application.kubesphere.io", Version: "v2"}
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
-	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
-	// AddToScheme adds the types in this group-version to the given scheme.
-	AddToScheme = SchemeBuilder.AddToScheme
+	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v2"}
+	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
+	AddToScheme        = SchemeBuilder.AddToScheme
 )
 
-func init() {
-	SchemeBuilder.Register(
+// Resource takes an unqualified resource and returns a Group qualified GroupResource
+func Resource(resource string) schema.GroupResource {
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}
+
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Category{},
 		&CategoryList{},
 		&Application{},
@@ -30,4 +33,7 @@ func init() {
 		&Repo{},
 		&RepoList{},
 	)
+	// Add the watch version that applies
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	return nil
 }

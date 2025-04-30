@@ -1,6 +1,7 @@
 package scheme
 
 import (
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -41,4 +42,5 @@ func init() {
 	v1.AddToGroupVersion(Scheme, schema.GroupVersion{Version: "v1"})
 	utilruntime.Must(AddToScheme(Scheme))
 	utilruntime.Must(k8sscheme.AddToScheme(Scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(Scheme))
 }

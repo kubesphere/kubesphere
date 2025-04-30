@@ -100,11 +100,3 @@ type ProvisionerCapabilityList struct {
 	metav1.ListMeta `json:"metadata"`
 	Items           []ProvisionerCapability `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(
-		&StorageClassCapability{},
-		&StorageClassCapabilityList{},
-		&ProvisionerCapability{},
-		&ProvisionerCapabilityList{})
-}
