@@ -77,7 +77,7 @@ func BuildKubeconfigFromRestConfig(config *rest.Config) ([]byte, error) {
 	}
 
 	if config.BearerTokenFile != "" {
-		newToken, _ := os.ReadFile(config.BearerToken)
+		newToken, _ := os.ReadFile(config.BearerTokenFile)
 		if len(newToken) > 0 {
 			apiConfig.AuthInfos["kubernetes-admin"].Token = string(newToken)
 		}
