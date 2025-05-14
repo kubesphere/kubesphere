@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/open-policy-agent/opa/internal/version"
-	"github.com/open-policy-agent/opa/logging"
+	"github.com/open-policy-agent/opa/v1/logging"
 )
 
 // Values taken from

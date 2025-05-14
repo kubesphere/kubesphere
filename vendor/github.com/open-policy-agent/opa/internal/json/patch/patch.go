@@ -7,7 +7,7 @@ package patch
 import (
 	"strings"
 
-	"github.com/open-policy-agent/opa/storage"
+	"github.com/open-policy-agent/opa/v1/storage"
 )
 
 // ParsePatchPathEscaped returns a new path for the given escaped str.
@@ -37,8 +37,8 @@ func ParsePatchPathEscaped(str string) (path storage.Path, ok bool) {
 		// the substitutions in this order, an implementation avoids the error of
 		// turning '~01' first into '~1' and then into '/', which would be
 		// incorrect (the string '~01' correctly becomes '~1' after transformation)."
-		path[i] = strings.Replace(path[i], "~1", "/", -1)
-		path[i] = strings.Replace(path[i], "~0", "~", -1)
+		path[i] = strings.ReplaceAll(path[i], "~1", "/")
+		path[i] = strings.ReplaceAll(path[i], "~0", "~")
 	}
 
 	return

@@ -7,6 +7,7 @@ import (
 	"crypto/hmac"
 	"encoding/asn1"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"hash"
 	"math"
@@ -82,7 +83,7 @@ func HMACKeyDerivation(hash func() hash.Hash, bitLen int, key []byte, label, con
 
 	// verify the requested bit length is not larger then the length encoding size
 	if int64(bitLen) > 0x7FFFFFFF {
-		return nil, fmt.Errorf("bitLen is greater than 32-bits")
+		return nil, errors.New("bitLen is greater than 32-bits")
 	}
 
 	fixedInput := bytes.NewBuffer(nil)

@@ -111,7 +111,7 @@ func Verify(buf []byte, alg jwa.SignatureAlgorithm, key interface{}) (ret []byte
 		return nil, errors.New(`attempt to verify empty buffer`)
 	}
 
-	parts, err := SplitCompact(string(buf[:]))
+	parts, err := SplitCompact(string(buf))
 	if err != nil {
 		return nil, fmt.Errorf("failed extract from compact serialization format: %w", err)
 	}
@@ -164,7 +164,7 @@ func VerifyWithJWKSet(buf []byte, keyset *jwk.Set) (payload []byte, err error) {
 
 // ParseByte parses a JWS value serialized via compact serialization and provided as []byte.
 func ParseByte(jwsCompact []byte) (m *Message, err error) {
-	return parseCompact(string(jwsCompact[:]))
+	return parseCompact(string(jwsCompact))
 }
 
 // ParseString parses a JWS value serialized via compact serialization and provided as string.

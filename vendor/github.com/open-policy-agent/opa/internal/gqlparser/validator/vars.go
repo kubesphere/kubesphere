@@ -2,6 +2,7 @@ package validator
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 	"github.com/open-policy-agent/opa/internal/gqlparser/gqlerror"
 )
 
-var ErrUnexpectedType = fmt.Errorf("Unexpected Type")
+var ErrUnexpectedType = errors.New("Unexpected Type")
 
 // VariableValues coerces and validates variable values
 func VariableValues(schema *ast.Schema, op *ast.OperationDefinition, variables map[string]interface{}) (map[string]interface{}, error) {
@@ -106,7 +107,7 @@ func (v *varValidator) validateVarType(typ *ast.Type, val reflect.Value) (reflec
 			slc = reflect.Append(slc, val)
 			val = slc
 		}
-		for i := 0; i < val.Len(); i++ {
+		for i := range val.Len() {
 			resetPath()
 			v.path = append(v.path, ast.PathIndex(i))
 			field := val.Index(i)
@@ -222,7 +223,7 @@ func (v *varValidator) validateVarType(typ *ast.Type, val reflect.Value) (reflec
 				if fieldDef.Type.NonNull && field.IsNil() {
 					return val, gqlerror.ErrorPathf(v.path, "cannot be null")
 				}
-				//allow null object field and skip it
+				// allow null object field and skip it
 				if !fieldDef.Type.NonNull && field.IsNil() {
 					continue
 				}

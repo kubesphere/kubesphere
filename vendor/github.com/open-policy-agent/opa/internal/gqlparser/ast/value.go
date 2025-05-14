@@ -25,7 +25,7 @@ type Value struct {
 	Raw      string
 	Children ChildValueList
 	Kind     ValueKind
-	Position *Position `dump:"-"`
+	Position *Position `dump:"-" json:"-"`
 
 	// Require validation
 	Definition         *Definition
@@ -36,7 +36,7 @@ type Value struct {
 type ChildValue struct {
 	Name     string
 	Value    *Value
-	Position *Position `dump:"-"`
+	Position *Position `dump:"-" json:"-"`
 }
 
 func (v *Value) Value(vars map[string]interface{}) (interface{}, error) {

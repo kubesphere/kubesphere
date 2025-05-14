@@ -31,7 +31,7 @@ var ErrNotList = errors.New("not a list")
 
 // MaxIndex is the maximum index that will be allowed by setIndex.
 // The default value 65536 = 1024 * 64
-var MaxIndex = 65536
+const MaxIndex = 65536
 
 // ToYAML takes a string of arguments and converts to a YAML document.
 func ToYAML(s string) (string, error) {
@@ -148,8 +148,6 @@ func (t *parser) key(data map[string]interface{}) error {
 				return err
 			}
 			return fmt.Errorf("key %q has no value", string(k))
-			//set(data, string(k), "")
-			//return err
 		case last == '[':
 			// We are in a list index context, so we need to set an index.
 			i, err := t.keyIndex()
@@ -168,7 +166,7 @@ func (t *parser) key(data map[string]interface{}) error {
 			set(data, kk, list)
 			return err
 		case last == '=':
-			//End of key. Consume =, Get value.
+			// End of key. Consume =, Get value.
 			// FIXME: Get value list first
 			vl, e := t.valList()
 			switch e {

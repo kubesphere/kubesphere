@@ -5,49 +5,11 @@
 package ast
 
 import (
-	"strings"
+	v1 "github.com/open-policy-agent/opa/v1/ast"
 )
 
 // CheckPathConflicts returns a set of errors indicating paths that
 // are in conflict with the result of the provided callable.
 func CheckPathConflicts(c *Compiler, exists func([]string) (bool, error)) Errors {
-	var errs Errors
-
-	root := c.RuleTree.Child(DefaultRootDocument.Value)
-	if root == nil {
-		return nil
-	}
-
-	for _, node := range root.Children {
-		errs = append(errs, checkDocumentConflicts(node, exists, nil)...)
-	}
-
-	return errs
-}
-
-func checkDocumentConflicts(node *TreeNode, exists func([]string) (bool, error), path []string) Errors {
-
-	switch key := node.Key.(type) {
-	case String:
-		path = append(path, string(key))
-	default: // other key types cannot conflict with data
-		return nil
-	}
-
-	if len(node.Values) > 0 {
-		s := strings.Join(path, "/")
-		if ok, err := exists(path); err != nil {
-			return Errors{NewError(CompileErr, node.Values[0].(*Rule).Loc(), "conflict check for data path %v: %v", s, err.Error())}
-		} else if ok {
-			return Errors{NewError(CompileErr, node.Values[0].(*Rule).Loc(), "conflicting rule for data path %v found", s)}
-		}
-	}
-
-	var errs Errors
-
-	for _, child := range node.Children {
-		errs = append(errs, checkDocumentConflicts(child, exists, path)...)
-	}
-
-	return errs
+	return v1.CheckPathConflicts(c, exists)
 }

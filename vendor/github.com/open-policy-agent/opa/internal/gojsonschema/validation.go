@@ -348,7 +348,7 @@ func (v *SubSchema) validateSchema(currentSubSchema *SubSchema, currentNode inte
 		}
 	}
 
-	if currentSubSchema.dependencies != nil && len(currentSubSchema.dependencies) > 0 {
+	if len(currentSubSchema.dependencies) > 0 {
 		if currentNodeMap, ok := currentNode.(map[string]interface{}); ok {
 			for elementKey := range currentNodeMap {
 				if dependency, ok := currentSubSchema.dependencies[elementKey]; ok {
@@ -469,7 +469,7 @@ func (v *SubSchema) validateArray(currentSubSchema *SubSchema, value []interface
 			result.mergeErrors(validationResult)
 		}
 	} else {
-		if currentSubSchema.ItemsChildren != nil && len(currentSubSchema.ItemsChildren) > 0 {
+		if len(currentSubSchema.ItemsChildren) > 0 {
 
 			nbItems := len(currentSubSchema.ItemsChildren)
 

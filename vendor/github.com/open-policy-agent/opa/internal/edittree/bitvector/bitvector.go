@@ -36,7 +36,7 @@ func (vector *BitVector) Length() int {
 // position of the last byte in the slice.
 // This returns the bit that was shifted off of the last byte.
 func shiftLower(bit byte, b []byte) byte {
-	bit = bit << 7
+	bit <<= 7
 	for i := len(b) - 1; i >= 0; i-- {
 		newByte := b[i] >> 1
 		newByte |= bit

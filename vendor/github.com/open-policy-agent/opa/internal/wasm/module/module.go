@@ -288,7 +288,7 @@ func (x ExportDescriptorType) String() string {
 }
 
 // Kind returns the function import type kind.
-func (i FunctionImport) Kind() ImportDescriptorType {
+func (FunctionImport) Kind() ImportDescriptorType {
 	return FunctionImportType
 }
 
@@ -297,7 +297,7 @@ func (i FunctionImport) String() string {
 }
 
 // Kind returns the memory import type kind.
-func (i MemoryImport) Kind() ImportDescriptorType {
+func (MemoryImport) Kind() ImportDescriptorType {
 	return MemoryImportType
 }
 
@@ -306,7 +306,7 @@ func (i MemoryImport) String() string {
 }
 
 // Kind returns the table import type kind.
-func (i TableImport) Kind() ImportDescriptorType {
+func (TableImport) Kind() ImportDescriptorType {
 	return TableImportType
 }
 
@@ -315,7 +315,7 @@ func (i TableImport) String() string {
 }
 
 // Kind returns the global import type kind.
-func (i GlobalImport) Kind() ImportDescriptorType {
+func (GlobalImport) Kind() ImportDescriptorType {
 	return GlobalImportType
 }
 

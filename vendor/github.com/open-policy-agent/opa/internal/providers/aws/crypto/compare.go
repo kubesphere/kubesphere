@@ -1,6 +1,6 @@
 package crypto
 
-import "fmt"
+import "errors"
 
 // ConstantTimeByteCompare is a constant-time byte comparison of x and y. This function performs an absolute comparison
 // if the two byte slices assuming they represent a big-endian number.
@@ -11,7 +11,7 @@ import "fmt"
 //	  +1 if x >  y
 func ConstantTimeByteCompare(x, y []byte) (int, error) {
 	if len(x) != len(y) {
-		return 0, fmt.Errorf("slice lengths do not match")
+		return 0, errors.New("slice lengths do not match")
 	}
 
 	xLarger, yLarger := 0, 0

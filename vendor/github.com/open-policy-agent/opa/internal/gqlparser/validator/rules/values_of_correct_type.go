@@ -159,8 +159,6 @@ func unexpectedTypeMessageOnly(v *ast.Value) ErrorOption {
 		return Message(`Float cannot represent non numeric value: %s`, v.String())
 	case "ID", "ID!":
 		return Message(`ID cannot represent a non-string and non-integer value: %s`, v.String())
-	//case "Enum":
-	//		return Message(`Enum "%s" cannot represent non-enum value: %s`, v.ExpectedType.String(), v.String())
 	default:
 		if v.Definition.Kind == ast.Enum {
 			return Message(`Enum "%s" cannot represent non-enum value: %s.`, v.ExpectedType.String(), v.String())

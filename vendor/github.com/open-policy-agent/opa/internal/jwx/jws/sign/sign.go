@@ -3,6 +3,7 @@ package sign
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 
 	"github.com/open-policy-agent/opa/internal/jwx/jwa"
@@ -30,7 +31,7 @@ func GetSigningKey(key string, alg jwa.SignatureAlgorithm) (interface{}, error) 
 	case jwa.RS256, jwa.RS384, jwa.RS512, jwa.PS256, jwa.PS384, jwa.PS512:
 		block, _ := pem.Decode([]byte(key))
 		if block == nil {
-			return nil, fmt.Errorf("failed to parse PEM block containing the key")
+			return nil, errors.New("failed to parse PEM block containing the key")
 		}
 
 		priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -45,7 +46,7 @@ func GetSigningKey(key string, alg jwa.SignatureAlgorithm) (interface{}, error) 
 	case jwa.ES256, jwa.ES384, jwa.ES512:
 		block, _ := pem.Decode([]byte(key))
 		if block == nil {
-			return nil, fmt.Errorf("failed to parse PEM block containing the key")
+			return nil, errors.New("failed to parse PEM block containing the key")
 		}
 
 		priv, err := x509.ParseECPrivateKey(block.Bytes)
