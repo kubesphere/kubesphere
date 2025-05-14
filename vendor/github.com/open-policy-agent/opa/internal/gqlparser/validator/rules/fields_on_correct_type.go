@@ -27,7 +27,7 @@ func init() {
 			}
 
 			addError(
-				Message(message),
+				Message(message), //nolint:govet
 				At(field.Position),
 			)
 		})

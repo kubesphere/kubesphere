@@ -1,0 +1,1464 @@
+{
+  "builtins": {
+    "abs": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "all": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "and": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "any": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "array.concat": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "array.reverse": {
+      "Major": 0,
+      "Minor": 36,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "array.slice": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "assign": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "base64.decode": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "base64.encode": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "base64.is_valid": {
+      "Major": 0,
+      "Minor": 24,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "base64url.decode": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "base64url.encode": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "base64url.encode_no_pad": {
+      "Major": 0,
+      "Minor": 25,
+      "Patch": 0,
+      "PreRelease": "rc2",
+      "Metadata": ""
+    },
+    "bits.and": {
+      "Major": 0,
+      "Minor": 18,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "bits.lsh": {
+      "Major": 0,
+      "Minor": 18,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "bits.negate": {
+      "Major": 0,
+      "Minor": 18,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "bits.or": {
+      "Major": 0,
+      "Minor": 18,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "bits.rsh": {
+      "Major": 0,
+      "Minor": 18,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "bits.xor": {
+      "Major": 0,
+      "Minor": 18,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "cast_array": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "cast_boolean": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "cast_null": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "cast_object": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "cast_set": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "cast_string": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "ceil": {
+      "Major": 0,
+      "Minor": 26,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "concat": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "contains": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "count": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.hmac.equal": {
+      "Major": 0,
+      "Minor": 52,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.hmac.md5": {
+      "Major": 0,
+      "Minor": 36,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.hmac.sha1": {
+      "Major": 0,
+      "Minor": 36,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.hmac.sha256": {
+      "Major": 0,
+      "Minor": 36,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.hmac.sha512": {
+      "Major": 0,
+      "Minor": 36,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.md5": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.parse_private_keys": {
+      "Major": 0,
+      "Minor": 55,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.sha1": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.sha256": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.x509.parse_and_verify_certificates": {
+      "Major": 0,
+      "Minor": 31,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.x509.parse_and_verify_certificates_with_options": {
+      "Major": 0,
+      "Minor": 63,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.x509.parse_certificate_request": {
+      "Major": 0,
+      "Minor": 21,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.x509.parse_certificates": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.x509.parse_keypair": {
+      "Major": 0,
+      "Minor": 53,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "crypto.x509.parse_rsa_private_key": {
+      "Major": 0,
+      "Minor": 33,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "div": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "endswith": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "eq": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "equal": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "floor": {
+      "Major": 0,
+      "Minor": 26,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "format_int": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "glob.match": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "glob.quote_meta": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "graph.reachable": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "graph.reachable_paths": {
+      "Major": 0,
+      "Minor": 37,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "graphql.is_valid": {
+      "Major": 0,
+      "Minor": 41,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "graphql.parse": {
+      "Major": 0,
+      "Minor": 41,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "graphql.parse_and_verify": {
+      "Major": 0,
+      "Minor": 41,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "graphql.parse_query": {
+      "Major": 0,
+      "Minor": 41,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "graphql.parse_schema": {
+      "Major": 0,
+      "Minor": 41,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "graphql.schema_is_valid": {
+      "Major": 0,
+      "Minor": 46,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "gt": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "gte": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "hex.decode": {
+      "Major": 0,
+      "Minor": 25,
+      "Patch": 0,
+      "PreRelease": "rc2",
+      "Metadata": ""
+    },
+    "hex.encode": {
+      "Major": 0,
+      "Minor": 25,
+      "Patch": 0,
+      "PreRelease": "rc2",
+      "Metadata": ""
+    },
+    "http.send": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "indexof": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "indexof_n": {
+      "Major": 0,
+      "Minor": 37,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "internal.member_2": {
+      "Major": 0,
+      "Minor": 34,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "internal.member_3": {
+      "Major": 0,
+      "Minor": 34,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "internal.print": {
+      "Major": 0,
+      "Minor": 34,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "internal.test_case": {
+      "Major": 1,
+      "Minor": 2,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "intersection": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.decode": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.decode_verify": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.encode_sign": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.encode_sign_raw": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_es256": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_es384": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_es512": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_hs256": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_hs384": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_hs512": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_ps256": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_ps384": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_ps512": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_rs256": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_rs384": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "io.jwt.verify_rs512": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "is_array": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "is_boolean": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "is_null": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "is_number": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "is_object": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "is_set": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "is_string": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.filter": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.is_valid": {
+      "Major": 0,
+      "Minor": 25,
+      "Patch": 0,
+      "PreRelease": "rc1",
+      "Metadata": ""
+    },
+    "json.marshal": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.marshal_with_options": {
+      "Major": 0,
+      "Minor": 64,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.match_schema": {
+      "Major": 0,
+      "Minor": 50,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.patch": {
+      "Major": 0,
+      "Minor": 25,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.remove": {
+      "Major": 0,
+      "Minor": 18,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.unmarshal": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "json.verify_schema": {
+      "Major": 0,
+      "Minor": 50,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "lower": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "lt": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "lte": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "max": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "min": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "minus": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "mul": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "neq": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "net.cidr_contains": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "net.cidr_contains_matches": {
+      "Major": 0,
+      "Minor": 19,
+      "Patch": 0,
+      "PreRelease": "rc1",
+      "Metadata": ""
+    },
+    "net.cidr_expand": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "net.cidr_intersects": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "net.cidr_is_valid": {
+      "Major": 0,
+      "Minor": 46,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "net.cidr_merge": {
+      "Major": 0,
+      "Minor": 24,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "net.cidr_overlap": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "net.lookup_ip_addr": {
+      "Major": 0,
+      "Minor": 35,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "numbers.range": {
+      "Major": 0,
+      "Minor": 22,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "numbers.range_step": {
+      "Major": 0,
+      "Minor": 56,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "object.filter": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 2,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "object.get": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "object.keys": {
+      "Major": 0,
+      "Minor": 47,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "object.remove": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 2,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "object.subset": {
+      "Major": 0,
+      "Minor": 42,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "object.union": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 2,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "object.union_n": {
+      "Major": 0,
+      "Minor": 37,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "opa.runtime": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "or": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "plus": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "print": {
+      "Major": 0,
+      "Minor": 34,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "product": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "providers.aws.sign_req": {
+      "Major": 0,
+      "Minor": 47,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "rand.intn": {
+      "Major": 0,
+      "Minor": 31,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "re_match": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "regex.find_all_string_submatch_n": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "regex.find_n": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "regex.globs_match": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "regex.is_valid": {
+      "Major": 0,
+      "Minor": 23,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "regex.match": {
+      "Major": 0,
+      "Minor": 23,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "regex.replace": {
+      "Major": 0,
+      "Minor": 45,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "regex.split": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "regex.template_match": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "rego.metadata.chain": {
+      "Major": 0,
+      "Minor": 40,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "rego.metadata.rule": {
+      "Major": 0,
+      "Minor": 40,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "rego.parse_module": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "rem": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "replace": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "round": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "semver.compare": {
+      "Major": 0,
+      "Minor": 22,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "semver.is_valid": {
+      "Major": 0,
+      "Minor": 22,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "set_diff": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "sort": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "split": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "sprintf": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "startswith": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "strings.any_prefix_match": {
+      "Major": 0,
+      "Minor": 44,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "strings.any_suffix_match": {
+      "Major": 0,
+      "Minor": 44,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "strings.count": {
+      "Major": 0,
+      "Minor": 67,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "strings.render_template": {
+      "Major": 0,
+      "Minor": 59,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "strings.replace_n": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "strings.reverse": {
+      "Major": 0,
+      "Minor": 36,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "substring": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "sum": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.add_date": {
+      "Major": 0,
+      "Minor": 19,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.clock": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.date": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.diff": {
+      "Major": 0,
+      "Minor": 28,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.format": {
+      "Major": 0,
+      "Minor": 48,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.now_ns": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.parse_duration_ns": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.parse_ns": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.parse_rfc3339_ns": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "time.weekday": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "to_number": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "trace": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "trim": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "trim_left": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "trim_prefix": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "trim_right": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "trim_space": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "trim_suffix": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "type_name": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "union": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "units.parse": {
+      "Major": 0,
+      "Minor": 41,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "units.parse_bytes": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "upper": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "urlquery.decode": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "urlquery.decode_object": {
+      "Major": 0,
+      "Minor": 24,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "urlquery.encode": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "urlquery.encode_object": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "uuid.parse": {
+      "Major": 0,
+      "Minor": 57,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "uuid.rfc4122": {
+      "Major": 0,
+      "Minor": 20,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "walk": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "yaml.is_valid": {
+      "Major": 0,
+      "Minor": 25,
+      "Patch": 0,
+      "PreRelease": "rc1",
+      "Metadata": ""
+    },
+    "yaml.marshal": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "yaml.unmarshal": {
+      "Major": 0,
+      "Minor": 17,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    }
+  },
+  "features": {
+    "rego_v1": {
+      "Major": 1,
+      "Minor": 0,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "rego_v1_import": {
+      "Major": 0,
+      "Minor": 59,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "rule_head_ref_string_prefixes": {
+      "Major": 0,
+      "Minor": 46,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "rule_head_refs": {
+      "Major": 0,
+      "Minor": 59,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    }
+  },
+  "keywords": {
+    "contains": {
+      "Major": 0,
+      "Minor": 42,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "every": {
+      "Major": 0,
+      "Minor": 38,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "if": {
+      "Major": 0,
+      "Minor": 42,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    },
+    "in": {
+      "Major": 0,
+      "Minor": 34,
+      "Patch": 0,
+      "PreRelease": "",
+      "Metadata": ""
+    }
+  }
+}

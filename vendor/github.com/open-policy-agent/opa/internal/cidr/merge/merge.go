@@ -114,7 +114,7 @@ func GetAddressRange(ipNet net.IPNet) (net.IP, net.IP) {
 	copy(lastIPMask, ipNet.Mask)
 	for i := range lastIPMask {
 		lastIPMask[len(lastIPMask)-i-1] = ^lastIPMask[len(lastIPMask)-i-1]
-		lastIP[net.IPv6len-i-1] = lastIP[net.IPv6len-i-1] | lastIPMask[len(lastIPMask)-i-1]
+		lastIP[net.IPv6len-i-1] |= lastIPMask[len(lastIPMask)-i-1]
 	}
 
 	return firstIP, lastIP

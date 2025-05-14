@@ -57,7 +57,7 @@ func TruncateFilePaths(maxIdealWidth, maxWidth int, path ...string) (map[string]
 		}
 
 		// Drop the overall length down to match our substitution
-		longestLocation = longestLocation - (len(lcs) - 3)
+		longestLocation -= (len(lcs) - 3)
 	}
 
 	return result, longestLocation

@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/internal/compiler/wasm/opa"
 	"github.com/open-policy-agent/opa/internal/debug"
 	"github.com/open-policy-agent/opa/internal/wasm/encoding"
@@ -20,8 +19,9 @@ import (
 	"github.com/open-policy-agent/opa/internal/wasm/module"
 	"github.com/open-policy-agent/opa/internal/wasm/types"
 	"github.com/open-policy-agent/opa/internal/wasm/util"
-	"github.com/open-policy-agent/opa/ir"
-	opatypes "github.com/open-policy-agent/opa/types"
+	"github.com/open-policy-agent/opa/v1/ast"
+	"github.com/open-policy-agent/opa/v1/ir"
+	opatypes "github.com/open-policy-agent/opa/v1/types"
 )
 
 // Record Wasm ABI version in exported global variable
@@ -340,7 +340,7 @@ func (c *Compiler) initModule() error {
 		// two times. But let's deal with that when it happens.
 		if _, ok := c.funcs[name]; ok { // already seen
 			c.debug.Printf("function name duplicate: %s (%d)", name, fn.Index)
-			name = name + ".1"
+			name += ".1"
 		}
 		c.funcs[name] = fn.Index
 	}
@@ -348,7 +348,7 @@ func (c *Compiler) initModule() error {
 	for _, fn := range c.policy.Funcs.Funcs {
 
 		params := make([]types.ValueType, len(fn.Params))
-		for i := 0; i < len(params); i++ {
+		for i := range params {
 			params[i] = types.I32
 		}
 
@@ -827,7 +827,7 @@ func (c *Compiler) compileFunc(fn *ir.Func) error {
 	memoize := len(fn.Params) == 2
 
 	if len(fn.Params) == 0 {
-		return fmt.Errorf("illegal function: zero args")
+		return errors.New("illegal function: zero args")
 	}
 
 	c.nextLocal = 0
@@ -996,12 +996,16 @@ func (c *Compiler) compileBlock(block *ir.Block) ([]instruction.Instruction, err
 	for _, stmt := range block.Stmts {
 		switch stmt := stmt.(type) {
 		case *ir.ResultSetAddStmt:
-			instrs = append(instrs, instruction.GetLocal{Index: c.lrs})
-			instrs = append(instrs, instruction.GetLocal{Index: c.local(stmt.Value)})
-			instrs = append(instrs, instruction.Call{Index: c.function(opaSetAdd)})
+			instrs = append(instrs,
+				instruction.GetLocal{Index: c.lrs},
+				instruction.GetLocal{Index: c.local(stmt.Value)},
+				instruction.Call{Index: c.function(opaSetAdd)},
+			)
 		case *ir.ReturnLocalStmt:
-			instrs = append(instrs, instruction.GetLocal{Index: c.local(stmt.Source)})
-			instrs = append(instrs, instruction.Return{})
+			instrs = append(instrs,
+				instruction.GetLocal{Index: c.local(stmt.Source)},
+				instruction.Return{},
+			)
 		case *ir.BlockStmt:
 			for i := range stmt.Blocks {
 				block, err := c.compileBlock(stmt.Blocks[i])
@@ -1029,8 +1033,10 @@ func (c *Compiler) compileBlock(block *ir.Block) ([]instruction.Instruction, err
 				return instrs, err
 			}
 		case *ir.AssignVarStmt:
-			instrs = append(instrs, c.instrRead(stmt.Source))
-			instrs = append(instrs, instruction.SetLocal{Index: c.local(stmt.Target)})
+			instrs = append(instrs,
+				c.instrRead(stmt.Source),
+				instruction.SetLocal{Index: c.local(stmt.Target)},
+			)
 		case *ir.AssignVarOnceStmt:
 			instrs = append(instrs, instruction.Block{
 				Instrs: []instruction.Instruction{
@@ -1360,7 +1366,7 @@ func (c *Compiler) compileUpsert(local ir.Local, path []int, value ir.Operand, _
 	// Initialize the locals that specify the path of the upsert operation.
 	lpath := make(map[int]uint32, len(path))
 
-	for i := 0; i < len(path); i++ {
+	for i := range path {
 		lpath[i] = c.genLocal()
 		instrs = append(instrs, instruction.I32Const{Value: c.opaStringAddr(path[i])})
 		instrs = append(instrs, instruction.SetLocal{Index: lpath[i]})
@@ -1369,10 +1375,10 @@ func (c *Compiler) compileUpsert(local ir.Local, path []int, value ir.Operand, _
 	// Generate a block that traverses the path of the upsert operation,
 	// shallowing copying values at each step as needed. Stop before the final
 	// segment that will only be inserted.
-	var inner []instruction.Instruction
+	inner := make([]instruction.Instruction, 0, len(path)*21+1)
 	ltemp := c.genLocal()
 
-	for i := 0; i < len(path)-1; i++ {
+	for i := range len(path) - 1 {
 
 		// Lookup the next part of the path.
 		inner = append(inner, instruction.GetLocal{Index: lcopy})
@@ -1408,10 +1414,10 @@ func (c *Compiler) compileUpsert(local ir.Local, path []int, value ir.Operand, _
 	inner = append(inner, instruction.Br{Index: uint32(len(path) - 1)})
 
 	// Generate blocks that handle missing nodes during traversal.
-	var block []instruction.Instruction
+	block := make([]instruction.Instruction, 0, len(path)*10)
 	lval := c.genLocal()
 
-	for i := 0; i < len(path)-1; i++ {
+	for i := range len(path) - 1 {
 		block = append(block, instruction.Block{Instrs: inner})
 		block = append(block, instruction.Call{Index: c.function(opaObject)})
 		block = append(block, instruction.SetLocal{Index: lval})
@@ -1535,8 +1541,7 @@ func (c *Compiler) compileExternalCall(stmt *ir.CallStmt, ef externalFunc, resul
 	}
 
 	instrs := *result
-	instrs = append(instrs, instruction.I32Const{Value: ef.ID})
-	instrs = append(instrs, instruction.I32Const{Value: 0}) // unused context parameter
+	instrs = append(instrs, instruction.I32Const{Value: ef.ID}, instruction.I32Const{Value: 0}) // unused context parameter
 
 	for _, arg := range stmt.Args {
 		instrs = append(instrs, c.instrRead(arg))
@@ -1545,9 +1550,11 @@ func (c *Compiler) compileExternalCall(stmt *ir.CallStmt, ef externalFunc, resul
 	instrs = append(instrs, instruction.Call{Index: c.function(builtinDispatchers[len(stmt.Args)])})
 
 	if ef.Decl.Result() != nil {
-		instrs = append(instrs, instruction.TeeLocal{Index: c.local(stmt.Result)})
-		instrs = append(instrs, instruction.I32Eqz{})
-		instrs = append(instrs, instruction.BrIf{Index: 0})
+		instrs = append(instrs,
+			instruction.TeeLocal{Index: c.local(stmt.Result)},
+			instruction.I32Eqz{},
+			instruction.BrIf{Index: 0},
+		)
 	} else {
 		instrs = append(instrs, instruction.Drop{})
 	}
@@ -1678,7 +1685,7 @@ func (c *Compiler) genLocal() uint32 {
 func (c *Compiler) function(name string) uint32 {
 	fidx, ok := c.funcs[name]
 	if !ok {
-		panic(fmt.Sprintf("function not found: %s", name))
+		panic("function not found: " + name)
 	}
 	return fidx
 }

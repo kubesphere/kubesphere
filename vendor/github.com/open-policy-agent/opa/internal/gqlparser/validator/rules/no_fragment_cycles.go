@@ -51,7 +51,7 @@ func init() {
 						}
 						var via string
 						if len(fragmentNames) != 0 {
-							via = fmt.Sprintf(" via %s", strings.Join(fragmentNames, ", "))
+							via = " via " + strings.Join(fragmentNames, ", ")
 						}
 						addError(
 							Message(`Cannot spread fragment "%s" within itself%s.`, spreadName, via),

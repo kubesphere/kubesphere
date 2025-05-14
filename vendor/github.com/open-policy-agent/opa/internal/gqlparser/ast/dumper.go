@@ -40,10 +40,10 @@ func (d *dumper) dump(v reflect.Value) {
 			d.WriteString("false")
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		d.WriteString(fmt.Sprintf("%d", v.Int()))
+		d.WriteString(strconv.FormatInt(v.Int(), 10))
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		d.WriteString(fmt.Sprintf("%d", v.Uint()))
+		d.WriteString(strconv.FormatUint(v.Uint(), 10))
 
 	case reflect.Float32, reflect.Float64:
 		d.WriteString(fmt.Sprintf("%.2f", v.Float()))
@@ -88,7 +88,7 @@ func typeName(t reflect.Type) string {
 func (d *dumper) dumpArray(v reflect.Value) {
 	d.WriteString("[" + typeName(v.Type().Elem()) + "]")
 
-	for i := 0; i < v.Len(); i++ {
+	for i := range v.Len() {
 		d.nl()
 		d.WriteString("- ")
 		d.indent++
@@ -102,7 +102,7 @@ func (d *dumper) dumpStruct(v reflect.Value) {
 	d.indent++
 
 	typ := v.Type()
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		f := v.Field(i)
 		if typ.Field(i).Tag.Get("dump") == "-" {
 			continue
@@ -132,13 +132,13 @@ func isZero(v reflect.Value) bool {
 			return true
 		}
 		z := true
-		for i := 0; i < v.Len(); i++ {
+		for i := range v.Len() {
 			z = z && isZero(v.Index(i))
 		}
 		return z
 	case reflect.Struct:
 		z := true
-		for i := 0; i < v.NumField(); i++ {
+		for i := range v.NumField() {
 			z = z && isZero(v.Field(i))
 		}
 		return z

@@ -21,7 +21,7 @@ type Field struct {
 	Arguments    ArgumentList
 	Directives   DirectiveList
 	SelectionSet SelectionSet
-	Position     *Position `dump:"-"`
+	Position     *Position `dump:"-" json:"-"`
 
 	// Require validation
 	Definition       *FieldDefinition
@@ -31,7 +31,7 @@ type Field struct {
 type Argument struct {
 	Name     string
 	Value    *Value
-	Position *Position `dump:"-"`
+	Position *Position `dump:"-" json:"-"`
 }
 
 func (s *Field) ArgumentMap(vars map[string]interface{}) map[string]interface{} {

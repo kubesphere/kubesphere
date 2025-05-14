@@ -114,7 +114,7 @@ func parse(jwkSrc string) (*Set, error) {
 
 // ParseBytes parses JWK from the incoming byte buffer.
 func ParseBytes(buf []byte) (*Set, error) {
-	return parse(string(buf[:]))
+	return parse(string(buf))
 }
 
 // ParseString parses JWK from the incoming string.

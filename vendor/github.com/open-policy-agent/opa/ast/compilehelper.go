@@ -4,41 +4,29 @@
 
 package ast
 
+import v1 "github.com/open-policy-agent/opa/v1/ast"
+
 // CompileModules takes a set of Rego modules represented as strings and
 // compiles them for evaluation. The keys of the map are used as filenames.
 func CompileModules(modules map[string]string) (*Compiler, error) {
-	return CompileModulesWithOpt(modules, CompileOpts{})
+	return CompileModulesWithOpt(modules, CompileOpts{
+		ParserOptions: ParserOptions{
+			RegoVersion: DefaultRegoVersion,
+		},
+	})
 }
 
 // CompileOpts defines a set of options for the compiler.
-type CompileOpts struct {
-	EnablePrintStatements bool
-	ParserOptions         ParserOptions
-}
+type CompileOpts = v1.CompileOpts
 
 // CompileModulesWithOpt takes a set of Rego modules represented as strings and
 // compiles them for evaluation. The keys of the map are used as filenames.
 func CompileModulesWithOpt(modules map[string]string, opts CompileOpts) (*Compiler, error) {
-
-	parsed := make(map[string]*Module, len(modules))
-
-	for f, module := range modules {
-		var pm *Module
-		var err error
-		if pm, err = ParseModuleWithOpts(f, module, opts.ParserOptions); err != nil {
-			return nil, err
-		}
-		parsed[f] = pm
+	if opts.ParserOptions.RegoVersion == RegoUndefined {
+		opts.ParserOptions.RegoVersion = DefaultRegoVersion
 	}
 
-	compiler := NewCompiler().WithEnablePrintStatements(opts.EnablePrintStatements)
-	compiler.Compile(parsed)
-
-	if compiler.Failed() {
-		return nil, compiler.Errors
-	}
-
-	return compiler, nil
+	return v1.CompileModulesWithOpt(modules, opts)
 }
 
 // MustCompileModules compiles a set of Rego modules represented as strings. If

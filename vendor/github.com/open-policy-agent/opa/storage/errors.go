@@ -5,118 +5,69 @@
 package storage
 
 import (
-	"fmt"
+	v1 "github.com/open-policy-agent/opa/v1/storage"
 )
 
 const (
 	// InternalErr indicates an unknown, internal error has occurred.
-	InternalErr = "storage_internal_error"
+	InternalErr = v1.InternalErr
 
 	// NotFoundErr indicates the path used in the storage operation does not
 	// locate a document.
-	NotFoundErr = "storage_not_found_error"
+	NotFoundErr = v1.NotFoundErr
 
 	// WriteConflictErr indicates a write on the path enocuntered a conflicting
 	// value inside the transaction.
-	WriteConflictErr = "storage_write_conflict_error"
+	WriteConflictErr = v1.WriteConflictErr
 
 	// InvalidPatchErr indicates an invalid patch/write was issued. The patch
 	// was rejected.
-	InvalidPatchErr = "storage_invalid_patch_error"
+	InvalidPatchErr = v1.InvalidPatchErr
 
 	// InvalidTransactionErr indicates an invalid operation was performed
 	// inside of the transaction.
-	InvalidTransactionErr = "storage_invalid_txn_error"
+	InvalidTransactionErr = v1.InvalidTransactionErr
 
 	// TriggersNotSupportedErr indicates the caller attempted to register a
 	// trigger against a store that does not support them.
-	TriggersNotSupportedErr = "storage_triggers_not_supported_error"
+	TriggersNotSupportedErr = v1.TriggersNotSupportedErr
 
 	// WritesNotSupportedErr indicate the caller attempted to perform a write
 	// against a store that does not support them.
-	WritesNotSupportedErr = "storage_writes_not_supported_error"
+	WritesNotSupportedErr = v1.WritesNotSupportedErr
 
 	// PolicyNotSupportedErr indicate the caller attempted to perform a policy
 	// management operation against a store that does not support them.
-	PolicyNotSupportedErr = "storage_policy_not_supported_error"
+	PolicyNotSupportedErr = v1.PolicyNotSupportedErr
 )
 
 // Error is the error type returned by the storage layer.
-type Error struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
-func (err *Error) Error() string {
-	if err.Message != "" {
-		return fmt.Sprintf("%v: %v", err.Code, err.Message)
-	}
-	return err.Code
-}
+type Error = v1.Error
 
 // IsNotFound returns true if this error is a NotFoundErr.
 func IsNotFound(err error) bool {
-	switch err := err.(type) {
-	case *Error:
-		return err.Code == NotFoundErr
-	}
-	return false
+	return v1.IsNotFound(err)
 }
 
 // IsWriteConflictError returns true if this error a WriteConflictErr.
 func IsWriteConflictError(err error) bool {
-	switch err := err.(type) {
-	case *Error:
-		return err.Code == WriteConflictErr
-	}
-	return false
+	return v1.IsWriteConflictError(err)
 }
 
 // IsInvalidPatch returns true if this error is a InvalidPatchErr.
 func IsInvalidPatch(err error) bool {
-	switch err := err.(type) {
-	case *Error:
-		return err.Code == InvalidPatchErr
-	}
-	return false
+	return v1.IsInvalidPatch(err)
 }
 
 // IsInvalidTransaction returns true if this error is a InvalidTransactionErr.
 func IsInvalidTransaction(err error) bool {
-	switch err := err.(type) {
-	case *Error:
-		return err.Code == InvalidTransactionErr
-	}
-	return false
+	return v1.IsInvalidTransaction(err)
 }
 
 // IsIndexingNotSupported is a stub for backwards-compatibility.
 //
 // Deprecated: We no longer return IndexingNotSupported errors, so it is
 // unnecessary to check for them.
-func IsIndexingNotSupported(error) bool { return false }
-
-func writeConflictError(path Path) *Error {
-	return &Error{
-		Code:    WriteConflictErr,
-		Message: path.String(),
-	}
-}
-
-func triggersNotSupportedError() *Error {
-	return &Error{
-		Code: TriggersNotSupportedErr,
-	}
-}
-
-func writesNotSupportedError() *Error {
-	return &Error{
-		Code: WritesNotSupportedErr,
-	}
-}
-
-func policyNotSupportedError() *Error {
-	return &Error{
-		Code: PolicyNotSupportedErr,
-	}
+func IsIndexingNotSupported(err error) bool {
+	return v1.IsIndexingNotSupported(err)
 }

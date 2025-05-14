@@ -2,6 +2,7 @@ package jwk
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -53,12 +54,12 @@ func (keyOperationList *KeyOperationList) UnmarshalJSON(data []byte) error {
 	var tempKeyOperationList []string
 	err := json.Unmarshal(data, &tempKeyOperationList)
 	if err != nil {
-		return fmt.Errorf("invalid key operation")
+		return errors.New("invalid key operation")
 	}
 	for _, value := range tempKeyOperationList {
 		_, ok := keyOps[value]
 		if !ok {
-			return fmt.Errorf("unknown key operation")
+			return errors.New("unknown key operation")
 		}
 		*keyOperationList = append(*keyOperationList, KeyOperation(value))
 	}

@@ -25,10 +25,6 @@
 
 package gojsonschema
 
-import (
-	"fmt"
-)
-
 type schemaReferencePool struct {
 	documents map[string]*SubSchema
 }
@@ -44,7 +40,7 @@ func newSchemaReferencePool() *schemaReferencePool {
 func (p *schemaReferencePool) Get(ref string) (r *SubSchema, o bool) {
 
 	if internalLogEnabled {
-		internalLog(fmt.Sprintf("Schema Reference ( %s )", ref))
+		internalLog("Schema Reference ( %s )", ref)
 	}
 
 	if sch, ok := p.documents[ref]; ok {
@@ -60,7 +56,7 @@ func (p *schemaReferencePool) Get(ref string) (r *SubSchema, o bool) {
 func (p *schemaReferencePool) Add(ref string, sch *SubSchema) {
 
 	if internalLogEnabled {
-		internalLog(fmt.Sprintf("Add Schema Reference %s to pool", ref))
+		internalLog("Add Schema Reference %s to pool", ref)
 	}
 	if _, ok := p.documents[ref]; !ok {
 		p.documents[ref] = sch

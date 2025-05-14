@@ -5,9 +5,10 @@
 package future
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/open-policy-agent/opa/ast"
+	"github.com/open-policy-agent/opa/v1/ast"
 )
 
 // ParserOptionsFromFutureImports transforms a slice of `ast.Import`s into the
@@ -33,7 +34,7 @@ func ParserOptionsFromFutureImports(imports []*ast.Import) (ast.ParserOptions, e
 		}
 		if len(path) == 3 {
 			if imp.Alias != "" {
-				return popts, fmt.Errorf("alias not supported")
+				return popts, errors.New("alias not supported")
 			}
 			popts.FutureKeywords = append(popts.FutureKeywords, string(path[2].Value.(ast.String)))
 		}
