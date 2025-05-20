@@ -112,7 +112,7 @@ func (s *apiService) handleProxyRequest(apiService extensionsv1alpha1.APIService
 	}
 
 	user, _ := request.UserFrom(req.Context())
-	proxyRoundTripper := transport.NewAuthProxyRoundTripper(user.GetName(), user.GetGroups(), user.GetExtra(), tr)
+	proxyRoundTripper := transport.NewAuthProxyRoundTripper(user.GetName(), user.GetUID(), user.GetGroups(), user.GetExtra(), tr)
 
 	upgrade := httpstream.IsUpgradeRequest(req)
 	handler := proxy.NewUpgradeAwareHandler(location, proxyRoundTripper, false, upgrade, &responder{})

@@ -25,17 +25,13 @@ KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 export KUBE_ROOT
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
-# Ensure that we find the binaries we build before anything else.
-export GOBIN="${KUBE_OUTPUT_BINPATH}"
-PATH="${GOBIN}:${PATH}"
+kube::golang::setup_env
 
-# Install tools we need
 if ! command -v misspell ; then
-  # As GOFLAGS may equal to `-mod=vendor`, we must download the modules to vendor or go install will fail.
-  GO111MODULE=on go install -mod=mod github.com/client9/misspell/cmd/misspell@v0.3.4
+  # Install misspell
+  echo 'installing misspell'
+  go install -mod=mod github.com/golangci/misspell/cmd/misspell@v0.7.0
 fi
-
-cd "${KUBE_ROOT}"
 
 # Spell checking
 # All the skipping files are defined in hack/.spelling_failures

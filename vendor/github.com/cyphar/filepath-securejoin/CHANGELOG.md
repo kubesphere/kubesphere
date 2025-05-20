@@ -6,6 +6,72 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] ##
 
+## [0.3.6] - 2024-12-17 ##
+
+### Compatibility ###
+- The minimum Go version requirement for `filepath-securejoin` is now Go 1.18
+  (we use generics internally).
+
+  For reference, `filepath-securejoin@v0.3.0` somewhat-arbitrarily bumped the
+  Go version requirement to 1.21.
+
+  While we did make some use of Go 1.21 stdlib features (and in principle Go
+  versions <= 1.21 are no longer even supported by upstream anymore), some
+  downstreams have complained that the version bump has meant that they have to
+  do workarounds when backporting fixes that use the new `filepath-securejoin`
+  API onto old branches. This is not an ideal situation, but since using this
+  library is probably better for most downstreams than a hand-rolled
+  workaround, we now have compatibility shims that allow us to build on older
+  Go versions.
+- Lower minimum version requirement for `golang.org/x/sys` to `v0.18.0` (we
+  need the wrappers for `fsconfig(2)`), which should also make backporting
+  patches to older branches easier.
+
+## [0.3.5] - 2024-12-06 ##
+
+### Fixed ###
+- `MkdirAll` will now no longer return an `EEXIST` error if two racing
+  processes are creating the same directory. We will still verify that the path
+  is a directory, but this will avoid spurious errors when multiple threads or
+  programs are trying to `MkdirAll` the same path. opencontainers/runc#4543
+
+## [0.3.4] - 2024-10-09 ##
+
+### Fixed ###
+- Previously, some testing mocks we had resulted in us doing `import "testing"`
+  in non-`_test.go` code, which made some downstreams like Kubernetes unhappy.
+  This has been fixed. (#32)
+
+## [0.3.3] - 2024-09-30 ##
+
+### Fixed ###
+- The mode and owner verification logic in `MkdirAll` has been removed. This
+  was originally intended to protect against some theoretical attacks but upon
+  further consideration these protections don't actually buy us anything and
+  they were causing spurious errors with more complicated filesystem setups.
+- The "is the created directory empty" logic in `MkdirAll` has also been
+  removed. This was not causing us issues yet, but some pseudofilesystems (such
+  as `cgroup`) create non-empty directories and so this logic would've been
+  wrong for such cases.
+
+## [0.3.2] - 2024-09-13 ##
+
+### Changed ###
+- Passing the `S_ISUID` or `S_ISGID` modes to `MkdirAllInRoot` will now return
+  an explicit error saying that those bits are ignored by `mkdirat(2)`. In the
+  past a different error was returned, but since the silent ignoring behaviour
+  is codified in the man pages a more explicit error seems apt. While silently
+  ignoring these bits would be the most compatible option, it could lead to
+  users thinking their code sets these bits when it doesn't. Programs that need
+  to deal with compatibility can mask the bits themselves. (#23, #25)
+
+### Fixed ###
+- If a directory has `S_ISGID` set, then all child directories will have
+  `S_ISGID` set when created and a different gid will be used for any inode
+  created under the directory. Previously, the "expected owner and mode"
+  validation in `securejoin.MkdirAll` did not correctly handle this. We now
+  correctly handle this case. (#24, #25)
+
 ## [0.3.1] - 2024-07-23 ##
 
 ### Changed ###
@@ -127,7 +193,12 @@ This is our first release of `github.com/cyphar/filepath-securejoin`,
 containing a full implementation with a coverage of 93.5% (the only missing
 cases are the error cases, which are hard to mocktest at the moment).
 
-[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.5...v0.3.6
+[0.3.5]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.4...v0.3.5
+[0.3.4]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.3...v0.3.4
+[0.3.3]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/cyphar/filepath-securejoin/compare/v0.2.4...v0.2.5

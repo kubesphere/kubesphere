@@ -2,18 +2,6 @@
 CRD_OPTIONS ?= "crd:allowDangerousTypes=true"
 MANIFESTS="cluster/v1alpha1 iam/... quota/v1alpha2 storage/v1alpha1 tenant/... extensions/v1alpha1 core/v1alpha1 gateway/v1alpha2 application/v2"
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-
-OUTPUT_DIR=bin
-ifeq (${GOFLAGS},)
-	# go build with vendor by default.
-	export GOFLAGS=-mod=vendor
-endif
 define ALL_HELP_INFO
 # Build code.
 #
@@ -43,14 +31,6 @@ help:
 .PHONY: binary
 # Build all of binary
 binary: | ks-apiserver ks-controller-manager; $(info $(M)...Build all of binary.) @ ## Build all of binary.
-
-# Build ks-apiserver binary
-ks-apiserver: ; $(info $(M)...Begin to build ks-apiserver binary.)  @ ## Build ks-apiserver.
-	hack/gobuild.sh cmd/ks-apiserver;
-
-# Build ks-controller-manager binary
-ks-controller-manager: ; $(info $(M)...Begin to build ks-controller-manager binary.)  @ ## Build ks-controller-manager.
-	hack/gobuild.sh cmd/controller-manager
 
 # Run all verify scripts hack/verify-*.sh
 verify-all: ; $(info $(M)...Begin to run all verify scripts hack/verify-*.sh.)  @ ## Run all verify scripts hack/verify-*.sh.
@@ -121,13 +101,11 @@ helm-uninstall: ; $(info $(M)...Begin to helm-uninstall.)  @ ## Helm-uninstall.
 
 # Run tests
 test: vet test-env ;$(info $(M)...Begin to run tests.)  @ ## Run tests.
-	go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
-	cd staging/src/kubesphere.io/api ; GOFLAGS="" go test ./...
-	cd staging/src/kubesphere.io/client-go ; GOFLAGS="" go test ./...
+	hack/test-go.sh
 
 .PHONY: test-env
 test-env: ;$(info $(M)...Begin to setup test env) @ ## Download unit test libraries e.g. kube-apiserver etcd.
-	@hack/setup-envtest.sh
+	hack/setup-envtest.sh
 
 .PHONY: clean
 clean: ;$(info $(M)...Begin to clean.)  @ ## Clean.
@@ -138,5 +116,34 @@ clean: ;$(info $(M)...Begin to clean.)  @ ## Clean.
 update-licenses: ;$(info $(M)...Begin to update licenses.)
 	@hack/update-licenses.sh
 
-golint:
-	@hack/verify-golangci-lint.sh
+define LINT_HELP_INFO
+# Run golangci-lint
+#
+# Example:
+#   make lint
+endef
+.PHONY: lint
+ifeq ($(PRINT_HELP),y)
+lint:
+	echo "$$LINT_HELP_INFO"
+else
+lint:
+	hack/verify-golangci-lint.sh
+endif
+
+define CMD_HELP_INFO
+# Add rules for all directories in cmd/
+#
+# Example:
+#   make ks-apiserver
+endef
+EXCLUDE_TARGET=OWNERS
+CMD_TARGET = $(filter-out %$(EXCLUDE_TARGET),$(notdir $(abspath $(wildcard cmd/*/))))
+.PHONY: $(CMD_TARGET)
+ifeq ($(PRINT_HELP),y)
+$(CMD_TARGET):
+	echo "$$CMD_HELP_INFO"
+else
+$(CMD_TARGET):
+	hack/make-rules/build.sh cmd/$@
+endif

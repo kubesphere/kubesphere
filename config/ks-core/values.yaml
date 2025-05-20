@@ -220,7 +220,7 @@ controller:
   ## @param command Override default container command (useful when using custom images)
   ##
   command:
-    - controller-manager
+    - ks-controller-manager
     - --logtostderr=true
     - --leader-elect=true
     - --controllers=*

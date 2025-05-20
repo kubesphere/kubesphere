@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 
-# This script is a modified version of Kubernetes
+# Copyright 2019 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 set -o errexit
 set -o nounset
@@ -12,7 +24,12 @@ cd "$(pwd -P)"
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
-# Explicitly opt into go modules, even though we're inside a GOPATH directory
+# Get all the default Go environment.
+kube::golang::setup_env
+
+# Turn off workspaces until we are ready for them later
+export GOWORK=off
+# Explicitly opt into go modules
 export GO111MODULE=on
 # Explicitly set GOFLAGS to ignore vendor, since GOFLAGS=-mod=vendor breaks dependency resolution while rebuilding vendor
 export GOFLAGS=-mod=mod
@@ -25,64 +42,29 @@ if [[ "${GOPROXY:-}" == "off" ]]; then
   exit 1
 fi
 
-kube::golang::verify_go_version
 kube::util::require-jq
 
 TMP_DIR="${TMP_DIR:-$(mktemp -d /tmp/update-vendor.XXXX)}"
 LOG_FILE="${LOG_FILE:-${TMP_DIR}/update-vendor.log}"
 kube::log::status "logfile at ${LOG_FILE}"
 
+# Set up some FDs for this script to use, while capturing everything else to
+# the log. NOTHING ELSE should write to $LOG_FILE directly.
+exec 11>&1            # Real stdout, use this explicitly
+exec 22>&2            # Real stderr, use this explicitly
+exec 1>"${LOG_FILE}"  # Automatic stdout
+exec 2>&1             # Automatic stderr
+set -x                # Trace this script to stderr
+go env                # For the log
+
 function finish {
   ret=$?
   if [[ ${ret} != 0 ]]; then
-    echo "An error has occurred. Please see more details in ${LOG_FILE}"
+    echo "An error has occurred. Please see more details in ${LOG_FILE}" >&22
   fi
   exit ${ret}
 }
 trap finish EXIT
-
-if [ -z "${BASH_XTRACEFD:-}" ]; then
-  exec 19> "${LOG_FILE}"
-  export BASH_XTRACEFD="19"
-  set -x
-fi
-
-# ensure_require_replace_directives_for_all_dependencies:
-# - ensures all existing 'require' directives have an associated 'replace' directive pinning a version
-# - adds explicit 'require' directives for all transitive dependencies
-# - adds explicit 'replace' directives for all require directives (existing 'replace' directives take precedence)
-function ensure_require_replace_directives_for_all_dependencies() {
-  local local_tmp_dir
-  local_tmp_dir=$(mktemp -d "${TMP_DIR}/pin_replace.XXXX")
-
-  # collect 'require' directives that actually specify a version
-  local require_filter='(.Version != null) and (.Version != "v0.0.0") and (.Version != "v0.0.0-00010101000000-000000000000")'
-  # collect 'replace' directives that unconditionally pin versions (old=new@version)
-  local replace_filter='(.Old.Version == null) and (.New.Version != null)'
-
-  # Capture local require/replace directives before running any go commands that can modify the go.mod file
-  local require_json="${local_tmp_dir}/require.json"
-  local replace_json="${local_tmp_dir}/replace.json"
-  go mod edit -json \
-      | jq -r ".Require // [] | sort | .[] | select(${require_filter})" \
-      > "${require_json}"
-  go mod edit -json \
-      | jq -r ".Replace // [] | sort | .[] | select(${replace_filter})" \
-      > "${replace_json}"
-
-  # Propagate root replace/require directives into staging modules, in case we are downgrading, so they don't bump the root required version back up
-  for repo in $(kube::util::list_staging_repos); do
-    pushd "staging/src/kubesphere.io/${repo}" >/dev/null 2>&1
-      jq -r '"-require \(.Path)@\(.Version)"' < "${require_json}" \
-          | xargs -L 100 go mod edit -fmt
-      jq -r '"-replace \(.Old.Path)=\(.New.Path)@\(.New.Version)"' < "${replace_json}" \
-          | xargs -L 100 go mod edit -fmt
-    popd >/dev/null 2>&1
-  done
-
-  # tidy to ensure require directives are added for indirect dependencies
-  go mod tidy
-}
 
 function print_go_mod_section() {
   local directive="$1"
@@ -160,197 +142,135 @@ function add_generated_comments() {
   go mod edit -fmt
 }
 
+function add_staging_replace_directives() {
+  local path_to_staging_kubesphere_io="$1"
+  # Prune
+  go mod edit -json \
+      | jq -r '.Require[]? | select(.Version == "v0.0.0")                 | "-droprequire \(.Path)"' \
+      | xargs -L 100 go mod edit -fmt
+  go mod edit -json \
+      | jq -r '.Replace[]? | select(.New.Path | startswith("'"${path_to_staging_kubesphere_io}"'")) | "-dropreplace \(.Old.Path)"' \
+      | xargs -L 100 go mod edit -fmt
+  # Re-add
+  kube::util::list_staging_repos \
+      | while read -r X; do echo "-require kubesphere.io/${X}@v0.0.0"; done \
+      | xargs -L 100 go mod edit -fmt
+  kube::util::list_staging_repos \
+      | while read -r X; do echo "-replace kubesphere.io/${X}=${path_to_staging_kubesphere_io}/${X}"; done \
+      | xargs -L 100 go mod edit -fmt
+}
 
-# Phase 1: ensure go.mod files for staging modules and main module
-
-for repo in $(kube::util::list_staging_repos); do
-  pushd "staging/src/kubesphere.io/${repo}" >/dev/null 2>&1
-    if [[ ! -f go.mod ]]; then
-      kube::log::status "go.mod: initialize ${repo}"
-      rm -f Godeps/Godeps.json # remove before initializing, staging Godeps are not authoritative
-      go mod init "kubesphere.io/${repo}"
-      go mod edit -fmt
-    fi
-  popd >/dev/null 2>&1
-done
-
-if [[ ! -f go.mod ]]; then
-  kube::log::status "go.mod: initialize kubesphere.io/kubesphere"
-  go mod init "kubesphere.io/kubesphere"
-  rm -f Godeps/Godeps.json # remove after initializing
+# === Capture go / godebug directives from root go.mod
+go_directive_value=$(grep '^go 1.' go.mod | awk '{print $2}' || true)
+if [[ -z "${go_directive_value}" ]]; then
+  kube::log::error "root go.mod must have 'go 1.x.y' directive" >&22 2>&1
+  exit 1
 fi
-
-
-# Phase 2: ensure staging repo require/replace directives
-
-kube::log::status "go.mod: update staging references"
-# Prune
-go mod edit -json \
-    | jq -r '.Require[]? | select(.Version == "v0.0.0")                 | "-droprequire \(.Path)"' \
-    | xargs -L 100 go mod edit -fmt
-go mod edit -json \
-    | jq -r '.Replace[]? | select(.New.Path | startswith("./staging/")) | "-dropreplace \(.Old.Path)"' \
-    | xargs -L 100 go mod edit -fmt
-# Readd
-kube::util::list_staging_repos \
-    | while read -r X; do echo "-require kubesphere.io/${X}@v0.0.0"; done \
-    | xargs -L 100 go mod edit -fmt
-kube::util::list_staging_repos \
-    | while read -r X; do echo "-replace kubesphere.io/${X}=./staging/src/kubesphere.io/${X}"; done \
-    | xargs -L 100 go mod edit -fmt
-
-
-# Phase 3: capture required (minimum) versions from all modules, and replaced (pinned) versions from the root module
-
-# pin referenced versions
-ensure_require_replace_directives_for_all_dependencies
-# resolves/expands references in the root go.mod (if needed)
-go mod tidy >>"${LOG_FILE}" 2>&1
-# pin expanded versions
-ensure_require_replace_directives_for_all_dependencies
-# group require/replace directives
-group_directives
-
-# Phase 4: copy root go.mod to staging dirs and rewrite
-
-kube::log::status "go.mod: propagate to staging modules"
-for repo in $(kube::util::list_staging_repos); do
-  pushd "staging/src/kubesphere.io/${repo}" >/dev/null 2>&1
-    echo "=== propagating to ${repo}" >> "${LOG_FILE}"
-    # copy root go.mod, changing module name
-    sed "s#module kubesphere.io/kubesphere#module kubesphere.io/${repo}#" \
-        < "${KUBE_ROOT}/go.mod" \
-        > "${KUBE_ROOT}/staging/src/kubesphere.io/${repo}/go.mod"
-    # remove `require` directives for staging components (will get re-added as needed by `go list`)
-    kube::util::list_staging_repos \
-        | while read -r X; do echo "-droprequire kubesphere.io/${X}"; done \
-        | xargs -L 100 go mod edit
-    # rewrite `replace` directives for staging components to point to peer directories
-    kube::util::list_staging_repos \
-        | while read -r X; do echo "-replace kubesphere.io/${X}=../${X}"; done \
-        | xargs -L 100 go mod edit
-  popd >/dev/null 2>&1
-done
-
-
-# Phase 5: sort and tidy staging components
-
-kube::log::status "go.mod: sorting staging modules"
-# tidy staging repos in reverse dependency order.
-# the content of dependencies' go.mod files affects what `go mod tidy` chooses to record in a go.mod file.
-tidy_unordered="${TMP_DIR}/tidy_unordered.txt"
-kube::util::list_staging_repos \
-    | xargs -I {} echo "kubesphere.io/{}" > "${tidy_unordered}"
-rm -f "${TMP_DIR}/tidy_deps.txt"
-# SC2094 checks that you do not read and write to the same file in a pipeline.
-# We do read from ${tidy_unordered} in the pipeline and mention it within the
-# pipeline (but only ready it again) so we disable the lint to assure shellcheck
-# that :this-is-fine:
-# shellcheck disable=SC2094
-while IFS= read -r repo; do
-  # record existence of the repo to ensure modules with no peer relationships still get included in the order
-  echo "${repo} ${repo}" >> "${TMP_DIR}/tidy_deps.txt"
-
-  pushd "${KUBE_ROOT}/staging/src/${repo}" >/dev/null 2>&1
-    # save the original go.mod, since go list doesn't just add missing entries, it also removes specific required versions from it
-    tmp_go_mod="${TMP_DIR}/tidy_${repo/\//_}_go.mod.original"
-    tmp_go_deps="${TMP_DIR}/tidy_${repo/\//_}_deps.txt"
-    cp go.mod "${tmp_go_mod}"
-
-    {
-      echo "=== sorting ${repo}"
-      # 'go list' calculates direct imports and updates go.mod so that go list -m lists our module dependencies
-      echo "=== computing imports for ${repo}"
-      go list all
-      echo "=== computing tools imports for ${repo}"
-      go list -tags=tools all
-    } >> "${LOG_FILE}" 2>&1
-
-    # capture module dependencies
-    go list -m -f '{{if not .Main}}{{.Path}}{{end}}' all > "${tmp_go_deps}"
-
-    # restore the original go.mod file
-    cp "${tmp_go_mod}" go.mod
-
-    # list all module dependencies
-    for dep in $(join "${tidy_unordered}" "${tmp_go_deps}"); do
-      # record the relationship (put dep first, because we want to sort leaves first)
-      echo "${dep} ${repo}" >> "${TMP_DIR}/tidy_deps.txt"
-      # switch the required version to an explicit v0.0.0 (rather than an unknown v0.0.0-00010101000000-000000000000)
-      go mod edit -require "${dep}@v0.0.0"
-    done
-  popd >/dev/null 2>&1
-done < "${tidy_unordered}"
-
-kube::log::status "go.mod: tidying"
-for repo in $(tsort "${TMP_DIR}/tidy_deps.txt"); do
-  pushd "${KUBE_ROOT}/staging/src/${repo}" >/dev/null 2>&1
-    echo "=== tidying ${repo}" >> "${LOG_FILE}"
-
-    # prune replace directives that pin to the naturally selected version.
-    # do this before tidying, since tidy removes unused modules that
-    # don't provide any relevant packages, which forgets which version of the
-    # unused transitive dependency we had a require directive for,
-    # and prevents pruning the matching replace directive after tidying.
-    go list -m -json all |
-      jq -r 'select(.Replace != null) |
-             select(.Path == .Replace.Path) |
-             select(.Version == .Replace.Version) |
-             "-dropreplace \(.Replace.Path)"' |
-    xargs -L 100 go mod edit -fmt
-
-    go mod tidy -v >>"${LOG_FILE}" 2>&1
-
-    # disallow transitive dependencies on kubesphere.io/kubesphere
-    loopback_deps=()
-    kube::util::read-array loopback_deps < <(go list all 2>/dev/null | grep kubesphere.io/kubesphere/ || true)
-    if [[ -n ${loopback_deps[*]:+"${loopback_deps[*]}"} ]]; then
-      kube::log::error "Disallowed ${repo} -> kubesphere.io/kubesphere dependencies exist via the following imports:
-$(go mod why "${loopback_deps[@]}")"
-      exit 1
-    fi
-
-    # prune unused pinned replace directives
-    comm -23 \
-      <(go mod edit -json | jq -r '.Replace[] | .Old.Path' | sort) \
-      <(go list -m -json all | jq -r .Path | sort) |
-    while read -r X; do echo "-dropreplace=${X}"; done |
-    xargs -L 100 go mod edit -fmt
-
-    # prune replace directives that pin to the naturally selected version
-    go list -m -json all |
-      jq -r 'select(.Replace != null) |
-             select(.Path == .Replace.Path) |
-             select(.Version == .Replace.Version) |
-             "-dropreplace \(.Replace.Path)"' |
-    xargs -L 100 go mod edit -fmt
-
-    # group require/replace directives
-    group_directives
-
-  popd >/dev/null 2>&1
-done
-echo "=== tidying root" >> "${LOG_FILE}"
-go mod tidy >>"${LOG_FILE}" 2>&1
-
-# prune unused pinned non-local replace directives
-comm -23 \
-  <(go mod edit -json | jq -r '.Replace[] | select(.New.Path | startswith("./") | not) | .Old.Path' | sort) \
-  <(go list -m -json all | jq -r .Path | sort) |
-while read -r X; do echo "-dropreplace=${X}"; done |
-xargs -L 100 go mod edit -fmt
-
-# disallow transitive dependencies on kubesphere.io/kubesphere
-loopback_deps=()
-kube::util::read-array loopback_deps < <(go mod graph | grep ' kubesphere.io/kubesphere' || true)
-if [[ -n ${loopback_deps[*]:+"${loopback_deps[*]}"} ]]; then
-  kube::log::error "Disallowed transitive kubesphere.io/kubesphere dependencies exist via the following imports:"
-  kube::log::error "${loopback_deps[@]}"
+godebug_directive_value=$(grep 'godebug default=go' go.mod | awk '{print $2}' || true)
+if [[ -z "${godebug_directive_value}" ]]; then
+  kube::log::error "root go.mod must have 'godebug default=go1.x' directive" >&22 2>&1
   exit 1
 fi
 
-# Phase 6: add generated comments to go.mod files
-kube::log::status "go.mod: adding generated comments"
+# === Ensure staging go.mod files exist
+for repo in $(kube::util::list_staging_repos); do
+  (
+    cd "staging/src/kubesphere.io/${repo}"
+
+    if [[ ! -f go.mod ]]; then
+      kube::log::status "go.mod: initialize ${repo}" >&11
+      go mod init "kubesphere.io/${repo}"
+    fi
+    go mod edit -go "${go_directive_value}" -godebug "${godebug_directive_value}"
+  )
+done
+
+# === Ensure root and staging go.mod files refer to each other using v0.0.0 and local path replaces
+kube::log::status "go.mod: update staging module references" >&11
+add_staging_replace_directives "./staging/src/kubesphere.io"
+for repo in $(kube::util::list_staging_repos); do
+  (
+    cd "staging/src/kubesphere.io/${repo}"
+    add_staging_replace_directives ".."
+  )
+done
+
+# === Ensure all root and staging modules are included in go.work
+kube::log::status "go.mod: go work use" >&11
+(
+  cd "${KUBE_ROOT}"
+  unset GOWORK
+  unset GOFLAGS
+  if [[ ! -f go.work ]]; then
+    kube::log::status "go.work: initialize" >&11
+    go work init
+  fi
+  # Prune use directives
+  go work edit -json \
+      | jq -r '.Use[]? | "-dropuse \(.DiskPath)"' \
+      | xargs -L 100 go work edit -fmt
+  # Ensure go and godebug directives
+  go work edit -go "${go_directive_value}" -godebug "${godebug_directive_value}"
+  # Re-add use directives
+  go work use .
+  for repo in $(kube::util::list_staging_repos); do
+    go work use "./staging/src/kubesphere.io/${repo}"
+  done
+)
+
+# === Propagate MVS across all root / staging modules (calculated by `go work`) back into root / staging modules
+kube::log::status "go.mod: go work sync" >&11
+(
+  cd "${KUBE_ROOT}"
+  unset GOWORK
+  unset GOFLAGS
+  go work sync
+)
+
+# === Tidy
+kube::log::status "go.mod: tidy" >&11
+for repo in $(kube::util::list_staging_repos); do
+  (
+    echo "=== tidying kubesphere.io/${repo}"
+    cd "staging/src/kubesphere.io/${repo}"
+    go mod tidy -v
+    group_directives
+  )
+done
+echo "=== tidying root"
+go mod tidy -v
+group_directives
+
+# === Prune unused replace directives, format modules
+kube::log::status "go.mod: prune" >&11
+for repo in $(kube::util::list_staging_repos); do
+  (
+    echo "=== pruning kubesphere.io/${repo}"
+    cd "staging/src/kubesphere.io/${repo}"
+
+    # drop all unused replace directives
+    comm -23 \
+      <(go mod edit -json | jq -r '.Replace[] | .Old.Path' | sort) \
+      <(go list -m -json all | jq -r 'select(.Main | not) | .Path' | sort) |
+    while read -r X; do echo "-dropreplace=${X}"; done |
+    xargs -L 100 go mod edit -fmt
+
+    group_directives
+  )
+done
+
+echo "=== pruning root"
+# drop unused replace directives other than to local paths
+comm -23 \
+  <(go mod edit -json | jq -r '.Replace[] | select(.New.Path | startswith("./") | not) | .Old.Path' | sort) \
+  <(go list -m -json all | jq -r 'select(.Main | not) | .Path' | sort) |
+while read -r X; do echo "-dropreplace=${X}"; done |
+xargs -L 100 go mod edit -fmt
+
+group_directives
+
+# === Add generated comments to go.mod files
+kube::log::status "go.mod: adding generated comments" >&11
 add_generated_comments "
 // This is a generated file. Do not edit directly.
 // Ensure you've carefully read
@@ -359,31 +279,60 @@ add_generated_comments "
 // Run hack/update-vendor.sh to update go.mod files and the vendor directory.
 "
 for repo in $(kube::util::list_staging_repos); do
-  pushd "staging/src/kubesphere.io/${repo}" >/dev/null 2>&1
+  (
+    cd "staging/src/kubesphere.io/${repo}"
     add_generated_comments "// This is a generated file. Do not edit directly."
-  popd >/dev/null 2>&1
+  )
 done
 
+# === Update internal modules
+kube::log::status "vendor: updating internal modules" >&11
+hack/update-internal-modules.sh
 
-# Phase 7: rebuild vendor directory
-kube::log::status "vendor: running 'go mod vendor'"
-go mod vendor >>"${LOG_FILE}" 2>&1
 
-# create a symlink in vendor directory pointing to the staging components.
-# This lets other packages and tools use the local staging components as if they were vendored.
-for repo in $(kube::util::list_staging_repos); do
-  rm -fr "${KUBE_ROOT}/vendor/kubesphere.io/${repo}"
-  ln -s "../../staging/src/kubesphere.io/${repo}" "${KUBE_ROOT}/vendor/kubesphere.io/${repo}"
-done
+# === Rebuild vendor directory
+(
+  kube::log::status "vendor: running 'go work vendor'" >&11
+  unset GOWORK
+  unset GOFLAGS
+  # rebuild go.work.sum
+  rm -f go.work.sum
+  go mod download
+  # rebuild vendor
+  go work vendor
+)
 
-kube::log::status "vendor: updating vendor/LICENSES"
-hack/update-vendor-licenses.sh >>"${LOG_FILE}" 2>&1
+kube::log::status "vendor: updating vendor/LICENSES" >&11
+hack/update-vendor-licenses.sh
 
-kube::log::status "vendor: creating OWNERS file"
+kube::log::status "vendor: creating OWNERS file" >&11
 rm -f "vendor/OWNERS"
 cat <<__EOF__ > "vendor/OWNERS"
 # See the OWNERS docs at https://github.com/kubesphere/kubesphere/blob/master/OWNERS
-
 __EOF__
 
-kube::log::status "NOTE: don't forget to handle vendor/* and LICENSE/* files that were added or removed"
+# === Disallow transitive dependencies on kubesphere.io/kubesphere
+kube::log::status "go.mod: prevent staging --> kubesphere.io/kubesphere dep" >&11
+for repo in $(kube::util::list_staging_repos); do
+  (
+    echo "=== checking kubesphere.io/${repo}"
+    cd "staging/src/kubesphere.io/${repo}"
+    loopback_deps=()
+    kube::util::read-array loopback_deps < <(go list all 2>/dev/null | grep kubesphere.io/kubesphere/ || true)
+    if (( "${#loopback_deps[@]}" > 0 )); then
+      kube::log::error "${#loopback_deps[@]} disallowed ${repo} -> kubesphere.io/kubesphere dependencies exist via the following imports: $(go mod why "${loopback_deps[@]}")" >&22 2>&1
+      exit 1
+    fi
+  )
+done
+
+kube::log::status "go.mod: prevent kubesphere.io/kubesphere --> * --> kubesphere.io/kubesphere dep" >&11
+loopback_deps=()
+kube::util::read-array loopback_deps < <(go mod graph | grep ' kubesphere.io/kubesphere' || true)
+if (( "${#loopback_deps[@]}" > 0 )); then
+  kube::log::error "${#loopback_deps[@]} disallowed transitive kubesphere.io/kubesphere dependencies exist via the following imports:" >&22 2>&1
+  kube::log::error "${loopback_deps[@]}" >&22 2>&1
+  exit 1
+fi
+
+kube::log::status "NOTE: don't forget to handle vendor/* and LICENSE/* files that were added or removed" >&11

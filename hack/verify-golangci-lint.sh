@@ -10,21 +10,13 @@ set -o pipefail
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
-source "${KUBE_ROOT}/hack/lib/util.sh"
 
-kube::golang::verify_go_version
-
-# Ensure that we find the binaries we build before anything else.
-export GOBIN="${KUBE_OUTPUT_BINPATH}"
-PATH="${GOBIN}:${PATH}"
-
-# Explicitly opt into go modules, even though we're inside a GOPATH directory
-export GO111MODULE=on
+kube::golang::setup_env
 
 if ! command -v golangci-lint ; then
-# Install golangci-lint
+  # Install golangci-lint
   echo 'installing golangci-lint'
-  GO111MODULE=auto go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+  go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 fi
 
 cd "${KUBE_ROOT}"
