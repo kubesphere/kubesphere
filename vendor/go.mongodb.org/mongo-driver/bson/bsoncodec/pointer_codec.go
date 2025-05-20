@@ -8,6 +8,7 @@ package bsoncodec
 
 import (
 	"reflect"
+	"sync"
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -17,28 +18,18 @@ var _ ValueEncoder = &PointerCodec{}
 var _ ValueDecoder = &PointerCodec{}
 
 // PointerCodec is the Codec used for pointers.
-//
-// Deprecated: PointerCodec will not be directly accessible in Go Driver 2.0. To
-// override the default pointer encode and decode behavior, create a new registry
-// with [go.mongodb.org/mongo-driver/bson.NewRegistry] and register a new
-// encoder and decoder for pointers.
-//
-// For example,
-//
-//	reg := bson.NewRegistry()
-//	reg.RegisterKindEncoder(reflect.Ptr, myPointerEncoder)
-//	reg.RegisterKindDecoder(reflect.Ptr, myPointerDecoder)
 type PointerCodec struct {
-	ecache typeEncoderCache
-	dcache typeDecoderCache
+	ecache map[reflect.Type]ValueEncoder
+	dcache map[reflect.Type]ValueDecoder
+	l      sync.RWMutex
 }
 
 // NewPointerCodec returns a PointerCodec that has been initialized.
-//
-// Deprecated: NewPointerCodec will not be available in Go Driver 2.0. See
-// [PointerCodec] for more details.
 func NewPointerCodec() *PointerCodec {
-	return &PointerCodec{}
+	return &PointerCodec{
+		ecache: make(map[reflect.Type]ValueEncoder),
+		dcache: make(map[reflect.Type]ValueDecoder),
+	}
 }
 
 // EncodeValue handles encoding a pointer by either encoding it to BSON Null if the pointer is nil
@@ -55,19 +46,24 @@ func (pc *PointerCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val
 		return vw.WriteNull()
 	}
 
-	typ := val.Type()
-	if v, ok := pc.ecache.Load(typ); ok {
-		if v == nil {
-			return ErrNoEncoder{Type: typ}
+	pc.l.RLock()
+	enc, ok := pc.ecache[val.Type()]
+	pc.l.RUnlock()
+	if ok {
+		if enc == nil {
+			return ErrNoEncoder{Type: val.Type()}
 		}
-		return v.EncodeValue(ec, vw, val.Elem())
+		return enc.EncodeValue(ec, vw, val.Elem())
 	}
-	// TODO(charlie): handle concurrent requests for the same type
-	enc, err := ec.LookupEncoder(typ.Elem())
-	enc = pc.ecache.LoadOrStore(typ, enc)
+
+	enc, err := ec.LookupEncoder(val.Type().Elem())
+	pc.l.Lock()
+	pc.ecache[val.Type()] = enc
+	pc.l.Unlock()
 	if err != nil {
 		return err
 	}
+
 	return enc.EncodeValue(ec, vw, val.Elem())
 }
 
@@ -78,31 +74,36 @@ func (pc *PointerCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val
 		return ValueDecoderError{Name: "PointerCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Ptr}, Received: val}
 	}
 
-	typ := val.Type()
 	if vr.Type() == bsontype.Null {
-		val.Set(reflect.Zero(typ))
+		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
 	}
 	if vr.Type() == bsontype.Undefined {
-		val.Set(reflect.Zero(typ))
+		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadUndefined()
 	}
 
 	if val.IsNil() {
-		val.Set(reflect.New(typ.Elem()))
+		val.Set(reflect.New(val.Type().Elem()))
 	}
 
-	if v, ok := pc.dcache.Load(typ); ok {
-		if v == nil {
-			return ErrNoDecoder{Type: typ}
+	pc.l.RLock()
+	dec, ok := pc.dcache[val.Type()]
+	pc.l.RUnlock()
+	if ok {
+		if dec == nil {
+			return ErrNoDecoder{Type: val.Type()}
 		}
-		return v.DecodeValue(dc, vr, val.Elem())
+		return dec.DecodeValue(dc, vr, val.Elem())
 	}
-	// TODO(charlie): handle concurrent requests for the same type
-	dec, err := dc.LookupDecoder(typ.Elem())
-	dec = pc.dcache.LoadOrStore(typ, dec)
+
+	dec, err := dc.LookupDecoder(val.Type().Elem())
+	pc.l.Lock()
+	pc.dcache[val.Type()] = dec
+	pc.l.Unlock()
 	if err != nil {
 		return err
 	}
+
 	return dec.DecodeValue(dc, vr, val.Elem())
 }

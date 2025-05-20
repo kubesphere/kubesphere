@@ -208,7 +208,7 @@ func (s *reverseProxy) handleProxyRequest(reverseProxy extensionsv1alpha1.Revers
 
 	if reverseProxy.Spec.Directives.AuthProxy {
 		user, _ := request.UserFrom(req.Context())
-		proxyRoundTripper = transport.NewAuthProxyRoundTripper(user.GetName(), user.GetGroups(), user.GetExtra(), proxyRoundTripper)
+		proxyRoundTripper = transport.NewAuthProxyRoundTripper(user.GetName(), user.GetUID(), user.GetGroups(), user.GetExtra(), proxyRoundTripper)
 	}
 
 	upgrade := httpstream.IsUpgradeRequest(req)

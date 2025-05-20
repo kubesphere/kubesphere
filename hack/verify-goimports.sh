@@ -20,26 +20,24 @@ set -o pipefail
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
-source "${KUBE_ROOT}/hack/lib/util.sh"
 
-kube::golang::verify_go_version
+# Detect problematic GOPROXY settings that prevent lookup of dependencies
+if [[ "${GOPROXY:-}" == "off" ]]; then
+  kube::log::error "Cannot run with \$GOPROXY=off"
+  exit 1
+fi
 
-# Ensure that we find the binaries we build before anything else.
-export GOBIN="${KUBE_OUTPUT_BINPATH}"
-PATH="${GOBIN}:${PATH}"
-
-# Explicitly opt into go modules, even though we're inside a GOPATH directory
-export GO111MODULE=on
+kube::golang::setup_env
 
 if ! command -v goimports ; then
-# Install goimports
+  # Install goimports
   echo 'installing goimports'
-  GO111MODULE=auto go install -mod=mod golang.org/x/tools/cmd/goimports@v0.7.0
+  go install -mod=mod golang.org/x/tools/cmd/goimports@v0.33.0
 fi
 
 cd "${KUBE_ROOT}" || exit 1
 
-IFS=$'\n' read -r -d '' -a files < <( find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./pkg/apis/*" -not -path "./pkg/client/*" -not -name "zz_generated.deepcopy.go" && printf '\0' )
+IFS=$'\n' read -r -d '' -a files < <( find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./_output/*" -not -name "zz_generated.deepcopy.go" && printf '\0' )
 
 output=$(goimports -local kubesphere.io/kubesphere -l "${files[@]}")
 

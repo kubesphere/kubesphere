@@ -1,24 +1,17 @@
 # Build
 FROM golang:1.23.8 AS build_context
 
-ENV OUTDIR=/out
-RUN mkdir -p ${OUTDIR}/usr/local/bin/
-
+RUN apt-get update && apt-get install -y rsync
 WORKDIR /workspace
 ADD . /workspace/
 
 RUN make ks-apiserver
-RUN mv /workspace/bin/cmd/ks-apiserver ${OUTDIR}/usr/local/bin/
-
-##############
-# Final image
-#############
 
 FROM alpine:3.21.3
 
-COPY --from=build_context /out/ /
+COPY --from=build_context /workspace/_output/bin/ks-apiserver /usr/local/bin/
 
-WORKDIR /
+WORKDIR /app
 
 EXPOSE 9090
 CMD ["sh"]

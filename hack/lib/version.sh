@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Copyright 2014 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # -----------------------------------------------------------------------------
 # Version management helpers.  These functions help to set, save and load the
 # following variables:
@@ -18,6 +32,11 @@
 # If KUBE_GIT_VERSION_FILE, this function will load from that file instead of
 # querying git.
 kube::version::get_version_vars() {
+  if [[ -n ${KUBE_GIT_VERSION_FILE-} ]]; then
+    kube::version::load_version_vars "${KUBE_GIT_VERSION_FILE}"
+    return
+  fi
+
   # If the kubernetes source was exported through git archive, then
   # we likely don't have a git tree, but these magic values may be filled in.
   # shellcheck disable=SC2016,SC2050
@@ -80,7 +99,6 @@ kube::version::get_version_vars() {
       # the "major" and "minor" versions and whether this is the exact tagged
       # version or whether the tree is between two tagged versions.
       if [[ "${KUBE_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?([+].*)?$ ]]; then
-        # shellcheck disable=SC2034 
         KUBE_GIT_MAJOR=${BASH_REMATCH[1]}
         KUBE_GIT_MINOR=${BASH_REMATCH[2]}
         if [[ -n "${BASH_REMATCH[4]}" ]]; then
@@ -90,10 +108,77 @@ kube::version::get_version_vars() {
 
       # If KUBE_GIT_VERSION is not a valid Semantic Version, then refuse to build.
       if ! [[ "${KUBE_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-          echo "KUBE_GIT_VERSION should be a valid Semantic Version. Current value: ${KUBE_GIT_VERSION}"
-          echo "Please see more details here: https://semver.org"
+          kube::log::error "KUBE_GIT_VERSION should be a valid Semantic Version. Current value: ${KUBE_GIT_VERSION}"
+          kube::log::error "Please see more details here: https://semver.org"
           exit 1
       fi
     fi
   fi
+}
+
+# Saves the environment flags to $1
+kube::version::save_version_vars() {
+  local version_file=${1-}
+  [[ -n ${version_file} ]] || {
+    echo "!!! Internal error.  No file specified in kube::version::save_version_vars"
+    return 1
+  }
+
+  cat <<EOF >"${version_file}"
+KUBE_GIT_COMMIT='${KUBE_GIT_COMMIT-}'
+KUBE_GIT_TREE_STATE='${KUBE_GIT_TREE_STATE-}'
+KUBE_GIT_VERSION='${KUBE_GIT_VERSION-}'
+KUBE_GIT_MAJOR='${KUBE_GIT_MAJOR-}'
+KUBE_GIT_MINOR='${KUBE_GIT_MINOR-}'
+EOF
+}
+
+# Loads up the version variables from file $1
+kube::version::load_version_vars() {
+  local version_file=${1-}
+  [[ -n ${version_file} ]] || {
+    echo "!!! Internal error.  No file specified in kube::version::load_version_vars"
+    return 1
+  }
+
+  source "${version_file}"
+}
+
+KUBE_GO_PACKAGE=kubesphere.io/kubesphere
+
+# Prints the value that needs to be passed to the -ldflags parameter of go build
+# in order to set the Kubernetes based on the git tree status.
+# IMPORTANT: if you update any of these, also update the lists in
+# hack/print-workspace-status.sh.
+kube::version::ldflags() {
+  kube::version::get_version_vars
+
+  local -a ldflags
+  function add_ldflag() {
+    local key=${1}
+    local val=${2}
+    ldflags+=(
+      "-X '${KUBE_GO_PACKAGE}/pkg/version.${key}=${val}'"
+    )
+  }
+
+  kube::util::ensure-gnu-date
+
+  add_ldflag "buildDate" "$(${DATE} ${SOURCE_DATE_EPOCH:+"--date=@${SOURCE_DATE_EPOCH}"} -u +'%Y-%m-%dT%H:%M:%SZ')"
+  if [[ -n ${KUBE_GIT_COMMIT-} ]]; then
+    add_ldflag "gitCommit" "${KUBE_GIT_COMMIT}"
+    add_ldflag "gitTreeState" "${KUBE_GIT_TREE_STATE}"
+  fi
+
+  if [[ -n ${KUBE_GIT_VERSION-} ]]; then
+    add_ldflag "gitVersion" "${KUBE_GIT_VERSION}"
+  fi
+
+  if [[ -n ${KUBE_GIT_MAJOR-} && -n ${KUBE_GIT_MINOR-} ]]; then
+    add_ldflag "gitMajor" "${KUBE_GIT_MAJOR}"
+    add_ldflag "gitMinor" "${KUBE_GIT_MINOR}"
+  fi
+
+  # The -ldflags parameter takes a single string, so join the output.
+  echo "${ldflags[*]-}"
 }
