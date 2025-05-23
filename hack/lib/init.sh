@@ -1,34 +1,65 @@
 #!/usr/bin/env bash
 
-# This script is modified version of Kubernetes script
+# Copyright 2014 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-export GO111MODULE=auto
+# Short-circuit if init.sh has already been sourced
+[[ $(type -t kube::init::loaded) == function ]] && return 0
+
+# Unset CDPATH so that path interpolation can work correctly
+# https://github.com/kubernetes/kubernetes/issues/52255
+unset CDPATH
 
 # The root of the build/dist directory
 KUBE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 
-KUBE_OUTPUT_SUBPATH="${KUBE_OUTPUT_SUBPATH:-_output/local}"
-KUBE_OUTPUT="${KUBE_ROOT}/${KUBE_OUTPUT_SUBPATH}"
-KUBE_OUTPUT_BINPATH="${KUBE_OUTPUT}/bin"
-
+# Where output goes.  We should avoid redefining these anywhere else.
+#
+# KUBE_OUTPUT: the root directory (absolute) where this build should drop any
+#     files (subdirs are encouraged).
+# KUBE_OUTPUT_BIN: the directory in which compiled binaries will be placed,
+#     under OS/ARCH specific subdirs
+# THIS_PLATFORM_BIN: a symlink to the output directory for binaries built for
+#     the current host platform (e.g. build/test tools).
+#
+# Compat: The KUBE_OUTPUT_SUBPATH variable is sometimes passed in by callers.
+# If it is specified, we'll use it in KUBE_OUTPUT.
+_KUBE_OUTPUT_SUBPATH="${KUBE_OUTPUT_SUBPATH:-_output/local}"
+export KUBE_OUTPUT="${KUBE_ROOT}/${_KUBE_OUTPUT_SUBPATH}"
+export KUBE_OUTPUT_BIN="${KUBE_OUTPUT}/bin"
 export THIS_PLATFORM_BIN="${KUBE_ROOT}/_output/bin"
+
+# This controls rsync compression. Set to a value > 0 to enable rsync
+# compression for build container
+KUBE_RSYNC_COMPRESS="${KUBE_RSYNC_COMPRESS:-0}"
+
+# Set no_proxy for localhost if behind a proxy, otherwise,
+# the connections to localhost in scripts will time out
+export no_proxy="127.0.0.1,localhost${no_proxy:+,${no_proxy}}"
 
 source "${KUBE_ROOT}/hack/lib/util.sh"
 source "${KUBE_ROOT}/hack/lib/logging.sh"
-source "${KUBE_ROOT}/hack/lib/version.sh"
-
 
 kube::log::install_errexit
+kube::util::ensure-bash-version
 
+source "${KUBE_ROOT}/hack/lib/version.sh"
 source "${KUBE_ROOT}/hack/lib/golang.sh"
-
-KUBE_OUTPUT_HOSTBIN="${KUBE_OUTPUT_BINPATH}/$(kube::util::host_platform)"
-export KUBE_OUTPUT_HOSTBIN
-
 
 # This emulates "readlink -f" which is not available on MacOS X.
 # Test:
@@ -109,4 +140,9 @@ kube::realpath() {
     return 1
   fi
   kube::readlinkdashf "${1}"
+}
+
+# Marker function to indicate init.sh has been fully sourced
+kube::init::loaded() {
+  return 0
 }

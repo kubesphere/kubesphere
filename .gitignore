@@ -21,6 +21,11 @@ bin/
 .vscode/
 __debug_bin
 
+# This is where the result of the go build goes
+/output*/
+/_output*/
+/_output
+
 # OSX trash
 .DS_Store
 api.json
