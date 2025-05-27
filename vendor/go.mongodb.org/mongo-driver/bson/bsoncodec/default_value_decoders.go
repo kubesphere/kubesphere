@@ -24,7 +24,7 @@ import (
 
 var (
 	defaultValueDecoders DefaultValueDecoders
-	errCannotTruncate    = errors.New("float64 can only be truncated to a lower precision type when truncation is enabled")
+	errCannotTruncate    = errors.New("float64 can only be truncated to an integer type when truncation is enabled")
 )
 
 type decodeBinaryError struct {
@@ -41,16 +41,13 @@ func newDefaultStructCodec() *StructCodec {
 	if err != nil {
 		// This function is called from the codec registration path, so errors can't be propagated. If there's an error
 		// constructing the StructCodec, we panic to avoid losing it.
-		panic(fmt.Errorf("error creating default StructCodec: %w", err))
+		panic(fmt.Errorf("error creating default StructCodec: %v", err))
 	}
 	return codec
 }
 
 // DefaultValueDecoders is a namespace type for the default ValueDecoders used
 // when creating a registry.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 type DefaultValueDecoders struct{}
 
 // RegisterDefaultDecoders will register the decoder methods attached to DefaultValueDecoders with
@@ -59,9 +56,6 @@ type DefaultValueDecoders struct{}
 // There is no support for decoding map[string]interface{} because there is no decoder for
 // interface{}, so users must either register this decoder themselves or use the
 // EmptyInterfaceDecoder available in the bson package.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 	if rb == nil {
 		panic(errors.New("argument to RegisterDefaultDecoders must not be nil"))
@@ -138,9 +132,6 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 }
 
 // DDecodeValue is the ValueDecoderFunc for primitive.D instances.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.IsValid() || !val.CanSet() || val.Type() != tD {
 		return ValueDecoderError{Name: "DDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
@@ -178,7 +169,7 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueRe
 
 	for {
 		key, elemVr, err := dr.ReadElement()
-		if errors.Is(err, bsonrw.ErrEOD) {
+		if err == bsonrw.ErrEOD {
 			break
 		} else if err != nil {
 			return err
@@ -197,7 +188,7 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueRe
 	return nil
 }
 
-func (dvd DefaultValueDecoders) booleanDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (dvd DefaultValueDecoders) booleanDecodeType(dctx DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.Bool {
 		return emptyValue, ValueDecoderError{
 			Name:     "BooleanDecodeValue",
@@ -244,9 +235,6 @@ func (dvd DefaultValueDecoders) booleanDecodeType(_ DecodeContext, vr bsonrw.Val
 }
 
 // BooleanDecodeValue is the ValueDecoderFunc for bool types.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.IsValid() || !val.CanSet() || val.Kind() != reflect.Bool {
 		return ValueDecoderError{Name: "BooleanDecodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: val}
@@ -330,7 +318,7 @@ func (DefaultValueDecoders) intDecodeType(dc DecodeContext, vr bsonrw.ValueReade
 	case reflect.Int64:
 		return reflect.ValueOf(i64), nil
 	case reflect.Int:
-		if i64 > math.MaxInt { // Can we fit this inside of an int
+		if int64(int(i64)) != i64 { // Can we fit this inside of an int
 			return emptyValue, fmt.Errorf("%d overflows int", i64)
 		}
 
@@ -345,9 +333,6 @@ func (DefaultValueDecoders) intDecodeType(dc DecodeContext, vr bsonrw.ValueReade
 }
 
 // IntDecodeValue is the ValueDecoderFunc for int types.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() {
 		return ValueDecoderError{
@@ -434,7 +419,7 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 			return fmt.Errorf("%d overflows uint64", i64)
 		}
 	case reflect.Uint:
-		if i64 < 0 || uint64(i64) > uint64(math.MaxUint) { // Can we fit this inside of an uint
+		if i64 < 0 || int64(uint(i64)) != i64 { // Can we fit this inside of an uint
 			return fmt.Errorf("%d overflows uint", i64)
 		}
 	default:
@@ -449,7 +434,7 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 	return nil
 }
 
-func (dvd DefaultValueDecoders) floatDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (dvd DefaultValueDecoders) floatDecodeType(ec DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	var f float64
 	var err error
 	switch vrType := vr.Type(); vrType {
@@ -492,7 +477,7 @@ func (dvd DefaultValueDecoders) floatDecodeType(dc DecodeContext, vr bsonrw.Valu
 
 	switch t.Kind() {
 	case reflect.Float32:
-		if !dc.Truncate && float64(float32(f)) != f {
+		if !ec.Truncate && float64(float32(f)) != f {
 			return emptyValue, errCannotTruncate
 		}
 
@@ -509,9 +494,6 @@ func (dvd DefaultValueDecoders) floatDecodeType(dc DecodeContext, vr bsonrw.Valu
 }
 
 // FloatDecodeValue is the ValueDecoderFunc for float types.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() {
 		return ValueDecoderError{
@@ -533,7 +515,7 @@ func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.Val
 // StringDecodeValue is the ValueDecoderFunc for string types.
 //
 // Deprecated: StringDecodeValue is not registered by default. Use StringCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) StringDecodeValue(_ DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	var str string
 	var err error
 	switch vr.Type() {
@@ -554,7 +536,7 @@ func (dvd DefaultValueDecoders) StringDecodeValue(_ DecodeContext, vr bsonrw.Val
 	return nil
 }
 
-func (DefaultValueDecoders) javaScriptDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) javaScriptDecodeType(dctx DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tJavaScript {
 		return emptyValue, ValueDecoderError{
 			Name:     "JavaScriptDecodeValue",
@@ -583,9 +565,6 @@ func (DefaultValueDecoders) javaScriptDecodeType(_ DecodeContext, vr bsonrw.Valu
 }
 
 // JavaScriptDecodeValue is the ValueDecoderFunc for the primitive.JavaScript type.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) JavaScriptDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tJavaScript {
 		return ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
@@ -600,7 +579,7 @@ func (dvd DefaultValueDecoders) JavaScriptDecodeValue(dctx DecodeContext, vr bso
 	return nil
 }
 
-func (DefaultValueDecoders) symbolDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) symbolDecodeType(dctx DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tSymbol {
 		return emptyValue, ValueDecoderError{
 			Name:     "SymbolDecodeValue",
@@ -641,9 +620,6 @@ func (DefaultValueDecoders) symbolDecodeType(_ DecodeContext, vr bsonrw.ValueRea
 }
 
 // SymbolDecodeValue is the ValueDecoderFunc for the primitive.Symbol type.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) SymbolDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tSymbol {
 		return ValueDecoderError{Name: "SymbolDecodeValue", Types: []reflect.Type{tSymbol}, Received: val}
@@ -658,7 +634,7 @@ func (dvd DefaultValueDecoders) SymbolDecodeValue(dctx DecodeContext, vr bsonrw.
 	return nil
 }
 
-func (DefaultValueDecoders) binaryDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) binaryDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tBinary {
 		return emptyValue, ValueDecoderError{
 			Name:     "BinaryDecodeValue",
@@ -688,9 +664,6 @@ func (DefaultValueDecoders) binaryDecodeType(_ DecodeContext, vr bsonrw.ValueRea
 }
 
 // BinaryDecodeValue is the ValueDecoderFunc for Binary.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) BinaryDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tBinary {
 		return ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tBinary}, Received: val}
@@ -705,7 +678,7 @@ func (dvd DefaultValueDecoders) BinaryDecodeValue(dc DecodeContext, vr bsonrw.Va
 	return nil
 }
 
-func (DefaultValueDecoders) undefinedDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) undefinedDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tUndefined {
 		return emptyValue, ValueDecoderError{
 			Name:     "UndefinedDecodeValue",
@@ -731,9 +704,6 @@ func (DefaultValueDecoders) undefinedDecodeType(_ DecodeContext, vr bsonrw.Value
 }
 
 // UndefinedDecodeValue is the ValueDecoderFunc for Undefined.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) UndefinedDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tUndefined {
 		return ValueDecoderError{Name: "UndefinedDecodeValue", Types: []reflect.Type{tUndefined}, Received: val}
@@ -749,7 +719,7 @@ func (dvd DefaultValueDecoders) UndefinedDecodeValue(dc DecodeContext, vr bsonrw
 }
 
 // Accept both 12-byte string and pretty-printed 24-byte hex string formats.
-func (dvd DefaultValueDecoders) objectIDDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (dvd DefaultValueDecoders) objectIDDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tOID {
 		return emptyValue, ValueDecoderError{
 			Name:     "ObjectIDDecodeValue",
@@ -795,9 +765,6 @@ func (dvd DefaultValueDecoders) objectIDDecodeType(_ DecodeContext, vr bsonrw.Va
 }
 
 // ObjectIDDecodeValue is the ValueDecoderFunc for primitive.ObjectID.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tOID {
 		return ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []reflect.Type{tOID}, Received: val}
@@ -812,7 +779,7 @@ func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.
 	return nil
 }
 
-func (DefaultValueDecoders) dateTimeDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) dateTimeDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tDateTime {
 		return emptyValue, ValueDecoderError{
 			Name:     "DateTimeDecodeValue",
@@ -841,9 +808,6 @@ func (DefaultValueDecoders) dateTimeDecodeType(_ DecodeContext, vr bsonrw.ValueR
 }
 
 // DateTimeDecodeValue is the ValueDecoderFunc for DateTime.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) DateTimeDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tDateTime {
 		return ValueDecoderError{Name: "DateTimeDecodeValue", Types: []reflect.Type{tDateTime}, Received: val}
@@ -858,7 +822,7 @@ func (dvd DefaultValueDecoders) DateTimeDecodeValue(dc DecodeContext, vr bsonrw.
 	return nil
 }
 
-func (DefaultValueDecoders) nullDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) nullDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tNull {
 		return emptyValue, ValueDecoderError{
 			Name:     "NullDecodeValue",
@@ -884,9 +848,6 @@ func (DefaultValueDecoders) nullDecodeType(_ DecodeContext, vr bsonrw.ValueReade
 }
 
 // NullDecodeValue is the ValueDecoderFunc for Null.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) NullDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tNull {
 		return ValueDecoderError{Name: "NullDecodeValue", Types: []reflect.Type{tNull}, Received: val}
@@ -901,7 +862,7 @@ func (dvd DefaultValueDecoders) NullDecodeValue(dc DecodeContext, vr bsonrw.Valu
 	return nil
 }
 
-func (DefaultValueDecoders) regexDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) regexDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tRegex {
 		return emptyValue, ValueDecoderError{
 			Name:     "RegexDecodeValue",
@@ -930,9 +891,6 @@ func (DefaultValueDecoders) regexDecodeType(_ DecodeContext, vr bsonrw.ValueRead
 }
 
 // RegexDecodeValue is the ValueDecoderFunc for Regex.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) RegexDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tRegex {
 		return ValueDecoderError{Name: "RegexDecodeValue", Types: []reflect.Type{tRegex}, Received: val}
@@ -947,7 +905,7 @@ func (dvd DefaultValueDecoders) RegexDecodeValue(dc DecodeContext, vr bsonrw.Val
 	return nil
 }
 
-func (DefaultValueDecoders) dBPointerDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) dBPointerDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tDBPointer {
 		return emptyValue, ValueDecoderError{
 			Name:     "DBPointerDecodeValue",
@@ -977,9 +935,6 @@ func (DefaultValueDecoders) dBPointerDecodeType(_ DecodeContext, vr bsonrw.Value
 }
 
 // DBPointerDecodeValue is the ValueDecoderFunc for DBPointer.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) DBPointerDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tDBPointer {
 		return ValueDecoderError{Name: "DBPointerDecodeValue", Types: []reflect.Type{tDBPointer}, Received: val}
@@ -994,7 +949,7 @@ func (dvd DefaultValueDecoders) DBPointerDecodeValue(dc DecodeContext, vr bsonrw
 	return nil
 }
 
-func (DefaultValueDecoders) timestampDecodeType(_ DecodeContext, vr bsonrw.ValueReader, reflectType reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) timestampDecodeType(dc DecodeContext, vr bsonrw.ValueReader, reflectType reflect.Type) (reflect.Value, error) {
 	if reflectType != tTimestamp {
 		return emptyValue, ValueDecoderError{
 			Name:     "TimestampDecodeValue",
@@ -1023,9 +978,6 @@ func (DefaultValueDecoders) timestampDecodeType(_ DecodeContext, vr bsonrw.Value
 }
 
 // TimestampDecodeValue is the ValueDecoderFunc for Timestamp.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) TimestampDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tTimestamp {
 		return ValueDecoderError{Name: "TimestampDecodeValue", Types: []reflect.Type{tTimestamp}, Received: val}
@@ -1040,7 +992,7 @@ func (dvd DefaultValueDecoders) TimestampDecodeValue(dc DecodeContext, vr bsonrw
 	return nil
 }
 
-func (DefaultValueDecoders) minKeyDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) minKeyDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tMinKey {
 		return emptyValue, ValueDecoderError{
 			Name:     "MinKeyDecodeValue",
@@ -1068,9 +1020,6 @@ func (DefaultValueDecoders) minKeyDecodeType(_ DecodeContext, vr bsonrw.ValueRea
 }
 
 // MinKeyDecodeValue is the ValueDecoderFunc for MinKey.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) MinKeyDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tMinKey {
 		return ValueDecoderError{Name: "MinKeyDecodeValue", Types: []reflect.Type{tMinKey}, Received: val}
@@ -1085,7 +1034,7 @@ func (dvd DefaultValueDecoders) MinKeyDecodeValue(dc DecodeContext, vr bsonrw.Va
 	return nil
 }
 
-func (DefaultValueDecoders) maxKeyDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (DefaultValueDecoders) maxKeyDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tMaxKey {
 		return emptyValue, ValueDecoderError{
 			Name:     "MaxKeyDecodeValue",
@@ -1113,9 +1062,6 @@ func (DefaultValueDecoders) maxKeyDecodeType(_ DecodeContext, vr bsonrw.ValueRea
 }
 
 // MaxKeyDecodeValue is the ValueDecoderFunc for MaxKey.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) MaxKeyDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tMaxKey {
 		return ValueDecoderError{Name: "MaxKeyDecodeValue", Types: []reflect.Type{tMaxKey}, Received: val}
@@ -1130,7 +1076,7 @@ func (dvd DefaultValueDecoders) MaxKeyDecodeValue(dc DecodeContext, vr bsonrw.Va
 	return nil
 }
 
-func (dvd DefaultValueDecoders) decimal128DecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (dvd DefaultValueDecoders) decimal128DecodeType(dctx DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tDecimal {
 		return emptyValue, ValueDecoderError{
 			Name:     "Decimal128DecodeValue",
@@ -1159,9 +1105,6 @@ func (dvd DefaultValueDecoders) decimal128DecodeType(_ DecodeContext, vr bsonrw.
 }
 
 // Decimal128DecodeValue is the ValueDecoderFunc for primitive.Decimal128.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tDecimal {
 		return ValueDecoderError{Name: "Decimal128DecodeValue", Types: []reflect.Type{tDecimal}, Received: val}
@@ -1176,7 +1119,7 @@ func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr bso
 	return nil
 }
 
-func (dvd DefaultValueDecoders) jsonNumberDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (dvd DefaultValueDecoders) jsonNumberDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tJSONNumber {
 		return emptyValue, ValueDecoderError{
 			Name:     "JSONNumberDecodeValue",
@@ -1221,9 +1164,6 @@ func (dvd DefaultValueDecoders) jsonNumberDecodeType(_ DecodeContext, vr bsonrw.
 }
 
 // JSONNumberDecodeValue is the ValueDecoderFunc for json.Number.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tJSONNumber {
 		return ValueDecoderError{Name: "JSONNumberDecodeValue", Types: []reflect.Type{tJSONNumber}, Received: val}
@@ -1238,7 +1178,7 @@ func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr bsonr
 	return nil
 }
 
-func (dvd DefaultValueDecoders) urlDecodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (dvd DefaultValueDecoders) urlDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tURL {
 		return emptyValue, ValueDecoderError{
 			Name:     "URLDecodeValue",
@@ -1273,9 +1213,6 @@ func (dvd DefaultValueDecoders) urlDecodeType(_ DecodeContext, vr bsonrw.ValueRe
 }
 
 // URLDecodeValue is the ValueDecoderFunc for url.URL.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tURL {
 		return ValueDecoderError{Name: "URLDecodeValue", Types: []reflect.Type{tURL}, Received: val}
@@ -1293,7 +1230,7 @@ func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.Value
 // TimeDecodeValue is the ValueDecoderFunc for time.Time.
 //
 // Deprecated: TimeDecodeValue is not registered by default. Use TimeCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) TimeDecodeValue(_ DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.DateTime {
 		return fmt.Errorf("cannot decode %v into a time.Time", vr.Type())
 	}
@@ -1314,7 +1251,7 @@ func (dvd DefaultValueDecoders) TimeDecodeValue(_ DecodeContext, vr bsonrw.Value
 // ByteSliceDecodeValue is the ValueDecoderFunc for []byte.
 //
 // Deprecated: ByteSliceDecodeValue is not registered by default. Use ByteSliceCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) ByteSliceDecodeValue(_ DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.Binary && vr.Type() != bsontype.Null {
 		return fmt.Errorf("cannot decode %v into a []byte", vr.Type())
 	}
@@ -1379,7 +1316,7 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.Value
 	keyType := val.Type().Key()
 	for {
 		key, vr, err := dr.ReadElement()
-		if errors.Is(err, bsonrw.ErrEOD) {
+		if err == bsonrw.ErrEOD {
 			break
 		}
 		if err != nil {
@@ -1399,9 +1336,6 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.Value
 }
 
 // ArrayDecodeValue is the ValueDecoderFunc for array types.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Array {
 		return ValueDecoderError{Name: "ArrayDecodeValue", Kinds: []reflect.Kind{reflect.Array}, Received: val}
@@ -1513,10 +1447,7 @@ func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr bsonrw.Val
 }
 
 // ValueUnmarshalerDecodeValue is the ValueDecoderFunc for ValueUnmarshaler implementations.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
-func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(_ DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.IsValid() || (!val.Type().Implements(tValueUnmarshaler) && !reflect.PtrTo(val.Type()).Implements(tValueUnmarshaler)) {
 		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 	}
@@ -1540,19 +1471,16 @@ func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(_ DecodeContext, vr 
 		return err
 	}
 
-	m, ok := val.Interface().(ValueUnmarshaler)
-	if !ok {
-		// NB: this error should be unreachable due to the above checks
-		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
+	fn := val.Convert(tValueUnmarshaler).MethodByName("UnmarshalBSONValue")
+	errVal := fn.Call([]reflect.Value{reflect.ValueOf(t), reflect.ValueOf(src)})[0]
+	if !errVal.IsNil() {
+		return errVal.Interface().(error)
 	}
-	return m.UnmarshalBSONValue(t, src)
+	return nil
 }
 
 // UnmarshalerDecodeValue is the ValueDecoderFunc for Unmarshaler implementations.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
-func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(_ DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.IsValid() || (!val.Type().Implements(tUnmarshaler) && !reflect.PtrTo(val.Type()).Implements(tUnmarshaler)) {
 		return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
 	}
@@ -1588,12 +1516,12 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(_ DecodeContext, vr bsonr
 		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
-	m, ok := val.Interface().(Unmarshaler)
-	if !ok {
-		// NB: this error should be unreachable due to the above checks
-		return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
+	fn := val.Convert(tUnmarshaler).MethodByName("UnmarshalBSON")
+	errVal := fn.Call([]reflect.Value{reflect.ValueOf(src)})[0]
+	if !errVal.IsNil() {
+		return errVal.Interface().(error)
 	}
-	return m.UnmarshalBSON(src)
+	return nil
 }
 
 // EmptyInterfaceDecodeValue is the ValueDecoderFunc for interface{}.
@@ -1637,10 +1565,7 @@ func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr b
 }
 
 // CoreDocumentDecodeValue is the ValueDecoderFunc for bsoncore.Document.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
-func (DefaultValueDecoders) CoreDocumentDecodeValue(_ DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (DefaultValueDecoders) CoreDocumentDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tCoreDocument {
 		return ValueDecoderError{Name: "CoreDocumentDecodeValue", Types: []reflect.Type{tCoreDocument}, Received: val}
 	}
@@ -1675,7 +1600,7 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr bsonrw.ValueR
 	idx := 0
 	for {
 		vr, err := ar.ReadValue()
-		if errors.Is(err, bsonrw.ErrEOA) {
+		if err == bsonrw.ErrEOA {
 			break
 		}
 		if err != nil {
@@ -1746,9 +1671,6 @@ func (dvd DefaultValueDecoders) codeWithScopeDecodeType(dc DecodeContext, vr bso
 }
 
 // CodeWithScopeDecodeValue is the ValueDecoderFunc for CodeWithScope.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value decoders registered.
 func (dvd DefaultValueDecoders) CodeWithScopeDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tCodeWithScope {
 		return ValueDecoderError{Name: "CodeWithScopeDecodeValue", Types: []reflect.Type{tCodeWithScope}, Received: val}
@@ -1787,7 +1709,7 @@ func (DefaultValueDecoders) decodeElemsFromDocumentReader(dc DecodeContext, dr b
 	elems := make([]reflect.Value, 0)
 	for {
 		key, vr, err := dr.ReadElement()
-		if errors.Is(err, bsonrw.ErrEOD) {
+		if err == bsonrw.ErrEOD {
 			break
 		}
 		if err != nil {

@@ -103,6 +103,7 @@ process_content () {
   IFS=" " read -r -a local_files <<< "$(
     for dir_root in ${package} ${package_root}; do
       [[ -d ${DEPS_DIR}/${dir_root} ]] || continue
+
       # One (set) of these is fine
       find "${DEPS_DIR}/${dir_root}" \
           -xdev -follow -maxdepth ${find_maxdepth} \
@@ -134,7 +135,8 @@ process_content () {
 #############################################################################
 
 # use modules, and use module info rather than the vendor dir for computing dependencies
-export GO111MODULE=on
+kube::golang::setup_env
+export GOWORK=off
 export GOFLAGS=-mod=mod
 
 # Check bash version
@@ -200,8 +202,8 @@ for PACKAGE in ${modules}; do
 
   # if there are no files vendored under this package...
   if [[ -z "$(find "${DEPS_DIR}/${PACKAGE}" -mindepth 1 -maxdepth 1 -type f)" ]]; then
-    # and we have the same number of submodules as subdirectories...
-    if [[ "$(find "${DEPS_DIR}/${PACKAGE}/" -mindepth 1 -maxdepth 1 -type d | wc -l)" -gt 0 ]]; then
+    # and we have at least the same number of submodules as subdirectories...
+    if [[ "$(find "${DEPS_DIR}/${PACKAGE}/" -mindepth 1 -maxdepth 1 -type d | wc -l)" -le "$(echo "${modules}" | grep -cE "^${PACKAGE}/")" ]]; then
       echo "Only submodules of ${PACKAGE} are vendored, skipping" >&2
       continue
     fi
@@ -229,6 +231,7 @@ for PACKAGE in ${modules}; do
     if [[ -z "${file}" ]]; then
       cat >&2 << __EOF__
 No license could be found for ${PACKAGE} - aborting.
+
 Options:
 1. Check if the upstream repository has a newer version with LICENSE, COPYRIGHT and/or
    COPYING files.
@@ -249,7 +252,14 @@ __EOF__
   mv "${TMP_LICENSE_FILE}" "${dest_dir}/LICENSE"
 done
 
+# copy licenses for forked code from vendor and third_party directories
+(cd "${KUBE_ROOT}" && \
+  find vendor third_party -iname 'licen[sc]e*' -o -iname 'notice*' -o -iname 'copying*' | \
+  grep -E 'third_party|forked' | \
+  xargs tar -czf - | tar -C "${TMP_LICENSES_DIR}" -xzf -)
+
 # Leave things like OWNERS alone.
 rm -f "${LICENSES_DIR}/LICENSE"
 rm -rf "${LICENSES_DIR}/vendor"
+rm -rf "${LICENSES_DIR}/third_party"
 mv "${TMP_LICENSES_DIR}"/* "${LICENSES_DIR}"

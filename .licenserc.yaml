@@ -1,61 +1,25 @@
-# Please refer to the LICENSE file in the root directory of the project.
-# https://github.com/kubesphere/kubesphere/blob/master/LICENSE
-
+# Copyright 2025 The KubeSphere Authors.
+# SPDX-License-Identifier: LicenseRef-KubeSphere-Open-Source
 header:
   license:
-    spdx-id: Apache-2.0
+    spdx-id: LicenseRef-KubeSphere-Open-Source
+    copyright-year: '2025'
     copyright-owner: KubeSphere Authors
-
     content: |
-      Please refer to the LICENSE file in the root directory of the project.
-      https://github.com/kubesphere/kubesphere/blob/master/LICENSE
-
+      Copyright [year] The [owner].
+      SPDX-License-Identifier: LicenseRef-KubeSphere-Open-Source
+  paths:
+    - "pkg"
+    - "staging"
+    - "tools"
   paths-ignore:
-    - 'api'
-    - 'build'
-    - 'docs'
-    - 'config'
-    - 'test'
-    - 'install'
-    - 'hack'
-    - 'vendor'
-    - 'staging'
-    - 'LICENSE'
-    - 'OWNERS'
-    - 'Makefile'
-    - 'pkg/client/**'
-    - 'pkg/simple/client/**'
-    - '**/*.md'
-    - '**/*.json'
-    - '**/go.mod'
-    - '**/go.sum'
-    - '.github/**'
-    - '.gitignore'
-    - '.gitattributes'
-    - 'pkg/controller/application/status.go'
-    - '.golangci.yaml'
-    - 'kube/pkg/apis/**'
-    - 'kube/pkg/openapi/merge/**'
-    - 'kube/pkg/features/**'
-    - 'kube/pkg/quota/**'
-    - 'kube/plugin/**'
-    - 'pkg/apiserver/request/context.go'
-    - 'pkg/apiserver/request/context_test.go'
-    - 'pkg/apiserver/authentication/request/basictoken/**'
-    - 'pkg/apiserver/authentication/request/bearertoken/**'
-    - 'pkg/apiserver/authorization/**'
-    - 'pkg/controller/k8sapplication/condition.go'
-    - 'pkg/controller/k8sapplication/status.go'
-    - 'pkg/models/iam/am/rbac/evaluation_helpers.go'
-    - 'pkg/utils/conversions/core/v1/conversion.go'
-    - 'pkg/utils/signals/**'
-    - 'tools/tools.go'
-
+    - "LICENSE"
+    - "OWNERS"
+    - "go.sum"
   comment: on-failure
   license-location-threshold: 80
-
   language:
     Go:
       extensions:
         - ".go"
-      comment_style_id: SlashAsterisk
+      comment_style_id: DoubleSlash

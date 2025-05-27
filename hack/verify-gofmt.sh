@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Copyright 2014 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # This script checks whether the source code needs to be formatted or not by
 # `gofmt`. Run `hack/update-gofmt.sh` to actually format sources.
 #
@@ -16,21 +30,18 @@ source "${KUBE_ROOT}/hack/lib/init.sh"
 
 cd "${KUBE_ROOT}"
 
-kube::golang::verify_go_version
+kube::golang::setup_env
 
 find_files() {
   find . -not \( \
       \( \
-        -wholename './output' \
-        -o -wholename './.git' \
+        -wholename './.git' \
         -o -wholename './_output' \
-        -o -wholename './_gopath' \
         -o -wholename './release' \
         -o -wholename './target' \
         -o -wholename '*/third_party/*' \
         -o -wholename '*/vendor/*' \
-        -o -wholename './staging/src/kubesphere.io/client-go/*vendor/*' \
-        -o -wholename './staging/src/kubesphere.io/api/*/zz_generated.deepcopy.go' \
+        -o -wholename '*/testdata/*' \
         -o -wholename '*/bindata.go' \
       \) -prune \
     \) -name '*.go'

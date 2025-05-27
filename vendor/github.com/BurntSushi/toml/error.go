@@ -67,21 +67,36 @@ type ParseError struct {
 // Position of an error.
 type Position struct {
 	Line  int // Line number, starting at 1.
+	Col   int // Error column, starting at 1.
 	Start int // Start of error, as byte offset starting at 0.
-	Len   int // Lenght in bytes.
+	Len   int // Lenght of the error in bytes.
+}
+
+func (p Position) withCol(tomlFile string) Position {
+	var (
+		pos   int
+		lines = strings.Split(tomlFile, "\n")
+	)
+	for i := range lines {
+		ll := len(lines[i]) + 1 // +1 for the removed newline
+		if pos+ll >= p.Start {
+			p.Col = p.Start - pos + 1
+			if p.Col < 1 { // Should never happen, but just in case.
+				p.Col = 1
+			}
+			break
+		}
+		pos += ll
+	}
+	return p
 }
 
 func (pe ParseError) Error() string {
-	msg := pe.Message
-	if msg == "" { // Error from errorf()
-		msg = pe.err.Error()
-	}
-
 	if pe.LastKey == "" {
-		return fmt.Sprintf("toml: line %d: %s", pe.Position.Line, msg)
+		return fmt.Sprintf("toml: line %d: %s", pe.Position.Line, pe.Message)
 	}
 	return fmt.Sprintf("toml: line %d (last key %q): %s",
-		pe.Position.Line, pe.LastKey, msg)
+		pe.Position.Line, pe.LastKey, pe.Message)
 }
 
 // ErrorWithPosition returns the error with detailed location context.
@@ -92,35 +107,37 @@ func (pe ParseError) ErrorWithPosition() string {
 		return pe.Error()
 	}
 
-	var (
-		lines = strings.Split(pe.input, "\n")
-		col   = pe.column(lines)
-		b     = new(strings.Builder)
-	)
-
-	msg := pe.Message
-	if msg == "" {
-		msg = pe.err.Error()
-	}
-
 	// TODO: don't show control characters as literals? This may not show up
 	// well everywhere.
 
+	var (
+		lines = strings.Split(pe.input, "\n")
+		b     = new(strings.Builder)
+	)
 	if pe.Position.Len == 1 {
 		fmt.Fprintf(b, "toml: error: %s\n\nAt line %d, column %d:\n\n",
-			msg, pe.Position.Line, col+1)
+			pe.Message, pe.Position.Line, pe.Position.Col)
 	} else {
 		fmt.Fprintf(b, "toml: error: %s\n\nAt line %d, column %d-%d:\n\n",
-			msg, pe.Position.Line, col, col+pe.Position.Len)
+			pe.Message, pe.Position.Line, pe.Position.Col, pe.Position.Col+pe.Position.Len-1)
 	}
 	if pe.Position.Line > 2 {
-		fmt.Fprintf(b, "% 7d | %s\n", pe.Position.Line-2, lines[pe.Position.Line-3])
+		fmt.Fprintf(b, "% 7d | %s\n", pe.Position.Line-2, expandTab(lines[pe.Position.Line-3]))
 	}
 	if pe.Position.Line > 1 {
-		fmt.Fprintf(b, "% 7d | %s\n", pe.Position.Line-1, lines[pe.Position.Line-2])
+		fmt.Fprintf(b, "% 7d | %s\n", pe.Position.Line-1, expandTab(lines[pe.Position.Line-2]))
 	}
-	fmt.Fprintf(b, "% 7d | %s\n", pe.Position.Line, lines[pe.Position.Line-1])
-	fmt.Fprintf(b, "% 10s%s%s\n", "", strings.Repeat(" ", col), strings.Repeat("^", pe.Position.Len))
+
+	/// Expand tabs, so that the ^^^s are at the correct position, but leave
+	/// "column 10-13" intact. Adjusting this to the visual column would be
+	/// better, but we don't know the tabsize of the user in their editor, which
+	/// can be 8, 4, 2, or something else. We can't know. So leaving it as the
+	/// character index is probably the "most correct".
+	expanded := expandTab(lines[pe.Position.Line-1])
+	diff := len(expanded) - len(lines[pe.Position.Line-1])
+
+	fmt.Fprintf(b, "% 7d | %s\n", pe.Position.Line, expanded)
+	fmt.Fprintf(b, "% 10s%s%s\n", "", strings.Repeat(" ", pe.Position.Col-1+diff), strings.Repeat("^", pe.Position.Len))
 	return b.String()
 }
 
@@ -142,34 +159,47 @@ func (pe ParseError) ErrorWithUsage() string {
 	return m
 }
 
-func (pe ParseError) column(lines []string) int {
-	var pos, col int
-	for i := range lines {
-		ll := len(lines[i]) + 1 // +1 for the removed newline
-		if pos+ll >= pe.Position.Start {
-			col = pe.Position.Start - pos
-			if col < 0 { // Should never happen, but just in case.
-				col = 0
+func expandTab(s string) string {
+	var (
+		b    strings.Builder
+		l    int
+		fill = func(n int) string {
+			b := make([]byte, n)
+			for i := range b {
+				b[i] = ' '
 			}
-			break
+			return string(b)
 		}
-		pos += ll
+	)
+	b.Grow(len(s))
+	for _, r := range s {
+		switch r {
+		case '\t':
+			tw := 8 - l%8
+			b.WriteString(fill(tw))
+			l += tw
+		default:
+			b.WriteRune(r)
+			l += 1
+		}
 	}
-
-	return col
+	return b.String()
 }
 
 type (
 	errLexControl       struct{ r rune }
 	errLexEscape        struct{ r rune }
 	errLexUTF8          struct{ b byte }
-	errLexInvalidNum    struct{ v string }
-	errLexInvalidDate   struct{ v string }
+	errParseDate        struct{ v string }
 	errLexInlineTableNL struct{}
 	errLexStringNL      struct{}
 	errParseRange       struct {
-		i    interface{} // int or float
-		size string      // "int64", "uint16", etc.
+		i    any    // int or float
+		size string // "int64", "uint16", etc.
+	}
+	errUnsafeFloat struct {
+		i    interface{} // float32 or float64
+		size string      // "float32" or "float64"
 	}
 	errParseDuration struct{ d string }
 )
@@ -183,18 +213,20 @@ func (e errLexEscape) Error() string        { return fmt.Sprintf(`invalid escape
 func (e errLexEscape) Usage() string        { return usageEscape }
 func (e errLexUTF8) Error() string          { return fmt.Sprintf("invalid UTF-8 byte: 0x%02x", e.b) }
 func (e errLexUTF8) Usage() string          { return "" }
-func (e errLexInvalidNum) Error() string    { return fmt.Sprintf("invalid number: %q", e.v) }
-func (e errLexInvalidNum) Usage() string    { return "" }
-func (e errLexInvalidDate) Error() string   { return fmt.Sprintf("invalid date: %q", e.v) }
-func (e errLexInvalidDate) Usage() string   { return "" }
+func (e errParseDate) Error() string        { return fmt.Sprintf("invalid datetime: %q", e.v) }
+func (e errParseDate) Usage() string        { return usageDate }
 func (e errLexInlineTableNL) Error() string { return "newlines not allowed within inline tables" }
 func (e errLexInlineTableNL) Usage() string { return usageInlineNewline }
 func (e errLexStringNL) Error() string      { return "strings cannot contain newlines" }
 func (e errLexStringNL) Usage() string      { return usageStringNewline }
 func (e errParseRange) Error() string       { return fmt.Sprintf("%v is out of range for %s", e.i, e.size) }
 func (e errParseRange) Usage() string       { return usageIntOverflow }
-func (e errParseDuration) Error() string    { return fmt.Sprintf("invalid duration: %q", e.d) }
-func (e errParseDuration) Usage() string    { return usageDuration }
+func (e errUnsafeFloat) Error() string {
+	return fmt.Sprintf("%v is out of the safe %s range", e.i, e.size)
+}
+func (e errUnsafeFloat) Usage() string   { return usageUnsafeFloat }
+func (e errParseDuration) Error() string { return fmt.Sprintf("invalid duration: %q", e.d) }
+func (e errParseDuration) Usage() string { return usageDuration }
 
 const usageEscape = `
 A '\' inside a "-delimited string is interpreted as an escape character.
@@ -251,17 +283,33 @@ bug in the program that uses too small of an integer.
 The maximum and minimum values are:
 
     size   │ lowest         │ highest
-    ───────┼────────────────┼──────────
+    ───────┼────────────────┼──────────────
     int8   │ -128           │ 127
     int16  │ -32,768        │ 32,767
     int32  │ -2,147,483,648 │ 2,147,483,647
     int64  │ -9.2 × 10¹⁷    │ 9.2 × 10¹⁷
     uint8  │ 0              │ 255
-    uint16 │ 0              │ 65535
-    uint32 │ 0              │ 4294967295
+    uint16 │ 0              │ 65,535
+    uint32 │ 0              │ 4,294,967,295
     uint64 │ 0              │ 1.8 × 10¹⁸
 
 int refers to int32 on 32-bit systems and int64 on 64-bit systems.
+`
+
+const usageUnsafeFloat = `
+This number is outside of the "safe" range for floating point numbers; whole
+(non-fractional) numbers outside the below range can not always be represented
+accurately in a float, leading to some loss of accuracy.
+
+Explicitly mark a number as a fractional unit by adding ".0", which will incur
+some loss of accuracy; for example:
+
+	f = 2_000_000_000.0
+
+Accuracy ranges:
+
+	float32 =            16,777,215
+	float64 = 9,007,199,254,740,991
 `
 
 const usageDuration = `
@@ -277,3 +325,23 @@ A duration must be as "number<unit>", without any spaces. Valid units are:
 You can combine multiple units; for example "5m10s" for 5 minutes and 10
 seconds.
 `
+
+const usageDate = `
+A TOML datetime must be in one of the following formats:
+
+    2006-01-02T15:04:05Z07:00   Date and time, with timezone.
+    2006-01-02T15:04:05         Date and time, but without timezone.
+    2006-01-02                  Date without a time or timezone.
+    15:04:05                    Just a time, without any timezone.
+
+Seconds may optionally have a fraction, up to nanosecond precision:
+
+    15:04:05.123
+    15:04:05.856018510
+`
+
+// TOML 1.1:
+// The seconds part in times is optional, and may be omitted:
+//     2006-01-02T15:04Z07:00
+//     2006-01-02T15:04
+//     15:04
