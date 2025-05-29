@@ -98,6 +98,16 @@ func (c *Compressed) parse(r io.Reader) error {
 	return err
 }
 
+// LimitedBodyReader wraps the provided body reader with a limiter that restricts
+// the number of bytes read to the specified limit.
+// If limit is nil, the reader is unbounded.
+func (c *Compressed) LimitedBodyReader(limit *int64) io.Reader {
+	if limit == nil {
+		return c.Body
+	}
+	return &LimitReader{R: c.Body, N: *limit}
+}
+
 // compressedWriterCloser represents the serialized compression stream
 // header and the compressor. Its Close() method ensures that both the
 // compressor and serialized stream header are closed. Its Write()
@@ -158,4 +168,25 @@ func SerializeCompressed(w io.WriteCloser, algo CompressionAlgo, cc *Compression
 	literaldata = compressedWriteCloser{compressed, compressor}
 
 	return
+}
+
+// LimitReader is an io.Reader that fails with MessageToLarge if read bytes exceed N.
+type LimitReader struct {
+	R io.Reader // underlying reader
+	N int64     // max bytes allowed
+}
+
+func (l *LimitReader) Read(p []byte) (int, error) {
+	if l.N <= 0 {
+		return 0, errors.ErrMessageTooLarge
+	}
+
+	n, err := l.R.Read(p)
+	l.N -= int64(n)
+
+	if err == nil && l.N <= 0 {
+		err = errors.ErrMessageTooLarge
+	}
+
+	return n, err
 }

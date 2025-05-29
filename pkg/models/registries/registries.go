@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -85,7 +86,7 @@ func (c *registryGetter) VerifyRegistryCredential(credential api.RegistryCredent
 	if resp.Status == loginSuccess {
 		return nil
 	} else {
-		return fmt.Errorf(resp.Status)
+		return errors.New(resp.Status)
 	}
 }
 

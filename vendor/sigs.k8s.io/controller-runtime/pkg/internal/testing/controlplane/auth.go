@@ -128,7 +128,7 @@ func (c *CertAuthn) Start() error {
 		return fmt.Errorf("start called before configure")
 	}
 	caCrt := c.ca.CA.CertBytes()
-	if err := os.WriteFile(c.caCrtPath(), caCrt, 0640); err != nil { //nolint:gosec
+	if err := os.WriteFile(c.caCrtPath(), caCrt, 0640); err != nil {
 		return fmt.Errorf("unable to save the client certificate CA to %s: %w", c.caCrtPath(), err)
 	}
 

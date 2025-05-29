@@ -215,7 +215,7 @@ func pollURLUntilOK(url url.URL, interval time.Duration, ready chan bool, stopCh
 				// there's probably certs *somewhere*,
 				// but it's fine to just skip validating
 				// them for health checks during testing
-				InsecureSkipVerify: true, //nolint:gosec
+				InsecureSkipVerify: true,
 			},
 		},
 	}

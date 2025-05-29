@@ -81,15 +81,6 @@
   },
   "status": {
     "unwantedReferences": {
-      "cloud.google.com/go": [
-        "github.com/spf13/afero"
-      ],
-      "cloud.google.com/go/compute": [
-        "github.com/google/go-containerregistry"
-      ],
-      "cloud.google.com/go/storage": [
-        "github.com/spf13/afero"
-      ],
       "github.com/containerd/cgroups": [
         "github.com/containerd/containerd"
       ],
@@ -103,13 +94,19 @@
         "github.com/go-git/go-git/v5",
         "github.com/go-gorp/gorp/v3",
         "github.com/go-jose/go-jose/v4",
+        "github.com/go-ldap/ldap/v3",
+        "github.com/go-openapi/analysis",
         "github.com/go-openapi/errors",
         "github.com/go-openapi/jsonpointer",
+        "github.com/go-openapi/jsonreference",
+        "github.com/go-openapi/loads",
+        "github.com/go-openapi/spec",
+        "github.com/go-openapi/strfmt",
         "github.com/go-openapi/swag",
+        "github.com/go-openapi/validate",
         "github.com/go-task/slim-sprig/v3",
         "github.com/jmespath/go-jmespath/internal/testify",
         "github.com/json-iterator/go",
-        "github.com/pelletier/go-toml/v2",
         "github.com/prometheus/common",
         "github.com/sagikazarmark/locafero",
         "github.com/sergi/go-diff",
@@ -118,7 +115,10 @@
         "github.com/spf13/viper",
         "github.com/stretchr/testify",
         "github.com/subosito/gotenv",
+        "github.com/vbatts/tar-split",
+        "go.etcd.io/etcd/api/v3",
         "go.etcd.io/etcd/client/pkg/v3",
+        "go.etcd.io/etcd/client/v3",
         "go.mongodb.org/mongo-driver",
         "go.opentelemetry.io/auto/sdk",
         "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
@@ -129,6 +129,7 @@
         "go.opentelemetry.io/otel/metric",
         "go.opentelemetry.io/otel/sdk",
         "go.opentelemetry.io/otel/trace",
+        "go.uber.org/automaxprocs",
         "go.uber.org/multierr",
         "go.uber.org/zap",
         "gomodules.xyz/jsonpatch/v2",
@@ -151,6 +152,7 @@
       ],
       "github.com/gogo/protobuf": [
         "github.com/containerd/containerd",
+        "github.com/containerd/errdefs/pkg",
         "github.com/google/go-containerregistry",
         "go.etcd.io/etcd/api/v3",
         "go.etcd.io/etcd/client/v3",
@@ -171,70 +173,32 @@
       "github.com/golang/groupcache": [
         "github.com/containerd/containerd",
         "github.com/go-git/go-git/v5",
-        "github.com/spf13/afero",
-        "sigs.k8s.io/application",
-        "sigs.k8s.io/controller-runtime"
+        "sigs.k8s.io/application"
       ],
       "github.com/golang/protobuf": [
         "github.com/containerd/containerd",
-        "github.com/google/gnostic-models",
-        "github.com/google/go-containerregistry",
+        "github.com/golang/groupcache",
         "github.com/open-policy-agent/opa",
         "go.etcd.io/etcd/api/v3",
         "go.etcd.io/etcd/client/v3",
         "google.golang.org/grpc",
         "google.golang.org/protobuf",
-        "helm.sh/helm/v3",
-        "k8s.io/api",
         "k8s.io/apiextensions-apiserver",
-        "k8s.io/apimachinery",
         "k8s.io/apiserver",
-        "k8s.io/cli-runtime",
-        "k8s.io/client-go",
-        "k8s.io/code-generator",
-        "k8s.io/component-base",
-        "k8s.io/kube-openapi",
-        "k8s.io/kubectl",
         "oras.land/oras-go",
-        "sigs.k8s.io/apiserver-network-proxy/konnectivity-client",
-        "sigs.k8s.io/controller-runtime",
-        "sigs.k8s.io/kustomize/api",
-        "sigs.k8s.io/kustomize/kyaml"
+        "sigs.k8s.io/apiserver-network-proxy/konnectivity-client"
       ],
       "github.com/google/gofuzz": [
         "github.com/containerd/containerd",
         "github.com/json-iterator/go",
-        "helm.sh/helm/v3",
-        "k8s.io/api",
-        "k8s.io/apiextensions-apiserver",
-        "k8s.io/apimachinery",
-        "k8s.io/apiserver",
-        "k8s.io/cli-runtime",
-        "k8s.io/client-go",
-        "k8s.io/code-generator",
-        "k8s.io/component-base",
-        "k8s.io/kube-openapi",
-        "k8s.io/kubectl",
         "kubesphere.io/client-go",
-        "sigs.k8s.io/controller-runtime",
-        "sigs.k8s.io/controller-tools",
-        "sigs.k8s.io/kustomize/kyaml",
-        "sigs.k8s.io/structured-merge-diff/v4"
-      ],
-      "github.com/google/s2a-go": [
-        "github.com/spf13/afero"
+        "sigs.k8s.io/controller-runtime"
       ],
       "github.com/google/shlex": [
         "helm.sh/helm/v3",
         "k8s.io/cli-runtime",
         "k8s.io/kubectl",
         "sigs.k8s.io/kustomize/api"
-      ],
-      "github.com/googleapis/enterprise-certificate-proxy": [
-        "github.com/spf13/afero"
-      ],
-      "github.com/googleapis/gax-go/v2": [
-        "github.com/spf13/afero"
       ],
       "github.com/gorilla/handlers": [
         "helm.sh/helm/v3",
@@ -253,12 +217,10 @@
       ],
       "github.com/grpc-ecosystem/go-grpc-prometheus": [
         "github.com/containerd/containerd",
-        "go.etcd.io/etcd/client/v3",
         "k8s.io/apiextensions-apiserver",
         "k8s.io/apiserver"
       ],
       "github.com/grpc-ecosystem/grpc-gateway": [
-        "go.etcd.io/etcd/api/v3",
         "k8s.io/apiextensions-apiserver",
         "k8s.io/apiserver"
       ],
@@ -272,12 +234,11 @@
         "github.com/rubenv/sql-migrate",
         "helm.sh/helm/v3"
       ],
-      "github.com/hashicorp/golang-lru": [
-        "helm.sh/helm/v3"
+      "github.com/hashicorp/go-uuid": [
+        "github.com/go-ldap/ldap/v3"
       ],
       "github.com/imdario/mergo": [
-        "github.com/rubenv/sql-migrate",
-        "sigs.k8s.io/controller-runtime"
+        "github.com/rubenv/sql-migrate"
       ],
       "github.com/json-iterator/go": [
         "github.com/containerd/containerd",
@@ -301,16 +262,23 @@
       ],
       "github.com/klauspost/compress": [
         "github.com/containerd/containerd",
+        "github.com/containerd/stargz-snapshotter/estargz",
         "github.com/google/go-containerregistry",
         "github.com/open-policy-agent/opa",
         "github.com/prometheus/client_golang",
+        "go.etcd.io/etcd/client/v3",
         "go.mongodb.org/mongo-driver",
         "helm.sh/helm/v3",
         "oras.land/oras-go"
       ],
       "github.com/mailru/easyjson": [
+        "github.com/go-openapi/analysis",
         "github.com/go-openapi/jsonpointer",
+        "github.com/go-openapi/jsonreference",
+        "github.com/go-openapi/loads",
+        "github.com/go-openapi/spec",
         "github.com/go-openapi/swag",
+        "github.com/go-openapi/validate",
         "helm.sh/helm/v3",
         "k8s.io/apiextensions-apiserver",
         "k8s.io/apimachinery",
@@ -322,6 +290,7 @@
         "k8s.io/kube-openapi",
         "k8s.io/kubectl",
         "sigs.k8s.io/controller-runtime",
+        "sigs.k8s.io/controller-tools",
         "sigs.k8s.io/kustomize/api",
         "sigs.k8s.io/kustomize/kyaml"
       ],
@@ -376,10 +345,8 @@
       ],
       "github.com/pkg/errors": [
         "github.com/containerd/containerd",
-        "github.com/evanphx/json-patch/v5",
         "github.com/go-git/gcfg",
         "github.com/google/go-containerregistry",
-        "go.mongodb.org/mongo-driver",
         "gomodules.xyz/jsonpatch/v2",
         "helm.sh/helm/v3",
         "k8s.io/apiextensions-apiserver",
@@ -397,18 +364,19 @@
         "sigs.k8s.io/kustomize/api"
       ],
       "github.com/planetscale/vtprotobuf": [
-        "github.com/spf13/afero",
         "google.golang.org/grpc"
       ],
       "github.com/xeipuuv/gojsonschema": [
         "helm.sh/helm/v3"
       ],
       "go.mongodb.org/mongo-driver": [
-        "github.com/go-openapi/strfmt"
+        "github.com/go-openapi/analysis",
+        "github.com/go-openapi/loads",
+        "github.com/go-openapi/strfmt",
+        "github.com/go-openapi/validate"
       ],
       "go.opencensus.io": [
-        "github.com/containerd/containerd",
-        "github.com/spf13/afero"
+        "github.com/containerd/containerd"
       ],
       "golang.org/x/exp": [
         "github.com/antlr4-go/antlr/v4",
@@ -420,46 +388,30 @@
         "kubesphere.io/kubesphere",
         "sigs.k8s.io/controller-runtime"
       ],
-      "google.golang.org/api": [
-        "github.com/spf13/afero"
-      ],
       "google.golang.org/appengine": [
-        "github.com/containerd/containerd",
-        "github.com/google/go-containerregistry"
+        "github.com/containerd/containerd"
       ],
       "google.golang.org/genproto": [
         "github.com/containerd/containerd",
-        "github.com/spf13/afero",
-        "go.etcd.io/etcd/api/v3",
-        "go.etcd.io/etcd/client/v3",
         "k8s.io/apiextensions-apiserver",
-        "k8s.io/apiserver"
-      ],
-      "gopkg.in/square/go-jose.v2": [
         "k8s.io/apiserver"
       ],
       "gopkg.in/yaml.v2": [
         "github.com/Masterminds/sprig/v3",
         "github.com/containerd/containerd",
-        "github.com/go-openapi/loads",
-        "github.com/go-openapi/spec",
-        "github.com/go-openapi/validate",
         "github.com/jmespath/go-jmespath/internal/testify",
         "github.com/prometheus/client_golang",
         "github.com/prometheus/common",
         "github.com/rubenv/sql-migrate",
         "github.com/sergi/go-diff",
-        "go.etcd.io/etcd/api/v3",
-        "go.etcd.io/etcd/client/v3",
         "gopkg.in/cas.v2",
         "helm.sh/helm/v3",
         "oras.land/oras-go",
         "sigs.k8s.io/application",
-        "sigs.k8s.io/controller-runtime",
         "sigs.k8s.io/controller-tools"
       ],
       "gopkg.in/yaml.v3": [
-        "dario.cat/mergo",
+        "code.cloudfoundry.org/bytefmt",
         "github.com/containerd/containerd",
         "github.com/containerd/platforms",
         "github.com/coreos/go-semver",
@@ -468,17 +420,24 @@
         "github.com/go-git/go-git/v5",
         "github.com/go-gorp/gorp/v3",
         "github.com/go-jose/go-jose/v4",
+        "github.com/go-ldap/ldap/v3",
+        "github.com/go-openapi/analysis",
         "github.com/go-openapi/errors",
         "github.com/go-openapi/jsonpointer",
+        "github.com/go-openapi/jsonreference",
+        "github.com/go-openapi/loads",
+        "github.com/go-openapi/spec",
+        "github.com/go-openapi/strfmt",
         "github.com/go-openapi/swag",
+        "github.com/go-openapi/validate",
         "github.com/go-task/slim-sprig/v3",
+        "github.com/google/cel-go",
         "github.com/google/gnostic-models",
         "github.com/google/go-containerregistry",
         "github.com/grpc-ecosystem/grpc-gateway/v2",
         "github.com/onsi/ginkgo/v2",
         "github.com/onsi/gomega",
         "github.com/open-policy-agent/opa",
-        "github.com/pelletier/go-toml/v2",
         "github.com/prometheus/common",
         "github.com/sagikazarmark/locafero",
         "github.com/sourcegraph/conc",
@@ -486,8 +445,10 @@
         "github.com/spf13/viper",
         "github.com/stretchr/testify",
         "github.com/subosito/gotenv",
+        "github.com/vbatts/tar-split",
+        "go.etcd.io/etcd/api/v3",
         "go.etcd.io/etcd/client/pkg/v3",
-        "go.mongodb.org/mongo-driver",
+        "go.etcd.io/etcd/client/v3",
         "go.opentelemetry.io/auto/sdk",
         "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
         "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
@@ -497,6 +458,7 @@
         "go.opentelemetry.io/otel/metric",
         "go.opentelemetry.io/otel/sdk",
         "go.opentelemetry.io/otel/trace",
+        "go.uber.org/automaxprocs",
         "go.uber.org/multierr",
         "go.uber.org/zap",
         "helm.sh/helm/v3",

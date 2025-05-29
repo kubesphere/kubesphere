@@ -2,15 +2,30 @@
 
 # v2+ versions are using the Go module of go-restful v3+
 
+## v2.11.0
+
+- allow providing example value to a property via "example" tag (#124), thanks to Try Ajitiono <ballinst@gmail.com>  
+
+## v2.10.2
+
+- fix handle time.Time field #120 (#121)
+
+## v2.10.1
+
+- Add type SchemaType to use in Return calls allowing for specification of a raw type value and format (#118) 
+
+## v2.9.2
+
+- fix unused type because embedded stuct (#113)
 
 ## v2.9.1
 
-    - fix set array data format (#96)
+- fix set array data format (#96)
 
 ## v2.9.0
 
-    - Add property x-go-name support (#90)
-    - Add support to set swagger Schemes field (#91)
+- Add property x-go-name support (#90)
+- Add support to set swagger Schemes field (#91)
 
 ## v2.8.0
 

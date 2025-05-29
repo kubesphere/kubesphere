@@ -1,7 +1,6 @@
 package restfulspec
 
 import (
-	"encoding/json"
 	"reflect"
 	"strings"
 
@@ -172,17 +171,17 @@ func (b definitionBuilder) buildProperty(field reflect.StructField, model *spec.
 	fieldType := field.Type
 
 	// check if type is doing its own marshalling
-	marshalerType := reflect.TypeOf((*json.Marshaler)(nil)).Elem()
-	if fieldType.Implements(marshalerType) {
-		var pType = "string"
-		if prop.Type == nil {
-			prop.Type = []string{pType}
-		}
-		if prop.Format == "" {
-			prop.Format = b.jsonSchemaFormat(keyFrom(fieldType, b.Config), fieldType.Kind())
-		}
-		return jsonName, modelDescription, prop
-	}
+	// marshalerType := reflect.TypeOf((*json.Marshaler)(nil)).Elem()
+	// if fieldType.Implements(marshalerType) {
+	// 	var pType = "string"
+	// 	if prop.Type == nil {
+	// 		prop.Type = []string{pType}
+	// 	}
+	// 	if prop.Format == "" {
+	// 		prop.Format = b.jsonSchemaFormat(keyFrom(fieldType, b.Config), fieldType.Kind())
+	// 	}
+	// 	return jsonName, modelDescription, prop
+	// }
 
 	// check if annotation says it is a string
 	if jsonTag := field.Tag.Get("json"); jsonTag != "" {
@@ -195,21 +194,8 @@ func (b definitionBuilder) buildProperty(field reflect.StructField, model *spec.
 	}
 
 	fieldKind := fieldType.Kind()
-	switch {
-	case fieldKind == reflect.Struct:
-		jsonName, prop := b.buildStructTypeProperty(field, jsonName, model)
-		return jsonName, modelDescription, prop
-	case b.isSliceOrArrayType(fieldKind):
-		jsonName, prop := b.buildArrayTypeProperty(field, jsonName, modelName)
-		return jsonName, modelDescription, prop
-	case fieldKind == reflect.Ptr:
-		jsonName, prop := b.buildPointerTypeProperty(field, jsonName, modelName)
-		return jsonName, modelDescription, prop
-	case fieldKind == reflect.Map:
-		jsonName, prop := b.buildMapTypeProperty(field, jsonName, modelName)
-		return jsonName, modelDescription, prop
-	}
 
+	// check for primitive first
 	fieldTypeName := keyFrom(fieldType, b.Config)
 	if b.isPrimitiveType(fieldTypeName, fieldKind) {
 		mapped := b.jsonSchemaType(fieldTypeName, fieldKind)
@@ -217,6 +203,32 @@ func (b definitionBuilder) buildProperty(field reflect.StructField, model *spec.
 		prop.Format = b.jsonSchemaFormat(fieldTypeName, fieldKind)
 		return jsonName, modelDescription, prop
 	}
+
+	// not a primitive
+	// Since the `prop` variable in each of the cases below is a new reference, we need to re-set the `Example` field.
+	switch {
+	case fieldKind == reflect.Struct:
+		jsonName, prop := b.buildStructTypeProperty(field, jsonName, model)
+		setExample(&prop, field)
+
+		return jsonName, modelDescription, prop
+	case b.isSliceOrArrayType(fieldKind):
+		jsonName, prop := b.buildArrayTypeProperty(field, jsonName, modelName)
+		setExample(&prop, field)
+
+		return jsonName, modelDescription, prop
+	case fieldKind == reflect.Ptr:
+		jsonName, prop := b.buildPointerTypeProperty(field, jsonName, modelName)
+		setExample(&prop, field)
+
+		return jsonName, modelDescription, prop
+	case fieldKind == reflect.Map:
+		jsonName, prop := b.buildMapTypeProperty(field, jsonName, modelName)
+		setExample(&prop, field)
+
+		return jsonName, modelDescription, prop
+	}
+
 	modelType := keyFrom(fieldType, b.Config)
 	prop.Ref = spec.MustCreateRef("#/definitions/" + modelType)
 
@@ -226,6 +238,7 @@ func (b definitionBuilder) buildProperty(field reflect.StructField, model *spec.
 		prop.Ref = spec.MustCreateRef("#/definitions/" + nestedTypeName)
 		b.addModel(fieldType, nestedTypeName)
 	}
+
 	return jsonName, modelDescription, prop
 }
 
@@ -317,6 +330,7 @@ func (b definitionBuilder) buildArrayTypeProperty(field reflect.StructField, jso
 		isArray = b.isSliceOrArrayType(itemType.Kind())
 		if itemType.Kind() == reflect.Uint8 {
 			stringt := "string"
+			prop.Format = "binary"
 			itemSchema.Type = []string{stringt}
 			return jsonName, prop
 		}
@@ -328,6 +342,13 @@ func (b definitionBuilder) buildArrayTypeProperty(field reflect.StructField, jso
 	}
 	isPrimitive := b.isPrimitiveType(itemType.Name(), itemType.Kind())
 	elemTypeName := b.getElementTypeName(modelName, jsonName, itemType)
+
+	// If enum exists, move the enum definition from the `type: "array"` definition to `items`.
+	if prop.Enum != nil {
+		prop.Items.Schema.Enum = prop.Enum
+		prop.Enum = nil
+	}
+
 	if isPrimitive {
 		mapped := b.jsonSchemaType(elemTypeName, itemType.Kind())
 		itemSchema.Type = []string{mapped}

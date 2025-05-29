@@ -1,5 +1,5 @@
 # Build
-FROM golang:1.23.8 AS build_context
+FROM golang:1.24.3 AS build_context
 
 RUN apt-get update && apt-get install -y rsync
 WORKDIR /workspace

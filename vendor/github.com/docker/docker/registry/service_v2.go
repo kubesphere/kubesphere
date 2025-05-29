@@ -1,50 +1,50 @@
 package registry // import "github.com/docker/docker/registry"
 
 import (
+	"context"
 	"net/url"
 	"strings"
 
 	"github.com/docker/go-connections/tlsconfig"
 )
 
-func (s *Service) lookupV2Endpoints(hostname string) (endpoints []APIEndpoint, err error) {
-	ana := s.config.allowNondistributableArtifacts(hostname)
-
+func (s *Service) lookupV2Endpoints(ctx context.Context, hostname string, includeMirrors bool) ([]APIEndpoint, error) {
+	var endpoints []APIEndpoint
 	if hostname == DefaultNamespace || hostname == IndexHostname {
-		for _, mirror := range s.config.Mirrors {
-			if !strings.HasPrefix(mirror, "http://") && !strings.HasPrefix(mirror, "https://") {
-				mirror = "https://" + mirror
+		if includeMirrors {
+			for _, mirror := range s.config.Mirrors {
+				if ctx.Err() != nil {
+					return nil, ctx.Err()
+				}
+				if !strings.HasPrefix(mirror, "http://") && !strings.HasPrefix(mirror, "https://") {
+					mirror = "https://" + mirror
+				}
+				mirrorURL, err := url.Parse(mirror)
+				if err != nil {
+					return nil, invalidParam(err)
+				}
+				// TODO(thaJeztah); this should all be memoized when loading the config. We're resolving mirrors and loading TLS config every time.
+				mirrorTLSConfig, err := newTLSConfig(ctx, mirrorURL.Host, s.config.isSecureIndex(mirrorURL.Host))
+				if err != nil {
+					return nil, err
+				}
+				endpoints = append(endpoints, APIEndpoint{
+					URL:       mirrorURL,
+					Mirror:    true,
+					TLSConfig: mirrorTLSConfig,
+				})
 			}
-			mirrorURL, err := url.Parse(mirror)
-			if err != nil {
-				return nil, invalidParam(err)
-			}
-			mirrorTLSConfig, err := newTLSConfig(mirrorURL.Host, s.config.isSecureIndex(mirrorURL.Host))
-			if err != nil {
-				return nil, err
-			}
-			endpoints = append(endpoints, APIEndpoint{
-				URL:          mirrorURL,
-				Version:      APIVersion2, //nolint:staticcheck // ignore SA1019 (Version is deprecated) to allow potential consumers to transition.
-				Mirror:       true,
-				TrimHostname: true,
-				TLSConfig:    mirrorTLSConfig,
-			})
 		}
 		endpoints = append(endpoints, APIEndpoint{
-			URL:          DefaultV2Registry,
-			Version:      APIVersion2, //nolint:staticcheck // ignore SA1019 (Version is deprecated) to allow potential consumers to transition.
-			Official:     true,
-			TrimHostname: true,
-			TLSConfig:    tlsconfig.ServerDefault(),
-
-			AllowNondistributableArtifacts: ana,
+			URL:       DefaultV2Registry,
+			Official:  true,
+			TLSConfig: tlsconfig.ServerDefault(),
 		})
 
 		return endpoints, nil
 	}
 
-	tlsConfig, err := newTLSConfig(hostname, s.config.isSecureIndex(hostname))
+	tlsConfig, err := newTLSConfig(ctx, hostname, s.config.isSecureIndex(hostname))
 	if err != nil {
 		return nil, err
 	}
@@ -55,10 +55,7 @@ func (s *Service) lookupV2Endpoints(hostname string) (endpoints []APIEndpoint, e
 				Scheme: "https",
 				Host:   hostname,
 			},
-			Version:                        APIVersion2, //nolint:staticcheck // ignore SA1019 (Version is deprecated) to allow potential consumers to transition.
-			AllowNondistributableArtifacts: ana,
-			TrimHostname:                   true,
-			TLSConfig:                      tlsConfig,
+			TLSConfig: tlsConfig,
 		},
 	}
 
@@ -68,9 +65,6 @@ func (s *Service) lookupV2Endpoints(hostname string) (endpoints []APIEndpoint, e
 				Scheme: "http",
 				Host:   hostname,
 			},
-			Version:                        APIVersion2, //nolint:staticcheck // ignore SA1019 (Version is deprecated) to allow potential consumers to transition.
-			AllowNondistributableArtifacts: ana,
-			TrimHostname:                   true,
 			// used to check if supposed to be secure via InsecureSkipVerify
 			TLSConfig: tlsConfig,
 		})

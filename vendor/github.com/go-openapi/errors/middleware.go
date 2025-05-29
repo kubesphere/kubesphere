@@ -22,13 +22,12 @@ import (
 
 // APIVerificationFailed is an error that contains all the missing info for a mismatched section
 // between the api registrations and the api spec
-type APIVerificationFailed struct {
+type APIVerificationFailed struct { //nolint: errname
 	Section              string   `json:"section,omitempty"`
 	MissingSpecification []string `json:"missingSpecification,omitempty"`
 	MissingRegistration  []string `json:"missingRegistration,omitempty"`
 }
 
-//
 func (v *APIVerificationFailed) Error() string {
 	buf := bytes.NewBuffer(nil)
 

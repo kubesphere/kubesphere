@@ -83,8 +83,8 @@ the function AmazonEC2MachineID that returns the lower 16-bit private IP address
 It also works correctly on Docker
 by retrieving [instance metadata](http://docs.aws.amazon.com/en_us/AWSEC2/latest/UserGuide/ec2-instance-metadata.html).
 
-[AWS VPC](http://docs.aws.amazon.com/en_us/AmazonVPC/latest/UserGuide/VPC_Subnets.html)
-is assigned a single CIDR with a netmask between /28 and /16.
+[AWS IPv4 VPC](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-cidr-blocks.html)
+is usually assigned a single CIDR with a netmask between /28 and /16.
 So if each EC2 instance has a unique private IP address in AWS VPC,
 the lower 16 bits of the address is also unique.
 In this common case, you can use AmazonEC2MachineID as Settings.MachineID.

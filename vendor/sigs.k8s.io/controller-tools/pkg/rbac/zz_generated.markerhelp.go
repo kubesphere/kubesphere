@@ -36,6 +36,10 @@ func (Generator) Help() *markers.DefinitionHelp {
 				Summary: "sets the name of the generated ClusterRole.",
 				Details: "",
 			},
+			"FileName": {
+				Summary: "sets the file name for the generated manifest(s). If not set, defaults to \"role.yaml\".",
+				Details: "",
+			},
 			"HeaderFile": {
 				Summary: "specifies the header text (e.g. license) to prepend to generated files.",
 				Details: "",

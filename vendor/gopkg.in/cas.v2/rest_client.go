@@ -1,12 +1,13 @@
 package cas
 
 import (
-	"net/url"
-	"net/http"
-	"github.com/golang/glog"
 	"fmt"
-	"path"
 	"io/ioutil"
+	"net/http"
+	"net/url"
+	"path"
+
+	"github.com/golang/glog"
 )
 
 // https://apereo.github.io/cas/4.2.x/protocol/REST-Protocol.html
@@ -16,7 +17,6 @@ type TicketGrantingTicket string
 
 // ServiceTicket stands for the access granted by the CAS server to an application for a specific user, also known as ST
 type ServiceTicket string
-
 
 // RestOptions provide options for the RestClient
 type RestOptions struct {

@@ -7,6 +7,7 @@
 package resource
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
@@ -56,11 +57,11 @@ func TestResourceGetter(t *testing.T) {
 
 	for _, test := range tests {
 		result, err := resource.List(test.Resource, test.Namespace, test.Query)
-		if err != test.ExpectError {
+		if !errors.Is(err, test.ExpectError) {
 			t.Errorf("expected error: %s, got: %s", test.ExpectError, err)
 		}
 		if diff := cmp.Diff(test.ExpectResponse, result); diff != "" {
-			t.Errorf(diff)
+			t.Error(diff)
 		}
 	}
 }

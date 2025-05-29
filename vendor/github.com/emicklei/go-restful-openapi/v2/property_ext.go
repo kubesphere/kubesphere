@@ -123,6 +123,12 @@ func setReadOnly(prop *spec.Schema, field reflect.StructField) {
 	}
 }
 
+func setExample(prop *spec.Schema, field reflect.StructField) {
+	if exampleTag := field.Tag.Get("example"); exampleTag != "" {
+		prop.Example = exampleTag
+	}
+}
+
 func setPropertyMetadata(prop *spec.Schema, field reflect.StructField) {
 	setDescription(prop, field)
 	setDefaultValue(prop, field)
@@ -135,4 +141,5 @@ func setPropertyMetadata(prop *spec.Schema, field reflect.StructField) {
 	setReadOnly(prop, field)
 	setIsNullableValue(prop, field)
 	setGoNameValue(prop, field)
+	setExample(prop, field)
 }

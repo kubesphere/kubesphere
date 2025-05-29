@@ -28,18 +28,19 @@ import (
 	"strings"
 
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-tools/pkg/genall"
 	"sigs.k8s.io/controller-tools/pkg/markers"
 )
 
 // The default {Mutating,Validating}WebhookConfiguration version to generate.
 const (
-	v1                    = "v1"
-	defaultWebhookVersion = v1
+	v1                      = "v1"
+	defaultWebhookVersion   = v1
+	defaultServiceName      = "webhook-service"
+	defaultServiceNamespace = "system"
 )
 
 var (
@@ -118,6 +119,12 @@ type Config struct {
 	// Name indicates the name of this webhook configuration. Should be a domain with at least three segments separated by dots
 	Name string
 
+	// ServiceName indicates the name of the K8s Service the webhook uses.
+	ServiceName string `marker:"serviceName,optional"`
+
+	// ServiceNamespace indicates the namespace of the K8s Service the webhook uses.
+	ServiceNamespace string `marker:"serviceNamespace,optional"`
+
 	// Path specifies that path that the API server should connect to this webhook on. Must be
 	// prefixed with a '/validate-' or '/mutate-' depending on the type, and followed by
 	// $GROUP-$VERSION-$KIND where all values are lower-cased and the periods in the group
@@ -125,6 +132,9 @@ type Config struct {
 	// batch.tutorial.kubebuilder.io/v1,Kind=CronJob would be
 	// /validate-batch-tutorial-kubebuilder-io-v1-cronjob
 	Path string `marker:"path,optional"`
+
+	// ServicePort indicates the port of the K8s Service the webhook uses
+	ServicePort *int32 `marker:"servicePort,optional"`
 
 	// WebhookVersions specifies the target API versions of the {Mutating,Validating}WebhookConfiguration objects
 	// itself to generate. The only supported value is v1. Defaults to v1.
@@ -318,11 +328,29 @@ func (c Config) clientConfig() (admissionregv1.WebhookClientConfig, error) {
 
 	path := c.Path
 	if path != "" {
+		var name, namespace string
+		var port *int32
+
+		if c.ServiceName != "" {
+			name = c.ServiceName
+		} else {
+			name = defaultServiceName
+		}
+		if c.ServiceNamespace != "" {
+			namespace = c.ServiceNamespace
+		} else {
+			namespace = defaultServiceNamespace
+		}
+		if c.ServicePort != nil {
+			port = c.ServicePort
+		}
+
 		return admissionregv1.WebhookClientConfig{
 			Service: &admissionregv1.ServiceReference{
-				Name:      "webhook-service",
-				Namespace: "system",
+				Name:      name,
+				Namespace: namespace,
 				Path:      &path,
+				Port:      port,
 			},
 		}, nil
 	}
@@ -412,6 +440,7 @@ func (Generator) RegisterMarkers(into *markers.Registry) error {
 	return nil
 }
 
+//gocyclo:ignore
 func (g Generator) Generate(ctx *genall.GenerationContext) error {
 	supportedWebhookVersions := supportedWebhookVersions()
 	mutatingCfgs := make(map[string][]admissionregv1.MutatingWebhook, len(supportedWebhookVersions))
@@ -426,7 +455,7 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 		}
 
 		webhookCfgs := markerSet[WebhookConfigDefinition.Name]
-		var hasValidatingWebhookConfig, hasMutatingWebhookConfig bool = false, false
+		hasValidatingWebhookConfig, hasMutatingWebhookConfig := false, false
 		for _, webhookCfg := range webhookCfgs {
 			webhookCfg := webhookCfg.(WebhookConfig)
 

@@ -50,7 +50,6 @@ func parse(data string) (p *parser, err error) {
 	// it anyway.
 	if strings.HasPrefix(data, "\xff\xfe") || strings.HasPrefix(data, "\xfe\xff") { // UTF-16
 		data = data[2:]
-		//lint:ignore S1017 https://github.com/dominikh/go-tools/issues/1447
 	} else if strings.HasPrefix(data, "\xef\xbb\xbf") { // UTF-8
 		data = data[3:]
 	}
@@ -529,7 +528,7 @@ func numUnderscoresOK(s string) bool {
 			}
 		}
 
-		// isHexis a superset of all the permissable characters surrounding an
+		// isHex is a superset of all the permissible characters surrounding an
 		// underscore.
 		accept = isHex(r)
 	}

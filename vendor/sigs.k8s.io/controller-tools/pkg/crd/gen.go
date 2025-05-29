@@ -25,7 +25,6 @@ import (
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	crdmarkers "sigs.k8s.io/controller-tools/pkg/crd/markers"
 	"sigs.k8s.io/controller-tools/pkg/genall"
 	"sigs.k8s.io/controller-tools/pkg/loader"
@@ -93,7 +92,7 @@ type Generator struct {
 	// This value can only be specified for CustomResourceDefinitions that were created with
 	// `apiextensions.k8s.io/v1beta1`.
 	//
-	// The field can be set for compatiblity reasons, although strongly discouraged, resource
+	// The field can be set for compatibility reasons, although strongly discouraged, resource
 	// authors should move to a structural OpenAPI schema instead.
 	//
 	// See https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#field-pruning

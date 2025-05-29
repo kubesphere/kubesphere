@@ -1,4 +1,4 @@
-FROM golang:1.23.8 AS build_context
+FROM golang:1.24.3 AS build_context
 
 ARG TELEMETRY_VERSION=1.0.2
 ARG TARGETARCH

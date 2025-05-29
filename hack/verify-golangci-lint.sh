@@ -16,7 +16,7 @@ kube::golang::setup_env
 if ! command -v golangci-lint ; then
   # Install golangci-lint
   echo 'installing golangci-lint'
-  go install -mod=mod github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+  go install -mod=mod github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
 fi
 
 cd "${KUBE_ROOT}"
@@ -35,12 +35,9 @@ echo "running golangci-lint: REV=HEAD^"
 golangci-lint run \
   -v \
   --timeout 30m \
-  --disable-all \
-  -E unused \
-  -E ineffassign \
-  -E staticcheck \
-  -E gosimple \
-  -E bodyclose \
-  --skip-dirs pkg/client \
+  --default standard \
   --new-from-rev=HEAD^ \
-  ./...
+  pkg/... \
+  cmd/... \
+  staging/... \
+  tools/...

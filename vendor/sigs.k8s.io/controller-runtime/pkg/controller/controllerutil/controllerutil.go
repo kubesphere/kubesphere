@@ -181,6 +181,21 @@ func HasControllerReference(object metav1.Object) bool {
 	return false
 }
 
+// HasOwnerReference returns true if the owners list contains an owner reference
+// that matches the object's group, kind, and name.
+func HasOwnerReference(ownerRefs []metav1.OwnerReference, obj client.Object, scheme *runtime.Scheme) (bool, error) {
+	gvk, err := apiutil.GVKForObject(obj, scheme)
+	if err != nil {
+		return false, err
+	}
+	idx := indexOwnerRef(ownerRefs, metav1.OwnerReference{
+		APIVersion: gvk.GroupVersion().String(),
+		Name:       obj.GetName(),
+		Kind:       gvk.Kind,
+	})
+	return idx != -1, nil
+}
+
 // RemoveControllerReference removes an owner reference where the controller
 // equals true
 func RemoveControllerReference(owner, object metav1.Object, scheme *runtime.Scheme) error {
@@ -263,7 +278,7 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 	return aGV.Group == bGV.Group && a.Kind == b.Kind && a.Name == b.Name
 }
 
-// OperationResult is the action result of a CreateOrUpdate call.
+// OperationResult is the action result of a CreateOrUpdate or CreateOrPatch call.
 type OperationResult string
 
 const ( // They should complete the sentence "Deployment default/foo has been ..."
@@ -279,13 +294,26 @@ const ( // They should complete the sentence "Deployment default/foo has been ..
 	OperationResultUpdatedStatusOnly OperationResult = "updatedStatusOnly"
 )
 
-// CreateOrUpdate creates or updates the given object in the Kubernetes
-// cluster. The object's desired state must be reconciled with the existing
-// state inside the passed in callback MutateFn.
+// CreateOrUpdate attempts to fetch the given object from the Kubernetes cluster.
+// If the object didn't exist, MutateFn will be called, and it will be created.
+// If the object did exist, MutateFn will be called, and if it changed the
+// object, it will be updated.
+// Otherwise, it will be left unchanged.
+// The executed operation (and an error) will be returned.
 //
-// The MutateFn is called regardless of creating or updating an object.
+// WARNING: If the MutateFn resets a value on obj that has a default value,
+// CreateOrUpdate will *always* perform an update. This is because when the
+// object is fetched from the API server, the value will have taken on the
+// default value, and the check for equality will fail. For example, Deployments
+// must have a Replicas value set. If the MutateFn sets a Deployment's Replicas
+// to nil, then it will never match with the object returned from the API
+// server, which defaults the value to 1.
 //
-// It returns the executed operation and an error.
+// WARNING: CreateOrUpdate assumes that no values have been set on obj aside
+// from the Name/Namespace. Values other than Name and Namespace that existed on
+// obj may be overwritten by the corresponding values in the object returned
+// from the Kubernetes API server. When this happens, the Update will not work
+// as expected.
 //
 // Note: changes made by MutateFn to any sub-resource (status...), will be
 // discarded.
@@ -295,9 +323,12 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object, f M
 		if !apierrors.IsNotFound(err) {
 			return OperationResultNone, err
 		}
-		if err := mutate(f, key, obj); err != nil {
-			return OperationResultNone, err
+		if f != nil {
+			if err := mutate(f, key, obj); err != nil {
+				return OperationResultNone, err
+			}
 		}
+
 		if err := c.Create(ctx, obj); err != nil {
 			return OperationResultNone, err
 		}
@@ -305,8 +336,10 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object, f M
 	}
 
 	existing := obj.DeepCopyObject()
-	if err := mutate(f, key, obj); err != nil {
-		return OperationResultNone, err
+	if f != nil {
+		if err := mutate(f, key, obj); err != nil {
+			return OperationResultNone, err
+		}
 	}
 
 	if equality.Semantic.DeepEqual(existing, obj) {
@@ -319,13 +352,26 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object, f M
 	return OperationResultUpdated, nil
 }
 
-// CreateOrPatch creates or patches the given object in the Kubernetes
-// cluster. The object's desired state must be reconciled with the before
-// state inside the passed in callback MutateFn.
+// CreateOrPatch attempts to fetch the given object from the Kubernetes cluster.
+// If the object didn't exist, MutateFn will be called, and it will be created.
+// If the object did exist, MutateFn will be called, and if it changed the
+// object, it will be patched.
+// Otherwise, it will be left unchanged.
+// The executed operation (and an error) will be returned.
 //
-// The MutateFn is called regardless of creating or updating an object.
+// WARNING: If the MutateFn resets a value on obj that has a default value,
+// CreateOrPatch will *always* perform a patch. This is because when the
+// object is fetched from the API server, the value will have taken on the
+// default value, and the check for equality will fail.
+// For example, Deployments must have a Replicas value set. If the MutateFn sets
+// a Deployment's Replicas to nil, then it will never match with the object
+// returned from the API server, which defaults the value to 1.
 //
-// It returns the executed operation and an error.
+// WARNING: CreateOrPatch assumes that no values have been set on obj aside
+// from the Name/Namespace. Values other than Name and Namespace that existed on
+// obj may be overwritten by the corresponding values in the object returned
+// from the Kubernetes API server. When this happens, the Patch will not work
+// as expected.
 //
 // Note: changes to any sub-resource other than status will be ignored.
 // Changes to the status sub-resource will only be applied if the object

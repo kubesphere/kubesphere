@@ -26,14 +26,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kyaml "sigs.k8s.io/yaml"
-
 	crdgen "sigs.k8s.io/controller-tools/pkg/crd"
 	crdmarkers "sigs.k8s.io/controller-tools/pkg/crd/markers"
 	"sigs.k8s.io/controller-tools/pkg/genall"
 	"sigs.k8s.io/controller-tools/pkg/loader"
 	"sigs.k8s.io/controller-tools/pkg/markers"
 	yamlop "sigs.k8s.io/controller-tools/pkg/schemapatcher/internal/yaml"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 // NB(directxman12): this code is quite fragile, but there are a sufficient

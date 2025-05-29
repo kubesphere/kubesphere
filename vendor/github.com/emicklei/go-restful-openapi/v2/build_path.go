@@ -24,6 +24,14 @@ const (
 	definitionRoot = "#/definitions/"
 )
 
+// SchemaType is used to wrap any raw types
+// For example, to return a "schema": "file" one can use
+// Returns(http.StatusOK, http.StatusText(http.StatusOK), SchemaType{RawType: "file"})
+type SchemaType struct {
+	RawType string
+	Format  string
+}
+
 func buildPaths(ws *restful.WebService, cfg Config) spec.Paths {
 	p := spec.Paths{Paths: map[string]spec.PathItem{}}
 	for _, each := range ws.Routes() {
@@ -243,6 +251,9 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 			} else {
 				p.Schema.Items.Schema.Ref = spec.MustCreateRef(definitionRoot + dataTypeName)
 			}
+		} else if schemaType, ok := r.ReadSample.(SchemaType); ok {
+			p.Schema.Type = []string{schemaType.RawType}
+			p.Schema.Format = schemaType.Format
 		} else {
 			dataTypeName := keyFrom(st, cfg)
 			p.Schema.Ref = spec.MustCreateRef(definitionRoot + dataTypeName)
@@ -295,6 +306,8 @@ func buildResponse(e restful.ResponseError, cfg Config) (r spec.Response) {
 				// If the response is a primitive type, then don't reference any definitions.
 				// Instead, set the schema's "type" to the model name.
 				r.Schema.AddType(modelName, "")
+			} else if schemaType, ok := e.Model.(SchemaType); ok {
+				r.Schema.AddType(schemaType.RawType, schemaType.Format)
 			} else {
 				modelName := keyFrom(st, cfg)
 				r.Schema.Ref = spec.MustCreateRef(definitionRoot + modelName)

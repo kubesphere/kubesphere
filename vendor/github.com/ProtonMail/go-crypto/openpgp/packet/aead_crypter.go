@@ -3,7 +3,6 @@
 package packet
 
 import (
-	"bytes"
 	"crypto/cipher"
 	"encoding/binary"
 	"io"
@@ -15,12 +14,11 @@ import (
 type aeadCrypter struct {
 	aead           cipher.AEAD
 	chunkSize      int
-	initialNonce   []byte
+	nonce          []byte
 	associatedData []byte       // Chunk-independent associated data
 	chunkIndex     []byte       // Chunk counter
 	packetTag      packetType   // SEIP packet (v2) or AEAD Encrypted Data packet
 	bytesProcessed int          // Amount of plaintext bytes encrypted/decrypted
-	buffer         bytes.Buffer // Buffered bytes across chunks
 }
 
 // computeNonce takes the incremental index and computes an eXclusive OR with
@@ -28,12 +26,12 @@ type aeadCrypter struct {
 // 5.16.1 and 5.16.2). It returns the resulting nonce.
 func (wo *aeadCrypter) computeNextNonce() (nonce []byte) {
 	if wo.packetTag == packetTypeSymmetricallyEncryptedIntegrityProtected {
-		return append(wo.initialNonce, wo.chunkIndex...)
+		return wo.nonce
 	}
 
-	nonce = make([]byte, len(wo.initialNonce))
-	copy(nonce, wo.initialNonce)
-	offset := len(wo.initialNonce) - 8
+	nonce = make([]byte, len(wo.nonce))
+	copy(nonce, wo.nonce)
+	offset := len(wo.nonce) - 8
 	for i := 0; i < 8; i++ {
 		nonce[i+offset] ^= wo.chunkIndex[i]
 	}
@@ -62,8 +60,9 @@ func (wo *aeadCrypter) incrementIndex() error {
 type aeadDecrypter struct {
 	aeadCrypter           // Embedded ciphertext opener
 	reader      io.Reader // 'reader' is a partialLengthReader
+	chunkBytes  []byte
 	peekedBytes []byte    // Used to detect last chunk
-	eof         bool
+	buffer      []byte    // Buffered decrypted bytes
 }
 
 // Read decrypts bytes and reads them into dst. It decrypts when necessary and
@@ -71,59 +70,44 @@ type aeadDecrypter struct {
 // and an error.
 func (ar *aeadDecrypter) Read(dst []byte) (n int, err error) {
 	// Return buffered plaintext bytes from previous calls
-	if ar.buffer.Len() > 0 {
-		return ar.buffer.Read(dst)
-	}
-
-	// Return EOF if we've previously validated the final tag
-	if ar.eof {
-		return 0, io.EOF
+	if len(ar.buffer) > 0 {
+		n = copy(dst, ar.buffer)
+		ar.buffer = ar.buffer[n:]
+		return
 	}
 
 	// Read a chunk
 	tagLen := ar.aead.Overhead()
-	cipherChunkBuf := new(bytes.Buffer)
-	_, errRead := io.CopyN(cipherChunkBuf, ar.reader, int64(ar.chunkSize+tagLen))
-	cipherChunk := cipherChunkBuf.Bytes()
-	if errRead != nil && errRead != io.EOF {
+	copy(ar.chunkBytes, ar.peekedBytes) // Copy bytes peeked in previous chunk or in initialization
+	bytesRead, errRead := io.ReadFull(ar.reader, ar.chunkBytes[tagLen:])
+	if errRead != nil && errRead != io.EOF && errRead != io.ErrUnexpectedEOF {
 		return 0, errRead
 	}
 
-	if len(cipherChunk) > 0 {
-		decrypted, errChunk := ar.openChunk(cipherChunk)
+	if bytesRead > 0 {
+		ar.peekedBytes = ar.chunkBytes[bytesRead:bytesRead+tagLen]
+
+		decrypted, errChunk := ar.openChunk(ar.chunkBytes[:bytesRead])
 		if errChunk != nil {
 			return 0, errChunk
 		}
 
 		// Return decrypted bytes, buffering if necessary
-		if len(dst) < len(decrypted) {
-			n = copy(dst, decrypted[:len(dst)])
-			ar.buffer.Write(decrypted[len(dst):])
-		} else {
-			n = copy(dst, decrypted)
-		}
+		n = copy(dst, decrypted)
+		ar.buffer = decrypted[n:]
+		return
 	}
 
-	// Check final authentication tag
-	if errRead == io.EOF {
-		errChunk := ar.validateFinalTag(ar.peekedBytes)
-		if errChunk != nil {
-			return n, errChunk
-		}
-		ar.eof = true // Mark EOF for when we've returned all buffered data
-	}
-	return
+	return 0, io.EOF
 }
 
-// Close is noOp. The final authentication tag of the stream was already
-// checked in the last Read call. In the future, this function could be used to
-// wipe the reader and peeked, decrypted bytes, if necessary.
+// Close checks the final authentication tag of the stream.
+// In the future, this function could also be used to wipe the reader
+// and peeked & decrypted bytes, if necessary.
 func (ar *aeadDecrypter) Close() (err error) {
-	if !ar.eof {
-		errChunk := ar.validateFinalTag(ar.peekedBytes)
-		if errChunk != nil {
-			return errChunk
-		}
+	errChunk := ar.validateFinalTag(ar.peekedBytes)
+	if errChunk != nil {
+		return errChunk
 	}
 	return nil
 }
@@ -132,20 +116,13 @@ func (ar *aeadDecrypter) Close() (err error) {
 // the underlying plaintext and an error. It accesses peeked bytes from next
 // chunk, to identify the last chunk and decrypt/validate accordingly.
 func (ar *aeadDecrypter) openChunk(data []byte) ([]byte, error) {
-	tagLen := ar.aead.Overhead()
-	// Restore carried bytes from last call
-	chunkExtra := append(ar.peekedBytes, data...)
-	// 'chunk' contains encrypted bytes, followed by an authentication tag.
-	chunk := chunkExtra[:len(chunkExtra)-tagLen]
-	ar.peekedBytes = chunkExtra[len(chunkExtra)-tagLen:]
-
 	adata := ar.associatedData
 	if ar.aeadCrypter.packetTag == packetTypeAEADEncrypted {
 		adata = append(ar.associatedData, ar.chunkIndex...)
 	}
 
 	nonce := ar.computeNextNonce()
-	plainChunk, err := ar.aead.Open(nil, nonce, chunk, adata)
+	plainChunk, err := ar.aead.Open(data[:0:len(data)], nonce, data, adata)
 	if err != nil {
 		return nil, errors.ErrAEADTagVerification
 	}
@@ -183,27 +160,29 @@ func (ar *aeadDecrypter) validateFinalTag(tag []byte) error {
 type aeadEncrypter struct {
 	aeadCrypter                // Embedded plaintext sealer
 	writer      io.WriteCloser // 'writer' is a partialLengthWriter
+	chunkBytes  []byte
+	offset      int
 }
 
 // Write encrypts and writes bytes. It encrypts when necessary and buffers extra
 // plaintext bytes for next call. When the stream is finished, Close() MUST be
 // called to append the final tag.
 func (aw *aeadEncrypter) Write(plaintextBytes []byte) (n int, err error) {
-	// Append plaintextBytes to existing buffered bytes
-	n, err = aw.buffer.Write(plaintextBytes)
-	if err != nil {
-		return n, err
-	}
-	// Encrypt and write chunks
-	for aw.buffer.Len() >= aw.chunkSize {
-		plainChunk := aw.buffer.Next(aw.chunkSize)
-		encryptedChunk, err := aw.sealChunk(plainChunk)
-		if err != nil {
-			return n, err
-		}
-		_, err = aw.writer.Write(encryptedChunk)
-		if err != nil {
-			return n, err
+	for n != len(plaintextBytes) {
+		copied := copy(aw.chunkBytes[aw.offset:aw.chunkSize], plaintextBytes[n:])
+		n += copied
+		aw.offset += copied
+
+		if aw.offset == aw.chunkSize {
+			encryptedChunk, err := aw.sealChunk(aw.chunkBytes[:aw.offset])
+			if err != nil {
+				return n, err
+			}
+			_, err = aw.writer.Write(encryptedChunk)
+			if err != nil {
+				return n, err
+			}
+			aw.offset = 0
 		}
 	}
 	return
@@ -215,9 +194,8 @@ func (aw *aeadEncrypter) Write(plaintextBytes []byte) (n int, err error) {
 func (aw *aeadEncrypter) Close() (err error) {
 	// Encrypt and write a chunk if there's buffered data left, or if we haven't
 	// written any chunks yet.
-	if aw.buffer.Len() > 0 || aw.bytesProcessed == 0 {
-		plainChunk := aw.buffer.Bytes()
-		lastEncryptedChunk, err := aw.sealChunk(plainChunk)
+	if aw.offset > 0 || aw.bytesProcessed == 0 {
+		lastEncryptedChunk, err := aw.sealChunk(aw.chunkBytes[:aw.offset])
 		if err != nil {
 			return err
 		}
@@ -263,7 +241,7 @@ func (aw *aeadEncrypter) sealChunk(data []byte) ([]byte, error) {
 	}
 
 	nonce := aw.computeNextNonce()
-	encrypted := aw.aead.Seal(nil, nonce, data, adata)
+	encrypted := aw.aead.Seal(data[:0], nonce, data, adata)
 	aw.bytesProcessed += len(data)
 	if err := aw.aeadCrypter.incrementIndex(); err != nil {
 		return nil, err

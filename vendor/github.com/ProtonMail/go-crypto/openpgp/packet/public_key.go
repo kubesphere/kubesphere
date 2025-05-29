@@ -1048,12 +1048,17 @@ func (pk *PublicKey) VerifyDirectKeySignature(sig *Signature) (err error) {
 // KeyIdString returns the public key's fingerprint in capital hex
 // (e.g. "6C7EE1B8621CC013").
 func (pk *PublicKey) KeyIdString() string {
-	return fmt.Sprintf("%X", pk.Fingerprint[12:20])
+	return fmt.Sprintf("%016X", pk.KeyId)
 }
 
 // KeyIdShortString returns the short form of public key's fingerprint
 // in capital hex, as shown by gpg --list-keys (e.g. "621CC013").
+// This function will return the full key id for v5 and v6 keys
+// since the short key id is undefined for them.
 func (pk *PublicKey) KeyIdShortString() string {
+	if pk.Version >= 5 {
+		return pk.KeyIdString()
+	}
 	return fmt.Sprintf("%X", pk.Fingerprint[16:20])
 }
 

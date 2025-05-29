@@ -94,7 +94,7 @@ func InstallCRDs(config *rest.Config, options CRDInstallOptions) ([]*apiextensio
 	defaultCRDOptions(&options)
 
 	// Read the CRD yamls into options.CRDs
-	if err := readCRDFiles(&options); err != nil {
+	if err := ReadCRDFiles(&options); err != nil {
 		return nil, fmt.Errorf("unable to read CRD files: %w", err)
 	}
 
@@ -115,8 +115,8 @@ func InstallCRDs(config *rest.Config, options CRDInstallOptions) ([]*apiextensio
 	return options.CRDs, nil
 }
 
-// readCRDFiles reads the directories of CRDs in options.Paths and adds the CRD structs to options.CRDs.
-func readCRDFiles(options *CRDInstallOptions) error {
+// ReadCRDFiles reads the directories of CRDs in options.Paths and adds the CRD structs to options.CRDs.
+func ReadCRDFiles(options *CRDInstallOptions) error {
 	if len(options.Paths) > 0 {
 		crdList, err := renderCRDs(options)
 		if err != nil {
@@ -217,7 +217,7 @@ func (p *poller) poll(ctx context.Context) (done bool, err error) {
 // UninstallCRDs uninstalls a collection of CRDs by reading the crd yaml files from a directory.
 func UninstallCRDs(config *rest.Config, options CRDInstallOptions) error {
 	// Read the CRD yamls into options.CRDs
-	if err := readCRDFiles(&options); err != nil {
+	if err := ReadCRDFiles(&options); err != nil {
 		return err
 	}
 
@@ -229,7 +229,6 @@ func UninstallCRDs(config *rest.Config, options CRDInstallOptions) error {
 
 	// Uninstall each CRD
 	for _, crd := range options.CRDs {
-		crd := crd
 		log.V(1).Info("uninstalling CRD", "crd", crd.GetName())
 		if err := cs.Delete(context.TODO(), crd); err != nil {
 			// If CRD is not found, we can consider success
@@ -251,7 +250,6 @@ func CreateCRDs(config *rest.Config, crds []*apiextensionsv1.CustomResourceDefin
 
 	// Create each CRD
 	for _, crd := range crds {
-		crd := crd
 		log.V(1).Info("installing CRD", "crd", crd.GetName())
 		existingCrd := crd.DeepCopy()
 		err := cs.Get(context.TODO(), client.ObjectKey{Name: crd.GetName()}, existingCrd)

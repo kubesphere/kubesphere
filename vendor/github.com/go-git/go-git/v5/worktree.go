@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/util"
+
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
@@ -79,6 +80,8 @@ func (w *Worktree) PullContext(ctx context.Context, o *PullOptions) error {
 		Progress:        o.Progress,
 		Force:           o.Force,
 		InsecureSkipTLS: o.InsecureSkipTLS,
+		ClientCert:      o.ClientCert,
+		ClientKey:       o.ClientKey,
 		CABundle:        o.CABundle,
 		ProxyOptions:    o.ProxyOptions,
 	})
@@ -425,8 +428,9 @@ func (w *Worktree) resetIndex(t *object.Tree, dirs []string, files []string) err
 }
 
 func inFiles(files []string, v string) bool {
+	v = filepath.Clean(v)
 	for _, s := range files {
-		if s == v {
+		if filepath.Clean(s) == v {
 			return true
 		}
 	}

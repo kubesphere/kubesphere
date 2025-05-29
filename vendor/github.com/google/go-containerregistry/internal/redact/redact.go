@@ -51,7 +51,7 @@ func Error(err error) error {
 	if perr != nil {
 		return err // If the URL can't be parsed, just return the original error.
 	}
-	uerr.URL = URL(u).String() // Update the URL to the redacted URL.
+	uerr.URL = URL(u) // Update the URL to the redacted URL.
 	return uerr
 }
 
@@ -73,7 +73,7 @@ var paramAllowlist = map[string]struct{}{
 }
 
 // URL redacts potentially sensitive query parameter values from the URL's query string.
-func URL(u *url.URL) *url.URL {
+func URL(u *url.URL) string {
 	qs := u.Query()
 	for k, v := range qs {
 		for i := range v {
@@ -85,5 +85,5 @@ func URL(u *url.URL) *url.URL {
 	}
 	r := *u
 	r.RawQuery = qs.Encode()
-	return &r
+	return r.Redacted()
 }

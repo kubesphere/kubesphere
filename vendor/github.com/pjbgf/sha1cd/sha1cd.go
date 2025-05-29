@@ -20,6 +20,8 @@ import (
 	shared "github.com/pjbgf/sha1cd/internal"
 )
 
+//go:generate go run -C asm . -out ../sha1cdblock_amd64.s -pkg $GOPACKAGE
+
 func init() {
 	crypto.RegisterHash(crypto.SHA1, New)
 }

@@ -61,7 +61,9 @@ func (id ObjectID) Timestamp() time.Time {
 
 // Hex returns the hex encoding of the ObjectID as a string.
 func (id ObjectID) Hex() string {
-	return hex.EncodeToString(id[:])
+	var buf [24]byte
+	hex.Encode(buf[:], id[:])
+	return string(buf[:])
 }
 
 func (id ObjectID) String() string {
@@ -80,18 +82,18 @@ func ObjectIDFromHex(s string) (ObjectID, error) {
 		return NilObjectID, ErrInvalidHex
 	}
 
-	b, err := hex.DecodeString(s)
+	var oid [12]byte
+	_, err := hex.Decode(oid[:], []byte(s))
 	if err != nil {
 		return NilObjectID, err
 	}
-
-	var oid [12]byte
-	copy(oid[:], b)
 
 	return oid, nil
 }
 
 // IsValidObjectID returns true if the provided hex string represents a valid ObjectID and false if not.
+//
+// Deprecated: Use ObjectIDFromHex and check the error instead.
 func IsValidObjectID(s string) bool {
 	_, err := ObjectIDFromHex(s)
 	return err == nil
@@ -181,7 +183,7 @@ func processUniqueBytes() [5]byte {
 	var b [5]byte
 	_, err := io.ReadFull(rand.Reader, b[:])
 	if err != nil {
-		panic(fmt.Errorf("cannot initialize objectid package with crypto.rand.Reader: %v", err))
+		panic(fmt.Errorf("cannot initialize objectid package with crypto.rand.Reader: %w", err))
 	}
 
 	return b
@@ -191,7 +193,7 @@ func readRandomUint32() uint32 {
 	var b [4]byte
 	_, err := io.ReadFull(rand.Reader, b[:])
 	if err != nil {
-		panic(fmt.Errorf("cannot initialize objectid package with crypto.rand.Reader: %v", err))
+		panic(fmt.Errorf("cannot initialize objectid package with crypto.rand.Reader: %w", err))
 	}
 
 	return (uint32(b[0]) << 0) | (uint32(b[1]) << 8) | (uint32(b[2]) << 16) | (uint32(b[3]) << 24)
