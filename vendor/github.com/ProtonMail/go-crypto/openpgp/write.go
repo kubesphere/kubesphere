@@ -253,34 +253,12 @@ func writeAndSign(payload io.WriteCloser, candidateHashes []uint8, signed *Entit
 	}
 
 	var hash crypto.Hash
-	for _, hashId := range candidateHashes {
-		if h, ok := algorithm.HashIdToHash(hashId); ok && h.Available() {
-			hash = h
-			break
-		}
-	}
-
-	// If the hash specified by config is a candidate, we'll use that.
-	if configuredHash := config.Hash(); configuredHash.Available() {
-		for _, hashId := range candidateHashes {
-			if h, ok := algorithm.HashIdToHash(hashId); ok && h == configuredHash {
-				hash = h
-				break
-			}
-		}
-	}
-
-	if hash == 0 {
-		hashId := candidateHashes[0]
-		name, ok := algorithm.HashIdToString(hashId)
-		if !ok {
-			name = "#" + strconv.Itoa(int(hashId))
-		}
-		return nil, errors.InvalidArgumentError("cannot encrypt because no candidate hash functions are compiled in. (Wanted " + name + " in this case.)")
-	}
-
 	var salt []byte
 	if signer != nil {
+		if hash, err = selectHash(candidateHashes, config.Hash(), signer); err != nil {
+			return nil, err
+		}
+
 		var opsVersion = 3
 		if signer.Version == 6 {
 			opsVersion = signer.Version
@@ -558,13 +536,34 @@ func (s signatureWriter) Close() error {
 	return s.encryptedData.Close()
 }
 
+func selectHashForSigningKey(config *packet.Config, signer *packet.PublicKey) crypto.Hash {
+	acceptableHashes := acceptableHashesToWrite(signer)
+	hash, ok := algorithm.HashToHashId(config.Hash())
+	if !ok {
+		return config.Hash()
+	}
+	for _, acceptableHashes := range acceptableHashes {
+		if acceptableHashes == hash {
+			return config.Hash()
+		}
+	}
+	if len(acceptableHashes) > 0 {
+		defaultAcceptedHash, ok := algorithm.HashIdToHash(acceptableHashes[0])
+		if ok {
+			return defaultAcceptedHash
+		}
+	}
+	return config.Hash()
+}
+
 func createSignaturePacket(signer *packet.PublicKey, sigType packet.SignatureType, config *packet.Config) *packet.Signature {
 	sigLifetimeSecs := config.SigLifetime()
+	hash := selectHashForSigningKey(config, signer)
 	return &packet.Signature{
 		Version:           signer.Version,
 		SigType:           sigType,
 		PubKeyAlgo:        signer.PubKeyAlgo,
-		Hash:              config.Hash(),
+		Hash:              hash,
 		CreationTime:      config.Now(),
 		IssuerKeyId:       &signer.KeyId,
 		IssuerFingerprint: signer.Fingerprint,
@@ -617,4 +616,75 @@ func handleCompression(compressed io.WriteCloser, candidateCompression []uint8, 
 		}
 	}
 	return data, nil
+}
+
+// selectHash selects the preferred hash given the candidateHashes and the configuredHash
+func selectHash(candidateHashes []byte, configuredHash crypto.Hash, signer *packet.PrivateKey) (hash crypto.Hash, err error) {
+	acceptableHashes := acceptableHashesToWrite(&signer.PublicKey)
+	candidateHashes = intersectPreferences(acceptableHashes, candidateHashes)
+
+	for _, hashId := range candidateHashes {
+		if h, ok := algorithm.HashIdToHash(hashId); ok && h.Available() {
+			hash = h
+			break
+		}
+	}
+
+	// If the hash specified by config is a candidate, we'll use that.
+	if configuredHash.Available() {
+		for _, hashId := range candidateHashes {
+			if h, ok := algorithm.HashIdToHash(hashId); ok && h == configuredHash {
+				hash = h
+				break
+			}
+		}
+	}
+
+	if hash == 0 {
+		if len(acceptableHashes) > 0 {
+			if h, ok := algorithm.HashIdToHash(acceptableHashes[0]); ok {
+				hash = h
+			} else {
+				return 0, errors.UnsupportedError("no candidate hash functions are compiled in.")
+			}
+		} else {
+			return 0, errors.UnsupportedError("no candidate hash functions are compiled in.")
+		}
+	}
+	return
+}
+
+func acceptableHashesToWrite(singingKey *packet.PublicKey) []uint8 {
+	switch singingKey.PubKeyAlgo {
+	case packet.PubKeyAlgoEd448:
+		return []uint8{
+			hashToHashId(crypto.SHA512),
+			hashToHashId(crypto.SHA3_512),
+		}
+	case packet.PubKeyAlgoECDSA, packet.PubKeyAlgoEdDSA:
+		if curve, err := singingKey.Curve(); err == nil {
+			if curve == packet.Curve448 ||
+				curve == packet.CurveNistP521 ||
+				curve == packet.CurveBrainpoolP512 {
+				return []uint8{
+					hashToHashId(crypto.SHA512),
+					hashToHashId(crypto.SHA3_512),
+				}
+			} else if curve == packet.CurveBrainpoolP384 ||
+				curve == packet.CurveNistP384 {
+				return []uint8{
+					hashToHashId(crypto.SHA384),
+					hashToHashId(crypto.SHA512),
+					hashToHashId(crypto.SHA3_512),
+				}
+			}
+		}
+	}
+	return []uint8{
+		hashToHashId(crypto.SHA256),
+		hashToHashId(crypto.SHA384),
+		hashToHashId(crypto.SHA512),
+		hashToHashId(crypto.SHA3_256),
+		hashToHashId(crypto.SHA3_512),
+	}
 }

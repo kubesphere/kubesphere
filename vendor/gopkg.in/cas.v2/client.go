@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 )
 
-// Client configuration options
+// Options : Client configuration options
 type Options struct {
 	URL          *url.URL     // URL to the CAS service
 	Store        TicketStore  // Custom TicketStore, if nil a MemoryStore will be used
@@ -199,7 +199,7 @@ func (c *Client) RedirectToLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, u, http.StatusFound)
 }
 
-// RedirectToLogout replies to the request with a redirect URL to authenticate with CAS.
+// RedirectToLogin replies to the request with a redirect URL to authenticate with CAS.
 func (c *Client) RedirectToLogin(w http.ResponseWriter, r *http.Request) {
 	u, err := c.LoginUrlForRequest(r)
 	if err != nil {
@@ -216,12 +216,12 @@ func (c *Client) RedirectToLogin(w http.ResponseWriter, r *http.Request) {
 
 // validateTicket performs CAS ticket validation with the given ticket and service.
 func (c *Client) validateTicket(ticket string, service *http.Request) error {
-	serviceUrl, err := requestURL(service)
+	serviceURL, err := requestURL(service)
 	if err != nil {
 		return err
 	}
 
-	success, err := c.stValidator.ValidateTicket(serviceUrl, ticket)
+	success, err := c.stValidator.ValidateTicket(serviceURL, ticket)
 	if err != nil {
 		return err
 	}
@@ -353,15 +353,15 @@ func (c *Client) setSession(id string, ticket string) {
 func (c *Client) clearSession(w http.ResponseWriter, r *http.Request) {
 	cookie := c.getCookie(w, r)
 
-	if s, ok := c.sessions.Get(cookie.Value); ok {
-		if err := c.tickets.Delete(s); err != nil {
+	if serviceTicket, ok := c.sessions.Get(cookie.Value); ok {
+		if err := c.tickets.Delete(serviceTicket); err != nil {
 			fmt.Printf("Failed to remove %v from %T: %v\n", cookie.Value, c.tickets, err)
 			if glog.V(2) {
 				glog.Errorf("Failed to remove %v from %T: %v", cookie.Value, c.tickets, err)
 			}
 		}
 
-		c.deleteSession(s)
+		c.deleteSession(cookie.Value)
 	}
 
 	clearCookie(w, cookie)

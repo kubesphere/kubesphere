@@ -13,7 +13,6 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
 	appv2 "kubesphere.io/api/application/v2"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -70,9 +69,7 @@ func (h *appHandler) DeleteCategory(req *restful.Request, resp *restful.Response
 	}
 
 	if category.Status.Total > 0 {
-		msg := fmt.Sprintf("can not delete helm category: %s which owns applications", categoryId)
-		klog.Warningf(msg)
-		api.HandleInternalError(resp, nil, errors.New(msg))
+		api.HandleInternalError(resp, nil, fmt.Errorf("can not delete helm category: %s which owns applications", categoryId))
 		return
 	}
 	err = h.client.Delete(req.Request.Context(), &appv2.Category{ObjectMeta: metav1.ObjectMeta{Name: categoryId}})

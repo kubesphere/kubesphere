@@ -173,18 +173,12 @@ func (n *namingInfo) Syntax(basePkg *loader.Package, imports *importsList) strin
 
 	// NB(directxman12): typeInfo.String gets us most of the way there,
 	// but fails (for us) on named imports, since it uses the full package path.
+	var typeName *types.TypeName
 	switch typeInfo := n.typeInfo.(type) {
+	case *types.Alias:
+		typeName = typeInfo.Obj()
 	case *types.Named:
-		// register that we need an import for this type,
-		// so we can get the appropriate alias to use.
-		typeName := typeInfo.Obj()
-		otherPkg := typeName.Pkg()
-		if otherPkg == basePkg.Types {
-			// local import
-			return typeName.Name()
-		}
-		alias := imports.NeedImport(loader.NonVendorPath(otherPkg.Path()))
-		return alias + "." + typeName.Name()
+		typeName = typeInfo.Obj()
 	case *types.Basic:
 		return typeInfo.String()
 	case *types.Pointer:
@@ -200,6 +194,16 @@ func (n *namingInfo) Syntax(basePkg *loader.Package, imports *importsList) strin
 		basePkg.AddError(fmt.Errorf("name requested for invalid type: %s", typeInfo))
 		return typeInfo.String()
 	}
+
+	// register that we need an import for this type,
+	// so we can get the appropriate alias to use.
+	otherPkg := typeName.Pkg()
+	if otherPkg == basePkg.Types {
+		// local import
+		return typeName.Name()
+	}
+	alias := imports.NeedImport(loader.NonVendorPath(otherPkg.Path()))
+	return alias + "." + typeName.Name()
 }
 
 // copyMethodMakers makes DeepCopy (and related) methods for Go types,
@@ -349,14 +353,15 @@ func (c *copyMethodMaker) genMapDeepCopy(actualName *namingInfo, mapType *types.
 				// If we're calling DeepCopy, check if it's receiver needs a pointer
 				inIsPtr = copyOnPtr
 			}
-			if inIsPtr == fieldIsPtr {
+			switch {
+			case inIsPtr == fieldIsPtr:
 				c.Line("(*out)[key] = val.DeepCopy()")
-			} else if fieldIsPtr {
+			case fieldIsPtr:
 				c.Line("{") // use a block because we use `x` as a temporary
 				c.Line("x := val.DeepCopy()")
 				c.Line("(*out)[key] = &x")
 				c.Line("}")
-			} else {
+			default:
 				c.Line("(*out)[key] = *val.DeepCopy()")
 			}
 		case fineToShallowCopy(mapType.Elem()):
@@ -618,14 +623,15 @@ func shouldBeCopied(pkg *loader.Package, info *markers.TypeInfo) bool {
 		return false
 	}
 
-	// according to gengo, everything named is an alias, except for an alias to a pointer,
-	// which is just a pointer, afaict.  Just roll with it.
-	if asPtr, isPtr := typeInfo.(*types.Named).Underlying().(*types.Pointer); isPtr {
-		typeInfo = asPtr
-	}
-
 	lastType := typeInfo
 	if _, isNamed := typeInfo.(*types.Named); isNamed {
+		// according to gengo, everything named is an alias, except for an alias to a pointer,
+		// which is just a pointer, afaict.  Just roll with it.
+		if asPtr, isPtr := typeInfo.(*types.Named).Underlying().(*types.Pointer); isPtr {
+			lastType = asPtr
+			typeInfo = asPtr
+		}
+
 		// if it has a manual deepcopy or deepcopyinto, we're fine
 		if hasAnyDeepCopyMethod(pkg, typeInfo) {
 			return true

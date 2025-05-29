@@ -29,7 +29,6 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"sigs.k8s.io/controller-tools/pkg/genall"
 	"sigs.k8s.io/controller-tools/pkg/markers"
 )
@@ -161,6 +160,9 @@ func (r *Rule) ToRule() rbacv1.PolicyRule {
 type Generator struct {
 	// RoleName sets the name of the generated ClusterRole.
 	RoleName string
+
+	// FileName sets the file name for the generated manifest(s). If not set, defaults to "role.yaml".
+	FileName string `marker:",optional"`
 
 	// HeaderFile specifies the header text (e.g. license) to prepend to generated files.
 	HeaderFile string `marker:",optional"`
@@ -304,6 +306,15 @@ func GenerateRoles(ctx *genall.GenerationContext, roleName string) ([]interface{
 		}
 		sort.Sort(ruleKeys(keys))
 
+		// Normalize rule verbs to "*" if any verb in the rule is an asterisk
+		for _, rule := range ruleMap {
+			for _, verb := range rule.Verbs {
+				if verb == "*" {
+					rule.Verbs = []string{"*"}
+					break
+				}
+			}
+		}
 		var policyRules []rbacv1.PolicyRule
 		for _, key := range keys {
 			policyRules = append(policyRules, ruleMap[key].ToRule())
@@ -375,5 +386,10 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 	}
 	headerText = strings.ReplaceAll(headerText, " YEAR", " "+g.Year)
 
-	return ctx.WriteYAML("role.yaml", headerText, objs, genall.WithTransform(genall.TransformRemoveCreationTimestamp))
+	fileName := "role.yaml"
+	if g.FileName != "" {
+		fileName = g.FileName
+	}
+
+	return ctx.WriteYAML(fileName, headerText, objs, genall.WithTransform(genall.TransformRemoveCreationTimestamp))
 }

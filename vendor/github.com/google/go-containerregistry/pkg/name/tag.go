@@ -15,6 +15,8 @@
 package name
 
 import (
+	"encoding"
+	"encoding/json"
 	"strings"
 )
 
@@ -31,8 +33,11 @@ type Tag struct {
 	original string
 }
 
-// Ensure Tag implements Reference
 var _ Reference = (*Tag)(nil)
+var _ encoding.TextMarshaler = (*Tag)(nil)
+var _ encoding.TextUnmarshaler = (*Tag)(nil)
+var _ json.Marshaler = (*Tag)(nil)
+var _ json.Unmarshaler = (*Tag)(nil)
 
 // Context implements Reference.
 func (t Tag) Context() Repository {
@@ -105,4 +110,34 @@ func NewTag(name string, opts ...Option) (Tag, error) {
 		tag:        tag,
 		original:   name,
 	}, nil
+}
+
+// MarshalJSON formats the Tag into a string for JSON serialization.
+func (t Tag) MarshalJSON() ([]byte, error) { return json.Marshal(t.String()) }
+
+// UnmarshalJSON parses a JSON string into a Tag.
+func (t *Tag) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	n, err := NewTag(s)
+	if err != nil {
+		return err
+	}
+	*t = n
+	return nil
+}
+
+// MarshalText formats the tag into a string for text serialization.
+func (t Tag) MarshalText() ([]byte, error) { return []byte(t.String()), nil }
+
+// UnmarshalText parses a text string into a Tag.
+func (t *Tag) UnmarshalText(data []byte) error {
+	n, err := NewTag(string(data))
+	if err != nil {
+		return err
+	}
+	*t = n
+	return nil
 }

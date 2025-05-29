@@ -238,6 +238,8 @@ func ctxlogf(ctx context.Context, depth int, severity logsink.Severity, verbose 
 	metaPool.Put(metai)
 }
 
+var sinkErrOnce sync.Once
+
 func sinkf(meta *logsink.Meta, format string, args ...any) {
 	meta.Depth++
 	n, err := logsink.Printf(meta, format, args...)
@@ -247,9 +249,20 @@ func sinkf(meta *logsink.Meta, format string, args ...any) {
 	}
 
 	if err != nil {
-		logsink.Printf(meta, "glog: exiting because of error: %s", err)
-		sinks.file.Flush()
-		os.Exit(2)
+		// Best-effort to generate a reasonable Fatalf-like
+		// error message in all sinks that are still here for
+		// the first goroutine that comes here and terminate
+		// the process.
+		sinkErrOnce.Do(func() {
+			m := &logsink.Meta{}
+			m.Time = timeNow()
+			m.Severity = logsink.Fatal
+			m.Thread = int64(pid)
+			_, m.File, m.Line, _ = runtime.Caller(0)
+			format, args := appendBacktrace(1, "log: exiting because of error writing previous log to sinks: %v", []any{err})
+			logsink.Printf(m, format, args...)
+			flushAndAbort()
+		})
 	}
 }
 
@@ -642,6 +655,10 @@ func ErrorContextDepthf(ctx context.Context, depth int, format string, args ...a
 
 func ctxfatalf(ctx context.Context, depth int, format string, args ...any) {
 	ctxlogf(ctx, depth+1, logsink.Fatal, false, withStack, format, args...)
+	flushAndAbort()
+}
+
+func flushAndAbort() {
 	sinks.file.Flush()
 
 	err := abortProcess() // Should not return.

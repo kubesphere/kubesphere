@@ -126,25 +126,17 @@ func (c *command) connect() error {
 	}
 	hostWithPort := c.getHostWithPort()
 	if config.HostKeyCallback == nil {
-		db, err := newKnownHostsDb()
+		db, err := NewKnownHostsDb()
 		if err != nil {
 			return err
 		}
-
 		config.HostKeyCallback = db.HostKeyCallback()
 		config.HostKeyAlgorithms = db.HostKeyAlgorithms(hostWithPort)
-	} else if len(config.HostKeyAlgorithms) == 0 {
-		// Set the HostKeyAlgorithms based on HostKeyCallback.
-		// For background see https://github.com/go-git/go-git/issues/411 as well as
-		// https://github.com/golang/go/issues/29286 for root cause.
-		db, err := newKnownHostsDb()
-		if err != nil {
-			return err
-		}
-
-		// Note that the knownhost database is used, as it provides additional functionality
-		// to handle ssh cert-authorities.
-		config.HostKeyAlgorithms = db.HostKeyAlgorithms(hostWithPort)
+	} else {
+		// If the user gave a custom HostKeyCallback, we do not try to detect host key algorithms
+		// based on knownhosts functionality, as the user may be requesting a FixedKey or using a
+		// different key approval strategy. In that case, the user is responsible for populating
+		// HostKeyAlgorithms appropriately
 	}
 
 	overrideConfig(c.config, config)

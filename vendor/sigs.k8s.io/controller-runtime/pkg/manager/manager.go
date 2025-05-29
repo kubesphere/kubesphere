@@ -389,6 +389,7 @@ func New(config *rest.Config, options Options) (Manager, error) {
 			LeaderElectionResourceLock: options.LeaderElectionResourceLock,
 			LeaderElectionID:           options.LeaderElectionID,
 			LeaderElectionNamespace:    options.LeaderElectionNamespace,
+			RenewDeadline:              *options.RenewDeadline,
 		})
 		if err != nil {
 			return nil, err
@@ -541,6 +542,10 @@ func setOptionsDefaults(options Options) Options {
 
 	if options.Logger.GetSink() == nil {
 		options.Logger = log.Log
+	}
+
+	if options.Controller.Logger.GetSink() == nil {
+		options.Controller.Logger = options.Logger
 	}
 
 	if options.BaseContext == nil {

@@ -15,6 +15,7 @@
 package authn
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,22 @@ import (
 type Authenticator interface {
 	// Authorization returns the value to use in an http transport's Authorization header.
 	Authorization() (*AuthConfig, error)
+}
+
+// ContextAuthenticator is like Authenticator, but allows for context to be passed in.
+type ContextAuthenticator interface {
+	// Authorization returns the value to use in an http transport's Authorization header.
+	AuthorizationContext(context.Context) (*AuthConfig, error)
+}
+
+// Authorization calls AuthorizationContext with ctx if the given [Authenticator] implements [ContextAuthenticator],
+// otherwise it calls Resolve with the given [Resource].
+func Authorization(ctx context.Context, authn Authenticator) (*AuthConfig, error) {
+	if actx, ok := authn.(ContextAuthenticator); ok {
+		return actx.AuthorizationContext(ctx)
+	}
+
+	return authn.Authorization()
 }
 
 // AuthConfig contains authorization information for connecting to a Registry

@@ -259,7 +259,7 @@ FindLiteralData:
 		}
 		switch p := p.(type) {
 		case *packet.Compressed:
-			if err := packets.Push(p.Body); err != nil {
+			if err := packets.Push(p.LimitedBodyReader(config.DecompressedMessageSizeLimit())); err != nil {
 				return nil, err
 			}
 		case *packet.OnePassSignature:

@@ -72,9 +72,21 @@ func (Config) Help() *markers.DefinitionHelp {
 				Summary: "indicates the name of this webhook configuration. Should be a domain with at least three segments separated by dots",
 				Details: "",
 			},
+			"ServiceName": {
+				Summary: "indicates the name of the K8s Service the webhook uses.",
+				Details: "",
+			},
+			"ServiceNamespace": {
+				Summary: "indicates the namespace of the K8s Service the webhook uses.",
+				Details: "",
+			},
 			"Path": {
 				Summary: "specifies that path that the API server should connect to this webhook on. Must be",
 				Details: "prefixed with a '/validate-' or '/mutate-' depending on the type, and followed by\n$GROUP-$VERSION-$KIND where all values are lower-cased and the periods in the group\nare substituted for hyphens. For example, a validating webhook path for type\nbatch.tutorial.kubebuilder.io/v1,Kind=CronJob would be\n/validate-batch-tutorial-kubebuilder-io-v1-cronjob",
+			},
+			"ServicePort": {
+				Summary: "indicates the port of the K8s Service the webhook uses",
+				Details: "",
 			},
 			"WebhookVersions": {
 				Summary: "specifies the target API versions of the {Mutating,Validating}WebhookConfiguration objects",

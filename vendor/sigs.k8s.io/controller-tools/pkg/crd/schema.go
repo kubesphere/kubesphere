@@ -27,7 +27,6 @@ import (
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	crdmarkers "sigs.k8s.io/controller-tools/pkg/crd/markers"
-
 	"sigs.k8s.io/controller-tools/pkg/loader"
 	"sigs.k8s.io/controller-tools/pkg/markers"
 )
@@ -113,12 +112,26 @@ func (c *schemaContext) requestSchema(pkgPath, typeName string) {
 
 // infoToSchema creates a schema for the type in the given set of type information.
 func infoToSchema(ctx *schemaContext) *apiext.JSONSchemaProps {
-	// If the obj implements a JSON marshaler and has a marker, use the markers value and do not traverse as
-	// the marshaler could be doing anything. If there is no marker, fall back to traversing.
-	if obj := ctx.pkg.Types.Scope().Lookup(ctx.info.Name); obj != nil && implementsJSONMarshaler(obj.Type()) {
-		schema := &apiext.JSONSchemaProps{}
-		applyMarkers(ctx, ctx.info.Markers, schema, ctx.info.RawSpec.Type)
-		if schema.Type != "" {
+	if obj := ctx.pkg.Types.Scope().Lookup(ctx.info.Name); obj != nil {
+		switch {
+		// If the obj implements a JSON marshaler and has a marker, use the
+		// markers value and do not traverse as the marshaler could be doing
+		// anything. If there is no marker, fall back to traversing.
+		case implements(obj.Type(), jsonMarshaler):
+			schema := &apiext.JSONSchemaProps{}
+			applyMarkers(ctx, ctx.info.Markers, schema, ctx.info.RawSpec.Type)
+			if schema.Type != "" {
+				return schema
+			}
+
+		// If the obj implements a text marshaler, encode it as a string.
+		case implements(obj.Type(), textMarshaler):
+			schema := &apiext.JSONSchemaProps{Type: "string"}
+			applyMarkers(ctx, ctx.info.Markers, schema, ctx.info.RawSpec.Type)
+			if schema.Type != "string" {
+				err := fmt.Errorf("%q implements encoding.TextMarshaler but schema type is not string: %q", ctx.info.RawSpec.Name, schema.Type)
+				ctx.pkg.AddError(loader.ErrFromNode(err, ctx.info.RawSpec.Type))
+			}
 			return schema
 		}
 	}
@@ -233,7 +246,7 @@ func typeToSchema(ctx *schemaContext, rawType ast.Expr) *apiext.JSONSchemaProps 
 // escapes).
 func qualifiedName(pkgName, typeName string) string {
 	if pkgName != "" {
-		return strings.Replace(pkgName, "/", "~1", -1) + "~0" + typeName
+		return strings.ReplaceAll(pkgName, "/", "~1") + "~0" + typeName
 	}
 	return typeName
 }
@@ -254,7 +267,7 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiext.JSONSchema
 	// This reproduces the behavior we had pre gotypesalias=1 (needed if this
 	// project is compiled with default settings and Go >= 1.23).
 	if aliasInfo, isAlias := typeInfo.(*types.Alias); isAlias {
-		typeInfo = aliasInfo.Underlying()
+		typeInfo = aliasInfo.Rhs()
 	}
 	if basicInfo, isBasic := typeInfo.(*types.Basic); isBasic {
 		typ, fmt, err := builtinToType(basicInfo, ctx.allowDangerousTypes)
@@ -434,12 +447,12 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 
 		switch {
 		case field.Markers.Get("kubebuilder:validation:Optional") != nil:
-			// explicity optional - kubebuilder
+			// explicitly optional - kubebuilder
 		case field.Markers.Get("kubebuilder:validation:Required") != nil:
 			// explicitly required - kubebuilder
 			props.Required = append(props.Required, fieldName)
 		case field.Markers.Get("optional") != nil:
-			// explicity optional - kubernetes
+			// explicitly optional - kubernetes
 		case field.Markers.Get("required") != nil:
 			// explicitly required - kubernetes
 			props.Required = append(props.Required, fieldName)
@@ -521,6 +534,15 @@ var jsonMarshaler = types.NewInterfaceType([]*types.Func{
 				types.NewVar(token.NoPos, nil, "", types.Universe.Lookup("error").Type())), false)),
 }, nil).Complete()
 
-func implementsJSONMarshaler(typ types.Type) bool {
-	return types.Implements(typ, jsonMarshaler) || types.Implements(types.NewPointer(typ), jsonMarshaler)
+// Open coded go/types representation of encoding.TextMarshaler
+var textMarshaler = types.NewInterfaceType([]*types.Func{
+	types.NewFunc(token.NoPos, nil, "MarshalText",
+		types.NewSignatureType(nil, nil, nil, nil,
+			types.NewTuple(
+				types.NewVar(token.NoPos, nil, "text", types.NewSlice(types.Universe.Lookup("byte").Type())),
+				types.NewVar(token.NoPos, nil, "err", types.Universe.Lookup("error").Type())), false)),
+}, nil).Complete()
+
+func implements(typ types.Type, iface *types.Interface) bool {
+	return types.Implements(typ, iface) || types.Implements(types.NewPointer(typ), iface)
 }

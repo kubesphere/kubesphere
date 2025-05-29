@@ -1288,7 +1288,9 @@ func (sig *Signature) buildSubpackets(issuer PublicKey) (subpackets []outputSubp
 	if sig.IssuerKeyId != nil && sig.Version == 4 {
 		keyId := make([]byte, 8)
 		binary.BigEndian.PutUint64(keyId, *sig.IssuerKeyId)
-		subpackets = append(subpackets, outputSubpacket{true, issuerSubpacket, true, keyId})
+		// Note: making this critical breaks RPM <=4.16.
+		// See: https://github.com/ProtonMail/go-crypto/issues/263
+		subpackets = append(subpackets, outputSubpacket{true, issuerSubpacket, false, keyId})
 	}
 	// Notation Data
 	for _, notation := range sig.Notations {

@@ -469,6 +469,22 @@ func (SubresourceStatus) Help() *markers.DefinitionHelp {
 	}
 }
 
+func (Title) Help() *markers.DefinitionHelp {
+	return &markers.DefinitionHelp{
+		Category: "CRD validation",
+		DetailedHelp: markers.DetailedHelp{
+			Summary: "sets the title for this field.",
+			Details: "The title is metadata that makes the OpenAPI documentation more user-friendly,\nmaking the schema more understandable when viewed in documentation tools.\nIt's a metadata field that doesn't affect validation but provides\nimportant context about what the schema represents.",
+		},
+		FieldHelp: map[string]markers.DetailedHelp{
+			"Value": {
+				Summary: "",
+				Details: "",
+			},
+		},
+	}
+}
+
 func (Type) Help() *markers.DefinitionHelp {
 	return &markers.DefinitionHelp{
 		Category: "CRD validation",
@@ -560,6 +576,10 @@ func (XValidation) Help() *markers.DefinitionHelp {
 				Details: "",
 			},
 			"FieldPath": {
+				Summary: "",
+				Details: "",
+			},
+			"OptionalOldSelf": {
 				Summary: "",
 				Details: "",
 			},

@@ -49,16 +49,16 @@ func ShiftNBytesLeft(dst, x []byte, n int) {
 	dst = append(dst, make([]byte, n/8)...)
 }
 
-// XorBytesMut assumes equal input length, replaces X with X XOR Y
+// XorBytesMut replaces X with X XOR Y. len(X) must be >= len(Y).
 func XorBytesMut(X, Y []byte) {
-	for i := 0; i < len(X); i++ {
+	for i := 0; i < len(Y); i++ {
 		X[i] ^= Y[i]
 	}
 }
 
-// XorBytes assumes equal input length, puts X XOR Y into Z
+// XorBytes puts X XOR Y into Z. len(Z) and len(X) must be >= len(Y).
 func XorBytes(Z, X, Y []byte) {
-	for i := 0; i < len(X); i++ {
+	for i := 0; i < len(Y); i++ {
 		Z[i] = X[i] ^ Y[i]
 	}
 }

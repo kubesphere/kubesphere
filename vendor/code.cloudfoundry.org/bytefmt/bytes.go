@@ -2,7 +2,6 @@
 //
 //	bytefmt.ByteSize(100.5*bytefmt.MEGABYTE) // "100.5M"
 //	bytefmt.ByteSize(uint64(1024)) // "1K"
-//
 package bytefmt
 
 import (
@@ -25,6 +24,7 @@ const (
 var invalidByteQuantityError = errors.New("byte quantity must be a positive integer with a unit of measurement like M, MB, MiB, G, GiB, or GB")
 
 // ByteSize returns a human-readable byte string of the form 10M, 12.5K, and so forth.  The following units are available:
+//
 //	E: Exabyte
 //	P: Petabyte
 //	T: Terabyte
@@ -32,6 +32,7 @@ var invalidByteQuantityError = errors.New("byte quantity must be a positive inte
 //	M: Megabyte
 //	K: Kilobyte
 //	B: Byte
+//
 // The unit that results in the smallest number greater than or equal to 1 is always chosen.
 func ByteSize(bytes uint64) string {
 	unit := ""
@@ -59,7 +60,7 @@ func ByteSize(bytes uint64) string {
 	case bytes >= BYTE:
 		unit = "B"
 	case bytes == 0:
-		return "0"
+		return "0B"
 	}
 
 	result := strconv.FormatFloat(value, 'f', 1, 64)
@@ -96,7 +97,7 @@ func ToBytes(s string) (uint64, error) {
 
 	bytesString, multiple := s[:i], s[i:]
 	bytes, err := strconv.ParseFloat(bytesString, 64)
-	if err != nil || bytes <= 0 {
+	if err != nil || bytes < 0 {
 		return 0, invalidByteQuantityError
 	}
 

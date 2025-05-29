@@ -10,28 +10,29 @@ import (
 	"github.com/golang/glog"
 )
 
-func NewServiceTicketValidator(client *http.Client, casUrl *url.URL) *ServiceTicketValidator {
+// NewServiceTicketValidator create a new *ServiceTicketValidator
+func NewServiceTicketValidator(client *http.Client, casURL *url.URL) *ServiceTicketValidator {
 	return &ServiceTicketValidator{
 		client: client,
-		casUrl: casUrl,
+		casURL: casURL,
 	}
 }
 
 // ServiceTicketValidator is responsible for the validation of a service ticket
 type ServiceTicketValidator struct {
 	client *http.Client
-	casUrl *url.URL
+	casURL *url.URL
 }
 
 // ValidateTicket validates the service ticket for the given server. The method will try to use the service validate
 // endpoint of the cas >= 2 protocol, if the service validate endpoint not available, the function will use the cas 1
 // validate endpoint.
-func (validator *ServiceTicketValidator) ValidateTicket(serviceUrl *url.URL, ticket string) (*AuthenticationResponse, error) {
+func (validator *ServiceTicketValidator) ValidateTicket(serviceURL *url.URL, ticket string) (*AuthenticationResponse, error) {
 	if glog.V(2) {
-		glog.Infof("Validating ticket %v for service %v", ticket, serviceUrl)
+		glog.Infof("Validating ticket %v for service %v", ticket, serviceURL)
 	}
 
-	u, err := validator.ServiceValidateUrl(serviceUrl, ticket)
+	u, err := validator.ServiceValidateUrl(serviceURL, ticket)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +60,7 @@ func (validator *ServiceTicketValidator) ValidateTicket(serviceUrl *url.URL, tic
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return validator.validateTicketCas1(serviceUrl, ticket)
+		return validator.validateTicketCas1(serviceURL, ticket)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -91,22 +92,22 @@ func (validator *ServiceTicketValidator) ValidateTicket(serviceUrl *url.URL, tic
 
 // ServiceValidateUrl creates the service validation url for the cas >= 2 protocol.
 // TODO the function is only exposed, because of the clients ServiceValidateUrl function
-func (validator *ServiceTicketValidator) ServiceValidateUrl(serviceUrl *url.URL, ticket string) (string, error) {
-	u, err := validator.casUrl.Parse(path.Join(validator.casUrl.Path, "serviceValidate"))
+func (validator *ServiceTicketValidator) ServiceValidateUrl(serviceURL *url.URL, ticket string) (string, error) {
+	u, err := validator.casURL.Parse(path.Join(validator.casURL.Path, "serviceValidate"))
 	if err != nil {
 		return "", err
 	}
 
 	q := u.Query()
-	q.Add("service", sanitisedURLString(serviceUrl))
+	q.Add("service", sanitisedURLString(serviceURL))
 	q.Add("ticket", ticket)
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
 }
 
-func (validator *ServiceTicketValidator) validateTicketCas1(serviceUrl *url.URL, ticket string) (*AuthenticationResponse, error) {
-	u, err := validator.ValidateUrl(serviceUrl, ticket)
+func (validator *ServiceTicketValidator) validateTicketCas1(serviceURL *url.URL, ticket string) (*AuthenticationResponse, error) {
+	u, err := validator.ValidateUrl(serviceURL, ticket)
 	if err != nil {
 		return nil, err
 	}
@@ -167,14 +168,14 @@ func (validator *ServiceTicketValidator) validateTicketCas1(serviceUrl *url.URL,
 
 // ValidateUrl creates the validation url for the cas >= 1 protocol.
 // TODO the function is only exposed, because of the clients ValidateUrl function
-func (validator *ServiceTicketValidator) ValidateUrl(serviceUrl *url.URL, ticket string) (string, error) {
-	u, err := validator.casUrl.Parse(path.Join(validator.casUrl.Path, "validate"))
+func (validator *ServiceTicketValidator) ValidateUrl(serviceURL *url.URL, ticket string) (string, error) {
+	u, err := validator.casURL.Parse(path.Join(validator.casURL.Path, "validate"))
 	if err != nil {
 		return "", err
 	}
 
 	q := u.Query()
-	q.Add("service", sanitisedURLString(serviceUrl))
+	q.Add("service", sanitisedURLString(serviceURL))
 	q.Add("ticket", ticket)
 	u.RawQuery = q.Encode()
 

@@ -37,7 +37,7 @@ func (conf *AEADConfig) Mode() AEADMode {
 
 // ChunkSizeByte returns the byte indicating the chunk size. The effective
 // chunk size is computed with the formula uint64(1) << (chunkSizeByte + 6)
-// limit to 16 = 4 MiB
+// limit chunkSizeByte to 16 which equals to 2^22 = 4 MiB
 // https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-07.html#section-5.13.2
 func (conf *AEADConfig) ChunkSizeByte() byte {
 	if conf == nil || conf.ChunkSize == 0 {
@@ -49,8 +49,8 @@ func (conf *AEADConfig) ChunkSizeByte() byte {
 	switch {
 	case exponent < 6:
 		exponent = 6
-	case exponent > 16:
-		exponent = 16
+	case exponent > 22:
+		exponent = 22
 	}
 
 	return byte(exponent - 6)

@@ -65,24 +65,28 @@ func (ae *AEADEncrypted) decrypt(key []byte) (io.ReadCloser, error) {
 	blockCipher := ae.cipher.new(key)
 	aead := ae.mode.new(blockCipher)
 	// Carry the first tagLen bytes
+	chunkSize := decodeAEADChunkSize(ae.chunkSizeByte)
 	tagLen := ae.mode.TagLength()
-	peekedBytes := make([]byte, tagLen)
+	chunkBytes := make([]byte, chunkSize+tagLen*2)
+	peekedBytes := chunkBytes[chunkSize+tagLen:]
 	n, err := io.ReadFull(ae.Contents, peekedBytes)
 	if n < tagLen || (err != nil && err != io.EOF) {
 		return nil, errors.AEADError("Not enough data to decrypt:" + err.Error())
 	}
-	chunkSize := decodeAEADChunkSize(ae.chunkSizeByte)
+
 	return &aeadDecrypter{
 		aeadCrypter: aeadCrypter{
 			aead:           aead,
 			chunkSize:      chunkSize,
-			initialNonce:   ae.initialNonce,
+			nonce:          ae.initialNonce,
 			associatedData: ae.associatedData(),
 			chunkIndex:     make([]byte, 8),
 			packetTag:      packetTypeAEADEncrypted,
 		},
 		reader:      ae.Contents,
-		peekedBytes: peekedBytes}, nil
+		chunkBytes:  chunkBytes,
+		peekedBytes: peekedBytes,
+	}, nil
 }
 
 // associatedData for chunks: tag, version, cipher, mode, chunk size byte

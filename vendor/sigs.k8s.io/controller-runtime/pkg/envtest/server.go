@@ -126,6 +126,10 @@ type Environment struct {
 	// loading.
 	Config *rest.Config
 
+	// KubeConfig provides []byte of a kubeconfig file to talk to the apiserver
+	// It's automatically populated if not set based on the `Config`
+	KubeConfig []byte
+
 	// CRDInstallOptions are the options for installing CRDs.
 	CRDInstallOptions CRDInstallOptions
 
@@ -147,8 +151,22 @@ type Environment struct {
 	// values are merged.
 	CRDDirectoryPaths []string
 
+	// DownloadBinaryAssets indicates that the envtest binaries should be downloaded.
+	// If BinaryAssetsDirectory is also set, it is used to store the downloaded binaries,
+	// otherwise a tmp directory is created.
+	DownloadBinaryAssets bool
+
+	// DownloadBinaryAssetsVersion is the version of envtest binaries to download.
+	// Defaults to the latest stable version (i.e. excluding alpha / beta / RC versions).
+	DownloadBinaryAssetsVersion string
+
+	// DownloadBinaryAssetsIndexURL is the index used to discover envtest binaries to download.
+	// Defaults to https://raw.githubusercontent.com/kubernetes-sigs/controller-tools/HEAD/envtest-releases.yaml.
+	DownloadBinaryAssetsIndexURL string
+
 	// BinaryAssetsDirectory is the path where the binaries required for the envtest are
 	// located in the local environment. This field can be overridden by setting KUBEBUILDER_ASSETS.
+	// Set this field to SetupEnvtestDefaultBinaryAssetsDirectory() to share binaries with setup-envtest.
 	BinaryAssetsDirectory string
 
 	// UseExistingCluster indicates that this environments should use an
@@ -233,9 +251,21 @@ func (te *Environment) Start() (*rest.Config, error) {
 			}
 		}
 
-		apiServer.Path = process.BinPathFinder("kube-apiserver", te.BinaryAssetsDirectory)
-		te.ControlPlane.Etcd.Path = process.BinPathFinder("etcd", te.BinaryAssetsDirectory)
-		te.ControlPlane.KubectlPath = process.BinPathFinder("kubectl", te.BinaryAssetsDirectory)
+		if te.DownloadBinaryAssets {
+			apiServerPath, etcdPath, kubectlPath, err := downloadBinaryAssets(context.TODO(),
+				te.BinaryAssetsDirectory, te.DownloadBinaryAssetsVersion, te.DownloadBinaryAssetsIndexURL)
+			if err != nil {
+				return nil, err
+			}
+
+			apiServer.Path = apiServerPath
+			te.ControlPlane.Etcd.Path = etcdPath
+			te.ControlPlane.KubectlPath = kubectlPath
+		} else {
+			apiServer.Path = process.BinPathFinder("kube-apiserver", te.BinaryAssetsDirectory)
+			te.ControlPlane.Etcd.Path = process.BinPathFinder("etcd", te.BinaryAssetsDirectory)
+			te.ControlPlane.KubectlPath = process.BinPathFinder("kubectl", te.BinaryAssetsDirectory)
+		}
 
 		if err := te.defaultTimeouts(); err != nil {
 			return nil, fmt.Errorf("failed to default controlplane timeouts: %w", err)
@@ -263,6 +293,14 @@ func (te *Environment) Start() (*rest.Config, error) {
 			return te.Config, fmt.Errorf("unable to provision admin user: %w", err)
 		}
 		te.Config = adminUser.Config()
+	}
+
+	if len(te.KubeConfig) == 0 {
+		var err error
+		te.KubeConfig, err = controlplane.KubeConfigFromREST(te.Config)
+		if err != nil {
+			return nil, fmt.Errorf("unable to set KubeConfig field: %w", err)
+		}
 	}
 
 	// Set the default scheme if nil.
