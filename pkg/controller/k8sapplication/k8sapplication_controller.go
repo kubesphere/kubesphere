@@ -89,17 +89,15 @@ func (r *Reconciler) SetupWithManager(mgr *kscontroller.Manager) error {
 					Name:      GetApplictionName(obj.GetLabels()),
 					Namespace: obj.GetNamespace()}}}
 			})
-		p := predicate.GenerationChangedPredicate{
-			TypedFuncs: predicate.Funcs{
-				UpdateFunc: func(e event.UpdateEvent) bool {
-					return isApp(e.ObjectOld, e.ObjectOld)
-				},
-				CreateFunc: func(e event.CreateEvent) bool {
-					return isApp(e.Object)
-				},
-				DeleteFunc: func(e event.DeleteEvent) bool {
-					return isApp(e.Object)
-				},
+		p := predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				return isApp(e.ObjectOld, e.ObjectOld)
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				return isApp(e.Object)
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				return isApp(e.Object)
 			},
 		}
 		// Watch for changes to Application
@@ -139,12 +137,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	newApplicationStatus := r.getNewApplicationStatus(ctx, &app, resources, &errs)
 
 	newApplicationStatus.ObservedGeneration = app.Generation
-	if equality.Semantic.DeepEqual(newApplicationStatus, &app.Status) {
-		return ctrl.Result{}, nil
+	if !equality.Semantic.DeepEqual(newApplicationStatus, &app.Status) {
+		err = r.updateApplicationStatus(ctx, req.NamespacedName, newApplicationStatus)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	err = r.updateApplicationStatus(ctx, req.NamespacedName, newApplicationStatus)
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) updateComponents(ctx context.Context, app *appv1beta1.Application) ([]*unstructured.Unstructured, []error) {
@@ -240,13 +240,13 @@ func (r *Reconciler) setOwnerRefForResources(ctx context.Context, ownerRef metav
 
 		if !ownerRefFound {
 			ownerRefs = append(ownerRefs, ownerRef)
-		}
-		resource.SetOwnerReferences(ownerRefs)
-		err := r.Client.Update(ctx, resource)
-		if err != nil {
-			// We log this error, but we continue and try to set the ownerRefs on the other resources.
-			klog.Error(err, "ErrorSettingOwnerRef", "gvk", resource.GroupVersionKind().String(),
-				"namespace", resource.GetNamespace(), "name", resource.GetName())
+			resource.SetOwnerReferences(ownerRefs)
+			err := r.Update(ctx, resource)
+			if err != nil {
+				// We log this error, but we continue and try to set the ownerRefs on the other resources.
+				klog.Error(err, "ErrorSettingOwnerRef", "gvk", resource.GroupVersionKind().String(),
+					"namespace", resource.GetNamespace(), "name", resource.GetName())
+			}
 		}
 	}
 	return nil
