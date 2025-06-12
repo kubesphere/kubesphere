@@ -66,8 +66,7 @@ func (d *DynamicResourceHandler) HandleServiceError(serviceError restful.Service
 		Resource: reqInfo.Resource,
 	}
 
-	if gvr.Group == "" ||
-		gvr.Version == "" ||
+	if gvr.Version == "" ||
 		gvr.Resource == "" {
 		d.serviceErrorHandleFallback(serviceError, req, w)
 		return

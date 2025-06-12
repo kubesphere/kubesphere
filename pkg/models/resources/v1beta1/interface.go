@@ -7,19 +7,20 @@
 package v1beta1
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/oliveagle/jsonpath"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/client-go/util/jsonpath"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -244,7 +245,7 @@ func contains(object runtime.Object, queryValue query.Value) bool {
 		key := requirement.Field
 		value := requirement.Value
 
-		var input map[string]interface{}
+		var input interface{}
 		data, err := json.Marshal(object)
 		if err != nil {
 			klog.V(4).Infof("failed marshal to JSON string: %s", err)
@@ -254,11 +255,20 @@ func contains(object runtime.Object, queryValue query.Value) bool {
 			klog.V(4).Infof("failed unmarshal to map object: %s", err)
 			return false
 		}
-		rawValue, err := jsonpath.JsonPathLookup(input, "$."+key)
-		if err != nil {
-			klog.V(4).Infof("failed to lookup jsonpath: %s", err)
+
+		buf := new(bytes.Buffer)
+		lookup := jsonpath.New("")
+		lookup.AllowMissingKeys(true)
+		if err = lookup.Parse(fmt.Sprintf("{.%s}", key)); err != nil {
+			klog.V(4).Infof("failed parse jsonpath: %s", err)
 			return false
 		}
+		if err = lookup.Execute(buf, input); err != nil {
+			klog.V(4).Infof("failed execute jsonpath: %s", err)
+			return false
+		}
+
+		rawValue := buf.String()
 
 		// Values prefixed with ~ support case insensitivity. (e.g., a=~b, can hit b, B)
 		if strings.HasPrefix(value, "~") {
