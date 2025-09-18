@@ -294,7 +294,7 @@ type RepositorySpec struct {
 
 type RepositoryStatus struct {
 	// +optional
-	LastSyncTime *metav1.Time `json:"lastSyncTime,omitempty'"`
+	LastSyncTime *metav1.Time `json:"lastSyncTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
