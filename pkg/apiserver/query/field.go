@@ -24,4 +24,6 @@ const (
 	FieldStatus              = "status"
 	FieldOwnerReference      = "ownerReference"
 	FieldOwnerKind           = "ownerKind"
+	// FieldRestartCount is used for sorting by aggregated container restart counts on a Pod
+	FieldRestartCount = "restartCount"
 )
