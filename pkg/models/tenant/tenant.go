@@ -71,6 +71,10 @@ type Interface interface {
 	DeleteWorkspaceResourceQuota(workspace string, resourceQuotaName string) error
 	UpdateWorkspaceResourceQuota(workspace string, resourceQuota *quotav1alpha2.ResourceQuota) (*quotav1alpha2.ResourceQuota, error)
 	DescribeWorkspaceResourceQuota(workspace string, resourceQuotaName string) (*quotav1alpha2.ResourceQuota, error)
+	ListClusterMembers(cluster string, query *query.Query) (*api.ListResult, error)
+	CreateClusterMember(cluster string, username string, role string) error
+	RemoveClusterMember(cluster string, username string) error
+	UpdateClusterMember(cluster string, username string, role string) error
 }
 
 type tenantOperator struct {
@@ -728,9 +732,118 @@ func (t *tenantOperator) checkClusterPermission(user user.Info, clusters []strin
 		}
 
 		if !allowed {
+			// check if there is any cluster role binding for the user
+			if len(clusterRoleBindings.Items) > 0 {
+				allowed = true
+			}
+		}
+
+		if !allowed {
 			return errors.NewForbidden(clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster), clusterName, fmt.Errorf("user is not allowed to use the cluster %s", clusterName))
 		}
 	}
 
 	return nil
+}
+
+func (t *tenantOperator) ListClusterMembers(cluster string, query *query.Query) (*api.ListResult, error) {
+	clusterRoleBindings, err := t.getClusterRoleBindings(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	members := make([]runtime.Object, 0)
+	for _, crb := range clusterRoleBindings.Items {
+		for _, subject := range crb.Subjects {
+			if subject.Kind == "User" {
+				user := &iamv1beta1.User{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: subject.Name,
+					},
+					Annotations: map[string]string{
+						iamv1beta1.RoleAnnotation: crb.RoleRef.Name,
+					},
+				}
+				members = append(members, user)
+			}
+		}
+	}
+
+	// Simple filtration and pagination
+	return resources.DefaultList(members, query, func(left runtime.Object, right runtime.Object, field query.Field) bool {
+		return resources.DefaultObjectMetaCompare(left.(*iamv1beta1.User).ObjectMeta, right.(*iamv1beta1.User).ObjectMeta, field)
+	}, func(object runtime.Object, filter query.Filter) bool {
+		return resources.DefaultObjectMetaFilter(object.(*iamv1beta1.User).ObjectMeta, filter)
+	})
+}
+
+func (t *tenantOperator) CreateClusterMember(cluster string, username string, role string) error {
+	rtClient, err := t.clusterClient.GetRuntimeClient(cluster)
+	if err != nil {
+		return err
+	}
+
+	crb := &iamv1beta1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%s", username, role),
+			Labels: map[string]string{
+				iamv1beta1.UserReferenceLabel: username,
+				iamv1beta1.RoleReferenceLabel: role,
+			},
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     iamv1beta1.ResourceKindUser,
+				APIGroup: iamv1beta1.SchemeGroupVersion.Group,
+				Name:     username,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: iamv1beta1.SchemeGroupVersion.Group,
+			Kind:     iamv1beta1.ResourceKindClusterRole,
+			Name:     role,
+		},
+	}
+
+	return rtClient.Create(context.Background(), crb)
+}
+
+func (t *tenantOperator) RemoveClusterMember(cluster string, username string) error {
+	rtClient, err := t.clusterClient.GetRuntimeClient(cluster)
+	if err != nil {
+		return err
+	}
+
+	crbList := &iamv1beta1.ClusterRoleBindingList{}
+	if err := rtClient.List(context.Background(), crbList, runtimeclient.MatchingLabels{iamv1beta1.UserReferenceLabel: username}); err != nil {
+		return err
+	}
+
+	for _, crb := range crbList.Items {
+		if err := rtClient.Delete(context.Background(), &crb); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *tenantOperator) UpdateClusterMember(cluster string, username string, role string) error {
+	// Simple implementation: remove all existing bindings for user and add new one
+	if err := t.RemoveClusterMember(cluster, username); err != nil {
+		return err
+	}
+	return t.CreateClusterMember(cluster, username, role)
+}
+
+func (t *tenantOperator) getClusterRoleBindings(clusterName string) (*iamv1beta1.ClusterRoleBindingList, error) {
+	clusterClient, err := t.clusterClient.GetRuntimeClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleBindings := &iamv1beta1.ClusterRoleBindingList{}
+	if err := clusterClient.List(context.Background(), clusterRoleBindings); err != nil {
+		return nil, err
+	}
+	return clusterRoleBindings, nil
 }

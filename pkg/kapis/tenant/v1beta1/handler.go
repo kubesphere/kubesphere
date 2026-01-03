@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 	tenantv1beta1 "kubesphere.io/api/tenant/v1beta1"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -245,4 +246,66 @@ func (h *handler) ListWorkspaceTemplates(req *restful.Request, resp *restful.Res
 	}
 
 	_ = resp.WriteEntity(result)
+}
+
+func (h *handler) ListClusterMembers(req *restful.Request, resp *restful.Response) {
+	cluster := req.PathParameter("cluster")
+	queryParam := query.ParseQueryParameter(req)
+
+	result, err := h.tenant.ListClusterMembers(cluster, queryParam)
+	if err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	_ = resp.WriteEntity(result)
+}
+
+func (h *handler) CreateClusterMember(req *restful.Request, resp *restful.Response) {
+	cluster := req.PathParameter("cluster")
+	var member iamv1beta1.User
+	if err := req.ReadEntity(&member); err != nil {
+		api.HandleBadRequest(resp, req, err)
+		return
+	}
+
+	username := member.Name
+	role := member.Annotations[iamv1beta1.RoleAnnotation]
+
+	if err := h.tenant.CreateClusterMember(cluster, username, role); err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	_ = resp.WriteEntity(servererr.None)
+}
+
+func (h *handler) RemoveClusterMember(req *restful.Request, resp *restful.Response) {
+	cluster := req.PathParameter("cluster")
+	username := req.PathParameter("username")
+
+	if err := h.tenant.RemoveClusterMember(cluster, username); err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	_ = resp.WriteEntity(servererr.None)
+}
+
+func (h *handler) UpdateClusterMember(req *restful.Request, resp *restful.Response) {
+	cluster := req.PathParameter("cluster")
+	username := req.PathParameter("username")
+	var member iamv1beta1.User
+	if err := req.ReadEntity(&member); err != nil {
+		api.HandleBadRequest(resp, req, err)
+		return
+	}
+	role := member.Annotations[iamv1beta1.RoleAnnotation]
+
+	if err := h.tenant.UpdateClusterMember(cluster, username, role); err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	_ = resp.WriteEntity(servererr.None)
 }
