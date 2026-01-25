@@ -79,9 +79,7 @@ func maskResourceWithPrefix(resource corev1.ResourceName, prefix string) corev1.
 // isExtendedResourceNameForQuota returns true if the extended resource name
 // has the quota related resource prefix.
 func isExtendedResourceNameForQuota(name corev1.ResourceName) bool {
-	// As overcommit is not supported by extended resources for now,
-	// only quota objects in format of "requests.resourceName" is allowed.
-	return !helper.IsNativeResource(name) && strings.HasPrefix(string(name), corev1.DefaultResourceRequestsPrefix)
+	return !helper.IsNativeResource(name)
 }
 
 // NOTE: it was a mistake, but if a quota tracks cpu or memory related resources,
@@ -278,6 +276,7 @@ func podComputeUsageHelper(requests corev1.ResourceList, limits corev1.ResourceL
 		if helper.IsExtendedResourceName(resource) {
 			// only quota objects in format of "requests.resourceName" is allowed for extended resource.
 			result[maskResourceWithPrefix(resource, corev1.DefaultResourceRequestsPrefix)] = request
+			result[resource] = request
 		}
 	}
 
