@@ -54,6 +54,40 @@ func TestPodEvaluatorMatchingResources(t *testing.T) {
 	}
 }
 
+func TestExtendedResourceQuotaSupport(t *testing.T) {
+	evaluator := NewPodEvaluator(&mockReader{}, clock.RealClock{})
+
+	// Case 1: MatchingResources should match non-prefixed extended resources
+	input := []corev1.ResourceName{
+		corev1.ResourceName("nvidia.com/gpu"),
+	}
+	
+	matches := evaluator.MatchingResources(input)
+	
+	foundGPU := false
+	for _, m := range matches {
+		if m == corev1.ResourceName("nvidia.com/gpu") {
+			foundGPU = true
+		}
+	}
+	
+	if !foundGPU {
+		t.Errorf("MatchingResources failed to match nvidia.com/gpu. Matches: %v", matches)
+	}
+
+	// Case 2: Usage should include non-prefixed extended resources
+	requests := corev1.ResourceList{
+		corev1.ResourceName("nvidia.com/gpu"): resource.MustParse("1"),
+	}
+	limits := corev1.ResourceList{}
+	
+	usage := podComputeUsageHelper(requests, limits)
+	
+	if _, ok := usage[corev1.ResourceName("nvidia.com/gpu")]; !ok {
+		t.Errorf("podComputeUsageHelper failed to include nvidia.com/gpu in usage. Usage: %v", usage)
+	}
+}
+
 func TestPodComputeUsageHelper(t *testing.T) {
 	requests := corev1.ResourceList{
 		corev1.ResourceName("nvidia.com/gpu"): resource.MustParse("1"),

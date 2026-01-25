@@ -274,9 +274,8 @@ func podComputeUsageHelper(requests corev1.ResourceList, limits corev1.ResourceL
 		}
 		// for extended resources
 		if helper.IsExtendedResourceName(resource) {
-			// only quota objects in format of "requests.resourceName" is allowed for extended resource.
-			result[maskResourceWithPrefix(resource, corev1.DefaultResourceRequestsPrefix)] = request
 			result[resource] = request
+			result[maskResourceWithPrefix(resource, corev1.DefaultResourceRequestsPrefix)] = request
 		}
 	}
 
