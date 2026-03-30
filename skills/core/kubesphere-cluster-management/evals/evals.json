@@ -1,0 +1,23 @@
+{
+  "skill_name": "kubesphere-cluster-management",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "List all KubeSphere clusters",
+      "expected_output": "Output from kubectl get cluster command showing cluster list",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Show me details of the 'host' cluster",
+      "expected_output": "Output from kubectl get cluster host -o yaml showing full cluster YAML config",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Get cluster summary with version and status",
+      "expected_output": "Use go-template format to output table with NAME, CONN_TYPE, KS_VERSION, K8S_VERSION, ClusterReady, KSCORE_READY columns",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "skill_name": "kubesphere-extension-management",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to install the whizard-monitoring extension. Please help me create the InstallPlan manifest to install version 1.2.1 with default configuration.",
+      "expected_output": "A valid InstallPlan YAML manifest that follows the skill requirements: metadata.name matches spec.extension.name, includes spec.extension.name and spec.extension.version fields, uses upgradeStrategy: Manual, and omits spec.config to use defaults.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "metadata.name_matches_extension_name",
+          "description": "InstallPlan metadata.name must exactly match spec.extension.name",
+          "check": "The manifest should have metadata.name: whizard-monitoring and spec.extension.name: whizard-monitoring"
+        },
+        {
+          "name": "extension_version_specified",
+          "description": "spec.extension.version must be specified as 1.2.1",
+          "check": "The manifest should have spec.extension.version: 1.2.1"
+        },
+        {
+          "name": "upgrade_strategy_manual",
+          "description": "upgradeStrategy should be Manual for production",
+          "check": "The manifest should have upgradeStrategy: Manual"
+        },
+        {
+          "name": "no_custom_config",
+          "description": "spec.config should be omitted to use extension defaults",
+          "check": "The manifest should NOT contain spec.config field"
+        },
+        {
+          "name": "extension_enabled",
+          "description": "Extension should be enabled",
+          "check": "The manifest should have enabled: true"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to install the whizard-monitoring extension with custom configuration. The extension should be enabled and I need to set custom values: a=b. Create the InstallPlan manifest.",
+      "expected_output": "A valid InstallPlan YAML manifest with custom config that includes spec.config field with the custom configuration, enabled: true, upgradeStrategy: Manual, and follows all naming requirements.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "metadata.name_matches_extension_name",
+          "description": "InstallPlan metadata.name must exactly match spec.extension.name",
+          "check": "The manifest should have metadata.name: whizard-monitoring and spec.extension.name: whizard-monitoring"
+        },
+        {
+          "name": "custom_config_present",
+          "description": "spec.config field should be present with custom configuration",
+          "check": "The manifest should contain spec.config field with custom.a: b or similar"
+        },
+        {
+          "name": "upgrade_strategy_manual",
+          "description": "upgradeStrategy should be Manual for production",
+          "check": "The manifest should have upgradeStrategy: Manual"
+        },
+        {
+          "name": "extension_enabled",
+          "description": "Extension should be enabled",
+          "check": "The manifest should have enabled: true"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to deploy the whizard-monitoring extension across multiple clusters: host and member. Create an InstallPlan that deploys to both clusters with cluster-specific overrides for the host cluster (custom settings: a=c).",
+      "expected_output": "A valid InstallPlan YAML manifest with clusterScheduling configuration including placement.clusters list and cluster-specific overrides for the host cluster with custom configuration.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "metadata.name_matches_extension_name",
+          "description": "InstallPlan metadata.name must exactly match spec.extension.name",
+          "check": "The manifest should have metadata.name: whizard-monitoring and spec.extension.name: whizard-monitoring"
+        },
+        {
+          "name": "cluster_scheduling_present",
+          "description": "spec.clusterScheduling field should be present for multi-cluster deployment",
+          "check": "The manifest should contain spec.clusterScheduling field"
+        },
+        {
+          "name": "placement_clusters_listed",
+          "description": "placement.clusters should list both host and member",
+          "check": "The manifest should have spec.clusterScheduling.placement.clusters: [host, member]"
+        },
+        {
+          "name": "cluster_overrides_host",
+          "description": "cluster-specific overrides should be present for host cluster",
+          "check": "The manifest should have spec.clusterScheduling.overrides.host with custom.a: c"
+        },
+        {
+          "name": "upgrade_strategy_manual",
+          "description": "upgradeStrategy should be Manual for production",
+          "check": "The manifest should have upgradeStrategy: Manual"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "The whizard-monitoring extension is currently installed at version 1.2.1. I want to upgrade it to version 1.3.0. Create the InstallPlan manifest for this upgrade.",
+      "expected_output": "A valid InstallPlan YAML manifest for upgrading, with spec.extension.version set to 1.3.0, upgradeStrategy: Manual, enabled: true, and metadata.name matching spec.extension.name.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "metadata.name_matches_extension_name",
+          "description": "InstallPlan metadata.name must exactly match spec.extension.name",
+          "check": "The manifest should have metadata.name: whizard-monitoring and spec.extension.name: whizard-monitoring"
+        },
+        {
+          "name": "target_version_1_3_0",
+          "description": "spec.extension.version should be 1.3.0 for upgrade",
+          "check": "The manifest should have spec.extension.version: 1.3.0"
+        },
+        {
+          "name": "upgrade_strategy_manual",
+          "description": "upgradeStrategy should be Manual for production",
+          "check": "The manifest should have upgradeStrategy: Manual"
+        },
+        {
+          "name": "extension_enabled",
+          "description": "Extension should remain enabled after upgrade",
+          "check": "The manifest should have enabled: true"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "The whizard-monitoring extension installation is stuck in the 'Installing' phase. Help me diagnose the issue by providing the necessary kubectl commands to check the InstallPlan status, extension controller logs, and failed pods.",
+      "expected_output": "A set of kubectl commands to diagnose installation issues: kubectl describe installplan, kubectl logs for extension-controller, kubectl get pods for errors, and checking conditions messages.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check_installplan_status",
+          "description": "Provides kubectl describe command for InstallPlan status",
+          "check": "Should include 'kubectl describe installplan whizard-monitoring' or similar"
+        },
+        {
+          "name": "check_extension_controller_logs",
+          "description": "Provides kubectl logs command for extension controller",
+          "check": "Should include 'kubectl logs -n kubesphere-system -l app=extension-controller' or similar"
+        },
+        {
+          "name": "check_failed_pods",
+          "description": "Provides command to check for failed pods",
+          "check": "Should include 'kubectl get pods -n kubesphere-system | grep Error' or similar"
+        },
+        {
+          "name": "check_conditions",
+          "description": "Provides command to check InstallPlan conditions",
+          "check": "Should include command to inspect status.conditions or conditions messages"
+        }
+      ]
+    }
+  ]
+}
