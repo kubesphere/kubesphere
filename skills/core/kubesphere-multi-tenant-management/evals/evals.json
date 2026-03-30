@@ -1,0 +1,65 @@
+{
+  "skill_name": "kubesphere-multi-tenant-management",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "创建一个名为 'demo-workspace' 的 workspace，分配到 'host' 集群，manager 设置为 admin",
+      "expected_output": "成功创建 workspace，返回 201 或 200 状态码，workspace 包含 name=demo-workspace, cluster=host",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "在 workspace 'demo-workspace' 中创建一个名为 'demo-project' 的 project，使用 'host' 集群",
+      "expected_output": "成功创建 namespace，返回 201 或 200 状态码，namespace 包含 name=demo-project, label kubesphere.io/workspace=demo-workspace",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "创建一个新用户，用户名为 'developer01'，邮箱为 'developer01@example.com'，密码为 'Demo@123456'",
+      "expected_output": "成功创建用户，返回 201 或 200 状态码，用户包含 username=developer01, email=developer01@example.com, globalrole=platform-regular",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "将用户 'developer01' 邀请到 workspace 'demo-workspace'，使用 default regular 角色",
+      "expected_output": "成功创建 workspace member，返回 201 或 200 状态码，member 包含 username=developer01, roleRef=demo-workspace-regular",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "将用户 'developer01' 邀请到 project 'demo-project'（位于 host 集群），使用 viewer 角色",
+      "expected_output": "成功创建 namespace member，返回 201 或 200 状态码，member 包含 username=developer01, roleRef=viewer",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "列出所有 workspace",
+      "expected_output": "返回 workspace 列表，包含 items 数组，每个 workspace 包含 metadata.name 和 spec.placement.clusters",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "列出所有用户",
+      "expected_output": "返回用户列表，包含 items 数组，每个用户包含 metadata.name 和 spec.email",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "查询 workspace 'demo-workspace' 的所有成员",
+      "expected_output": "返回 workspace members 列表，包含 items 数组，每个 member 包含 username 和 roleRef",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "查询 project 'demo-project' 在 host 集群的所有成员",
+      "expected_output": "返回 namespace members 列表，包含 items 数组，每个 member 包含 username 和 roleRef",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "查询用户 'developer01' 的详细信息",
+      "expected_output": "返回用户详情，包含 metadata.name=developer01, spec.email=developer01@example.com, annotations 包含 globalrole 信息",
+      "files": []
+    }
+  ]
+}
