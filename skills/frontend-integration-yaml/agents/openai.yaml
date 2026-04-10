@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Integration YAML"
+  short_description: "Generate canonical FrontendIntegration YAML."
+  default_prompt: "Use $frontend-integration-yaml to turn a simplified single-menu integration spec into canonical FrontendIntegration YAML."
