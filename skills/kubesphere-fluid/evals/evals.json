@@ -1,0 +1,45 @@
+{
+  "skill_name": "kubesphere-fluid",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Install Fluid extension in KubeSphere, show me the InstallPlan template",
+      "expected_output": "InstallPlan YAML with apiVersion kubesphere.io/v1alpha1, kind InstallPlan, spec.extension.name fluid, upgradeStrategy Manual. Plus verification commands."
+    },
+    {
+      "id": 2,
+      "prompt": "Create a Dataset named 'spark-data' in namespace 'fluid' with mountPoint 's3://mybucket/spark-data'",
+      "expected_output": "YAML manifest with apiVersion data.fluid.io/v1alpha1, kind Dataset, spec.mounts[0].mountPoint s3://mybucket/spark-data. Reference examples/dataset.yaml."
+    },
+    {
+      "id": 3,
+      "prompt": "Create an AlluxioRuntime with 2 replicas and MEM tiered storage with 2Gi quota",
+      "expected_output": "Combined Dataset + AlluxioRuntime YAML with spec.replicas 2, spec.tieredstore.levels[0].mediumtype MEM, quota 2Gi. Reference examples/alluxioruntime.yaml."
+    },
+    {
+      "id": 4,
+      "prompt": "Show me the status of Dataset 'spark-data' in namespace 'fluid' using both kubectl and KubeSphere API",
+      "expected_output": "kubectl get/describe commands. KubeSphere API: GET /clusters/host/kapis/data.fluid.io/v1alpha1/namespaces/fluid/datasets/spark-data. Include status interpretation."
+    },
+    {
+      "id": 5,
+      "prompt": "Scale alluxioruntime 'spark-data' to 4 workers in namespace 'fluid'",
+      "expected_output": "kubectl scale command + kubectl patch alternative. KubeSphere API PUT example."
+    },
+    {
+      "id": 6,
+      "prompt": "Preload data for dataset 'spark-data', load /data directory",
+      "expected_output": "DataLoad YAML manifest. Reference examples/dataload.yaml. Apply and verification steps."
+    },
+    {
+      "id": 7,
+      "prompt": "Show me how to use the ks_api helper function to list datasets",
+      "expected_output": "ks_token and ks_api function definitions. Example: ks_api GET /clusters/host/kapis/data.fluid.io/v1alpha1/namespaces/<ns>/datasets"
+    },
+    {
+      "id": 8,
+      "prompt": "Fluid alluxioruntime is not ready, help me troubleshoot",
+      "expected_output": "kubectl get pods, kubectl describe alluxioruntime, kubectl logs commands. Likely causes: pods not scheduled, tiered storage issue, insufficient resources. Safe next steps."
+    }
+  ]
+}

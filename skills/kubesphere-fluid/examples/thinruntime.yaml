@@ -1,0 +1,20 @@
+apiVersion: data.fluid.io/v1alpha1
+kind: Dataset
+metadata:
+  name: {{name}}
+  namespace: {{namespace}}
+spec:
+  mounts:
+    - mountPoint: {{mountPoint}}
+      name: {{mountName}}
+---
+apiVersion: data.fluid.io/v1alpha1
+kind: ThinRuntime
+metadata:
+  name: {{name}}
+  namespace: {{namespace}}
+spec:
+  mountPoint: {{mountPoint}}
+  thin:
+    profile: {{profileName}}
+    credentials: {{secretName}}
