@@ -271,8 +271,8 @@ Check:
 Use this when the user has already confirmed the extension name and version.
 
 **Note:** 
-- InstallPlan 是 KubeSphere CRD 资源，**只在 host 集群创建和管理**（不在 member 集群）
-- `clusterScheduling.placement.clusters` 指定扩展的 **agent 组件**需要安装到哪些集群（host、member-4 等）
+- InstallPlan is a KubeSphere CRD resource, **created and managed only in the host cluster** (not in member clusters)
+- `clusterScheduling.placement.clusters` specifies which clusters the extension **agent components** should be installed to (host, member-4, etc.)
 
 ```yaml
 apiVersion: kubesphere.io/v1alpha1
