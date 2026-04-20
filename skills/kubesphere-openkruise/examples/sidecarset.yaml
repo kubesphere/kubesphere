@@ -1,0 +1,29 @@
+apiVersion: apps.kruise.io/v1alpha1
+kind: SidecarSet
+metadata:
+  name: log-agent
+spec:
+  selector:
+    matchLabels:
+      app: demo
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: demo-project
+  containers:
+  - name: log-agent
+    image: fluent/fluent-bit:2.2
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: LOG_LEVEL
+      value: info
+    volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+    podInjectPolicy: BeforeAppContainer
+  volumes:
+  - name: varlog
+    hostPath:
+      path: /var/log
+  updateStrategy:
+    type: RollingUpdate
+    maxUnavailable: 1

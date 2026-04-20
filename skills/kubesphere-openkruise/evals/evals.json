@@ -1,0 +1,79 @@
+{
+  "skill_name": "kubesphere-openkruise",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to install OpenKruise in KubeSphere. Please help me create the InstallPlan manifest for version 1.0.3 with default configuration to deploy only on the host cluster.",
+      "expected_output": "A valid InstallPlan YAML manifest that follows the skill requirements: metadata.name matches spec.extension.name, includes spec.extension.name 'openkruise' and spec.extension.version '1.0.3', uses upgradeStrategy: Manual, and clusterScheduling.placement.clusters contains only 'host'.",
+      "files": [],
+      "assertions": [
+        {"name": "metadata.name_matches_extension_name", "description": "InstallPlan metadata.name must exactly match spec.extension.name", "check": "metadata.name: openkruise and spec.extension.name: openkruise"},
+        {"name": "extension_version_specified", "description": "spec.extension.version must be 1.0.3", "check": "spec.extension.version: 1.0.3"},
+        {"name": "upgrade_strategy_manual", "description": "upgradeStrategy should be Manual", "check": "upgradeStrategy: Manual"},
+        {"name": "host_cluster_only", "description": "clusterScheduling.placement.clusters should contain only 'host'", "check": "spec.clusterScheduling.placement.clusters: [host]"}
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I need to create a SidecarSet named 'log-agent' that injects a sidecar with image 'fluent/fluent-bit:2.2' to pods with label 'app: myapp' in namespace with label 'environment: production'. Create the SidecarSet manifest.",
+      "expected_output": "SidecarSet YAML with correct selector matching 'app: myapp', namespaceSelector matching 'environment: production', and container 'log-agent' with specified image.",
+      "files": [],
+      "assertions": [
+        {"name": "correct_metadata_name", "description": "SidecarSet name should be 'log-agent'", "check": "metadata.name: log-agent"},
+        {"name": "correct_api_version", "description": "Should use apps.kruise.io/v1alpha1", "check": "apiVersion: apps.kruise.io/v1alpha1"},
+        {"name": "pod_selector_present", "description": "spec.selector should match pod labels", "check": "spec.selector.matchLabels.app: myapp"},
+        {"name": "namespace_selector_present", "description": "spec.namespaceSelector should match namespace labels", "check": "spec.namespaceSelector.matchLabels.environment: production"},
+        {"name": "container_definition", "description": "Container should use specified image", "check": "spec.containers[0].name: log-agent, image: fluent/fluent-bit:2.2"}
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to create a CloneSet named 'web-frontend' in namespace 'default' with 3 replicas running nginx:1.25, configured for in-place updates with maxUnavailable of 1.",
+      "expected_output": "CloneSet YAML with name: web-frontend, namespace: default, replicas: 3, selector/template for 'app: web-frontend', container nginx:1.25, updateStrategy.type: InPlaceIfPossible, maxUnavailable: 1.",
+      "files": [],
+      "assertions": [
+        {"name": "correct_metadata", "description": "CloneSet metadata should have correct name and namespace", "check": "metadata.name: web-frontend, namespace: default"},
+        {"name": "correct_replicas", "description": "spec.replicas should be 3", "check": "spec.replicas: 3"},
+        {"name": "correct_selector", "description": "spec.selector should match labels", "check": "spec.selector.matchLabels.app: web-frontend"},
+        {"name": "correct_image", "description": "Container should use nginx:1.25", "check": "spec.template.spec.containers[0].image: nginx:1.25"},
+        {"name": "inplace_update_strategy", "description": "updateStrategy.type should be InPlaceIfPossible", "check": "spec.updateStrategy.type: InPlaceIfPossible"},
+        {"name": "max_unavailable", "description": "maxUnavailable should be 1", "check": "spec.updateStrategy.maxUnavailable: 1"}
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "The web-frontend CloneSet is running nginx:1.25. I want to perform an in-place update to nginx:1.26. Please provide the kubectl commands.",
+      "expected_output": "Commands to get manifest, update image, apply changes, and verify. Key is using InPlaceIfPossible and changing only the image.",
+      "files": [],
+      "assertions": [
+        {"name": "get_current_manifest", "description": "Provides command to get CloneSet manifest", "check": "kubectl get cloneset web-frontend -n default -o yaml"},
+        {"name": "apply_updated_manifest", "description": "Provides command to apply changes", "check": "kubectl apply -f <file>"},
+        {"name": "verify_update", "description": "Provides verification commands", "check": "kubectl describe/get cloneset or kubectl get pods"}
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I want to perform a batch rollout of CloneSet 'web-frontend' from nginx:1.25 to nginx:1.26. Upgrade 50% first, then remaining 50%.",
+      "expected_output": "Explanation of partition-based batch rollout: 1) Change image, set partition: 50%, 2) Verify, 3) Set partition: 0% to complete.",
+      "files": [],
+      "assertions": [
+        {"name": "partition_concept_explained", "description": "Explains partition concept", "check": "partition controls how many pods stay on old version"},
+        {"name": "step_1_partition_50", "description": "First step sets partition to 50%", "check": "Updating image and setting partition to 50%"},
+        {"name": "step_2_verify", "description": "Verify step after first partition", "check": "kubectl get pods -o wide"},
+        {"name": "step_3_partition_0", "description": "Final step sets partition to 0%", "check": "Setting partition to 0% to complete rollout"}
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "OpenKruise extension installation is stuck. kruise-manager pod is not starting. Help me troubleshoot with diagnostic commands.",
+      "expected_output": "Commands to check InstallPlan status, pod status in kruise-system, controller logs, and CRD status.",
+      "files": [],
+      "assertions": [
+        {"name": "check_installplan_status", "description": "Check InstallPlan status and conditions", "check": "kubectl describe installplan openkruise"},
+        {"name": "check_pods", "description": "Check pods in kruise-system", "check": "kubectl get pods -n kruise-system"},
+        {"name": "check_logs", "description": "Check controller logs", "check": "kubectl logs -n kruise-system"},
+        {"name": "check_crds", "description": "Check CRD status", "check": "kubectl get crd or kubectl api-resources --api-group apps.kruise.io"}
+      ]
+    }
+  ]
+}
