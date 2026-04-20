@@ -3,49 +3,49 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "帮我查看当前所有的 Volcano 作业",
+      "prompt": "List all Volcano jobs in the cluster",
       "expected_output": "List of Volcano Jobs using kubectl get jobs.batch.volcano.sh -A",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "在 default 命名空间创建一个 PyTorch 分布式训练作业，名字叫 pytorch-train",
+      "prompt": "Create a PyTorch distributed training job named pytorch-train in the default namespace",
       "expected_output": "YAML manifest for Job (kind: Job) with kubectl apply command",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "帮我删除名为 pytorch-train 的 Volcano 作业",
+      "prompt": "Delete the Volcano job named pytorch-train",
       "expected_output": "kubectl delete vcjob pytorch-train -n <namespace> command",
       "files": []
     },
     {
       "id": 4,
-      "prompt": "查看 default 命名空间中 quickstart-job 作业的详细状态",
+      "prompt": "Show the detailed status of the quickstart-job in the default namespace",
       "expected_output": "kubectl describe vcjob or kubectl get with full details",
       "files": []
     },
     {
       "id": 5,
-      "prompt": "帮我创建一个名为 ml-queue 的队列，权重设为 50",
+      "prompt": "Create a queue named ml-queue with weight 50",
       "expected_output": "Queue YAML manifest with weight: 50",
       "files": []
     },
     {
       "id": 6,
-      "prompt": "更新 ml-queue 队列的权重从 50 改为 60",
+      "prompt": "Update the ml-queue weight from 50 to 60",
       "expected_output": "kubectl patch queue ml-queue or API PUT command with new weight",
       "files": []
     },
     {
       "id": 7,
-      "prompt": "在 member-4 集群上查看所有的 Volcano 作业",
+      "prompt": "List all Volcano jobs on the member-4 cluster",
       "expected_output": "kubectl command with member cluster kubeconfig or ks_api with cluster param",
       "files": []
     },
     {
       "id": 8,
-      "prompt": "删除一个不存在的作业 fake-job-xxx，会发生什么",
+      "prompt": "Try to delete a non-existent job fake-job-xxx, what happens",
       "expected_output": "Error handling: 'NotFound' or similar error message from kubectl/api",
       "files": []
     }

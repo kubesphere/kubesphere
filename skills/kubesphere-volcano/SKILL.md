@@ -781,10 +781,10 @@ When user describes a job, infer the type:
 
 | User Says | Use Template |
 |-----------|--------------|
-| "训练", "training", "train", "机器学习" | PyTorch or TensorFlow |
-| "分布式训练", "distributed training" | PyTorch Distributed |
+| "training", "train", "machine learning", "ml", "ai training" | PyTorch or TensorFlow |
+| "distributed training" | PyTorch Distributed |
 | "MPI", "mpi" | MPI Job |
-| "批处理", "batch", "批量任务" | Simple Batch Job |
-| "队列", "queue" | Queue Configuration |
+| "batch", "batch processing" | Simple Batch Job |
+| "queue" | Queue Configuration |
 
 Apply the template with appropriate modifications based on user requirements.
