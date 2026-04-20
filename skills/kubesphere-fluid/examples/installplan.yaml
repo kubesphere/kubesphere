@@ -1,0 +1,15 @@
+apiVersion: kubesphere.io/v1alpha1
+kind: InstallPlan
+metadata:
+  name: fluid
+spec:
+  enabled: true
+  extension:
+    name: fluid
+    version: {{version}}
+  upgradeStrategy: Manual
+  clusterScheduling:
+    placement:
+      clusters:
+        - host
+        # - member-4

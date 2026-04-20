@@ -1,0 +1,24 @@
+apiVersion: data.fluid.io/v1alpha1
+kind: Dataset
+metadata:
+  name: {{name}}
+  namespace: {{namespace}}
+spec:
+  mounts:
+    - mountPoint: {{mountPoint}}
+      name: {{mountName}}
+---
+apiVersion: data.fluid.io/v1alpha1
+kind: AlluxioRuntime
+metadata:
+  name: {{name}}
+  namespace: {{namespace}}
+spec:
+  replicas: {{replicas}}
+  tieredstore:
+    levels:
+      - mediumtype: {{mediumType}}
+        path: {{path}}
+        quota: {{quota}}
+        high: "{{high}}"
+        low: "{{low}}"

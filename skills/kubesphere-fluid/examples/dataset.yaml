@@ -1,0 +1,9 @@
+apiVersion: data.fluid.io/v1alpha1
+kind: Dataset
+metadata:
+  name: {{name}}
+  namespace: {{namespace}}
+spec:
+  mounts:
+    - mountPoint: {{mountPoint}}
+      name: {{mountName}}
