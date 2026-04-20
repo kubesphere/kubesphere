@@ -431,17 +431,17 @@ spec:
             - name: pytorch
               image: pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
               command:
-                - python
-                - /workspace/train.py
+                - bash
+                - -c
+                - |
+                  export RANK=$((${VOLCANO_TASK_INDEX:-0})
+                  export WORLD_SIZE=3
+                  python /workspace/train.py
               env:
                 - name: MASTER_ADDR
                   value: "$(HOSTNAME)"
                 - name: MASTER_PORT
                   value: "29500"
-                - name: WORLD_SIZE
-                  value: "3"
-                - name: RANK
-                  value: "0"
               resources:
                 requests:
                   cpu: "2"
@@ -469,17 +469,17 @@ spec:
             - name: pytorch
               image: pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
               command:
-                - python
-                - /workspace/train.py
+                - bash
+                - -c
+                - |
+                  export RANK=$((${VOLCANO_TASK_INDEX:-0} + 1))
+                  export WORLD_SIZE=3
+                  python /workspace/train.py
               env:
                 - name: MASTER_ADDR
-                  value: pytorch-distributed-training-master-0  # Format: {job}-{task}-{index}
+                  value: pytorch-distributed-training-master-0.pytorch-distributed-training  # Format: {job}-{task}-{index}.{job}
                 - name: MASTER_PORT
                   value: "29500"
-                - name: WORLD_SIZE
-                  value: "3"
-                - name: RANK
-                  value: "$(VOLCANO_TASK_INDEX)"  # worker: 0,1,2... (global RANK = this + master_replicas)
               resources:
                 requests:
                   cpu: "2"
@@ -604,7 +604,7 @@ spec:
               command:
                 - mpirun
                 - -np
-                - "4"
+                - "2"
                 - ./run.sh
               resources:
                 requests:
