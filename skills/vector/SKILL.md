@@ -64,7 +64,7 @@ Which clusters do you want to deploy Vector to?
 **MUST do this to get the latest version:**
 
 ```bash
-kubectl get extensionversions -n kubesphere-system -l kubesphere.io/extension-ref=vector -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
+kubectl get extensionversions -l kubesphere.io/extension-ref=vector -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
 ```
 
 This outputs the latest version (e.g., `1.1.4`). Note this down - you'll use it in the InstallPlan.
@@ -94,7 +94,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: vector
-  namespace: kubesphere-system
 spec:
   extension:
     name: vector
@@ -150,7 +149,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: vector
-  namespace: kubesphere-system
 spec:
   extension:
     name: vector
@@ -238,10 +236,10 @@ agent:
 
 ```bash
 # View extension installation status
-kubectl get installplan -n kubesphere-system -l extension.kubesphere.io/name=vector
+kubectl get installplan vector
 
 # View extension version
-kubectl get extensionversions -n kubesphere-system vector
+kubectl get extensionversions -l kubesphere.io/extension-ref=vector
 ```
 
 ### Check Pod Status
@@ -268,7 +266,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: vector
-  namespace: kubesphere-system
 spec:
   extension:
     name: vector
@@ -296,7 +293,7 @@ spec:
 **Uninstall from all clusters:**
 
 ```bash
-kubectl delete installplan -n kubesphere-system vector
+kubectl delete installplan vector
 ```
 
 **Uninstall from specific cluster:**
@@ -308,7 +305,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: vector
-  namespace: kubesphere-system
 spec:
   extension:
     name: vector

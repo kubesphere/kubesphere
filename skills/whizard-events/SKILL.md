@@ -59,7 +59,7 @@ Which clusters do you want to deploy WizTelemetry Events to?
 **MUST do this to get the latest version:**
 
 ```bash
-kubectl get extensionversions -n kubesphere-system -l kubesphere.io/extension-ref=whizard-events -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
+kubectl get extensionversions -l kubesphere.io/extension-ref=whizard-events -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
 ```
 
 This outputs the latest version (e.g., `1.4.0`). Note this down - you'll use it in the InstallPlan.
@@ -87,7 +87,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-events
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-events
@@ -105,44 +104,6 @@ spec:
 - `<TARGET_CLUSTERS>`: User-confirmed cluster names
 
 **Note:** OpenSearch sink configuration (endpoints, auth) is provided by the **vector** extension. Make sure vector is installed and configured with OpenSearch before installing events.
-
-#### Enable Doris Sink
-
-To enable Doris sink for events storage:
-
-```yaml
-apiVersion: kubesphere.io/v1alpha1
-kind: InstallPlan
-metadata:
-  name: whizard-events
-  namespace: kubesphere-system
-spec:
-  extension:
-    name: whizard-events
-    version: <VERSION>  # From Step 2
-  enabled: true
-  upgradeStrategy: Manual
-  config: |
-    kube-events-exporter:
-      sinks:
-        opensearch:
-          enabled: true
-          index:
-            prefix: "{{ .cluster }}-events"
-            timestring: "%Y.%m.%d"
-        doris:
-          enabled: true
-          fe: <DORIS_FE>
-          be: <DORIS_BE>
-          table:
-            partitionUnit: DAY
-            retentionPartition: 7
-            replicationNum: 2
-  clusterScheduling:
-    placement:
-      clusters:
-        - <TARGET_CLUSTERS>
-```
 
 #### Enable ISM Policy
 
@@ -184,17 +145,6 @@ spec:
 | `kube-events-exporter.sinks.opensearch.enabled` | bool | true | Enable OpenSearch sink |
 | `kube-events-exporter.sinks.opensearch.index.prefix` | string | "{{ .cluster }}-events" | Index prefix |
 | `kube-events-exporter.sinks.opensearch.index.timestring` | string | "%Y.%m.%d" | Index time format |
-
-### Doris Sink Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `kube-events-exporter.sinks.doris.enabled` | bool | false | Enable Doris sink |
-| `kube-events-exporter.sinks.doris.fe` | string | "" | Doris Frontend address |
-| `kube-events-exporter.sinks.doris.be` | string | "" | Doris Backend address |
-| `kube-events-exporter.sinks.doris.table.partitionUnit` | string | DAY | Partition unit |
-| `kube-events-exporter.sinks.doris.table.retentionPartition` | int | 7 | Retention partition |
-| `kube-events-exporter.sinks.doris.table.replicationNum` | int | 2 | Replication number |
 
 ### ISM Policy Parameters
 
@@ -241,8 +191,8 @@ curl -X GET "http://whizard-telemetry-apiserver.extension-whizard-telemetry.svc:
 ### Check Extension Status
 
 ```bash
-kubectl get installplan -n kubesphere-system -l extension.kubesphere.io/name=whizard-events
-kubectl get extensionversions -n kubesphere-system whizard-events
+kubectl get installplan whizard-events
+kubectl get extensionversions -l kubesphere.io/extension-ref=whizard-events
 ```
 
 ### Uninstall Extension
@@ -250,7 +200,7 @@ kubectl get extensionversions -n kubesphere-system whizard-events
 **Uninstall from all clusters:**
 
 ```bash
-kubectl delete installplan -n kubesphere-system whizard-events
+kubectl delete installplan whizard-events
 ```
 
 **Uninstall from specific cluster:**
@@ -262,7 +212,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-events
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-events

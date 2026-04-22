@@ -60,7 +60,7 @@ Which clusters do you want to deploy WizTelemetry Logging to?
 **MUST do this to get the latest version:**
 
 ```bash
-kubectl get extensionversions -n kubesphere-system -l kubesphere.io/extension-ref=whizard-logging -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
+kubectl get extensionversions -l kubesphere.io/extension-ref=whizard-logging -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
 ```
 
 This outputs the latest version (e.g., `1.4.0`). Note this down - you'll use it in the InstallPlan.
@@ -88,7 +88,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-logging
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-logging
@@ -116,7 +115,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-logging
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-logging
@@ -239,8 +237,8 @@ curl -X GET "http://whizard-telemetry-apiserver.extension-whizard-telemetry.svc:
 ### Check Extension Status
 
 ```bash
-kubectl get installplan -n kubesphere-system -l extension.kubesphere.io/name=whizard-logging
-kubectl get extensionversions -n kubesphere-system whizard-logging
+kubectl get installplan whizard-logging
+kubectl get extensionversions -l kubesphere.io/extension-ref=whizard-logging
 ```
 
 ### Uninstall Extension
@@ -248,7 +246,7 @@ kubectl get extensionversions -n kubesphere-system whizard-logging
 **Uninstall from all clusters:**
 
 ```bash
-kubectl delete installplan -n kubesphere-system whizard-logging
+kubectl delete installplan whizard-logging
 ```
 
 **Uninstall from specific cluster:**
@@ -260,7 +258,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-logging
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-logging
