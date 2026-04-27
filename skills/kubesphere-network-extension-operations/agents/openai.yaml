@@ -1,0 +1,4 @@
+interface:
+  display_name: "KubeSphere Network Extension Operations"
+  short_description: "Operate KubeSphere network extension"
+  default_prompt: "Use $kubesphere-network-extension-operations to install, configure, troubleshoot, or inspect the KubeSphere network extension and its IPPool or NetworkPolicy resources."
