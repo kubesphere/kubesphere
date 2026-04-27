@@ -70,7 +70,7 @@ Which clusters do you want to deploy OpenSearch to?
 **MUST do this to get the latest version:**
 
 ```bash
-kubectl get extensionversions -n kubesphere-system -l kubesphere.io/extension-ref=opensearch -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
+kubectl get extensionversions -l kubesphere.io/extension-ref=opensearch -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
 ```
 
 ## Installation

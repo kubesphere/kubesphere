@@ -58,7 +58,7 @@ Which clusters do you want to deploy WizTelemetry Auditing to?
 **MUST do this to get the latest version:**
 
 ```bash
-kubectl get extensionversions -n kubesphere-system -l kubesphere.io/extension-ref=whizard-auditing -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
+kubectl get extensionversions -l kubesphere.io/extension-ref=whizard-auditing -o jsonpath='{range .items[*]}{.spec.version}{"\n"}{end}' | sort -V | tail -1
 ```
 
 This outputs the latest version (e.g., `1.4.0`). Note this down - you'll use it in the InstallPlan.
@@ -86,7 +86,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-auditing
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-auditing
@@ -114,7 +113,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-auditing
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-auditing
@@ -150,7 +148,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-auditing
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-auditing
@@ -245,8 +242,8 @@ curl -X GET "http://whizard-telemetry-apiserver.extension-whizard-telemetry.svc:
 ### Check Extension Status
 
 ```bash
-kubectl get installplan -n kubesphere-system -l extension.kubesphere.io/name=whizard-auditing
-kubectl get extensionversions -n kubesphere-system whizard-auditing
+kubectl get installplan whizard-auditing
+kubectl get extensionversions -l kubesphere.io/extension-ref=whizard-auditing
 ```
 
 ### Uninstall Extension
@@ -254,7 +251,7 @@ kubectl get extensionversions -n kubesphere-system whizard-auditing
 **Uninstall from all clusters:**
 
 ```bash
-kubectl delete installplan -n kubesphere-system whizard-auditing
+kubectl delete installplan whizard-auditing
 ```
 
 **Uninstall from specific cluster:**
@@ -266,7 +263,6 @@ apiVersion: kubesphere.io/v1alpha1
 kind: InstallPlan
 metadata:
   name: whizard-auditing
-  namespace: kubesphere-system
 spec:
   extension:
     name: whizard-auditing
