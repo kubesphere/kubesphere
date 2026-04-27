@@ -107,23 +107,6 @@ EOF
 └──────────────┘ └───────────┘ └─────────────┘
 ```
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                     DevOps Project                            │
-│  (Namespace with devops.kubesphere.io/managed=true label)    │
-└──────────────────────┬───────────────────────────────────────┘
-                       │
-        ┌──────────────┼──────────────┐
-        │              │              │
-┌───────▼──────┐ ┌─────▼─────┐ ┌──────▼──────┐
-│  Pipelines   │ │Credentials│ │   Webhooks  │
-│              │ │           │ │             │
-│ - Graphical  │ │ - SSH     │ │ - GitHub    │
-│ - Jenkinsfile│ │ - Basic   │ │ - GitLab    │
-│ - Multi-branch│ │ - Token  │ │ - Generic   │
-└──────────────┘ └───────────┘ └─────────────┘
-```
-
 ## Installation
 
 ### Using InstallPlan (Recommended for Production)
