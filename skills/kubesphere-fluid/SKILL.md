@@ -407,7 +407,7 @@ spec:
         path: {{path}}
         quota: {{quota}}
         high: "{{high}}"
-        low: "{{low}}
+        low: "{{low}}"
 ```
 
 **When user explicitly asks for "Dataset with Runtime", generate both:**
