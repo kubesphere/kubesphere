@@ -107,7 +107,7 @@ curl -X POST "https://kubesphere-api/kapis/devops.kubesphere.io/v1alpha3/namespa
       "username": "git",
       "privatekey": "-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----"
     },
-    "type": "Opaque"
+    "type": "credential.devops.kubesphere.io/ssh-auth"
   }'
 ```
 
@@ -130,7 +130,7 @@ curl -X POST "https://kubesphere-api/kapis/devops.kubesphere.io/v1alpha3/namespa
       "username": "docker-user",
       "password": "docker-password"
     },
-    "type": "Opaque"
+    "type": "credential.devops.kubesphere.io/basic-auth"
   }'
 ```
 
@@ -191,7 +191,7 @@ curl -X POST "https://kubesphere-api/kapis/devops.kubesphere.io/v1alpha3/namespa
     "stringData": {
       "secret": "my-api-token-value"
     },
-    "type": "Opaque"
+    "type": "credential.devops.kubesphere.io/secret-text"
   }'
 ```
 
@@ -465,7 +465,7 @@ curl -s -X POST "${KUBESPHERE_API}/kapis/devops.kubesphere.io/v1alpha3/namespace
       "username": "git",
       "password": "'${GITHUB_TOKEN}'"
     },
-    "type": "Opaque"
+    "type": "credential.devops.kubesphere.io/basic-auth"
   }' | jq -r '.metadata.name'
 
 # 2. Create GitRepository
