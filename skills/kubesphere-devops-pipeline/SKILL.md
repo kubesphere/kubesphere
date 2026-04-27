@@ -320,7 +320,7 @@ spec:
     script_path: go/Jenkinsfile  # Path to Jenkinsfile in repo
 ```
 
-**Step 3b: For Private Repository (with credential):
+**Step 3b: For Private Repository (with credential):**
 ```yaml
 apiVersion: devops.kubesphere.io/v1alpha3
 kind: Pipeline
