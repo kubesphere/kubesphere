@@ -1,0 +1,51 @@
+apiVersion: kubesphere.io/v1alpha1
+name: network
+version: 1.3.0
+displayName:
+  zh: KubeSphere 网络
+  en: KubeSphere Network
+annotations:
+  executor-hook-image.kubesphere.io/install: kubesphere/ks-extension-upgrade:v0.3.2
+  executor-hook-image.kubesphere.io/upgrade: kubesphere/ks-extension-upgrade:v0.3.2
+description:
+  zh: |-
+    提供 Kubernetes 集群的 Pod IP 池管理能力（基于 Calico）；支持租户视角的 IP 池、NetworkPolicy 管理及配置变更
+  en: |-
+    Provides Pod IP pool management capabilities for Kubernetes clusters (based on Calico); Supports tenant-level IPPool、NetworkPolicy management, and configuration changes.
+category: networking
+keywords:
+  - networking
+  - ippool
+  - networkpolicy
+home: https://kubesphere.com.cn/
+sources: []
+kubeVersion: '>=1.19.0-0'
+ksVersion: '>=4.2.0-0'
+maintainers:
+  - name: KubeSphere
+    email: kubesphere@yunify.com
+provider:
+  zh:
+    name: 北京青云科技股份有限公司
+    email: kubesphere@yunify.com
+    url: https://kubesphere.com.cn/
+  en:
+    name: QingCloud Technologies
+    email: kubesphere@yunify.com
+    url: https://kubesphere.co/
+icon: ./static/favicon.svg
+dependencies:
+  - name: frontend
+    tags:
+      - extension
+  - name: network
+    tags:
+      - agent
+installationMode: Multicluster
+images:
+  - docker.io/kubesphere/kubectl:v1.27.12
+  - docker.io/kubesphere/ks-extension-upgrade:v0.3.2
+  - docker.io/kubesphere/network-extension-frontend:v1.3.0
+  - docker.io/kubesphere/network-extension-apiserver:v1.3.0
+  - docker.io/kubesphere/network-extension-controller:v1.3.0
+docs: https://docs.kubesphere.com.cn/

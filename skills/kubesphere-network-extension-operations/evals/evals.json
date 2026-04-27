@@ -1,0 +1,158 @@
+{
+  "skill_name": "kubesphere-network-extension-operations",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to install the KubeSphere network extension. Please create the InstallPlan manifest for version 1.3.0 with default configuration.",
+      "expected_output": "A valid InstallPlan YAML manifest with metadata.name and spec.extension.name both set to network, spec.extension.version set to 1.3.0, enabled: true, upgradeStrategy: Manual, and no spec.config field because the user did not request custom values.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "metadata_name_matches_extension_name",
+          "description": "InstallPlan metadata.name must exactly match spec.extension.name",
+          "check": "The manifest should have metadata.name: network and spec.extension.name: network"
+        },
+        {
+          "name": "exact_version_used",
+          "description": "The requested extension version must be used exactly",
+          "check": "The manifest should have spec.extension.version: 1.3.0"
+        },
+        {
+          "name": "manual_upgrade_strategy",
+          "description": "Production InstallPlan should use Manual upgrade strategy",
+          "check": "The manifest should have upgradeStrategy: Manual"
+        },
+        {
+          "name": "config_omitted_for_defaults",
+          "description": "spec.config should be omitted when the user wants the default configuration",
+          "check": "The manifest should NOT contain spec.config"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create the InstallPlan for network version 1.3.0, but enable IPPool and disable NetworkPolicy in the extension configuration.",
+      "expected_output": "A valid InstallPlan YAML manifest for the network extension that includes a spec.config block with global.ippool.enable true, global.ippool.type calico, and global.networkPolicy.enable false.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "correct_extension_identity",
+          "description": "The InstallPlan should target the network extension",
+          "check": "The manifest should have metadata.name: network and spec.extension.name: network"
+        },
+        {
+          "name": "custom_ippool_config_present",
+          "description": "The config should explicitly enable IPPool with Calico",
+          "check": "The manifest should contain spec.config with global.ippool.enable: true and global.ippool.type: calico"
+        },
+        {
+          "name": "networkpolicy_disabled",
+          "description": "The config should explicitly disable NetworkPolicy",
+          "check": "The manifest should contain global.networkPolicy.enable: false"
+        },
+        {
+          "name": "manual_upgrade_strategy",
+          "description": "Production InstallPlan should use Manual upgrade strategy",
+          "check": "The manifest should have upgradeStrategy: Manual"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The network extension is installed on 1.2.0 and I want to upgrade it to 1.3.0. Tell me the safe kubectl workflow.",
+      "expected_output": "A step-by-step kubectl workflow that first reads the current extension and InstallPlan, verifies the target extensionversion, updates spec.extension.version to 1.3.0, and explicitly warns not to keep stale pinned image tags from the old config.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "inspect_current_installplan_first",
+          "description": "The answer should read the current InstallPlan before editing",
+          "check": "Should include kubectl get installplan network -o yaml"
+        },
+        {
+          "name": "verify_target_extension_version",
+          "description": "The answer should verify the target extensionversion exists",
+          "check": "Should include kubectl get extensionversion network-1.3.0 -o yaml"
+        },
+        {
+          "name": "warn_about_pinned_tags",
+          "description": "The answer should mention the upgrade risk from old pinned image tags",
+          "check": "Should warn to remove or update old image tags before apply"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need to enable project network isolation for namespace project-a. Give me the patch workflow.",
+      "expected_output": "A workflow that first inspects the live namespace annotations and then patches the namespace with metadata.annotations.kubesphere.io/network-isolate=enabled unless the live cluster already proves it uses a different key.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "inspect_namespace_before_patching",
+          "description": "The answer should inspect the current namespace first",
+          "check": "Should include kubectl get namespace project-a -o yaml"
+        },
+        {
+          "name": "correct_annotation_payload",
+          "description": "The patch payload should use the documented example key",
+          "check": "Should include kubesphere.io/network-isolate: enabled"
+        },
+        {
+          "name": "live_shape_caveat",
+          "description": "The answer should preserve the current live object shape if it differs",
+          "check": "Should mention checking live annotations before patching"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Create a namespace network isolation policy for namespace project-a that allows egress to external destinations. What labels must the policy carry?",
+      "expected_output": "An answer that identifies the namespace-level API path and preserves the exact KubeSphere labels for an external egress allowlist.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "uses_namespace_networkpolicy_api",
+          "description": "The answer should use the namespace network policy API path",
+          "check": "Should include /kapis/network.kubesphere.io/v1alpha1/namespaces/project-a/namespacenetworkpolicies"
+        },
+        {
+          "name": "egress_label_preserved",
+          "description": "The answer should preserve the egress policy-type label exactly",
+          "check": "Should include kubesphere.io/policy-type=egress"
+        },
+        {
+          "name": "outside_label_preserved",
+          "description": "The answer should preserve the external traffic label exactly",
+          "check": "Should include kubesphere.io/policy-traffic=outside"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "The network extension install is stuck. I need the key diagnostic commands.",
+      "expected_output": "A diagnostic sequence that checks extension state, InstallPlan state, target namespace, workload status, and relevant jobs or controller pods.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check_extension_state",
+          "description": "The answer should inspect the extension object",
+          "check": "Should include kubectl describe extension network"
+        },
+        {
+          "name": "check_installplan_state",
+          "description": "The answer should inspect the InstallPlan object",
+          "check": "Should include kubectl describe installplan network"
+        },
+        {
+          "name": "check_target_namespace",
+          "description": "The answer should obtain the InstallPlan target namespace",
+          "check": "Should include kubectl get installplan network -o jsonpath='{.status.targetNamespace}'"
+        },
+        {
+          "name": "check_jobs_or_pods",
+          "description": "The answer should inspect deployed pods or helm jobs",
+          "check": "Should include kubectl get pods,svc -n <target-namespace> and kubectl get jobs -A"
+        }
+      ]
+    }
+  ]
+}
