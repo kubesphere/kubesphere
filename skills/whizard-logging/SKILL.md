@@ -101,7 +101,7 @@ spec:
 ```
 
 **Replace placeholders:**
-- `<VERSION>`: From Step 3 (e.g., `1.4.0`)
+- `<VERSION>`: From Step 2 (e.g., `1.4.0`)
 - `<TARGET_CLUSTERS>`: User-confirmed cluster names
 
 **Note:** OpenSearch sink configuration (endpoints, auth) is provided by the **vector** extension. Make sure vector is installed and configured with OpenSearch before installing logging.
@@ -118,7 +118,7 @@ metadata:
 spec:
   extension:
     name: whizard-logging
-    version: <VERSION>  # From Step 3
+    version: <VERSION>  # From Step 2
   enabled: true
   upgradeStrategy: Manual
   config: |
