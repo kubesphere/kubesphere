@@ -65,6 +65,7 @@ import (
 	tenantapiv1beta1 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1beta1"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/kapis/version"
+	workloadnetworkv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/workloadnetwork/v1alpha1"
 	workloadtemplatev1alpha1 "kubesphere.io/kubesphere/pkg/kapis/workloadtemplate/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
@@ -190,6 +191,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		gatewayv1alpha2.NewHandler(s.RuntimeCache),
 		appv2.NewHandler(s.RuntimeClient, s.ClusterClient, s.S3Options),
 		workloadtemplatev1alpha1.NewHandler(s.RuntimeClient, s.K8sVersion, rbacAuthorizer),
+		workloadnetworkv1alpha1.NewHandler(s.RuntimeClient),
 		static.NewHandler(s.CacheClient),
 	}
 
