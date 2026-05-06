@@ -1,0 +1,73 @@
+global:
+  # will override the all registry and tag if set
+  imageRegistry: # registry.cn-beijing.aliyuncs.com  docker.io
+  imagePullSecrets: []
+
+  upgradeConfig:
+    enabled: true
+    installCrds: true
+    upgradeCrds: true
+    # mergeValues: false
+    # failurePolicy: 0
+    # dynamicOptions:
+    #   key: value
+
+  ippool:
+    enable: true
+    type: "calico"  # only support calico now
+    webhook: true # enable webhook for calico ippool
+
+  networkPolicy:
+    enable: true
+
+frontend:
+  image:
+    registry: docker.io
+    repository: kubesphere/network-extension-frontend
+    # tag: v1.3.0
+    pullPolicy: IfNotPresent
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 200Mi
+    requests:
+      cpu: 10m
+      memory: 50Mi
+    
+  hook:
+    image:
+      registry: docker.io
+      repository: kubesphere/kubectl
+      tag: v1.27.12
+      pullPolicy: IfNotPresent
+
+network:
+  apiserver:
+    image:
+      registry: docker.io
+      repository: kubesphere/network-extension-apiserver
+      # tag: v1.3.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 100m
+        memory: 200Mi
+      requests:
+        cpu: 5m
+        memory: 50Mi
+
+  controller:
+    image:
+      registry: docker.io
+      repository: kubesphere/network-extension-controller
+      # tag: v1.3.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 100m
+        memory: 200Mi
+      requests:
+        cpu: 10m
+        memory: 50Mi
+
