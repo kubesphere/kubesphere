@@ -1,0 +1,29 @@
+{
+  "skill_name": "frontend-forge-fe-operations",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In the frontend-forge-controller repo, use the FE operations skill to tell me how to apply config/samples/frontendextension-inspecttask.yaml, wait for inspecttask to become package-ready, and inspect the generated package Job and artifact ConfigMap if it gets stuck in Packaging.",
+      "expected_output": "A concrete kubectl workflow for applying the sample, checking FE status/conditions/labels, finding packageJob namespace/name, reading package Job logs, and inspecting status.artifact.storage.ref and the artifact ConfigMap.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The FrontendExtension inspecttask is Ready but not published. Show me the safest way to publish it through the extension API, including how to find/port-forward the service and how to protect against publishing a stale artifact digest.",
+      "expected_output": "A workflow that uses the KubeSphere /kapis/frontend-forge-api.kubesphere.io/v1alpha1/frontendextensions API rather than raw annotation patches, treats port-forwarding as local debugging only, reads status.artifact.digest, calls POST /publish with requestId and expectedArtifactDigest, and checks status.publish plus publisher Job logs.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I changed only the publishPolicy on a FrontendExtension and the package did not rebuild. Is that expected? Give me the fields and commands to verify package freshness, publish freshness, and how to force a rebuild if I really need one.",
+      "expected_output": "An explanation that publishPolicy is excluded from package/source identity, commands for observedSourceHash/artifactKey/publish-fresh/status labels, and the rebuild-token annotation command.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I need to remove a published FrontendExtension from the cluster. Use the FE operations skill to give me the safest command sequence, and call out what not to delete or patch manually.",
+      "expected_output": "A safety-first delete workflow that checks status.publish.phase/active/artifactDigest, uses the KubeSphere /kapis FE API delete endpoint with unpublish=true, follows the unpublish Job, avoids raw publish/unpublish annotation patches, and avoids deleting current artifact ConfigMaps or active Jobs.",
+      "files": []
+    }
+  ]
+}
