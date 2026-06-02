@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Forge FE Operations"
+  short_description: "Operate FE package, artifact, publish, and unpublish flows"
+  default_prompt: "Use $frontend-forge-fe-operations to create, update, rebuild, inspect, download, publish, unpublish, delete, or debug FrontendExtension resources, package Jobs, artifact ConfigMaps, publisher Jobs, publish targets, and FE status labels."
