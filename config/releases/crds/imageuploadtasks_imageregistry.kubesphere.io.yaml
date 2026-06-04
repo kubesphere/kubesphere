@@ -1,0 +1,113 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: imageuploadtasks.imageregistry.kubesphere.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.3
+spec:
+  group: imageregistry.kubesphere.io
+  scope: Namespaced
+  names:
+    plural: imageuploadtasks
+    singular: imageuploadtask
+    kind: ImageUploadTask
+    shortNames:
+    - uploadtask
+    - upload
+    categories:
+    - kubesphere
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object.'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents.'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ImageUploadTaskSpec defines the specification of an upload task
+            type: object
+            properties:
+              sourceImage:
+                description: Source image name (e.g., foo:bar)
+                type: string
+              targetRegistry:
+                description: Target registry name
+                type: string
+              targetImage:
+                description: Target image name (e.g., org/app:tag)
+                type: string
+              syncClusters:
+                description: Clusters to sync with
+                type: array
+                items:
+                  type: string
+              dryRun:
+                description: Validate without actually pushing
+                type: boolean
+                default: false
+            required:
+            - sourceImage
+            - targetRegistry
+          status:
+            description: ImageUploadTaskStatus represents the status of an upload task
+            type: object
+            properties:
+              phase:
+                description: Phase of the task (pending, Running, Completed, Failed)
+                type: string
+                enum:
+                - pending
+                - Running
+                - Completed
+                - Failed
+              message:
+                description: Status message
+                type: string
+              startTime:
+                description: Task start time
+                type: string
+                format: date-time
+              completionTime:
+                description: Task completion time
+                type: string
+                format: date-time
+              clusterResults:
+                description: Push status for each cluster
+                type: array
+                items:
+                  type: object
+                  properties:
+                    clusterName:
+                      type: string
+                    status:
+                      type: string
+                      enum:
+                      - pending
+                      - Completed
+                      - Failed
+                    message:
+                      type: string
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Phase
+      type: string
+      jsonPath: .status.phase
+    - name: Source
+      type: string
+      jsonPath: .spec.sourceImage
+    - name: Target Registry
+      type: string
+      jsonPath: .spec.targetRegistry
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
