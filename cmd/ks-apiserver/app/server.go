@@ -11,10 +11,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/gops/agent"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -22,6 +26,8 @@ import (
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	"kubesphere.io/kubesphere/pkg/config"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/kapis"
+	"kubesphere.io/kubesphere/pkg/kapis/proxy/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"kubesphere.io/kubesphere/pkg/version"
 )
@@ -96,4 +102,10 @@ func Run(ctx context.Context, s *options.APIServerOptions) error {
 		return nil
 	}
 	return err
+}
+
+// installApis registers all API routes with the Gin engine
+func installApis(g *gin.Engine) {
+	v1alpha1.Register(g)
+	kapis.RegisterKubeSphereApis(g)
 }
