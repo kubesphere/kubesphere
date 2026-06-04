@@ -11,6 +11,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	corev1 "k8s.io/api/core/v1"
+	iamv1beta1 "kubesphere.io/api/iam/v1beta1"
 	quotav1alpha2 "kubesphere.io/api/quota/v1alpha2"
 	"kubesphere.io/api/tenant/v1beta1"
 
@@ -131,6 +132,42 @@ func (h *handler) AddToContainer(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagUserRelatedResources}).
 		Operation("user-related-clusters").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}))
+
+	ws.Route(ws.GET("/clusters/{cluster}/members").
+		To(h.ListClusterMembers).
+		Doc("List cluster members").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagUserRelatedResources}).
+		Operation("list-cluster-members").
+		Param(ws.PathParameter("cluster", "The specified cluster.")).
+		Returns(http.StatusOK, api.StatusOK, api.ListResult{}))
+
+	ws.Route(ws.POST("/clusters/{cluster}/members").
+		To(h.CreateClusterMember).
+		Doc("Create cluster member").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagUserRelatedResources}).
+		Operation("create-cluster-member").
+		Param(ws.PathParameter("cluster", "The specified cluster.")).
+		Reads(iamv1beta1.User{}).
+		Returns(http.StatusOK, api.StatusOK, errors.None))
+
+	ws.Route(ws.DELETE("/clusters/{cluster}/members/{username}").
+		To(h.RemoveClusterMember).
+		Doc("Remove cluster member").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagUserRelatedResources}).
+		Operation("remove-cluster-member").
+		Param(ws.PathParameter("cluster", "The specified cluster.")).
+		Param(ws.PathParameter("username", "The specified username.")).
+		Returns(http.StatusOK, api.StatusOK, errors.None))
+
+	ws.Route(ws.PUT("/clusters/{cluster}/members/{username}").
+		To(h.UpdateClusterMember).
+		Doc("Update cluster member").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.TagUserRelatedResources}).
+		Operation("update-cluster-member").
+		Param(ws.PathParameter("cluster", "The specified cluster.")).
+		Param(ws.PathParameter("username", "The specified username.")).
+		Reads(iamv1beta1.User{}).
+		Returns(http.StatusOK, api.StatusOK, errors.None))
 
 	ws.Route(ws.POST("/workspaces").
 		To(h.CreateWorkspaceTemplate).
