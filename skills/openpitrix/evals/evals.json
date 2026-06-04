@@ -1,0 +1,271 @@
+{
+  "skill_name": "openpitrix",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a KubeSphere OpenPitrix application repository manifest for workspace demo. The repo name is bitnami, display name is Bitnami, URL is https://charts.bitnami.com/bitnami, and it should not sync periodically.",
+      "expected_output": "A valid application.kubesphere.io/v2 Repo YAML with metadata.name bitnami, workspace label demo, display-name annotation Bitnami, spec.url https://charts.bitnami.com/bitnami, and spec.syncPeriod 0.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "uses_v2_repo",
+          "description": "The manifest uses the current KubeSphere application API.",
+          "check": "The YAML should include apiVersion application.kubesphere.io/v2 and kind Repo."
+        },
+        {
+          "name": "workspace_label_set",
+          "description": "The repository is scoped to the requested workspace.",
+          "check": "metadata.labels should contain kubesphere.io/workspace: demo."
+        },
+        {
+          "name": "repo_url_set",
+          "description": "The repository URL is preserved exactly.",
+          "check": "spec.url should be https://charts.bitnami.com/bitnami."
+        },
+        {
+          "name": "no_periodic_sync",
+          "description": "Periodic sync is disabled.",
+          "check": "spec.syncPeriod should be 0."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The OpenPitrix repo named bitnami is stuck syncing in KubeSphere. Give me the kubectl commands and checks to diagnose it.",
+      "expected_output": "A focused troubleshooting sequence that describes the Repo, checks repository events, inspects ks-controller-manager logs for helmrepo-controller and bitnami, validates the repo URL/index.yaml and credentials, and explains common causes.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "describes_repo",
+          "description": "Includes a command to inspect the Repo resource.",
+          "check": "Should include kubectl describe repo.application.kubesphere.io bitnami."
+        },
+        {
+          "name": "checks_events",
+          "description": "Includes a command to inspect events for the repository.",
+          "check": "Should include kubectl get events with involvedObject.name=bitnami."
+        },
+        {
+          "name": "checks_controller_logs",
+          "description": "Includes controller log inspection.",
+          "check": "Should mention ks-controller-manager logs and helmrepo-controller."
+        },
+        {
+          "name": "checks_index_and_credentials",
+          "description": "Mentions repository URL/index and credential validation.",
+          "check": "Should mention index.yaml and credentials or TLS settings."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I uploaded a Helm app package to workspace demo and now need to verify the generated OpenPitrix app and version. What resources and labels should I query?",
+      "expected_output": "Commands to query applications.application.kubesphere.io and applicationversions.application.kubesphere.io using repo-name=upload, workspace label demo, and app-id for the generated app. The answer should explain uploaded apps start as draft and versions use ApplicationVersion.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "queries_uploaded_apps",
+          "description": "Uses the upload repo label for uploaded apps.",
+          "check": "Should query applications.application.kubesphere.io with application.kubesphere.io/repo-name=upload."
+        },
+        {
+          "name": "queries_versions_by_app",
+          "description": "Uses the app-id label to find versions.",
+          "check": "Should query applicationversions.application.kubesphere.io with application.kubesphere.io/app-id=<app>."
+        },
+        {
+          "name": "workspace_filter",
+          "description": "Keeps the query scoped to the requested workspace.",
+          "check": "Should include kubesphere.io/workspace=demo."
+        },
+        {
+          "name": "draft_state",
+          "description": "Explains initial review state for uploads.",
+          "check": "Should mention uploaded apps or versions start in draft."
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "An OpenPitrix ApplicationRelease named nginx failed to install in namespace demo-ns. Show me how to troubleshoot the release and executor job.",
+      "expected_output": "Commands to describe the ApplicationRelease, derive or use the target namespace, list Jobs and Pods with application.kubesphere.io/app-release-name=nginx label selectors, fetch pod logs through that selector, and check appVersionID, target cluster/namespace labels, chart storage, and status/specHash.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "describes_release",
+          "description": "Inspects the ApplicationRelease resource.",
+          "check": "Should include kubectl describe applicationrelease.application.kubesphere.io nginx."
+        },
+        {
+          "name": "checks_executor_job",
+          "description": "Finds the Helm executor Job by release label.",
+          "check": "Should list jobs in demo-ns with application.kubesphere.io/app-release-name=nginx."
+        },
+        {
+          "name": "checks_executor_logs",
+          "description": "Fetches pod logs for the executor by release label.",
+          "check": "Should include kubectl logs for pods selected by application.kubesphere.io/app-release-name=nginx."
+        },
+        {
+          "name": "avoids_primary_grep",
+          "description": "Avoids broad grep as the primary troubleshooting path.",
+          "check": "Should prefer kubectl label selectors over kubectl get jobs -A | grep nginx or kubectl get pods -A | grep nginx."
+        },
+        {
+          "name": "mentions_release_references",
+          "description": "Checks app version and target labels.",
+          "check": "Should mention spec.appVersionID and kubesphere.io/cluster or kubesphere.io/namespace labels."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Explain the mapping between old OpenPitrix resources and KubeSphere 4.x application resources. I am looking at HelmRepo, HelmApplication, HelmApplicationVersion, HelmRelease, and HelmCategory.",
+      "expected_output": "A mapping table or concise explanation: HelmRepo to Repo, HelmApplication to Application, HelmApplicationVersion to ApplicationVersion, HelmRelease to ApplicationRelease, and HelmCategory to Category. It should recommend using application.kubesphere.io/v2 first and mention older openpitrix.io/v2 CRUD routes plus openpitrix.io/v2alpha1 read/list routes as compatibility APIs.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "repo_mapping",
+          "description": "Maps repository resources.",
+          "check": "Should map HelmRepo to Repo."
+        },
+        {
+          "name": "application_mapping",
+          "description": "Maps app template and version resources.",
+          "check": "Should map HelmApplication to Application and HelmApplicationVersion to ApplicationVersion."
+        },
+        {
+          "name": "release_mapping",
+          "description": "Maps installed app resources.",
+          "check": "Should map HelmRelease to ApplicationRelease."
+        },
+        {
+          "name": "category_mapping",
+          "description": "Maps category resources.",
+          "check": "Should map HelmCategory to Category."
+        },
+        {
+          "name": "prefers_v2",
+          "description": "Recommends the current API group.",
+          "check": "Should recommend application.kubesphere.io/v2 and mention openpitrix.io/v2 or openpitrix.io/v2alpha1 only for compatibility."
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Show API examples for KSE application management and legacy OpenPitrix. Include repository, app/version, release, and category examples. Include curl examples for the KSE JSON APIs.",
+      "expected_output": "Examples using kubectl, ks_api.py, and curl with clear tool-selection priority. The answer should use ks_api.py and curl for KubeSphere application.kubesphere.io/v2 routes, explain how curl obtains a bearer token, and include legacy openpitrix.io/v2alpha1 read/list examples plus openpitrix.io/v2 CRUD examples. Curl examples should include Authorization: Bearer token and application/json headers. The answer should distinguish the current KSE API from legacy OpenPitrix APIs and mention snake_case fields for legacy requests.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "kse_application_v2_examples",
+          "description": "Includes current KSE application API examples.",
+          "check": "Should include /kapis/application.kubesphere.io/v2/workspaces/<workspace>/repos, apps, versions, applications, categories, or reviews examples."
+        },
+        {
+          "name": "legacy_v2alpha1_examples",
+          "description": "Includes legacy read/list OpenPitrix examples.",
+          "check": "Should include /kapis/openpitrix.io/v2alpha1/workspaces/<workspace>/repos or apps examples."
+        },
+        {
+          "name": "legacy_v2_crud_examples",
+          "description": "Includes legacy CRUD OpenPitrix examples.",
+          "check": "Should include /kapis/openpitrix.io/v2/workspaces/<workspace>/repos or apps examples."
+        },
+        {
+          "name": "uses_ks_api",
+          "description": "Uses the KubeSphere API helper for JSON calls.",
+          "check": "Should show python ks_api.py GET or POST examples."
+        },
+        {
+          "name": "tool_selection_priority",
+          "description": "Explains when to use kubectl, ks_api.py, and curl.",
+          "check": "Should say kubectl is for resource/status troubleshooting, ks_api.py is for JSON KAPIs, and curl is for multipart, downloads, custom headers, or explicit HTTP reproduction."
+        },
+        {
+          "name": "curl_token_source",
+          "description": "Explains how curl gets a bearer token.",
+          "check": "Should show TOKEN coming from ~/.kubesphere_token after ks_api.py login or from POST /oauth/token."
+        },
+        {
+          "name": "curl_examples_with_auth",
+          "description": "Provides curl examples when requested.",
+          "check": "Should show curl commands with Authorization: Bearer $TOKEN and Content-Type: application/json for KSE JSON APIs."
+        },
+        {
+          "name": "release_body_shape",
+          "description": "ApplicationRelease examples should follow ApplicationReleaseSpec.",
+          "check": "For KSE ApplicationRelease examples, should use spec.appID, spec.appVersionID, spec.appType, and values as \"\" or base64 string. Should not invent spec.name or spec.namespace, and should not use values: {}."
+        },
+        {
+          "name": "distinguishes_apis",
+          "description": "Explains which API is preferred.",
+          "check": "Should state application.kubesphere.io/v2 is preferred for KubeSphere 4.x and openpitrix.io paths are legacy or compatibility APIs."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I need to manage all KubeSphere App Store related features through OpenPitrix. Cover enterprise-space Application Management pages: 应用, 自制应用, 应用模板, 应用仓库; and component-dock App Store Management pages: 应用, 应用分类, 应用审核, 应用仓库, 部署管理. Show the APIs and checks for listing app templates, editing app metadata/category/screenshots, managing categories, reviewing uploaded versions, repositories, deployments, and distinguishing templates from installed app releases.",
+      "expected_output": "A workflow-oriented answer for App Store management. It should map enterprise-space routes such as /workspaces/<workspace>/deploy, app-templates, and app-repos plus component-dock routes such as apps-manage/store, categories, reviews, repo, and deploy to application.kubesphere.io/v2 APIs; use Application for store templates and ApplicationRelease only for installed apps; include PATCH /workspaces/<workspace>/apps/<app> fields such as categoryName, aliasName, description, icon, attachments, abstraction, and appHome; include attachment multipart curl with bearer auth; include category create/update/delete and review list/action examples; include repo sync examples; and include kubectl checks for Application, ApplicationVersion, Repo, Category, and ApplicationRelease when troubleshooting.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "maps_app_store_ui_areas",
+          "description": "Connects App Store UI areas to backend APIs.",
+          "check": "Should mention apps-manage/store, categories, reviews, repo, or deploy and map them to /apps, /categories, /reviews, /repos, and /applications APIs."
+        },
+        {
+          "name": "maps_enterprise_workspace_areas",
+          "description": "Connects enterprise-space application management areas to backend APIs.",
+          "check": "Should mention enterprise-space or workspace pages such as /workspaces/<workspace>/deploy, app-templates, app-repos, 应用, 自制应用, 应用模板, or 应用仓库, and map them to ApplicationRelease, Application, ApplicationVersion, and Repo APIs."
+        },
+        {
+          "name": "distinguishes_templates_from_releases",
+          "description": "Does not confuse app templates with installed app releases.",
+          "check": "Should state that App Store templates are Application resources and installed apps are ApplicationRelease resources."
+        },
+        {
+          "name": "metadata_patch_fields",
+          "description": "Explains how App Store metadata is edited.",
+          "check": "Should include PATCH /kapis/application.kubesphere.io/v2/workspaces/<workspace>/apps/<app> with categoryName, aliasName, description, icon, attachments, abstraction, or appHome."
+        },
+        {
+          "name": "attachment_management",
+          "description": "Includes screenshot or attachment handling.",
+          "check": "Should include /kapis/application.kubesphere.io/v2/workspaces/<workspace>/attachments and use curl multipart with Authorization: Bearer $TOKEN."
+        },
+        {
+          "name": "category_management",
+          "description": "Includes category CRUD and deletion caveats.",
+          "check": "Should include /kapis/application.kubesphere.io/v2/categories, category create/update/delete examples, and mention not deleting kubesphere-app-uncategorized or categories with applications."
+        },
+        {
+          "name": "review_management",
+          "description": "Includes review queue behavior.",
+          "check": "Should include /kapis/application.kubesphere.io/v2/reviews, review states such as submitted, and version action examples for passed or rejected."
+        },
+        {
+          "name": "kse_v2_action_and_label_shape",
+          "description": "Avoids legacy action/body shapes in KSE v2 examples.",
+          "check": "Should use application.kubesphere.io/repo-name=upload, not uploaded. KSE v2 app/version actions should use state, not action. KSE v2 repo sync should use an empty body or no body, not {\"action\":\"sync\"} or {\"action\":\"index\"}."
+        },
+        {
+          "name": "kse_v2_object_body_shape",
+          "description": "Uses Kubernetes object-shaped bodies for category and repository examples.",
+          "check": "Category examples should use metadata.name, metadata.annotations, and spec.icon. Repo examples should use metadata.name, metadata.labels, metadata.annotations, and spec.url/spec.syncPeriod. Should not use simplified top-level {\"name\":\"...\",\"url\":\"...\"} or {\"name\":\"...\",\"displayName\":\"...\"} bodies for KSE v2."
+        },
+        {
+          "name": "kubectl_checks",
+          "description": "Includes cluster-side checks for store management.",
+          "check": "Should include kubectl get applications.application.kubesphere.io, applicationversions.application.kubesphere.io, repos.application.kubesphere.io, categories.application.kubesphere.io, or applicationreleases.application.kubesphere.io depending on the workflow."
+        },
+        {
+          "name": "kubectl_scope",
+          "description": "Uses label-scoped CRD queries instead of namespace-scoping application CRDs.",
+          "check": "For application CRD checks, should prefer label selectors such as kubesphere.io/workspace, application.kubesphere.io/repo-name, application.kubesphere.io/app-id, or application.kubesphere.io/app-release-name. Should not default to kubectl get applications/applicationversions/repos/categories -n extension-openpitrix."
+        }
+      ]
+    }
+  ]
+}
