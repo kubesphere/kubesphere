@@ -1,0 +1,10 @@
+# Description: Inspect file change
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: filechange-inspect-rules
+spec:
+  fileChange:
+    - name: kubelet-config
+      path: /var/lib/kubelet/config.yaml

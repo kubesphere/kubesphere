@@ -1,0 +1,14 @@
+# Description: The rules for inspecting systemd services.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: systemd-inspect-rules
+spec:
+  systemd:
+    - name: docker
+      rule: docker == "active"
+    - name: etcd
+      rule: etcd == "active"
+    - name: kubelet
+      rule: kubelet == "active"

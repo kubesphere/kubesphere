@@ -1,0 +1,34 @@
+# Description: The rules for inspecting Events.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: event-inspect-rules
+spec:
+  opas:
+  - name: AbnormalEventsRule
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+          input.kind == "Event"
+          input.apiVersion == "v1"
+
+          input.metadata.namespace == "kube-system"
+
+          level := "DANGER"
+          Message := input.reason
+          Reason := input.message
+
+          input.type != "Normal"
+
+          msg := {
+              "Name": sprintf("%v", [input.metadata.name]),
+              "Namespace": sprintf("%v", [input.metadata.namespace]),
+              "Type": sprintf("%v", [input.kind]),
+              "Level": sprintf("%v", [level]),
+              "Message": sprintf("%v", [input.message]),
+              "Reason": sprintf("%v", [input.reason])
+          }
+      }

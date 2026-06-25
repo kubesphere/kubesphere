@@ -1,0 +1,48 @@
+# Description: This is a sample file for creating a PromQL InspectRule.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: promql-inspect-rules
+spec:
+  prometheus:
+    endpoint: http://prometheus-k8s.kubesphere-monitoring-system.svc.cluster.local:9090
+    # basicToken: xxx
+    # bearerToken: xxx
+  promQL:
+    - name: filesystem-less-20
+      desc: Filesystem inode where less 20 %
+      rule: (node_filesystem_files_free{fstype!="",job="node-exporter"} / node_filesystem_files{fstype!="",job="node-exporter"} * 100 < 20 and node_filesystem_readonly{fstype!="",job="node-exporter"} == 0)
+    - name: NodeFilesystemSpaceFillingUp
+      desc: Filesystem is predicted to run out of space within the next 24 hours.
+      rule: (node_filesystem_avail_bytes{fstype!="",job="node-exporter"} / node_filesystem_size_bytes{fstype!="",job="node-exporter"} * 100 < 20 and predict_linear(node_filesystem_avail_bytes{fstype!="",job="node-exporter"}[6h], 24 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter"} == 0)
+    - name: NodeFilesystemFilesFillingUp
+      rule: (node_filesystem_files_free{fstype!="",job="node-exporter"} / node_filesystem_files{fstype!="",job="node-exporter"} * 100 < 40 and predict_linear(node_filesystem_files_free{fstype!="",job="node-exporter"}[6h], 24 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter"} == 0)
+      desc: Filesystem is predicted to run out of inodes within the next 24 hours.
+    - name: NodeFilesystemAlmostOutOfSpace
+      rule: (node_filesystem_avail_bytes{fstype!="",job="node-exporter"} / node_filesystem_size_bytes{fstype!="",job="node-exporter"} * 100 < 5 and node_filesystem_readonly{fstype!="",job="node-exporter"} == 0)
+      desc: Filesystem has less than 5% space left.
+    - name: NodeClockSkewDetected
+      rule: (node_timex_offset_seconds > 0.05 and deriv(node_timex_offset_seconds[5m]) >= 0) or (node_timex_offset_seconds < -0.05 and deriv(node_timex_offset_seconds[5m]) <= 0)
+      desc: Clock skew detected.
+    - name: KubePodCrashLooping
+      rule: max_over_time(kube_pod_container_status_waiting_reason{job="kube-state-metrics",reason="CrashLoopBackOff"}[5m]) >= 1
+      desc: Pod is crash looping.
+    - name: KubePodNotReady
+      rule: sum by(namespace, pod) (max by(namespace, pod) (kube_pod_status_phase{job="kube-state-metrics",phase=~"Pending|Unknown"}) * on(namespace, pod) group_left(owner_kind) topk by(namespace, pod) (1, max by(namespace, pod, owner_kind) (kube_pod_owner{owner_kind!="Job"}))) > 0
+      desc: Pod has been in a non-ready state for more than 15 minutes.
+    - name: KubeQuotaAlmostFull
+      rule: kube_resourcequota{job="kube-state-metrics",type="used"} / ignoring(instance, job, type) (kube_resourcequota{job="kube-state-metrics",type="hard"} > 0) > 0.9 < 1
+      desc: Namespace quota is going to be full.
+    - name: KubeCPUOvercommit
+      rule: sum(namespace_cpu:kube_pod_container_resource_requests:sum) - (sum(kube_node_status_allocatable{resource="cpu"}) - max(kube_node_status_allocatable{resource="cpu"})) > 0 and (sum(kube_node_status_allocatable{resource="cpu"}) - max(kube_node_status_allocatable{resource="cpu"})) > 0
+      desc: Cluster has overcommitted CPU resource requests.
+    - name: KubeMemoryOvercommit
+      rule: sum(namespace_memory:kube_pod_container_resource_requests:sum) - (sum(kube_node_status_allocatable{resource="memory"}) - max(kube_node_status_allocatable{resource="memory"})) > 0 and (sum(kube_node_status_allocatable{resource="memory"}) - max(kube_node_status_allocatable{resource="memory"})) > 0
+      desc: Cluster has overcommitted memory resource requests.
+    - name: KubeVersionMismatch
+      rule: count(count by(git_version) (label_replace(kubernetes_build_info{job!~"kube-dns|coredns"}, "git_version", "$1", "git_version", "(v[0-9]*.[0-9]*).*"))) > 1
+      desc: Different semantic versions of Kubernetes components running.
+    - name: KubeClientErrors
+      rule: (sum by(instance, job, namespace) (rate(rest_client_requests_total{code=~"5.."}[5m])) / sum by(instance, job, namespace) (rate(rest_client_requests_total[5m]))) > 0.01
+      desc: Kubernetes API server client is experiencing errors.

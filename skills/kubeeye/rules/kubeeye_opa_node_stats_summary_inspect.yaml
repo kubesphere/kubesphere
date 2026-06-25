@@ -1,0 +1,36 @@
+# Example: CheckConfigmap
+# Description: Check if the subnet is used by multiple namespaces in the HostNic configuration.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: node-stats-summary-inspect-rules
+spec:
+  opas:
+  - name: CheckDuplicateSubnets
+    rule: |-
+      package inspect.kubeeye.nodeStatsSummary
+      import rego.v1
+      
+      # 定义阈值 (5GB in bytes)
+      threshold := 5 * 1024 * 1024 * 1024
+      
+      deny contains msg if {
+      
+        pod := input.pods[_]
+        storage := pod["ephemeral-storage"]
+        bytes := storage.usedBytes
+        bytes > threshold
+        
+        gb_used := bytes / (1024 * 1024 * 1024)
+
+        level := "danger"
+        msg := {
+          "Name": sprintf("%v", [pod.podRef.name]),
+          "Namespace": sprintf("%v", [pod.podRef.namespace]),
+          "Type": "Pod",
+          "Level": sprintf("%v", [level]),
+          "Message": sprintf("Pod '%v/%v' ephemeral-storage usage (%.2f GB) exceeds threshold (5 GB)", [pod.podRef.namespace, pod.podRef.name, gb_used]),
+          "Reason": "Pod ephemeral-storage usage exceeds threshold"
+        }
+      }
