@@ -1,0 +1,97 @@
+# Description: Check the sysctl configuration of the host.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: sysctl-inspect-rules
+spec:
+  sysctl:
+    - name: net.ipv4.ip_forward
+      rule: net.ipv4.ip_forward = 1
+      level: warning
+    - name: net.bridge.bridge-nf-call-arptables
+      rule: net.bridge.bridge-nf-call-arptables = 1
+      level: warning
+    - name: net.bridge.bridge-nf-call-ip6tables
+      rule: net.bridge.bridge-nf-call-ip6tables = 1
+      level: warning
+    - name: net.bridge.bridge-nf-call-iptables
+      rule: net.bridge.bridge-nf-call-iptables = 1
+      level: warning
+    - name: net.ipv4.ip_local_reserved_ports
+      rule: net.ipv4.ip_local_reserved_ports = "30000-32767"
+      level: warning
+    - name: vm.max_map_count
+      rule: vm.max_map_count = 262144
+      level: warning
+    - name: vm.swappiness
+      rule: vm.swappiness = 0
+      level: warning
+    - name: vm.overcommit_memory
+      rule: vm.overcommit_memory = 1
+      level: warning
+    - name: fs.inotify.max_user_instances
+      rule: fs.inotify.max_user_instances=524288
+      level: warning
+    - name: fs.inotify.max_user_watches
+      rule: fs.inotify.max_user_watches=524288
+      level: warning
+    - name: kernel.pid_max
+      rule: kernel.pid_max = 65535
+      level: warning
+    - name: fs.pipe-max-size
+      rule: fs.pipe-max-size=4194304
+      level: warning
+    - name: net.core.netdev_max_backlog
+      rule: net.core.netdev_max_backlog=65535
+      level: warning
+    - name: net.core.rmem_max
+      rule: net.core.rmem_max = 33554432
+      level: warning
+    - name: net.core.wmem_max
+      rule: net.core.wmem_max = 33554432
+      level: warning
+    - name: net.ipv4.tcp_max_syn_backlog
+      rule: net.ipv4.tcp_max_syn_backlog = 1048576
+      level: warning
+    - name: net.ipv4.neigh.default.gc_thresh1
+      rule: net.ipv4.neigh.default.gc_thresh1= 512
+      level: warning
+    - name: net.ipv4.neigh.default.gc_thresh2
+      rule: net.ipv4.neigh.default.gc_thresh2 = 2048
+      level: warning
+    - name: net.ipv4.neigh.default.gc_thresh3
+      rule: net.ipv4.neigh.default.gc_thresh3 = 4096
+      level: warning
+    - name: net.core.somaxconn
+      rule: net.core.somaxconn = 32768
+      level: warning
+    - name: net.ipv4.conf.all.rp_filter
+      rule: net.ipv4.conf.all.rp_filter = 1
+      level: warning
+    - name: net.ipv4.conf.default.rp_filter
+      rule: net.ipv4.conf.default.rp_filter =1
+      level: warning
+    - name: net.ipv4.conf.eth0.arp_accept
+      rule: net.ipv4.conf.eth0.arp_accept = 1
+      level: warning
+    - name: fs.aio-max-nr
+      rule: fs.aio-max-nr=262144
+      level: warning
+    - name: net.ipv4.tcp_retries2
+      rule: net.ipv4.tcp_retries2=15
+      level: warning
+    - name: net.ipv4.tcp_max_tw_buckets
+      rule: net.ipv4.tcp_max_tw_buckets = 1048576
+      level: warning
+    - name: net.ipv4.tcp_max_orphans
+      rule: net.ipv4.tcp_max_orphans=65535
+      level: warning
+    - name: net.ipv4.udp_rmem_min
+      rule: net.ipv4.udp_rmem_min = 131072
+      level: warning
+    - name: net.ipv4.udp_wmem_min
+      rule: net.ipv4.udp_wmem_min = 131072
+      level: warning
+
+

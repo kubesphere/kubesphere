@@ -1,0 +1,11 @@
+# Description: Filter the file content by the specified rule.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: filter-file-inspect-rules
+spec:
+  fileFilter:
+    - name: systemLog
+      path: /var/log/syslog
+      rule: error

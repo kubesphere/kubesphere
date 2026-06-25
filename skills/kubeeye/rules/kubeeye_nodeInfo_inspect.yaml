@@ -1,0 +1,20 @@
+# Description: The rules for inspecting Nodes.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: node-info-inspect-rules
+spec:
+  nodeInfo:
+    - name: Cpu
+      rule: cpu > 20
+      resourcesType: cpu
+      desc: CPU usage greater than 20%
+    - name: Memory
+      rule: memory > 20
+      resourcesType: memory
+      desc: memory usage greater than 20%
+    - name: filesystem
+      rule: filesystem > 20
+      resourcesType: filesystem
+      desc: filesystem usage greater than 20%

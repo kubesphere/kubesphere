@@ -1,0 +1,143 @@
+# Description: The rules for inspecting Nodes.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: node-inspect-rules
+spec:
+  opas:
+  - name: NodeHealthCheck
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+
+        input.kind == "Node"
+        input.apiVersion == "v1"
+
+        level := "NotReady"
+        message := "NodeReadyCheck"
+
+        some condition in input.status.conditions
+
+        condition.type == "Ready"
+        condition.status != "True"
+
+        msg = {
+          "Name": sprintf("%v", [input.metadata.name]),
+          "Type": sprintf("%v", [input.kind]),
+          "Level": sprintf("%v", [level]),
+          "Message": sprintf("%v",[message]),
+          "Reason": "节点不是 Ready 状态",
+        }
+      } 
+
+
+  - name: NetworkerUnavailableCheck
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+
+        input.kind == "Node"
+        input.apiVersion == "v1"
+
+        level := "NotReady"
+        message := "NetworkerUnavailableCheck"
+
+        some condition in input.status.conditions
+        condition.type == "NetworkUnavailable"
+        condition.status != "False"
+
+        msg = {
+          "Name": sprintf("%v", [input.metadata.name]),
+          "Type": sprintf("%v", [input.kind]),
+          "Level": sprintf("%v", [level]),
+          "Message": sprintf("%v",[message]),
+          "Reason": "节点网络不可达",
+        }
+      } 
+
+
+  - name: MemoryPressureCheck
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+
+        input.kind == "Node"
+        input.apiVersion == "v1"
+
+        level := "NotReady"
+        message := "MemoryPressureCheck"
+
+        some condition in input.status.conditions
+
+        condition.type == "MemoryPressure"
+        condition.status != "False"
+
+        msg = {
+          "Name": sprintf("%v", [input.metadata.name]),
+          "Type": sprintf("%v", [input.kind]),
+          "Level": sprintf("%v", [level]),
+          "Message": sprintf("%v",[message]),
+          "Reason": "节点内存资源信息异常",
+        }
+      } 
+
+
+  - name: DiskPressureCheck
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+
+        input.kind == "Node"
+        input.apiVersion == "v1"
+
+        level := "NotReady"
+        message := "DiskPressureCheck"
+
+        some condition in input.status.conditions
+        condition.type == "DiskPressure"
+        condition.status != "False"
+
+        msg = {
+          "Name": sprintf("%v", [input.metadata.name]),
+          "Type": sprintf("%v", [input.kind]),
+          "Level": sprintf("%v", [level]),
+          "Message": sprintf("%v",[message]),
+          "Reason": "节点磁盘信息异常",
+        }
+      }
+
+
+  - name: PIDPressureCheck
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+
+        input.kind == "Node"
+        input.apiVersion == "v1"
+
+        level := "NotReady"
+        message := "PIDPressureCheck"
+
+        some condition in input.status.conditions
+        condition.type == "PIDPressure"
+        condition.status != "False"
+
+        msg = {
+          "Name": sprintf("%v", [input.metadata.name]),
+          "Type": sprintf("%v", [input.kind]),
+          "Level": sprintf("%v", [level]),
+          "Message": sprintf("%v",[message]),
+          "Reason": "节点PID信息异常",
+        }
+      }

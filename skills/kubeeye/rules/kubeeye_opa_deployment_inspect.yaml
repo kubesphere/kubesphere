@@ -1,0 +1,448 @@
+# Description: The rules for inspecting Deployment resources.
+---
+apiVersion: kubeeye.kubesphere.io/v1alpha2
+kind: InspectRule
+metadata:
+  name: deployment-inspect-rules
+spec:
+  opas:
+  - name: imagePullPolicyRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+          
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+        
+        level := "WARNING"
+
+        container := input.spec.template.spec.containers[_]
+        container.imagePullPolicy != "IfNotPresent"
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersImagePullPolicyRule",
+            "Reason": sprintf("当前资源镜像拉取策略为: %v , 需要修改为 IfNotPresent", [container.imagePullPolicy]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: readinessProbeRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "WARNING"
+
+        not input.metadata.namespace == "kubeeye-system"
+        
+        container := input.spec.template.spec.containers[_]
+        not container.readinessProbe
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersReadinessProbeRule",
+            "Reason": "当前资源没有配置就绪探针",
+            "Level": sprintf("%v", [level])
+        }
+      }      
+
+  - name: livenessProbeRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "WARNING"
+
+        not input.metadata.namespace == "kubeeye-system"
+
+        container := input.spec.template.spec.containers[_]
+        not container.livenessProbe
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersLivenessProbeRule",
+            "Reason": "当前资源没有配置存活探针",
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: hostPathRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+      
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "DANGER"
+
+        container := input.spec.template.spec.containers[_]
+
+        volume := input.spec.template.spec.volumes[_]
+        
+        "hostPath" in volume
+
+        volume_mount := container.volumeMounts[_]
+
+        volume_mount.name == volume.name
+        not volume_mount.readOnly
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersHostPathRule",
+            "Reason": sprintf("当前资源使用hostPath挂载卷 , 卷名: %v , 未配置只读模式", [volume.name]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: privilegedRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "DANGER"
+
+        input.spec.template.spec.containers[_].securityContext.privileged == true
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersPrivilegedRule",
+            "Reason": "当前资源已启用特权模式",
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: insecureCapabilitiesRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+         
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "CRITICAL"
+        
+        insecureCapabilities := ["CHOWN", "DAC_OVERRIDE", "FSETID", "FOWNER", "MKNOD", "NET_RAW", "SETGID", "SETUID", "SETFCAP", "NET_BIND_SERVICE","SYS_CHROOT","KILL","AUDIT_WRITE"]
+        container := input.spec.template.spec.containers[_]
+        capabilities := container.securityContext.capabilities.add[_]
+        insecureCapabilities[_] == capabilities
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersInsecureCapabilitiesRule",
+            "Reason": sprintf("容器 '%v' 配置了系统权限: %v", [container.name, capabilities]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: highRiskCapabilitiesRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "DANGER"
+
+        HighRiskCapabilities := ["NET_ADMIN", "SYS_ADMIN", "ALL"]
+        container := input.spec.template.spec.containers[_]
+        capabilities := container.securityContext.capabilities.add[_]
+        HighRiskCapabilities[_] == capabilities
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersHighRiskCapabilitiesRule",
+            "Reason": sprintf("容器 '%v' 配置了系统权限: %v", [container.name, capabilities]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: cpuRequestsRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "WARNING"
+
+        container := input.spec.template.spec.containers[_]
+        not container.resources.requests.cpu
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersCPURequestsRule",
+            "Reason": sprintf("容器 '%v' 未配置CPU资源请求", [container.name]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: cpuLimitsRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "WARNING"
+
+        container := input.spec.template.spec.containers[_]
+        not container.resources.limits.cpu
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersCPULimitsRule",
+            "Reason": sprintf("容器 '%v' 未配置CPU资源限制", [container.name]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: memoryRequestsRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "WARNING"
+
+        not input.metadata.namespace == "kubeeye-system"
+
+        container := input.spec.template.spec.containers[_]
+        not container.resources.requests.memory
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersMemoryRequestsRule",
+            "Reason": sprintf("容器 '%v' 未配置内存资源请求", [container.name]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: memoryLimitsRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "WARNING"
+
+        not input.metadata.namespace == "kubeeye-system"
+
+        container := input.spec.template.spec.containers[_]
+        not container.resources.limits.memory
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersMemoryLimitsRule",
+            "Reason": sprintf("容器 '%v' 未配置内存资源限制", [container.name]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: hostPortRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "CRITICAL"
+        
+        not input.metadata.namespace == "kubeeye-system"
+        
+        container := input.spec.template.spec.containers[_]
+        port := container.ports[_]
+        port.hostPort
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersHostPortRule",
+            "Reason": sprintf("容器 '%v' 使用了 hostPort: %v", [container.name, port.hostPort]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: hostPIDRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "CRITICAL"
+
+        not input.metadata.namespace == "kubeeye-system"
+
+        input.spec.template.spec.hostPID == true
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersHostPIDRule",
+            "Reason": "当前资源已启用 hostPID",
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: hostNetworkRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "CRITICAL"
+
+        not input.metadata.namespace == "kubeeye-system"
+
+        input.spec.template.spec.hostNetwork == true
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersHostNetworkRule",
+            "Reason": "当前资源已启用 hostNetwork",
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: hostIPCRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+
+        level := "CRITICAL"
+
+        not input.metadata.namespace == "kubeeye-system"
+
+        input.spec.template.spec.hostIPC == true
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersHostIPCRule",
+            "Reason": "当前资源已启用 hostIPC",
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+  - name: LivenessProbeTimeRuleForDeployment
+    rule: |-
+      package inspect.kubeeye
+      import rego.v1
+
+      deny contains msg if {
+        
+        input.kind == "Deployment"
+        input.apiVersion == "apps/v1"
+        
+        level := "WARNING"
+
+        namespace_check(input.metadata.namespace)
+        
+        container := input.spec.template.spec.containers[_]
+        probe := container.livenessProbe
+        
+        initial_delay := object.get(probe, "initialDelaySeconds", 0)
+        period := object.get(probe, "periodSeconds", 10)
+        failure_threshold := object.get(probe, "failureThreshold", 3)
+        total_time := initial_delay + (failure_threshold * period)
+
+        total_time >= 180
+
+        msg := {
+            "Name": sprintf("%v", [input.metadata.name]),
+            "Namespace": sprintf("%v", [input.metadata.namespace]),
+            "Type": sprintf("%v", [input.kind]),
+            "Message": "ControllersLivenessProbeTimeRule",
+            "Reason": sprintf("容器 %v 存活探针探测总时间 >= 180s", [container.name]),
+            "Level": sprintf("%v", [level])
+        }
+      }
+
+      namespace_check(namespace) if {
+          startswith(namespace, "kubesphere-")
+      }
+      namespace_check(namespace) if {
+          namespace == "kube-system"
+      }
