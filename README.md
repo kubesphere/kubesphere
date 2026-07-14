@@ -13,6 +13,7 @@
 <a href="https://twitter.com/intent/follow?screen_name=KubeSphere"><img src="https://img.shields.io/twitter/follow/KubeSphere?style=social" alt="follow on Twitter"></a>
 <a href="https://join.slack.com/t/kubesphere/shared_invite/zt-2b4t6rdb4-ico_4UJzCln_S2c1pcrIpQ"><img src="https://img.shields.io/badge/Slack-2000%2B-blueviolet?logo=slack&amp;logoColor=white"></a>
 <a href="https://www.youtube.com/channel/UCyTdUQUYjf7XLjxECx63Hpw"><img src="https://img.shields.io/youtube/channel/subscribers/UCyTdUQUYjf7XLjxECx63Hpw?style=social"></a>
+<img src="https://img.shields.io/endpoint?url=https://gittokens.rsamf.com/badge/kubesphere/kubesphere" alt="tokens">
 </p>
 
 
