@@ -1,0 +1,107 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: registries.imageregistry.kubesphere.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.3
+spec:
+  group: imageregistry.kubesphere.io
+  scope: Namespaced
+  names:
+    plural: registries
+    singular: registry
+    kind: Registry
+    shortNames:
+    - reg
+    categories:
+    - kubesphere
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object.'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents.'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RegistrySpec defines the specification of a registry
+            type: object
+            properties:
+              type:
+                description: Type of registry (public or private)
+                type: string
+                enum:
+                - public
+                - private
+              domain:
+                description: Registry address (e.g., Docker Hub, Harbor)
+                type: string
+              host:
+                description: API load balancer address (may differ from Domain)
+                type: string
+              insecure:
+                description: Skip SSL verification
+                type: boolean
+                default: false
+              pullSecret:
+                description: K8s Secret reference for pulling
+                type: object
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+              pushSecret:
+                description: K8s Secret reference for pushing
+                type: object
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+              syncClusters:
+                description: List of clusters to sync with
+                type: array
+                items:
+                  type: string
+            required:
+            - type
+            - domain
+          status:
+            description: RegistryStatus represents the status of a registry
+            type: object
+            properties:
+              connected:
+                description: Connection status
+                type: boolean
+              lastCheckTime:
+                description: Last check timestamp
+                type: string
+                format: date-time
+              repositoryCount:
+                description: Number of images in the repository
+                type: integer
+                format: int32
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Type
+      type: string
+      jsonPath: .spec.type
+    - name: Domain
+      type: string
+      jsonPath: .spec.domain
+    - name: Connected
+      type: boolean
+      jsonPath: .status.connected
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
