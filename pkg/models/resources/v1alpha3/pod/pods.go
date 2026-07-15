@@ -80,6 +80,17 @@ func (p *podsGetter) compare(left runtime.Object, right runtime.Object, field qu
 		return false
 	}
 
+	// Support sorting by aggregated container restart count
+	if field == query.FieldRestartCount {
+		leftRestarts := getAggregatedRestartCount(leftPod)
+		rightRestarts := getAggregatedRestartCount(rightPod)
+		if leftRestarts != rightRestarts {
+			return leftRestarts > rightRestarts
+		}
+		// fall back to metadata if equal
+		return v1alpha3.DefaultObjectMetaCompare(leftPod.ObjectMeta, rightPod.ObjectMeta, query.FieldCreationTimeStamp)
+	}
+
 	return v1alpha3.DefaultObjectMetaCompare(leftPod.ObjectMeta, rightPod.ObjectMeta, field)
 }
 
@@ -301,4 +312,13 @@ func isPodReadyConditionReason(conditions []corev1.PodCondition, reason string) 
 		}
 	}
 	return true
+}
+
+// getAggregatedRestartCount returns the total restart count across all containers in the pod.
+func getAggregatedRestartCount(pod *corev1.Pod) int32 {
+	var total int32
+	for _, cs := range pod.Status.ContainerStatuses {
+		total += cs.RestartCount
+	}
+	return total
 }
