@@ -9,6 +9,7 @@ package iputil
 import (
 	"net"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -24,7 +25,7 @@ func RemoteIp(req *http.Request) string {
 	} else if ip := req.Header.Get(XRealIP); ip != "" {
 		remoteAddr = ip
 	} else if ip = req.Header.Get(XForwardedFor); ip != "" {
-		remoteAddr = ip
+		remoteAddr = strings.TrimSpace(strings.Split(ip, ",")[0])
 	} else {
 		remoteAddr, _, _ = net.SplitHostPort(remoteAddr)
 	}
