@@ -25,6 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/registries/imagesearch/dockerhub"
 	"kubesphere.io/kubesphere/pkg/models/registries/imagesearch/harbor"
 	v2 "kubesphere.io/kubesphere/pkg/models/registries/v2"
+	podmodel "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/pod"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/simple/client/overview"
 )
@@ -269,6 +270,39 @@ func (h *handler) SearchImages(request *restful.Request, response *restful.Respo
 	}
 
 	_ = response.WriteEntity(results)
+}
+
+// ListContainers lists all containers in a given pod, classifying each as
+// "main", "init", or "sidecar" based on the K8s native sidecar feature
+// (init container with restartPolicy=Always) and well-known naming conventions
+// used by Istio, Linkerd, Jaeger, Fluentd, and similar projects.
+func (h *handler) ListContainers(request *restful.Request, response *restful.Response) {
+	namespace := request.PathParameter("namespace")
+	podName := request.PathParameter("pod")
+
+	obj, err := h.resourceGetterV1alpha3.Get("pods", namespace, podName)
+	if err != nil {
+		if err == resourcev1alpha3.ErrResourceNotSupported {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		klog.Error(err)
+		api.HandleError(response, request, err)
+		return
+	}
+
+	pod, ok := obj.(*v1.Pod)
+	if !ok {
+		api.HandleInternalError(response, request, fmt.Errorf("unexpected object type for pod %s/%s", namespace, podName))
+		return
+	}
+
+	containers := podmodel.ClassifyPodContainers(pod)
+	_ = response.WriteAsJson(containers)
 }
 
 func canonicalizeRegistryError(request *restful.Request, response *restful.Response, err error) {
