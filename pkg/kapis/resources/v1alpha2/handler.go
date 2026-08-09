@@ -16,7 +16,9 @@ import (
 	"k8s.io/klog/v2"
 
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	requestctx "kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/components"
 	"kubesphere.io/kubesphere/pkg/models/git"
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
@@ -35,6 +37,7 @@ type handler struct {
 	registryGetter      registries.RegistryGetter
 	kubeconfigOperator  kubeconfig.Interface
 	resourceGetter      *resourcev1alpha3.Getter
+	authorizer          authorizer.Authorizer
 }
 
 func (h *handler) GetSystemHealthStatus(_ *restful.Request, response *restful.Response) {
@@ -155,6 +158,26 @@ func (h *handler) VerifyGitCredential(request *restful.Request, response *restfu
 	if credential.SecretRef != nil {
 		namespace = credential.SecretRef.Namespace
 		secretName = credential.SecretRef.Name
+	}
+	if len(secretName) > 0 {
+		user, _ := requestctx.UserFrom(request.Request.Context())
+		decision, reason, err := h.authorizer.Authorize(authorizer.AttributesRecord{
+			User:            user,
+			Verb:            authorizer.VerbGet,
+			Resource:        "secrets",
+			Name:            secretName,
+			Namespace:       namespace,
+			ResourceRequest: true,
+			ResourceScope:   requestctx.NamespaceScope,
+		})
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
+		if decision != authorizer.DecisionAllow {
+			api.HandleForbidden(response, request, errors.New("%s", reason))
+			return
+		}
 	}
 	err = h.gitVerifier.VerifyGitCredential(credential.RemoteUrl, namespace, secretName)
 	if err != nil {

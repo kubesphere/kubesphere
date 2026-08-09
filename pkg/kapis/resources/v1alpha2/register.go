@@ -18,6 +18,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/resource/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/rest"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/models/components"
@@ -39,7 +40,7 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func NewHandler(cacheClient runtimeclient.Client, k8sVersion *semver.Version, masterURL string, options *terminal.Options) rest.Handler {
+func NewHandler(cacheClient runtimeclient.Client, k8sVersion *semver.Version, masterURL string, options *terminal.Options, authorizer authorizer.Authorizer) rest.Handler {
 	return &handler{
 		resourceGetter:      resourcev1alpha3.NewResourceGetter(cacheClient, k8sVersion),
 		componentsGetter:    components.NewComponentsGetter(cacheClient),
@@ -48,6 +49,7 @@ func NewHandler(cacheClient runtimeclient.Client, k8sVersion *semver.Version, ma
 		gitVerifier:         git.NewGitVerifier(cacheClient),
 		registryGetter:      registries.NewRegistryGetter(cacheClient),
 		kubeconfigOperator:  kubeconfig.NewReadOnlyOperator(cacheClient, masterURL),
+		authorizer:          authorizer,
 	}
 }
 
