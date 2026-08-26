@@ -154,6 +154,7 @@ hosted Kubernetes services.
 - [KubeSphere for Azure AKS](https://market.azure.cn/marketplace/apps/qingcloud.kubesphere)
 - [KubeSphere for DigitalOcean Kubernetes](https://marketplace.digitalocean.com/apps/kubesphere)
 - [KubeSphere on QingCloud AppCenter(QKE)](https://www.qingcloud.com/products/kubesphereqke)
+- [KubeSphere on RepoCloud](https://repocloud.io/details/KubeSphere/)
 
 You can also install KubeSphere on other hosted Kubernetes services within minutes, see
 the [step-by-step guides](https://kubesphere.io/docs/v4.1/02-quickstart/01-install-kubesphere/) to get started.
