@@ -472,7 +472,13 @@ func (r *Reconciler) reconcileMemberCluster(ctx context.Context, cluster *cluste
 			Reason:             clusterv1alpha1.ClusterKSCoreReady,
 			Message:            message,
 		})
-		setConfigHash(cluster)
+		// Only record the applied config hash on success. Persisting it after a failed
+		// install/upgrade would make configChanged report no change on the next
+		// reconcile, permanently skipping retries (e.g. a private registry that was
+		// unreachable during the first attempt would never be retried).
+		if status == corev1.ConditionTrue {
+			setConfigHash(cluster)
+		}
 		if err = r.Update(ctx, cluster); err != nil {
 			return fmt.Errorf("failed to update cluster %s: %v", cluster.Name, err)
 		}
